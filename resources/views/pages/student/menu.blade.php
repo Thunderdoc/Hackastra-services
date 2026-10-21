@@ -12,3 +12,8 @@
 <li class="nav-item">
     <a href="{{ route('attendance.my') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['attendance.my']) ? 'active' : '' }}"><i class="icon-calendar3"></i> My Attendance</a>
 </li>
+
+{{--Circulars--}}
+<li class="nav-item">
+    <a href="{{ route('circulars.index') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['circulars.index', 'circulars.show']) ? 'active' : '' }}"><i class="icon-megaphone"></i> Circulars</a>
+</li>

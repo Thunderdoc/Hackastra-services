@@ -91,6 +91,13 @@
                 </li>
                 @endif
 
+                <li class="nav-item">
+                    <a href="{{ route('circulars.index') }}" class="nav-link {{ (Route::is('circulars.*')) ? 'active' : '' }}">
+                        <i class="icon-megaphone"></i>
+                        <span>Circulars</span>
+                    </a>
+                </li>
+
                 {{--Academics--}}
                 @if(Qs::userIsAcademic())
                     <li class="nav-item nav-item-submenu {{ in_array(Route::currentRouteName(), ['tt.index', 'ttr.edit', 'ttr.show', 'ttr.manage']) ? 'nav-item-expanded nav-item-open' : '' }} ">

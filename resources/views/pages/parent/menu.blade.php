@@ -17,3 +17,8 @@
 <li class="nav-item">
     <a href="{{ route('my_fees') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['my_fees', 'my_fees.show']) ? 'active' : '' }}"><i class="icon-coins"></i> Fees</a>
 </li>
+
+{{--Circulars--}}
+<li class="nav-item">
+    <a href="{{ route('circulars.index') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['circulars.index', 'circulars.show']) ? 'active' : '' }}"><i class="icon-megaphone"></i> Circulars</a>
+</li>
