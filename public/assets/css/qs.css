@@ -1951,3 +1951,50 @@ body.sidebar-xs .sidebar-main .lav-sidebar-session{margin-left:6px;margin-right:
 .sidebar.sidebar-main .card.card-sidebar-mobile::-webkit-scrollbar,
 .sidebar.sidebar-main .sidebar-content::-webkit-scrollbar,
 .sidebar.sidebar-main .nav-group-sub::-webkit-scrollbar{display:none!important;width:0;height:0}
+
+/* ============================================================
+   Loop 45 — Submenu inline (Workstream BQ). Owner screenshot
+   2026-10-21 23:16 IST: with the sidebar EXPANDED, an open
+   submenu (Administrative > Payments: Create Payment, Manage
+   Payments, Student Payments, Fee Defaulters, Collection
+   Report, Payroll) rendered as a noticeably darker, bordered
+   rectangle floating inside the sidebar — a pasted-in card
+   instead of an accordion flowing from the parent row.
+   ROOT CAUSE: TWO stacked fills. (1) The theme itself paints
+   every top-level group in a dark sidebar —
+     .sidebar-dark .nav-sidebar > .nav-item-submenu >
+       .nav-group-sub{background-color:rgba(0,0,0,.15)}
+   and it outweighs a plain .sidebar-main rule (four classes),
+   which is why the box survived earlier sidebar loops.
+   (2) Our own base rule near the top of this file —
+     .sidebar-main .nav-group-sub{background:rgba(0,0,0,.1);
+       border-left:1px solid rgba(255,255,255,.12);
+       margin:0 8px 4px 18px;padding:2px 0}
+   — fills EVERY level (nested groups compound it a second
+   time; measured (11,28,44) inside a level-2 group vs the
+   (16,38,59) sidebar surface) and its 8px right / 4px bottom
+   margins inset the block so it visibly floats, with the
+   hard left edge completing the "card". Apart from that one
+   fill, the theme's native group carries no border, margin
+   or shadow at all — just display toggling and link indent.
+   THE CURE (this loop): the open group is ONE continuous
+   surface with the sidebar — no fill, no shadow, no right or
+   bottom inset; children flow straight under their parent
+   row past a hairline guide at the indent (the base rule's
+   border-left, kept deliberately as that guide), and child
+   rows speak the top-level row language (7px radius, 35px
+   min-height, 9px vertical padding, background hover). The
+   active child's solid brand blue (Loop 24 area) is kept —
+   the hover fill is :not(.active)-guarded so it can never
+   wash it out. Structural, not group-specific: every role,
+   every group, every nesting level. Scoped to the expanded
+   sidebar only (body:not(.sidebar-xs)): the collapsed rail
+   and its flyouts are Workstream BP's territory, and Loop
+   35's shell/scrollbar rules are untouched. No markup, href,
+   order or gate changes — presentation only.
+   ============================================================ */
+body:not(.sidebar-xs) .sidebar.sidebar-dark .nav-group-sub{background:transparent;box-shadow:none;margin:1px 0 3px 18px}
+body:not(.sidebar-xs) .sidebar-main .nav-group-sub .nav-link,
+body:not(.sidebar-xs) .sidebar-main .nav-group-sub .nav-group-sub .nav-link{border-radius:7px;min-height:35px;padding:9px 10px 9px 12px}
+body:not(.sidebar-xs) .sidebar-main .nav-group-sub .nav-link:not(.active):hover,
+body:not(.sidebar-xs) .sidebar-main .nav-group-sub .nav-group-sub .nav-link:not(.active):hover{background:rgba(255,255,255,.08)}
