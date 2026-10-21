@@ -413,3 +413,183 @@ a.session-chip:hover{background:#e2ebfa;text-decoration:none;color:#43556c}
 .dashboard-heading-icon{align-items:center;background:#eef3fb;border-radius:50%;color:#2867dc;display:inline-flex;font-size:15px;height:34px;justify-content:center;width:34px}
 .dashboard-action-grid a{font-size:11px;min-height:78px}
 .dashboard-stat-card{width:100%}
+
+/* ============ Loop 12 — Student home (Workstream V) ============ */
+.stu-stats-row{display:grid;gap:16px;grid-template-columns:repeat(5,1fr)}
+.stu-stats-row .dashboard-stat-card{flex-direction:column;gap:10px;margin-bottom:0;width:100%}
+@media (max-width:1199px){.stu-stats-row{grid-template-columns:repeat(3,1fr)}}
+@media (max-width:767px){.stu-stats-row{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:479px){.stu-stats-row{grid-template-columns:1fr}}
+.stu-status-upcoming{background:#e9f1ff;color:#2867dc}
+.stu-status-in-progress{background:#e7f7f0;color:#188b66}
+.stu-status-completed{background:#eef1f5;color:#66788c}
+.stu-status-scheduled{background:#f1edff;color:#6845d8}
+.stu-prio-normal{background:#eef1f5;color:#43556c}
+.stu-prio-important{background:#fff3df;color:#97590f}
+.stu-prio-urgent{background:#fdecec;color:#c0392b}
+.stu-subject-row{align-items:center;border-top:1px solid #edf1f5;display:flex;justify-content:space-between;gap:14px;padding:12px 22px}
+.stu-subject-row:first-of-type{border-top:0}
+.stu-subject-name strong{color:#172536;font-size:.85rem}
+.stu-subject-teacher{color:#66788c;font-size:.78rem;white-space:nowrap}
+.stu-subject-teacher i{color:#3478f6;margin-right:4px}
+.stu-attendance-body{align-items:center;display:flex;gap:20px;padding:4px 22px 22px}
+.stu-attendance-percent{color:#172536;font-size:2rem;font-weight:700;line-height:1}
+.stu-attendance-rows{display:flex;flex-direction:column;gap:6px}
+.stu-attendance-rows span{align-items:center;color:#43556c;display:flex;font-size:.8rem;gap:8px}
+.stu-attendance-rows strong{color:#172536;margin-left:auto;padding-left:14px}
+.stu-dot{border-radius:50%;display:inline-block;height:9px;width:9px}
+.stu-dot-present{background:#188b66}.stu-dot-late{background:#e8a13a}.stu-dot-absent{background:#d9534f}
+.stu-action-grid{grid-template-columns:repeat(3,1fr)}
+@media (max-width:479px){.stu-action-grid{grid-template-columns:repeat(2,1fr)}}
+.stu-circular-row{align-items:center;border-top:1px solid #edf1f5;display:flex;gap:12px;justify-content:space-between;padding:12px 22px}
+.stu-circular-row:first-of-type{border-top:0}
+.stu-circular-row:hover{background:#f8faff;text-decoration:none}
+.stu-circular-copy strong{color:#172536;display:block;font-size:.85rem}
+.stu-circular-copy small{color:#66788c;font-size:.72rem}
+.stu-reminder-chips{display:flex;flex-wrap:wrap;gap:12px;padding:0 22px 22px}
+.stu-reminder-chip{align-items:center;background:#f8faff;border:1px solid #e4eaf1;border-radius:8px;color:#43556c;display:flex;gap:11px;padding:11px 15px}
+.stu-reminder-chip i{color:#3478f6;font-size:17px}
+.stu-reminder-chip strong,.stu-reminder-chip small{display:block}
+.stu-reminder-chip strong{color:#172536;font-size:.82rem}
+.stu-reminder-chip small{color:#66788c;font-size:.72rem;margin-top:2px}
+a.stu-reminder-chip:hover{background:#edf4ff;text-decoration:none}
+.stu-reminder-overdue{background:#fdf3f3;border-color:#f3d3d3}
+.stu-reminder-overdue i,.stu-reminder-overdue strong{color:#c0392b}
+
+/* ============ Loop 13 — Parent home (Workstream W) ============ */
+.par-child-head{align-items:center;display:flex;gap:14px}
+.par-child-photo{border:3px solid #eef3fb;border-radius:50%;flex:none;height:56px;object-fit:cover;width:56px}
+.par-action-grid{display:grid;gap:10px;grid-template-columns:repeat(5,1fr);padding:0 22px 22px}
+.par-action-grid a{align-items:center;background:#f8faff;border:1px solid #e4eaf1;border-radius:7px;color:#3478f6;display:flex;flex-direction:column;font-size:11px;gap:8px;justify-content:center;min-height:72px;padding:8px;text-align:center}
+.par-action-grid a:hover{background:#edf4ff;color:#2867dc;text-decoration:none}
+.par-action-grid i{font-size:16px}
+@media (max-width:1199px){.par-action-grid{grid-template-columns:repeat(3,1fr)}}
+@media (max-width:575px){.par-action-grid{grid-template-columns:repeat(2,1fr);padding-left:16px;padding-right:16px}}
+.par-fee-progress-wrap{padding:14px 22px 2px}
+.par-fee-progress{background:#eef1f5;border-radius:999px;height:8px;overflow:hidden}
+.par-fee-progress span{background:#188b66;border-radius:999px;display:block;height:100%}
+.par-fees-total td{background:#f8fafc;border-top:2px solid #e4eaf1}
+.par-circular{align-items:center;border-top:1px solid #eef1f5;color:inherit;display:flex;gap:12px;justify-content:space-between;padding:13px 22px}
+.par-circular:first-of-type{border-top:0}
+.par-circular:hover{background:#f8faff;text-decoration:none}
+.par-circular-copy strong{color:#172536;display:block;font-size:.9rem}
+.par-circular-copy small{color:#66788c}
+.par-pill{border-radius:999px;flex:none;font-size:.68rem;font-weight:700;letter-spacing:.3px;padding:4px 10px;text-transform:uppercase}
+.par-pill-normal{background:#eef3fb;color:#66788c}
+.par-pill-important{background:#fdf3e3;color:#97590f}
+.par-pill-urgent{background:#fdecea;color:#c0392b}
+.par-reminders{align-items:center;display:flex;flex-wrap:wrap;gap:10px}
+.par-reminders-label{align-items:center;color:#5c6f84;display:inline-flex;font-size:.8rem;font-weight:700;gap:7px;letter-spacing:.3px;text-transform:uppercase}
+.par-reminder{align-items:center;border:1px solid #e4eaf1;border-radius:999px;color:#43556c;display:inline-flex;font-size:.85rem;gap:8px;padding:8px 14px}
+.par-reminder i{font-size:15px}
+a.par-reminder:hover{text-decoration:none}
+.par-reminder-warning{background:#fff8ec;border-color:#f0dcb2}
+.par-reminder-warning i{color:#97590f}
+a.par-reminder-warning:hover{background:#fdf3e3}
+.par-reminder-success{background:#edf7f2;border-color:#cde8da}
+.par-reminder-success i{color:#188b66}
+.par-reminder-info{background:#eef3fb;border-color:#d7e2f2}
+.par-reminder-info i{color:#2867dc}
+a.par-reminder-info:hover{background:#e2ebfa}
+
+/* ============ Loop 15 — Librarian home ============ */
+.lib-pill-issued{background:#e8f0fe;color:#2867dc}
+.lib-pill-overdue{background:#fdeceb;color:#c0392b}
+.lib-pill-urgent{background:#fdeceb;color:#c0392b}
+.lib-pill-normal{background:#eef1f5;color:#5c6f84}
+.lib-reminders{display:grid;gap:10px;grid-template-columns:repeat(3,1fr);padding:0 22px 22px}
+.lib-reminder{align-items:center;border:1px solid #e4eaf1;border-radius:7px;display:flex;gap:10px;padding:12px}
+.lib-reminder:hover{text-decoration:none}
+.lib-reminder i{font-size:17px}
+.lib-reminder strong,.lib-reminder small{display:block}
+.lib-reminder strong{color:#172536;font-size:.8rem}
+.lib-reminder small{color:#718096;font-size:.68rem;margin-top:2px}
+.lib-reminder-danger{background:#fdf3f2}.lib-reminder-danger i{color:#c0392b}
+.lib-reminder-warning{background:#fff8ec}.lib-reminder-warning i{color:#b7791f}
+.lib-reminder-info{background:#f8faff}.lib-reminder-info i{color:#2867dc}
+.lib-circular{border-top:1px solid #edf1f5;display:flex;align-items:flex-start;gap:10px;justify-content:space-between;padding:13px 22px}
+.lib-circular:hover{background:#fafbfd;text-decoration:none}
+.lib-circular-copy strong{color:#172536;display:block;font-size:.82rem;line-height:1.35}
+.lib-circular-copy small{color:#9aa7b5;display:block;font-size:.7rem;margin-top:3px}
+@media (max-width:767px){.lib-reminders{grid-template-columns:1fr;padding-left:16px;padding-right:16px}.lib-circular{padding-left:16px;padding-right:16px}}
+
+/* =====================================================================
+   LOOP 11 — Teacher dashboard rebuild (reference layout)
+   Five-card stat row, today's periods with live status pills, 2-col
+   quick-action tiles inside the panel, student donut + legend, recent
+   circulars list and the reminders strip. Colours reuse Loop 9 tokens.
+   ===================================================================== */
+.teacher-stat-grid{display:grid;gap:16px;grid-template-columns:repeat(5,1fr)}
+.teacher-stat-grid .dashboard-stat-card{height:100%;width:100%}
+@media (max-width:1399px){.teacher-stat-grid{grid-template-columns:repeat(3,1fr)}}
+@media (max-width:767px){.teacher-stat-grid{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:480px){.teacher-stat-grid{grid-template-columns:1fr}}
+.dashboard-stat-red .dashboard-stat-icon{background:#fdecec;color:var(--qs-danger)}
+.period-status-upcoming{background:#e9f1ff;color:var(--qs-primary-action)}
+.period-status-live{background:var(--qs-success-tint);color:var(--qs-success)}
+.period-status-completed{background:#eef1f5;color:var(--qs-meta)}
+.teacher-action-grid{grid-template-columns:repeat(2,1fr)}
+@media (max-width:480px){.teacher-action-grid{grid-template-columns:1fr}}
+.teacher-donut-wrap{align-items:center;display:flex;gap:20px;padding:4px 22px 24px}
+.teacher-donut{flex:0 0 150px;height:150px;position:relative;width:150px}
+.teacher-donut svg{display:block;height:150px;width:150px}
+.teacher-donut-center{align-items:center;display:flex;flex-direction:column;inset:0;justify-content:center;position:absolute;text-align:center}
+.teacher-donut-center strong{color:#172536;font-size:22px;line-height:1.1}
+.teacher-donut-center small{color:var(--qs-muted);font-size:12px}
+.teacher-donut-legend{flex:1;list-style:none;margin:0;padding:0}
+.teacher-donut-legend li{align-items:center;border-top:1px solid #edf1f5;color:var(--qs-ink);display:flex;font-size:13px;gap:8px;padding:8px 0}
+.teacher-donut-legend li:first-child{border-top:0}
+.teacher-donut-legend li strong{color:#172536;margin-left:auto}
+@media (max-width:480px){.teacher-donut-wrap{flex-direction:column}}
+.teacher-circular{align-items:flex-start;border-top:1px solid #edf1f5;display:flex;gap:12px;justify-content:space-between;padding:13px 22px}
+.teacher-circular:first-of-type{border-top:0}
+.teacher-circular:hover{background:#f8faff;text-decoration:none}
+.teacher-circular-copy strong{color:#172536;display:block;font-size:13px}
+.teacher-circular-copy small{color:var(--qs-muted);display:block;font-size:12px;margin-top:3px}
+.teacher-circular-chips{display:flex;flex:0 0 auto;flex-direction:column;gap:6px;align-items:flex-end}
+.circ-chip-audience{background:#eef1f5;color:var(--qs-ink)}
+.circ-chip-priority-normal{background:#e9f1ff;color:var(--qs-primary-action)}
+.circ-chip-priority-important{background:var(--qs-warning-tint);color:var(--qs-warning)}
+.circ-chip-priority-urgent{background:#fdecec;color:var(--qs-danger)}
+.teacher-reminder-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));padding:0 22px 22px}
+.teacher-reminder{align-items:center;background:#f8faff;border:1px solid #e4eaf1;border-radius:8px;display:flex;gap:12px;padding:14px 16px}
+.teacher-reminder:hover{background:#edf4ff;text-decoration:none}
+.teacher-reminder-copy strong{color:#172536;display:block;font-size:13px}
+.teacher-reminder-copy small{color:var(--qs-muted);display:block;font-size:12px;margin-top:2px}
+
+/* =====================================================================
+   LOOP 14 — Accountant home (Workstream X)
+   Five-card fee stat row, collection-trend chart wrap, 2-col quick
+   actions inside the rail panel, fee-defaulters snapshot rows, recent
+   circulars list and the reminders strip. Self-contained: every rule
+   is acc- prefixed (shared dashboard-* classes come from earlier
+   loops). Colours reuse the Loop 9 tokens.
+   ===================================================================== */
+.acc-stat-grid{display:grid;gap:16px;grid-template-columns:repeat(5,1fr)}
+.acc-stat-grid .dashboard-stat-card{height:100%;width:100%}
+@media (max-width:1399px){.acc-stat-grid{grid-template-columns:repeat(3,1fr)}}
+@media (max-width:767px){.acc-stat-grid{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:480px){.acc-stat-grid{grid-template-columns:1fr}}
+.acc-action-grid{grid-template-columns:repeat(2,1fr)}
+@media (max-width:480px){.acc-action-grid{grid-template-columns:1fr}}
+.acc-chart-wrap{padding:2px 22px 20px}
+.acc-defaulter{align-items:center;border-top:1px solid #edf1f5;display:flex;gap:12px;justify-content:space-between;padding:12px 22px}
+.acc-defaulter:first-of-type{border-top:0}
+.acc-defaulter-copy strong{color:#172536;display:block;font-size:13px}
+.acc-defaulter-copy small{color:var(--qs-muted);display:block;font-size:12px;margin-top:2px}
+.acc-defaulter-amount{color:#172536;font-size:13px;white-space:nowrap}
+.acc-circular{align-items:flex-start;border-top:1px solid #edf1f5;display:flex;gap:12px;justify-content:space-between;padding:13px 22px}
+.acc-circular:first-of-type{border-top:0}
+.acc-circular:hover{background:#f8faff;text-decoration:none}
+.acc-circular-copy strong{color:#172536;display:block;font-size:13px}
+.acc-circular-copy small{color:var(--qs-muted);display:block;font-size:12px;margin-top:3px}
+.acc-circular-chips{align-items:flex-end;display:flex;flex:0 0 auto;flex-direction:column;gap:6px}
+.acc-chip-audience{background:#eef1f5;color:var(--qs-ink)}
+.acc-chip-priority-normal{background:#e9f1ff;color:var(--qs-primary-action)}
+.acc-chip-priority-important{background:var(--qs-warning-tint);color:var(--qs-warning)}
+.acc-chip-priority-urgent{background:#fdecec;color:var(--qs-danger)}
+.acc-reminder-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));padding:0 22px 22px}
+.acc-reminder{align-items:center;background:#f8faff;border:1px solid #e4eaf1;border-radius:8px;display:flex;gap:12px;padding:14px 16px}
+.acc-reminder:hover{background:#edf4ff;text-decoration:none}
+.acc-reminder-copy strong{color:#172536;display:block;font-size:13px}
+.acc-reminder-copy small{color:var(--qs-muted);display:block;font-size:12px;margin-top:2px}

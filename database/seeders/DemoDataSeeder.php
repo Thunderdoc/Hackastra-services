@@ -85,6 +85,9 @@ class DemoDataSeeder extends Seeder
         $this->seedLibrary($students);
         $this->seedEvents();
         $this->seedExamAndMarks($students, $session);
+        $this->seedCirculars();
+        $this->seedTeacherTimetables($session);
+        $this->seedLibrarianUser();
     }
 
     /**
@@ -527,9 +530,212 @@ class DemoDataSeeder extends Seeder
         }
     }
 
+    /**
+     * Loop 11 — a small set of realistic circulars so the dashboards'
+     * Recent Circulars panels and the circulars feed are alive in the
+     * demo. Published by the Super Admin, live from two days ago until
+     * ten days from now, one per audience that matters. Guarded on the
+     * circulars table being empty, like every other domain here.
+     */
+    protected function seedCirculars(): void
+    {
+        if (!Schema::hasTable('circulars') || DB::table('circulars')->count() > 0) {
+            return;
+        }
+
+        $publisher = DB::table('users')->where('email', 'cj@cj.com')->value('id')
+            ?: DB::table('users')->where('user_type', 'super_admin')->value('id');
+
+        // title, body, audience, priority
+        $circulars = [
+            ['School closed for the Diwali break',
+                'The school will remain closed for the Diwali break. Classes resume on the next working day; the school office stays open for urgent enquiries.',
+                'all', 'normal'],
+            ['Term 1 marks entry deadline',
+                'All teachers are requested to complete Term 1 marks entry for their subjects before the deadline so that report cards can be prepared on time.',
+                'teachers', 'important'],
+            ['Parent-Teacher Meeting this Saturday',
+                'A Parent-Teacher Meeting will be held this Saturday from 9:00 AM. Parents are requested to meet the class teacher of their ward to discuss Term 1 progress.',
+                'parents', 'normal'],
+            ['Term 1 fee reminder',
+                'Parents who are yet to pay the Term 1 fees are requested to complete the payment at the school office at the earliest. Please ignore this notice if you have already paid.',
+                'parents', 'important'],
+        ];
+
+        $rows = [];
+        foreach ($circulars as [$title, $body, $audience, $priority]) {
+            $rows[] = [
+                'title' => $title,
+                'body' => $body,
+                'audience' => $audience,
+                'priority' => $priority,
+                'published_by' => $publisher,
+                'starts_at' => Carbon::today()->subDays(2)->toDateString(),
+                'expires_at' => Carbon::today()->addDays(10)->toDateString(),
+                'is_published' => 1,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+        }
+
+        DB::table('circulars')->insert($rows);
+    }
+
+    /**
+     * Loop 11 — class timetables for the demo teacher so the Teacher
+     * Dashboard's "Today's Periods" panel shows real rows on any
+     * weekday. Two of the teacher's subject assignments (different
+     * classes where the seed provides them) each get a timetable
+     * record, three time slots, and one entry per slot for Monday to
+     * Friday — written exactly the way TimeTableController@store and
+     * @store_time_slot build them (same columns, same strtotime
+     * formulas). Guarded per timetable: a record that already has
+     * entries is never touched.
+     */
+    protected function seedTeacherTimetables(string $session): void
+    {
+        if (!Schema::hasTable('time_tables') || !Schema::hasTable('time_slots')) {
+            return;
+        }
+
+        $teacherId = DB::table('users')->where('email', 'teacher@teacher.com')->value('id')
+            ?: DB::table('users')->where('user_type', 'teacher')->value('id');
+        if (!$teacherId) {
+            return;
+        }
+
+        $subjects = DB::table('subjects')
+            ->where('teacher_id', $teacherId)->orderBy('id')->get();
+        if ($subjects->isEmpty()) {
+            return;
+        }
+
+        $picks = collect([$subjects->first()]);
+        $second = $subjects->first(function ($s) use ($subjects) {
+            return $s->my_class_id !== $subjects->first()->my_class_id;
+        }) ?: ($subjects->count() > 1 ? $subjects->get(1) : null);
+        if ($second) {
+            $picks->push($second);
+        }
+
+        $days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+        // [hour_from, min_from, meridian_from, hour_to, min_to, meridian_to]
+        $slotSets = [
+            [['8', '00', 'AM', '8', '40', 'AM'], ['8', '40', 'AM', '9', '20', 'AM'], ['10', '00', 'AM', '10', '40', 'AM']],
+            [['9', '20', 'AM', '10', '00', 'AM'], ['10', '40', 'AM', '11', '20', 'AM'], ['11', '20', 'AM', '12', '00', 'PM']],
+        ];
+
+        foreach ($picks as $i => $subject) {
+            $ttr = DB::table('time_table_records')
+                ->where('my_class_id', $subject->my_class_id)
+                ->whereNull('exam_id')
+                ->where('year', $session)
+                ->first();
+
+            if ($ttr) {
+                $ttrId = $ttr->id;
+            } else {
+                $className = DB::table('my_classes')->where('id', $subject->my_class_id)->value('name') ?: 'Class';
+                $name = $className . ' Timetable';
+                if (DB::table('time_table_records')->where('name', $name)->exists()) {
+                    $name .= ' (' . $session . ')';
+                }
+                $ttrId = DB::table('time_table_records')->insertGetId([
+                    'name' => $name,
+                    'my_class_id' => $subject->my_class_id,
+                    'exam_id' => null,
+                    'year' => $session,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
+            // Idempotency guard: never add periods to a timetable that
+            // already has entries.
+            if (DB::table('time_tables')->where('ttr_id', $ttrId)->count() > 0) {
+                continue;
+            }
+
+            $slots = [];
+            foreach ($slotSets[$i % count($slotSets)] as [$hf, $mf, $merf, $ht, $mt, $mert]) {
+                $timeFrom = $hf . ':' . $mf . ' ' . $merf;
+                $timeTo = $ht . ':' . $mt . ' ' . $mert;
+                $existing = DB::table('time_slots')
+                    ->where('ttr_id', $ttrId)
+                    ->where('timestamp_from', (string) strtotime($timeFrom))
+                    ->where('timestamp_to', (string) strtotime($timeTo))
+                    ->first();
+                if ($existing) {
+                    $slots[] = $existing;
+                    continue;
+                }
+                $slotId = DB::table('time_slots')->insertGetId([
+                    'ttr_id' => $ttrId,
+                    'hour_from' => (int) $hf,
+                    'min_from' => $mf,
+                    'meridian_from' => $merf,
+                    'hour_to' => (int) $ht,
+                    'min_to' => $mt,
+                    'meridian_to' => $mert,
+                    'time_from' => $timeFrom,
+                    'time_to' => $timeTo,
+                    'timestamp_from' => (string) strtotime($timeFrom),
+                    'timestamp_to' => (string) strtotime($timeTo),
+                    'full' => $timeFrom . ' - ' . $timeTo,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+                $slots[] = DB::table('time_slots')->where('id', $slotId)->first();
+            }
+
+            $rows = [];
+            foreach ($days as $dayNum => $day) {
+                foreach ($slots as $slot) {
+                    $rows[] = [
+                        'ttr_id' => $ttrId,
+                        'ts_id' => $slot->id,
+                        'subject_id' => $subject->id,
+                        'exam_date' => null,
+                        'timestamp_from' => (string) strtotime($day . ' ' . $slot->time_from),
+                        'timestamp_to' => (string) strtotime($day . ' ' . $slot->time_to),
+                        'day' => $day,
+                        'day_num' => $dayNum + 1,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+                }
+            }
+            DB::table('time_tables')->insert($rows);
+        }
+    }
+
     /** Unsigned crc32 so hash-derived values are identical on any platform. */
     protected function hashOf(string $key): int
     {
         return (int) sprintf('%u', crc32($key));
+    }
+
+    /**
+     * Demo librarian login so the librarian portal can be tried on the demo
+     * (UsersTableSeeder ships no librarian). Email-guarded, runs once.
+     */
+    protected function seedLibrarianUser(): void
+    {
+        if (!Schema::hasTable('users')) {
+            return;
+        }
+        if (DB::table('users')->where('email', 'librarian@librarian.com')->exists()) {
+            return;
+        }
+        DB::table('users')->insert([
+            'name' => 'Demo Librarian',
+            'email' => 'librarian@librarian.com',
+            'username' => 'librarian',
+            'password' => bcrypt('cj'),
+            'user_type' => 'librarian',
+            'code' => 'LIB' . strtoupper(substr(md5('librarian@librarian.com'), 0, 6)),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
     }
 }

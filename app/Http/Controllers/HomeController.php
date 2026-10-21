@@ -17,6 +17,13 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use App\Helpers\Money;
+use App\Models\Book;
+use App\Models\BookRequest;
+use App\Models\Circular;
+use App\Models\Exam;
+use App\Models\Receipt;
+use App\Repositories\PaymentRepo;
 
 class HomeController extends Controller
 {
@@ -73,6 +80,12 @@ class HomeController extends Controller
 
         if ($user_type === 'accountant') {
             return view('pages.accountant.home', array_merge($d, $this->accountantHomeData($now)));
+        }
+        // Workstream Y: the librarian used to fall through to the
+        // school-wide SAT board; they get a library home instead —
+        // catalogue, loans out, and what is due or overdue.
+        if ($user_type === 'librarian') {
+            return view('pages.librarian.home', array_merge($d, $this->librarianHomeData($now)));
         }
 
         // Workstream R: the platform owner lands on a platform home —
@@ -467,6 +480,14 @@ class HomeController extends Controller
         $class_ids = $subjects->pluck('my_class_id')->filter()->unique()->values();
         $sections_led = Section::with('my_class')->where('teacher_id', $teacher_id)->get();
 
+        // Sections this teacher leads, grouped by class — timetables in
+        // this schema are class-level, so a period's "section" can only
+        // honestly be a section of that class the teacher leads.
+        $led_by_class = $sections_led->groupBy('my_class_id')
+            ->map(function ($sections) {
+                return $sections->pluck('name')->all();
+            });
+
         $today_periods = collect();
         if (Schema::hasTable('time_tables')) {
             $today_periods = TimeTable::with(['subject.my_class', 'time_slot', 'tt_record.my_class'])
@@ -475,10 +496,138 @@ class HomeController extends Controller
                     $q->where('teacher_id', $teacher_id);
                 })
                 ->get()
-                ->sortBy(function ($period) {
-                    return optional($period->time_slot)->timestamp_from ?? $period->ts_id;
+                ->map(function (TimeTable $period) use ($now, $led_by_class) {
+                    $slot = $period->time_slot;
+                    $start = $end = null;
+                    if ($slot && $slot->time_from && $slot->time_to) {
+                        $start = Carbon::parse($now->toDateString() . ' ' . $slot->time_from);
+                        $end = Carbon::parse($now->toDateString() . ' ' . $slot->time_to);
+                    }
+
+                    if ($start === null) {
+                        $status = 'upcoming';
+                        $status_label = 'Upcoming';
+                    } elseif ($now->lt($start)) {
+                        $status = 'upcoming';
+                        $status_label = 'Upcoming';
+                    } elseif ($now->gt($end)) {
+                        $status = 'completed';
+                        $status_label = 'Completed';
+                    } else {
+                        $status = 'live';
+                        $status_label = 'In progress';
+                    }
+
+                    $class = optional($period->tt_record)->my_class ?: optional($period->subject)->my_class;
+
+                    return [
+                        'period' => $period,
+                        'time_label' => optional($slot)->full ?: '—',
+                        'subject_name' => optional($period->subject)->name ?: '—',
+                        'class_name' => optional($class)->name ?: '—',
+                        'sections' => $class ? ($led_by_class[$class->id] ?? []) : [],
+                        'status' => $status,
+                        'status_label' => $status_label,
+                        'sort' => $start ? $start->format('H:i') : (optional($slot)->timestamp_from ?? '99:99'),
+                        'ttr_id' => $period->ttr_id,
+                    ];
                 })
+                ->sortBy('sort')
                 ->values();
+        }
+
+        // My Classes rows + Student Overview slices: one row per class
+        // the teacher teaches in, with the distinct active students of
+        // that class (student records are per class+section, so a class
+        // count never double-counts a student).
+        $student_counts = $class_ids->isEmpty()
+            ? collect()
+            : StudentRecord::where('grad', 0)
+                ->whereIn('my_class_id', $class_ids)
+                ->select('my_class_id', DB::raw('count(*) as total'))
+                ->groupBy('my_class_id')
+                ->pluck('total', 'my_class_id');
+
+        $palette = ['#3478f6', '#188b66', '#f2a13b', '#6845d8', '#c0392b', '#66788c'];
+        $my_classes = collect();
+        $student_overview = collect();
+        $subjects->groupBy('my_class_id')->each(function ($class_subjects, $class_id) use (&$my_classes, &$student_overview, $student_counts, $led_by_class, $palette) {
+            $class = $class_subjects->first()->my_class;
+            $count = (int) ($student_counts[$class_id] ?? 0);
+            $my_classes->push([
+                'class' => $class,
+                'subjects' => $class_subjects->pluck('name')->unique()->values()->all(),
+                'student_count' => $count,
+                'sections_led' => $led_by_class[$class_id] ?? [],
+            ]);
+            $student_overview->push([
+                'label' => optional($class)->name ?: 'Class',
+                'count' => $count,
+                'color' => $palette[$student_overview->count() % count($palette)],
+            ]);
+        });
+        $my_classes = $my_classes->sortBy(function ($row) {
+            return optional($row['class'])->name;
+        })->values();
+
+        // Recent Circulars: only what a teacher may read (published, in
+        // its display window, addressed to all/staff/teachers) — the
+        // same scopes the circulars feed itself uses.
+        $recent_circulars = collect();
+        $new_circulars_count = 0;
+        if (class_exists(\App\Models\Circular::class) && Schema::hasTable('circulars')) {
+            $recent_circulars = \App\Models\Circular::published()
+                ->forAudience('teacher')
+                ->latest()
+                ->take(5)
+                ->get();
+            $new_circulars_count = \App\Models\Circular::published()
+                ->forAudience('teacher')
+                ->where('created_at', '>=', $now->copy()->subDays(7))
+                ->count();
+        }
+
+        $exams_this_session = Schema::hasTable('exams')
+            ? Exam::where('year', Qs::getCurrentSession())->count()
+            : 0;
+
+        $upcoming_events = $this->upcomingEvents($now);
+
+        // Important Reminders: every chip is a count of real records
+        // and links to the page where that work happens.
+        $reminders = [];
+        $reminders[] = [
+            'icon' => 'icon-calendar3', 'tone' => 'blue',
+            'title' => $today_periods->count() . ' ' . ($today_periods->count() === 1 ? 'period' : 'periods') . ' today',
+            'text' => $today_periods->isEmpty() ? 'Nothing scheduled for ' . $now->format('l') : 'Your timetable for ' . $now->format('l'),
+            'link' => route('tt.index'),
+        ];
+        if ($new_circulars_count > 0) {
+            $reminders[] = [
+                'icon' => 'icon-megaphone', 'tone' => 'orange',
+                'title' => $new_circulars_count . ' new ' . ($new_circulars_count === 1 ? 'circular' : 'circulars'),
+                'text' => 'Published in the last 7 days',
+                'link' => route('circulars.index'),
+            ];
+        }
+        if ($exams_this_session > 0) {
+            $reminders[] = [
+                'icon' => 'icon-book', 'tone' => 'purple',
+                'title' => $exams_this_session . ' ' . ($exams_this_session === 1 ? 'exam' : 'exams') . ' this session',
+                'text' => 'Enter marks from the marks page',
+                'link' => route('marks.index'),
+            ];
+        }
+        // Note: no "upcoming events" chip — the events module is
+        // teamSA-only, so a teacher reminder must not link there.
+        if ($sections_led->isNotEmpty()) {
+            $first_led = $sections_led->first();
+            $reminders[] = [
+                'icon' => 'icon-user-tie', 'tone' => 'green',
+                'title' => 'Class teacher for ' . $sections_led->count() . ' ' . ($sections_led->count() === 1 ? 'section' : 'sections'),
+                'text' => optional($first_led->my_class)->name . ' ' . $first_led->name . ($sections_led->count() > 1 ? ' and more' : ''),
+                'link' => route('students.list', $first_led->my_class_id),
+            ];
         }
 
         return [
@@ -490,7 +639,11 @@ class HomeController extends Controller
                 : StudentRecord::where('grad', 0)->whereIn('my_class_id', $class_ids)->count(),
             'today_periods' => $today_periods,
             'today_name' => $now->format('l'),
-            'upcoming_events' => $this->upcomingEvents($now),
+            'upcoming_events' => $upcoming_events,
+            'my_classes' => $my_classes,
+            'student_overview' => $student_overview,
+            'recent_circulars' => $recent_circulars,
+            'reminders' => $reminders,
         ];
     }
 
@@ -512,31 +665,118 @@ class HomeController extends Controller
                 ->latest()
                 ->first();
 
-        $latest_exam = null;
-        $latest_marks = collect();
-        if (Schema::hasTable('marks')) {
-            $latest = Mark::with('exam')
-                ->where('student_id', $user_id)
-                ->orderByDesc('year')
-                ->orderByDesc('exam_id')
-                ->first();
+        $class_id = $record ? $record->my_class_id : null;
 
-            if ($latest) {
-                $latest_exam = $latest->exam;
-                $latest_marks = Mark::with(['subject', 'grade'])
-                    ->where('student_id', $user_id)
-                    ->where('exam_id', $latest->exam_id)
-                    ->where('year', $latest->year)
-                    ->get();
+        // Subjects taught in this student's class, with their teachers.
+        $subjects = $class_id
+            ? Subject::with('teacher')->where('my_class_id', $class_id)
+                ->orderBy('name')->get()
+            : collect();
+
+        // Today's periods for the student's class, from the same
+        // timetable rows the teacher home reads: weekday rows whose
+        // timetable record belongs to the student's class (exam rows
+        // carry an exam_date instead of a weekday, so the day filter
+        // excludes them).
+        $today_periods = collect();
+        if ($class_id && Schema::hasTable('time_tables')) {
+            $today_periods = TimeTable::with(['subject', 'time_slot', 'tt_record'])
+                ->where('day', $now->format('l'))
+                ->whereHas('tt_record', function ($q) use ($class_id) {
+                    $q->where('my_class_id', $class_id);
+                })
+                ->get()
+                ->sortBy(function ($period) {
+                    return optional($period->time_slot)->timestamp_from ?? $period->ts_id;
+                })
+                ->map(function ($period) use ($now) {
+                    $from = optional($period->time_slot)->timestamp_from ?? $period->timestamp_from;
+                    $to = optional($period->time_slot)->timestamp_to ?? $period->timestamp_to;
+                    $status = 'Scheduled';
+                    if ($from && $to) {
+                        $now_tod = $now->format('H:i');
+                        $from_tod = date('H:i', (int) $from);
+                        $to_tod = date('H:i', (int) $to);
+                        $status = $now_tod < $from_tod ? 'Upcoming'
+                            : ($now_tod <= $to_tod ? 'In progress' : 'Completed');
+                    }
+
+                    return [
+                        'time' => optional($period->time_slot)->full ?: '—',
+                        'subject' => optional($period->subject)->name ?: '—',
+                        'status' => $status,
+                    ];
+                })
+                ->values();
+        }
+
+        // Library: this student's active loans (due dates drive the
+        // reminders; the count drives the stat card).
+        $active_loans = collect();
+        if (Schema::hasTable('book_requests')) {
+            $active_loans = BookRequest::with('book')
+                ->active()
+                ->where('user_id', $user_id)
+                ->orderBy('end_date')
+                ->get();
+        }
+
+        // Exams still ahead for this class: exam timetables carry the
+        // dates (the exams table itself is name/term/year only).
+        $upcoming_exam_count = 0;
+        $next_exam = null;
+        if ($class_id && Schema::hasTable('time_tables')) {
+            $exam_rows = TimeTable::with('tt_record.exam')
+                ->whereNotNull('exam_date')
+                ->whereDate('exam_date', '>=', $now->toDateString())
+                ->whereHas('tt_record', function ($q) use ($class_id) {
+                    $q->where('my_class_id', $class_id)
+                        ->whereNotNull('exam_id');
+                })
+                ->orderBy('exam_date')
+                ->get();
+
+            $upcoming_exam_count = $exam_rows
+                ->pluck('tt_record.exam_id')->filter()->unique()->count();
+
+            $first = $exam_rows->first();
+            if ($first) {
+                $next_exam = [
+                    'name' => optional(optional($first->tt_record)->exam)->name ?: 'Examination',
+                    'date' => $first->exam_date,
+                ];
             }
+        }
+
+        // Circulars published for students (published + in window +
+        // audience all/students, via the Circular model's own scopes).
+        $recent_circulars = collect();
+        $circulars_week_count = 0;
+        if (Schema::hasTable('circulars')) {
+            $recent_circulars = Circular::published()
+                ->forAudience('student')
+                ->latest()
+                ->take(4)
+                ->get();
+
+            $circulars_week_count = Circular::published()
+                ->forAudience('student')
+                ->where('created_at', '>=', $now->copy()->subDays(7))
+                ->count();
         }
 
         return [
             'student_record' => $record,
             'attendance' => $record ? $this->attendanceSummary($record->id) : $this->attendanceSummary(0),
-            'fees' => $this->feeSummaryForStudent($user_id),
-            'latest_exam' => $latest_exam,
-            'latest_marks' => $latest_marks,
+            'subjects' => $subjects,
+            'today_periods' => $today_periods,
+            'today_name' => $now->format('l'),
+            'books_issued' => $active_loans->count(),
+            'active_loans' => $active_loans,
+            'upcoming_exam_count' => $upcoming_exam_count,
+            'next_exam' => $next_exam,
+            'recent_circulars' => $recent_circulars,
+            'circulars_week_count' => $circulars_week_count,
             'upcoming_events' => $this->upcomingEvents($now),
         ];
     }
@@ -548,20 +788,121 @@ class HomeController extends Controller
      */
     protected function parentHomeData(Carbon $now): array
     {
+        $year = Qs::getCurrentSession();
+        $pay = app(PaymentRepo::class);
+
         $children = StudentRecord::with(['user', 'my_class', 'section'])
             ->where('my_parent_id', Auth::id())
             ->get()
-            ->map(function (StudentRecord $child) {
+            ->map(function (StudentRecord $child) use ($pay, $year) {
+                $records = $pay->getAllMyPR($child->user_id, $year)->get();
+
                 return [
                     'record' => $child,
                     'attendance' => $this->attendanceSummary($child->id),
-                    'fees' => $this->feeSummaryForStudent($child->user_id),
+                    'fees' => [
+                        'total' => (int) $records->sum(function ($r) {
+                            return $r->payment->amount;
+                        }),
+                        'paid' => (int) $records->sum('amt_paid'),
+                        'due' => (int) $records->where('paid', 0)->sum(function ($r) {
+                            return $r->balance ?: $r->payment->amount;
+                        }),
+                        'pending_records' => (int) $records->where('paid', 0)->count(),
+                        'has_records' => $records->isNotEmpty(),
+                    ],
                 ];
             });
 
+        $sum = function (string $key) use ($children) {
+            return (int) $children->sum(function ($c) use ($key) {
+                return $c['fees'][$key];
+            });
+        };
+
+        // Children's attendance today: how many of the linked children
+        // were marked present today. Only meaningful when the school
+        // actually recorded attendance today; otherwise the card falls
+        // back to the children's session attendance percentage.
+        $attendance_today = [
+            'recorded' => false,
+            'present' => 0,
+            'children' => $children->count(),
+            'session_percent' => null,
+        ];
+
+        if ($children->isNotEmpty()) {
+            $percents = $children->map(function ($c) {
+                return $c['attendance']['percent'];
+            })->filter(function ($p) {
+                return $p !== null;
+            });
+
+            $attendance_today['session_percent'] = $percents->isNotEmpty()
+                ? (int) round($percents->avg())
+                : null;
+
+            if (Schema::hasTable('attendances')) {
+                $record_ids = $children->map(function ($c) {
+                    return $c['record']->id;
+                })->all();
+
+                $rows = Attendance::whereIn('student_record_id', $record_ids)
+                    ->whereDate('date', $now->toDateString())
+                    ->get(['student_record_id', 'status']);
+
+                if ($rows->isNotEmpty()) {
+                    $attendance_today['recorded'] = true;
+                    $attendance_today['present'] = (int) $rows->where('status', 'present')->count();
+                }
+            }
+        }
+
+        // Upcoming examinations: exam timetables belonging to the
+        // current session (the year lives on the timetable record, as
+        // in upcomingEvents) with a date from today onward.
+        $upcoming_exams_count = 0;
+
+        if (Schema::hasTable('time_tables')) {
+            $upcoming_exams_count = (int) DB::table('time_tables')
+                ->join('time_table_records', 'time_table_records.id', '=', 'time_tables.ttr_id')
+                ->where('time_table_records.year', $year)
+                ->whereDate('time_tables.exam_date', '>=', $now->toDateString())
+                ->count();
+        }
+
+        // Circulars a parent may read: published, inside their display
+        // window, addressed to everyone or to parents (Circular scopes).
+        $circulars = collect();
+        $circulars_week_count = 0;
+
+        if (Schema::hasTable('circulars')) {
+            $circulars = Circular::published()
+                ->forAudience('parent')
+                ->latest('created_at')
+                ->take(4)
+                ->get();
+
+            $circulars_week_count = (int) Circular::published()
+                ->forAudience('parent')
+                ->where('created_at', '>=', $now->copy()->subDays(7))
+                ->count();
+        }
+
+        $upcoming_events = $this->upcomingEvents($now);
+
         return [
             'children' => $children,
-            'upcoming_events' => $this->upcomingEvents($now),
+            'fees_total' => $sum('total'),
+            'fees_paid' => $sum('paid'),
+            'fees_due' => $sum('due'),
+            'fees_pending_records' => $sum('pending_records'),
+            'attendance_today' => $attendance_today,
+            'upcoming_exams_count' => $upcoming_exams_count,
+            'circulars' => $circulars,
+            'circulars_week_count' => $circulars_week_count,
+            'next_event' => $upcoming_events->first(),
+            'upcoming_events' => $upcoming_events,
         ];
     }
 
@@ -572,38 +913,133 @@ class HomeController extends Controller
      */
     protected function accountantHomeData(Carbon $now): array
     {
-        $collected_today = (int) DB::table('payment_records')
-            ->whereDate('updated_at', $now->toDateString())
+        $year = Qs::getCurrentSession();
+
+        $collected_today = (int) Receipt::whereDate('created_at', $now->toDateString())
+            ->sum('amt_paid');
+        $payments_today_count = (int) Receipt::whereDate('created_at', $now->toDateString())
+            ->count();
+        $collected_month = (int) Receipt::whereYear('created_at', $now->year)
+            ->whereMonth('created_at', $now->month)
+            ->sum('amt_paid');
+        $collected_session = (int) Receipt::where('year', $year)
             ->sum('amt_paid');
 
-        $collected_month = (int) DB::table('payment_records')
-            ->whereYear('updated_at', $now->year)
-            ->whereMonth('updated_at', $now->month)
-            ->sum('amt_paid');
+        // Collection trend: receipts grouped by month, last six months
+        // including the current one, oldest first.
+        $monthly = Receipt::where('created_at', '>=', $now->copy()->startOfMonth()->subMonths(5))
+            ->selectRaw("DATE_FORMAT(created_at, '%Y-%m') as ym, COALESCE(SUM(amt_paid), 0) as total")
+            ->groupBy('ym')
+            ->pluck('total', 'ym');
+        $collection_labels = [];
+        $collection_values = [];
+        foreach (range(5, 0) as $months_ago) {
+            $month = $now->copy()->startOfMonth()->subMonths($months_ago);
+            $collection_labels[] = $month->format('M');
+            $collection_values[] = (int) ($monthly[$month->format('Y-m')] ?? 0);
+        }
 
-        $pending = DB::table('payment_records')
-            ->join('payments', 'payments.id', '=', 'payment_records.payment_id')
-            ->where('payment_records.paid', 0)
-            ->selectRaw('count(*) as records, COALESCE(SUM(payments.amount), 0) as owed, COALESCE(SUM(payment_records.amt_paid), 0) as part_paid')
-            ->first();
+        // Recent payments: the latest receipts (money events), each with
+        // the student and fee definition it belongs to. Class labels
+        // come from the student's own record, one batched lookup.
+        $recent_receipts = Receipt::with(['pr.student', 'pr.payment.my_class'])
+            ->latest()
+            ->take(8)
+            ->get();
+        $student_records = StudentRecord::with(['my_class', 'section'])
+            ->whereIn('user_id', $recent_receipts->pluck('pr.student_id')->filter()->unique()->all())
+            ->get()
+            ->keyBy('user_id');
+        $recent_payments = $recent_receipts->map(function ($receipt) use ($student_records) {
+            $record = $receipt->pr;
+            $student_record = $record ? $student_records->get($record->student_id) : null;
+
+            $class_label = '—';
+            if ($student_record && $student_record->my_class) {
+                $class_label = $student_record->my_class->name
+                    . ($student_record->section ? ' · ' . $student_record->section->name : '');
+            } elseif ($record && $record->payment && $record->payment->my_class) {
+                $class_label = $record->payment->my_class->name;
+            }
+
+            return [
+                'student' => optional(optional($record)->student)->name ?: '—',
+                'title' => optional(optional($record)->payment)->title ?: '—',
+                'class' => $class_label,
+                'amount' => (int) $receipt->amt_paid,
+                'method' => optional(optional($record)->payment)->method ?: '—',
+                'date' => $receipt->created_at,
+            ];
+        });
+
+        // Defaulters snapshot + outstanding total share one computation.
+        $defaulter_rows = $this->feeDefaulterRows($year);
+        $outstanding_total = (int) $defaulter_rows->sum('total_due');
+
+        // Recent circulars a staff member may read — the feed's own
+        // scopes (published, inside its display window, audience
+        // all/staff for the accountant user type).
+        $recent_circulars = collect();
+        $new_circulars_count = 0;
+        if (class_exists(\App\Models\Circular::class) && Schema::hasTable('circulars')) {
+            $recent_circulars = \App\Models\Circular::published()
+                ->forAudience('accountant')
+                ->latest()
+                ->take(4)
+                ->get();
+            $new_circulars_count = \App\Models\Circular::published()
+                ->forAudience('accountant')
+                ->where('created_at', '>=', $now->copy()->subDays(7))
+                ->count();
+        }
+
+        // Reminders: real counts only, each linking to its own page.
+        $reminders = [];
+        $reminders[] = [
+            'icon' => 'icon-warning2', 'tone' => 'orange',
+            'title' => Money::inr($outstanding_total) . ' outstanding',
+            'text' => $defaulter_rows->count() . ' ' . ($defaulter_rows->count() === 1 ? 'student' : 'students') . ' with fees due this session',
+            'link' => route('payments.defaulters'),
+        ];
+        $reminders[] = [
+            'icon' => 'icon-wallet', 'tone' => 'green',
+            'title' => $payments_today_count . ' ' . ($payments_today_count === 1 ? 'payment' : 'payments') . ' recorded today',
+            'text' => Money::inr($collected_today) . ' collected today',
+            'link' => route('payments.collection'),
+        ];
+        if ($new_circulars_count > 0) {
+            $reminders[] = [
+                'icon' => 'icon-megaphone', 'tone' => 'blue',
+                'title' => $new_circulars_count . ' new ' . ($new_circulars_count === 1 ? 'circular' : 'circulars'),
+                'text' => 'Published in the last 7 days',
+                'link' => route('circulars.index'),
+            ];
+        }
 
         return [
             'collected_today' => $collected_today,
             'collected_month' => $collected_month,
-            'pending_count' => (int) ($pending->records ?? 0),
-            'pending_amount' => max(0, (int) ($pending->owed ?? 0) - (int) ($pending->part_paid ?? 0)),
-            'recent_payments' => PaymentRecord::with(['student', 'payment'])
-                ->latest()
-                ->take(6)
-                ->get(),
-            'upcoming_events' => $this->upcomingEvents($now),
+            'collected_session' => $collected_session,
+            'payments_today_count' => $payments_today_count,
+            'outstanding_total' => $outstanding_total,
+            'collection_labels' => $collection_labels,
+            'collection_values' => $collection_values,
+            'recent_payments' => $recent_payments,
+            'defaulters' => $defaulter_rows->take(5),
+            'defaulters_count' => $defaulter_rows->count(),
+            'recent_circulars' => $recent_circulars,
+            'reminders' => $reminders,
         ];
     }
 
     /**
-     * Attendance summary for one student record. Percent counts present
-     * and late over every marked day — the same formula as the monthly
-     * attendance report. Percent stays null when nothing was recorded.
+     * Loop 14 — Students who still owe fees this session, worst first.
+     *
+     * This is FeeReportController::defaulterRows (unfiltered by class)
+     * kept in step on purpose: a record counts while paid = 0 and owes
+     * its stored balance, falling back to the full fee amount when
+     * untouched — so the dashboard's outstanding total and top
+     * defaulters always match the fee defaulters report exactly.
      */
     protected function attendanceSummary(int $student_record_id): array
     {
@@ -650,4 +1086,31 @@ class HomeController extends Controller
             'has_records' => $owed > 0 || $paid > 0,
         ];
     }
+    protected function librarianHomeData(Carbon $now): array
+    {
+        $today = $now->toDateString();
+
+        return [
+            'book_titles' => Book::count(),
+            'book_copies' => (int) Book::sum('total_copies'),
+            'books_issued' => BookRequest::active()->count(),
+            'loans_due_today' => BookRequest::active()->whereDate('end_date', $today)->count(),
+            'loans_overdue' => BookRequest::active()->whereDate('end_date', '<', $today)->count(),
+            'titles_out_of_stock' => Book::whereRaw('total_copies <= issued_copies')->count(),
+            'recent_loans' => BookRequest::with(['book', 'user'])
+                ->latest()
+                ->take(8)
+                ->get(),
+            'recent_circulars' => Schema::hasTable('circulars')
+                ? Circular::published()->forAudience('librarian')->latest()->take(4)->get()
+                : collect(),
+        ];
+    }
+
+    /**
+     * Attendance summary for one student record. Percent counts present
+     * and late over every marked day — the same formula as the monthly
+     * attendance report. Percent stays null when nothing was recorded.
+     */
+
 }
