@@ -44,6 +44,10 @@
                                                     {{--Admit Cards--}}
                                                     <a href="{{ route('admit_cards.index', ['exam_id' => $ex->id]) }}" class="dropdown-item"><i class="icon-profile"></i> Admit Cards</a>
                                                     @if(Qs::userIsTeamSA())
+                                                    {{--Marking Scheme--}}
+                                                    <a href="{{ route('exams.scheme', $ex->id) }}" class="dropdown-item"><i class="icon-list"></i> Marking Scheme</a>
+                                                    @endif
+                                                    @if(Qs::userIsTeamSA())
                                                     {{--Edit--}}
                                                     <a href="{{ route('exams.edit', $ex->id) }}" class="dropdown-item"><i class="icon-pencil"></i> Edit</a>
                                                    @endif

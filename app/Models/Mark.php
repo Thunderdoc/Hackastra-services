@@ -38,4 +38,9 @@ class Mark extends Eloquent
     {
         return $this->belongsTo(Grade::class);
     }
+
+    public function markComponents()
+    {
+        return $this->hasMany(MarkComponent::class);
+    }
 }

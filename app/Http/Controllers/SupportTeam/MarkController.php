@@ -4,8 +4,11 @@ namespace App\Http\Controllers\SupportTeam;
 
 use App\Helpers\Qs;
 use App\Support\Audit;
+use App\Support\MarkComputation;
+use App\Support\MarkScheme;
 use App\Support\TeacherScope;
 use App\Helpers\Mk;
+use App\Http\Requests\Mark\MarkComponentUpdate;
 use App\Http\Requests\Mark\MarkSelector;
 use App\Models\Setting;
 use App\Repositories\ExamRepo;
@@ -208,6 +211,15 @@ class MarkController extends Controller
         }
 
         $d['m'] =  $d['marks']->first();
+
+        // Batch M2: the entry grid renders this subject's marking
+        // scheme — configured components, or the legacy CA/Exam grid
+        // when the subject has no scheme configured.
+        $d['scheme'] = MarkScheme::forExamSubject($exam_id, $subject_id);
+        if($d['scheme']['configured']){
+            $d['marks']->load('markComponents');
+        }
+
         $d['exams'] = $this->exam->all();
         $d['my_classes'] = $this->my_class->all();
         $d['sections'] = $this->my_class->getAllSections();
@@ -221,7 +233,7 @@ class MarkController extends Controller
         return view('pages.support_team.marks.manage', $d);
     }
 
-    public function update(Request $req, $exam_id, $class_id, $section_id, $subject_id)
+    public function update(MarkComponentUpdate $req, $exam_id, $class_id, $section_id, $subject_id)
     {
         // Batch S: marks entry is scoped to a teacher's assigned classes.
         if(Qs::userIsTeacher() && !TeacherScope::canTeachClass(Auth::user(), $class_id)){
@@ -230,75 +242,44 @@ class MarkController extends Controller
 
         $p = ['exam_id' => $exam_id, 'my_class_id' => $class_id, 'section_id' => $section_id, 'subject_id' => $subject_id, 'year' => $this->year];
 
-        $d = $d3 = $all_st_ids = [];
-
         $exam = $this->exam->find($exam_id);
         $marks = $this->exam->getMark($p);
-        $class_type = $this->my_class->findTypeByClass($class_id);
 
-        $mks = $req->all();
+        /* Batch M2: raw scores land first — in mark_components for a
+           configured scheme, in the legacy columns otherwise. Blank
+           means "not entered" (stored NULL); 0 is a real score. The
+           FormRequest has already proven every cell is a whole number
+           within its component's max — invalid saves are rejected,
+           never silently wiped (the legacy >100 wipe is deleted). */
+        if(MarkScheme::isConfigured($exam_id, $subject_id)){
+            $components = MarkScheme::configuredComponents($exam_id, $subject_id);
 
-        /** Test, Exam, Grade **/
-        foreach($marks->sortBy('user.name') as $mk)
-        {
-            $all_st_ids[] = $mk->student_id;
-
-                $d['t1'] = $t1 = $mks['t1_'.$mk->id];
-                $d['t2'] = $t2 = $mks['t2_'.$mk->id];
-                $d['tca'] = $tca = $t1 + $t2;
-                $d['exm'] = $exm = $mks['exm_'.$mk->id];
-
-
-            /** SubTotal Grade, Remark, Cum, CumAvg**/
-
-            $d['tex'.$exam->term] = $total = $tca + $exm;
-
-            if($total > 100){
-                $d['tex'.$exam->term] = $d['t1'] = $d['t2'] = $d['t3'] = $d['t4'] = $d['tca'] = $d['exm'] = NULL;
+            foreach($marks as $mk){
+                $scores = [];
+                foreach($components as $comp){
+                    $v = $req->input('comp_'.$mk->id.'_'.$comp->id);
+                    $scores[$comp->id] = ($v === NULL || $v === '') ? NULL : (int) $v;
+                }
+                MarkScheme::saveComponentScores($mk, $scores);
             }
+        }
+        else{
+            foreach($marks as $mk){
+                $d = [];
+                foreach(['t1', 't2', 'exm'] as $field){
+                    $v = $req->input($field.'_'.$mk->id);
+                    $d[$field] = ($v === NULL || $v === '') ? NULL : (int) $v;
+                }
+                $d['tca'] = ($d['t1'] === NULL && $d['t2'] === NULL) ? NULL : (int) $d['t1'] + (int) $d['t2'];
 
-         /*   if($exam->term < 3){
-                $grade = $this->mark->getGrade($total, $class_type->id);
+                $this->exam->updateMark($mk->id, $d);
             }
-
-            if($exam->term == 3){
-                $d['cum'] = $this->mark->getSubCumTotal($total, $st_id, $subject_id, $class_id, $this->year);
-                $d['cum_ave'] = $cav = $this->mark->getSubCumAvg($total, $st_id, $subject_id, $class_id, $this->year);
-                $grade = $this->mark->getGrade(round($cav), $class_type->id);
-            }*/
-            $grade = $this->mark->getGrade($total, $class_type->id);
-            $d['grade_id'] = $grade ? $grade->id : NULL;
-
-            $this->exam->updateMark($mk->id, $d);
         }
 
-        /** Sub Position Begin  **/
-
-        foreach($marks->sortBy('user.name') as $mk)
-        {
-
-            $d2['sub_pos'] = $this->mark->getSubPos($mk->student_id, $exam, $class_id, $subject_id, $this->year);
-
-            $this->exam->updateMark($mk->id, $d2);
-        }
-
-        /*Sub Position End*/
-
-        /* Exam Record Update */
-
-        unset( $p['subject_id'] );
-
-        foreach ($all_st_ids as $st_id) {
-
-            $p['student_id'] =$st_id;
-            $d3['total'] = $this->mark->getExamTotalTerm($exam, $st_id, $class_id, $this->year);
-            $d3['ave'] = $this->mark->getExamAvgTerm($exam, $st_id, $class_id, $section_id, $this->year);
-            $d3['class_ave'] = $this->mark->getClassAvg($exam, $class_id, $this->year);
-            $d3['pos'] = $this->mark->getPos($st_id, $exam, $class_id, $section_id, $this->year);
-
-            $this->exam->updateRecord($p, $d3);
-        }
-        /*Exam Record End*/
+        /* Totals, grades, subject positions and exam records all flow
+           through the one computation pipeline (dual-write of tex). */
+        MarkComputation::recomputeSubject($exam, $class_id, $section_id, $subject_id, $this->year);
+        MarkComputation::recomputeRecords($exam, $class_id, $section_id, $this->year);
 
         Audit::log('marks.updated', null, 'Marks updated: exam '.$exam_id.', class '.$class_id.', subject '.$subject_id);
 
@@ -321,47 +302,12 @@ class MarkController extends Controller
         $class_id = $req->my_class_id;
         $section_id = $req->section_id;
 
-        $w = ['exam_id' => $exam_id, 'my_class_id' => $class_id, 'section_id' => $section_id, 'year' => $this->year];
-
         $exam = $this->exam->find($exam_id);
-        $exrs = $this->exam->getRecord($w);
-        $marks = $this->exam->getMark($w);
 
-        /** Marks Fix Begin **/
-
-        $class_type = $this->my_class->findTypeByClass($class_id);
-        $tex = 'tex'.$exam->term;
-
-        foreach($marks as $mk){
-
-            $total = $mk->$tex;
-            $d['grade_id'] = $this->mark->getGrade($total, $class_type->id);
-
-            /*      if($exam->term == 3){
-                      $d['cum'] = $this->mark->getSubCumTotal($total, $mk->student_id, $mk->subject_id, $class_id, $this->year);
-                      $d['cum_ave'] = $cav = $this->mark->getSubCumAvg($total, $mk->student_id, $mk->subject_id, $class_id, $this->year);
-                      $grade = $this->mark->getGrade(round($mk->cum_ave), $class_type->id);
-                  }*/
-
-            $this->exam->updateMark($mk->id, $d);
-        }
-
-        /* Marks Fix End*/
-
-        /** Exam Record Update  **/
-        foreach($exrs as $exr){
-
-            $st_id = $exr->student_id;
-
-            $d3['total'] = $this->mark->getExamTotalTerm($exam, $st_id, $class_id, $this->year);
-            $d3['ave'] = $this->mark->getExamAvgTerm($exam, $st_id, $class_id, $section_id, $this->year);
-            $d3['class_ave'] = $this->mark->getClassAvg($exam, $class_id, $this->year);
-            $d3['pos'] = $this->mark->getPos($st_id, $exam, $class_id, $section_id, $this->year);
-
-            $this->exam->updateRecord(['id' => $exr->id], $d3);
-        }
-
-        /** END Exam Record Update END **/
+        /* Batch M2: the batch fix now runs through the same single
+           computation pipeline as the entry save (grades re-derived
+           from the stored tex totals, records recomputed). */
+        MarkComputation::fixClass($exam, $class_id, $section_id, $this->year);
 
         return Qs::jsonUpdateOk();
     }
