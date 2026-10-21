@@ -4,6 +4,10 @@
     <div class="card">
         <div class="card-header header-elements-inline">
             <h6 class="card-title">Monthly Attendance Report</h6>
+            <div>
+                <button type="button" class="btn btn-light btn-sm" onclick="window.print()"><i class="icon-printer mr-1"></i> Print</button>
+                <a href="{{ route('attendance.export', ['class_id' => $selected_class ? $selected_class->id : '', 'month' => $month->format('Y-m')]) }}" class="btn btn-primary btn-sm"><i class="icon-download mr-1"></i> Export</a>
+            </div>
             {!! Qs::getPanelOptions() !!}
         </div>
         <div class="card-body">

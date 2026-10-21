@@ -5,6 +5,10 @@
     <div class="card">
         <div class="card-header header-elements-inline">
             <h6 class="card-title">Students List</h6>
+            <div>
+                <button type="button" class="btn btn-light btn-sm" onclick="window.print()"><i class="icon-printer mr-1"></i> Print</button>
+                <a href="{{ route('students.export', $my_class->id) }}" class="btn btn-primary btn-sm"><i class="icon-download mr-1"></i> Export</a>
+            </div>
             {!! Qs::getPanelOptions() !!}
         </div>
 
@@ -36,7 +40,7 @@
                         </tr>
                         </thead>
                         <tbody>
-                        @forelse($students as $s)
+                        @foreach($students as $s)
                             <tr>
                                 <td>{{ $loop->iteration }}</td>
                                 <td><img class="rounded-circle" style="height: 40px; width: 40px;" src="{{ $s->user->photo }}" alt="photo"></td>
@@ -69,15 +73,17 @@
                                     </div>
                                 </td>
                             </tr>
-                        @empty
-                            <tr><td colspan="7" class="text-center text-muted" style="padding:22px 12px"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#3478f6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:.55;display:block;margin:0 auto 6px" aria-hidden="true"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>No students found in this class yet.</td></tr>
-                        @endforelse
+                        @endforeach
                         </tbody>
                     </table>
                 </div>
 
                 @foreach($sections as $se)
-                    <div class="tab-pane fade" id="s{{$se->id}}">                         <table class="table datatable-button-html5-columns">
+                    <div class="tab-pane fade" id="s{{$se->id}}">
+                        <div class="text-right mb-2">
+                            <a href="{{ route('students.export', [$my_class->id, $se->id]) }}" class="btn btn-light btn-sm"><i class="icon-download mr-1"></i> Export Section</a>
+                        </div>
+                        <table class="table datatable-button-html5-columns">
                             <thead>
                             <tr>
                                 <th>S/N</th>
@@ -89,7 +95,7 @@
                             </tr>
                             </thead>
                             <tbody>
-                            @forelse($students->where('section_id', $se->id) as $sr)
+                            @foreach($students->where('section_id', $se->id) as $sr)
                                 <tr>
                                     <td>{{ $loop->iteration }}</td>
                                     <td><img class="rounded-circle" style="height: 40px; width: 40px;" src="{{ $sr->user->photo }}" alt="photo"></td>
@@ -122,9 +128,7 @@
                                         </div>
                                     </td>
                                 </tr>
-                            @empty
-                                <tr><td colspan="7" class="text-center text-muted" style="padding:22px 12px"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#3478f6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:.55;display:block;margin:0 auto 6px" aria-hidden="true"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>No students in this section yet.</td></tr>
-                            @endforelse
+                            @endforeach
 
                             </tbody>
                         </table>

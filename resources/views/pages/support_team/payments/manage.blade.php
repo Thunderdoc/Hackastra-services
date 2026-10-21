@@ -4,6 +4,12 @@
     <div class="card">
         <div class="card-header header-elements-inline">
             <h5 class="card-title"><i class="icon-cash2 mr-2"></i> Student Payments</h5>
+            @if($selected)
+                <div>
+                    <button type="button" class="btn btn-light btn-sm" onclick="window.print()"><i class="icon-printer mr-1"></i> Print</button>
+                    <a href="{{ route('payments.export', $my_class_id) }}" class="btn btn-primary btn-sm"><i class="icon-download mr-1"></i> Export</a>
+                </div>
+            @endif
             {!! Qs::getPanelOptions() !!}
         </div>
 

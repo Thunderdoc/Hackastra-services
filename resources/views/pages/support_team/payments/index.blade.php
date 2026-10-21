@@ -61,12 +61,13 @@
 
             <div class="tab-content">
                     <div class="tab-pane fade show active" id="all-payments">
+                        @if($payments->count())
                         <table class="table datatable-button-html5-columns">
                             <thead>
                             <tr>
                                 <th>#</th>
                                 <th>Title</th>
-                                <th>Amount</th>
+                                <th class="text-right">Amount</th>
                                 <th>Ref_No</th>
                                 <th>Class</th>
                                 <th>Method</th>
@@ -79,7 +80,7 @@
                                 <tr>
                                     <td>{{ $loop->iteration }}</td>
                                     <td>{{ $p->title }}</td>
-                                    <td>{{ $p->amount }}</td>
+                                    <td class="text-right font-weight-bold">{{ \App\Helpers\Money::inr($p->amount) }}</td>
                                     <td>{{ $p->ref_no }}</td>
                                     <td>{{ $p->my_class_id ? $p->my_class->name : '' }}</td>
                                     <td>{{ ucwords($p->method) }}</td>
@@ -105,17 +106,31 @@
                                 </tr>
                             @endforeach
                             </tbody>
+                            <tfoot>
+                            <tr>
+                                <th colspan="2" class="text-right">Total ({{ $payments->count() }} payments)</th>
+                                <th class="text-right">{{ \App\Helpers\Money::inr($payments->sum('amount')) }}</th>
+                                <th colspan="5"></th>
+                            </tr>
+                            </tfoot>
                         </table>
+                        @else
+                            <div class="lav-empty">
+                                <p class="mb-0">No payments have been created for the {{ $year }} session yet. Use <strong>Create Payment</strong> to add the first fee.</p>
+                            </div>
+                        @endif
                     </div>
 
                 @foreach($my_classes as $mc)
                     <div class="tab-pane fade" id="pc-{{ $mc->id }}">
+                        @php $class_payments = $payments->where('my_class_id', $mc->id); @endphp
+                        @if($class_payments->count())
                         <table class="table datatable-button-html5-columns">
                             <thead>
                             <tr>
                                 <th>#</th>
                                 <th>Title</th>
-                                <th>Amount</th>
+                                <th class="text-right">Amount</th>
                                 <th>Ref_No</th>
                                 <th>Class</th>
                                 <th>Method</th>
@@ -124,11 +139,11 @@
                             </tr>
                             </thead>
                             <tbody>
-                            @foreach($payments->where('my_class_id', $mc->id) as $p)
+                            @foreach($class_payments as $p)
                                 <tr>
                                     <td>{{ $loop->iteration }}</td>
                                     <td>{{ $p->title }}</td>
-                                    <td>{{ $p->amount }}</td>
+                                    <td class="text-right font-weight-bold">{{ \App\Helpers\Money::inr($p->amount) }}</td>
                                     <td>{{ $p->ref_no }}</td>
                                     <td>{{ $p->my_class_id ? $p->my_class->name : '' }}</td>
                                     <td>{{ ucwords($p->method) }}</td>
@@ -154,7 +169,17 @@
                                 </tr>
                             @endforeach
                             </tbody>
+                            <tfoot>
+                            <tr>
+                                <th colspan="2" class="text-right">Class-specific total — {{ $mc->name }}</th>
+                                <th class="text-right">{{ \App\Helpers\Money::inr($class_payments->sum('amount')) }}</th>
+                                <th colspan="5"></th>
+                            </tr>
+                            </tfoot>
                         </table>
+                        @else
+                            <p class="text-muted mb-0" style="padding: 18px 4px;">No class-specific payments for {{ $mc->name }} in {{ $year }}. General payments (All Classes) still apply to this class.</p>
+                        @endif
 
                     </div>
                     @endforeach

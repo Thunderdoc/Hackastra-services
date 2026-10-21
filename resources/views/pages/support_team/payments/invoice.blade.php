@@ -6,6 +6,9 @@
         <div class="card-header header-elements-inline">
             <h6 class="card-title font-weight-bold">Manage Payment Records for {{ $sr->user->name}} </h6>
             {!! Qs::getPanelOptions() !!}
+            <div class="header-elements">
+                <a href="{{ route('payments.export_student', $year ? [Qs::hash($sr->user_id), $year] : [Qs::hash($sr->user_id)]) }}" class="btn btn-primary btn-sm"><i class="icon-download mr-1"></i> Export</a>
+            </div>
         </div>
 
         <div class="card-body">
@@ -16,15 +19,17 @@
 
         <div class="tab-content">
             <div class="tab-pane fade show active" id="all-uc">
+                @if($uncleared->count())
                 <table class="table datatable-button-html5-columns table-responsive">
                     <thead>
                     <tr>
                         <th>#</th>
                         <th>Title</th>
                         <th>Pay_Ref</th>
-                        <th>Amount</th>
-                        <th>Paid</th>
-                        <th>Balance</th>
+                        <th class="text-right">Amount</th>
+                        <th class="text-right">Paid</th>
+                        <th class="text-right">Balance</th>
+                        <th>Status</th>
                         <th>Pay Now</th>
                         <th>Receipt_No</th>
                         <th>Year</th>
@@ -38,14 +43,23 @@
                             <td>{{ $uc->payment->title }}</td>
                             <td>{{ $uc->payment->ref_no }}</td>
 
-                            {{--Amount--}}
-                            <td class="font-weight-bold" id="amt-{{ Qs::hash($uc->id) }}" data-amount="{{ $uc->payment->amount }}">{{ $uc->payment->amount }}</td>
+                            {{--Amount (data-amount stays raw: the pay-now JS reads it)--}}
+                            <td class="font-weight-bold text-right" id="amt-{{ Qs::hash($uc->id) }}" data-amount="{{ $uc->payment->amount }}">{{ \App\Helpers\Money::inr($uc->payment->amount) }}</td>
 
                             {{--Amount Paid--}}
-                            <td id="amt_paid-{{ Qs::hash($uc->id) }}" data-amount="{{ $uc->amt_paid ?: 0 }}" class="text-blue font-weight-bold">{{ $uc->amt_paid ?: '0.00' }}</td>
+                            <td id="amt_paid-{{ Qs::hash($uc->id) }}" data-amount="{{ $uc->amt_paid ?: 0 }}" class="text-blue font-weight-bold text-right">{{ \App\Helpers\Money::inr($uc->amt_paid ?: 0) }}</td>
 
                             {{--Balance--}}
-                            <td id="bal-{{ Qs::hash($uc->id) }}" class="text-danger font-weight-bold">{{ $uc->balance ?: $uc->payment->amount }}</td>
+                            <td id="bal-{{ Qs::hash($uc->id) }}" class="text-danger font-weight-bold text-right">{{ \App\Helpers\Money::inr($uc->balance ?: $uc->payment->amount) }}</td>
+
+                            {{--Status--}}
+                            <td>
+                                @if(($uc->amt_paid ?: 0) > 0)
+                                    <span class="badge badge-warning">Partially Paid</span>
+                                @else
+                                    <span class="badge badge-danger">Not Paid</span>
+                                @endif
+                            </td>
 
                             {{--Pay Now Form--}}
                             <td>
@@ -81,8 +95,8 @@
 
                                             {{--Receipt--}}
                                                 <a target="_blank" href="{{ route('payments.receipts', Qs::hash($uc->id)) }}" class="dropdown-item"><i class="icon-printer"></i> Print Receipt</a>
-                                            {{--PDF Receipt--}}
-                            {{--                    <a  href="{{ route('payments.pdf_receipts', Qs::hash($uc->id)) }}" class="dropdown-item download-receipt"><i class="icon-download"></i> Download Receipt</a>--}}
+                                            {{--PDF Receipt (plain link on purpose: the .download-receipt JS handler swallows the file with an AJAX GET, so it must not be used here)--}}
+                                                <a href="{{ route('payments.pdf_receipts', Qs::hash($uc->id)) }}" class="dropdown-item"><i class="icon-download"></i> Download Receipt (PDF)</a>
 
                                         </div>
                                     </div>
@@ -91,17 +105,33 @@
                         </tr>
                     @endforeach
                     </tbody>
+                    <tfoot>
+                    <tr>
+                        <th colspan="3" class="text-right">Totals</th>
+                        <th class="text-right">{{ \App\Helpers\Money::inr($uncleared->sum(function($r){ return $r->payment->amount; })) }}</th>
+                        <th class="text-right">{{ \App\Helpers\Money::inr($uncleared->sum('amt_paid')) }}</th>
+                        <th class="text-right">{{ \App\Helpers\Money::inr($uncleared->sum(function($r){ return $r->balance ?: $r->payment->amount; })) }}</th>
+                        <th colspan="5"></th>
+                    </tr>
+                    </tfoot>
                 </table>
+                @else
+                    <div class="lav-empty">
+                        <p class="mb-0">No incomplete payments. Every fee for {{ $sr->user->name }} is fully paid.</p>
+                    </div>
+                @endif
             </div>
 
             <div class="tab-pane fade" id="all-cl">
+                @if($cleared->count())
                 <table class="table datatable-button-html5-columns table-responsive">
                     <thead>
                     <tr>
                         <th>#</th>
                         <th>Title</th>
                         <th>Pay_Ref</th>
-                        <th>Amount</th>
+                        <th class="text-right">Amount</th>
+                        <th>Status</th>
                         <th>Receipt_No</th>
                         <th>Year</th>
                         <th>Action</th>
@@ -115,7 +145,11 @@
                             <td>{{ $cl->payment->ref_no }}</td>
 
                             {{--Amount--}}
-                            <td class="font-weight-bold">{{ $cl->payment->amount }}</td>
+                            <td class="font-weight-bold text-right">{{ \App\Helpers\Money::inr($cl->payment->amount) }}</td>
+
+                            {{--Status--}}
+                            <td><span class="badge badge-success">Paid</span></td>
+
                             {{--Receipt No--}}
                             <td>{{ $cl->ref_no }}</td>
 
@@ -137,8 +171,8 @@
                                             {{--Receipt--}}
                                             <a target="_blank" href="{{ route('payments.receipts', Qs::hash($cl->id)) }}" class="dropdown-item"><i class="icon-printer"></i> Print Receipt</a>
 
-                                            {{--PDF Receipt--}}
-                                            {{--                    <a  href="{{ route('payments.pdf_receipts', Qs::hash($uc->id)) }}" class="dropdown-item download-receipt"><i class="icon-download"></i> Download Receipt</a>--}}
+                                            {{--PDF Receipt (plain link; see the note in the Incomplete tab about the .download-receipt handler)--}}
+                                            <a href="{{ route('payments.pdf_receipts', Qs::hash($cl->id)) }}" class="dropdown-item"><i class="icon-download"></i> Download Receipt (PDF)</a>
 
                                         </div>
                                     </div>
@@ -147,7 +181,19 @@
                         </tr>
                     @endforeach
                     </tbody>
+                    <tfoot>
+                    <tr>
+                        <th colspan="3" class="text-right">Total Completed</th>
+                        <th class="text-right">{{ \App\Helpers\Money::inr($cleared->sum(function($r){ return $r->payment->amount; })) }}</th>
+                        <th colspan="4"></th>
+                    </tr>
+                    </tfoot>
                 </table>
+                @else
+                    <div class="lav-empty">
+                        <p class="mb-0">No completed payments yet for {{ $sr->user->name }}.</p>
+                    </div>
+                @endif
 
             </div>
         </div>
