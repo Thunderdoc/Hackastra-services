@@ -96,6 +96,11 @@ Route::group(['middleware' => 'auth'], function () {
             Route::post('select_class', 'PaymentController@select_class')->name('payments.select_class');
             Route::delete('reset_record/{id}', 'PaymentController@reset_record')->name('payments.reset_record');
             Route::post('pay_now/{id}', 'PaymentController@pay_now')->name('payments.pay_now');
+
+            /* Fee reports (Loop 9, Workstream O) */
+            Route::get('reports/defaulters', 'FeeReportController@defaulters')->name('payments.defaulters');
+            Route::get('reports/defaulters/export', 'FeeReportController@defaultersExport')->name('payments.defaulters.export');
+            Route::get('reports/collection', 'FeeReportController@collection')->name('payments.collection');
         });
 
         /*************** Pins *****************/
@@ -197,5 +202,12 @@ Route::group(['namespace' => 'SuperAdmin','middleware' => 'super_admin', 'prefix
 Route::group(['namespace' => 'MyParent','middleware' => 'my_parent',], function(){
 
     Route::get('/my_children', 'MyController@children')->name('my_children');
+
+    /* Fees portal (Loop 9, Workstream O) — parameter names avoid {id} on
+       purpose: {id} is bound through Qs::decodeHash app-wide, while these
+       carry raw ids and are protected by ownership checks + policies. */
+    Route::get('/my_fees/receipt/{pr_id}', 'MyController@feesReceipt')->name('my_fees.receipt');
+    Route::get('/my_fees', 'MyController@fees')->name('my_fees');
+    Route::get('/my_fees/{student_id}', 'MyController@feesShow')->name('my_fees.show');
 
 });
