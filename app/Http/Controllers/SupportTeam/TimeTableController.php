@@ -8,11 +8,14 @@ use App\Http\Requests\TimeTable\TTRecordRequest;
 use App\Http\Requests\TimeTable\TTRequest;
 use App\Http\Requests\TimeTable\UseTimeSlotRequest;
 use App\Models\Setting;
+use App\Models\TimeTable;
+use App\Models\TimeTableRecord;
 use App\Repositories\ExamRepo;
 use App\Repositories\MyClassRepo;
 use App\Repositories\TimeTableRepo;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class TimeTableController extends Controller
 {
@@ -33,6 +36,126 @@ class TimeTableController extends Controller
         $d['tt_records'] = $this->tt->getAllRecords();
 
         return view('pages.support_team.timetables.index', $d);
+    }
+
+    /**
+     * Role-personal timetable ("My Timetable").
+     *
+     * Teacher  -> week grid of only the periods they teach. Derivation is
+     *             the teacher dashboard's (HomeController::teacherHomeData):
+     *             TimeTable rows whose subject.teacher_id is the teacher,
+     *             extended from "today" to the whole week.
+     * Student  -> week grid of their own class's timetable record.
+     * Parent   -> week grid of a child's class record; the child is chosen
+     *             via ?child=<student_record id> and validated against
+     *             Qs::findMyChildren() — an id that is not their own child
+     *             silently falls back to their first child.
+     * Everyone else (SA/admin/accountant/librarian) keeps the records UI.
+     */
+    public function mine(Request $req)
+    {
+        $user = Auth::user();
+        $d = ['mode' => null, 'days' => collect(), 'slots' => collect(), 'map' => [], 'ttr' => null];
+
+        if (Qs::userIsTeacher()) {
+            $periods = TimeTable::with(['subject.my_class', 'time_slot', 'tt_record.my_class'])
+                ->whereNotNull('day')
+                ->whereHas('subject', function ($q) use ($user) {
+                    $q->where('teacher_id', $user->id);
+                })
+                ->get();
+
+            $d['mode'] = 'teacher';
+            $d['slots'] = $periods->pluck('time_slot')->filter()->unique('id')
+                ->sortBy(function ($slot) { return (int) $slot->timestamp_from; })->values();
+            $d['period_count'] = $periods->count();
+
+            foreach ($periods as $p) {
+                if (!$p->time_slot) {
+                    continue;
+                }
+                $class = optional($p->tt_record)->my_class ?: optional($p->subject)->my_class;
+                $d['map'][$p->day][$p->time_slot->full] = [
+                    'title' => optional($p->subject)->name ?: '—',
+                    'sub'   => $class ? $class->name : '',
+                ];
+            }
+
+            $present = $periods->pluck('day')->unique()->all();
+            $d['days'] = collect(Qs::getDaysOfTheWeek())->filter(function ($day) use ($present) {
+                return in_array($day, ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'])
+                    || in_array($day, $present);
+            })->values();
+
+            return view('pages.support_team.timetables.mine', $d);
+        }
+
+        if (Qs::userIsStudent() || Qs::userIsParent()) {
+            $d['mode'] = Qs::userIsStudent() ? 'student' : 'parent';
+            $d['children'] = collect();
+            $child = null;
+
+            if ($d['mode'] === 'student') {
+                $child = Qs::findStudentRecord($user->id);
+            } else {
+                $d['children'] = $children = Qs::findMyChildren($user->id);
+                // Tamper guard: only an id from the parent's OWN children is
+                // honoured; anything else falls back to the first child.
+                $child = $children->firstWhere('id', (int) $req->query('child')) ?: $children->first();
+            }
+
+            $d['child'] = $child;
+
+            if ($child) {
+                $ttr = TimeTableRecord::where('my_class_id', $child->my_class_id)
+                        ->whereNull('exam_id')->where('year', $this->year)->first()
+                    ?: TimeTableRecord::where('my_class_id', $child->my_class_id)
+                        ->whereNull('exam_id')->orderByDesc('year')->first();
+
+                if ($ttr) {
+                    $grid = $this->recordWeekGrid($ttr);
+                    $d['ttr'] = $ttr;
+                    $d['days'] = $grid['days'];
+                    $d['slots'] = $grid['slots'];
+                    $d['map'] = $grid['map'];
+                }
+            }
+
+            return view('pages.support_team.timetables.mine', $d);
+        }
+
+        return redirect()->route('tt.index');
+    }
+
+    /**
+     * Build a week grid (days x slots + cell map) for one class timetable
+     * record. Cell = subject name + the subject's assigned teacher, when
+     * the subject carries one (subjects.teacher_id) — never invented.
+     */
+    protected function recordWeekGrid(TimeTableRecord $ttr)
+    {
+        $slots = $this->tt->getTimeSlotByTTR($ttr->id);
+        $entries = TimeTable::with(['subject.teacher', 'time_slot'])
+            ->where('ttr_id', $ttr->id)->whereNotNull('day')->get();
+
+        $map = [];
+        foreach ($entries as $e) {
+            if (!$e->time_slot) {
+                continue;
+            }
+            $teacher = optional(optional($e->subject)->teacher)->name;
+            $map[$e->day][$e->time_slot->full] = [
+                'title' => optional($e->subject)->name ?: '—',
+                'sub'   => $teacher ?: '',
+            ];
+        }
+
+        $present = $entries->pluck('day')->unique()->all();
+        $days = collect(Qs::getDaysOfTheWeek())->filter(function ($day) use ($present) {
+            return in_array($day, $present);
+        })->values();
+
+        return ['days' => $days, 'slots' => $slots, 'map' => $map];
     }
 
     public function manage($ttr_id)

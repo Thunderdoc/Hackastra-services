@@ -1109,3 +1109,87 @@ a.t9-row:hover .t9-row-copy strong{color:var(--qs-primary-action)}
 @media (min-width:768px){
   .sidebar-expand-md.sidebar-main{position:fixed;top:0;bottom:0;left:0}
 }
+
+/* ============================================================
+   Loop 23 — Timetable section rebuild (Batch 11).
+   .ttx- components for the rebuilt index / manage / show /
+   print / "My Timetable" pages. The week grid renders exactly
+   one cell per time slot for every day (missing = muted "—"),
+   with a sticky day column inside the .l7-table-scroll wrap.
+   ============================================================ */
+.ttx-grid th,.ttx-grid td{text-align:center;vertical-align:top}
+.ttx-grid thead th{white-space:nowrap}
+.ttx-grid .ttx-day-col{background:#fff;left:0;min-width:104px;position:sticky;text-align:left;white-space:nowrap;z-index:2}
+.ttx-grid thead .ttx-day-col{background:#fafbfd;z-index:3}
+.ttx-grid.table-striped tbody tr:nth-of-type(odd) .ttx-day-col{background:#f5f8fc}
+.ttx-cell-title{color:#172536;display:block;font-weight:600;line-height:1.3}
+.ttx-cell-sub{color:#718096;display:block;font-size:.72rem;line-height:1.3;margin-top:1px}
+.ttx-empty{color:#a5b2c2}
+.ttx-lead{color:#44546a;font-size:.92rem;margin:2px 0 16px}
+.ttx-meta{display:flex;flex-wrap:wrap;gap:10px 34px;margin-bottom:18px}
+.ttx-meta-item small{color:#718096;display:block;font-size:.68rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
+.ttx-meta-item strong{color:#172536;font-size:.95rem}
+.ttx-actions{display:flex;flex-wrap:wrap;gap:6px}
+.ttx-group{margin-bottom:26px}
+.ttx-group:last-child{margin-bottom:0}
+.ttx-group-head{align-items:center;display:flex;gap:10px;margin-bottom:10px}
+.ttx-group-title{color:#172536;font-size:.92rem;font-weight:700;margin:0}
+.ttx-group-title i{color:#3478f6;margin-right:4px}
+.ttx-empty-state{color:#718096;padding:26px 12px;text-align:center}
+.ttx-empty-state i{color:#3478f6;display:block;font-size:30px;margin-bottom:8px;opacity:.55}
+.ttx-empty-state p{margin:0}
+.ttx-inner-card{box-shadow:none;margin-bottom:22px}
+.ttx-switcher{align-items:center;display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.ttx-switcher-label{color:#44546a;font-size:.86rem;font-weight:600}
+
+/* ============================================================
+   Loop 24 — Global quick fixes (owner samples, 2026-10-21).
+   1) An open sidebar submenu parent highlighted TEAL
+      (#26a69a, layout.min.css on .sidebar-dark) — restyle to
+      the product scheme: navy sidebar, blue accent. The theme
+      rule is (0,5,0); these match it and qs.css loads last.
+   2) Legacy ⌄/× panel controls (Qs::getPanelOptions) in card
+      headers are junk chrome — hide those two anchors. Card
+      bodies that were authored `collapse`d (marksheet comment
+      / skill cards) would be stranded shut without their
+      toggle, so a collapsed card body now renders open.
+      Real header buttons (Print/Export etc.) are untouched:
+      they are not a[data-action="collapse"/"remove"].
+   3) My Account tab bar showed a horizontal scrollbar on
+      desktop even when the tabs fit — hide it, keep swipe
+      scrolling on small screens.
+   ============================================================ */
+.sidebar-main .nav-sidebar>.nav-item-open>.nav-link:not(.disabled),
+.sidebar-main .nav-sidebar .nav-item-open>.nav-link:not(.disabled){background-color:rgba(52,120,246,.25);color:#fff}
+.sidebar-main .nav-sidebar>.nav-item-expanded:not(.nav-item-open)>.nav-link{background-color:rgba(255,255,255,.07);color:#fff}
+.sidebar-main .nav-group-sub .nav-link.active{background-color:#3478f6;border-radius:6px;color:#fff}
+.card-header a[data-action="collapse"],.card-header a[data-action="remove"]{display:none!important}
+.card-body.collapse{display:block}
+.acct-tabs{-ms-overflow-style:none;scrollbar-width:none}
+.acct-tabs::-webkit-scrollbar{display:none;height:0;width:0}
+
+/* ============================================================
+   Loop 25 — Topbar / fixed-sidebar alignment (owner
+   screenshot). .lav-topbar is a body-level sibling BEFORE
+   .page-content (partials/top_menu.blade.php, included first
+   in layouts/master) — a full-width in-flow navbar starting
+   at x=0. Since Loop 22 made the sidebar truly fixed, the
+   sidebar now overlaps the topbar's left 218px, clipping the
+   hamburger toggle and the start of the search box (both are
+   direct children of the navbar; it has no .navbar-collapse,
+   so line 50's collapse margin never protected them).
+   Fix: offset the bar itself by the sidebar width on desktop
+   and neutralize the collapse margin so nothing double-shifts.
+   The 768–991.98px drawer range and mobile keep margin 0 —
+   there the sidebar is an off-canvas overlay, not a rail.
+   Collapsed mode: body.sidebar-xs (forced on ttr.manage /
+   ttr.show) shrinks the rail to 3.5rem (56px, Limitless wins
+   on width) while margins stayed 218px — a 162px dead gap.
+   Both offsets follow the rail to 56px at the same range.
+   ============================================================ */
+@media (min-width:992px){
+  .lav-topbar{margin-left:218px}
+  .lav-topbar .navbar-collapse{margin-left:0}
+  body.sidebar-xs .lav-topbar{margin-left:56px}
+  body.sidebar-xs .content-wrapper{margin-left:56px}
+}

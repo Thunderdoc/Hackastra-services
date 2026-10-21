@@ -61,6 +61,7 @@ Route::group(['middleware' => 'auth'], function () {
         /*************** TimeTables *****************/
         Route::group(['prefix' => 'timetables'], function(){
             Route::get('/', 'TimeTableController@index')->name('tt.index');
+            Route::get('mine', 'TimeTableController@mine')->name('tt.mine');
 
             Route::group(['middleware' => 'teamSA'], function() {
                 Route::post('/', 'TimeTableController@store')->name('tt.store');

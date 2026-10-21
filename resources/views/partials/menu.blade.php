@@ -103,10 +103,11 @@
                     </a>
                 </li>
                 <li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Academics</div><i class="icon-menu" title="Academics"></i></li>
-                <li class="nav-item nav-item-submenu {{ in_array(Route::currentRouteName(), ['tt.index', 'ttr.edit', 'ttr.show', 'ttr.manage']) ? 'nav-item-expanded nav-item-open' : '' }} ">
+                <li class="nav-item nav-item-submenu {{ in_array(Route::currentRouteName(), ['tt.index', 'tt.mine', 'ttr.edit', 'ttr.show', 'ttr.manage']) ? 'nav-item-expanded nav-item-open' : '' }} ">
                     <a href="#" class="nav-link"><i class="icon-graduation2"></i> <span> Academics</span></a>
                     <ul class="nav nav-group-sub" data-submenu-title="Manage Academics">
                         <li class="nav-item"><a href="{{ route('tt.index') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['tt.index']) ? 'active' : '' }}">Timetables</a></li>
+                        <li class="nav-item"><a href="{{ route('tt.mine') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['tt.mine']) ? 'active' : '' }}">My Timetable</a></li>
                     </ul>
                 </li>
                 <li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Students</div><i class="icon-menu" title="Students"></i></li>

@@ -18,4 +18,9 @@
     <a href="{{ route('my_fees') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['my_fees', 'my_fees.show']) ? 'active' : '' }}"><i class="icon-coins"></i> Fees</a>
 </li>
 
+{{--My Timetable--}}
+<li class="nav-item">
+    <a href="{{ route('tt.mine') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['tt.mine']) ? 'active' : '' }}"><i class="icon-table2"></i> My Timetable</a>
+</li>
+
 {{-- Circulars lives once in the shared sidebar (partials/menu) — Batch 6 (D13) removed the duplicate that used to sit here. --}}
