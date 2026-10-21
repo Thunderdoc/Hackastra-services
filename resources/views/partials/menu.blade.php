@@ -103,7 +103,7 @@
                 </li>
                 <li class="nav-item">
                     <a href="{{ route('attendance.periods.index') }}" class="nav-link {{ (Route::is('attendance.periods.*')) ? 'active' : '' }}">
-                        <i class="icon-clock3"></i>
+                        <i class="icon-watch"></i>
                         <span>Period Attendance</span>
                     </a>
                 </li>

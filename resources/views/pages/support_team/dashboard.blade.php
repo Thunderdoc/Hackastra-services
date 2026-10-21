@@ -55,7 +55,7 @@
             {{-- Quick Actions --}}
             <section class="dashboard-panel dashboard-quick-actions mb-4">
                 <div class="dashboard-panel-heading">
-                    <div><h5 class="mb-1"><i class="icon-flash2 text-blue mr-1"></i> Quick Actions</h5><p class="dashboard-muted mb-0">Perform common administrative tasks quickly.</p></div>
+                    <div><h5 class="mb-1"><i class="icon-rocket text-blue mr-1"></i> Quick Actions</h5><p class="dashboard-muted mb-0">Perform common administrative tasks quickly.</p></div>
                 </div>
                 <div class="dashboard-action-grid l17-action-grid">
                     <a href="{{ route('students.create') }}"><i class="icon-user-plus"></i><span>Add Student</span></a>
@@ -281,7 +281,7 @@
     {{-- Smart Insights — generated from the same real data as the panels above --}}
     <section class="dashboard-panel dashboard-insights mb-4">
         <div class="dashboard-panel-heading">
-            <div><h5 class="mb-1"><i class="icon-bulb2 text-orange mr-1"></i> Smart Insights</h5><p class="dashboard-muted mb-0">AI-powered insights based on your school data</p></div>
+            <div><h5 class="mb-1"><i class="icon-eye text-orange mr-1"></i> Smart Insights</h5><p class="dashboard-muted mb-0">AI-powered insights based on your school data</p></div>
             <span class="dashboard-view-all">View All <i class="icon-arrow-right7"></i></span>
         </div>
         <div class="dashboard-insight-grid dashboard-insight-scroll">

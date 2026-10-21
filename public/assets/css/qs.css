@@ -776,3 +776,21 @@ a.par-reminder-info:hover{background:#e2ebfa}
 .dashboard-period-form{display:inline-block;margin:0}
 .dashboard-period-select{background:#f5f7fb;border:1px solid #e4eaf1;border-radius:6px;color:#44546a;cursor:pointer;font-size:.75rem;font-weight:600;line-height:1.35;padding:5px 8px}
 .dashboard-period-select:focus{border-color:#3478f6;box-shadow:0 0 0 3px rgba(52,120,246,.14);outline:none}
+
+/* =====================================================================
+   Loop 18 — Batch 8 header + icon fixes (owner screenshot, 2026-10-21)
+   ---------------------------------------------------------------------
+   The top search box clipped its placeholder into the Ctrl+K chip: the
+   flex row had no gap and the box was capped at 370px for a ~46-char
+   placeholder at a cramped 10px. The box now breathes (wider cap, real
+   gap, readable 12px text) and the placeholder copy is shorter.
+   Icon note: three glyph classes used across the dashboards did not
+   exist in the icomoon font at all (icon-clock3, icon-flash2, icon-bulb2)
+   and rendered as empty circles/spaces. The blades now use glyphs that
+   exist (icon-watch, icon-rocket, icon-eye); scripts/qa-smoke.sh audits
+   every icon class used in blades against the font so a non-existent
+   glyph can never ship again.
+   ===================================================================== */
+.lav-search{gap:8px;max-width:440px;padding:6px 12px}
+.lav-search input{font-size:12px}
+.lav-search kbd{font-size:9px}

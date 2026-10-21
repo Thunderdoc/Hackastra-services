@@ -24,7 +24,7 @@
                         @endif
 
                     <div class="text-center mb-3">
-                        <i class="icon-spinner11 icon-2x text-warning border-warning border-3 rounded-round p-3 mb-3 mt-1"></i>
+                        <i class="icon-spinner11 text-warning border-warning border-3 rounded-round p-3 mb-3 mt-1" style="font-size: 2rem;"></i>
                         <h5 class="mb-0">Password recovery</h5>
                         <span class="d-block text-muted">We'll send you instructions in email</span>
                     </div>

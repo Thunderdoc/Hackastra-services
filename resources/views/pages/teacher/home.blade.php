@@ -30,7 +30,7 @@
             ['label' => 'My Subjects', 'value' => $my_subjects->count(), 'sub' => 'Subjects you teach', 'icon' => 'icon-book', 'tone' => 'blue'],
             ['label' => 'My Classes', 'value' => $my_class_count, 'sub' => 'Classes you teach in', 'icon' => 'icon-windows2', 'tone' => 'green'],
             ['label' => 'Total Students', 'value' => $my_student_count, 'sub' => 'Across your classes', 'icon' => 'icon-users4', 'tone' => 'orange'],
-            ['label' => 'Today\'s Periods', 'value' => $today_periods->count(), 'sub' => 'Scheduled for today', 'icon' => 'icon-clock3', 'tone' => 'red'],
+            ['label' => 'Today\'s Periods', 'value' => $today_periods->count(), 'sub' => 'Scheduled for today', 'icon' => 'icon-watch', 'tone' => 'red'],
             ['label' => 'Sections I Lead', 'value' => $sections_led->count(), 'sub' => 'As class teacher', 'icon' => 'icon-user-tie', 'tone' => 'purple'],
         ] as $stat)
             <div class="dashboard-stat-card dashboard-stat-{{ $stat['tone'] }}">
@@ -80,8 +80,7 @@
             {{-- Quick Actions — only workflows a teacher is authorized for --}}
             <section class="dashboard-panel dashboard-quick-actions mb-4">
                 <div class="dashboard-panel-heading">
-                    <div><h5 class="mb-1"><i class="icon-flash2 text-blue mr-1"></i> Quick Actions</h5><p class="dashboard-muted mb-0">Perform your everyday teaching tasks quickly.</p></div>
-                    <span class="dashboard-heading-icon"><i class="icon-arrow-right7"></i></span>
+                    <div><h5 class="mb-1"><i class="icon-rocket text-blue mr-1"></i> Quick Actions</h5><p class="dashboard-muted mb-0">Perform your everyday teaching tasks quickly.</p></div>
                 </div>
                 <div class="dashboard-action-grid teacher-action-grid">
                     <a href="{{ route('attendance.index') }}"><i class="icon-calendar52"></i><span>Take Attendance</span></a>

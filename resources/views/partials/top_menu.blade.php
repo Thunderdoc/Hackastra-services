@@ -9,7 +9,7 @@
     </a>
     <form class="lav-search" role="search" method="GET" action="{{ route('dashboard.search') }}">
         <i class="icon-search4"></i>
-        <input type="search" name="q" id="lav-global-search" value="{{ request('q') }}" placeholder="Search students, teachers, classes, payments, exams..." aria-label="Search students, teachers, classes, payments, exams">
+        <input type="search" name="q" id="lav-global-search" value="{{ request('q') }}" placeholder="Search students, teachers, classes, payments..." aria-label="Search students, teachers, classes, payments, exams">
         <kbd>Ctrl + K</kbd>
     </form>
     <script>

@@ -94,8 +94,7 @@
             {{-- Quick Actions --}}
             <section class="dashboard-panel dashboard-quick-actions mb-4">
                 <div class="dashboard-panel-heading">
-                    <div><h5 class="mb-1"><i class="icon-flash2 text-blue mr-1"></i> Quick Actions</h5><p class="dashboard-muted mb-0">Your everyday finance tasks.</p></div>
-                    <span class="dashboard-heading-icon"><i class="icon-arrow-right7"></i></span>
+                    <div><h5 class="mb-1"><i class="icon-rocket text-blue mr-1"></i> Quick Actions</h5><p class="dashboard-muted mb-0">Your everyday finance tasks.</p></div>
                 </div>
                 <div class="dashboard-action-grid acc-action-grid">
                     <a href="{{ route('payments.create') }}"><i class="icon-wallet"></i><span>Record Payment</span></a>

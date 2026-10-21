@@ -49,7 +49,7 @@
             </span>
         </div>
         <div class="dashboard-stat-card dashboard-stat-orange">
-            <span class="dashboard-stat-top"><span class="dashboard-stat-icon"><i class="icon-clock3"></i></span></span>
+            <span class="dashboard-stat-top"><span class="dashboard-stat-icon"><i class="icon-watch"></i></span></span>
             <span class="dashboard-stat-copy">
                 <span class="dashboard-stat-label">Today&rsquo;s Periods</span>
                 <strong>{{ $today_periods->count() }}</strong>
@@ -149,8 +149,7 @@
             {{-- Quick actions --}}
             <section class="dashboard-panel dashboard-quick-actions mb-4">
                 <div class="dashboard-panel-heading">
-                    <div><h5 class="mb-1"><i class="icon-flash2 text-blue mr-1"></i> Quick Actions</h5><p class="dashboard-muted mb-0">Jump to your pages.</p></div>
-                    <span class="dashboard-heading-icon"><i class="icon-arrow-right7"></i></span>
+                    <div><h5 class="mb-1"><i class="icon-rocket text-blue mr-1"></i> Quick Actions</h5><p class="dashboard-muted mb-0">Jump to your pages.</p></div>
                 </div>
                 <div class="dashboard-action-grid stu-action-grid">
                     <a href="{{ route('attendance.my') }}"><i class="icon-calendar52"></i><span>My Attendance</span></a>

@@ -73,13 +73,27 @@ fi
 grep -q 'dashboard-panel' "$CSS" && grep -q 'min-width:0' "$CSS" \
   && good "min-width:0 shrink guards present" \
   || bad "min-width:0 shrink guards missing from qs.css"
-# 2d. Dead decorative heading buttons must not come back on the dashboards.
-for b in pages/super_admin/platform_home.blade.php pages/support_team/dashboard.blade.php; do
-  if grep -q 'dashboard-heading-icon' "$APP/resources/views/$b" 2>/dev/null; then
-    bad "dead dashboard-heading-icon button back in $b"
+# 2d. Dead decorative heading buttons must not come back ANYWHERE.
+if grep -rq 'dashboard-heading-icon' "$APP/resources/views" 2>/dev/null; then
+  bad "dead dashboard-heading-icon button present in:"
+  grep -rl 'dashboard-heading-icon' "$APP/resources/views" | head -5 | sed 's/^/       /'
+else
+  good "no dead heading-icon buttons in any blade"
+fi
+# 2e. Icon audit (Batch 8): every icon-* class used in a blade must exist
+#     in the icomoon font, or it renders as an empty circle/space.
+FONT="$APP/public/global_assets/css/icons/icomoon/styles.css"
+if [ -f "$FONT" ]; then
+  MISSING="$(comm -23 \
+    <(grep -rhoE 'icon-[a-z0-9-]+' "$APP/resources/views" | sort -u) \
+    <(grep -oE '\.icon-[a-z0-9-]+:before' "$FONT" | sed 's/^\.//;s/:before//' | sort -u))"
+  if [ -n "$MISSING" ]; then
+    bad "icon classes used in blades but missing from the font:"
+    printf '%s\n' "$MISSING" | head -8 | sed 's/^/       /'
+  else
+    good "every icon class used in blades exists in the font"
   fi
-done
-[ "$FAIL" = 0 ] && good "no dead heading-icon buttons on owned dashboards"
+fi
 
 # --- 3. Blade compilation -----------------------------------------------------
 if command -v "$PHP" >/dev/null 2>&1 && [ -f "$APP/artisan" ]; then
