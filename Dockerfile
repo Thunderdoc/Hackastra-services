@@ -1,6 +1,10 @@
-# Hackstra — production image (Laravel 8 on PHP 8.2, Apache)
+# Hackstra — production image (Laravel 8 on PHP 8.4, Apache)
 # Used by Railway (and any Docker host). See docs/DEPLOYMENT.md.
-FROM php:8.2-apache
+# PHP 8.4 is required: composer.lock resolves symfony/css-selector v8.1.6,
+# which needs PHP >= 8.4.1. On PHP 8.2 the composer install succeeds only
+# with platform checks ignored, and Laravel's platform_check then fails
+# at boot (build log 2026-10-21). Do not downgrade this image.
+FROM php:8.4-apache
 
 # System packages + PHP extensions the app and its packages need
 # (audit §3.1: pdo_mysql, mbstring, fileinfo, tokenizer, xml, ctype, curl, zip, gd)

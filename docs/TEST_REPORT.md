@@ -41,6 +41,21 @@ clicking through it on a live install — has not happened yet.
 | Notifications (recent activity) | ✅ (new) | Pending live |
 | Pins, settings, my account | ✅ legacy, untouched | Pending live |
 
+## Deployment build diagnosis (2026-10-21, from the real build log)
+
+The first Railway builds failed at the container build, in two stages:
+1. Strict `composer install` on PHP 8.2 → exit 2 (no detail visible then).
+2. With a platform-relaxed install, `composer dump-autoload` failed:
+   *"Your Composer dependencies require a PHP version >= 8.4.1.
+   You are running 8.2.34."*
+
+Root cause, verified in `composer.lock`: the lock resolves
+**symfony/css-selector v8.1.6**, which requires PHP ≥ 8.4.1 — the lock was
+last updated on a PHP 8.4 machine. Fix shipped: the production image now
+uses **PHP 8.4** (`php:8.4-apache`), matching the lock. The PSR-4 warnings
+in the same log (App\Book etc.) are pre-existing legacy namespace quirks,
+warnings only, not the failure.
+
 ## Scope vs the original audit estimate
 
 The audit's own table (22–46 working days total, "4–5 weeks"):

@@ -105,7 +105,10 @@ match the design system, ≤ ~350 KB per asset, stored under
 - [x] Payments module click audit (Loop 2, 2026-10-21): every action is
   a real route or a confirmed JS action (confirmDelete/confirmReset are
   defined in partials/js/custom_js); no typeless buttons inside forms
-- [ ] Print styles verified: marksheet / receipt / tabulation (Loop 3)
+- [x] Loop 3 click audit (2026-10-21): Exams/Marks, Classes, Users,
+  Sections, Subjects, Grades, Dorms, Timetables — no dead clicks found
+  (every action is a real route or a confirmed JS action)
+- [ ] Print styles verified: marksheet / receipt / tabulation (Loop 4)
 - [ ] Responsive pass 375 / 768 / 1024 on the live URL (needs deploy green)
 - [ ] Audit log for login / marks / payment / role changes
 - [ ] Form Requests for the largest legacy forms

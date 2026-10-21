@@ -11,8 +11,10 @@ for a demo / small school deployment of this app.
 
 ## Files that make it work
 
-- `Dockerfile` — PHP 8.2 + Apache, all extensions the app needs, Composer
-  production install, document root set to `public/`
+- `Dockerfile` — PHP 8.4 + Apache (the lock file resolves packages that
+  require PHP ≥ 8.4.1, e.g. symfony/css-selector v8 — do not downgrade the
+  image or the build fails its platform check), all extensions the app
+  needs, Composer production install, document root set to `public/`
 - `docker/entrypoint.sh` — waits for the database, runs `php artisan migrate`
   on every boot, caches config/routes/views, starts Apache on `$PORT`
 - `railway.json` — tells Railway to build the Dockerfile and health-check `/health`
