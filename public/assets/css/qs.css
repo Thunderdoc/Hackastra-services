@@ -390,3 +390,26 @@
   .sidebar-main .nav-sidebar .nav-link{min-height:40px}
   .content table td .btn{min-height:40px;min-width:40px}
 }
+
+/* ============ Loop 10 — page header, session chip, profile page, dashboard refinements ============ */
+.page-header-content{display:flex;align-items:center;justify-content:space-between;min-height:66px;padding-top:6px;padding-bottom:6px}
+.page-header .page-title h4{margin:0;font-size:1.12rem;color:#172536}
+.session-chip{display:inline-flex;align-items:center;gap:8px;background:#eef3fb;border:1px solid #d7e2f2;color:#43556c;border-radius:999px;padding:7px 14px;font-size:.82rem;font-weight:500;white-space:nowrap}
+.session-chip i{color:#2867dc;font-size:15px}
+.session-chip strong{color:#172536;font-weight:700}
+a.session-chip:hover{background:#e2ebfa;text-decoration:none;color:#43556c}
+@media (max-width:767px){.session-chip{padding:5px 10px;font-size:.75rem}}
+.profile-card{overflow:hidden}
+.profile-avatar{width:128px;height:128px;object-fit:cover;border-radius:50%;border:4px solid #eef3fb;box-shadow:0 4px 14px rgba(23,50,77,.12)}
+.profile-name{margin:14px 0 6px;font-weight:700;color:#172536;line-height:1.3}
+.profile-role{background:#2867dc;color:#fff;font-size:.7rem;font-weight:600;letter-spacing:.4px;padding:5px 12px;border-radius:999px;text-transform:uppercase}
+.profile-contact{list-style:none;margin:18px 0 4px;padding:6px 2px 0;text-align:left}
+.profile-contact li{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-top:1px solid #eef1f5;color:#43556c;font-size:.88rem;word-break:break-word}
+.profile-contact li i{color:#2867dc;font-size:15px;margin-top:2px}
+.profile-edit-btn{margin-top:14px}
+.profile-table td{padding:13px 18px;vertical-align:top;border-top:1px solid #eef1f5}
+.profile-table tr:first-child td{border-top:0}
+.profile-label{width:190px;min-width:150px;background:#f8fafc;color:#5c6f84;font-weight:600}
+.dashboard-heading-icon{align-items:center;background:#eef3fb;border-radius:50%;color:#2867dc;display:inline-flex;font-size:15px;height:34px;justify-content:center;width:34px}
+.dashboard-action-grid a{font-size:11px;min-height:78px}
+.dashboard-stat-card{width:100%}
