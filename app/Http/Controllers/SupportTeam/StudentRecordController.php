@@ -66,7 +66,11 @@ class StudentRecordController extends Controller
        $data =  $req->only(Qs::getUserRecord());
        $sr =  $req->only(Qs::getStudentData());
 
-        $ct = $this->my_class->findTypeByClass($req->my_class_id)->code;
+        $type = $this->my_class->findTypeByClass($req->my_class_id);
+        if (is_null($type)) {
+            return Qs::goWithDanger();
+        }
+        $ct = $type->code;
        /* $ct = ($ct == 'J') ? 'JSS' : $ct;
         $ct = ($ct == 'S') ? 'SS' : $ct;*/
 

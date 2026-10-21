@@ -64,4 +64,12 @@ class SchoolEventController extends Controller
 
         return back()->with('flash_success', __('msg.del_ok'));
     }
+
+    public function show($id)
+    {
+        // No detail page exists for this module; land on its index
+        // instead of returning 500.
+        return redirect()->route('events.index');
+    }
+
 }
