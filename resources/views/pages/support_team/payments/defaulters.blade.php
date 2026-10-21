@@ -1,8 +1,22 @@
 @extends('layouts.master')
 @section('page_title', 'Fee Defaulters')
 @section('content')
-    <div class="card">
-        <div class="card-header header-elements-inline">
+    {{-- Workstream BT: print-only document header/footer — the same
+         print-doc standard as the students list (Loop 31). Hidden on
+         screen; window.print() now produces a branded school report
+         instead of a bare screen table (which also spilled onto a
+         second page at screen-sized row metrics — the compact print
+         metrics for this report live in qs.css, Loop 47). --}}
+    <div class="print-doc-head">
+        <img src="{{ Qs::getLogo() }}" alt="">
+        <div>
+            <h1>{{ Qs::getSystemName() }}</h1>
+            <p>Fee Defaulters &mdash; Session: {{ $year }}{{ $selected_class ? ' &middot; Class: '.$selected_class->name : '' }} &middot; {{ $rows->count() }} defaulter(s) owing {{ \App\Helpers\Money::inr($total_due) }}</p>
+        </div>
+    </div>
+
+    <div class="card def-doc">
+        <div class="card-header header-elements-inline print-hide">
             <h6 class="card-title">Fee Defaulters — {{ $year }}</h6>
             {!! Qs::getPanelOptions() !!}
             <div class="header-elements">
@@ -11,7 +25,7 @@
             </div>
         </div>
         <div class="card-body">
-            <form method="GET" action="{{ route('payments.defaulters') }}" class="form-inline mb-3">
+            <form method="GET" action="{{ route('payments.defaulters') }}" class="form-inline mb-3 print-hide">
                 <label class="mr-2">Class</label>
                 <select name="class_id" class="form-control mr-3" onchange="this.form.submit()">
                     <option value="">All Classes</option>
@@ -63,8 +77,13 @@
                         </tfoot>
                     </table>
                 </div>
-                <p class="text-muted mb-0"><small>Balance per record follows the invoice page: the stored balance, or the full fee amount for untouched records. Partially paid records count only their remaining balance. Worst first.</small></p>
+                <p class="text-muted mb-0 def-note"><small>Balance per record follows the invoice page: the stored balance, or the full fee amount for untouched records. Partially paid records count only their remaining balance. Worst first.</small></p>
             @endif
         </div>
+    </div>
+
+    <div class="print-doc-foot">
+        <span>Printed on {{ now()->format('d M Y, g:i A') }} &middot; {{ Qs::getSystemName() }}</span>
+        <span>Fee Defaulters &mdash; {{ $year }}</span>
     </div>
 @endsection

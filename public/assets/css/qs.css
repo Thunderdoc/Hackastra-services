@@ -1998,3 +1998,26 @@ body:not(.sidebar-xs) .sidebar-main .nav-group-sub .nav-link,
 body:not(.sidebar-xs) .sidebar-main .nav-group-sub .nav-group-sub .nav-link{border-radius:7px;min-height:35px;padding:9px 10px 9px 12px}
 body:not(.sidebar-xs) .sidebar-main .nav-group-sub .nav-link:not(.active):hover,
 body:not(.sidebar-xs) .sidebar-main .nav-group-sub .nav-group-sub .nav-link:not(.active):hover{background:rgba(255,255,255,.08)}
+
+/* ============================================================
+   Loop 47 — Payments landing compact + Fee Defaulters print
+   (Workstream BT). The payments landing's two cards (Collect
+   Fee / Select Year) and the Student Payments class picker no
+   longer float a small centred form inside a near-empty card:
+   .bt-find caps the Collect Fee search at a sensible width with
+   its helper attached; .bt-picker is ONE inline row (label +
+   select + Submit) for the year/class pickers. Print: the Fee
+   Defaulters report (.def-doc) gets compact report metrics so
+   the full list prints on ONE page under the Loop 31 print-doc
+   standard (school header/footer are markup in the blade).
+   ============================================================ */
+.bt-find{max-width:640px}
+.bt-picker{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px}
+.bt-picker-field{flex:0 1 260px;min-width:200px}
+.bt-picker-field .col-form-label{display:block;padding-top:0;padding-bottom:4px}
+@media print{
+  .def-doc .card-body{padding:10px 14px!important}
+  .def-doc .table{font-size:11px!important}
+  .def-doc .table th,.def-doc .table td{padding:4px 8px!important;line-height:1.35!important}
+  .def-doc .def-note{font-size:10px!important;margin-top:8px!important}
+}

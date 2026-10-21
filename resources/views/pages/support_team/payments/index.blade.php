@@ -4,60 +4,53 @@
 
     {{-- Collect Fee (Workstream BJ): the counter workflow — a student
          comes to pay, so find them by name, admission number or class
-         and jump straight to their payment records to take the fee. --}}
+         and jump straight to their payment records to take the fee.
+         Workstream BT: the card is compact now — the search sits at a
+         sensible width, left-aligned, helper attached (it used to float
+         centred in a near-empty card). The search contract (endpoint,
+         dropdown, invoice links) is BJ's and unchanged. --}}
     <div class="card">
         <div class="card-header header-elements-inline">
             <h5 class="card-title"><i class="icon-cash2 mr-2"></i> Collect Fee</h5>
         </div>
 
         <div class="card-body">
-            <div class="row">
-                <div class="col-md-8 offset-md-2">
-                    <div class="form-group mb-1" style="position: relative;">
-                        <label for="fee-student-search" class="col-form-label font-weight-bold">Find student</label>
-                        <input type="text" id="fee-student-search" class="form-control" autocomplete="off"
-                               placeholder="Type a student name, admission number or class&hellip;">
-                        <div id="fee-search-results" class="list-group" style="display: none; position: absolute; left: 0; right: 0; top: 100%; z-index: 1050; max-height: 340px; overflow-y: auto; box-shadow: 0 8px 24px rgba(0,0,0,.15);"></div>
-                    </div>
-                    <small class="form-text text-muted">Pick a student to open their payment records and collect the fee.</small>
+            <div class="bt-find">
+                <div class="form-group mb-1" style="position: relative;">
+                    <label for="fee-student-search" class="col-form-label font-weight-bold">Find student</label>
+                    <input type="text" id="fee-student-search" class="form-control" autocomplete="off"
+                           placeholder="Type a student name, admission number or class&hellip;">
+                    <div id="fee-search-results" class="list-group" style="display: none; position: absolute; left: 0; right: 0; top: 100%; z-index: 1050; max-height: 340px; overflow-y: auto; box-shadow: 0 8px 24px rgba(0,0,0,.15);"></div>
                 </div>
+                <small class="form-text text-muted">Pick a student to open their payment records and collect the fee.</small>
             </div>
         </div>
     </div>
 
+    {{-- Select Year (Workstream BT): a compact inline picker row —
+         label, select and Submit together — replacing the legacy
+         centred column that floated in a near-empty card. --}}
     <div class="card">
         <div class="card-header header-elements-inline">
             <h5 class="card-title"><i class="icon-cash2 mr-2"></i> Select year</h5>
-            {!! Qs::getPanelOptions() !!}
         </div>
 
         <div class="card-body">
             <form method="post" action="{{ route('payments.select_year') }}">
                 @csrf
-                <div class="row">
-                    <div class="col-md-6 offset-md-3">
-                        <div class="row">
-                            <div class="col-md-10">
-                                <div class="form-group">
-                                    <label for="year" class="col-form-label font-weight-bold">Select Year <span class="text-danger">*</span></label>
-                                    <select data-placeholder="Select Year" required id="year" name="year" class="form-control select">
-                                        @foreach($years as $yr)
-                                            <option {{ ($selected && $year == $yr->year) ? 'selected' : '' }} value="{{ $yr->year }}">{{ $yr->year }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div class="col-md-2 mt-4">
-                                <div class="text-right mt-1">
-                                    <button type="submit" class="btn btn-primary">Submit <i class="icon-paperplane ml-2"></i></button>
-                                </div>
-                            </div>
-
-                        </div>
+                <div class="bt-picker">
+                    <div class="bt-picker-field">
+                        <label for="year" class="col-form-label font-weight-bold">Select Year <span class="text-danger">*</span></label>
+                        <select data-placeholder="Select Year" required id="year" name="year" class="form-control select">
+                            @foreach($years as $yr)
+                                <option {{ ($selected && $year == $yr->year) ? 'selected' : '' }} value="{{ $yr->year }}">{{ $yr->year }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="bt-picker-btn">
+                        <button type="submit" class="btn btn-primary">Submit <i class="icon-paperplane ml-2"></i></button>
                     </div>
                 </div>
-
             </form>
         </div>
     </div>
