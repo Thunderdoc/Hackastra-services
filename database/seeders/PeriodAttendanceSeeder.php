@@ -13,12 +13,18 @@ use Illuminate\Support\Facades\Schema;
 /**
  * Period Attendance demo data (Workstream AC).
  *
- * Submits realistic period registers for the demo teacher's own
- * timetable: today plus the previous five school days, every period
- * with a plausible topic for its subject and a full class roster at
- * roughly 92% present. Fully guarded and idempotent — a pair
- * (date, period) that already has a session is never touched, and
- * any surprise is swallowed so demo seeding can never hard-fail.
+ * Submits realistic period registers for the seeded teachers'
+ * timetables: today plus the previous five school days, about six
+ * submitted sessions per day (~36 in total), each with a plausible
+ * topic for its subject and a full class roster at roughly 92%
+ * present. Every session is taught by its timetable row's ACTUAL
+ * subject teacher (Workstream AT — since the seed rebalance the
+ * demo teacher teaches three classes, not all ten, so the sessions
+ * are picked round-robin across every teacher who has periods that
+ * day, the demo teacher included). Fully guarded and idempotent —
+ * a pair (date, period) that already has a session is never
+ * touched, and any surprise is swallowed so demo seeding can never
+ * hard-fail.
  *
  * Runs after DemoDataSeeder (which builds the demo timetables).
  */
@@ -36,6 +42,9 @@ class PeriodAttendanceSeeder extends Seeder
         }
     }
 
+    /** Sessions seeded per school day — six days at six ≈ the demo volume. */
+    protected const SESSIONS_PER_DAY = 6;
+
     protected function seed(): void
     {
         if (!Schema::hasTable('attendance_sessions')
@@ -44,25 +53,86 @@ class PeriodAttendanceSeeder extends Seeder
             return;
         }
 
-        $teacherId = DB::table('users')->where('email', 'teacher@teacher.com')->value('id')
-            ?: DB::table('users')->where('user_type', 'teacher')->value('id');
-        if (!$teacherId) {
-            return;
-        }
-
-        foreach ($this->schoolDays() as $date) {
+        foreach ($this->schoolDays() as $dayIndex => $date) {
             $periods = TimeTable::with(['subject', 'time_slot', 'tt_record'])
                 ->where('day', $date->format('l'))
                 ->whereNotNull('subject_id')
-                ->whereHas('subject', function ($q) use ($teacherId) {
-                    $q->where('teacher_id', $teacherId);
+                ->whereHas('subject', function ($q) {
+                    $q->whereNotNull('teacher_id');
                 })
                 ->get();
 
-            foreach ($periods as $period) {
+            foreach ($this->pickDailySessions($periods, (int) $dayIndex) as $period) {
                 $this->seedSession($period, $date);
             }
         }
+    }
+
+    /**
+     * Choose the day's sessions deterministically: group the day's
+     * periods by their subject's real teacher, then take them
+     * round-robin across the teachers so every teacher with periods
+     * that day — the demo teacher included — gets sessions over the
+     * six days. Both the teacher order and each teacher's period
+     * list are rotated by the day index, so different days feature
+     * different teachers and different classes instead of the same
+     * six periods repeating.
+     *
+     * @param \Illuminate\Support\Collection $periods
+     * @return TimeTable[]
+     */
+    protected function pickDailySessions($periods, int $dayIndex): array
+    {
+        $byTeacher = [];
+        foreach ($periods as $period) {
+            if ($period->subject && $period->subject->teacher_id) {
+                $byTeacher[(int) $period->subject->teacher_id][] = $period;
+            }
+        }
+        if (!$byTeacher) {
+            return [];
+        }
+
+        ksort($byTeacher);
+        foreach ($byTeacher as $teacherId => $list) {
+            usort($list, function ($a, $b) {
+                return $a->id <=> $b->id;
+            });
+            $byTeacher[$teacherId] = $this->rotated($list, $dayIndex);
+        }
+
+        $teacherIds = $this->rotated(array_keys($byTeacher), $dayIndex);
+        $picked = [];
+        $progress = true;
+        while (count($picked) < self::SESSIONS_PER_DAY && $progress) {
+            $progress = false;
+            foreach ($teacherIds as $teacherId) {
+                if (count($picked) >= self::SESSIONS_PER_DAY) {
+                    break;
+                }
+                if (!empty($byTeacher[$teacherId])) {
+                    $picked[] = array_shift($byTeacher[$teacherId]);
+                    $progress = true;
+                }
+            }
+        }
+
+        return $picked;
+    }
+
+    /** Rotate a list left by $offset positions (deterministic). */
+    protected function rotated(array $list, int $offset): array
+    {
+        $count = count($list);
+        if ($count === 0) {
+            return $list;
+        }
+        $offset %= $count;
+        if ($offset === 0) {
+            return $list;
+        }
+
+        return array_merge(array_slice($list, $offset), array_slice($list, 0, $offset));
     }
 
     /** Today plus the previous five school days (Mon–Fri), newest first. */

@@ -599,15 +599,21 @@ class DemoDataSeeder extends Seeder
     }
 
     /**
-     * Loop 11 — class timetables for the demo teacher so the Teacher
-     * Dashboard's "Today's Periods" panel shows real rows on any
-     * weekday. Two of the teacher's subject assignments (different
+     * Loop 11 — class timetables for the seeded teachers so each
+     * Teacher Dashboard's "Today's Periods" panel shows real rows on
+     * any weekday. Two of a teacher's subject assignments (different
      * classes where the seed provides them) each get a timetable
      * record, three time slots, and one entry per slot for Monday to
      * Friday — written exactly the way TimeTableController@store and
      * @store_time_slot build them (same columns, same strtotime
      * formulas). Guarded per timetable: a record that already has
      * entries is never touched.
+     *
+     * Workstream AT: this used to build timetables for the demo
+     * teacher only — correct when he taught every class. Since the
+     * seed rebalance he teaches three classes like everyone else, so
+     * every seeded teacher now gets their own timetables (the demo
+     * teacher first, then the rest by user id — fully deterministic).
      */
     protected function seedTeacherTimetables(string $session): void
     {
@@ -615,12 +621,20 @@ class DemoDataSeeder extends Seeder
             return;
         }
 
-        $teacherId = DB::table('users')->where('email', 'teacher@teacher.com')->value('id')
-            ?: DB::table('users')->where('user_type', 'teacher')->value('id');
-        if (!$teacherId) {
+        $teacherIds = DB::table('users')
+            ->where('user_type', 'teacher')->orderBy('id')->pluck('id');
+        if ($teacherIds->isEmpty()) {
             return;
         }
 
+        foreach ($teacherIds as $teacherId) {
+            $this->seedTeacherTimetableFor((int) $teacherId, $session);
+        }
+    }
+
+    /** Build the demo timetables for one teacher's picked subjects. */
+    protected function seedTeacherTimetableFor(int $teacherId, string $session): void
+    {
         $subjects = DB::table('subjects')
             ->where('teacher_id', $teacherId)->orderBy('id')->get();
         if ($subjects->isEmpty()) {
