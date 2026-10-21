@@ -1,9 +1,9 @@
 @extends('layouts.master')
-@section('page_title', 'Period Attendance')
+@section('page_title', 'Mark Attendance')
 @section('content')
     <div class="card">
         <div class="card-header header-elements-inline">
-            <h6 class="card-title">Period Attendance — {{ $date->format('l, d M Y') }}</h6>
+            <h6 class="card-title">Mark Attendance — {{ $date->format('l, d M Y') }}</h6>
             {!! Qs::getPanelOptions() !!}
         </div>
         <div class="card-body">

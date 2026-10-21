@@ -1,5 +1,5 @@
 @extends('layouts.master')
-@section('page_title', 'Period Attendance — Submitted')
+@section('page_title', 'Mark Attendance — Submitted')
 @section('content')
     <div class="card">
         <div class="card-header header-elements-inline">

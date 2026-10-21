@@ -1,5 +1,5 @@
 @extends('layouts.master')
-@section('page_title', 'Take Period Attendance')
+@section('page_title', 'Take Attendance')
 @section('content')
     <style>
         .period-grid th.period-status, .period-grid td.period-status { text-align: center; }

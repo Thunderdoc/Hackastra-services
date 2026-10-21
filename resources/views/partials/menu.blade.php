@@ -76,7 +76,7 @@
                 <li class="nav-item">
                     <a href="{{ route('attendance.periods.index') }}" class="nav-link {{ (Route::is('attendance.periods.*')) ? 'active' : '' }}">
                         <i class="icon-watch"></i>
-                        <span>Period Attendance</span>
+                        <span>Mark Attendance</span>
                     </a>
                 </li>
                 <li class="nav-item">
@@ -88,7 +88,7 @@
                 <li class="nav-item">
                     <a href="{{ route('attendance.defaulters') }}" class="nav-link {{ (Route::is('attendance.defaulters')) ? 'active' : '' }}">
                         <i class="icon-alarm"></i>
-                        <span>Attendance Defaulters</span>
+                        <span>Low Attendance (Below 75%)</span>
                     </a>
                 </li>
                 <li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Communication</div><i class="icon-menu" title="Communication"></i></li>
@@ -196,7 +196,7 @@
                 <li class="nav-item">
                     <a href="{{ route('attendance.periods.index') }}" class="nav-link {{ (Route::is('attendance.periods.*')) ? 'active' : '' }}">
                         <i class="icon-watch"></i>
-                        <span>Period Attendance</span>
+                        <span>Mark Attendance</span>
                     </a>
                 </li>
                 <li class="nav-item">
@@ -208,7 +208,7 @@
                 <li class="nav-item">
                     <a href="{{ route('attendance.defaulters') }}" class="nav-link {{ (Route::is('attendance.defaulters')) ? 'active' : '' }}">
                         <i class="icon-alarm"></i>
-                        <span>Attendance Defaulters</span>
+                        <span>Low Attendance (Below 75%)</span>
                     </a>
                 </li>
                 @endif

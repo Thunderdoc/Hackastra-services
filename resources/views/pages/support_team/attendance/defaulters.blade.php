@@ -1,9 +1,9 @@
 @extends('layouts.master')
-@section('page_title', 'Attendance Defaulters')
+@section('page_title', 'Low Attendance (Below 75%)')
 @section('content')
     <div class="card">
         <div class="card-header header-elements-inline">
-            <h6 class="card-title">Attendance Defaulters — below {{ $threshold }}%</h6>
+            <h6 class="card-title">Low Attendance (Below {{ $threshold }}%)</h6>
             {!! Qs::getPanelOptions() !!}
         </div>
         <div class="card-body">
