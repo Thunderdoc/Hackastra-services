@@ -19,6 +19,8 @@ Route::group(['middleware' => 'auth'], function () {
         Route::get('/', 'MyAccountController@edit_profile')->name('my_account');
         Route::put('/', 'MyAccountController@update_profile')->name('my_account.update');
         Route::put('/change_password', 'MyAccountController@change_pass')->name('my_account.change_pass');
+        Route::post('/preferences', 'MyAccountController@update_preferences')->name('my_account.preferences');
+        Route::get('/download', 'MyAccountController@download_data')->name('my_account.download');
     });
 
     /*************** Support Team *****************/

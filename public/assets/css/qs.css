@@ -926,3 +926,167 @@ a.t9-row:hover .t9-row-copy strong{color:var(--qs-primary-action)}
   .t9-kpi-grid,.t9-tiles{grid-template-columns:minmax(0,1fr)}
   .t9-row-date{display:none}
 }
+
+/* =====================================================================
+   Loop 20 — My Account page (Batch 10, all roles, reference-matched).
+   Every selector is namespaced under .acct- so no other page changes.
+   Palette follows the app blues: #3478f6 primary, ink #172536,
+   muted #718096, borders #e4eaf1, pastel tints from the dashboards.
+   ===================================================================== */
+.acct-page{max-width:1400px}
+.acct-head{align-items:center;display:flex;justify-content:space-between;gap:14px;margin:4px 0 10px}
+.acct-crumb{align-items:center;color:#718096;display:flex;font-size:.85rem;gap:7px}
+.acct-crumb a{color:#718096}.acct-crumb a:hover{color:#3478f6}
+.acct-crumb-sep{color:#b7c3d0}
+.acct-crumb-current{color:#46586c;font-weight:600}
+.acct-session-chip{align-items:center;background:#fff;border:1px solid #e4eaf1;border-radius:8px;color:#46586c;display:inline-flex;font-size:.8rem;gap:7px;padding:7px 12px;white-space:nowrap}
+.acct-session-chip i{color:#3478f6}
+.acct-session-chip strong{color:#172536}
+.acct-title{color:#172536;font-size:1.65rem;font-weight:700;margin:0 0 4px}
+.acct-subtitle{color:#718096;font-size:.92rem;margin:0 0 18px}
+.acct-alert{border-radius:10px;font-size:.88rem;margin-bottom:16px;padding:12px 16px}
+.acct-alert-success{background:#e7f7f0;border:1px solid #bfe8d5;color:#14663f}
+.acct-alert-danger{background:#fdeeee;border:1px solid #f5c6c6;color:#8f2b2b}
+
+/* --- Profile banner --- */
+.acct-banner{align-items:center;background:linear-gradient(120deg,#eef4ff 0%,#f4f8ff 55%,#e9f1ff 100%);border:1px solid #dbe7fa;border-radius:14px;display:flex;flex-wrap:wrap;gap:18px;justify-content:space-between;margin-bottom:22px;padding:22px 26px}
+.acct-banner-main{align-items:center;display:flex;gap:18px;min-width:0}
+.acct-avatar-wrap{flex:0 0 auto;position:relative}
+.acct-avatar{align-items:center;background:#c9d8f2;border-radius:50%;color:#34507c;display:inline-flex;font-size:1.5rem;font-weight:700;height:78px;justify-content:center;overflow:hidden;position:relative;width:78px}
+.acct-avatar img{height:100%;inset:0;object-fit:cover;position:absolute;width:100%}
+.acct-avatar-md{font-size:1rem;height:52px;width:52px}
+.acct-avatar-btn{align-items:center;background:#3478f6;border:2px solid #fff;border-radius:50%;bottom:0;color:#fff;display:inline-flex;font-size:.72rem;height:26px;justify-content:center;padding:0;position:absolute;right:0;width:26px}
+.acct-avatar-btn:hover{background:#2867dc}
+.acct-banner-info{min-width:0}
+.acct-banner-name{color:#172536;font-size:1.3rem;font-weight:700;margin:0 0 5px}
+.acct-banner-meta{color:#5a6b80;display:flex;flex-wrap:wrap;font-size:.85rem;gap:6px 20px}
+.acct-banner-meta i{color:#3478f6;margin-right:5px}
+.acct-chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
+.acct-chip{background:#e2eaf6;border-radius:6px;color:#46586c;font-size:.75rem;font-weight:600;padding:4px 10px}
+.acct-chip-role{background:#3478f6;color:#fff}
+.acct-banner-stats{display:flex;gap:12px}
+.acct-stat{align-items:center;background:rgba(255,255,255,.75);border:1px solid #dbe7fa;border-radius:12px;display:flex;gap:11px;min-width:128px;padding:12px 16px}
+.acct-stat-icon{align-items:center;background:#e9f1ff;border-radius:9px;color:#3478f6;display:inline-flex;font-size:1.05rem;height:38px;justify-content:center;width:38px}
+.acct-stat-text small{color:#718096;display:block;font-size:.72rem;font-weight:600;letter-spacing:.02em}
+.acct-stat-text strong{color:#172536;font-size:1.15rem;line-height:1.2}
+
+/* --- Layout grid --- */
+.acct-grid{align-items:start;display:grid;gap:22px;grid-template-columns:minmax(0,1fr) 340px}
+.acct-main{display:flex;flex-direction:column;gap:22px;min-width:0}
+.acct-rail{display:flex;flex-direction:column;gap:22px;min-width:0}
+.acct-card{background:#fff;border:1px solid #e4eaf1;border-radius:12px;padding:22px}
+.acct-card-head{align-items:center;display:flex;gap:12px;margin-bottom:14px}
+.acct-card-title{color:#172536;font-size:1.02rem;font-weight:700;margin:0}
+
+/* --- Tabs --- */
+.acct-tabs{border-bottom:1px solid #e4eaf1;display:flex;gap:4px;margin:-6px -6px 20px;overflow-x:auto;padding:0 6px}
+.acct-tab{align-items:center;background:none;border:none;border-bottom:2px solid transparent;color:#5a6b80;display:inline-flex;font-size:.9rem;font-weight:600;gap:8px;margin-bottom:-1px;padding:11px 14px;white-space:nowrap}
+.acct-tab i{font-size:.95rem}
+.acct-tab:hover{color:#3478f6}
+.acct-tab.active{border-bottom-color:#3478f6;color:#3478f6}
+.acct-panel-title{color:#172536;font-size:1.12rem;font-weight:700;margin:0 0 3px}
+.acct-panel-sub{color:#718096;font-size:.86rem;margin:0 0 18px}
+.acct-card-head .acct-panel-sub{margin:0}
+
+/* --- Forms --- */
+.acct-form-grid{display:grid;gap:16px 20px;grid-template-columns:repeat(2,minmax(0,1fr))}
+.acct-field{display:flex;flex-direction:column;min-width:0}
+.acct-field-wide{grid-column:1/-1}
+.acct-field label{color:#2c3e50;font-size:.85rem;font-weight:600;margin-bottom:6px}
+.acct-req{color:#d64545}
+.acct-input{background:#fff;border:1px solid #d5dee9;border-radius:8px;color:#172536;font-size:.9rem;padding:10px 12px;width:100%}
+.acct-input:focus{border-color:#3478f6;box-shadow:0 0 0 3px rgba(52,120,246,.15);outline:none}
+.acct-input:disabled{background:#f2f5f9;color:#5a6b80}
+.acct-textarea{resize:vertical}
+.acct-input-icon{position:relative}
+.acct-input-icon>i{color:#93a5bb;left:12px;position:absolute;top:50%;transform:translateY(-50%)}
+.acct-input-icon .acct-input{padding-left:36px}
+.acct-eye{background:none;border:none;color:#93a5bb;padding:6px;position:absolute;right:6px;top:50%;transform:translateY(-50%)}
+.acct-eye:hover{color:#3478f6}
+.acct-hint{color:#93a5bb;font-size:.76rem;margin-top:5px}
+.acct-error{color:#c0392b;font-size:.78rem;font-weight:600;margin-top:5px}
+.acct-form-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:22px}
+.acct-btn{align-items:center;border-radius:8px;display:inline-flex;font-size:.9rem;font-weight:600;gap:8px;padding:10px 20px}
+.acct-btn-primary{background:#3478f6;border:1px solid #3478f6;box-shadow:0 6px 16px rgba(52,120,246,.18);color:#fff}
+.acct-btn-primary:hover{background:#2867dc;border-color:#2867dc;color:#fff}
+.acct-btn-ghost{background:#fff;border:1px solid #d5dee9;color:#46586c}
+.acct-btn-ghost:hover{border-color:#3478f6;color:#3478f6}
+.acct-photo-row{align-items:center;display:flex;gap:16px}
+.acct-upload-btn{align-items:center;background:#eef4ff;border:1px solid #c9dcfb;border-radius:8px;color:#2867dc;cursor:pointer;display:inline-flex;font-size:.86rem;font-weight:600;gap:8px;margin:0;padding:9px 16px}
+.acct-upload-btn:hover{background:#e2edff}
+.acct-file-input{display:none}
+.acct-file-name{color:#188b66;font-size:.8rem;font-weight:600;margin-top:5px}
+
+/* --- Toggles & rows (notifications, rail cards) --- */
+.acct-toggle-list{display:flex;flex-direction:column;gap:10px}
+.acct-toggle-row{align-items:center;background:#f7fafd;border:1px solid #e4eaf1;border-radius:10px;display:flex;gap:13px;padding:13px 15px}
+.acct-toggle-row-flat{background:none;border:none;padding:2px 0 12px}
+.acct-toggle-icon{align-items:center;border-radius:9px;display:inline-flex;flex:0 0 auto;font-size:1rem;height:38px;justify-content:center;width:38px}
+.acct-tint-blue{background:#e9f1ff;color:#3478f6}
+.acct-tint-green{background:#e7f7f0;color:#188b66}
+.acct-tint-orange{background:#fff1df;color:#b7791f}
+.acct-tint-purple{background:#f1edff;color:#6845d8}
+.acct-toggle-text{flex:1;min-width:0}
+.acct-toggle-text strong{color:#172536;display:block;font-size:.9rem}
+.acct-toggle-text small{color:#718096;display:block;font-size:.78rem}
+.acct-switch{flex:0 0 auto;margin:0;position:relative}
+.acct-switch input{opacity:0;position:absolute}
+.acct-switch span{background:#ccd6e2;border-radius:999px;cursor:pointer;display:block;height:24px;position:relative;transition:background .15s;width:44px}
+.acct-switch span:after{background:#fff;border-radius:50%;content:"";height:18px;left:3px;position:absolute;top:3px;transition:left .15s;width:18px}
+.acct-switch input:checked+span{background:#3478f6}
+.acct-switch input:checked+span:after{left:23px}
+.acct-switch input:focus-visible+span{box-shadow:0 0 0 3px rgba(52,120,246,.25)}
+.acct-link-row{align-items:center;background:#f7fafd;border:1px solid #e4eaf1;border-radius:10px;color:inherit;display:flex;gap:13px;margin-bottom:10px;padding:13px 15px;text-align:left;text-decoration:none;width:100%}
+.acct-link-row:hover{border-color:#b9d2f8;color:inherit;text-decoration:none}
+.acct-link-row:last-child{margin-bottom:0}
+.acct-row-chev{color:#93a5bb;font-size:.8rem}
+.acct-signout{background:#fdf3f3;border-color:#f0dede}
+.acct-signout:hover{border-color:#e5b4b4}
+
+/* --- Activity --- */
+.acct-activity-row{align-items:center;border-top:1px solid #eef2f7;display:flex;gap:13px;padding:12px 2px}
+.acct-activity-icon{align-items:center;background:#e7f7f0;border-radius:50%;color:#188b66;display:inline-flex;flex:0 0 auto;height:34px;justify-content:center;width:34px}
+.acct-activity-text{flex:1;min-width:0}
+.acct-activity-text strong{color:#172536;display:block;font-size:.88rem}
+.acct-activity-text small{color:#718096;display:block;font-size:.76rem}
+.acct-ip{background:#eef2f7;border-radius:6px;color:#46586c;font-size:.75rem;font-weight:600;padding:3px 8px;white-space:nowrap}
+.acct-activity-when{color:#718096;font-size:.8rem;white-space:nowrap}
+.acct-empty{color:#93a5bb;padding:18px 0 6px;text-align:center}
+.acct-empty i{font-size:1.5rem}
+.acct-empty p{font-size:.88rem;margin:8px 0 0}
+
+/* --- Responsive --- */
+@media (max-width:1199px){
+  .acct-grid{grid-template-columns:minmax(0,1fr)}
+  .acct-rail{flex-direction:row;flex-wrap:wrap}
+  .acct-rail .acct-side-card{flex:1 1 300px}
+}
+@media (max-width:767px){
+  .acct-banner{padding:18px}
+  .acct-banner-main{align-items:flex-start;flex-direction:column}
+  .acct-banner-stats{flex-wrap:wrap}
+  .acct-form-grid{grid-template-columns:minmax(0,1fr)}
+  .acct-rail{flex-direction:column}
+  .acct-activity-when{display:none}
+  .acct-head{flex-wrap:wrap}
+  .acct-form-actions{flex-direction:column-reverse}
+  .acct-form-actions .acct-btn{justify-content:center}
+}
+
+/* ============================================================
+   Loop 21 — Global page-chrome spacing normalization.
+   Root cause of the "empty band" on inner pages (owner
+   screenshot, 2026-10-21): the theme gives .page-title
+   padding:2rem 0 (32px top + 32px bottom), so the title bar
+   alone ate ~88px, then .content added its own 22px on top —
+   over 100px of dead space before the first card, on EVERY
+   inner page. The header also used 20px side padding while
+   .content uses 22px, so titles never aligned with cards.
+   Fix: one spacing scale — slim title bar, header gutters
+   matched to the content gutters, .content padding stays the
+   single gap source between the title bar and the content.
+   ============================================================ */
+.page-header-content{padding:0 22px}
+.page-header .page-title{padding:13px 0}
+.page-header .page-title h4,.page-header .page-title h5,.page-header .page-title h6{margin:0;line-height:1.3}
+@media (max-width:767px){.page-header-content{padding:0 14px}.page-header .page-title{padding:10px 0}}

@@ -2,134 +2,512 @@
 @section('page_title', 'My Account')
 @section('content')
 
-    <div class="card">
-        <div class="card-header header-elements-inline">
-            <h6 class="card-title">My Account</h6>
-            {!! Qs::getPanelOptions() !!}
+    @php
+        $role_label = ucwords(str_replace('_', ' ', $my->user_type));
+        $initial = strtoupper(substr($my->name, 0, 1));
+        $date_fmt = $prefs['date_format'] ?? 'd M Y';
+        $time_fmt = (($prefs['time_format'] ?? '12') === '24') ? 'H:i' : 'g:i A';
+        $pass_errors = $errors->has('current_password') || $errors->has('password') || $errors->has('password_confirmation');
+    @endphp
+
+    <div class="acct-page">
+
+        {{-- Page head: breadcrumb + session chip --}}
+        <div class="acct-head">
+            <nav class="acct-crumb" aria-label="Breadcrumb">
+                <a href="{{ route('dashboard') }}" aria-label="Dashboard"><i class="icon-home5"></i></a>
+                <span class="acct-crumb-sep">&rsaquo;</span>
+                <span class="acct-crumb-current">My Account</span>
+            </nav>
+            @if($current_session)
+                <span class="acct-session-chip"><i class="icon-calendar"></i> Current Session: <strong>{{ $current_session }}</strong></span>
+            @endif
         </div>
 
-        <div class="card-body">
-            <ul class="nav nav-tabs nav-tabs-highlight">
-                <li class="nav-item"><a href="#change-pass" class="nav-link active" data-toggle="tab">Change Password</a></li>
-                @if(Qs::userIsPTA())
-                    <li class="nav-item"><a href="#edit-profile" class="nav-link" data-toggle="tab"><i class="icon-plus2"></i> Manage Profile</a></li>
-                @endif
-            </ul>
+        <h1 class="acct-title">My Account</h1>
+        <p class="acct-subtitle">Manage your profile, security settings and preferences.</p>
 
-            <div class="tab-content">
-                <div class="tab-pane fade show active" id="change-pass">
-                    <div class="row">
-                        <div class="col-md-8">
-                            <form method="post" action="{{ route('my_account.change_pass') }}">
-                                @csrf @method('put')
+        @if(session('flash_success'))
+            <div class="acct-alert acct-alert-success"><i class="icon-checkmark2"></i> {{ session('flash_success') }}</div>
+        @endif
+        @if(session('flash_danger'))
+            <div class="acct-alert acct-alert-danger"><i class="icon-info3"></i> {{ session('flash_danger') }}</div>
+        @endif
+        @if(session('pop_error'))
+            <div class="acct-alert acct-alert-danger"><i class="icon-info3"></i> {{ session('pop_error') }}</div>
+        @endif
 
-                                <div class="form-group row">
-                                    <label for="current_password" class="col-lg-3 col-form-label font-weight-semibold">Current Password <span class="text-danger">*</span></label>
-                                    <div class="col-lg-9">
-                                        <input id="current_password" name="current_password"  required type="password" class="form-control" >
-                                    </div>
-                                </div>
-
-                                <div class="form-group row">
-                                    <label for="password" class="col-lg-3 col-form-label font-weight-semibold">New Password <span class="text-danger">*</span></label>
-                                    <div class="col-lg-9">
-                                        <input id="password" name="password"  required type="password" class="form-control" >
-                                    </div>
-                                </div>
-
-                                <div class="form-group row">
-                                    <label for="password_confirmation" class="col-lg-3 col-form-label font-weight-semibold">Confirm Password <span class="text-danger">*</span></label>
-                                    <div class="col-lg-9">
-                                        <input id="password_confirmation" name="password_confirmation"  required type="password" class="form-control" >
-                                    </div>
-                                </div>
-
-                                <div class="text-right">
-                                    <button type="submit" class="btn btn-danger">Submit form <i class="icon-paperplane ml-2"></i></button>
-                                </div>
-                            </form>
-                        </div>
+        {{-- Profile banner --}}
+        <div class="acct-banner">
+            <div class="acct-banner-main">
+                <div class="acct-avatar-wrap">
+                    <span class="acct-avatar" aria-hidden="true">{{ $initial }}<img src="{{ $my->photo }}" alt="" onerror="this.remove()"></span>
+                    <button type="button" class="acct-avatar-btn" id="acct-photo-btn" title="Change profile photo" aria-label="Change profile photo"><i class="icon-camera"></i></button>
+                </div>
+                <div class="acct-banner-info">
+                    <h2 class="acct-banner-name">{{ $my->name }}</h2>
+                    <div class="acct-banner-meta">
+                        @if($my->email)<span><i class="icon-envelop"></i> {{ $my->email }}</span>@endif
+                        @if($my->phone)<span><i class="icon-phone"></i> {{ $my->phone }}</span>@endif
+                        @if($my->created_at)<span><i class="icon-calendar"></i> Member since {{ $my->created_at->format($date_fmt) }}</span>@endif
+                    </div>
+                    <div class="acct-chips">
+                        <span class="acct-chip acct-chip-role">{{ $role_label }}</span>
+                        @foreach($banner_chips as $chip)
+                            <span class="acct-chip">{{ $chip }}</span>
+                        @endforeach
                     </div>
                 </div>
-                @if(Qs::userIsPTA())
-                    <div class="tab-pane fade" id="edit-profile">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <form enctype="multipart/form-data" method="post" action="{{ route('my_account.update') }}">
-                                    @csrf @method('put')
+            </div>
+            @if(count($banner_stats))
+                <div class="acct-banner-stats">
+                    @foreach($banner_stats as $stat)
+                        <div class="acct-stat">
+                            <span class="acct-stat-icon"><i class="{{ $stat['icon'] }}"></i></span>
+                            <span class="acct-stat-text"><small>{{ $stat['label'] }}</small><strong>{{ $stat['value'] }}</strong></span>
+                        </div>
+                    @endforeach
+                </div>
+            @endif
+        </div>
 
-                                    <div class="form-group row">
-                                        <label for="name" class="col-lg-3 col-form-label font-weight-semibold">Name</label>
-                                        <div class="col-lg-9">
-                                            <input disabled="disabled" id="name" class="form-control" type="text" value="{{ $my->name }}">
+        <div class="acct-grid">
+            <div class="acct-main">
+                <div class="acct-card">
+                    {{-- Tab bar --}}
+                    <div class="acct-tabs" role="tablist" aria-label="Account sections">
+                        <button type="button" class="acct-tab active" role="tab" aria-selected="true" data-acct-tab="profile"><i class="icon-user"></i> Profile Information</button>
+                        <button type="button" class="acct-tab" role="tab" aria-selected="false" data-acct-tab="password"><i class="icon-lock"></i> Change Password</button>
+                        <button type="button" class="acct-tab" role="tab" aria-selected="false" data-acct-tab="notifications"><i class="icon-bell2"></i> Notifications</button>
+                        <button type="button" class="acct-tab" role="tab" aria-selected="false" data-acct-tab="preferences"><i class="icon-cog"></i> Preferences</button>
+                    </div>
+
+                    {{-- PROFILE --}}
+                    <section class="acct-panel" id="acct-panel-profile" role="tabpanel">
+                        <h3 class="acct-panel-title">Profile Information</h3>
+                        <p class="acct-panel-sub">Update your personal and contact information.</p>
+
+                        <form method="post" enctype="multipart/form-data" action="{{ route('my_account.update') }}" id="acct-profile-form">
+                            @csrf @method('put')
+
+                            <div class="acct-form-grid">
+                                <div class="acct-field">
+                                    <label for="acct-name">Full Name <span class="acct-req">*</span></label>
+                                    <input id="acct-name" type="text" class="acct-input" value="{{ $my->name }}" disabled>
+                                    <small class="acct-hint">Your name is managed by the school office.</small>
+                                </div>
+
+                                <div class="acct-field">
+                                    <label for="acct-email">Email Address <span class="acct-req">*</span></label>
+                                    <div class="acct-input-icon"><i class="icon-envelop"></i><input id="acct-email" name="email" type="email" class="acct-input" value="{{ old('email', $my->email) }}"></div>
+                                    @error('email')<small class="acct-error">{{ $message }}</small>@enderror
+                                </div>
+
+                                <div class="acct-field">
+                                    <label for="acct-phone">Phone Number</label>
+                                    <div class="acct-input-icon"><i class="icon-phone"></i><input id="acct-phone" name="phone" type="text" class="acct-input" value="{{ old('phone', $my->phone) }}"></div>
+                                    @error('phone')<small class="acct-error">{{ $message }}</small>@enderror
+                                </div>
+
+                                <div class="acct-field">
+                                    <label for="acct-phone2">Telephone</label>
+                                    <div class="acct-input-icon"><i class="icon-phone"></i><input id="acct-phone2" name="phone2" type="text" class="acct-input" value="{{ old('phone2', $my->phone2) }}"></div>
+                                    @error('phone2')<small class="acct-error">{{ $message }}</small>@enderror
+                                </div>
+
+                                @if($my->username)
+                                    <div class="acct-field">
+                                        <label for="acct-username">Username</label>
+                                        <input id="acct-username" type="text" class="acct-input" value="{{ $my->username }}" disabled>
+                                    </div>
+                                @else
+                                    <div class="acct-field">
+                                        <label for="acct-username">Username</label>
+                                        <input id="acct-username" name="username" type="text" class="acct-input" value="{{ old('username') }}" placeholder="Choose a username">
+                                        @error('username')<small class="acct-error">{{ $message }}</small>@enderror
+                                    </div>
+                                @endif
+
+                                @if($my->gender)
+                                    <div class="acct-field">
+                                        <label for="acct-gender">Gender</label>
+                                        <input id="acct-gender" type="text" class="acct-input" value="{{ ucfirst($my->gender) }}" disabled>
+                                    </div>
+                                @endif
+
+                                <div class="acct-field">
+                                    <label for="acct-code">Staff / Student Code</label>
+                                    <input id="acct-code" type="text" class="acct-input" value="{{ $my->code }}" disabled>
+                                    <small class="acct-hint">Issued by the school office; cannot be changed here.</small>
+                                </div>
+
+                                <div class="acct-field">
+                                    <label for="acct-role">Role</label>
+                                    <input id="acct-role" type="text" class="acct-input" value="{{ $role_label }}" disabled>
+                                </div>
+
+                                <div class="acct-field acct-field-wide">
+                                    <label for="acct-address">Address <span class="acct-req">*</span></label>
+                                    <textarea id="acct-address" name="address" class="acct-input acct-textarea" rows="2">{{ old('address', $my->address) }}</textarea>
+                                    @error('address')<small class="acct-error">{{ $message }}</small>@enderror
+                                </div>
+
+                                <div class="acct-field acct-field-wide">
+                                    <label>Profile Photo</label>
+                                    <div class="acct-photo-row">
+                                        <span class="acct-avatar acct-avatar-md" aria-hidden="true">{{ $initial }}<img src="{{ $my->photo }}" alt="" onerror="this.remove()"></span>
+                                        <div>
+                                            <label for="acct-photo" class="acct-upload-btn"><i class="icon-upload"></i> Upload Photo</label>
+                                            <input id="acct-photo" name="photo" type="file" accept="image/*" class="acct-file-input">
+                                            <div class="acct-hint">JPG, PNG or GIF. Max size 2MB.</div>
+                                            <div class="acct-file-name" id="acct-photo-name"></div>
+                                            @error('photo')<small class="acct-error">{{ $message }}</small>@enderror
                                         </div>
                                     </div>
-
-                                    @if($my->username)
-                                        <div class="form-group row">
-                                            <label for="username" class="col-lg-3 col-form-label font-weight-semibold">Username</label>
-                                            <div class="col-lg-9">
-                                                <input disabled="disabled" id="username" class="form-control" type="text" value="{{ $my->username }}">
-                                            </div>
-                                        </div>
-
-                                    @else
-
-                                        <div class="form-group row">
-                                            <label for="username" class="col-lg-3 col-form-label font-weight-semibold">Username </label>
-                                            <div class="col-lg-9">
-                                                <input id="username" name="username"  type="text" class="form-control" >
-                                            </div>
-                                        </div>
-                                    @endif
-
-                                    <div class="form-group row">
-                                        <label for="email" class="col-lg-3 col-form-label font-weight-semibold">Email </label>
-                                        <div class="col-lg-9">
-                                            <input id="email" value="{{ $my->email }}" name="email"  type="email" class="form-control" >
-                                        </div>
-                                    </div>
-
-                                    <div class="form-group row">
-                                        <label for="phone" class="col-lg-3 col-form-label font-weight-semibold">Phone </label>
-                                        <div class="col-lg-9">
-                                            <input id="phone" value="{{ $my->phone }}" name="phone"  type="text" class="form-control" >
-                                        </div>
-                                    </div>
-
-                                    <div class="form-group row">
-                                        <label for="phone2" class="col-lg-3 col-form-label font-weight-semibold">Telephone </label>
-                                        <div class="col-lg-9">
-                                            <input id="phone2" value="{{ $my->phone2 }}" name="phone2"  type="text" class="form-control" >
-                                        </div>
-                                    </div>
-
-                                    <div class="form-group row">
-                                        <label for="address" class="col-lg-3 col-form-label font-weight-semibold">Address </label>
-                                        <div class="col-lg-9">
-                                            <input id="address" value="{{ $my->address }}" name="address"  type="text"  class="form-control" >
-                                        </div>
-                                    </div>
-
-                                    <div class="form-group row">
-                                        <label for="address" class="col-lg-3 col-form-label font-weight-semibold">Change Photo </label>
-                                        <div class="col-lg-9">
-                                            <input  accept="image/*" type="file" name="photo" class="form-input-styled" data-fouc>
-                                        </div>
-                                    </div>
-
-                                    <div class="text-right">
-                                        <button type="submit" class="btn btn-danger">Submit form <i class="icon-paperplane ml-2"></i></button>
-                                    </div>
-                                </form>
+                                </div>
                             </div>
+
+                            <div class="acct-form-actions">
+                                <button type="button" class="acct-btn acct-btn-ghost" id="acct-profile-cancel">Cancel</button>
+                                <button type="submit" class="acct-btn acct-btn-primary"><i class="icon-checkmark2"></i> Save Changes</button>
+                            </div>
+                        </form>
+                    </section>
+
+                    {{-- PASSWORD --}}
+                    <section class="acct-panel" id="acct-panel-password" role="tabpanel" hidden>
+                        <h3 class="acct-panel-title">Change Password</h3>
+                        <p class="acct-panel-sub">Update your account password regularly to keep your account secure.</p>
+
+                        <form method="post" action="{{ route('my_account.change_pass') }}">
+                            @csrf @method('put')
+
+                            <div class="acct-form-grid">
+                                <div class="acct-field acct-field-wide">
+                                    <label for="acct-current-password">Current Password <span class="acct-req">*</span></label>
+                                    <div class="acct-input-icon">
+                                        <i class="icon-lock"></i>
+                                        <input id="acct-current-password" name="current_password" type="password" class="acct-input" required autocomplete="current-password">
+                                        <button type="button" class="acct-eye" data-acct-eye="acct-current-password" aria-label="Show or hide password"><i class="icon-eye"></i></button>
+                                    </div>
+                                    @error('current_password')<small class="acct-error">{{ $message }}</small>@enderror
+                                </div>
+
+                                <div class="acct-field">
+                                    <label for="acct-new-password">New Password <span class="acct-req">*</span></label>
+                                    <div class="acct-input-icon">
+                                        <i class="icon-key"></i>
+                                        <input id="acct-new-password" name="password" type="password" class="acct-input" required autocomplete="new-password">
+                                        <button type="button" class="acct-eye" data-acct-eye="acct-new-password" aria-label="Show or hide password"><i class="icon-eye"></i></button>
+                                    </div>
+                                    <small class="acct-hint">Minimum 8 characters, letters and numbers.</small>
+                                    @error('password')<small class="acct-error">{{ $message }}</small>@enderror
+                                </div>
+
+                                <div class="acct-field">
+                                    <label for="acct-confirm-password">Confirm New Password <span class="acct-req">*</span></label>
+                                    <div class="acct-input-icon">
+                                        <i class="icon-key"></i>
+                                        <input id="acct-confirm-password" name="password_confirmation" type="password" class="acct-input" required autocomplete="new-password">
+                                        <button type="button" class="acct-eye" data-acct-eye="acct-confirm-password" aria-label="Show or hide password"><i class="icon-eye"></i></button>
+                                    </div>
+                                    @error('password_confirmation')<small class="acct-error">{{ $message }}</small>@enderror
+                                </div>
+                            </div>
+
+                            <div class="acct-form-actions">
+                                <button type="submit" class="acct-btn acct-btn-primary"><i class="icon-lock"></i> Update Password</button>
+                            </div>
+                        </form>
+                    </section>
+
+                    {{-- NOTIFICATIONS --}}
+                    <section class="acct-panel" id="acct-panel-notifications" role="tabpanel" hidden>
+                        <h3 class="acct-panel-title">Notifications</h3>
+                        <p class="acct-panel-sub">Choose which updates you want to receive.</p>
+
+                        <form method="post" action="{{ route('my_account.preferences') }}">
+                            @csrf
+                            <input type="hidden" name="tab" value="notifications">
+
+                            <div class="acct-toggle-list">
+                                <div class="acct-toggle-row">
+                                    <span class="acct-toggle-icon acct-tint-blue"><i class="icon-envelop"></i></span>
+                                    <span class="acct-toggle-text"><strong>Email Notifications</strong><small>Receive important updates via email.</small></span>
+                                    <input type="hidden" name="notify_email_present" value="1">
+                                    <label class="acct-switch"><input type="checkbox" name="notify_email" value="1" {{ ($prefs['notify_email'] ?? '1') === '1' ? 'checked' : '' }}><span></span></label>
+                                </div>
+
+                                <div class="acct-toggle-row">
+                                    <span class="acct-toggle-icon acct-tint-purple"><i class="icon-bell2"></i></span>
+                                    <span class="acct-toggle-text"><strong>School Announcements</strong><small>New circulars and school announcements.</small></span>
+                                    <input type="hidden" name="notify_announcements_present" value="1">
+                                    <label class="acct-switch"><input type="checkbox" name="notify_announcements" value="1" {{ ($prefs['notify_announcements'] ?? '1') === '1' ? 'checked' : '' }}><span></span></label>
+                                </div>
+
+                                @if(in_array($my->user_type, ['super_admin', 'admin', 'teacher', 'student', 'parent'], true))
+                                    <div class="acct-toggle-row">
+                                        <span class="acct-toggle-icon acct-tint-green"><i class="icon-user-check"></i></span>
+                                        <span class="acct-toggle-text"><strong>Attendance Reminders</strong><small>Reminders about attendance marking and reports.</small></span>
+                                        <input type="hidden" name="notify_attendance_present" value="1">
+                                        <label class="acct-switch"><input type="checkbox" name="notify_attendance" value="1" {{ ($prefs['notify_attendance'] ?? '1') === '1' ? 'checked' : '' }}><span></span></label>
+                                    </div>
+                                @endif
+
+                                @if(in_array($my->user_type, ['teacher', 'student', 'parent'], true))
+                                    <div class="acct-toggle-row">
+                                        <span class="acct-toggle-icon acct-tint-orange"><i class="icon-book"></i></span>
+                                        <span class="acct-toggle-text"><strong>Exam &amp; Marks Reminders</strong><small>Exam schedules and marks-entry deadlines.</small></span>
+                                        <input type="hidden" name="notify_exams_present" value="1">
+                                        <label class="acct-switch"><input type="checkbox" name="notify_exams" value="1" {{ ($prefs['notify_exams'] ?? '1') === '1' ? 'checked' : '' }}><span></span></label>
+                                    </div>
+                                @endif
+                            </div>
+
+                            <div class="acct-form-actions">
+                                <button type="submit" class="acct-btn acct-btn-primary"><i class="icon-checkmark2"></i> Save Preferences</button>
+                            </div>
+                        </form>
+                    </section>
+
+                    {{-- PREFERENCES --}}
+                    <section class="acct-panel" id="acct-panel-preferences" role="tabpanel" hidden>
+                        <h3 class="acct-panel-title">Preferences</h3>
+                        <p class="acct-panel-sub">Display formats used for dates and times across your account pages.</p>
+
+                        <form method="post" action="{{ route('my_account.preferences') }}">
+                            @csrf
+                            <input type="hidden" name="tab" value="preferences">
+
+                            <div class="acct-form-grid">
+                                <div class="acct-field">
+                                    <label for="acct-date-format">Date Format</label>
+                                    <select id="acct-date-format" name="date_format" class="acct-input">
+                                        <option value="d M Y" {{ ($prefs['date_format'] ?? '') === 'd M Y' ? 'selected' : '' }}>21 Oct 2026</option>
+                                        <option value="d/m/Y" {{ ($prefs['date_format'] ?? '') === 'd/m/Y' ? 'selected' : '' }}>21/10/2026</option>
+                                        <option value="M d, Y" {{ ($prefs['date_format'] ?? '') === 'M d, Y' ? 'selected' : '' }}>Oct 21, 2026</option>
+                                        <option value="Y-m-d" {{ ($prefs['date_format'] ?? '') === 'Y-m-d' ? 'selected' : '' }}>2026-10-21</option>
+                                    </select>
+                                </div>
+
+                                <div class="acct-field">
+                                    <label for="acct-time-format">Time Format</label>
+                                    <select id="acct-time-format" name="time_format" class="acct-input">
+                                        <option value="12" {{ ($prefs['time_format'] ?? '12') === '12' ? 'selected' : '' }}>12-hour (2:30 PM)</option>
+                                        <option value="24" {{ ($prefs['time_format'] ?? '12') === '24' ? 'selected' : '' }}>24-hour (14:30)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="acct-form-actions">
+                                <button type="submit" class="acct-btn acct-btn-primary"><i class="icon-checkmark2"></i> Save Preferences</button>
+                            </div>
+                        </form>
+                    </section>
+                </div>
+
+                {{-- Account activity --}}
+                <div class="acct-card acct-activity" id="acct-activity">
+                    <div class="acct-card-head">
+                        <span class="acct-toggle-icon acct-tint-blue"><i class="icon-history"></i></span>
+                        <div>
+                            <h3 class="acct-card-title">Account Activity</h3>
+                            <p class="acct-panel-sub">Your recent sign-ins on this account.</p>
                         </div>
                     </div>
-                @endif
+
+                    @forelse($activity as $row)
+                        <div class="acct-activity-row">
+                            <span class="acct-activity-icon"><i class="icon-user-check"></i></span>
+                            <span class="acct-activity-text"><strong>Signed in</strong><small>{{ $row->description ?: 'Successful sign-in' }}</small></span>
+                            @if($row->ip_address)<span class="acct-ip">{{ $row->ip_address }}</span>@endif
+                            <span class="acct-activity-when">{{ $row->created_at->format($date_fmt . ', ' . $time_fmt) }}</span>
+                        </div>
+                    @empty
+                        <div class="acct-empty">
+                            <i class="icon-history"></i>
+                            <p>No sign-in activity recorded yet.</p>
+                        </div>
+                    @endforelse
+                </div>
             </div>
+
+            {{-- Right rail --}}
+            <aside class="acct-rail">
+                <div class="acct-card acct-side-card">
+                    <div class="acct-card-head">
+                        <span class="acct-toggle-icon acct-tint-blue"><i class="icon-lock"></i></span>
+                        <div>
+                            <h3 class="acct-card-title">Account Security</h3>
+                            <p class="acct-panel-sub">Keep your account safe and secure.</p>
+                        </div>
+                    </div>
+
+                    <button type="button" class="acct-link-row" data-acct-goto="password">
+                        <span class="acct-toggle-icon acct-tint-blue"><i class="icon-key"></i></span>
+                        <span class="acct-toggle-text"><strong>Change Password</strong><small>Update your account password regularly.</small></span>
+                        <i class="icon-chevron-right acct-row-chev"></i>
+                    </button>
+
+                    <a href="#acct-activity" class="acct-link-row">
+                        <span class="acct-toggle-icon acct-tint-green"><i class="icon-history"></i></span>
+                        <span class="acct-toggle-text"><strong>Sign-in Activity</strong><small>Review your recent sign-ins.</small></span>
+                        <i class="icon-chevron-right acct-row-chev"></i>
+                    </a>
+                </div>
+
+                <div class="acct-card acct-side-card">
+                    <div class="acct-card-head">
+                        <span class="acct-toggle-icon acct-tint-purple"><i class="icon-cog"></i></span>
+                        <div>
+                            <h3 class="acct-card-title">Preferences</h3>
+                            <p class="acct-panel-sub">Customize your account experience.</p>
+                        </div>
+                    </div>
+
+                    <form method="post" action="{{ route('my_account.preferences') }}" id="acct-rail-email-form">
+                        @csrf
+                        <input type="hidden" name="tab" value="notifications">
+                        <input type="hidden" name="notify_email_present" value="1">
+                        <div class="acct-toggle-row acct-toggle-row-flat">
+                            <span class="acct-toggle-icon acct-tint-blue"><i class="icon-bell2"></i></span>
+                            <span class="acct-toggle-text"><strong>Email Notifications</strong><small>Receive important updates via email.</small></span>
+                            <label class="acct-switch"><input type="checkbox" name="notify_email" value="1" id="acct-rail-email-toggle" {{ ($prefs['notify_email'] ?? '1') === '1' ? 'checked' : '' }}><span></span></label>
+                        </div>
+                    </form>
+
+                    <button type="button" class="acct-link-row" data-acct-goto="preferences">
+                        <span class="acct-toggle-icon acct-tint-orange"><i class="icon-calendar"></i></span>
+                        <span class="acct-toggle-text"><strong>Date &amp; Time Format</strong><small>{{ ($prefs['date_format'] ?? 'd M Y') }} &middot; {{ ($prefs['time_format'] ?? '12') === '24' ? '24-hour' : '12-hour' }}</small></span>
+                        <i class="icon-chevron-right acct-row-chev"></i>
+                    </button>
+                </div>
+
+                <div class="acct-card acct-side-card">
+                    <div class="acct-card-head">
+                        <span class="acct-toggle-icon acct-tint-green"><i class="icon-user"></i></span>
+                        <div>
+                            <h3 class="acct-card-title">Account Actions</h3>
+                            <p class="acct-panel-sub">Manage your account data.</p>
+                        </div>
+                    </div>
+
+                    <a href="{{ route('my_account.download') }}" class="acct-link-row">
+                        <span class="acct-toggle-icon acct-tint-blue"><i class="icon-file-download"></i></span>
+                        <span class="acct-toggle-text"><strong>Download My Data</strong><small>Export your profile, preferences and sign-ins as JSON.</small></span>
+                        <i class="icon-chevron-right acct-row-chev"></i>
+                    </a>
+
+                    <form method="post" action="{{ route('logout') }}">
+                        @csrf
+                        <button type="submit" class="acct-link-row acct-signout">
+                            <span class="acct-toggle-icon acct-tint-orange"><i class="icon-switch2"></i></span>
+                            <span class="acct-toggle-text"><strong>Sign Out</strong><small>End your current session.</small></span>
+                            <i class="icon-chevron-right acct-row-chev"></i>
+                        </button>
+                    </form>
+                </div>
+            </aside>
         </div>
     </div>
 
-    {{--My Profile Ends--}}
+    {{--My Account Ends--}}
 
+@endsection
+
+@section('scripts')
+<script>
+    (function () {
+        var tabs = Array.prototype.slice.call(document.querySelectorAll('[data-acct-tab]'));
+        var panels = {
+            profile: document.getElementById('acct-panel-profile'),
+            password: document.getElementById('acct-panel-password'),
+            notifications: document.getElementById('acct-panel-notifications'),
+            preferences: document.getElementById('acct-panel-preferences')
+        };
+
+        function activate(name, pushHash) {
+            if (!panels[name]) { name = 'profile'; }
+            tabs.forEach(function (tab) {
+                var on = tab.getAttribute('data-acct-tab') === name;
+                tab.classList.toggle('active', on);
+                tab.setAttribute('aria-selected', on ? 'true' : 'false');
+            });
+            Object.keys(panels).forEach(function (key) {
+                if (panels[key]) { panels[key].hidden = key !== name; }
+            });
+            if (pushHash) {
+                if (history.replaceState) { history.replaceState(null, '', '#' + name); }
+                else { location.hash = name; }
+            }
+        }
+
+        tabs.forEach(function (tab, idx) {
+            tab.addEventListener('click', function () { activate(tab.getAttribute('data-acct-tab'), true); });
+            tab.addEventListener('keydown', function (e) {
+                var next = null;
+                if (e.key === 'ArrowRight') { next = tabs[(idx + 1) % tabs.length]; }
+                if (e.key === 'ArrowLeft') { next = tabs[(idx - 1 + tabs.length) % tabs.length]; }
+                if (next) { e.preventDefault(); next.focus(); activate(next.getAttribute('data-acct-tab'), true); }
+            });
+        });
+
+        document.querySelectorAll('[data-acct-goto]').forEach(function (el) {
+            el.addEventListener('click', function () {
+                activate(el.getAttribute('data-acct-goto'), true);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+        });
+
+        // Open the tab the URL points at; password errors always land on
+        // the password tab so the failure is visible.
+        var initial = (location.hash || '').replace('#', '');
+        @if($pass_errors)
+            initial = 'password';
+        @endif
+        activate(initial || 'profile', false);
+
+        // Banner camera button: jump to the profile tab's photo picker.
+        var photoBtn = document.getElementById('acct-photo-btn');
+        var photoInput = document.getElementById('acct-photo');
+        if (photoBtn && photoInput) {
+            photoBtn.addEventListener('click', function () {
+                activate('profile', true);
+                photoInput.click();
+            });
+            photoInput.addEventListener('change', function () {
+                var nameEl = document.getElementById('acct-photo-name');
+                if (nameEl && photoInput.files && photoInput.files.length) {
+                    nameEl.textContent = photoInput.files[0].name + ' — press Save Changes to apply.';
+                }
+            });
+        }
+
+        // Cancel restores the stored values rendered into the form.
+        var cancelBtn = document.getElementById('acct-profile-cancel');
+        var profileForm = document.getElementById('acct-profile-form');
+        if (cancelBtn && profileForm) {
+            cancelBtn.addEventListener('click', function () { profileForm.reset(); });
+        }
+
+        // Show / hide password toggles.
+        document.querySelectorAll('[data-acct-eye]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var input = document.getElementById(btn.getAttribute('data-acct-eye'));
+                if (!input) { return; }
+                var show = input.type === 'password';
+                input.type = show ? 'text' : 'password';
+                btn.querySelector('i').className = show ? 'icon-eye-blocked' : 'icon-eye';
+            });
+        });
+
+        // Right-rail email toggle saves immediately.
+        var railToggle = document.getElementById('acct-rail-email-toggle');
+        if (railToggle) {
+            railToggle.addEventListener('change', function () {
+                document.getElementById('acct-rail-email-form').submit();
+            });
+        }
+    })();
+</script>
 @endsection
