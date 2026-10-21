@@ -94,8 +94,17 @@ match the design system, ≤ ~350 KB per asset, stored under
 - [x] Attendance monthly report (per-student present/absent/late + %)
 - [x] Global button/click layer: focus rings, disabled + loading states,
       double-submit guard, `data-confirm` handler
-- [ ] Students module click audit (Loop 2)
-- [ ] Payments module click audit (Loop 2)
+- [x] Students module click audit (Loop 2, 2026-10-21): all route() names
+  resolve (the 7 flagged names are Auth::routes()); one true dead click
+  found and fixed — the Marksheet item in students/list (second table)
+  now opens the real marksheet year-selector; fake tab anchors on
+  student/user profile pages converted to spans; header "Current
+  Session" is a link only for Super Admin (was an empty-href reload for
+  everyone else); Librarian "Books" menu item removed — BookController
+  is an empty scaffold with no routes/views (Library module = own loop)
+- [x] Payments module click audit (Loop 2, 2026-10-21): every action is
+  a real route or a confirmed JS action (confirmDelete/confirmReset are
+  defined in partials/js/custom_js); no typeless buttons inside forms
 - [ ] Print styles verified: marksheet / receipt / tabulation (Loop 3)
 - [ ] Responsive pass 375 / 768 / 1024 on the live URL (needs deploy green)
 - [ ] Audit log for login / marks / payment / role changes

@@ -107,7 +107,7 @@
                                                         <a href="{{ route('students.edit', Qs::hash($sr->id)) }}" class="dropdown-item"><i class="icon-pencil"></i> Edit</a>
                                                         <a href="{{ route('st.reset_pass', Qs::hash($sr->user->id)) }}" class="dropdown-item"><i class="icon-lock"></i> Reset password</a>
                                                     @endif
-                                                    <a href="#" class="dropdown-item"><i class="icon-check"></i> Marksheet</a>
+                                                    <a target="_blank" href="{{ route('marks.year_selector', Qs::hash($sr->user->id)) }}" class="dropdown-item"><i class="icon-check"></i> Marksheet</a>
 
                                                     {{--Delete--}}
                                                     @if(Qs::userIsSuperAdmin())

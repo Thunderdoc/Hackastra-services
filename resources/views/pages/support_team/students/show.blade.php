@@ -16,7 +16,7 @@
             <div class="card-body">
                 <ul class="nav nav-tabs nav-tabs-highlight">
                     <li class="nav-item">
-                        <a href="#" class="nav-link active">{{ $sr->user->name }}</a>
+                        <span class="nav-link active">{{ $sr->user->name }}</span>
                     </li>
                 </ul>
 
