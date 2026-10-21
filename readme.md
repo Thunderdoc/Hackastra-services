@@ -1,6 +1,6 @@
-## **Laravel School Management System** 
+## **Hackstra School Management System**
 
-**LAVSMS** is developed for educational institutions like schools and colleges built on Laravel 8
+**Hackstra** is a school-management platform for educational institutions. It is currently being modernized from its original Laravel 8 foundation.
 
 **SCREENSHOTS** 
 
@@ -111,7 +111,7 @@ Your Contributions & suggestions are welcomed. Please use Pull Request
 
 ### **Security Vulnerabilities**
 
-If you discover a security vulnerability within LAV_SMS, please send an e-mail to CJ Inspired via cjay.pub@gmail.com. All security vulnerabilities will be promptly addressed.
+If you discover a security vulnerability within Hackstra, report it privately to the project owner before publicly disclosing it. Do not include passwords, tokens, or private student data in an issue.
 
 ***Please Note*** that some sections of this project are in the work-in-progress stage and would be updated soon. These include:
 
@@ -119,5 +119,6 @@ If you discover a security vulnerability within LAV_SMS, please send an e-mail t
 - Librarian/Acountant user pages
 - Library Resources/Study Materials Upload for Students
 
-### **Contact [CJ INSPIRED]**
-- Phone : +2347068149559
+### **Project identity**
+- Product name: Hackstra
+- School name and contact details should be configured in the application Settings page.

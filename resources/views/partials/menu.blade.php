@@ -1,5 +1,15 @@
 <div class="sidebar sidebar-dark sidebar-main sidebar-expand-md">
 
+    <div class="lav-sidebar-brand">
+        <a href="{{ route('dashboard') }}" class="lav-sidebar-brand-link">
+            <img src="{{ asset('global_assets/images/logo_icon_light.png') }}" alt="" class="lav-sidebar-brand-icon">
+            <span>
+                <strong>{{ Qs::getSystemName() }}</strong>
+                <small>School Management System</small>
+            </span>
+        </a>
+    </div>
+
     <!-- Sidebar mobile toggler -->
     <div class="sidebar-mobile-toggler text-center">
         <a href="#" class="sidebar-mobile-main-toggle">
@@ -221,5 +231,12 @@
 
                 </ul>
             </div>
+        </div>
+        <div class="lav-sidebar-session">
+            <i class="icon-calendar52"></i>
+            <span><small>Academic Session</small><strong>{{ Qs::getSetting('current_session') }}</strong></span>
+            @if(Qs::userIsSuperAdmin())
+                <a href="{{ route('settings') }}" aria-label="Change academic session"><i class="icon-chevron-down"></i></a>
+            @endif
         </div>
 </div>

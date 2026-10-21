@@ -17,8 +17,8 @@ class SettingsTableSeeder extends Seeder
 
         $data = [
             ['type' => 'current_session', 'description' => '2018-2019'],
-            ['type' => 'system_title', 'description' => 'CJIA'],
-            ['type' => 'system_name', 'description' => 'CJ INSPIRED ACADEMY'],
+            ['type' => 'system_title', 'description' => 'HACKSTRA'],
+            ['type' => 'system_name', 'description' => 'HACKSTRA SCHOOL'],
             ['type' => 'term_ends', 'description' => '7/10/2018'],
             ['type' => 'term_begins', 'description' => '7/10/2018'],
             ['type' => 'phone', 'description' => '0123456789'],
