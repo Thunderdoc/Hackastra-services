@@ -32,6 +32,17 @@ class StudentRecordController extends Controller
         $this->student = $student;
    }
 
+    public function index()
+    {
+        // The resource route registers GET /students, but this controller
+        // never had an index() — the URL returned 500. The app browses
+        // students per class, so land on the first class's list instead.
+        $first = $this->my_class->all()->first();
+        return $first
+            ? redirect()->route('students.list', $first->id)
+            : redirect()->route('classes.index');
+    }
+
     public function reset_pass($st_id)
     {
         $st_id = Qs::decodeHash($st_id);
