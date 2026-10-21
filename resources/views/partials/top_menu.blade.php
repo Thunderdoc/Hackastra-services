@@ -7,13 +7,23 @@
     <a href="{{ route('dashboard') }}" class="lav-topbar-toggle sidebar-control sidebar-main-toggle" aria-label="Toggle navigation">
         <i class="icon-paragraph-justify3"></i>
     </a>
-    <div class="lav-search" role="search">
+    <form class="lav-search" role="search" method="GET" action="{{ route('dashboard.search') }}">
         <i class="icon-search4"></i>
-        <input type="search" placeholder="Search students, teachers, classes, payments..." aria-label="Search">
-        <kbd>Ctrl K</kbd>
-    </div>
+        <input type="search" name="q" id="lav-global-search" value="{{ request('q') }}" placeholder="Search students, teachers, classes, payments, exams..." aria-label="Search students, teachers, classes, payments, exams">
+        <kbd>Ctrl + K</kbd>
+    </form>
+    <script>
+        document.addEventListener('keydown', function (event) {
+            if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+                event.preventDefault();
+                var input = document.getElementById('lav-global-search');
+                if (input) { input.focus(); input.select(); }
+            }
+        });
+    </script>
     <div class="ml-auto d-flex align-items-center">
-        <button type="button" class="lav-topbar-icon" aria-label="Notifications"><i class="icon-bell2"></i><span>3</span></button>
+        {{-- No notifications backend exists yet (audit §9): no fake count badge. --}}
+        <button type="button" class="lav-topbar-icon" aria-label="Notifications" title="Notifications are not configured yet"><i class="icon-bell2"></i></button>
         <button type="button" class="lav-topbar-icon lav-theme-toggle" aria-label="Toggle theme"><i class="icon-sun3"></i></button>
         <div class="nav-item dropdown dropdown-user lav-profile">
             <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">

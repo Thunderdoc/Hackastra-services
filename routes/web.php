@@ -12,6 +12,7 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get('/', 'HomeController@dashboard')->name('home');
     Route::get('/home', 'HomeController@dashboard')->name('home');
     Route::get('/dashboard', 'HomeController@dashboard')->name('dashboard');
+    Route::get('/dashboard/search', 'DashboardSearchController')->name('dashboard.search');
 
     Route::group(['prefix' => 'my_account'], function() {
         Route::get('/', 'MyAccountController@edit_profile')->name('my_account');
@@ -144,6 +145,13 @@ Route::group(['middleware' => 'auth'], function () {
         Route::resource('exams', 'ExamController');
         Route::resource('dorms', 'DormController');
         Route::resource('payments', 'PaymentController');
+
+        /*************** Attendance *****************/
+        Route::get('attendance', 'AttendanceController@index')->name('attendance.index');
+        Route::post('attendance', 'AttendanceController@store')->name('attendance.store');
+
+        /*************** School Events *****************/
+        Route::resource('events', 'SchoolEventController');
 
     });
 

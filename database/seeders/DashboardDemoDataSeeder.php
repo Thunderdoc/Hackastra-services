@@ -120,5 +120,31 @@ class DashboardDemoDataSeeder extends Seeder
                 ]
             );
         }
+
+        // Demo school events for the dashboard's Upcoming Events + calendar
+        // (real rows in school_events — relative dates keep them upcoming).
+        if (\Illuminate\Support\Facades\Schema::hasTable('school_events')) {
+            $demoEvents = [
+                ['title' => 'Unit Test - Class 10', 'type' => 'examination', 'days' => 2],
+                ['title' => 'Parent-Teacher Meeting', 'type' => 'meeting', 'days' => 5],
+                ['title' => 'Fee Submission Deadline', 'type' => 'fee', 'days' => 8],
+                ['title' => 'Diwali Holiday', 'type' => 'holiday', 'days' => 10],
+            ];
+
+            foreach ($demoEvents as $event) {
+                $date = now()->addDays($event['days'])->toDateString();
+                DB::table('school_events')->updateOrInsert(
+                    ['title' => $event['title'], 'starts_at' => $date],
+                    [
+                        'type' => $event['type'],
+                        'description' => 'Demo event seeded for dashboard testing.',
+                        'ends_at' => $date,
+                        'all_day' => 1,
+                        'updated_at' => now(),
+                        'created_at' => now(),
+                    ]
+                );
+            }
+        }
     }
 }
