@@ -154,3 +154,25 @@
 .content .paginate_button.current{background:#3478f6!important;border-color:#3478f6!important;color:#fff!important}
 @media (max-width:767px){.content-wrapper>.content{padding:14px}.content .card-body{padding:16px}.content .table td,.content .table th{padding:9px 10px}}
 @media print{.sidebar-main,.lav-topbar{display:none!important}.content-wrapper{margin-left:0!important}.page-content{background:#fff}}
+
+
+/* ==== Hackstra button & click system (UI_UX_SWEEP_PLAN Loop 1) ==== */
+.btn{font-weight:600;border-radius:9px;min-height:40px}
+.btn-sm{min-height:32px;border-radius:7px}
+.btn:focus-visible,a:focus-visible,button:focus-visible,[tabindex]:focus-visible{outline:3px solid rgba(52,120,246,.45);outline-offset:2px}
+.btn[disabled],.btn.disabled{cursor:not-allowed;opacity:.6}
+.btn.is-loading{opacity:.8;pointer-events:none}
+.btn.is-loading::after{content:"";display:inline-block;width:14px;height:14px;margin-left:8px;vertical-align:-2px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:lav-spin .7s linear infinite}
+@keyframes lav-spin{to{transform:rotate(360deg)}}
+.lav-topbar-icon{min-width:40px;min-height:40px;display:inline-flex;align-items:center;justify-content:center}
+.table .btn{margin:2px}
+.dropdown-item{padding:.5rem 1rem}
+.dropdown-item:focus,.dropdown-item:hover{background:#eef4ff}
+.lav-notif-menu{width:330px;max-width:92vw;padding:.4rem 0}
+.lav-notif-item{display:flex;gap:10px;align-items:flex-start;white-space:normal}
+.lav-notif-item i{color:#3478f6;margin-top:3px}
+.lav-notif-item span{font-size:.82rem;line-height:1.35}
+.lav-notif-item small{display:block;color:#718096}
+.lav-empty{text-align:center;padding:36px 16px;color:#718096}
+.lav-empty img{max-width:220px;width:60%;height:auto;margin-bottom:14px}
+@media (prefers-reduced-motion: reduce){*{animation-duration:.001s !important;transition-duration:.001s !important}}

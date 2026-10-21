@@ -63,9 +63,15 @@
 
                 @if(Qs::userIsTeamSAT())
                 <li class="nav-item">
-                    <a href="{{ route('attendance.index') }}" class="nav-link {{ (Route::is('attendance.*')) ? 'active' : '' }}">
+                    <a href="{{ route('attendance.index') }}" class="nav-link {{ (Route::is('attendance.index')) ? 'active' : '' }}">
                         <i class="icon-calendar52"></i>
                         <span>Attendance</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('attendance.report') }}" class="nav-link {{ (Route::is('attendance.report')) ? 'active' : '' }}">
+                        <i class="icon-stats-bars2"></i>
+                        <span>Attendance Report</span>
                     </a>
                 </li>
                 @endif

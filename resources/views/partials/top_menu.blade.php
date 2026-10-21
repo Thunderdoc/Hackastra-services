@@ -22,8 +22,37 @@
         });
     </script>
     <div class="ml-auto d-flex align-items-center">
-        {{-- No notifications backend exists yet (audit §9): no fake count badge. --}}
-        <button type="button" class="lav-topbar-icon" aria-label="Notifications" title="Notifications are not configured yet"><i class="icon-bell2"></i></button>
+        @if(Qs::userIsTeamSAT() || Qs::userIsTeamAccount())
+            @php
+                $lavRecentPayments = \App\Models\PaymentRecord::with('payment')->latest()->take(4)->get();
+                $lavRecentStudents = \App\Models\StudentRecord::with('user')->latest()->take(4)->get();
+            @endphp
+            <div class="nav-item dropdown">
+                <button type="button" class="lav-topbar-icon" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="Recent activity" title="Recent activity"><i class="icon-bell2"></i></button>
+                <div class="dropdown-menu dropdown-menu-right lav-notif-menu">
+                    <div class="dropdown-header">Recent activity</div>
+                    @forelse($lavRecentPayments as $lavPay)
+                        <a class="dropdown-item lav-notif-item" href="{{ route('payments.receipts', $lavPay->id) }}">
+                            <i class="icon-coins"></i>
+                            <span>{{ optional($lavPay->payment)->title ?: 'Fee payment' }} &mdash; {{ \App\Helpers\Money::inr($lavPay->amt_paid) }}<small>{{ $lavPay->created_at->diffForHumans() }}</small></span>
+                        </a>
+                    @empty
+                    @endforelse
+                    @forelse($lavRecentStudents as $lavStudent)
+                        <a class="dropdown-item lav-notif-item" href="{{ route('students.show', Qs::hash($lavStudent->id)) }}">
+                            <i class="icon-user-plus"></i>
+                            <span>{{ optional($lavStudent->user)->name ?: 'New student' }} admitted<small>{{ $lavStudent->created_at->diffForHumans() }}</small></span>
+                        </a>
+                    @empty
+                    @endforelse
+                    @if($lavRecentPayments->isEmpty() && $lavRecentStudents->isEmpty())
+                        <span class="dropdown-item text-muted">No recent activity yet.</span>
+                    @endif
+                </div>
+            </div>
+        @else
+            <button type="button" class="lav-topbar-icon" aria-label="Notifications" title="No new notifications"><i class="icon-bell2"></i></button>
+        @endif
         <button type="button" class="lav-topbar-icon lav-theme-toggle" aria-label="Toggle theme"><i class="icon-sun3"></i></button>
         <div class="nav-item dropdown dropdown-user lav-profile">
             <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">

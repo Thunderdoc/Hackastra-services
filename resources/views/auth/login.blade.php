@@ -4,7 +4,7 @@
 <style>
     .hackstra-login{min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f4f7fb;padding:24px}
     .hackstra-login-card{background:#fff;border:1px solid #e4eaf1;border-radius:16px;box-shadow:0 24px 60px rgba(16,38,59,.14);display:flex;max-width:880px;overflow:hidden;width:100%}
-    .hackstra-login-brand{background:#10263b;color:#fff;display:flex;flex-direction:column;justify-content:center;padding:44px 40px;width:42%}
+    .hackstra-login-brand{background:linear-gradient(rgba(13,32,52,.84),rgba(13,32,52,.94)),url('{{ asset('assets/img/ai/login-campus.jpg') }}') center/cover no-repeat #10263b;color:#fff;display:flex;flex-direction:column;justify-content:center;padding:44px 40px;width:42%}
     .hackstra-login-brand .brand-mark{align-items:center;background:#3478f6;border-radius:12px;display:flex;font-size:22px;height:52px;justify-content:center;margin-bottom:22px;width:52px}
     .hackstra-login-brand h3{color:#fff;font-weight:700;letter-spacing:.02em;margin:0 0 6px;text-transform:uppercase}
     .hackstra-login-brand p{color:rgba(255,255,255,.68);font-size:.85rem;line-height:1.6}
