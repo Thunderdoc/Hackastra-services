@@ -53,7 +53,7 @@
                             </td>
                             <td>
                                 @if(!$loan->returned)
-                                    <form method="post" action="{{ route('book_requests.return', $loan->id) }}" style="display:inline">@csrf @method('patch')<button type="submit" class="btn btn-light btn-sm" data-confirm="Mark this book as returned?">Mark Returned</button></form>
+                                    <form method="post" action="{{ route('book_requests.return', Qs::hash($loan->id)) }}" style="display:inline">@csrf @method('patch')<button type="submit" class="btn btn-light btn-sm" data-confirm="Mark this book as returned?">Mark Returned</button></form>
                                 @else
                                     <span class="text-muted">—</span>
                                 @endif
