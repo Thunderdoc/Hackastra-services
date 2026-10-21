@@ -23,7 +23,7 @@
                         <option value="{{ $option }}" {{ $threshold === $option ? 'selected' : '' }}>{{ $option }}%</option>
                     @endforeach
                 </select>
-                <span class="text-muted">{{ $rows->count() }} defaulter(s) out of {{ $scanned }} student(s) with records in {{ $month->format('F Y') }}</span>
+                <span class="text-muted">{{ $rows->count() }} defaulter(s) out of {{ $scanned }} student(s) with period records in {{ $month->format('F Y') }}</span>
             </form>
 
             @if($rows->isEmpty())
@@ -41,7 +41,7 @@
                             <th>Present</th>
                             <th>Absent</th>
                             <th>Late</th>
-                            <th>Marked</th>
+                            <th>Periods</th>
                             <th style="min-width:180px">Attendance %</th>
                         </tr>
                         </thead>
@@ -66,7 +66,7 @@
                         </tbody>
                     </table>
                 </div>
-                <p class="text-muted mb-0"><small>Attendance % = (present + late) / marked days, worst first. Students with no attendance records in the month are excluded — never counted as 0%.</small></p>
+                <p class="text-muted mb-0"><small>Attendance % = (present + late) / periods marked, worst first. Students with no period attendance records in the month are excluded — never counted as 0%.</small></p>
             @endif
         </div>
     </div>

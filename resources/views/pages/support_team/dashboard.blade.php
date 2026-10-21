@@ -186,7 +186,7 @@
                 <div class="attendance-summary">
                     <div class="attendance-donut" style="--attendance-progress: {{ $attendance_today['percent'] }}%">
                         <strong>{{ $attendance_today['percent'] }}%</strong>
-                        <small>Present</small>
+                        <small>Present + Late</small>
                     </div>
                     <ul class="attendance-legend">
                         <li><span><i class="dashboard-dot dot-green"></i> Present</span><strong>{{ $attendance_today['present'] }}</strong></li>

@@ -20,7 +20,7 @@
                 </select>
                 <label class="mr-2">Month</label>
                 <input type="month" name="month" class="form-control mr-3" value="{{ $month->format('Y-m') }}" onchange="this.form.submit()">
-                <span class="text-muted">Present: {{ $totals['present'] }} &middot; Absent: {{ $totals['absent'] }} &middot; Late: {{ $totals['late'] }} &middot; Marked days: {{ $totals['marked'] }}</span>
+                <span class="text-muted">Present: {{ $totals['present'] }} &middot; Absent: {{ $totals['absent'] }} &middot; Late: {{ $totals['late'] }} &middot; Periods marked: {{ $totals['marked'] }} &middot; Registers submitted: {{ $sessions_held }}</span>
             </form>
 
             @if($rows->isEmpty())
@@ -35,7 +35,7 @@
                             <th>Present</th>
                             <th>Absent</th>
                             <th>Late</th>
-                            <th>Marked</th>
+                            <th>Periods</th>
                             <th style="min-width:180px">Attendance %</th>
                         </tr>
                         </thead>
@@ -63,7 +63,7 @@
                         </tbody>
                     </table>
                 </div>
-                <p class="text-muted mb-0"><small>Attendance % = (present + late) / marked days. Days with no record are excluded — never counted as absent.</small></p>
+                <p class="text-muted mb-0"><small>Counts are period registers: Attendance % = (present + late) / periods marked. Periods with no submitted register are excluded — never counted as absent.</small></p>
             @endif
         </div>
     </div>

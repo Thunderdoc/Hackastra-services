@@ -32,32 +32,54 @@
                     <span class="badge badge-success mr-2 mb-1" style="font-size: 100%">Present: {{ $summary['present'] }}</span>
                     <span class="badge badge-danger mr-2 mb-1" style="font-size: 100%">Absent: {{ $summary['absent'] }}</span>
                     <span class="badge badge-warning mr-2 mb-1" style="font-size: 100%">Late: {{ $summary['late'] }}</span>
-                    <span class="badge badge-info mr-2 mb-1" style="font-size: 100%">Marked days: {{ $summary['marked'] }}</span>
+                    <span class="badge badge-info mr-2 mb-1" style="font-size: 100%">Periods marked: {{ $summary['marked'] }}</span>
                     @if($summary['percent'] !== null)
                         <span class="badge badge-primary mb-1" style="font-size: 100%">Attendance: {{ $summary['percent'] }}%</span>
                     @endif
                 </div>
 
-                @if($days->isEmpty())
-                    <p class="text-muted mb-0">No attendance was recorded in {{ $month->format('F Y') }}.</p>
+                @if($entries->isEmpty())
+                    <p class="text-muted mb-0">No period attendance was recorded in {{ $month->format('F Y') }}.</p>
                 @else
                     @if($summary['percent'] !== null)
                         <div class="progress mb-3" style="height:8px">
                             <div class="progress-bar {{ $summary['percent'] >= 75 ? 'bg-success' : ($summary['percent'] >= 50 ? 'bg-warning' : 'bg-danger') }}" role="progressbar" style="width: {{ $summary['percent'] }}%" aria-valuenow="{{ $summary['percent'] }}" aria-valuemin="0" aria-valuemax="100"></div>
                         </div>
                     @endif
+
+                    <h6 class="mb-2">By Subject</h6>
+                    <div class="table-responsive mb-4">
+                        <table class="table table-striped">
+                            <thead><tr><th>Subject</th><th>Present</th><th>Absent</th><th>Late</th><th>Periods</th><th>Attendance %</th></tr></thead>
+                            <tbody>
+                            @foreach($subjects as $row)
+                                <tr>
+                                    <td>{{ optional($row['subject'])->name ?: '—' }}</td>
+                                    <td>{{ $row['present'] }}</td>
+                                    <td>{{ $row['absent'] }}</td>
+                                    <td>{{ $row['late'] }}</td>
+                                    <td>{{ $row['marked'] }}</td>
+                                    <td>{{ $row['percent'] === null ? '—' : $row['percent'] . '%' }}</td>
+                                </tr>
+                            @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <h6 class="mb-2">Period Registers</h6>
                     <div class="table-responsive">
                         <table class="table table-striped">
-                            <thead><tr><th>Date</th><th>Day</th><th>Status</th></tr></thead>
+                            <thead><tr><th>Date</th><th>Subject</th><th>Topic Taught</th><th>Status</th></tr></thead>
                             <tbody>
-                            @foreach($days as $day)
+                            @foreach($entries as $entry)
                                 <tr>
-                                    <td>{{ $day->date->format('d M Y') }}</td>
-                                    <td>{{ $day->date->format('l') }}</td>
+                                    <td>{{ $entry->session->date->format('d M Y') }} <span class="text-muted">({{ $entry->session->date->format('l') }})</span></td>
+                                    <td>{{ optional($entry->session->subject)->name ?: '—' }}</td>
+                                    <td>{{ $entry->session->topic ?: '—' }}</td>
                                     <td>
-                                        @if($day->status === 'present')
+                                        @if($entry->status === 'present')
                                             <span class="badge badge-success">Present</span>
-                                        @elseif($day->status === 'late')
+                                        @elseif($entry->status === 'late')
                                             <span class="badge badge-warning">Late</span>
                                         @else
                                             <span class="badge badge-danger">Absent</span>
@@ -68,7 +90,7 @@
                             </tbody>
                         </table>
                     </div>
-                    <p class="text-muted mb-0"><small>Attendance % = (present + late) / marked days. Days with no record are not counted as absent.</small></p>
+                    <p class="text-muted mb-0"><small>Attendance % = (present + late) / periods marked. Periods with no submitted register are not counted as absent.</small></p>
                 @endif
             @endif
         </div>

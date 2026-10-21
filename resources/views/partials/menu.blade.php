@@ -71,10 +71,12 @@
                     </a>
                 </li>
                 <li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Attendance</div><i class="icon-menu" title="Attendance"></i></li>
+                {{-- Workstream AR: the day-wise register is retired — the
+                     one Attendance entry point is the period register. --}}
                 <li class="nav-item">
-                    <a href="{{ route('attendance.index') }}" class="nav-link {{ (Route::is('attendance.index')) ? 'active' : '' }}">
-                        <i class="icon-calendar52"></i>
-                        <span>Attendance</span>
+                    <a href="{{ route('attendance.periods.index') }}" class="nav-link {{ (Route::is('attendance.periods.*')) ? 'active' : '' }}">
+                        <i class="icon-watch"></i>
+                        <span>Period Attendance</span>
                     </a>
                 </li>
                 <li class="nav-item">
@@ -87,12 +89,6 @@
                     <a href="{{ route('attendance.defaulters') }}" class="nav-link {{ (Route::is('attendance.defaulters')) ? 'active' : '' }}">
                         <i class="icon-alarm"></i>
                         <span>Attendance Defaulters</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="{{ route('attendance.periods.index') }}" class="nav-link {{ (Route::is('attendance.periods.*')) ? 'active' : '' }}">
-                        <i class="icon-watch"></i>
-                        <span>Period Attendance</span>
                     </a>
                 </li>
                 <li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Communication</div><i class="icon-menu" title="Communication"></i></li>
@@ -195,10 +191,12 @@
                      so no role sees a header for a section it cannot use. --}}
                 @if(Qs::userIsTeamSAT())
                 <li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Attendance</div><i class="icon-menu" title="Attendance"></i></li>
+                {{-- Workstream AR: the day-wise register is retired — the
+                     one Attendance entry point is the period register. --}}
                 <li class="nav-item">
-                    <a href="{{ route('attendance.index') }}" class="nav-link {{ (Route::is('attendance.index')) ? 'active' : '' }}">
-                        <i class="icon-calendar52"></i>
-                        <span>Attendance</span>
+                    <a href="{{ route('attendance.periods.index') }}" class="nav-link {{ (Route::is('attendance.periods.*')) ? 'active' : '' }}">
+                        <i class="icon-watch"></i>
+                        <span>Period Attendance</span>
                     </a>
                 </li>
                 <li class="nav-item">
@@ -211,12 +209,6 @@
                     <a href="{{ route('attendance.defaulters') }}" class="nav-link {{ (Route::is('attendance.defaulters')) ? 'active' : '' }}">
                         <i class="icon-alarm"></i>
                         <span>Attendance Defaulters</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="{{ route('attendance.periods.index') }}" class="nav-link {{ (Route::is('attendance.periods.*')) ? 'active' : '' }}">
-                        <i class="icon-watch"></i>
-                        <span>Period Attendance</span>
                     </a>
                 </li>
                 @endif

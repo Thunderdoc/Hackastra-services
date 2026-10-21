@@ -4,8 +4,8 @@ namespace App\Http\Controllers\SupportTeam;
 
 use App\Helpers\Qs;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Attendance\AttendanceCreate;
-use App\Models\Attendance;
+use App\Models\AttendanceSession;
+use App\Models\AttendanceSessionEntry;
 use App\Support\CsvExport;
 use App\Support\TeacherScope;
 use Illuminate\Support\Facades\Auth;
@@ -14,18 +14,30 @@ use App\Models\StudentRecord;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 /**
- * Daily attendance (audit §5/§9) — the feature the dashboard's
- * "Today's Attendance" panel reads from. One record per student per
- * day, enforced by the unique key on the attendances table.
+ * Attendance reporting (Workstream AR — period-only unification).
  *
- * Loop 7-H adds: the monthly report method its route always pointed
- * to, a defaulter list (students under a selectable attendance
- * threshold), and a read-only "my attendance" page for students and
- * parents. The counting rule everywhere is the report's rule:
- * % = (present + late) / marked days — a day with no record is
- * excluded, never counted as absent.
+ * Attendance is taken in exactly one way now: the period register
+ * (PeriodAttendanceController — one register per timetable period,
+ * topic taught required, submission locked). The legacy day-wise
+ * register was retired by the owner's decision of 2026-10-21: its
+ * take page and store no longer accept entries (both redirect into
+ * the period flow), and everything this controller still serves —
+ * the monthly report, the defaulter list, the CSV export and the
+ * student/parent "my attendance" page — computes from period data
+ * only (attendance_sessions + attendance_session_entries).
+ *
+ * The attendances table and the Attendance model are deliberately
+ * untouched: historical day-wise rows stay in the database exactly
+ * as recorded, they are simply no longer read or written by the UI.
+ *
+ * The counting rule everywhere is the school-wide rule:
+ * % = (present + late) / marked period entries — a period with no
+ * submitted register is excluded, never counted as absent. A
+ * student's "marked" count is therefore a count of period entries,
+ * not of days.
  */
 class AttendanceController extends Controller
 {
@@ -61,80 +73,50 @@ class AttendanceController extends Controller
         }
     }
 
-    public function index(Request $request)
+    /**
+     * Where a retired day-wise URL sends the user: teachers land on
+     * their period list (where registers are taken); Super Admin /
+     * Admin land on the monthly report, which is period-based now.
+     */
+    private function periodLanding(Request $request)
     {
-        $this->guardClassScope($request->query('class_id'));
+        if (Qs::userIsTeacher()) {
+            $params = [];
+            if ($request->query('date')) {
+                $params['date'] = $request->query('date');
+            }
 
-        $d['classes'] = $this->visibleClasses();
-        $d['selected_class'] = $request->query('class_id')
-            ? $d['classes']->firstWhere('id', (int) $request->query('class_id'))
-            : $d['classes']->first();
-        $d['date'] = $request->query('date')
-            ? Carbon::parse($request->query('date'))
-            : Carbon::today();
-        $d['students'] = collect();
-        $d['existing'] = [];
-
-        if ($d['selected_class']) {
-            $d['students'] = StudentRecord::with('user', 'section')
-                ->where('my_class_id', $d['selected_class']->id)
-                ->where('grad', 0)
-                ->orderBy('id')
-                ->get();
-
-            $d['existing'] = Attendance::whereDate('date', $d['date']->toDateString())
-                ->whereIn('student_record_id', $d['students']->pluck('id'))
-                ->pluck('status', 'student_record_id')
-                ->all();
+            return redirect()->route('attendance.periods.index', $params);
         }
 
-        $d['summary'] = [
-            'present' => count(array_filter($d['existing'], function ($s) { return $s === 'present'; })),
-            'absent' => count(array_filter($d['existing'], function ($s) { return $s === 'absent'; })),
-            'late' => count(array_filter($d['existing'], function ($s) { return $s === 'late'; })),
-            'marked' => count($d['existing']),
-            'total' => $d['students']->count(),
-        ];
-
-        return view('pages.support_team.attendance.index', $d);
+        return redirect()->route('attendance.report');
     }
 
-    public function store(AttendanceCreate $request)
+    /**
+     * The day-wise take page is retired — attendance is taken per
+     * period. This route stays alive so existing links and bookmarks
+     * land somewhere useful instead of breaking.
+     */
+    public function index(Request $request)
     {
-        $data = $request->validated();
+        return $this->periodLanding($request)
+            ->with('flash_success', 'Attendance is taken per period now — choose a period to take its register.');
+    }
 
-        // Batch S: submitting attendance for a class the teacher is
-        // not assigned to is denied outright (the roster filter below
-        // already stops cross-class student ids in a tampered form).
-        $this->guardClassScope($data['class_id']);
-
-        $studentIds = StudentRecord::where('my_class_id', $data['class_id'])
-            ->where('grad', 0)
-            ->pluck('id')
-            ->all();
-
-        DB::transaction(function () use ($data, $studentIds, $request) {
-            foreach ($data['statuses'] as $studentRecordId => $status) {
-                if (!in_array((int) $studentRecordId, $studentIds, true)) {
-                    continue; // never record attendance for another class via a tampered form
-                }
-
-                Attendance::updateOrCreate(
-                    ['student_record_id' => (int) $studentRecordId, 'date' => $data['date']],
-                    ['status' => $status, 'recorded_by' => $request->user()->id]
-                );
-            }
-        });
-
-        return redirect()
-            ->route('attendance.index', ['class_id' => $data['class_id'], 'date' => $data['date']])
-            ->with('flash_success', 'Attendance saved for ' . Carbon::parse($data['date'])->format('d M Y') . '.');
+    /**
+     * The day-wise store accepts nothing any more. A stale form post
+     * is redirected into the period flow with an explanation, and no
+     * row is ever written to the attendances table.
+     */
+    public function store(Request $request)
+    {
+        return $this->periodLanding($request)
+            ->with('flash_danger', 'Day-wise attendance has been retired — attendance is taken per period, with the subject and topic taught. Nothing was saved.');
     }
 
     /**
      * Monthly report — one row per student in the chosen class, with
-     * the shared % rule. This is the method the attendance.report
-     * route and view were shipped against.
+     * the shared % rule, computed from period entries in the month.
      */
     public function report(Request $request)
     {
@@ -147,6 +129,7 @@ class AttendanceController extends Controller
         $d['month'] = $this->monthFromRequest($request);
         $d['rows'] = collect();
         $d['totals'] = ['present' => 0, 'absent' => 0, 'late' => 0, 'marked' => 0];
+        $d['sessions_held'] = 0;
 
         if ($d['selected_class']) {
             $students = StudentRecord::with('user', 'section')
@@ -155,11 +138,14 @@ class AttendanceController extends Controller
                 ->orderBy('id')
                 ->get();
 
-            $stats = $this->statusCounts(
-                $students->pluck('id')->all(),
-                $d['month']->copy()->startOfMonth(),
-                $d['month']->copy()->endOfMonth()
-            );
+            $from = $d['month']->copy()->startOfMonth();
+            $to = $d['month']->copy()->endOfMonth();
+
+            $stats = $this->statusCounts($students->pluck('id')->all(), $from, $to);
+
+            $d['sessions_held'] = AttendanceSession::forClass($d['selected_class']->id)
+                ->betweenDates($from, $to)
+                ->count();
 
             $d['rows'] = $students->map(function ($student) use ($stats, &$d) {
                 $s = $stats[$student->id] ?? ['present' => 0, 'absent' => 0, 'late' => 0, 'marked' => 0];
@@ -184,9 +170,10 @@ class AttendanceController extends Controller
 
     /**
      * Defaulter list — students whose attendance % for the chosen
-     * month falls below the chosen threshold. Students with no
-     * records at all in the month are excluded (no records is not
-     * 0%), exactly as the report treats them.
+     * month falls below the chosen threshold, from period entries.
+     * Students with no period entries at all in the month are
+     * excluded (no records is not 0%), exactly as the report
+     * treats them.
      */
     public function defaulters(Request $request)
     {
@@ -254,7 +241,9 @@ class AttendanceController extends Controller
     /**
      * "My attendance" — a student sees their own month; a parent
      * sees each linked child's month (child switcher when there is
-     * more than one). Staff are sent to the report instead.
+     * more than one). Staff are sent to the report instead. All
+     * numbers come from period entries: subject-wise totals plus the
+     * individual period registers behind them.
      */
     public function my(Request $request)
     {
@@ -281,20 +270,29 @@ class AttendanceController extends Controller
         $selected = $records->firstWhere('id', (int) $request->query('student_id')) ?: $records->first();
         $d['student'] = $selected;
         $d['summary'] = ['present' => 0, 'absent' => 0, 'late' => 0, 'marked' => 0, 'percent' => null];
-        $d['days'] = collect();
+        $d['subjects'] = collect();
+        $d['entries'] = collect();
 
         if ($selected) {
             $from = $d['month']->copy()->startOfMonth();
             $to = $d['month']->copy()->endOfMonth();
 
-            $d['days'] = Attendance::where('student_record_id', $selected->id)
-                ->whereBetween('date', [$from->toDateString(), $to->toDateString()])
-                ->orderBy('date')
-                ->get();
+            $entries = AttendanceSessionEntry::with(['session.subject', 'session.time_table.time_slot'])
+                ->where('student_record_id', $selected->id)
+                ->whereHas('session', function ($q) use ($from, $to) {
+                    $q->betweenDates($from, $to);
+                })
+                ->get()
+                ->sortByDesc(function ($entry) {
+                    return $entry->session->date->format('Y-m-d') . '-' . str_pad((string) $entry->session_id, 10, '0', STR_PAD_LEFT);
+                })
+                ->values();
 
-            foreach ($d['days'] as $day) {
-                if (isset($d['summary'][$day->status])) {
-                    $d['summary'][$day->status]++;
+            $d['entries'] = $entries;
+
+            foreach ($entries as $entry) {
+                if (isset($d['summary'][$entry->status])) {
+                    $d['summary'][$entry->status]++;
                 }
                 $d['summary']['marked']++;
             }
@@ -303,6 +301,30 @@ class AttendanceController extends Controller
                 $d['summary']['late'],
                 $d['summary']['marked']
             );
+
+            $d['subjects'] = $entries
+                ->groupBy(function ($entry) {
+                    return $entry->session->subject_id;
+                })
+                ->map(function ($subjectEntries) {
+                    $present = $subjectEntries->where('status', AttendanceSessionEntry::STATUS_PRESENT)->count();
+                    $absent = $subjectEntries->where('status', AttendanceSessionEntry::STATUS_ABSENT)->count();
+                    $late = $subjectEntries->where('status', AttendanceSessionEntry::STATUS_LATE)->count();
+                    $marked = $present + $absent + $late;
+
+                    return [
+                        'subject' => $subjectEntries->first()->session->subject,
+                        'present' => $present,
+                        'absent' => $absent,
+                        'late' => $late,
+                        'marked' => $marked,
+                        'percent' => $this->percentFor($present, $late, $marked),
+                    ];
+                })
+                ->sortBy(function ($row) {
+                    return strtolower(optional($row['subject'])->name ?? '');
+                })
+                ->values();
         }
 
         return view('pages.support_team.attendance.my', $d);
@@ -316,7 +338,10 @@ class AttendanceController extends Controller
 
     /**
      * Per-student status tallies for a date range, keyed by
-     * student_record_id: [present, absent, late, marked].
+     * student_record_id: [present, absent, late, marked]. Counts
+     * PERIOD entries (attendance_session_entries whose session falls
+     * in the range) — the day-wise attendances table is retired and
+     * is never read here.
      */
     private function statusCounts(array $studentIds, Carbon $from, Carbon $to): array
     {
@@ -324,8 +349,10 @@ class AttendanceController extends Controller
             return [];
         }
 
-        $rows = Attendance::whereIn('student_record_id', $studentIds)
-            ->whereBetween('date', [$from->toDateString(), $to->toDateString()])
+        $rows = AttendanceSessionEntry::whereIn('student_record_id', $studentIds)
+            ->whereHas('session', function ($q) use ($from, $to) {
+                $q->betweenDates($from, $to);
+            })
             ->select('student_record_id', 'status', DB::raw('COUNT(*) as total'))
             ->groupBy('student_record_id', 'status')
             ->get();
@@ -355,10 +382,9 @@ class AttendanceController extends Controller
     }
 
     /**
-     * CSV export of the monthly report (Loop 8). Mirrors report()'s
-     * computation exactly — same class+month filter, same percent rule
-     * (present + late over marked days; unmarked days excluded) — and
-     * report() itself is deliberately left untouched.
+     * CSV export of the monthly report. Mirrors report()'s
+     * computation exactly — same class+month filter, same percent
+     * rule, and the same period-entry source.
      */
     public function export(Request $request)
     {
@@ -375,7 +401,7 @@ class AttendanceController extends Controller
         }
 
         $monthParam = $request->query('month');
-        $month = $monthParam
+        $month = $monthParam && preg_match('/^\d{4}-\d{2}$/', $monthParam)
             ? Carbon::createFromFormat('Y-m', $monthParam)->startOfMonth()
             : Carbon::today()->startOfMonth();
 
@@ -385,34 +411,30 @@ class AttendanceController extends Controller
             ->orderBy('id')
             ->get();
 
-        $grouped = Attendance::whereIn('student_record_id', $students->pluck('id'))
-            ->whereYear('date', $month->year)
-            ->whereMonth('date', $month->month)
-            ->get()
-            ->groupBy('student_record_id');
+        $stats = $this->statusCounts(
+            $students->pluck('id')->all(),
+            $month->copy()->startOfMonth(),
+            $month->copy()->endOfMonth()
+        );
 
         $totals = ['present' => 0, 'absent' => 0, 'late' => 0, 'marked' => 0];
 
-        $rows = $students->map(function ($student) use ($grouped, &$totals) {
-            $records = $grouped->get($student->id, collect());
-            $present = $records->where('status', Attendance::STATUS_PRESENT)->count();
-            $absent = $records->where('status', Attendance::STATUS_ABSENT)->count();
-            $late = $records->where('status', Attendance::STATUS_LATE)->count();
-            $marked = $present + $absent + $late;
-            $totals['present'] += $present;
-            $totals['absent'] += $absent;
-            $totals['late'] += $late;
-            $totals['marked'] += $marked;
+        $rows = $students->map(function ($student) use ($stats, &$totals) {
+            $s = $stats[$student->id] ?? ['present' => 0, 'absent' => 0, 'late' => 0, 'marked' => 0];
+            $totals['present'] += $s['present'];
+            $totals['absent'] += $s['absent'];
+            $totals['late'] += $s['late'];
+            $totals['marked'] += $s['marked'];
 
             return [
                 optional($student->user)->name,
                 optional($student->section)->name,
-                $present,
-                $absent,
-                $late,
-                $marked,
+                $s['present'],
+                $s['absent'],
+                $s['late'],
+                $s['marked'],
                 // Same rule as the on-screen report; blank when nothing was marked.
-                $marked > 0 ? round((($present + $late) / $marked) * 100, 1) : '',
+                $s['marked'] > 0 ? round((($s['present'] + $s['late']) / $s['marked']) * 100, 1) : '',
             ];
         })->all();
 
@@ -421,7 +443,7 @@ class AttendanceController extends Controller
         $filename = 'attendance-' . Str::slug($selected_class->name) . '-' . $month->format('Y-m') . '.csv';
 
         return CsvExport::download($filename,
-            ['Student', 'Section', 'Present', 'Absent', 'Late', 'Marked', 'Attendance %'],
+            ['Student', 'Section', 'Present', 'Absent', 'Late', 'Periods Marked', 'Attendance %'],
             $rows);
     }
 }

@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Helpers\Qs;
-use App\Models\Attendance;
+use App\Models\AttendanceSessionEntry;
 use App\Models\AuditLog;
 use App\Models\Mark;
 use App\Models\PaymentRecord;
@@ -426,16 +426,25 @@ class HomeController extends Controller
         return $events;
     }
 
-    /** Today's attendance from the attendances table; zeros are honest when nothing was recorded. */
+    /**
+     * Today's attendance from PERIOD registers (attendance_session_entries
+     * whose session is dated today); zeros are honest when no register was
+     * submitted. Counts are period entries, and the percent uses the
+     * school-wide rule — (present + late) / marked — so the dashboard
+     * always agrees with the attendance report. (Workstream AR: the
+     * day-wise attendances table is retired and no longer read.)
+     */
     protected function attendanceToday(Carbon $now): array
     {
         $summary = ['present' => 0, 'absent' => 0, 'late' => 0, 'total' => 0, 'percent' => 0, 'recorded' => false];
 
-        if (!Schema::hasTable('attendances')) {
+        if (!Schema::hasTable('attendance_session_entries')) {
             return $summary;
         }
 
-        $rows = Attendance::whereDate('date', $now->toDateString())
+        $rows = AttendanceSessionEntry::whereHas('session', function ($q) use ($now) {
+                $q->whereDate('date', $now->toDateString());
+            })
             ->select('status', DB::raw('count(*) as total'))
             ->groupBy('status')
             ->pluck('total', 'status');
@@ -446,7 +455,7 @@ class HomeController extends Controller
         $summary['total'] = $summary['present'] + $summary['absent'] + $summary['late'];
         $summary['recorded'] = $summary['total'] > 0;
         $summary['percent'] = $summary['total'] > 0
-            ? (int) round(($summary['present'] / $summary['total']) * 100)
+            ? (int) round((($summary['present'] + $summary['late']) / $summary['total']) * 100)
             : 0;
 
         return $summary;
@@ -480,7 +489,7 @@ class HomeController extends Controller
             ? [
                 'icon' => 'icon-calendar52', 'tone' => 'orange',
                 'title' => $d['attendance_today']['percent'] . '% present today',
-                'text' => $d['attendance_today']['present'] . ' of ' . $d['attendance_today']['total'] . ' students marked present',
+                'text' => $d['attendance_today']['present'] . ' of ' . $d['attendance_today']['total'] . ' period marks recorded today',
             ]
             : [
                 'icon' => 'icon-calendar52', 'tone' => 'orange',
@@ -899,18 +908,32 @@ class HomeController extends Controller
                 ? (int) round($percents->avg())
                 : null;
 
-            if (Schema::hasTable('attendances')) {
+            if (Schema::hasTable('attendance_session_entries')) {
                 $record_ids = $children->map(function ($c) {
                     return $c['record']->id;
                 })->all();
 
-                $rows = Attendance::whereIn('student_record_id', $record_ids)
-                    ->whereDate('date', $now->toDateString())
+                // Period registers (Workstream AR): a child counts as
+                // present today when at least one of today's period
+                // entries marks them present or late — they were in
+                // school today. "Recorded" = any register today
+                // mentions any of the children.
+                $rows = AttendanceSessionEntry::whereIn('student_record_id', $record_ids)
+                    ->whereHas('session', function ($q) use ($now) {
+                        $q->whereDate('date', $now->toDateString());
+                    })
                     ->get(['student_record_id', 'status']);
 
                 if ($rows->isNotEmpty()) {
                     $attendance_today['recorded'] = true;
-                    $attendance_today['present'] = (int) $rows->where('status', 'present')->count();
+                    $attendance_today['present'] = (int) $rows
+                        ->groupBy('student_record_id')
+                        ->filter(function ($entries) {
+                            return $entries->contains(function ($entry) {
+                                return in_array($entry->status, ['present', 'late'], true);
+                            });
+                        })
+                        ->count();
                 }
             }
         }
@@ -1103,15 +1126,20 @@ class HomeController extends Controller
      * untouched — so the dashboard's outstanding total and top
      * defaulters always match the fee defaulters report exactly.
      */
+    /**
+     * One student's all-time attendance from PERIOD entries
+     * (Workstream AR — the day-wise table is retired). Percent is the
+     * school-wide rule: (present + late) / marked period entries.
+     */
     protected function attendanceSummary(int $student_record_id): array
     {
         $summary = ['present' => 0, 'absent' => 0, 'late' => 0, 'total' => 0, 'percent' => null];
 
-        if ($student_record_id < 1 || !Schema::hasTable('attendances')) {
+        if ($student_record_id < 1 || !Schema::hasTable('attendance_session_entries')) {
             return $summary;
         }
 
-        $rows = Attendance::where('student_record_id', $student_record_id)
+        $rows = AttendanceSessionEntry::where('student_record_id', $student_record_id)
             ->select('status', DB::raw('count(*) as total'))
             ->groupBy('status')
             ->pluck('total', 'status');

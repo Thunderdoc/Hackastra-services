@@ -28,9 +28,12 @@ use Illuminate\Support\Facades\Schema;
  *    2018_11_03_210758, 2018_11_03_210817, 2018_11_06_083707 and
  *    PaymentRepo + PaymentController@pay_now (balance = amount - paid,
  *    paid = 1 when balance < 1, one Receipt per payment transaction).
- *  - attendances: migration 2026_10_21_000002, Attendance model status
- *    constants, AttendanceController@store (student_record_id + date
- *    unique, status + recorded_by written).
+ *  - attendances: RETIRED (Workstream AR) — the day-wise demo rows
+ *    are no longer seeded; attendance demo data is period registers
+ *    from PeriodAttendanceSeeder. The provenance note for the legacy
+ *    rows: migration 2026_10_21_000002, Attendance model status
+ *    constants, the retired AttendanceController@store shape
+ *    (student_record_id + date unique, status + recorded_by).
  *  - books / book_requests: migrations 2018_10_31_191358 /
  *    2018_10_31_192540, Book::types(), BookRequestController@store
  *    (status 'issued', returned 0, issued_copies incremented).
@@ -89,7 +92,12 @@ class DemoDataSeeder extends Seeder
         // are seeded before DemoDataSeeder ever runs.
         $this->step(function () use ($session) { $this->seedTeacherTimetables($session); });
         $this->step(function () use ($students, $session) { $this->seedPayments($students, $session); });
-        $this->step(function () use ($students) { $this->seedAttendance($students); });
+        // Workstream AR (period-only unification): the day-wise
+        // seedAttendance() step is NO LONGER CALLED — attendance demo
+        // data comes from PeriodAttendanceSeeder alone, so a fresh
+        // demo tells one story (period registers) instead of two.
+        // The method itself is kept below, un-called, as the record
+        // of the retired day-wise demo.
         $this->step(function () use ($students) { $this->seedLibrary($students); });
         $this->step(function () { $this->seedEvents(); });
         $this->step(function () use ($students, $session) { $this->seedExamAndMarks($students, $session); });
@@ -284,9 +292,12 @@ class DemoDataSeeder extends Seeder
     }
 
     /**
-     * Attendance for the last 10 school days (Sundays skipped), ending
-     * today: ~85% present, ~10% absent, ~5% late per student per day,
-     * assigned by a stable hash so the demo never changes shape.
+     * RETIRED (Workstream AR) — no longer called from run(). Day-wise
+     * attendance demo for the last 10 school days (Sundays skipped),
+     * ending today: ~85% present, ~10% absent, ~5% late per student
+     * per day, assigned by a stable hash. Kept only as the record of
+     * the retired day-wise demo; PeriodAttendanceSeeder seeds the
+     * live demo now.
      */
     protected function seedAttendance($students): void
     {
