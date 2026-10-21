@@ -38,14 +38,14 @@
             @endif
 
             <form method="GET" action="{{ route('attendance.index') }}" class="form-inline mb-3">
-                <label class="mr-2">Class</label>
-                <select name="class_id" class="form-control mr-3" onchange="this.form.submit()">
+                <label for="att_class_id" class="mr-2">Class</label>
+                <select name="class_id" id="att_class_id" class="form-control mr-3" onchange="this.form.submit()">
                     @foreach($classes as $class)
                         <option value="{{ $class->id }}" {{ $selected_class && $selected_class->id === $class->id ? 'selected' : '' }}>{{ $class->name }}</option>
                     @endforeach
                 </select>
-                <label class="mr-2">Date</label>
-                <input type="date" name="date" class="form-control mr-3" value="{{ $date->format('Y-m-d') }}" onchange="this.form.submit()">
+                <label for="att_date" class="mr-2">Date</label>
+                <input type="date" name="date" id="att_date" class="form-control mr-3" value="{{ $date->format('Y-m-d') }}" onchange="this.form.submit()">
             </form>
 
             @if($students->isEmpty())

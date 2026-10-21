@@ -22,13 +22,17 @@
         @include('partials.header')
 
         <div class="content">
-            {{--Error Alert Area--}}
+            {{--Error Alert Area (Loop 9 · UX Fix 4: the summary is an index —
+                each message links to its field's id; the error also renders
+                at the field itself via partials/errors/field).--}}
             @if($errors->any())
-                <div class="alert alert-danger border-0 alert-dismissible">
+                <div class="alert alert-danger border-0 alert-dismissible" id="form-error-summary">
                     <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
 
-                        @foreach($errors->all() as $er)
-                            <span><i class="icon-arrow-right5"></i> {{ $er }}</span> <br>
+                        @foreach($errors->getMessages() as $field => $messages)
+                            @foreach($messages as $er)
+                                <span><i class="icon-arrow-right5"></i> <a href="#{{ $field }}" class="alert-link">{{ $er }}</a></span> <br>
+                            @endforeach
                         @endforeach
 
                 </div>

@@ -14,45 +14,50 @@
                     <form class="ajax-store" method="post" action="{{ route('payments.store') }}">
                         @csrf
                         <div class="form-group row">
-                            <label class="col-lg-3 col-form-label font-weight-semibold">Title <span class="text-danger">*</span></label>
+                            <label for="title" class="col-lg-3 col-form-label font-weight-semibold">Title <span class="text-danger">*</span></label>
                             <div class="col-lg-9">
-                                <input name="title" value="{{ old('title') }}" required type="text" class="form-control" placeholder="Eg. School Fees">
+                                <input name="title" id="title" value="{{ old('title') }}" required type="text" class="form-control @error('title') is-invalid @enderror" placeholder="Eg. School Fees">
+                                @include('partials.errors.field', ['field' => 'title'])
                             </div>
                         </div>
 
                         <div class="form-group row">
                             <label for="my_class_id" class="col-lg-3 col-form-label font-weight-semibold">Class </label>
                             <div class="col-lg-9">
-                                <select class="form-control select-search" name="my_class_id" id="my_class_id">
+                                <select class="form-control select-search @error('my_class_id') is-invalid @enderror" name="my_class_id" id="my_class_id">
                                     <option value="">All Classes</option>
                                     @foreach($my_classes as $c)
                                         <option {{ old('my_class_id') == $c->id ? 'selected' : '' }} value="{{ $c->id }}">{{ $c->name }}</option>
                                     @endforeach
                                 </select>
+                                @include('partials.errors.field', ['field' => 'my_class_id'])
                             </div>
                         </div>
 
                         <div class="form-group row">
                             <label for="method" class="col-lg-3 col-form-label font-weight-semibold">Payment Method</label>
                             <div class="col-lg-9">
-                                <select class="form-control select" name="method" id="method">
+                                <select class="form-control select @error('method') is-invalid @enderror" name="method" id="method">
                                     <option selected value="Cash">Cash</option>
                                     <option disabled value="Online">Online</option>
                                 </select>
+                                @include('partials.errors.field', ['field' => 'method'])
                             </div>
                         </div>
 
                         <div class="form-group row">
                             <label for="amount" class="col-lg-3 col-form-label font-weight-semibold">Amount (₹) <span class="text-danger">*</span></label>
                             <div class="col-lg-9">
-                                <input class="form-control" value="{{ old('amount') }}" required name="amount" id="amount" type="number">
+                                <input class="form-control @error('amount') is-invalid @enderror" value="{{ old('amount') }}" required name="amount" id="amount" type="number">
+                                @include('partials.errors.field', ['field' => 'amount'])
                             </div>
                         </div>
 
                         <div class="form-group row">
                             <label for="description" class="col-lg-3 col-form-label font-weight-semibold">Description</label>
                             <div class="col-lg-9">
-                                <input class="form-control" value="{{ old('description') }}" name="description" id="description" type="text">
+                                <input class="form-control @error('description') is-invalid @enderror" value="{{ old('description') }}" name="description" id="description" type="text">
+                                @include('partials.errors.field', ['field' => 'description'])
                             </div>
                         </div>
 
