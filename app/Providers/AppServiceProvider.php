@@ -13,7 +13,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        //
+        // Behind a TLS-terminating proxy (Render/Railway/etc.) the app must
+        // generate https URLs, or browsers block its own CSS/JS as mixed
+        // content and every page renders unstyled.
+        if ($this->app->environment('production')) {
+            \Illuminate\Support\Facades\URL::forceScheme('https');
+        }
     }
 
     /**
