@@ -17,9 +17,16 @@ No result in this file is claimed beyond the method stated.
 | Migrations | Inventory | 31 total, incl. new `school_events` + `attendances` (FK + unique constraints) |
 | JS/CSS syntax | `node --check` on new JS; CSS brace balance | ✅ Pass |
 
-**Not yet run:** the PHPUnit suite itself and any browser/end-to-end test —
-both need a PHP + MySQL runtime (local machine or the Railway deploy).
-The Dockerfile + hardened composer install are built for exactly that.
+**Update (same day, later): PHP 8.3.6 became available on the test
+machine, so the checks above were re-run on the real runtime:**
+- `php -l` (real PHP binary) over all PHP files — **0 syntax errors**
+- The actual PHPUnit test files (8 test methods, 31 assertions) executed
+  against the actual `GradeCalculator` and `Money` sources using a
+  minimal TestCase stub (vendor/ is not installed here) — **8/8 pass**
+
+**Still not run:** framework-bootstrapped tests and browser/end-to-end
+tests — those need the full vendor install + MySQL (local machine or the
+Railway deploy).
 
 ## Workflow verification status
 
