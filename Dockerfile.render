@@ -1,0 +1,58 @@
+# Hackstra on Render (free tier) — single-container DEMO image.
+# Render's free plan has no MySQL, so this image bundles a small MariaDB
+# inside the same container. Data is EPHEMERAL: it is re-created and
+# re-seeded on every (re)start. For a durable deployment use the main
+# Dockerfile (Railway etc.) with an external MySQL service.
+FROM php:8.4-apache
+
+ENV COMPOSER_ALLOW_SUPERUSER=1 COMPOSER_MEMORY_LIMIT=-1
+
+# System packages, PHP extensions, and the bundled database server
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        git unzip libpng-dev libzip-dev libxml2-dev libonig-dev \
+        mariadb-server mariadb-client \
+    && docker-php-ext-install pdo_mysql mbstring zip xml gd bcmath exif pcntl fileinfo \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Production PHP settings (no deprecation noise printed into pages)
+RUN cp "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
+
+# Small-footprint MariaDB tuning (fits Render's free 512MB next to Apache)
+RUN printf '[mysqld]\ninnodb_buffer_pool_size=64M\ninnodb_log_file_size=32M\nmax_connections=30\nskip-name-resolve\nperformance_schema=OFF\n' \
+        > /etc/mysql/mariadb.conf.d/60-render.cnf
+
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+WORKDIR /var/www/html
+
+# Install dependencies first (better layer caching)
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --prefer-dist --no-interaction --no-progress --optimize-autoloader --no-scripts \
+    || composer install --no-dev --prefer-dist --no-interaction --no-progress --optimize-autoloader --no-scripts --ignore-platform-reqs
+
+# Application code
+COPY . .
+RUN composer dump-autoload --optimize \
+    && chown -R www-data:www-data storage bootstrap/cache \
+    && chmod -R 775 storage bootstrap/cache
+
+# Apache: serve Laravel's public/ folder, allow rewrites, respect $PORT
+RUN (a2dismod mpm_event mpm_worker || true) \
+    && a2enmod mpm_prefork rewrite \
+    && sed -i 's|/var/www/html|/var/www/html/public|g' /etc/apache2/sites-available/000-default.conf \
+    && sed -i 's|/var/www/|/var/www/html/public|g' /etc/apache2/apache2.conf \
+    && sed -i 's|Listen 80|Listen ${PORT}|' /etc/apache2/ports.conf \
+    && sed -i 's|<VirtualHost \*:80>|<VirtualHost *:${PORT}>|' /etc/apache2/sites-available/000-default.conf
+
+# Laravel needs .htaccess rewrites inside public/ (AllowOverride All)
+RUN printf '<Directory /var/www/html/public>\n    AllowOverride All\n    Require all granted\n</Directory>\nServerName localhost\n' > /etc/apache2/conf-available/laravel.conf \
+    && a2enconf laravel
+
+COPY docker/entrypoint.render.sh /usr/local/bin/entrypoint.render.sh
+RUN chmod +x /usr/local/bin/entrypoint.render.sh
+
+ENV PORT=10000
+EXPOSE 10000
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.render.sh"]
+CMD ["apache2-foreground"]

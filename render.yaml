@@ -1,0 +1,18 @@
+# Hackstra — Render Blueprint (free-tier DEMO).
+# The database is bundled inside the container (see Dockerfile.render),
+# so this is a single web service. Data re-seeds on every restart.
+services:
+  - type: web
+    name: hackastra
+    env: docker
+    dockerfilePath: ./Dockerfile.render
+    plan: free
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: SESSION_DRIVER
+        value: cookie
+      - key: APP_KEY
+        sync: false # set once in the Render dashboard (never commit a real key)
