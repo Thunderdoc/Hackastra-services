@@ -1351,3 +1351,64 @@ a.t9-row:hover .t9-row-copy strong{color:var(--qs-primary-action)}
 .pat-empty-icon{align-items:center;background:#eef4ff;border-radius:50%;color:#3478f6;display:flex;font-size:25px;height:62px;justify-content:center;margin:0 auto 14px;width:62px}
 .pat-empty-msg{color:#44546a;font-size:.92rem;margin:0 auto;max-width:460px}
 .pat-empty-action{margin-top:16px}
+/* ============================================================
+   Loop 29 — Unified sidebars (Batch 1B). Every role's sidebar
+   now speaks the Batch 9 teacher sidebar's design language:
+   grouped nav with small-caps headers (markup in partials/menu
+   + per-role menu fragments), and the generic brand block /
+   session card restyled to the .t9- components' proportions
+   and tokens. Teacher rules (.t9-, .portal-teacher) are NOT
+   touched. Open-submenu teal was already killed in Loop 24;
+   active links stay solid brand blue (#3478f6) app-wide.
+   NOTE for integration: this section is append-only and
+   selector-disjoint from Loop 28 (.pat- patterns) — it stacks
+   after it unchanged.
+   ============================================================ */
+.lav-sidebar-brand{height:auto;margin:0 16px;padding:16px 0 13px;border-bottom:1px solid rgba(255,255,255,.12)}
+.lav-sidebar-brand-link>span{min-width:0}
+.lav-sidebar-brand-icon{width:34px;height:34px}
+.lav-sidebar-brand-link strong{font-size:14px;overflow:hidden;text-overflow:ellipsis}
+.lav-sidebar-brand-link small{font-size:10.5px;margin-top:3px;color:rgba(255,255,255,.55)}
+.lav-sidebar-session{background:transparent;border:1px solid rgba(255,255,255,.18);border-radius:10px;bottom:12px;gap:10px;left:12px;padding:11px 13px;right:12px}
+.lav-sidebar-session>i{color:rgba(255,255,255,.8);font-size:17px}
+.lav-sidebar-session small{color:rgba(255,255,255,.55);font-size:10px}
+.lav-sidebar-session strong{font-size:13px}
+@media (max-width:767px){.lav-sidebar-brand{height:auto}}
+/* --- Loop 29 addendum (owner screenshots, 21:28 IST): the sidebar
+   must not show the chunky white NATIVE scrollbar, and the collapsed
+   (sidebar-xs) brand must show the logo mark only — never clipped
+   text. The desktop scroll container is .card-sidebar-mobile
+   (overflow-y:auto, set earlier in this file); on mobile it is
+   .sidebar-content (theme). overflow-x:hidden on the scroll
+   containers guarantees no horizontal nav scrollbar; collapsed
+   flyout panels keep their own themed scrollbar too. --- */
+.sidebar-main .card-sidebar-mobile{overflow-x:hidden;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.28) transparent}
+.sidebar-main .card-sidebar-mobile::-webkit-scrollbar{width:5px;height:0}
+.sidebar-main .card-sidebar-mobile::-webkit-scrollbar-track{background:transparent}
+.sidebar-main .card-sidebar-mobile::-webkit-scrollbar-thumb{background:rgba(255,255,255,.28);border-radius:3px}
+.sidebar-main .card-sidebar-mobile::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.45)}
+.sidebar-main .card-sidebar-mobile::-webkit-scrollbar-button{display:none;height:0;width:0}
+.sidebar-main .sidebar-content{overflow-x:hidden;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.28) transparent}
+.sidebar-main .sidebar-content::-webkit-scrollbar{width:5px;height:0}
+.sidebar-main .sidebar-content::-webkit-scrollbar-track{background:transparent}
+.sidebar-main .sidebar-content::-webkit-scrollbar-thumb{background:rgba(255,255,255,.28);border-radius:3px}
+.sidebar-main .sidebar-content::-webkit-scrollbar-button{display:none;height:0;width:0}
+.sidebar-xs .sidebar-main .nav-group-sub{scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.28) transparent}
+.sidebar-xs .sidebar-main .nav-group-sub::-webkit-scrollbar{width:5px;height:0}
+.sidebar-xs .sidebar-main .nav-group-sub::-webkit-scrollbar-thumb{background:rgba(255,255,255,.28);border-radius:3px}
+.sidebar-xs .sidebar-main .nav-group-sub::-webkit-scrollbar-button{display:none;height:0;width:0}
+/* Collapsed rail: ONLY the logo mark survives — brand copy, the
+   academy strip and the session cards' text hide cleanly (the
+   full state restores them; these rules exist only under
+   body.sidebar-xs). The lav brand's Loop 29 side margins are
+   zeroed so the 34px mark centres in the 56px rail. */
+body.sidebar-xs .lav-sidebar-brand{margin:0;padding:16px 11px 13px}
+body.sidebar-xs .lav-sidebar-brand-link{justify-content:center}
+body.sidebar-xs .lav-sidebar-brand-link>span{display:none}
+body.sidebar-xs .t9-brand{padding:16px 11px 4px}
+body.sidebar-xs .t9-brand-copy{display:none}
+body.sidebar-xs .t9-academy{display:none}
+body.sidebar-xs .lav-sidebar-session{justify-content:center;left:6px;right:6px;padding:11px 0}
+body.sidebar-xs .lav-sidebar-session span,body.sidebar-xs .lav-sidebar-session>a{display:none}
+body.sidebar-xs .t9-session-card{justify-content:center;margin:12px 6px;padding:11px 0}
+body.sidebar-xs .t9-session-card span,body.sidebar-xs .t9-session-card .t9-session-chev{display:none}

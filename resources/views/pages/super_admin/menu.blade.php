@@ -1,3 +1,6 @@
+{{-- Batch 1B: group header in the teacher sidebar's design language --}}
+<li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Platform</div><i class="icon-menu" title="Platform"></i></li>
+
 {{--Manage Settings--}}
 <li class="nav-item">
     <a href="{{ route('settings') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['settings',]) ? 'active' : '' }}"><i class="icon-gear"></i> <span>Settings</span></a>

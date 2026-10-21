@@ -117,7 +117,13 @@
                         <li class="nav-item nav-item-submenu {{ in_array(Route::currentRouteName(), ['students.list', 'students.edit', 'students.show']) ? 'nav-item-expanded' : '' }}">
                             <a href="#" class="nav-link {{ in_array(Route::currentRouteName(), ['students.list', 'students.edit', 'students.show']) ? 'active' : '' }}">Student Information</a>
                             <ul class="nav nav-group-sub">
-                                @foreach(App\Models\MyClass::orderBy('name')->get() as $c)
+                                {{-- Batch 1B (Batch S follow-up): a teacher's Students
+                                     submenu lists ONLY their assigned classes
+                                     (App\Support\TeacherScope — subjects.teacher_id
+                                     + sections.teacher_id). This block renders only
+                                     for teachers; SA/admin use the full list in
+                                     the generic branch below. --}}
+                                @foreach(App\Models\MyClass::orderBy('name')->get()->whereIn('id', App\Support\TeacherScope::classIds(Auth::user())) as $c)
                                     <li class="nav-item"><a href="{{ route('students.list', $c->id) }}" class="nav-link ">{{ $c->name }}</a></li>
                                 @endforeach
                             </ul>
@@ -183,7 +189,12 @@
                 </li>
                 @endif
 
+                {{-- Batch 1B: group headers unify the generic sidebar with the
+                     Batch 9 teacher sidebar's design language. Headers sit
+                     INSIDE the same permission gates as the items they label,
+                     so no role sees a header for a section it cannot use. --}}
                 @if(Qs::userIsTeamSAT())
+                <li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Attendance</div><i class="icon-menu" title="Attendance"></i></li>
                 <li class="nav-item">
                     <a href="{{ route('attendance.index') }}" class="nav-link {{ (Route::is('attendance.index')) ? 'active' : '' }}">
                         <i class="icon-calendar52"></i>
@@ -210,6 +221,7 @@
                 </li>
                 @endif
 
+                <li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Communication</div><i class="icon-menu" title="Communication"></i></li>
                 @if(Qs::userIsTeamSA())
                 <li class="nav-item">
                     <a href="{{ route('events.index') }}" class="nav-link {{ (Route::is('events.*')) ? 'active' : '' }}">
@@ -228,6 +240,7 @@
 
                 {{--Academics--}}
                 @if(Qs::userIsAcademic())
+                    <li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Academics</div><i class="icon-menu" title="Academics"></i></li>
                     <li class="nav-item nav-item-submenu {{ in_array(Route::currentRouteName(), ['tt.index', 'ttr.edit', 'ttr.show', 'ttr.manage']) ? 'nav-item-expanded nav-item-open' : '' }} ">
                         <a href="#" class="nav-link"><i class="icon-graduation2"></i> <span> Academics</span></a>
 
@@ -241,6 +254,7 @@
 
                 {{--Administrative--}}
                 @if(Qs::userIsAdministrative())
+                    <li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Administration</div><i class="icon-menu" title="Administration"></i></li>
                     <li class="nav-item nav-item-submenu {{ in_array(Route::currentRouteName(), ['payments.index', 'payments.create', 'payments.invoice', 'payments.receipts', 'payments.edit', 'payments.manage', 'payments.show', 'payments.defaulters', 'payments.collection', 'payroll.index', 'payroll.payslip',]) ? 'nav-item-expanded nav-item-open' : '' }} ">
                         <a href="#" class="nav-link"><i class="icon-office"></i> <span> Administrative</span></a>
 
@@ -270,6 +284,7 @@
 
                 {{--Manage Students--}}
                 @if(Qs::userIsTeamSAT())
+                    <li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Students</div><i class="icon-menu" title="Students"></i></li>
                     <li class="nav-item nav-item-submenu {{ in_array(Route::currentRouteName(), ['students.create', 'students.list', 'students.edit', 'students.show', 'students.promotion', 'students.promotion_manage', 'students.graduated']) ? 'nav-item-expanded nav-item-open' : '' }} ">
                         <a href="#" class="nav-link"><i class="icon-users"></i> <span> Students</span></a>
 
@@ -312,6 +327,7 @@
                 @endif
 
                 @if(Qs::userIsTeamSA())
+                    <li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Management</div><i class="icon-menu" title="Management"></i></li>
                     {{--Manage Users--}}
                     <li class="nav-item">
                         <a href="{{ route('users.index') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['users.index', 'users.show', 'users.edit']) ? 'active' : '' }}"><i class="icon-users4"></i> <span> Users</span></a>
@@ -340,6 +356,7 @@
 
                 {{--Exam--}}
                 @if(Qs::userIsTeamSAT())
+                <li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Examinations</div><i class="icon-menu" title="Examinations"></i></li>
                 <li class="nav-item nav-item-submenu {{ in_array(Route::currentRouteName(), ['exams.index', 'exams.edit', 'grades.index', 'grades.edit', 'marks.index', 'marks.manage', 'marks.bulk', 'marks.tabulation', 'marks.show', 'marks.batch_fix', 'admit_cards.index', 'admit_cards.print',]) ? 'nav-item-expanded nav-item-open' : '' }} ">
                     <a href="#" class="nav-link"><i class="icon-books"></i> <span> Exams</span></a>
 
@@ -398,6 +415,7 @@
                 @include('pages.'.Qs::getUserType().'.menu')
 
                 {{--Manage Account--}}
+                <li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Account</div><i class="icon-menu" title="Account"></i></li>
                 <li class="nav-item">
                     <a href="{{ route('my_account') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['my_account']) ? 'active' : '' }}"><i class="icon-user"></i> <span>My Account</span></a>
                 </li>
