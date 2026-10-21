@@ -52,7 +52,6 @@ php artisan migrate --force || echo "WARNING: migrations failed — check logs a
 # demo deployment only. Never seed demo accounts on a real school deploy.
 if [ "$SEED_DEMO" = "true" ]; then
     php artisan db:seed --force || true
-    php artisan db:seed --class=DashboardDemoDataSeeder --force || true
 fi
 
 php artisan storage:link || true

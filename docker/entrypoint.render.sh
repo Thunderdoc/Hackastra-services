@@ -71,7 +71,6 @@ USER_COUNT="$(php -r '$pdo=new PDO("mysql:host=127.0.0.1;dbname=".getenv("DB_DAT
 if [ "$USER_COUNT" = "0" ]; then
     echo "Empty database - seeding demo data..."
     php artisan db:seed --force || true
-    php artisan db:seed --class=DashboardDemoDataSeeder --force || true
 fi
 
 php artisan storage:link || true
