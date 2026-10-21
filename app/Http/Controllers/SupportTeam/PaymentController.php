@@ -86,6 +86,7 @@ class PaymentController extends Controller
 
         try {
              $d['pr'] = $pr = $this->pay->getRecord(['id' => $pr_id])->with('receipt')->first();
+             $this->authorize('view', $pr);
         } catch (ModelNotFoundException $ex) {
             return back()->with('flash_danger', __('msg.rnf'));
         }
@@ -105,6 +106,7 @@ class PaymentController extends Controller
 
         try {
             $d['pr'] = $pr = $this->pay->getRecord(['id' => $pr_id])->with('receipt')->first();
+            $this->authorize('view', $pr);
         } catch (ModelNotFoundException $ex) {
             return back()->with('flash_danger', __('msg.rnf'));
         }
@@ -137,6 +139,7 @@ class PaymentController extends Controller
         ], [], ['amt_paid' => 'Amount Paid']);
 
         $pr = $this->pay->findRecord($pr_id);
+        $this->authorize('update', $pr);
         $payment = $this->pay->find($pr->payment_id);
         $d['amt_paid'] = $amt_p = $pr->amt_paid + $req->amt_paid;
         $d['balance'] = $bal = $payment->amount - $amt_p;
@@ -233,6 +236,8 @@ class PaymentController extends Controller
 
     public function reset_record($id)
     {
+        $record = $this->pay->findRecord($id);
+        if ($record) { $this->authorize('update', $record); }
         $pr['amt_paid'] = $pr['paid'] = $pr['balance'] = 0;
         $this->pay->updateRecord($id, $pr);
         $this->pay->deleteReceipts(['pr_id' => $id]);

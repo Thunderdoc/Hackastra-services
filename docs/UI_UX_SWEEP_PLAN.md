@@ -1,0 +1,102 @@
+# Hackstra — UI/UX + Every-Click Sweep Plan
+
+Owner directive (2026-10-21): *"fix every button, UI UX and other things,
+every click to everything — make a detailed plan and continuously work on
+it in a loop."* This document is that plan and its living checklist.
+Work proceeds loop by loop; each loop ends with verification + a push.
+
+## Baseline inventory (measured 2026-10-21)
+
+- 102 Blade views, ~172 routes (104 route statements incl. resources)
+- 237 anchor tags, 67 `<button>` elements, 80 forms across the views
+- Every one of those clicks must: land somewhere real, respect the user's
+  role, give feedback, and look like it belongs to one design system.
+
+## Design system (one source of truth)
+
+- Palette: navy `#10263b`, primary blue `#3478f6`, ink `#172536`,
+  muted `#718096`, surface `#ffffff`, app background `#f4f7fb`,
+  danger `#e3342f`-family, success green, warning amber (Bootstrap 4 set).
+- Radius: cards 12–16px, buttons/inputs 9px. Shadows: soft, single level.
+- Type: one scale — page titles 1.25rem/700, card titles .95rem/600,
+  body .85rem, meta .78rem muted.
+- All of it lives in `public/assets/css/qs.css` (the "lav" layer); pages
+  must not carry one-off inline styles except truly page-specific blocks
+  (login). New components go into the shared layer, never per-page copies.
+
+## Button standard (every button, no exceptions)
+
+1. **Variants:** primary (blue, one per view max as the main action),
+   secondary (white/border), danger (destructive only), ghost/icon.
+2. **States:** default, hover, `:focus-visible` ring (3px blue halo),
+   disabled (60% opacity, not-allowed cursor), loading (spinner +
+   disabled, text stays readable).
+3. **Size/tap:** min height 40px (36px for `.btn-sm`), icon buttons
+   40×40 touch target; table row actions grouped, never scattered.
+4. **Behaviour:** form submits are double-submit-guarded globally
+   (`assets/js/hackstra-ux.js`); destructive actions require a confirm
+   (`data-confirm` or the existing SweetAlert flows); no button may be a
+   dead `#` link — it must route, open a real modal, or be removed.
+5. **Labels:** verb + object ("Add Student", "Pay Now"), sentence case,
+   icon + text for primary actions, icon-only only with `title`/`aria-label`.
+
+## Every-click audit method (per module, in loop order)
+
+For each screen: list every clickable element → check (a) route exists
+and resolves, (b) role/permission is correct (policies + middleware),
+(c) success AND failure feedback exists (flash/JSON/field errors),
+(d) empty state exists when there is no data, (e) keyboard focus is
+visible, (f) it works at 375px without overlap, (g) destructive clicks
+confirm first. Findings are fixed in the same loop, not logged-and-left.
+
+Module order: Dashboard → Students → Users/Staff → Classes/Sections/
+Subjects → Exams/Marks → Payments/Receipts → Attendance → Events →
+Library/Dorms → Timetables → Settings/My Account → Auth pages →
+Print views (marksheet, receipts, tabulation).
+
+## AI image asset pipeline
+
+AI-generated illustrations are used where an image genuinely helps:
+login brand panel, empty states, error pages, dashboard welcome strip.
+**QC rules (hard):** no watermark, no baked-in text/letters, palette must
+match the design system, ≤ ~350 KB per asset, stored under
+`public/assets/img/ai/`, always decorative (`alt=""`) behind real content.
+
+- [x] `login-campus.jpg` — login brand panel (navy/blue school scene).
+  Generated + QC-passed (no watermark/text) and wired with a graceful
+  gradient fallback; the binary itself rides the next git-capable push
+  (the GitHub connector used for code pushes is text-only).
+- [ ] Empty-state illustration (students/payments/search "no results")
+- [ ] 404/500 error page illustration
+- [ ] Dashboard welcome-strip illustration (subtle, wide crop)
+
+## The loop
+
+1. **Audit** the next module (click inventory + code read).
+2. **Fix** in one batch: UI, buttons, dead clicks, permissions, feedback.
+3. **Verify:** PHP parse, Blade balance, route references resolve to
+   named routes, CSS/JS syntax, secret scan on the diff.
+4. **Ship:** one batched push; note what changed in this file.
+5. Repeat. Deployment health (Railway) is checked between loops —
+   a red deploy pauses new features until the build is green again.
+
+## Loop log
+
+### Loop 1 — 2026-10-21 (foundation + functional depth)
+- [x] Global inner-page UI layer across all legacy screens (previous batch)
+- [x] Login rebuilt; AI campus illustration wired into the brand panel
+- [x] GradeCalculator wired into the real marks flow (`MarkRepo::getGrade*`)
+- [x] Policies enforced: student edit/update/delete; payment receipt view,
+      pay_now, reset_record (closes receipt IDOR — any logged-in user could
+      previously open any receipt by changing the ID)
+- [x] Topbar bell = real "Recent activity" dropdown for staff
+      (latest payments + admissions, real links; no fake counts)
+- [x] Attendance monthly report (per-student present/absent/late + %)
+- [x] Global button/click layer: focus rings, disabled + loading states,
+      double-submit guard, `data-confirm` handler
+- [ ] Students module click audit (Loop 2)
+- [ ] Payments module click audit (Loop 2)
+- [ ] Print styles verified: marksheet / receipt / tabulation (Loop 3)
+- [ ] Responsive pass 375 / 768 / 1024 on the live URL (needs deploy green)
+- [ ] Audit log for login / marks / payment / role changes
+- [ ] Form Requests for the largest legacy forms

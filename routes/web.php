@@ -3,10 +3,6 @@
 Auth::routes();
 
 //Route::get('/test', 'TestController@index')->name('test');
-Route::get('/health', function () {
-    return response()->json(['status' => 'ok', 'app' => config('app.name')]);
-})->name('health');
-
 Route::get('/privacy-policy', 'HomeController@privacy_policy')->name('privacy_policy');
 Route::get('/terms-of-use', 'HomeController@terms_of_use')->name('terms_of_use');
 
@@ -153,6 +149,7 @@ Route::group(['middleware' => 'auth'], function () {
         /*************** Attendance *****************/
         Route::get('attendance', 'AttendanceController@index')->name('attendance.index');
         Route::post('attendance', 'AttendanceController@store')->name('attendance.store');
+        Route::get('attendance/report', 'AttendanceController@report')->name('attendance.report');
 
         /*************** School Events *****************/
         Route::resource('events', 'SchoolEventController');

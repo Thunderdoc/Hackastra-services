@@ -132,6 +132,7 @@ class StudentRecordController extends Controller
         if(!$sr_id){return Qs::goWithDanger();}
 
         $data['sr'] = $this->student->getRecord(['id' => $sr_id])->first();
+        $this->authorize('update', $data['sr']);
         $data['my_classes'] = $this->my_class->all();
         $data['parents'] = $this->user->getUserByType('parent');
         $data['dorms'] = $this->student->getAllDorms();
@@ -146,6 +147,7 @@ class StudentRecordController extends Controller
         if(!$sr_id){return Qs::goWithDanger();}
 
         $sr = $this->student->getRecord(['id' => $sr_id])->first();
+        $this->authorize('update', $sr);
         $d =  $req->only(Qs::getUserRecord());
         $d['name'] = ucwords($req->name);
 
@@ -175,6 +177,7 @@ class StudentRecordController extends Controller
         if(!$st_id){return Qs::goWithDanger();}
 
         $sr = $this->student->getRecord(['user_id' => $st_id])->first();
+        $this->authorize('delete', $sr);
         $path = Qs::getUploadPath('student').$sr->user->code;
         Storage::exists($path) ? Storage::deleteDirectory($path) : false;
         $this->user->delete($sr->user->id);

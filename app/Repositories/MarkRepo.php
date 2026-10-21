@@ -5,6 +5,7 @@ namespace App\Repositories;
 use App\Models\Grade;
 use App\Models\Mark;
 use App\Models\StudentRecord;
+use App\Support\GradeCalculator;
 
 class MarkRepo
 {
@@ -15,8 +16,8 @@ class MarkRepo
         $grades = Grade::where(['class_type_id' => $class_type_id])->get();
 
         if($grades->count() > 0){
-            $gr = $grades->where('mark_from', '<=', $total)->where('mark_to', '>=', $total);
-            return $gr->count() > 0 ? $gr->first() : $this->getGrade2($total);
+            $band = GradeCalculator::gradeFor($total, $grades->toArray());
+            return $band ? $grades->firstWhere('id', $band['id']) : $this->getGrade2($total);
         }
         return $this->getGrade2($total);
     }
@@ -25,7 +26,8 @@ class MarkRepo
     {
         $grades = Grade::whereNull('class_type_id')->get();
         if($grades->count() > 0){
-            return $grades->where('mark_from', '<=', $total)->where('mark_to', '>=', $total)->first();
+            $band = GradeCalculator::gradeFor($total, $grades->toArray());
+            return $band ? $grades->firstWhere('id', $band['id']) : NULL;
         }
         return NULL;
     }
