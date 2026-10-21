@@ -25,8 +25,17 @@ class SectionController extends Controller
     public function index()
     {
         $d['my_classes'] = $this->my_class->all();
-        $d['sections'] = $this->my_class->getAllSections();
         $d['teachers'] = $this->user->getUserByType('teacher');
+
+        // Batch 4: one class at a time via ?class_id= (unknown/absent
+        // id falls back to the first class); sections are filtered
+        // server-side instead of rendering every class's table.
+        $d['selected_class'] = request('class_id')
+            ? $d['my_classes']->firstWhere('id', (int) request('class_id')) ?? $d['my_classes']->first()
+            : $d['my_classes']->first();
+        $d['sections'] = $d['selected_class']
+            ? $this->my_class->getClassSections($d['selected_class']->id)
+            : collect();
 
         return view('pages.support_team.sections.index', $d);
     }

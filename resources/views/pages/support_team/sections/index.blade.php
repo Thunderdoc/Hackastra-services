@@ -1,129 +1,123 @@
 @extends('layouts.master')
 @section('page_title', 'Manage Class Sections')
 @section('content')
+    {{-- Batch 4: rebuilt on the shared patterns (Loop 28). Was: one
+         stacked table per class under a tab strip (73KB rendered, 30
+         inputs, a DataTables search per table). Now: a class picker
+         (?class_id=, filtered server-side, default = first class) +
+         ONE table, and the create form as a form_page card. Create
+         contract unchanged — POST sections.store via .ajax-store,
+         same fields/validation; row actions are the same Edit page +
+         confirmDelete flow, rendered as buttons instead of a
+         href="#" dropdown. The default (active) section still cannot
+         be deleted — that guard lives in SectionController@destroy. --}}
+    @component('partials.patterns.list_page')
+        @slot('title')
+            <i class="icon-fence mr-2"></i> Manage Class Sections
+        @endslot
+        @slot('subtitle')
+            @if($selected_class)
+                Showing sections for <strong>{{ $selected_class->name }}</strong> — pick another class to switch.
+            @else
+                No classes exist yet.
+            @endif
+        @endslot
+        @slot('action')
+            <a href="#add-section" class="btn btn-primary"><i class="icon-plus2 mr-2"></i> Create New Section</a>
+        @endslot
 
-    <div class="card">
-        <div class="card-header header-elements-inline">
-            <h6 class="card-title">Manage Class Sections</h6>
-            {!! Qs::getPanelOptions() !!}
-        </div>
-
-        <div class="card-body">
-            <ul class="nav nav-tabs nav-tabs-highlight">
-                <li class="nav-item"><a href="#new-section" class="nav-link active" data-toggle="tab">Create New Section</a></li>
-                <li class="nav-item dropdown">
-                    <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">Manage Sections</a>
-                    <div class="dropdown-menu dropdown-menu-right">
+        @slot('filters')
+            <form method="get" action="{{ route('sections.index') }}" class="pat-filter-form">
+                <div class="pat-filter-field">
+                    <label for="class_id">Class:</label>
+                    <select id="class_id" name="class_id" class="form-control select" data-placeholder="Select Class">
                         @foreach($my_classes as $c)
-                            <a href="#c{{ $c->id }}" class="dropdown-item" data-toggle="tab">{{ $c->name }}</a>
+                            <option {{ ($selected_class && $selected_class->id == $c->id) ? 'selected' : '' }} value="{{ $c->id }}">{{ $c->name }}</option>
                         @endforeach
+                    </select>
+                </div>
+                <div class="pat-filter-action">
+                    <button type="submit" class="btn btn-primary">View Sections <i class="icon-paperplane ml-2"></i></button>
+                </div>
+            </form>
+        @endslot
+
+        @if($selected_class && $sections->count())
+            <table class="table datatable-button-html5-columns">
+                <thead>
+                <tr>
+                    <th>S/N</th>
+                    <th>Name</th>
+                    <th>Class</th>
+                    <th>Teacher</th>
+                    <th>Action</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach($sections as $s)
+                    <tr>
+                        <td>{{ $loop->iteration }}</td>
+                        <td>{{ $s->name }} @if($s->active)<i class="icon-check"></i>@endif</td>
+                        <td>{{ $s->my_class->name }}</td>
+                        @if($s->teacher_id)
+                            <td><a target="_blank" href="{{ route('users.show', Qs::hash($s->teacher_id)) }}">{{ $s->teacher->name }}</a></td>
+                        @else
+                            <td> - </td>
+                        @endif
+                        <td class="text-center">
+                            @if(Qs::userIsTeamSA())
+                                <a href="{{ route('sections.edit', $s->id) }}" class="btn btn-sm btn-primary"><i class="icon-pencil"></i> Edit</a>
+                                <button type="button" id="{{ $s->id }}" onclick="confirmDelete(this.id)" class="btn btn-sm btn-danger"><i class="icon-trash"></i> Delete</button>
+                                <form method="post" id="item-delete-{{ $s->id }}" action="{{ route('sections.destroy', $s->id) }}" class="hidden">@csrf @method('delete')</form>
+                            @endif
+                        </td>
+                    </tr>
+                @endforeach
+                </tbody>
+            </table>
+        @else
+            @include('partials.patterns.empty_state', [
+                'icon' => 'icon-fence',
+                'message' => 'No sections in this class yet. Add the first one with the form below.',
+            ])
+        @endif
+    @endcomponent
+
+    <div id="add-section">
+        @component('partials.patterns.form_page', [
+            'form_action' => route('sections.store'),
+            'form_class' => 'ajax-store',
+            'submit_label' => 'Submit form',
+        ])
+            @slot('title')
+                <i class="icon-plus2 mr-2"></i> Create New Section
+            @endslot
+
+            <div class="pat-form-section">
+                <div class="pat-fields">
+                    <div class="pat-field">
+                        <label for="name">Name <span class="text-danger">*</span></label>
+                        <input id="name" name="name" value="{{ old('name') }}" required type="text" class="form-control" placeholder="Name of Section">
                     </div>
-                </li>
-            </ul>
-
-            <div class="tab-content">
-                <div class="tab-pane show  active fade" id="new-section">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <form class="ajax-store" method="post" action="{{ route('sections.store') }}">
-                                @csrf
-                                <div class="form-group row">
-                                    <label class="col-lg-3 col-form-label font-weight-semibold">Name <span class="text-danger">*</span></label>
-                                    <div class="col-lg-9">
-                                        <input name="name" value="{{ old('name') }}" required type="text" class="form-control" placeholder="Name of Section">
-                                    </div>
-                                </div>
-
-                                <div class="form-group row">
-                                    <label for="my_class_id" class="col-lg-3 col-form-label font-weight-semibold">Select Class <span class="text-danger">*</span></label>
-                                    <div class="col-lg-9">
-                                        <select required data-placeholder="Select Class" class="form-control select" name="my_class_id" id="my_class_id">
-                                            @foreach($my_classes as $c)
-                                                <option {{ old('my_class_id') == $c->id ? 'selected' : '' }} value="{{ $c->id }}">{{ $c->name }}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <div class="form-group row">
-                                    <label for="teacher_id" class="col-lg-3 col-form-label font-weight-semibold">Teacher</label>
-                                    <div class="col-lg-9">
-                                        <select data-placeholder="Select Teacher" class="form-control select-search" name="teacher_id" id="teacher_id">
-                                            <option value=""></option>
-                                            @foreach($teachers as $t)
-                                                <option {{ old('teacher_id') == Qs::hash($t->id) ? 'selected' : '' }} value="{{ Qs::hash($t->id) }}">{{ $t->name }}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <div class="text-right">
-                                    <button type="submit" class="btn btn-primary">Submit form <i class="icon-paperplane ml-2"></i></button>
-                                </div>
-                            </form>
-                        </div>
+                    <div class="pat-field">
+                        <label for="my_class_id">Select Class <span class="text-danger">*</span></label>
+                        <select required data-placeholder="Select Class" class="form-control select" name="my_class_id" id="my_class_id">
+                            @foreach($my_classes as $c)
+                                <option {{ old('my_class_id', $selected_class->id ?? null) == $c->id ? 'selected' : '' }} value="{{ $c->id }}">{{ $c->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="pat-field">
+                        <label for="teacher_id">Teacher</label>
+                        <select data-placeholder="Select Teacher" class="form-control select-search" name="teacher_id" id="teacher_id">
+                            <option value=""></option>
+                            @foreach($teachers as $t)
+                                <option {{ old('teacher_id') == Qs::hash($t->id) ? 'selected' : '' }} value="{{ Qs::hash($t->id) }}">{{ $t->name }}</option>
+                            @endforeach
+                        </select>
                     </div>
                 </div>
-
-                @foreach($my_classes as $d)
-                    <div class="tab-pane fade" id="c{{ $d->id }}">                         <table class="table datatable-button-html5-columns">
-                            <thead>
-                            <tr>
-                                <th>S/N</th>
-                                <th>Name</th>
-                                <th>Class</th>
-                                <th>Teacher</th>
-                                <th>Action</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            @forelse($sections->where('my_class.id', $d->id) as $s)
-                                <tr>
-                                    <td>{{ $loop->iteration }}</td>
-                                    <td>{{ $s->name }} @if($s->active)<i class='icon-check'> </i>@endif</td>
-                                    <td>{{ $s->my_class->name }}</td>
-
-                                    @if($s->teacher_id)
-                                    <td><a target="_blank" href="{{ route('users.show', Qs::hash($s->teacher_id)) }}">{{ $s->teacher->name }}</a></td>
-                                        @else
-                                        <td> - </td>
-                                    @endif
-
-                                    <td class="text-center">
-                                        <div class="list-icons">
-                                            <div class="dropdown">
-                                                <a href="#" class="list-icons-item" data-toggle="dropdown">
-                                                    <i class="icon-menu9"></i>
-                                                </a>
-
-                                                <div class="dropdown-menu dropdown-menu-left">
-                                                    {{--edit--}}
-                                                    @if(Qs::userIsTeamSA())
-                                                        <a href="{{ route('sections.edit', $s->id) }}" class="dropdown-item"><i class="icon-pencil"></i> Edit</a>
-                                                    @endif
-                                                    {{--Delete--}}
-                                                    @if(Qs::userIsTeamSA())
-                                                        <a id="{{ $s->id }}" onclick="confirmDelete(this.id)" href="#" class="dropdown-item"><i class="icon-trash"></i> Delete</a>
-                                                        <form method="post" id="item-delete-{{ $s->id }}" action="{{ route('sections.destroy', $s->id) }}" class="hidden">@csrf @method('delete')</form>
-                                                    @endif
-
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                </tr>
-                            @empty
-                                <tr><td colspan="5" class="text-center text-muted" style="padding:22px 12px"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#3478f6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:.55;display:block;margin:0 auto 6px" aria-hidden="true"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>No sections in this class yet.</td></tr>
-                            @endforelse
-                            </tbody>
-                        </table>
-                    </div>
-                @endforeach
-
             </div>
-        </div>
+        @endcomponent
     </div>
-
-    {{--Section List Ends--}}
-
 @endsection

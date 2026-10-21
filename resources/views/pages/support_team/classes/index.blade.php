@@ -1,110 +1,93 @@
 @extends('layouts.master')
 @section('page_title', 'Manage Classes')
 @section('content')
+    {{-- Batch 4: rebuilt on the shared patterns (Loop 28). Was: a
+         tabbed card with the create form hidden in a tab (58KB
+         rendered, 20 dead anchors in the page body). Now: ONE table
+         on the list_page pattern + the create form as a form_page
+         card below it. Create contract unchanged — POST classes.store
+         via .ajax-store, same fields/validation (creating a class
+         still auto-creates its default section "A"); row actions are
+         the same Edit page + confirmDelete flow, rendered as buttons
+         instead of a href="#" dropdown. No href="#" remains on this
+         page. --}}
+    @component('partials.patterns.list_page')
+        @slot('title')
+            <i class="icon-windows2 mr-2"></i> Manage Classes
+        @endslot
+        @slot('subtitle')
+            All classes in the school. When a class is created, a default section is created for it automatically.
+        @endslot
+        @slot('action')
+            <a href="#add-class" class="btn btn-primary"><i class="icon-plus2 mr-2"></i> Create New Class</a>
+        @endslot
 
-    <div class="card">
-        <div class="card-header header-elements-inline">
-            <h6 class="card-title">Manage Classes</h6>
-            {!! Qs::getPanelOptions() !!}
-        </div>
+        @if($my_classes->count())
+            <table class="table datatable-button-html5-columns">
+                <thead>
+                <tr>
+                    <th>S/N</th>
+                    <th>Name</th>
+                    <th>Class Type</th>
+                    <th>Action</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach($my_classes as $c)
+                    <tr>
+                        <td>{{ $loop->iteration }}</td>
+                        <td>{{ $c->name }}</td>
+                        <td>{{ $c->class_type->name }}</td>
+                        <td class="text-center">
+                            @if(Qs::userIsTeamSA())
+                                <a href="{{ route('classes.edit', $c->id) }}" class="btn btn-sm btn-primary"><i class="icon-pencil"></i> Edit</a>
+                                <button type="button" id="{{ $c->id }}" onclick="confirmDelete(this.id)" class="btn btn-sm btn-danger"><i class="icon-trash"></i> Delete</button>
+                                <form method="post" id="item-delete-{{ $c->id }}" action="{{ route('classes.destroy', $c->id) }}" class="hidden">@csrf @method('delete')</form>
+                            @endif
+                        </td>
+                    </tr>
+                @endforeach
+                </tbody>
+            </table>
+        @else
+            @include('partials.patterns.empty_state', [
+                'icon' => 'icon-windows2',
+                'message' => 'No classes found yet. Create the first class using the form below.',
+            ])
+        @endif
+    @endcomponent
 
-        <div class="card-body">
-            <ul class="nav nav-tabs nav-tabs-highlight">
-                <li class="nav-item"><a href="#all-classes" class="nav-link active" data-toggle="tab">Manage Classes</a></li>
-                <li class="nav-item"><a href="#new-class" class="nav-link" data-toggle="tab"><i class="icon-plus2"></i> Create New Class</a></li>
-            </ul>
+    <div id="add-class">
+        @component('partials.patterns.form_page', [
+            'form_action' => route('classes.store'),
+            'form_class' => 'ajax-store',
+            'submit_label' => 'Submit form',
+        ])
+            @slot('title')
+                <i class="icon-plus2 mr-2"></i> Create New Class
+            @endslot
 
-            <div class="tab-content">
-                    <div class="tab-pane fade show active" id="all-classes">
-                        <table class="table datatable-button-html5-columns">
-                            <thead>
-                            <tr>
-                                <th>S/N</th>
-                                <th>Name</th>
-                                <th>Class Type</th>
-                                <th>Action</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            @forelse($my_classes as $c)
-                                <tr>
-                                    <td>{{ $loop->iteration }}</td>
-                                    <td>{{ $c->name }}</td>
-                                    <td>{{ $c->class_type->name }}</td>
-                                    <td class="text-center">
-                                        <div class="list-icons">
-                                            <div class="dropdown">
-                                                <a href="#" class="list-icons-item" data-toggle="dropdown">
-                                                    <i class="icon-menu9"></i>
-                                                </a>
+            <div class="alert alert-info border-0 alert-dismissible">
+                <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
+                <span>When a class is created, a Section will be automatically created for the class, you can edit it or add more sections to the class at <a target="_blank" href="{{ route('sections.index') }}">Manage Sections</a></span>
+            </div>
 
-                                                <div class="dropdown-menu dropdown-menu-left">
-                                                    @if(Qs::userIsTeamSA())
-                                                    {{--Edit--}}
-                                                    <a href="{{ route('classes.edit', $c->id) }}" class="dropdown-item"><i class="icon-pencil"></i> Edit</a>
-                                                   @endif
-                                                        @if(Qs::userIsTeamSA())
-                                                    {{--Delete--}}
-                                                    <a id="{{ $c->id }}" onclick="confirmDelete(this.id)" href="#" class="dropdown-item"><i class="icon-trash"></i> Delete</a>
-                                                    <form method="post" id="item-delete-{{ $c->id }}" action="{{ route('classes.destroy', $c->id) }}" class="hidden">@csrf @method('delete')</form>
-                                                        @endif
-
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                </tr>
-                            @empty
-                                <tr><td colspan="4" class="text-center text-muted" style="padding:22px 12px"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#3478f6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:.55;display:block;margin:0 auto 6px" aria-hidden="true"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>No classes found yet. Create the first class using the form above.</td></tr>
-                            @endforelse
-                            </tbody>
-                        </table>
+            <div class="pat-form-section">
+                <div class="pat-fields">
+                    <div class="pat-field">
+                        <label for="name">Name <span class="text-danger">*</span></label>
+                        <input id="name" name="name" value="{{ old('name') }}" required type="text" class="form-control" placeholder="Name of Class">
                     </div>
-
-                <div class="tab-pane fade" id="new-class">
-                    <div class="row">
-                        <div class="col-md-12">
-                            <div class="alert alert-info border-0 alert-dismissible">
-                                <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
-
-                                <span>When a class is created, a Section will be automatically created for the class, you can edit it or add more sections to the class at <a target="_blank" href="{{ route('sections.index') }}">Manage Sections</a></span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6">
-                            <form class="ajax-store" method="post" action="{{ route('classes.store') }}">
-                                @csrf
-                                <div class="form-group row">
-                                    <label class="col-lg-3 col-form-label font-weight-semibold">Name <span class="text-danger">*</span></label>
-                                    <div class="col-lg-9">
-                                        <input name="name" value="{{ old('name') }}" required type="text" class="form-control" placeholder="Name of Class">
-                                    </div>
-                                </div>
-
-                                <div class="form-group row">
-                                    <label for="class_type_id" class="col-lg-3 col-form-label font-weight-semibold">Class Type</label>
-                                    <div class="col-lg-9">
-                                        <select required data-placeholder="Select Class Type" class="form-control select" name="class_type_id" id="class_type_id">
-                                            @foreach($class_types as $ct)
-                                                <option {{ old('class_type_id') == $ct->id ? 'selected' : '' }} value="{{ $ct->id }}">{{ $ct->name }}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <div class="text-right">
-                                    <button id="ajax-btn" type="submit" class="btn btn-primary">Submit form <i class="icon-paperplane ml-2"></i></button>
-                                </div>
-                            </form>
-                        </div>
+                    <div class="pat-field">
+                        <label for="class_type_id">Class Type</label>
+                        <select required data-placeholder="Select Class Type" class="form-control select" name="class_type_id" id="class_type_id">
+                            @foreach($class_types as $ct)
+                                <option {{ old('class_type_id') == $ct->id ? 'selected' : '' }} value="{{ $ct->id }}">{{ $ct->name }}</option>
+                            @endforeach
+                        </select>
                     </div>
                 </div>
             </div>
-        </div>
+        @endcomponent
     </div>
-
-    {{--Class List Ends--}}
-
 @endsection

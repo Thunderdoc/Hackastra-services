@@ -26,7 +26,18 @@ class SubjectController extends Controller
     {
         $d['my_classes'] = $this->my_class->all();
         $d['teachers'] = $this->user->getUserByType('teacher');
-        $d['subjects'] = $this->my_class->getAllSubjects();
+
+        // Batch 4: the index shows ONE class at a time — ?class_id=
+        // picks it (unknown/absent id falls back to the first class,
+        // the same behaviour as the personal-timetable child switcher).
+        // Subjects are filtered server-side; the page no longer renders
+        // every class's table.
+        $d['selected_class'] = request('class_id')
+            ? $d['my_classes']->firstWhere('id', (int) request('class_id')) ?? $d['my_classes']->first()
+            : $d['my_classes']->first();
+        $d['subjects'] = $d['selected_class']
+            ? $this->my_class->findSubjectByClass($d['selected_class']->id)
+            : collect();
 
         return view('pages.support_team.subjects.index', $d);
     }
