@@ -87,7 +87,11 @@ class PaymentController extends Controller
             }
         }
         if (is_null($sr)) { return Qs::goWithDanger(); }
-        $this->authorize('view', $sr);
+        // Batch S: an invoice is a fee surface, not the academic
+        // profile — authorize the fee-domain ability so accountants
+        // keep their legitimate invoice access even though
+        // StudentRecordPolicy@view no longer grants them profiles.
+        $this->authorize('viewFees', $sr);
 
         $inv = $year ? $this->pay->getAllMyPR($st_id, $year) : $this->pay->getAllMyPR($st_id);
 

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\SupportTeam;
 use App\Helpers\Qs;
 use App\Support\Audit;
 use App\Support\CsvExport;
+use App\Support\TeacherScope;
 use App\Helpers\Mk;
 use App\Http\Requests\Student\StudentRecordCreate;
 use App\Http\Requests\Student\StudentRecordUpdate;
@@ -38,6 +39,16 @@ class StudentRecordController extends Controller
         // The resource route registers GET /students, but this controller
         // never had an index() — the URL returned 500. The app browses
         // students per class, so land on the first class's list instead.
+        // Batch S: for a teacher the landing class must be one of their
+        // assigned classes, or listByClass would (correctly) 403 them.
+        if (Qs::userIsTeacher()) {
+            $ids = TeacherScope::classIds(Auth::user());
+            $first = $ids ? $this->my_class->getMC(['id' => $ids[0]])->first() : null;
+            return $first
+                ? redirect()->route('students.list', $first->id)
+                : redirect()->route('dashboard')->with('pop_error', __('msg.denied'));
+        }
+
         $first = $this->my_class->all()->first();
         return $first
             ? redirect()->route('students.list', $first->id)
@@ -104,10 +115,20 @@ class StudentRecordController extends Controller
     public function listByClass($class_id)
     {
         $data['my_class'] = $mc = $this->my_class->getMC(['id' => $class_id])->first();
+        if (is_null($mc)) {
+            return Qs::goWithDanger();
+        }
+
+        // Batch S: teamSAT membership is not enough for a teacher —
+        // the class must be one of their assigned classes.
+        if (Qs::userIsTeacher() && !TeacherScope::canTeachClass(Auth::user(), $mc->id)) {
+            abort(403, 'You can only view students in your assigned classes.');
+        }
+
         $data['students'] = $this->student->findStudentsByClass($class_id);
         $data['sections'] = $this->my_class->getClassSections($class_id);
 
-        return is_null($mc) ? Qs::goWithDanger() : view('pages.support_team.students.list', $data);
+        return view('pages.support_team.students.list', $data);
     }
 
     public function graduated()
@@ -137,6 +158,12 @@ class StudentRecordController extends Controller
 
         /* Prevent Other Students/Parents from viewing Profile of others */
         if(Auth::user()->id != $data['sr']->user_id && !Qs::userIsTeamSAT() && !Qs::userIsMyChild($data['sr']->user_id, Auth::user()->id)){
+            return redirect(route('dashboard'))->with('pop_error', __('msg.denied'));
+        }
+
+        /* Batch S: a teacher may open a profile only when the student's
+           class is one of their assigned classes. */
+        if(Qs::userIsTeacher() && !TeacherScope::canTeachClass(Auth::user(), $data['sr']->my_class_id)){
             return redirect(route('dashboard'))->with('pop_error', __('msg.denied'));
         }
 
@@ -213,6 +240,11 @@ class StudentRecordController extends Controller
         $mc = $this->my_class->getMC(['id' => $class_id])->first();
         if (is_null($mc)) {
             return Qs::goWithDanger();
+        }
+
+        // Batch S: the CSV is the same roster as listByClass — same scope.
+        if (Qs::userIsTeacher() && !TeacherScope::canTeachClass(Auth::user(), $mc->id)) {
+            abort(403, 'You can only view students in your assigned classes.');
         }
 
         $students = $this->student->findStudentsByClass($class_id)->load('section', 'my_parent');

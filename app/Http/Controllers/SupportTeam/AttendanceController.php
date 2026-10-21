@@ -7,6 +7,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Attendance\AttendanceCreate;
 use App\Models\Attendance;
 use App\Support\CsvExport;
+use App\Support\TeacherScope;
+use Illuminate\Support\Facades\Auth;
 use App\Models\MyClass;
 use App\Models\StudentRecord;
 use Illuminate\Http\Request;
@@ -34,11 +36,38 @@ class AttendanceController extends Controller
         $this->middleware('teamSAT')->except('my');
     }
 
+    /**
+     * Batch S: the classes this user may work with. Staff teams keep
+     * the whole school; a teacher gets only their assigned classes
+     * (TeacherScope). Every picker, roster and export in this
+     * controller derives from this one list, and guardClassScope()
+     * hard-denies a hand-crafted out-of-scope class_id.
+     */
+    private function visibleClasses()
+    {
+        $classes = MyClass::orderBy('name')->get();
+
+        if (Qs::userIsTeacher()) {
+            $classes = $classes->whereIn('id', TeacherScope::classIds(Auth::user()))->values();
+        }
+
+        return $classes;
+    }
+
+    private function guardClassScope($classId)
+    {
+        if ($classId && Qs::userIsTeacher() && !TeacherScope::canTeachClass(Auth::user(), $classId)) {
+            abort(403, 'You can only work with your assigned classes.');
+        }
+    }
+
     public function index(Request $request)
     {
-        $d['classes'] = MyClass::orderBy('name')->get();
+        $this->guardClassScope($request->query('class_id'));
+
+        $d['classes'] = $this->visibleClasses();
         $d['selected_class'] = $request->query('class_id')
-            ? MyClass::find($request->query('class_id'))
+            ? $d['classes']->firstWhere('id', (int) $request->query('class_id'))
             : $d['classes']->first();
         $d['date'] = $request->query('date')
             ? Carbon::parse($request->query('date'))
@@ -74,6 +103,11 @@ class AttendanceController extends Controller
     {
         $data = $request->validated();
 
+        // Batch S: submitting attendance for a class the teacher is
+        // not assigned to is denied outright (the roster filter below
+        // already stops cross-class student ids in a tampered form).
+        $this->guardClassScope($data['class_id']);
+
         $studentIds = StudentRecord::where('my_class_id', $data['class_id'])
             ->where('grad', 0)
             ->pluck('id')
@@ -104,9 +138,11 @@ class AttendanceController extends Controller
      */
     public function report(Request $request)
     {
-        $d['classes'] = MyClass::orderBy('name')->get();
+        $this->guardClassScope($request->query('class_id'));
+
+        $d['classes'] = $this->visibleClasses();
         $d['selected_class'] = $request->query('class_id')
-            ? MyClass::find($request->query('class_id'))
+            ? $d['classes']->firstWhere('id', (int) $request->query('class_id'))
             : $d['classes']->first();
         $d['month'] = $this->monthFromRequest($request);
         $d['rows'] = collect();
@@ -158,13 +194,19 @@ class AttendanceController extends Controller
         $threshold = (int) $request->query('threshold', 75);
         $d['threshold'] = in_array($threshold, $d['thresholds'], true) ? $threshold : 75;
         $d['month'] = $this->monthFromRequest($request);
-        $d['classes'] = MyClass::orderBy('name')->get();
+        $this->guardClassScope($request->query('class_id'));
+        $d['classes'] = $this->visibleClasses();
         $d['selected_class'] = $request->query('class_id')
-            ? MyClass::find($request->query('class_id'))
-            : null; // null = every class
+            ? $d['classes']->firstWhere('id', (int) $request->query('class_id'))
+            : null; // null = every class the user may see
 
         $students = StudentRecord::with('user', 'my_class', 'section')
             ->where('grad', 0)
+            ->when(Qs::userIsTeacher(), function ($q) {
+                // Batch S: a teacher's "every class" defaulter scan
+                // covers only their assigned classes.
+                return $q->whereIn('my_class_id', TeacherScope::classIds(Auth::user()));
+            })
             ->when($d['selected_class'], function ($q) use ($d) {
                 return $q->where('my_class_id', $d['selected_class']->id);
             })
@@ -320,9 +362,11 @@ class AttendanceController extends Controller
      */
     public function export(Request $request)
     {
-        $classes = MyClass::orderBy('name')->get();
+        $this->guardClassScope($request->query('class_id'));
+
+        $classes = $this->visibleClasses();
         $selected_class = $request->query('class_id')
-            ? MyClass::find($request->query('class_id'))
+            ? $classes->firstWhere('id', (int) $request->query('class_id'))
             : $classes->first();
 
         if (!$selected_class) {

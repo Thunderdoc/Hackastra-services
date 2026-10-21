@@ -4,6 +4,7 @@ namespace App\Http\Controllers\SupportTeam;
 
 use App\Helpers\Qs;
 use App\Support\Audit;
+use App\Support\TeacherScope;
 use App\Helpers\Mk;
 use App\Http\Requests\Mark\MarkSelector;
 use App\Models\Setting;
@@ -39,16 +40,35 @@ class MarkController extends Controller
         $d['subjects'] = $this->my_class->getAllSubjects();
         $d['selected'] = false;
 
+        // Batch S: a teacher's selector offers only their own
+        // classes and subjects (manage() already re-filters subjects
+        // per teacher; the landing pickers now match it).
+        if(Qs::userIsTeacher()){
+            $d['my_classes'] = $d['my_classes']->whereIn('id', TeacherScope::classIds(Auth::user()))->values();
+            $d['subjects'] = $this->my_class->findSubjectByTeacher(Auth::user()->id);
+        }
+
         return view('pages.support_team.marks.index', $d);
     }
 
     public function year_selector($student_id)
     {
+        // Batch S: the year gateway used to render for ANY signed-in
+        // user (audit Addendum 2) — it is a marks surface, so the
+        // ownership/scope check below now guards it too.
+        if(!$this->canAccessStudentMarks($student_id)){
+            abort(403, 'You can only view marks for students in your own scope.');
+        }
+
        return $this->verifyStudentExamYear($student_id);
     }
 
     public function year_selected(Request $req, $student_id)
     {
+        if(!$this->canAccessStudentMarks($student_id)){
+            abort(403, 'You can only view marks for students in your own scope.');
+        }
+
         if(!$this->verifyStudentExamYear($student_id, $req->year)){
             return $this->noStudentRecord();
         }
@@ -62,6 +82,15 @@ class MarkController extends Controller
         /* Prevent Other Students/Parents from viewing Result of others */
         if(Auth::user()->id != $student_id && !Qs::userIsTeamSAT() && !Qs::userIsMyChild($student_id, Auth::user()->id)){
             return redirect(route('dashboard'))->with('pop_error', __('msg.denied'));
+        }
+
+        /* Batch S: teamSAT membership is not enough for a teacher —
+           the student's class must be one of their assigned classes. */
+        if(Qs::userIsTeacher()){
+            $sr = $this->student->getRecord(['user_id' => $student_id])->first();
+            if(!$sr || !TeacherScope::canTeachClass(Auth::user(), $sr->my_class_id)){
+                return redirect(route('dashboard'))->with('pop_error', __('msg.denied'));
+            }
         }
 
         if(Mk::examIsLocked() && !Qs::userIsTeamSA()){
@@ -140,6 +169,11 @@ class MarkController extends Controller
 
     public function selector(MarkSelector $req)
     {
+        // Batch S: marks entry is scoped to a teacher's assigned classes.
+        if(Qs::userIsTeacher() && !TeacherScope::canTeachClass(Auth::user(), $req->my_class_id)){
+            abort(403, 'You can only manage marks for your assigned classes.');
+        }
+
         $data = $req->only(['exam_id', 'my_class_id', 'section_id', 'subject_id']);
         $d2 = $req->only(['exam_id', 'my_class_id', 'section_id']);
         $d = $req->only(['my_class_id', 'section_id']);
@@ -161,6 +195,11 @@ class MarkController extends Controller
 
     public function manage($exam_id, $class_id, $section_id, $subject_id)
     {
+        // Batch S: marks entry is scoped to a teacher's assigned classes.
+        if(Qs::userIsTeacher() && !TeacherScope::canTeachClass(Auth::user(), $class_id)){
+            abort(403, 'You can only manage marks for your assigned classes.');
+        }
+
         $d = ['exam_id' => $exam_id, 'my_class_id' => $class_id, 'section_id' => $section_id, 'subject_id' => $subject_id, 'year' => $this->year];
 
         $d['marks'] = $this->exam->getMark($d);
@@ -184,6 +223,11 @@ class MarkController extends Controller
 
     public function update(Request $req, $exam_id, $class_id, $section_id, $subject_id)
     {
+        // Batch S: marks entry is scoped to a teacher's assigned classes.
+        if(Qs::userIsTeacher() && !TeacherScope::canTeachClass(Auth::user(), $class_id)){
+            abort(403, 'You can only manage marks for your assigned classes.');
+        }
+
         $p = ['exam_id' => $exam_id, 'my_class_id' => $class_id, 'section_id' => $section_id, 'subject_id' => $subject_id, 'year' => $this->year];
 
         $d = $d3 = $all_st_ids = [];
@@ -324,6 +368,14 @@ class MarkController extends Controller
 
     public function comment_update(Request $req, $exr_id)
     {
+        // Batch S: a teacher comments only on their own classes' records.
+        if(Qs::userIsTeacher()){
+            $exr = $this->exam->getRecord(['id' => $exr_id])->first();
+            if($exr && !TeacherScope::canTeachClass(Auth::user(), $exr->my_class_id)){
+                abort(403, 'You can only manage marks for your assigned classes.');
+            }
+        }
+
         $d = Qs::userIsTeamSA() ? $req->only(['t_comment', 'p_comment']) : $req->only(['t_comment']);
 
         $this->exam->updateRecord(['id' => $exr_id], $d);
@@ -332,6 +384,14 @@ class MarkController extends Controller
 
     public function skills_update(Request $req, $skill, $exr_id)
     {
+        // Batch S: a teacher updates skills only on their own classes' records.
+        if(Qs::userIsTeacher()){
+            $exr = $this->exam->getRecord(['id' => $exr_id])->first();
+            if($exr && !TeacherScope::canTeachClass(Auth::user(), $exr->my_class_id)){
+                abort(403, 'You can only manage marks for your assigned classes.');
+            }
+        }
+
         $d = [];
         if($skill == 'AF' || $skill == 'PS'){
             $sk = strtolower($skill);
@@ -345,6 +405,15 @@ class MarkController extends Controller
     public function bulk($class_id = NULL, $section_id = NULL)
     {
         $d['my_classes'] = $this->my_class->all();
+
+        // Batch S: bulk marks is scoped to a teacher's assigned classes.
+        if(Qs::userIsTeacher()){
+            if($class_id && !TeacherScope::canTeachClass(Auth::user(), $class_id)){
+                abort(403, 'You can only manage marks for your assigned classes.');
+            }
+            $d['my_classes'] = $d['my_classes']->whereIn('id', TeacherScope::classIds(Auth::user()))->values();
+        }
+
         $d['selected'] = false;
 
         if($class_id && $section_id){
@@ -368,6 +437,14 @@ class MarkController extends Controller
 
     public function tabulation($exam_id = NULL, $class_id = NULL, $section_id = NULL)
     {
+        // Batch S: tabulation routes already sit behind teamSA; this is
+        // the in-controller half of the same rule should a teacher ever
+        // reach here — a tabulation sheet covers a whole class, so it
+        // must be one of the teacher's assigned classes.
+        if($class_id && Qs::userIsTeacher() && !TeacherScope::canTeachClass(Auth::user(), $class_id)){
+            abort(403, 'You can only view tabulation for your assigned classes.');
+        }
+
         $d['my_classes'] = $this->my_class->all();
         $d['exams'] = $this->exam->getExam(['year' => $this->year]);
         $d['selected'] = FALSE;
@@ -408,6 +485,11 @@ class MarkController extends Controller
 
     public function print_tabulation($exam_id, $class_id, $section_id)
     {
+        // Batch S: see tabulation() — same class-scope rule for teachers.
+        if(Qs::userIsTeacher() && !TeacherScope::canTeachClass(Auth::user(), $class_id)){
+            abort(403, 'You can only view tabulation for your assigned classes.');
+        }
+
         $wh = ['my_class_id' => $class_id, 'section_id' => $section_id, 'exam_id' => $exam_id, 'year' => $this->year];
 
         $sub_ids = $this->mark->getSubjectIDs($wh);
@@ -443,6 +525,38 @@ class MarkController extends Controller
     public function tabulation_select(Request $req)
     {
         return redirect()->route('marks.tabulation', [$req->exam_id, $req->my_class_id, $req->section_id]);
+    }
+
+    /**
+     * Batch S: who may open a student's marks surfaces at all — the
+     * student themselves, their parent, teamSA staff, or a teacher
+     * whose assigned classes include the student's class. This is the
+     * check show() has always applied (plus the teacher-scope half);
+     * the select-year gateway now applies it too, so an unrelated
+     * student, another parent, the accountant or the librarian can no
+     * longer reach even a student's exam-year metadata.
+     */
+    protected function canAccessStudentMarks($student_id)
+    {
+        $user = Auth::user();
+
+        if ((int) $user->id === (int) $student_id) {
+            return true;
+        }
+
+        if (Qs::userIsTeamSA()) {
+            return true;
+        }
+
+        if (Qs::userIsMyChild($student_id, $user->id)) {
+            return true;
+        }
+
+        if (Qs::userIsTeacher()) {
+            return TeacherScope::canTeachStudent($user, $student_id);
+        }
+
+        return false;
     }
 
     protected function verifyStudentExamYear($student_id, $year = null)
