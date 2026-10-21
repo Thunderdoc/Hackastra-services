@@ -2,6 +2,29 @@
 @section('page_title', 'Manage Payments')
 @section('content')
 
+    {{-- Collect Fee (Workstream BJ): the counter workflow — a student
+         comes to pay, so find them by name, admission number or class
+         and jump straight to their payment records to take the fee. --}}
+    <div class="card">
+        <div class="card-header header-elements-inline">
+            <h5 class="card-title"><i class="icon-cash2 mr-2"></i> Collect Fee</h5>
+        </div>
+
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-8 offset-md-2">
+                    <div class="form-group mb-1" style="position: relative;">
+                        <label for="fee-student-search" class="col-form-label font-weight-bold">Find student</label>
+                        <input type="text" id="fee-student-search" class="form-control" autocomplete="off"
+                               placeholder="Type a student name, admission number or class&hellip;">
+                        <div id="fee-search-results" class="list-group" style="display: none; position: absolute; left: 0; right: 0; top: 100%; z-index: 1050; max-height: 340px; overflow-y: auto; box-shadow: 0 8px 24px rgba(0,0,0,.15);"></div>
+                    </div>
+                    <small class="form-text text-muted">Pick a student to open their payment records and collect the fee.</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="card">
         <div class="card-header header-elements-inline">
             <h5 class="card-title"><i class="icon-cash2 mr-2"></i> Select year</h5>
@@ -194,4 +217,53 @@
 
     {{--Payments List Ends--}}
 
+@endsection
+
+@section('scripts')
+<script>
+    (function () {
+        var $input = $('#fee-student-search');
+        var $box = $('#fee-search-results');
+        if (!$input.length || !$box.length) { return; }
+
+        function esc(s) {
+            return $('<div>').text(s == null ? '' : s).html();
+        }
+        function hide() { $box.hide().empty(); }
+
+        var timer = null;
+        $input.on('input', function () {
+            var q = $input.val().trim();
+            clearTimeout(timer);
+            if (q.length < 2) { hide(); return; }
+            timer = setTimeout(function () {
+                $.getJSON('{{ route('payments.student_search') }}', {q: q})
+                    .done(function (data) {
+                        if ($input.val().trim() !== q) { return; }
+                        var rows = (data.results || []).map(function (s) {
+                            var meta = [s.adm_no ? 'Adm ' + s.adm_no : '', s.class + (s.section ? ' · ' + s.section : '')]
+                                .filter(Boolean).join(' — ');
+                            var bal = s.has_outstanding
+                                ? '<span class="text-danger font-weight-bold">' + esc(s.outstanding) + ' due</span>'
+                                : '<span class="text-success">No dues</span>';
+                            var avatar = s.photo
+                                ? '<img class="rounded-circle mr-2" style="height:36px;width:36px;object-fit:cover" src="' + esc(s.photo) + '" alt="">'
+                                : '<span class="mr-2" style="display:inline-flex;align-items:center;justify-content:center;height:36px;width:36px;border-radius:50%;background:#e8f0fe;color:#1a56db;font-weight:700;flex:none">' + esc((s.name || '?').charAt(0).toUpperCase()) + '</span>';
+                            return '<a href="' + s.url + '" class="list-group-item list-group-item-action d-flex align-items-center">'
+                                + avatar
+                                + '<span style="flex:1 1 auto;min-width:0"><strong>' + esc(s.name) + '</strong><br><small class="text-muted">' + esc(meta) + '</small></span>'
+                                + bal + '</a>';
+                        }).join('');
+                        $box.html(rows || '<div class="list-group-item text-muted">No students match &ldquo;' + esc(q) + '&rdquo;.</div>').show();
+                    })
+                    .fail(function () { hide(); });
+            }, 250);
+        });
+
+        $(document).on('click', function (e) {
+            if (!$box.is(e.target) && $box.has(e.target).length === 0 && !$input.is(e.target)) { hide(); }
+        });
+        $input.on('keydown', function (e) { if (e.key === 'Escape') { hide(); } });
+    })();
+</script>
 @endsection

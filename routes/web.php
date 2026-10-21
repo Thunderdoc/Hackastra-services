@@ -100,6 +100,7 @@ Route::group(['middleware' => 'auth'], function () {
         /*************** Payments *****************/
         Route::group(['prefix' => 'payments'], function(){
 
+            Route::get('student_search', 'PaymentController@student_search')->name('payments.student_search');
             Route::get('manage/{class_id?}', 'PaymentController@manage')->name('payments.manage');
             Route::get('export/{class_id}', 'PaymentController@export')->name('payments.export');
             Route::get('export_student/{id}/{year?}', 'PaymentController@export_student')->name('payments.export_student');

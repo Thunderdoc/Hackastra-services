@@ -11,7 +11,9 @@ use App\Http\Requests\Payment\PaymentCreate;
 use App\Http\Requests\Payment\PaymentUpdate;
 use App\Http\Requests\Payment\PayNowRequest;
 use App\Http\Requests\Payment\SelectClassRequest;
+use App\Models\PaymentRecord;
 use App\Models\Setting;
+use App\Models\StudentRecord;
 use App\Repositories\MyClassRepo;
 use App\Repositories\PaymentRepo;
 use App\Repositories\StudentRepo;
@@ -63,6 +65,64 @@ class PaymentController extends Controller
     public function select_year(Request $req)
     {
         return Qs::goToRoute(['payments.show', $req->year]);
+    }
+
+    /**
+     * Collect Fee (Workstream BJ): the counter search behind the
+     * payments landing panel. Partial match on student name, admission
+     * number or class name; each result links straight to the student's
+     * payment-records (invoice) page. Gated by the same teamAccount
+     * middleware as every other payments action — no wider access.
+     */
+    public function student_search(Request $req)
+    {
+        $q = trim((string) $req->query('q', ''));
+        if (mb_strlen($q) < 2) {
+            return response()->json(['results' => []]);
+        }
+
+        $like = '%' . $q . '%';
+        $students = StudentRecord::where('student_records.grad', 0)
+            ->join('users', 'users.id', '=', 'student_records.user_id')
+            ->join('my_classes', 'my_classes.id', '=', 'student_records.my_class_id')
+            ->where(function ($w) use ($like) {
+                $w->where('users.name', 'like', $like)
+                  ->orWhere('student_records.adm_no', 'like', $like)
+                  ->orWhere('my_classes.name', 'like', $like);
+            })
+            ->orderBy('users.name')
+            ->limit(8)
+            ->select('student_records.*')
+            ->with(['user', 'my_class', 'section'])
+            ->get();
+
+        // Outstanding for the current session, by the invoice page's
+        // rule: an untouched record owes its full payment amount.
+        $outstanding = [];
+        if ($students->count()) {
+            $records = PaymentRecord::whereIn('student_id', $students->pluck('user_id')->all())
+                ->where('year', $this->year)->where('paid', 0)->with('payment')->get();
+            foreach ($records as $r) {
+                $due = $r->balance ?: ($r->payment ? $r->payment->amount : 0);
+                $outstanding[$r->student_id] = ($outstanding[$r->student_id] ?? 0) + $due;
+            }
+        }
+
+        $results = $students->map(function ($sr) use ($outstanding) {
+            $due = $outstanding[$sr->user_id] ?? 0;
+            return [
+                'name' => $sr->user->name,
+                'adm_no' => $sr->adm_no,
+                'class' => $sr->my_class->name,
+                'section' => $sr->section ? $sr->section->name : '',
+                'photo' => $sr->user->photo,
+                'outstanding' => \App\Helpers\Money::inr($due),
+                'has_outstanding' => $due > 0,
+                'url' => route('payments.invoice', [Qs::hash($sr->user_id)]),
+            ];
+        });
+
+        return response()->json(['results' => $results]);
     }
 
     public function create()
@@ -207,7 +267,21 @@ class PaymentController extends Controller
 
         $this->pay->createReceipt($d2);
         Audit::log('payment.recorded', $pr, 'Payment recorded: '.$req->amt_paid.'; balance '.$bal);
-        return Qs::jsonUpdateOk();
+
+        // Workstream BJ: same ok/msg contract as Qs::jsonUpdateOk(),
+        // plus the receipt links for THIS record so the invoice page
+        // can offer Print / PDF the moment the payment lands.
+        return response()->json([
+            'ok' => true,
+            'msg' => __('msg.update_ok'),
+            'amt_paid' => $req->amt_paid,
+            'amt_paid_formatted' => \App\Helpers\Money::inr($req->amt_paid),
+            'title' => $payment->title,
+            'balance' => $bal,
+            'balance_formatted' => \App\Helpers\Money::inr($bal),
+            'receipt_url' => route('payments.receipts', Qs::hash($pr_id)),
+            'pdf_url' => route('payments.pdf_receipts', Qs::hash($pr_id)),
+        ]);
     }
 
     public function manage($class_id = NULL)

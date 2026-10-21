@@ -20,6 +20,18 @@
             <a href="{{ route('payments.export_student', $year ? [Qs::hash($sr->user_id), $year] : [Qs::hash($sr->user_id)]) }}" class="btn btn-primary"><i class="icon-download mr-1"></i> Export</a>
         @endslot
 
+        {{-- Workstream BJ: after a successful Pay Now, the receipt for
+             THAT payment is one click away. Populated by the script at
+             the bottom of this page from the pay_now JSON response
+             (receipt_url / pdf_url); hidden until a payment lands. --}}
+        <div id="pay-success" class="alert alert-success border-0 alert-dismissible" style="display:none" role="alert">
+            <button type="button" class="close" id="pay-success-close"><span>&times;</span></button>
+            <h6 class="font-weight-bold mb-1"><i class="icon-checkmark-circle2 mr-1"></i> Payment recorded</h6>
+            <p class="mb-2" id="pay-success-text"></p>
+            <a href="#" target="_blank" id="pay-success-print" class="btn btn-success btn-sm"><i class="icon-printer mr-1"></i> Print Receipt</a>
+            <a href="#" id="pay-success-pdf" class="btn btn-sm ml-1" style="border:1px solid #2f9e6e;color:#20714e;background:#fff"><i class="icon-download mr-1"></i> Download PDF</a>
+        </div>
+
         <ul class="nav nav-tabs nav-tabs-highlight">
             <li class="nav-item"><a href="#all-uc" class="nav-link active" data-toggle="tab">Incomplete Payments</a></li>
             <li class="nav-item"><a href="#all-cl" class="nav-link" data-toggle="tab">Completed Payments</a></li>
@@ -213,4 +225,27 @@
 
     {{--Payments Invoice List Ends--}}
 
+@endsection
+
+@section('scripts')
+<script>
+    // Workstream BJ: when a Pay Now POST succeeds, its JSON now carries
+    // the receipt links for the record that was just paid — surface
+    // them in the success panel so the receipt prints straight away.
+    $(document).on('ajaxSuccess', function (ev, xhr, settings) {
+        if (!settings.url || settings.url.indexOf('/payments/pay_now/') === -1) { return; }
+        var r = xhr.responseJSON;
+        if (!r || !r.ok || !r.receipt_url) { return; }
+        $('#pay-success-text').text('Received ' + r.amt_paid_formatted + ' for ' + r.title + '. Balance now ' + r.balance_formatted + '.');
+        $('#pay-success-print').attr('href', r.receipt_url);
+        $('#pay-success-pdf').attr('href', r.pdf_url);
+        var panel = $('#pay-success').show();
+        setTimeout(function () {
+            $('html, body').stop();
+            var el = document.getElementById('pay-success');
+            if (el) { el.scrollIntoView({behavior: 'smooth', block: 'center'}); }
+        }, 150);
+    });
+    $('#pay-success-close').on('click', function () { $('#pay-success').hide(); });
+</script>
 @endsection
