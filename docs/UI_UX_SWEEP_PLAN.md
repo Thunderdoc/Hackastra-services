@@ -108,7 +108,13 @@ match the design system, ≤ ~350 KB per asset, stored under
 - [x] Loop 3 click audit (2026-10-21): Exams/Marks, Classes, Users,
   Sections, Subjects, Grades, Dorms, Timetables — no dead clicks found
   (every action is a real route or a confirmed JS action)
-- [ ] Print styles verified: marksheet / receipt / tabulation (Loop 4)
+- [x] Loop 4 (2026-10-21): print stylesheet added (@media print — chrome
+  hidden, clean tables, page margins; covers marksheet/tabulation/reports
+  in-browser printing); audit log built end-to-end (audit_logs table,
+  App\Support\Audit, login listener, wired into payment record/reset/
+  delete, student delete, marks update; Super Admin viewer page);
+  PSR-4 namespaces fixed for Book/BookRequest (build warnings cleared)
 - [ ] Responsive pass 375 / 768 / 1024 on the live URL (needs deploy green)
-- [ ] Audit log for login / marks / payment / role changes
+- [ ] Responsive pass 375 / 768 / 1024 on the live URL (needs deploy green)
+- [x] Audit log for login / marks / payment / role changes (Loop 4)
 - [ ] Form Requests for the largest legacy forms

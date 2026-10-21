@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\SupportTeam;
 
 use App\Helpers\Qs;
+use App\Support\Audit;
 use App\Helpers\Pay;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Payment\PaymentCreate;
@@ -153,6 +154,7 @@ class PaymentController extends Controller
         $d2['year'] = $this->year;
 
         $this->pay->createReceipt($d2);
+        Audit::log('payment.recorded', $pr, 'Payment recorded: '.$req->amt_paid.'; balance '.$bal);
         return Qs::jsonUpdateOk();
     }
 
@@ -229,7 +231,8 @@ class PaymentController extends Controller
 
     public function destroy($id)
     {
-        $this->pay->find($id)->delete();
+        $payment = $this->pay->find($id);
+        if ($payment) { $payment->delete(); Audit::log('payment.deleted', $payment, 'Payment definition deleted'); }
 
         return Qs::deleteOk('payments.index');
     }
@@ -240,6 +243,7 @@ class PaymentController extends Controller
         if ($record) { $this->authorize('update', $record); }
         $pr['amt_paid'] = $pr['paid'] = $pr['balance'] = 0;
         $this->pay->updateRecord($id, $pr);
+        Audit::log('payment.reset', $record ?? null, 'Payment record reset to zero');
         $this->pay->deleteReceipts(['pr_id' => $id]);
 
         return back()->with('flash_success', __('msg.update_ok'));

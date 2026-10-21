@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\SupportTeam;
 
 use App\Helpers\Qs;
+use App\Support\Audit;
 use App\Helpers\Mk;
 use App\Http\Requests\Student\StudentRecordCreate;
 use App\Http\Requests\Student\StudentRecordUpdate;
@@ -181,6 +182,7 @@ class StudentRecordController extends Controller
         $path = Qs::getUploadPath('student').$sr->user->code;
         Storage::exists($path) ? Storage::deleteDirectory($path) : false;
         $this->user->delete($sr->user->id);
+        Audit::log('student.deleted', $sr, 'Student record deleted');
 
         return back()->with('flash_success', __('msg.del_ok'));
     }

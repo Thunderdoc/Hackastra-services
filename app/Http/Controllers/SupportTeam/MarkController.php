@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\SupportTeam;
 
 use App\Helpers\Qs;
+use App\Support\Audit;
 use App\Helpers\Mk;
 use App\Http\Requests\Mark\MarkSelector;
 use App\Models\Setting;
@@ -254,6 +255,8 @@ class MarkController extends Controller
             $this->exam->updateRecord($p, $d3);
         }
         /*Exam Record End*/
+
+        Audit::log('marks.updated', null, 'Marks updated: exam '.$exam_id.', class '.$class_id.', subject '.$subject_id);
 
        return Qs::jsonUpdateOk();
     }

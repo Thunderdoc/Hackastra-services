@@ -176,3 +176,17 @@
 .lav-empty{text-align:center;padding:36px 16px;color:#718096}
 .lav-empty img{max-width:220px;width:60%;height:auto;margin-bottom:14px}
 @media (prefers-reduced-motion: reduce){*{animation-duration:.001s !important;transition-duration:.001s !important}}
+
+
+/* ==== Print (Loop 4): marksheet, tabulation, receipts & reports ==== */
+@media print{
+  .sidebar,.lav-topbar,#page-header,.no-print,.list-icons,.btn,.pagination,.card-header .header-elements{display:none !important}
+  body{background:#fff !important}
+  .content-wrapper,.page-content{margin:0 !important;padding:0 !important}
+  .card{border:none !important;box-shadow:none !important}
+  .table{font-size:12px}
+  .table th,.table td{border:1px solid #999 !important}
+  a{color:#000 !important;text-decoration:none !important}
+  tr,img,.card{break-inside:avoid}
+  @page{margin:14mm}
+}
