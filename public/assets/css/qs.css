@@ -2043,3 +2043,205 @@ body:not(.sidebar-xs) .sidebar-main .nav-group-sub .nav-group-sub .nav-link:not(
    list_page toolbar that carries only actions keeps them at the
    right edge, where they sat when the title anchored the left. */
 .pat-toolbar > .pat-toolbar-actions:only-child{margin-left:auto}
+
+/* ============================================================
+   Loop 49 — Topbar design finish (Workstream BX). Loops 33/40
+   built and polished the bar, but each control kept the height
+   its own loop gave it (search ~36px, chip ~34px, bell 40px,
+   user chip ~39px) and three different gap values survived in
+   three places — the "bunched here, floating there" look in
+   the owner's screenshot. This loop puts the whole bar on ONE
+   system: a 56px bar, every control 38px tall, one 10px gap
+   rhythm inside the right group and 14px between the bar's own
+   groups, the session chip on the app's calendar glyph
+   (icon-calendar3, the same one the page header uses — the
+   chip's old icon-calendar5 was the stacked-lines glyph), and
+   the Ctrl+K hint as a real keyboard key. Presentation only:
+   search endpoint + shortcut, chip content, bell panels, user
+   menu and the logout POST are byte-identical in effect.
+   Every rule is scoped under .lav-topbar.
+   ============================================================ */
+.lav-topbar{gap:14px;min-height:56px;padding:0 20px}
+/* Hamburger: same 38px square as every other bar control. */
+@media (min-width:768px){
+  .lav-topbar .lav-topbar-toggle{height:38px;margin-right:0;width:38px}
+}
+.lav-topbar .lav-topbar-mobile .navbar-toggler{height:38px;width:38px}
+/* Search: fixed control height, contents centred; the 540px
+   cap from Loop 40 stands. kbd becomes a proper key: raised
+   face, 2px bottom edge, even padding. */
+.lav-topbar .lav-search{align-items:center;height:38px;padding:0 12px}
+.lav-topbar .lav-search i{font-size:15px}
+.lav-topbar .lav-search input{font-size:12.5px;height:100%}
+.lav-topbar .lav-search kbd{border-bottom-width:2px;border-radius:5px;font-size:10px;line-height:1;padding:3px 6px}
+/* Right group: ONE gap (the stray 2px rule from an early loop
+   is retired by order), everything vertically centred. */
+.lav-topbar .lav-topbar-right{align-items:center;gap:10px}
+/* Session chip: full control height, padding goes horizontal
+   only; the calendar glyph is icon-calendar3 (blade change). */
+.lav-topbar .lav-session-chip{align-items:center;height:38px;padding:0 14px}
+.lav-topbar .lav-session-chip i{font-size:15px}
+/* Bell + theme toggle: identical 38px square icon buttons. */
+.lav-topbar .lav-topbar-icon{border-radius:9px;height:38px;margin-left:0;padding:0;width:38px}
+.lav-topbar .lav-bell-badge{right:2px;top:2px}
+/* Theme toggle: this icon set ships no moon glyph — the pair
+   is its own contrast (shown in light: "go dark") and sun3
+   (shown in dark: "go light") glyphs; exactly one is visible
+   per theme, switched by html.hk-dark (Loop 50). */
+.lav-topbar .lav-theme-toggle .lav-theme-to-light{display:none}
+html.hk-dark .lav-topbar .lav-theme-toggle .lav-theme-to-dark{display:none}
+html.hk-dark .lav-topbar .lav-theme-toggle .lav-theme-to-light{color:#f6c445;display:inline-block}
+/* User chip: same 38px line; caret sits on the chip's own 8px
+   internal gap; role line tightens to the card-typography
+   rhythm (semibold name, small muted role, 1px apart). */
+.lav-topbar .lav-profile .nav-link{align-items:center;min-height:38px}
+.lav-topbar .lav-profile .lav-user-meta strong{line-height:1.25}
+.lav-topbar .lav-profile .lav-user-meta small{line-height:1.25;margin-top:1px}
+.lav-topbar .lav-profile .dropdown-toggle:after{align-self:center;margin-left:8px}
+/* Keyboard focus is visible on every bar control. */
+.lav-topbar .lav-topbar-toggle:focus-visible,.lav-topbar .lav-topbar-icon:focus-visible,.lav-topbar .lav-profile .nav-link:focus-visible,.lav-topbar .lav-session-chip:focus-visible{outline:2px solid rgba(52,120,246,.55);outline-offset:2px}
+@media (max-width:991px){
+  /* Avatar-only user chip a step earlier than before: at
+     tablet widths the name/role is what pushes the bar. */
+  .lav-topbar .lav-user-meta{display:none}
+}
+@media (max-width:767px){
+  .lav-topbar{gap:8px;min-height:52px;padding:6px 10px}
+  .lav-topbar .lav-search{height:36px}
+  .lav-topbar .lav-session-chip{height:36px;padding:0 9px}
+  .lav-topbar .lav-topbar-icon{height:36px;width:36px}
+  .lav-topbar .lav-profile .nav-link{min-height:36px}
+}
+
+/* ============================================================
+   Loop 50 — Dark mode (Workstream BX, owner directive 2026-10-22:
+   "common dark mode ka option add karna yahi header par for all
+   account"). A real theme, not a filter: overrides scoped under
+   html.hk-dark, in the sidebar's own colour family deepened
+   (sidebar surface #10263B; content sits a step deeper, cards a
+   step up), brand blue untouched. The class is rendered
+   server-side from the signed-in user's UserPreference 'theme'
+   (layouts/master), so signed-in pages paint dark on first
+   byte — no flash; the guest/login shell honours the browser's
+   localStorage mirror of the same choice (login_master pre-paint
+   script). The sidebar is already dark and is NOT re-ruled here.
+   Print is forced back to the light palette at the end of this
+   section: paper output never changes with the theme.
+   ============================================================ */
+html.hk-dark body{background:#0a1826;color:#dce8f4}
+html.hk-dark .page-content,html.hk-dark .content{background:#0a1826}
+/* Page header strip + teacher date subheader. */
+html.hk-dark #page-header.page-header-light{background:#0e2236;border-color:#1d3a55}
+html.hk-dark #page-header .page-title h4,html.hk-dark #page-header .page-title h4 span{color:#eef4fb}
+html.hk-dark #page-header .breadcrumb-item,html.hk-dark #page-header .breadcrumb-item a{color:#93a9bf}
+html.hk-dark #page-header .breadcrumb-item.active{color:#dce8f4}
+html.hk-dark .t9-subheader{background:#0e2236;border-color:#1d3a55;color:#dce8f4}
+html.hk-dark .t9-subheader small{color:#93a9bf}
+/* Topbar itself: same slate as the page header so the chrome
+   reads as one piece above the deeper content. */
+html.hk-dark .lav-topbar{background:#0d2033;border-bottom:1px solid #1d3a55;box-shadow:0 1px 4px rgba(0,0,0,.35)}
+html.hk-dark .lav-topbar .lav-topbar-toggle,html.hk-dark .lav-topbar .lav-topbar-mobile .navbar-toggler{color:#a9bfd6}
+html.hk-dark .lav-topbar .lav-topbar-toggle:hover,html.hk-dark .lav-topbar .lav-topbar-mobile .navbar-toggler:hover{background:#17334d;color:#fff}
+html.hk-dark .lav-topbar .lav-search{background:#0a1c2d;border-color:#23425f}
+html.hk-dark .lav-topbar .lav-search:focus-within{background:#0c2438;border-color:#3478f6;box-shadow:0 0 0 3px rgba(52,120,246,.3)}
+html.hk-dark .lav-topbar .lav-search i{color:#7d97b1}
+html.hk-dark .lav-topbar .lav-search input{color:#e8f1f9}
+html.hk-dark .lav-topbar .lav-search input::placeholder{color:#68809a}
+html.hk-dark .lav-topbar .lav-search kbd{background:#17334d;border-color:#2a4c6e;color:#a9bfd6}
+html.hk-dark .lav-topbar .lav-session-chip{background:#14304a;border-color:#24507c;color:#dce8f4}
+html.hk-dark .lav-topbar a.lav-session-chip:hover{background:#173a5c;color:#fff}
+html.hk-dark .lav-topbar .lav-session-chip i{color:#6ea8ff}
+html.hk-dark .lav-topbar .lav-session-chip .lav-session-label{color:#93a9bf}
+html.hk-dark .lav-topbar .lav-session-chip strong{color:#fff}
+html.hk-dark .lav-topbar .lav-topbar-icon{color:#a9bfd6}
+html.hk-dark .lav-topbar .lav-topbar-icon:hover,html.hk-dark .lav-topbar .lav-topbar-icon[aria-expanded="true"]{background:#17334d;color:#fff}
+html.hk-dark .lav-topbar .lav-profile .nav-link:hover{background:#17334d}
+html.hk-dark .lav-topbar .lav-profile .l7-avatar{box-shadow:0 0 0 2px #0d2033,0 0 0 4px #2a4c6e}
+html.hk-dark .lav-topbar .lav-profile .lav-user-meta strong{color:#f0f5fb}
+html.hk-dark .lav-topbar .lav-profile .lav-user-meta small{color:#93a9bf}
+html.hk-dark .lav-topbar .lav-profile .dropdown-toggle:after{color:#7d97b1}
+html.hk-dark .lav-topbar .lav-user-menu-head .l7-avatar{box-shadow:0 0 0 2px #132c46,0 0 0 4px #2a4c6e}
+html.hk-dark .lav-topbar .lav-user-menu-meta strong{color:#f0f5fb}
+html.hk-dark .lav-topbar .lav-user-menu-meta small{color:#93a9bf}
+html.hk-dark .lav-topbar .lav-notif-menu .lav-notif-item span{color:#e8f1f9}
+html.hk-dark .lav-topbar .lav-notif-menu .lav-notif-item small{color:#93a9bf}
+html.hk-dark .lav-topbar .lav-notif-menu .lav-notif-item i{background:#17334d;color:#6ea8ff}
+html.hk-dark .lav-topbar .lav-notif-menu .lav-notif-item + .lav-notif-item{border-top-color:#1d3a55}
+/* Cards + headings + muted text. */
+html.hk-dark .card{background:#11283f;border-color:#1d3a55;color:#dce8f4}
+html.hk-dark .card-header{border-bottom-color:#1d3a55;color:#eef4fb}
+html.hk-dark .card-footer{background:transparent;border-top-color:#1d3a55}
+html.hk-dark h1,html.hk-dark h2,html.hk-dark h3,html.hk-dark h4,html.hk-dark h5,html.hk-dark h6{color:#eef4fb}
+html.hk-dark .text-muted{color:#93a9bf!important}
+html.hk-dark hr{border-top-color:#1d3a55}
+html.hk-dark .border{border-color:#1d3a55!important}
+html.hk-dark .border-top{border-top-color:#1d3a55!important}
+html.hk-dark .border-bottom{border-bottom-color:#1d3a55!important}
+/* Tables. */
+html.hk-dark .table{color:#dce8f4}
+html.hk-dark .table th,html.hk-dark .table td{border-color:#1d3a55}
+html.hk-dark .table thead th{background:#17334d;border-color:#1d3a55;color:#cfe0f2}
+html.hk-dark .table-striped tbody tr:nth-of-type(odd){background:rgba(255,255,255,.025)}
+html.hk-dark .table-hover tbody tr:hover{background:#16304a;color:#fff}
+html.hk-dark .table-bordered{border-color:#1d3a55}
+/* Forms. */
+html.hk-dark .form-control{background:#0c2033;border-color:#23425f;color:#e8f1f9}
+html.hk-dark .form-control:focus{background:#0c2438;border-color:#3478f6;box-shadow:0 0 0 3px rgba(52,120,246,.25);color:#fff}
+html.hk-dark .form-control::placeholder{color:#68809a}
+html.hk-dark .form-control:disabled,html.hk-dark .form-control[readonly]{background:#102539;color:#93a9bf}
+html.hk-dark select.form-control option{background:#0c2033;color:#e8f1f9}
+html.hk-dark .input-group-text{background:#17334d;border-color:#23425f;color:#a9bfd6}
+html.hk-dark .content-wrapper label{color:#c3d4e6}
+html.hk-dark .form-text{color:#93a9bf}
+/* Dropdowns, modals, tabs, pagination, list groups. */
+html.hk-dark .dropdown-menu{background:#132c46;border-color:#23425f;box-shadow:0 14px 34px rgba(0,0,0,.45);color:#dce8f4}
+html.hk-dark .dropdown-item{color:#cfdfef}
+html.hk-dark .dropdown-item:hover,html.hk-dark .dropdown-item:focus{background:#1a3a58;color:#fff}
+html.hk-dark .dropdown-divider{border-top-color:#1d3a55}
+html.hk-dark .dropdown-header{color:#eef4fb}
+html.hk-dark .modal-content{background:#11283f;border-color:#23425f;color:#dce8f4}
+html.hk-dark .modal-header,html.hk-dark .modal-footer{border-color:#1d3a55}
+html.hk-dark .close{color:#dce8f4;opacity:.8;text-shadow:none}
+html.hk-dark .nav-tabs{border-bottom-color:#1d3a55}
+html.hk-dark .nav-tabs .nav-link{color:#93a9bf}
+html.hk-dark .nav-tabs .nav-link:hover{border-color:#1d3a55 #1d3a55 transparent;color:#dce8f4}
+html.hk-dark .nav-tabs .nav-link.active{background:#11283f;border-color:#1d3a55 #1d3a55 #11283f;color:#fff}
+html.hk-dark .page-link{background:#11283f;border-color:#23425f;color:#a9c6e8}
+html.hk-dark .page-link:hover{background:#17334d;color:#fff}
+html.hk-dark .page-item.disabled .page-link{background:#0e2236;border-color:#1d3a55;color:#68809a}
+html.hk-dark .list-group-item{background:#11283f;border-color:#1d3a55;color:#dce8f4}
+html.hk-dark .progress{background:#17334d}
+html.hk-dark .badge-light{background:#17334d;color:#cfdfef}
+/* Neutral buttons go slate; brand/semantic buttons keep hue. */
+html.hk-dark .btn-light{background:#17334d;border-color:#23425f;color:#dbe8f5}
+html.hk-dark .btn-light:hover{background:#1d3f5f;border-color:#2a4c6e;color:#fff}
+html.hk-dark .btn-link{color:#6ea8ff}
+/* Alerts: same semantics, deepened. */
+html.hk-dark .alert-success{background:#143327;border-color:#1e4d38;color:#a9e5c3}
+html.hk-dark .alert-danger{background:#3a1e26;border-color:#5a2c38;color:#f2c1cb}
+html.hk-dark .alert-info{background:#14334a;border-color:#1e4a68;color:#bcd9f5}
+html.hk-dark .alert-warning{background:#3a3016;border-color:#5a4a1e;color:#f0dfa8}
+/* Content links pick up the brightened brand blue. */
+html.hk-dark .content a:not(.btn):not(.nav-link):not(.dropdown-item):not(.page-link):not(.alert-link){color:#6ea8ff}
+/* Login page (guest shell): the brand panel is already navy;
+   the form card joins the theme when the saved choice is dark. */
+html.hk-dark .login-a-card{background:#10263b}
+html.hk-dark .login-a-label{color:#c3d4e6}
+html.hk-dark .login-a-input{background:#0c2033;border-color:#23425f;color:#e8f1f9}
+html.hk-dark .login-a-input::placeholder{color:#68809a}
+html.hk-dark .login-a-legal{color:#93a9bf}
+html.hk-dark .login-a-forgot{color:#6ea8ff}
+/* --- Print stays LIGHT (owner rule: paper output never
+   changes with the theme). Report cards, receipts and ID cards
+   use their own print stylesheets and standalone layouts, so
+   they never see hk-dark at all; this block covers in-app
+   browser prints of themed pages. --- */
+@media print{
+  html.hk-dark body,html.hk-dark .page-content,html.hk-dark .content{background:#fff!important;color:#172536!important}
+  html.hk-dark .card,html.hk-dark .card-header,html.hk-dark .card-footer{background:#fff!important;border-color:#dee2e6!important;color:#172536!important}
+  html.hk-dark h1,html.hk-dark h2,html.hk-dark h3,html.hk-dark h4,html.hk-dark h5,html.hk-dark h6{color:#172536!important}
+  html.hk-dark .text-muted{color:#6c757d!important}
+  html.hk-dark .table{color:#172536!important}
+  html.hk-dark .table th,html.hk-dark .table td{background:transparent!important;border-color:#dee2e6!important;color:#172536!important}
+  html.hk-dark a{color:#172536!important}
+}

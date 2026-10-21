@@ -128,6 +128,22 @@ class MyAccountController extends Controller
     }
 
     /**
+     * Loop 50 (Workstream BX): the topbar dark-mode toggle. Persists the
+     * signed-in user's theme in the SAME per-user preference store as
+     * every other account preference (UserPreference key 'theme'), via
+     * AJAX so the page never reloads. No audit row: a display toggle is
+     * high-frequency and carries no account-data change.
+     */
+    public function update_theme(Request $req)
+    {
+        $req->validate(['theme' => 'required|in:dark,light']);
+
+        UserPreference::set(Auth::id(), 'theme', $req->input('theme'));
+
+        return response()->json(['theme' => $req->input('theme')]);
+    }
+
+    /**
      * Batch 10: "Download My Data" — a JSON export of the signed-in
      * user's OWN account record, preferences and recent sign-ins.
      * Nothing about any other user is ever included.

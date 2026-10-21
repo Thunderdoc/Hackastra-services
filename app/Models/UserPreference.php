@@ -22,6 +22,10 @@ class UserPreference extends Model
         'notify_exams',
         'date_format',
         'time_format',
+        // Loop 50 (Workstream BX): the topbar dark-mode toggle writes
+        // this key through MyAccountController@update_theme — same
+        // per-user store, values 'dark'/'light'.
+        'theme',
     ];
 
     public static function defaults(): array
@@ -33,6 +37,7 @@ class UserPreference extends Model
             'notify_exams' => '1',
             'date_format' => 'd M Y',
             'time_format' => '12',
+            'theme' => 'light',
         ];
     }
 

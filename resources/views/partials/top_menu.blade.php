@@ -8,6 +8,10 @@
     (it was removed from partials/header so it can never render twice).
     The old theme-toggle (sun) button was removed: no JS handler or dark
     theme exists anywhere in the app, so it was a dead control.
+    Loop 49/50 (Workstream BX) — the bar's design finish, and the theme
+    toggle RETURNS, this time wired to a real dark theme (qs.css Loop 50):
+    per-account, stored as the UserPreference 'theme' key, rendered
+    server-side as html.hk-dark so there is never a flash.
 --}}
 <div class="navbar navbar-expand-md lav-topbar">
     <div class="lav-topbar-mobile">
@@ -34,10 +38,43 @@
     </script>
     <div class="ml-auto d-flex align-items-center lav-topbar-right">
         @if(Qs::userIsTeamSA())
-            <a href="{{ route('settings') }}" class="session-chip lav-session-chip" title="Open settings to change the current session"><i class="icon-calendar5"></i><span class="lav-session-label">Current Session:&nbsp;</span><strong>{{ Qs::getSetting('current_session') }}</strong></a>
+            <a href="{{ route('settings') }}" class="session-chip lav-session-chip" title="Open settings to change the current session"><i class="icon-calendar3"></i><span class="lav-session-label">Current Session:&nbsp;</span><strong>{{ Qs::getSetting('current_session') }}</strong></a>
         @else
-            <span class="session-chip lav-session-chip"><i class="icon-calendar5"></i><span class="lav-session-label">Current Session:&nbsp;</span><strong>{{ Qs::getSetting('current_session') }}</strong></span>
+            <span class="session-chip lav-session-chip"><i class="icon-calendar3"></i><span class="lav-session-label">Current Session:&nbsp;</span><strong>{{ Qs::getSetting('current_session') }}</strong></span>
         @endif
+        {{-- Loop 50 — dark-mode toggle: EVERY role, exactly once, beside
+             the bell. This icon set has no moon glyph; the pair is the
+             set's own contrast (to-dark) and sun3 (to-light) glyphs, and
+             CSS shows exactly one per theme. The click flips html.hk-dark
+             instantly, mirrors the choice to localStorage (so the login
+             page honours it after logout) and persists it to the account
+             preference store via AJAX — no reload. --}}
+        <button type="button" class="lav-topbar-icon lav-theme-toggle" id="lav-theme-toggle" aria-label="Dark mode" title="Dark mode" aria-pressed="false"><i class="icon-contrast lav-theme-to-dark"></i><i class="icon-sun3 lav-theme-to-light"></i></button>
+        <script>
+            (function () {
+                var btn = document.getElementById('lav-theme-toggle');
+                if (!btn) { return; }
+                var root = document.documentElement;
+                function syncMirror() {
+                    var dark = root.classList.contains('hk-dark');
+                    btn.setAttribute('aria-pressed', dark ? 'true' : 'false');
+                    try { localStorage.setItem('hk-theme', dark ? 'dark' : 'light'); } catch (e) {}
+                }
+                syncMirror();
+                btn.addEventListener('click', function () {
+                    var dark = !root.classList.contains('hk-dark');
+                    root.classList.toggle('hk-dark', dark);
+                    syncMirror();
+                    var meta = document.querySelector('meta[name="csrf-token"]');
+                    fetch('{{ route('my_account.theme') }}', {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-TOKEN': meta ? meta.getAttribute('content') : '' },
+                        body: 'theme=' + (dark ? 'dark' : 'light')
+                    }).catch(function () {});
+                });
+            })();
+        </script>
         @if(Qs::userIsTeamSAT() || Qs::userIsTeamAccount())
             @php
                 $lavRecentPayments = \App\Models\PaymentRecord::with('payment')->latest()->take(4)->get();

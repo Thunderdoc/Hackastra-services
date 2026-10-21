@@ -20,6 +20,7 @@ Route::group(['middleware' => 'auth'], function () {
         Route::put('/', 'MyAccountController@update_profile')->name('my_account.update');
         Route::put('/change_password', 'MyAccountController@change_pass')->name('my_account.change_pass');
         Route::post('/preferences', 'MyAccountController@update_preferences')->name('my_account.preferences');
+        Route::post('/theme', 'MyAccountController@update_theme')->name('my_account.theme');
         Route::get('/download', 'MyAccountController@download_data')->name('my_account.download');
     });
 
