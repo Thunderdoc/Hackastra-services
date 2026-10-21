@@ -1193,3 +1193,60 @@ a.t9-row:hover .t9-row-copy strong{color:var(--qs-primary-action)}
   body.sidebar-xs .lav-topbar{margin-left:56px}
   body.sidebar-xs .content-wrapper{margin-left:56px}
 }
+
+/* ============================================================
+   Loop 26 — Payroll (Workstream AI). Salary management for the
+   accounts team + staff payslips. All selectors carry the
+   .pay- prefix; layout follows the shared card/table language.
+   The summary strip uses minmax(0,1fr) per the Loop 17 rule so
+   nothing overflows at 1366px.
+   ============================================================ */
+.pay-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:16px}
+.pay-stat{background:#f7fafd;border:1px solid #e4eaf1;border-radius:10px;padding:12px 16px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.pay-stat-label{color:#718096;font-size:.68rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
+.pay-stat-value{color:#172536;font-size:1.25rem;font-weight:700;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pay-stat-sub{color:#9aa7b5;font-size:.72rem}
+.pay-stat-paid{background:#eefaf1;border-color:#cdeeda}
+.pay-stat-pending{background:#fff8ec;border-color:#f3e3c2}
+.pay-badge-paid{background:#1f9d57;color:#fff}
+.pay-badge-pending{background:#e8a13a;color:#fff}
+.pay-badge-none{background:#e4eaf1;color:#718096}
+.pay-generate-form{display:inline}
+.pay-table td{vertical-align:middle}
+.pay-actions{white-space:nowrap}
+.pay-actions .btn{margin-left:4px}
+.pay-edit-row>td{border-top:0;background:#fbfcfe}
+.pay-form{padding:16px 18px}
+.pay-form-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) auto auto;gap:12px;align-items:end}
+.pay-form-grid .form-group{margin-bottom:0;min-width:0}
+.pay-form-net .pay-net-preview{font-size:1.05rem;font-weight:700;color:#172536;padding:6px 0}
+.pay-slip{max-width:860px;margin:0 auto}
+.pay-slip-head{display:flex;justify-content:space-between;gap:16px;border-bottom:2px solid #e4eaf1;padding-bottom:14px;margin-bottom:14px;flex-wrap:wrap}
+.pay-slip-school{margin:0 0 4px;color:#10263b;font-weight:700}
+.pay-slip-title{margin:0 0 4px;color:#10263b;letter-spacing:.12em;font-weight:700}
+.pay-slip-staff{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 24px;margin-bottom:16px}
+.pay-slip-staff div{display:flex;gap:10px;min-width:0}
+.pay-slip-staff span{color:#718096;min-width:96px}
+.pay-slip-staff strong{color:#172536;overflow:hidden;text-overflow:ellipsis}
+.pay-slip-table th{background:#f7fafd}
+.pay-slip-subtotal td{font-weight:700;background:#fbfcfe}
+.pay-slip-net{display:flex;justify-content:space-between;align-items:center;gap:16px;background:#eef4ff;border:1px solid #cfdefc;border-radius:10px;padding:14px 18px;margin-top:14px;flex-wrap:wrap}
+.pay-slip-net span{color:#44546a;font-size:.75rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;display:block}
+.pay-slip-net strong{color:#10263b;font-size:1.5rem}
+.pay-slip-words{color:#44546a;font-style:italic}
+.pay-stamp{display:inline-block;border:2px solid;border-radius:6px;padding:2px 12px;font-weight:700;letter-spacing:.14em;font-size:.78rem;margin-top:6px;transform:rotate(-4deg)}
+.pay-stamp-paid{color:#1f9d57;border-color:#1f9d57}
+.pay-stamp-pending{color:#c07f1f;border-color:#e8a13a}
+.pay-slip-foot{display:flex;justify-content:space-between;gap:16px;color:#9aa7b5;font-size:.75rem;border-top:1px solid #edf1f5;margin-top:16px;padding-top:10px;flex-wrap:wrap}
+@media (max-width:991.98px){
+  .pay-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .pay-form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:575.98px){
+  .pay-summary{grid-template-columns:minmax(0,1fr)}
+  .pay-form-grid{grid-template-columns:minmax(0,1fr)}
+  .pay-slip-staff{grid-template-columns:minmax(0,1fr)}
+}
+@media print{
+  .pay-slip{max-width:none}
+}

@@ -116,6 +116,22 @@ Route::group(['middleware' => 'auth'], function () {
             Route::get('reports/collection', 'FeeReportController@collection')->name('payments.collection');
         });
 
+        /*************** Payroll (Workstream AI) *****************/
+        Route::group(['prefix' => 'payroll'], function(){
+            Route::get('/', 'PayrollController@index')->name('payroll.index');
+            Route::post('/', 'PayrollController@store')->name('payroll.store');
+            Route::post('generate', 'PayrollController@generate')->name('payroll.generate');
+            Route::put('{payroll}', 'PayrollController@update')->name('payroll.update');
+            Route::post('{payroll}/pay', 'PayrollController@pay')->name('payroll.pay');
+            Route::get('{payroll}/payslip', 'PayrollController@payslip')->name('payroll.payslip');
+        });
+
+        /* Staff self-service payslips: own records only, enforced in the controller. */
+        Route::group(['prefix' => 'my-payslips'], function(){
+            Route::get('/', 'PayrollController@myIndex')->name('my_payslips.index');
+            Route::get('{payroll}', 'PayrollController@myPayslip')->name('my_payslips.payslip');
+        });
+
         /*************** Pins *****************/
         Route::group(['prefix' => 'pins'], function(){
             Route::get('create', 'PinController@create')->name('pins.create');
