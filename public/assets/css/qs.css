@@ -1295,3 +1295,59 @@ a.t9-row:hover .t9-row-copy strong{color:var(--qs-primary-action)}
   .idc-photo{height:28mm;width:22mm}
   @page{size:85.6mm 54mm;margin:0}
 }
+
+/* ============================================================
+   Loop 28 — Shared patterns (Batch 1A common foundations).
+   The reusable page shells every list/form page is rebuilt on:
+     partials/patterns/list_page   — toolbar + filters + table card
+     partials/patterns/form_page   — sectioned form card + sticky bar
+     partials/patterns/empty_state — icon + message + action
+   Only the NEW chrome is styled here (.pat-*); cards, tables,
+   buttons and controls keep the shared .content tokens above.
+   Grid tracks use minmax(0,1fr) (Loop 17 shrink-safe rule) and
+   nothing here sets a fixed page width (FIT rule).
+   ============================================================ */
+/* list_page: toolbar */
+.pat-toolbar{display:flex;align-items:flex-end;justify-content:space-between;gap:10px 18px;flex-wrap:wrap;margin-bottom:16px}
+.pat-toolbar-title{color:#172536;font-size:1.25rem;font-weight:700;letter-spacing:-.01em;line-height:1.25;margin:0}
+.pat-toolbar-title i{color:#3478f6;font-size:1.02rem}
+.pat-toolbar-sub{color:#718096;font-size:.85rem;margin-top:3px}
+.pat-toolbar-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+/* list_page: filter row */
+.pat-filters{background:#fff;border:1px solid #e4eaf1;border-radius:10px;box-shadow:0 1px 2px rgba(23,50,77,.03);margin-bottom:16px;padding:14px 16px}
+.pat-filter-form{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.pat-filter-field{flex:1 1 180px;min-width:0}
+.pat-filter-field label{display:block;font-size:.8rem;margin-bottom:5px}
+.pat-filter-action{flex:0 0 auto}
+@media (max-width:575px){
+  .pat-filter-field{flex-basis:100%}
+  .pat-filter-action{flex-basis:100%}
+  .pat-filter-action .btn{width:100%}
+}
+/* form_page: sections + field grid */
+.card.pat-form-card{overflow:visible}
+.pat-form-head{padding:18px 22px 2px}
+.pat-form-title{color:#172536;font-size:1.05rem;font-weight:700;margin:0}
+.pat-form-sub{color:#718096;font-size:.85rem;margin-top:3px}
+.pat-form-section{padding:18px 22px 20px;border-bottom:1px solid #edf1f5}
+.pat-form-head+.pat-form-section{padding-top:12px}
+.pat-actionbar{position:sticky;bottom:0;z-index:6;display:flex;justify-content:flex-end;gap:10px;background:#fff;border-top:1px solid #edf1f5;border-radius:0 0 10px 10px;padding:14px 22px}
+.pat-form-section-title{color:#172536;font-size:.92rem;font-weight:700;margin-bottom:3px}
+.pat-form-section-sub{color:#718096;font-size:.82rem;margin-bottom:14px}
+.pat-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 20px;margin-top:12px}
+.pat-form-section-title:first-child+.pat-fields,.pat-form-section-sub+.pat-fields{margin-top:0}
+.pat-field{min-width:0}
+.pat-field-wide{grid-column:1/-1}
+.pat-field label{display:block;font-size:.82rem;margin-bottom:5px}
+.pat-field .form-text{color:#718096;font-size:.76rem;margin-top:4px}
+@media (max-width:767px){
+  .pat-fields{grid-template-columns:minmax(0,1fr)}
+  .pat-form-section{padding:16px}
+  .pat-form-head{padding:16px 16px 2px}
+  .pat-actionbar{padding:12px 16px}
+}
+/* empty_state */
+.pat-empty{text-align:center;padding:42px 20px}
+.pat-empty-icon{align-items:center;background:#eef4ff;border-radius:50%;color:#3478f6;display:flex;font-size:25px;height:62px;justify-content:center;margin:0 auto 14px;width:62px}
+.pat-empty-msg{color:#44546a;font-size:.92rem;margin:0 auto;max-width:460px}
+.pat-empty-action{margin-top:16px}

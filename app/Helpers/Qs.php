@@ -36,12 +36,15 @@ class Qs
 
     public static function getPanelOptions()
     {
-        return '    <div class="header-elements">
-                    <div class="list-icons">
-                        <a class="list-icons-item" data-action="collapse"></a>
-                        <a class="list-icons-item" data-action="remove"></a>
-                    </div>
-                </div>';
+        // Batch 1A (Loop 28): the legacy Limitless ⌄/× panel cluster
+        // (collapse/remove card) was junk chrome on ~65 card headers —
+        // Batch 11's Loop 24 already hid the anchors via CSS; now the
+        // markup is removed at the source. The method is kept (and
+        // returns an empty string) so all existing call sites keep
+        // working untouched. Card bodies authored with the `collapse`
+        // class (marksheet comments/skills) stay visible via the
+        // Loop 24 companion rule (.card-body.collapse{display:block}).
+        return '';
     }
 
     public static function displaySuccess($msg)
