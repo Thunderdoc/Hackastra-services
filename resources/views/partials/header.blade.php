@@ -22,10 +22,24 @@
          bar is suppressed to avoid printing the title twice. The page
          opts in with @section('hide_page_header', true). --}}
 @else<div id="page-header" class="page-header page-header-light">
+    {{-- Loop 46 (Workstream BS): THE common header — the one place a
+         page's title is rendered. A page supplies only its
+         @section('page_title'); it may optionally add a
+         @section('page_breadcrumb') (rendered once, above the title)
+         and/or @section('page_actions') (rendered at the right of the
+         header). In-page card headings must never repeat the title. --}}
     <div class="page-header-content header-elements-md-inline">
         <div class="page-title d-flex">
-            <h4><span class="font-weight-semibold">@yield('page_title')</span></h4>
+            <div>
+                @if(View::hasSection('page_breadcrumb'))
+                    <div class="page-header-crumb">@yield('page_breadcrumb')</div>
+                @endif
+                <h4><span class="font-weight-semibold">@yield('page_title')</span></h4>
+            </div>
         </div>
+        @if(View::hasSection('page_actions'))
+            <div class="header-elements d-none d-md-flex align-items-center">@yield('page_actions')</div>
+        @endif
         {{-- Loop 33: the Current Session chip moved to the common topbar
              (partials/top_menu) so it renders exactly once per page. --}}
     </div>

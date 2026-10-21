@@ -50,8 +50,10 @@
             @endslot
         @endcomponent
 
-    Slots:  title, subtitle, actions (optional) · default slot =
-            the .pat-form-section blocks.
+    Slots:  subtitle, actions (optional) · default slot = the
+            .pat-form-section blocks. The 'title' slot is RETIRED
+            (Loop 46): the common layout header renders the page title
+            once, so this pattern prints no heading of its own.
     Styles: public/assets/css/qs.css — "Loop 28" (.pat-* classes).
     Field controls keep the shared .form-control / label tokens.
 --}}
@@ -71,14 +73,14 @@
     @endif
 
     <div class="card pat-form-card">
-        @if($patHasTitle || $patHasSubtitle)
+        {{-- Loop 46 (Workstream BS): no title heading here — the common
+             layout header (partials/header) renders the page's title
+             once. The retired 'title' slot is still accepted so
+             existing pages keep working; use 'subtitle' for helper
+             text that is not the page title. --}}
+        @if($patHasSubtitle)
             <div class="pat-form-head">
-                @if($patHasTitle)
-                    <h5 class="pat-form-title">{!! $title !!}</h5>
-                @endif
-                @if($patHasSubtitle)
-                    <div class="pat-form-sub">{!! $subtitle !!}</div>
-                @endif
+                <div class="pat-form-sub">{!! $subtitle !!}</div>
             </div>
         @endif
 

@@ -3,7 +3,6 @@
 @section('content')
     <div class="card">
         <div class="card-header header-elements-inline">
-            <h6 class="card-title">Library Books</h6>
             <div>
                 <a href="{{ route('book_requests.index') }}" class="btn btn-light btn-sm"><i class="icon-list mr-1"></i> Loans &amp; Requests</a>
                 <a href="{{ route('books.create') }}" class="btn btn-primary btn-sm"><i class="icon-plus2 mr-1"></i> New Book</a>

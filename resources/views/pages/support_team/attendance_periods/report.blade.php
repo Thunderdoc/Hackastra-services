@@ -2,10 +2,6 @@
 @section('page_title', 'Subject-wise Period Attendance Report')
 @section('content')
     <div class="card">
-        <div class="card-header header-elements-inline">
-            <h6 class="card-title">Subject-wise Period Attendance Report</h6>
-            {!! Qs::getPanelOptions() !!}
-        </div>
         <div class="card-body">
             @if(session('flash_danger'))
                 <div class="alert alert-danger border-0">{{ session('flash_danger') }}</div>

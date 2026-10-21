@@ -3,7 +3,7 @@
 @section('content')
     <div class="card">
         <div class="card-header header-elements-inline">
-            <h6 class="card-title">Audit Log — who did what, and when</h6>
+            <span class="text-muted">Who did what, and when</span>
             {!! Qs::getPanelOptions() !!}
         </div>
         <div class="card-body">

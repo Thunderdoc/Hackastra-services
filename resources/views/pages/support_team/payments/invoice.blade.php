@@ -10,11 +10,8 @@
          reset/receipt actions are byte-identical to the legacy page:
          the pay-now JS and the print stylesheet depend on them. --}}
     @component('partials.patterns.list_page')
-        @slot('title')
-            <i class="icon-cash2 mr-2"></i> Manage Payment Records for {{ $sr->user->name }}
-        @endslot
         @slot('subtitle')
-            {{ $year ? 'Session '.$year : 'All sessions' }} &mdash; fee records, balances and receipts for this student.
+            Fee records, balances and receipts for <strong>{{ $sr->user->name }}</strong> &middot; {{ $year ? 'Session '.$year : 'All sessions' }}
         @endslot
         @slot('action')
             <a href="{{ route('payments.export_student', $year ? [Qs::hash($sr->user_id), $year] : [Qs::hash($sr->user_id)]) }}" class="btn btn-primary"><i class="icon-download mr-1"></i> Export</a>

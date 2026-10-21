@@ -4,7 +4,7 @@
 
     <div class="card">
         <div class="card-header header-elements-inline">
-            <h6 class="card-title font-weight-bold">Fees for {{ $sr->user->name }} — {{ $year }}</h6>
+            <span class="text-muted">{{ $sr->user->name }} &mdash; {{ $year }}</span>
             {!! Qs::getPanelOptions() !!}
             <div class="header-elements">
                 <a href="{{ route('my_fees') }}" class="btn btn-light btn-sm"><i class="icon-arrow-left7 mr-1"></i> All Children</a>

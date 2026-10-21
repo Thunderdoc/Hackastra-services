@@ -3,7 +3,6 @@
 @section('content')
     <div class="card">
         <div class="card-header header-elements-inline">
-            <h6 class="card-title">Fee Collection Report</h6>
             {!! Qs::getPanelOptions() !!}
             <div class="header-elements">
                 <button type="button" class="btn btn-light btn-sm" onclick="window.print()"><i class="icon-printer mr-1"></i> Print</button>

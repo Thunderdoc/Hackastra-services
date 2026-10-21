@@ -2,10 +2,6 @@
 @section('page_title', 'Select Exam Year')
 @section('content')
     <div class="card">
-        <div class="card-header header-elements-inline">
-            <h5 class="card-title"><i class="icon-alarm mr-2"></i> Select Exam Year</h5>
-            {!! Qs::getPanelOptions() !!}
-        </div>
 
         <div class="card-body">
             <div class="row">

@@ -3,10 +3,6 @@
 @section('content')
 
     <div class="card">
-        <div class="card-header header-elements-inline">
-            <h6 class="card-title">Manage Dorms</h6>
-            {!! Qs::getPanelOptions() !!}
-        </div>
 
         <div class="card-body">
             <ul class="nav nav-tabs nav-tabs-highlight">
@@ -16,8 +12,7 @@
 
             <div class="tab-content">
                     <div class="tab-pane fade show active" id="all-dorms">
-                        <div class="table-responsive">
-                        <table class="table">
+                        <table class="table datatable-button-html5-columns">
                             <thead>
                             <tr>
                                 <th>S/N</th>
@@ -60,7 +55,6 @@
                             @endforelse
                             </tbody>
                         </table>
-                        </div>
                     </div>
 
                 <div class="tab-pane fade" id="new-dorm">

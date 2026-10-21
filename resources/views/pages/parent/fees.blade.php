@@ -4,7 +4,7 @@
 
     <div class="card">
         <div class="card-header header-elements-inline">
-            <h6 class="card-title">Fees — {{ $year }}</h6>
+            <span class="text-muted">Session {{ $year }}</span>
             {!! Qs::getPanelOptions() !!}
         </div>
 

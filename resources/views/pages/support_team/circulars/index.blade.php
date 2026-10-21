@@ -7,7 +7,6 @@
     @endphp
     <div class="card">
         <div class="card-header header-elements-inline">
-            <h6 class="card-title">Circulars</h6>
             <a href="{{ route('circulars.create') }}" class="btn btn-primary btn-sm"><i class="icon-plus2 mr-1"></i> New Circular</a>
         </div>
         <div class="card-body">

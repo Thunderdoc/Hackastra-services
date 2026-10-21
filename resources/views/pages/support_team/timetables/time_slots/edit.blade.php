@@ -2,10 +2,6 @@
 @section('page_title', 'Edit Time Slot')
 @section('content')
 <div class="card">
-    <div class="card-header header-elements-inline">
-        <h6 class="font-weight-bold card-title">Edit Time Slots</h6>
-        {!! Qs::getPanelOptions() !!}
-    </div>
 
     <div class="card-body">
         <div class="col-md-6">

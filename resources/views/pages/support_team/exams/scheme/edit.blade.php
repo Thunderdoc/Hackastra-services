@@ -10,7 +10,7 @@
 
     <div class="card">
         <div class="card-header header-elements-inline">
-            <h6 class="card-title">Marking Scheme — {{ $ex->name }} (Term {{ $ex->term }}, {{ $ex->year }}) · Class: {{ $my_class->name }}</h6>
+            <span class="text-muted">{{ $ex->name }} · Term {{ $ex->term }} · {{ $ex->year }}</span>
             {!! Qs::getPanelOptions() !!}
         </div>
 

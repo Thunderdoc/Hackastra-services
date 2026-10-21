@@ -4,7 +4,7 @@
 
     <div class="card">
         <div class="card-header header-elements-inline">
-            <h6 class="card-title">Marking Scheme — {{ $ex->name }} (Term {{ $ex->term }}, {{ $ex->year }})</h6>
+            <span class="text-muted">Term {{ $ex->term }} &middot; {{ $ex->year }}</span>
             {!! Qs::getPanelOptions() !!}
         </div>
 

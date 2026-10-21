@@ -3,7 +3,6 @@
 @section('content')
     <div class="card">
         <div class="card-header header-elements-inline">
-            <h6 class="card-title">My Payslips</h6>
             {!! Qs::getPanelOptions() !!}
             <div class="header-elements">
                 <span class="text-muted">Total received so far: <strong>{{ \App\Helpers\Money::inr($total_received) }}</strong></span>

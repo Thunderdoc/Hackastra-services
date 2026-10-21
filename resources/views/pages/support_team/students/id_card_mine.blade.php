@@ -5,7 +5,7 @@
     <div class="idc-page">
         <div class="card idc-screen-only">
             <div class="card-header header-elements-inline">
-                <h6 class="card-title">{{ $mode === 'parent' ? 'Student ID Cards' : 'My ID Card' }}</h6>
+                @if($mode === 'parent')<h6 class="card-title">Student ID Cards</h6>@endif
                 {!! Qs::getPanelOptions() !!}
             </div>
 

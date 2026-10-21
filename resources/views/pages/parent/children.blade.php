@@ -3,10 +3,6 @@
 @section('content')
 
     <div class="card">
-        <div class="card-header header-elements-inline">
-            <h6 class="card-title">My Children</h6>
-            {!! Qs::getPanelOptions() !!}
-        </div>
 
         <div class="card-body">
             <div class="table-responsive">

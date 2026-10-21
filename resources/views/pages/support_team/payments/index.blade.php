@@ -58,7 +58,7 @@
 @if($selected)
     <div class="card">
         <div class="card-header header-elements-inline">
-            <h6 class="card-title">Manage Payments for {{ $year }} Session</h6>
+            <span class="text-muted">{{ $year }} Session</span>
             {!! Qs::getPanelOptions() !!}
         </div>
 

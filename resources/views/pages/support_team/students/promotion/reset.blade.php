@@ -13,7 +13,7 @@
 {{-- Reset Promotions --}}
     <div class="card">
         <div class="card-header header-elements-inline">
-            <h5 class="card-title font-weight-bold">Manage Promotions - Students Who Were Promoted From <span class="text-danger">{{ $old_year }}</span> TO <span class="text-success">{{ $new_year }}</span> Session</h5>
+            <div class="text-muted">Students who were promoted from <span class="text-danger">{{ $old_year }}</span> to <span class="text-success">{{ $new_year }}</span> session</div>
             {!! Qs::getPanelOptions() !!}
         </div>
 

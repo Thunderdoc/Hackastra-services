@@ -17,7 +17,7 @@
 
     <div class="card def-doc">
         <div class="card-header header-elements-inline print-hide">
-            <h6 class="card-title">Fee Defaulters — {{ $year }}</h6>
+            <span class="text-muted">Session {{ $year }}</span>
             {!! Qs::getPanelOptions() !!}
             <div class="header-elements">
                 <button type="button" class="btn btn-light btn-sm" onclick="window.print()"><i class="icon-printer mr-1"></i> Print</button>

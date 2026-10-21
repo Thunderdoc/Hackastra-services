@@ -3,7 +3,7 @@
 @section('content')
     <div class="card">
         <div class="card-header header-elements-inline">
-            <h6 class="card-title">Payroll — {{ $months[$month] }} {{ $year }}</h6>
+            <span class="text-muted">{{ $months[$month] }} {{ $year }}</span>
             {!! Qs::getPanelOptions() !!}
             <div class="header-elements">
                 <form method="POST" action="{{ route('payroll.generate') }}" class="pay-generate-form">

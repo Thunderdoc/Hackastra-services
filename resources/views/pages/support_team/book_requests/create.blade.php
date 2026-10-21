@@ -2,7 +2,6 @@
 @section('page_title', 'Issue a Book')
 @section('content')
     <div class="card">
-        <div class="card-header"><h6 class="card-title">Issue a Book</h6></div>
         <div class="card-body">
             @if(session('flash_danger'))
                 <div class="alert alert-danger border-0">{{ session('flash_danger') }}</div>

@@ -3,11 +3,6 @@
 @section('content')
 
     <div class="card">
-        <div class="card-header header-elements-inline">
-            <h6 class="card-title">Edit Section of {{ $s->my_class->name }}</h6>
-            {!! Qs::getPanelOptions() !!}
-        </div>
-
         <div class="card-body">
             <div class="row">
                 <div class="col-md-6">

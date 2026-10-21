@@ -6,10 +6,6 @@
         $priorityBadges = ['normal' => 'badge-light', 'important' => 'badge-warning', 'urgent' => 'badge-danger'];
     @endphp
     <div class="card">
-        <div class="card-header header-elements-inline">
-            <h6 class="card-title">Circulars &amp; Notices</h6>
-            {!! Qs::getPanelOptions() !!}
-        </div>
         <div class="card-body">
             @forelse($circulars as $circular)
                 <div class="card mb-3" style="border-left:4px solid {{ $priorityEdges[$circular->priority] ?? '#66788c' }}">

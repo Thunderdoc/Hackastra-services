@@ -2,7 +2,6 @@
 @section('page_title', 'Edit Book')
 @section('content')
     <div class="card">
-        <div class="card-header"><h6 class="card-title">Edit Book</h6></div>
         <div class="card-body">
             @if($errors->any())
                 <div class="alert alert-danger border-0">@foreach($errors->all() as $error)<div>{{ $error }}</div>@endforeach</div>

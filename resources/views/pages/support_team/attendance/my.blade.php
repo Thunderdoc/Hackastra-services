@@ -3,7 +3,7 @@
 @section('content')
     <div class="card">
         <div class="card-header header-elements-inline">
-            <h6 class="card-title">{{ $is_parent ? 'Child Attendance' : 'My Attendance' }}</h6>
+            @if($is_parent)<h6 class="card-title">Child Attendance</h6>@endif
             {!! Qs::getPanelOptions() !!}
         </div>
         <div class="card-body">

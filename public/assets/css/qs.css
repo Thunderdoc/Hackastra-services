@@ -2021,3 +2021,25 @@ body:not(.sidebar-xs) .sidebar-main .nav-group-sub .nav-group-sub .nav-link:not(
   .def-doc .table th,.def-doc .table td{padding:4px 8px!important;line-height:1.35!important}
   .def-doc .def-note{font-size:10px!important;margin-top:8px!important}
 }
+
+/* =====================================================================
+   Loop 48 — Common header (Workstream BS). The layout page header
+   (partials/header) is the ONE place a page title renders. These rules
+   only style the header's two optional slots — the breadcrumb line a
+   page may supply via @section('page_breadcrumb') and the actions a
+   page may supply via @section('page_actions'). Nothing here restyles
+   the title itself or moves any content offset.
+   ===================================================================== */
+.page-header .page-header-crumb{
+  font-size:.78rem;
+  line-height:1.3;
+  color:#8a97a5;
+  margin-bottom:.15rem;
+}
+.page-header .page-header-crumb a{color:#8a97a5;text-decoration:none}
+.page-header .page-header-crumb a:hover{color:#3478f6;text-decoration:underline}
+.page-header .page-header-crumb .crumb-sep{margin:0 .35rem;opacity:.7}
+/* Loop 46 (contd.): with the pattern title headings retired, a
+   list_page toolbar that carries only actions keeps them at the
+   right edge, where they sat when the title anchored the left. */
+.pat-toolbar > .pat-toolbar-actions:only-child{margin-left:auto}

@@ -4,10 +4,6 @@
 
     @if(Qs::userIsTeamSA())
     <div class="card">
-        <div class="card-header header-elements-inline">
-            <h6 class="card-title">Create Timetable</h6>
-            {!! Qs::getPanelOptions() !!}
-        </div>
 
         <div class="card-body">
             <form class="ajax-store" method="post" action="{{ route('ttr.store') }}">
@@ -53,10 +49,6 @@
     @endif
 
     <div class="card">
-        <div class="card-header header-elements-inline">
-            <h6 class="card-title">Timetables</h6>
-            {!! Qs::getPanelOptions() !!}
-        </div>
 
         <div class="card-body">
             @php $has_records = $tt_records->count() > 0; @endphp

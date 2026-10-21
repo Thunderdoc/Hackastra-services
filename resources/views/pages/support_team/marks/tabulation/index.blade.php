@@ -2,10 +2,6 @@
 @section('page_title', 'Tabulation Sheet')
 @section('content')
     <div class="card">
-        <div class="card-header header-elements-inline">
-            <h5 class="card-title"><i class="icon-books mr-2"></i> Tabulation Sheet</h5>
-            {!! Qs::getPanelOptions() !!}
-        </div>
 
         <div class="card-body">
         <form method="post" action="{{ route('marks.tabulation_select') }}">

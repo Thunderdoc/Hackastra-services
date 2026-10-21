@@ -3,7 +3,7 @@
 @section('content')
     <div class="card">
         <div class="card-header header-elements-inline">
-            <h6 class="card-title">Low Attendance (Below {{ $threshold }}%)</h6>
+
             {!! Qs::getPanelOptions() !!}
         </div>
         <div class="card-body">

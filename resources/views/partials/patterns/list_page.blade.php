@@ -31,8 +31,10 @@
             <table class="table"> ... the list table ... </table>
         @endcomponent
 
-    Slots:  title (required) · subtitle, action, filters
-            (optional) · default slot = the table markup.
+    Slots:  subtitle, action, filters (optional) · default slot =
+            the table markup. The 'title' slot is RETIRED (Loop 46):
+            the common layout header renders the page title once, so
+            this pattern prints no heading of its own.
     Styles: public/assets/css/qs.css — "Loop 28" (.pat-* classes).
     The card/table/button styling itself comes from the shared
     .content .card / .table / .btn tokens; this pattern only adds
@@ -44,17 +46,22 @@
     $patHasFilters  = isset($filters)  && trim((string) $filters) !== '';
 @endphp
 <div class="pat-list">
+    {{-- Loop 46 (Workstream BS): no title heading here — the common
+         layout header (partials/header) renders the page's title once.
+         The retired 'title' slot is still accepted so existing pages
+         keep working; put descriptive text in 'subtitle' instead. --}}
+    @if($patHasSubtitle || $patHasAction)
     <div class="pat-toolbar">
-        <div class="pat-toolbar-text">
-            <h4 class="pat-toolbar-title">{!! $title !!}</h4>
-            @if($patHasSubtitle)
+        @if($patHasSubtitle)
+            <div class="pat-toolbar-text">
                 <div class="pat-toolbar-sub">{!! $subtitle !!}</div>
-            @endif
-        </div>
+            </div>
+        @endif
         @if($patHasAction)
             <div class="pat-toolbar-actions">{!! $action !!}</div>
         @endif
     </div>
+    @endif
 
     @if($patHasFilters)
         <div class="pat-filters">{!! $filters !!}</div>
