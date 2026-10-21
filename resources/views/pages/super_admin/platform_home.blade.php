@@ -27,10 +27,10 @@
     {{-- Platform headline numbers — every value comes from a live query --}}
     <div class="row dashboard-stats">
         @foreach([
-            ['label' => 'Total Users', 'value' => number_format($total_users), 'sub' => 'Accounts across all roles', 'icon' => 'icon-users4', 'tone' => 'blue', 'link' => route('users.index')],
+            ['label' => 'Total Users', 'value' => number_format($total_users), 'sub' => 'Accounts across all roles · ' . number_format($signed_in_this_week) . ' signed in this week', 'icon' => 'icon-users4', 'tone' => 'blue', 'link' => route('users.index')],
             ['label' => 'Audit Entries Today', 'value' => number_format($audit_today), 'sub' => 'Recorded actions today', 'icon' => 'icon-shield-check', 'tone' => 'green', 'link' => route('audit_logs.index')],
             ['label' => 'Audit Entries This Week', 'value' => number_format($audit_week), 'sub' => 'Since ' . $audit_week_from->format('l, d M'), 'icon' => 'icon-stats-bars', 'tone' => 'orange', 'link' => route('audit_logs.index')],
-            ['label' => 'Configuration', 'value' => $settings_done . ' of ' . $settings_total, 'sub' => 'Key settings completed', 'icon' => 'icon-cog5', 'tone' => 'purple', 'link' => route('settings')],
+            ['label' => 'Configuration', 'value' => $settings_done . ' of ' . $settings_total, 'sub' => $settings_missing->isNotEmpty() ? 'Missing: ' . $settings_missing->implode(', ') : 'All key settings completed', 'icon' => 'icon-cog5', 'tone' => 'purple', 'link' => route('settings')],
         ] as $stat)
             <div class="col-sm-6 col-xl-3">
                 <a href="{{ $stat['link'] }}" class="dashboard-stat-card dashboard-stat-{{ $stat['tone'] }}">
@@ -57,12 +57,13 @@
                 </div>
                 <div class="table-responsive">
                     <table class="table dashboard-table mb-0">
-                        <thead><tr><th>Role</th><th>Accounts</th></tr></thead>
+                        <thead><tr><th>Role</th><th>Accounts</th><th>Last sign-in</th></tr></thead>
                         <tbody>
                         @foreach($role_counts as $role)
                             <tr>
                                 <td><strong>{{ $role['label'] }}</strong></td>
                                 <td>{{ number_format($role['total']) }}</td>
+                                <td>{{ $role['last_sign_in'] ? $role['last_sign_in']->format('d M Y, h:i A') : '—' }}</td>
                             </tr>
                         @endforeach
                         </tbody>
@@ -116,7 +117,7 @@
             {{-- Configuration checklist — key settings, set or missing --}}
             <section class="dashboard-panel mb-4">
                 <div class="dashboard-panel-heading">
-                    <div><h5 class="mb-1"><i class="icon-cog5 text-blue mr-1"></i> Configuration Checklist</h5><p class="dashboard-muted mb-0">{{ $settings_done }} of {{ $settings_total }} key settings completed</p></div>
+                    <div><h5 class="mb-1"><i class="icon-cog5 text-blue mr-1"></i> Configuration Checklist</h5><p class="dashboard-muted mb-0">{{ $settings_done }} of {{ $settings_total }} key settings completed{{ $settings_missing->isNotEmpty() ? ' · Missing: ' . $settings_missing->implode(', ') : '' }}</p></div>
                     <a href="{{ route('settings') }}" class="dashboard-view-all">Settings <i class="icon-arrow-right7"></i></a>
                 </div>
                 @foreach($settings_checklist as $item)
@@ -127,10 +128,11 @@
                 @endforeach
             </section>
 
-            {{-- Recent sign-ins — successful logins only (see note) --}}
+            {{-- Recent sign-ins — successful logins (failed attempts are
+                 recorded too; they live in the Security panel below) --}}
             <section class="dashboard-panel mb-4">
                 <div class="dashboard-panel-heading">
-                    <div><h5 class="mb-1"><i class="icon-enter text-blue mr-1"></i> Recent Sign-ins</h5><p class="dashboard-muted mb-0">Latest successful sign-ins. Failed attempts are not recorded.</p></div>
+                    <div><h5 class="mb-1"><i class="icon-enter text-blue mr-1"></i> Recent Sign-ins</h5><p class="dashboard-muted mb-0">Latest successful sign-ins.</p></div>
                 </div>
                 <div class="table-responsive l17-list-scroll">
                     <table class="table dashboard-table mb-0">
@@ -148,6 +150,28 @@
                         </tbody>
                     </table>
                 </div>
+            </section>
+
+            {{-- Security — failed sign-in attempts (auth.failed audit
+                 rows written by LogFailedLogin; the attempted identity is
+                 carried in the row's description, never the password) --}}
+            <section class="dashboard-panel mb-4">
+                <div class="dashboard-panel-heading">
+                    <div><h5 class="mb-1"><i class="icon-shield-check text-blue mr-1"></i> Security</h5><p class="dashboard-muted mb-0">Failed sign-in attempts</p></div>
+                    <a href="{{ route('audit_logs.index') }}" class="dashboard-view-all">Audit Logs <i class="icon-arrow-right7"></i></a>
+                </div>
+                <div class="dashboard-event">
+                    <span class="event-copy"><strong>Failed attempts today</strong></span>
+                    <span class="dashboard-status {{ $failed_today > 0 ? 'status-warning' : 'status-success' }}">{{ number_format($failed_today) }}</span>
+                </div>
+                @forelse($recent_failed as $attempt)
+                    <div class="dashboard-event">
+                        <span class="event-copy"><strong>{{ $attempt->description ?: '—' }}</strong><br><small class="dashboard-muted">{{ $attempt->created_at->format('d M Y, h:i A') }}</small></span>
+                        <span class="dashboard-muted">{{ $attempt->ip_address ?: '—' }}</span>
+                    </div>
+                @empty
+                    <p class="dashboard-empty mb-0">No failed sign-in attempts recorded.</p>
+                @endforelse
             </section>
 
             {{-- School snapshot — secondary, clearly labelled: this

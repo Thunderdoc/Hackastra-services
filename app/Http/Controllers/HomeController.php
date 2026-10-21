@@ -262,17 +262,50 @@ class HomeController extends Controller
         $audit_week = 0;
         $recent_audit = collect();
         $recent_logins = collect();
+        $signed_in_this_week = 0;
+        $last_login_by_role = collect();
+        $failed_today = 0;
+        $recent_failed = collect();
         if (Schema::hasTable('audit_logs')) {
             $audit_today = AuditLog::whereDate('created_at', $now->toDateString())->count();
             $audit_week = AuditLog::where('created_at', '>=', $now->copy()->startOfWeek())->count();
             $recent_audit = AuditLog::with('user')->latest()->take(10)->get();
-            // Only successful sign-ins are audited (the LogSuccessfulLogin
-            // listener); failed attempts are never written to the log.
+            // Successful sign-ins are audited by the LogSuccessfulLogin
+            // listener; failed attempts by LogFailedLogin ('auth.failed').
             $recent_logins = AuditLog::with('user')
                 ->where('action', 'auth.login')
                 ->latest()
                 ->take(8)
                 ->get();
+            // Distinct accounts with at least one successful sign-in
+            // since the start of this week.
+            $signed_in_this_week = (int) AuditLog::where('action', 'auth.login')
+                ->where('created_at', '>=', $now->copy()->startOfWeek())
+                ->whereNotNull('user_id')
+                ->distinct()
+                ->count('user_id');
+            // Latest successful sign-in per role (for the Users by Role
+            // table); roles with no recorded sign-in simply have none.
+            $last_login_by_role = AuditLog::query()
+                ->join('users', 'users.id', '=', 'audit_logs.user_id')
+                ->where('audit_logs.action', 'auth.login')
+                ->select('users.user_type', DB::raw('max(audit_logs.created_at) as last_at'))
+                ->groupBy('users.user_type')
+                ->pluck('last_at', 'user_type');
+            $failed_today = AuditLog::where('action', 'auth.failed')
+                ->whereDate('created_at', $now->toDateString())
+                ->count();
+            // For failed rows the description carries the attempted
+            // identity (see LogFailedLogin); IP comes from the request.
+            $recent_failed = AuditLog::where('action', 'auth.failed')
+                ->latest()
+                ->take(5)
+                ->get();
+        }
+
+        foreach ($role_counts as $i => $role) {
+            $last = $last_login_by_role[$role['type']] ?? null;
+            $role_counts[$i]['last_sign_in'] = $last ? Carbon::parse($last) : null;
         }
 
         $settings_checklist = [];
@@ -302,6 +335,10 @@ class HomeController extends Controller
             'settings_checklist' => $settings_checklist,
             'settings_done' => collect($settings_checklist)->where('set', true)->count(),
             'settings_total' => count($settings_checklist),
+            'settings_missing' => collect($settings_checklist)->where('set', false)->pluck('label')->values(),
+            'signed_in_this_week' => $signed_in_this_week,
+            'failed_today' => $failed_today,
+            'recent_failed' => $recent_failed,
             // Secondary "school snapshot": the deployment serves one
             // school today; these are its headline sizes, not tenants.
             'snapshot_student_count' => StudentRecord::where('grad', 0)->count(),
