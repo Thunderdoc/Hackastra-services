@@ -136,6 +136,13 @@ class StudentRecordController extends Controller
         $data['my_classes'] = $this->my_class->all();
         $data['students'] = $this->student->allGradStudents();
 
+        // Batch 3: optional server-side class filter (?class_id=) so the
+        // page renders ONE table instead of one tab pane per class.
+        $data['selected_class'] = $class_id = (int) request('class_id');
+        if ($class_id) {
+            $data['students'] = $data['students']->where('my_class_id', $class_id)->values();
+        }
+
         return view('pages.support_team.students.graduated', $data);
     }
 

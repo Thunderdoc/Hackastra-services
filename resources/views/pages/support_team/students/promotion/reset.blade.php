@@ -1,24 +1,22 @@
 @extends('layouts.master')
 @section('page_title', 'Manage Promotions')
 @section('content')
+    {{-- Batch 3: rebuilt on the shared list_page pattern (Loop 28). The
+         promotions table (id promotions-list), the per-row Reset forms
+         and the Reset All AJAX flow in the scripts section are
+         unchanged — only the page shell changed. --}}
+    @component('partials.patterns.list_page')
+        @slot('title')
+            <i class="icon-stairs-up mr-2"></i> Manage Promotions
+        @endslot
+        @slot('subtitle')
+            Students who were promoted from <span class="text-danger">{{ $old_year }}</span> to <span class="text-success">{{ $new_year }}</span> session.
+        @endslot
+        @slot('action')
+            <button id="promotion-reset-all" class="btn btn-danger">Reset All Promotions for the Session</button>
+        @endslot
 
-    {{--Reset All--}}
-    <div class="card">
-        <div class="card-body text-center
-">
-            <button id="promotion-reset-all" class="btn btn-danger btn-large">Reset All Promotions for the Session</button>
-        </div>
-    </div>
-
-{{-- Reset Promotions --}}
-    <div class="card">
-        <div class="card-header header-elements-inline">
-            <h5 class="card-title font-weight-bold">Manage Promotions - Students Who Were Promoted From <span class="text-danger">{{ $old_year }}</span> TO <span class="text-success">{{ $new_year }}</span> Session</h5>
-            {!! Qs::getPanelOptions() !!}
-        </div>
-
-        <div class="card-body">
-
+        @if($promotions->count())
             <table id="promotions-list" class="table datatable-button-html5-columns">
                 <thead>
                 <tr>
@@ -54,9 +52,13 @@
                 @endforeach
                 </tbody>
             </table>
-        </div>
-    </div>
-
+        @else
+            @include('partials.patterns.empty_state', [
+                'icon' => 'icon-stairs-up',
+                'message' => 'No promotions recorded for this session yet. Promotions appear here after a promotion run.',
+            ])
+        @endif
+    @endcomponent
 @endsection
 
 @section('scripts')
