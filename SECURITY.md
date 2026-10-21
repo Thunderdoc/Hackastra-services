@@ -1,8 +1,8 @@
 ### Security Vulnerabilities
-If you discover a security vulnerability within LAV_SMS, please send an e-mail to CJ Inspired via cjay.pub@gmail.com. All security vulnerabilities will be promptly addressed.
+If you discover a security vulnerability within Hackstra, report it privately to the project owner before publicly disclosing it. Do not include passwords, tokens, or private student data in an issue.
 
-Please Note that some sections of this project are in the work-in-progress stage and would be updated soon. These include:
+Please note that some sections of this project are still being modernized. These include:
 
-The Noticeboard/Calendar in the Dashboard Area
-Librarian/Acountant user pages
-Library Resources/Study Materials Upload for Students
+- The noticeboard/calendar in the dashboard area
+- Librarian/accountant user pages
+- Library resources/study-material uploads for students
