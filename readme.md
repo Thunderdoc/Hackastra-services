@@ -34,15 +34,27 @@ Administrators (Super Admin & Admin)
 - Student
 - Parent
 
-**Requirements** 
+**Requirements**
 
-Check Laravel 8 Requirements https://laravel.com/docs/8.x
+- PHP 8.2 (development target while the staged Laravel upgrade runs — see `docs/MODERNIZATION.md`)
+- Composer 2, MySQL 8 (or MariaDB 10.6+), Node 20 for the legacy frontend build
+- PHP extensions: openssl, pdo_mysql, mbstring, fileinfo, tokenizer, xml, ctype, json, curl, zip
 
 **Installation**
-- Install dependencies (composer install)
-- Set Database Credentials & App Settings in dotenv file (.env)
-- Migrate Database (php artisan migrate)
-- Database seed (php artisan db:seed)
+- Install dependencies (`composer install`)
+- Copy `.env.example` to `.env`, set database credentials, and run `php artisan key:generate`
+- Migrate the database (`php artisan migrate`)
+- Seed the database (`php artisan db:seed`)
+- Optional demo data for the dashboard (students' fees, marks, school events): `php artisan db:seed --class=DashboardDemoDataSeeder`
+
+> ⚠️ The seeded credentials below are **demo-only**. Rotate every one of them before any public deployment. Production must run with `APP_ENV=production` and `APP_DEBUG=false`.
+
+**What's new in the modernization (see `docs/MODERNIZATION.md` for the full plan)**
+- Super Admin dashboard rebuilt to the current design: real fee totals in ₹, enrollment trend, school calendar, upcoming events, smart insights
+- Daily **Attendance** (sidebar) — one record per student per day, powering the dashboard panel
+- **School Events** management (sidebar) — powers the calendar and Upcoming Events
+- **Global search** in the top bar (`Ctrl + K`) across students, staff, classes and payments
+- Record-level policies for students and payments; CI on PHP 8.2
 
 **Login Credentials**
 After seeding. Login details as follows:

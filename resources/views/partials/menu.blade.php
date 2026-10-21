@@ -61,6 +61,24 @@
                     </a>
                 </li>
 
+                @if(Qs::userIsTeamSAT())
+                <li class="nav-item">
+                    <a href="{{ route('attendance.index') }}" class="nav-link {{ (Route::is('attendance.*')) ? 'active' : '' }}">
+                        <i class="icon-calendar52"></i>
+                        <span>Attendance</span>
+                    </a>
+                </li>
+                @endif
+
+                @if(Qs::userIsTeamSA())
+                <li class="nav-item">
+                    <a href="{{ route('events.index') }}" class="nav-link {{ (Route::is('events.*')) ? 'active' : '' }}">
+                        <i class="icon-calendar3"></i>
+                        <span>School Events</span>
+                    </a>
+                </li>
+                @endif
+
                 {{--Academics--}}
                 @if(Qs::userIsAcademic())
                     <li class="nav-item nav-item-submenu {{ in_array(Route::currentRouteName(), ['tt.index', 'ttr.edit', 'ttr.show', 'ttr.manage']) ? 'nav-item-expanded nav-item-open' : '' }} ">
