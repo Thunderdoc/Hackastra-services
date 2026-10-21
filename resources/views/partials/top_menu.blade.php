@@ -1,3 +1,14 @@
+{{--
+    Loop 33 — ONE common topbar for every page (Workstream AS).
+    Included exactly once by layouts/master. Structure:
+      [mobile toggle] [sidebar toggle] [global search — Ctrl+K focuses it]
+      ... right: [Current Session chip x1] [bell] [user chip]
+    There is deliberately NO page title here — titles live in the page
+    header (partials/header). The session chip lives here and ONLY here
+    (it was removed from partials/header so it can never render twice).
+    The old theme-toggle (sun) button was removed: no JS handler or dark
+    theme exists anywhere in the app, so it was a dead control.
+--}}
 <div class="navbar navbar-expand-md lav-topbar">
     <div class="lav-topbar-mobile">
         <button type="button" class="navbar-toggler sidebar-mobile-main-toggle" aria-label="Open navigation">
@@ -21,7 +32,12 @@
             }
         });
     </script>
-    <div class="ml-auto d-flex align-items-center">
+    <div class="ml-auto d-flex align-items-center lav-topbar-right">
+        @if(Qs::userIsTeamSA())
+            <a href="{{ route('settings') }}" class="session-chip lav-session-chip" title="Open settings to change the current session"><i class="icon-calendar5"></i><span class="lav-session-label">Current Session:&nbsp;</span><strong>{{ Qs::getSetting('current_session') }}</strong></a>
+        @else
+            <span class="session-chip lav-session-chip"><i class="icon-calendar5"></i><span class="lav-session-label">Current Session:&nbsp;</span><strong>{{ Qs::getSetting('current_session') }}</strong></span>
+        @endif
         @if(Qs::userIsTeamSAT() || Qs::userIsTeamAccount())
             @php
                 $lavRecentPayments = \App\Models\PaymentRecord::with('payment')->latest()->take(4)->get();
@@ -51,17 +67,33 @@
                 </div>
             </div>
         @else
-            <button type="button" class="lav-topbar-icon" aria-label="Notifications" title="No new notifications"><i class="icon-bell2"></i></button>
+            @php
+                $lavCirculars = \App\Models\Circular::where('is_published', true)->latest()->take(4)->get();
+            @endphp
+            <div class="nav-item dropdown">
+                <button type="button" class="lav-topbar-icon" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="Circulars" title="Circulars"><i class="icon-bell2"></i></button>
+                <div class="dropdown-menu dropdown-menu-right lav-notif-menu">
+                    <div class="dropdown-header">Latest circulars</div>
+                    @forelse($lavCirculars as $lavCircular)
+                        <a class="dropdown-item lav-notif-item" href="{{ route('circulars.show', $lavCircular->id) }}">
+                            <i class="icon-megaphone"></i>
+                            <span>{{ $lavCircular->title }}<small>{{ $lavCircular->created_at->diffForHumans() }}</small></span>
+                        </a>
+                    @empty
+                        <span class="dropdown-item text-muted">No circulars yet.</span>
+                    @endforelse
+                    <div class="dropdown-divider"></div>
+                    <a class="dropdown-item" href="{{ route('circulars.index') }}">View all circulars</a>
+                </div>
+            </div>
         @endif
-        <button type="button" class="lav-topbar-icon lav-theme-toggle" aria-label="Toggle theme"><i class="icon-sun3"></i></button>
         <div class="nav-item dropdown dropdown-user lav-profile">
             <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">
                 <span class="l7-avatar l7-avatar-sm" aria-hidden="true">{{ strtoupper(substr(Auth::user()->name, 0, 1)) }}<img src="{{ Auth::user()->photo }}" alt="" onerror="this.remove()"></span>
-                <span><strong>{{ Auth::user()->name }}</strong><small>{{ ucwords(str_replace('_', ' ', Auth::user()->user_type)) }}</small></span>
+                <span class="lav-user-meta"><strong>{{ Auth::user()->name }}</strong><small>{{ ucwords(str_replace('_', ' ', Auth::user()->user_type)) }}</small></span>
             </a>
             <div class="dropdown-menu dropdown-menu-right">
-                <a href="{{ Qs::userIsStudent() ? route('students.show', Qs::hash(Qs::findStudentRecord(Auth::user()->id)->id)) : route('users.show', Qs::hash(Auth::user()->id)) }}" class="dropdown-item"><i class="icon-user-plus"></i> My profile</a>
-                <a href="{{ route('my_account') }}" class="dropdown-item"><i class="icon-cog5"></i> Account settings</a>
+                <a href="{{ route('my_account') }}" class="dropdown-item"><i class="icon-cog5"></i> My Account</a>
                 <div class="dropdown-divider"></div>
                 <a href="{{ route('logout') }}" onclick="event.preventDefault(); document.getElementById('logout-form').submit();" class="dropdown-item"><i class="icon-switch2"></i> Logout</a>
                 <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display:none">@csrf</form>

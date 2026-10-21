@@ -1412,3 +1412,32 @@ body.sidebar-xs .lav-sidebar-session{justify-content:center;left:6px;right:6px;p
 body.sidebar-xs .lav-sidebar-session span,body.sidebar-xs .lav-sidebar-session>a{display:none}
 body.sidebar-xs .t9-session-card{justify-content:center;margin:12px 6px;padding:11px 0}
 body.sidebar-xs .t9-session-card span,body.sidebar-xs .t9-session-card .t9-session-chev{display:none}
+
+/* ============================================================
+   Loop 33 — Common topbar (Workstream AS). ONE bar for every
+   page: partials/top_menu, included once by layouts/master.
+   The bar is sticky, carries the session chip (its ONLY home —
+   removed from partials/header), the real bell dropdown for
+   every role, and a single-entry user menu. The Loop 25 offset
+   contract (218px / 56px sidebar-xs at >=992px) is untouched,
+   and print still hides the bar (global print rules above).
+   ============================================================ */
+.lav-topbar{position:sticky;top:0;z-index:1020;box-shadow:0 1px 0 rgba(23,37,54,.02)}
+.lav-topbar-right{gap:10px}
+.lav-topbar .lav-session-chip{flex:none}
+.lav-topbar .lav-session-chip .lav-session-label{white-space:nowrap}
+.lav-topbar .dropdown-menu{margin-top:8px}
+@media (max-width:991px){
+  .lav-topbar-right{gap:2px}
+  .lav-topbar .lav-session-chip{padding:5px 10px;font-size:.75rem}
+}
+@media (max-width:767px){
+  /* Search becomes a shortened flexible field; the user chip
+     keeps its avatar on-bar, name/role and the chip's text
+     label step aside instead of pushing anything off. */
+  .lav-topbar .lav-user-meta{display:none}
+  .lav-topbar .lav-profile .l7-avatar{display:inline-flex}
+  .lav-topbar .lav-session-label{display:none}
+  .lav-topbar .lav-session-chip{padding:5px 9px}
+  .lav-search{flex:1 1 auto;min-width:0}
+}
