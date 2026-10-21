@@ -16,7 +16,8 @@
 
             <div class="tab-content">
                     <div class="tab-pane fade show active" id="all-grades">
-                        <table class="table datatable-button-html5-columns">
+                        <div class="table-responsive">
+                        <table class="table">
                             <thead>
                             <tr>
                                 <th>S/N</th>
@@ -63,6 +64,7 @@
                             @endforelse
                             </tbody>
                         </table>
+                        </div>
                     </div>
 
                 <div class="tab-pane fade" id="new-grade">

@@ -29,7 +29,8 @@
         @endslot
 
         @if($users->count())
-            <table class="table datatable-button-html5-columns">
+            <div class="table-responsive">
+            <table class="table">
                 <thead>
                 <tr>
                     <th>S/N</th>
@@ -78,6 +79,7 @@
                 @endforeach
                 </tbody>
             </table>
+            </div>
         @else
             @include('partials.patterns.empty_state', [
                 'icon' => 'icon-users',
