@@ -38,6 +38,11 @@ RUN (a2dismod mpm_event mpm_worker || true) \
     && sed -i 's|/var/www/|/var/www/html/public|g' /etc/apache2/apache2.conf \
     && sed -i 's|Listen 80|Listen ${PORT}|' /etc/apache2/ports.conf \
     && sed -i 's|<VirtualHost \*:80>|<VirtualHost *:${PORT}>|' /etc/apache2/sites-available/000-default.conf
+
+# Laravel needs .htaccess rewrites inside public/: Debian's default is
+# AllowOverride None, which makes every route except / an Apache 404.
+RUN printf '<Directory /var/www/html/public>\n    AllowOverride All\n    Require all granted\n</Directory>\nServerName localhost\n' > /etc/apache2/conf-available/laravel.conf \
+    && a2enconf laravel
 ENV PORT=8080
 EXPOSE 8080
 
