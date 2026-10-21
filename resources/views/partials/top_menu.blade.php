@@ -56,7 +56,7 @@
         <button type="button" class="lav-topbar-icon lav-theme-toggle" aria-label="Toggle theme"><i class="icon-sun3"></i></button>
         <div class="nav-item dropdown dropdown-user lav-profile">
             <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">
-                <img src="{{ Auth::user()->photo }}" class="rounded-circle" alt="">
+                <span class="l7-avatar l7-avatar-sm" aria-hidden="true">{{ strtoupper(substr(Auth::user()->name, 0, 1)) }}<img src="{{ Auth::user()->photo }}" alt="" onerror="this.remove()"></span>
                 <span><strong>{{ Auth::user()->name }}</strong><small>{{ ucwords(str_replace('_', ' ', Auth::user()->user_type)) }}</small></span>
             </a>
             <div class="dropdown-menu dropdown-menu-right">

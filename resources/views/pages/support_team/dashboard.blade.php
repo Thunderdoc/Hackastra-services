@@ -197,7 +197,7 @@
                     <div><h5 class="mb-1">Recent Students</h5><p class="dashboard-muted mb-0">Latest admissions and active enrollments</p></div>
                     <a href="{{ route('students.list', optional(App\Models\MyClass::first())->id) }}" class="dashboard-view-all">View All <i class="icon-arrow-right7"></i></a>
                 </div>
-                <div class="table-responsive">
+                <div class="table-responsive l7-table-scroll">
                     <table class="table dashboard-table mb-0">
                         <thead><tr><th>Student</th><th>Class</th><th>Section</th><th>Admission Date</th><th>Status</th></tr></thead>
                         <tbody>
@@ -225,7 +225,7 @@
                     <div><h5 class="mb-1">Recent Payments</h5><p class="dashboard-muted mb-0">Latest payment records</p></div>
                     @if(Route::has('payments.manage'))<a href="{{ route('payments.manage') }}" class="dashboard-view-all">View All <i class="icon-arrow-right7"></i></a>@endif
                 </div>
-                <div class="table-responsive">
+                <div class="table-responsive l7-table-scroll">
                     <table class="table dashboard-table mb-0">
                         <thead><tr><th>Student</th><th>Amount</th><th>Date</th><th>Status</th></tr></thead>
                         <tbody>
