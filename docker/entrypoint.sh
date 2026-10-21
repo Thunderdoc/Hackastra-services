@@ -4,6 +4,21 @@ set -e
 
 cd /var/www/html
 
+# Port: make Apache listen on the host-provided port, explicitly — no
+# reliance on Apache's config-time variable expansion.
+export PORT="${PORT:-8080}"
+sed -i "s|^Listen .*|Listen ${PORT}|" /etc/apache2/ports.conf || true
+sed -i -E "s|<VirtualHost \*:[^>]+>|<VirtualHost *:${PORT}>|" /etc/apache2/sites-available/000-default.conf || true
+
+# APP_KEY fallback: without a key, Laravel cannot encrypt cookies and
+# EVERY page errors (and the platform health check fails with it).
+# Generate an ephemeral key for this boot when the host provides none;
+# a real APP_KEY set in the host's variables always wins.
+if [ -z "$APP_KEY" ]; then
+    export APP_KEY="$(php artisan key:generate --show 2>/dev/null || true)"
+    echo "APP_KEY was not set - generated an ephemeral key for this boot."
+fi
+
 # Railway (and most hosts) inject DB settings as env vars. Translate the
 # MYSQL* variables Railway's MySQL service provides, when DB_* are unset.
 if [ -z "$DB_HOST" ] && [ -n "$MYSQLHOST" ]; then
