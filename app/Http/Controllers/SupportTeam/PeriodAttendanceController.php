@@ -1,0 +1,493 @@
+<?php
+
+namespace App\Http\Controllers\SupportTeam;
+
+use App\Helpers\Qs;
+use App\Http\Controllers\Controller;
+use App\Models\AttendanceSession;
+use App\Models\AttendanceSessionEntry;
+use App\Models\MyClass;
+use App\Models\StudentRecord;
+use App\Models\Subject;
+use App\Models\TimeTable;
+use App\Support\CsvExport;
+use Illuminate\Database\QueryException;
+use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
+
+/**
+ * Period-wise (subject) attendance — Workstream AC.
+ *
+ * The day-wise register (AttendanceController) says a student was in
+ * school; this log says which periods they attended. Each timetable
+ * period's own teacher takes the register for that period, records
+ * the topic taught, and submits — submission is FINAL. There is no
+ * edit or delete route for a session, the store action refuses a
+ * second session for the same period + date, and the
+ * (date, time_table_id) unique key enforces it in the database.
+ *
+ * Period resolution mirrors HomeController::teacherHomeData: weekday
+ * TimeTable rows (exam rows carry an exam_date instead of a weekday,
+ * so the weekday filter excludes them) joined through Subject, whose
+ * teacher_id decides whose period it is.
+ */
+class PeriodAttendanceController extends Controller
+{
+    public function __construct()
+    {
+        // Staff only: Super Admin / Admin (oversight, read-only) and
+        // teachers (they take their own periods).
+        $this->middleware('teamSAT');
+    }
+
+    /**
+     * Period list for a chosen date. A teacher sees only their own
+     * periods; Super Admin / Admin get a class picker and a read-only
+     * view of every period in that class.
+     */
+    public function index(Request $request)
+    {
+        $d['date'] = $this->dateFromRequest($request);
+        $d['is_teacher'] = Qs::userIsTeacher();
+        $d['classes'] = collect();
+        $d['selected_class'] = null;
+
+        if ($d['is_teacher']) {
+            $d['periods'] = $this->periodsFor($d['date'], (int) $request->user()->id, null);
+        } else {
+            $d['classes'] = MyClass::orderBy('name')->get();
+            $d['selected_class'] = $request->query('class_id')
+                ? $d['classes']->firstWhere('id', (int) $request->query('class_id'))
+                : $d['classes']->first();
+            $d['periods'] = $d['selected_class']
+                ? $this->periodsFor($d['date'], null, (int) $d['selected_class']->id)
+                : collect();
+        }
+
+        return view('pages.support_team.attendance_periods.index', $d);
+    }
+
+    /**
+     * The take-attendance page for one period on one date. A period
+     * that already has a submitted session goes straight to the
+     * locked record — this page only ever renders for an untaken
+     * period and only for that period's own teacher.
+     */
+    public function take(Request $request, $tt_id)
+    {
+        $period = $this->resolvePeriod((int) $tt_id);
+        $date = $this->dateFromRequest($request);
+        $this->guardDateMatchesPeriod($date, $period['tt']);
+
+        $existing = $this->existingSession($date, $period['tt']->id);
+        if ($existing) {
+            return redirect()->route('attendance.periods.show', $existing->id)
+                ->with('flash_success', 'Attendance for this period was already submitted — the record is locked.');
+        }
+
+        $denied = $this->guardCanTake($request, $period);
+        if ($denied) {
+            return $denied;
+        }
+
+        $d['period'] = $period;
+        $d['date'] = $date;
+        $d['students'] = $this->roster($period['class']->id);
+
+        return view('pages.support_team.attendance_periods.take', $d);
+    }
+
+    /**
+     * Submit a period register. Final: creates the session and one
+     * entry per roster student in a single transaction, and refuses
+     * (with a pointer to the locked record) when the period already
+     * has a session for the date.
+     */
+    public function store(Request $request, $tt_id)
+    {
+        $period = $this->resolvePeriod((int) $tt_id);
+
+        $data = $request->validate([
+            'topic' => 'required|string|max:255',
+            'date' => 'required|date_format:Y-m-d',
+            'statuses' => 'required|array',
+            'statuses.*' => 'required|in:present,absent,late',
+        ]);
+
+        $date = Carbon::createFromFormat('Y-m-d', $data['date'])->startOfDay();
+        $this->guardDateMatchesPeriod($date, $period['tt']);
+
+        if ($date->isFuture()) {
+            throw ValidationException::withMessages([
+                'date' => 'Attendance cannot be taken for a future date.',
+            ]);
+        }
+
+        $denied = $this->guardCanTake($request, $period);
+        if ($denied) {
+            return $denied;
+        }
+
+        $existing = $this->existingSession($date, $period['tt']->id);
+        if ($existing) {
+            return redirect()->route('attendance.periods.show', $existing->id)
+                ->with('flash_danger', 'Attendance for this period was already submitted and is locked — it cannot be taken again.');
+        }
+
+        $students = $this->roster($period['class']->id);
+        $rosterIds = $students->pluck('id')->all();
+        $submittedIds = array_map('intval', array_keys($data['statuses']));
+        sort($rosterIds);
+        sort($submittedIds);
+        if ($submittedIds !== $rosterIds) {
+            throw ValidationException::withMessages([
+                'statuses' => 'Every student on the class roster must be marked present, absent or late before submitting.',
+            ]);
+        }
+
+        try {
+            DB::transaction(function () use ($data, $date, $period, $students, $request) {
+                $session = AttendanceSession::create([
+                    'date' => $date->toDateString(),
+                    'time_table_id' => $period['tt']->id,
+                    'my_class_id' => $period['class']->id,
+                    'section_id' => null, // timetables are class-level in this schema
+                    'subject_id' => $period['subject']->id,
+                    'teacher_id' => $request->user()->id,
+                    'topic' => $data['topic'],
+                    'status' => AttendanceSession::STATUS_SUBMITTED,
+                    'submitted_at' => now(),
+                ]);
+
+                $now = now();
+                $entries = $students->map(function ($student) use ($session, $data, $now) {
+                    return [
+                        'session_id' => $session->id,
+                        'student_record_id' => $student->id,
+                        'status' => $data['statuses'][$student->id],
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ];
+                })->all();
+
+                AttendanceSessionEntry::insert($entries);
+            });
+        } catch (QueryException $e) {
+            // The (date, time_table_id) unique key fired — a register
+            // for this period already exists (double submit / race).
+            $existing = $this->existingSession($date, $period['tt']->id);
+            if ($existing) {
+                return redirect()->route('attendance.periods.show', $existing->id)
+                    ->with('flash_danger', 'Attendance for this period was already submitted and is locked — it cannot be taken again.');
+            }
+            throw $e;
+        }
+
+        return redirect()
+            ->route('attendance.periods.index', ['date' => $date->toDateString()])
+            ->with('flash_success', 'Attendance submitted for ' . $period['subject']->name . ' (' . $period['class']->name . ') — ' . $date->format('d M Y') . '. It is now locked.');
+    }
+
+    /** A submitted session, read-only. The lock made visible. */
+    public function show(Request $request, $session_id)
+    {
+        $session = AttendanceSession::with([
+            'subject', 'my_class', 'section', 'teacher',
+            'time_table.time_slot',
+            'entries.student_record.user', 'entries.student_record.section',
+        ])->findOrFail($session_id);
+
+        if (Qs::userIsTeacher() && (int) $session->teacher_id !== (int) $request->user()->id) {
+            abort(403, 'You can only view period attendance that you submitted.');
+        }
+
+        $d['session'] = $session;
+        $d['entries'] = $session->entries->sortBy(function ($entry) {
+            return strtolower(optional(optional($entry->student_record)->user)->name ?? '');
+        })->values();
+        $d['counts'] = [
+            'present' => $session->countByStatus(AttendanceSessionEntry::STATUS_PRESENT),
+            'absent' => $session->countByStatus(AttendanceSessionEntry::STATUS_ABSENT),
+            'late' => $session->countByStatus(AttendanceSessionEntry::STATUS_LATE),
+            'total' => $session->entries->count(),
+        ];
+        $slot = optional($session->time_table)->time_slot;
+        $d['time_label'] = optional($slot)->full ?: '—';
+
+        return view('pages.support_team.attendance_periods.show', $d);
+    }
+
+    /**
+     * Subject-wise report: per-student attendance in one subject for
+     * one class over a date range, plus the session log (date, time,
+     * teacher, topic, present count) those numbers came from.
+     * Percentage rule matches the day-wise report: (present + late)
+     * over marked entries.
+     */
+    public function report(Request $request)
+    {
+        $d = $this->reportData($request);
+
+        return view('pages.support_team.attendance_periods.report', $d);
+    }
+
+    /** CSV export of the report's per-student table. */
+    public function export(Request $request)
+    {
+        $d = $this->reportData($request);
+
+        if (!$d['selected_class'] || !$d['selected_subject']) {
+            return redirect()->route('attendance.periods.report')
+                ->with('flash_danger', 'No class or subject available to export.');
+        }
+
+        $rows = $d['rows']->map(function ($row) {
+            return [
+                optional($row['student']->user)->name,
+                optional($row['student']->section)->name,
+                $row['held'],
+                $row['present'],
+                $row['absent'],
+                $row['late'],
+                $row['percent'] === null ? '' : $row['percent'],
+            ];
+        })->all();
+
+        $filename = 'period-attendance-'
+            . Str::slug($d['selected_class']->name) . '-'
+            . Str::slug($d['selected_subject']->name) . '-'
+            . $d['from']->format('Y-m-d') . '-to-' . $d['to']->format('Y-m-d') . '.csv';
+
+        return CsvExport::download($filename,
+            ['Student', 'Section', 'Sessions Held', 'Present', 'Absent', 'Late', 'Attendance %'],
+            $rows);
+    }
+
+    /** Shared computation behind report() and export(). */
+    protected function reportData(Request $request): array
+    {
+        $d['classes'] = MyClass::orderBy('name')->get();
+        $d['selected_class'] = $request->query('class_id')
+            ? $d['classes']->firstWhere('id', (int) $request->query('class_id'))
+            : $d['classes']->first();
+
+        $d['subjects'] = $d['selected_class']
+            ? Subject::where('my_class_id', $d['selected_class']->id)->orderBy('name')->get()
+            : collect();
+        $d['selected_subject'] = $request->query('subject_id')
+            ? $d['subjects']->firstWhere('id', (int) $request->query('subject_id'))
+            : $d['subjects']->first();
+
+        $d['from'] = $this->dateParam($request, 'from') ?: Carbon::today()->startOfMonth();
+        $d['to'] = $this->dateParam($request, 'to') ?: Carbon::today();
+        if ($d['to']->lt($d['from'])) {
+            [$d['from'], $d['to']] = [$d['to'], $d['from']];
+        }
+
+        $d['rows'] = collect();
+        $d['log'] = collect();
+        $d['held'] = 0;
+
+        if ($d['selected_class'] && $d['selected_subject']) {
+            $sessions = AttendanceSession::with(['teacher', 'time_table.time_slot', 'entries'])
+                ->forClass($d['selected_class']->id)
+                ->forSubject($d['selected_subject']->id)
+                ->betweenDates($d['from'], $d['to'])
+                ->orderBy('date')
+                ->orderBy('id')
+                ->get();
+
+            $d['held'] = $sessions->count();
+
+            $entriesByStudent = AttendanceSessionEntry::whereIn('session_id', $sessions->pluck('id')->all())
+                ->get()
+                ->groupBy('student_record_id');
+
+            $students = $this->roster((int) $d['selected_class']->id);
+            $d['rows'] = $students->map(function ($student) use ($entriesByStudent, $d) {
+                $entries = $entriesByStudent->get($student->id, collect());
+                $present = $entries->where('status', AttendanceSessionEntry::STATUS_PRESENT)->count();
+                $absent = $entries->where('status', AttendanceSessionEntry::STATUS_ABSENT)->count();
+                $late = $entries->where('status', AttendanceSessionEntry::STATUS_LATE)->count();
+                $marked = $present + $absent + $late;
+
+                return [
+                    'student' => $student,
+                    'held' => $d['held'],
+                    'present' => $present,
+                    'absent' => $absent,
+                    'late' => $late,
+                    'marked' => $marked,
+                    'percent' => $marked > 0 ? (int) round(($present + $late) / $marked * 100) : null,
+                ];
+            });
+
+            $d['log'] = $sessions->map(function ($session) {
+                return [
+                    'session' => $session,
+                    'date' => $session->date,
+                    'time_label' => optional(optional($session->time_table)->time_slot)->full ?: '—',
+                    'teacher_name' => optional($session->teacher)->name ?: '—',
+                    'topic' => $session->topic,
+                    'present' => $session->countByStatus(AttendanceSessionEntry::STATUS_PRESENT),
+                    'total' => $session->entries->count(),
+                ];
+            })->sortByDesc(function ($row) {
+                return $row['date']->format('Y-m-d') . '-' . str_pad((string) $row['session']->id, 10, '0', STR_PAD_LEFT);
+            })->values();
+        }
+
+        return $d;
+    }
+
+    /**
+     * The periods of one weekday, resolved exactly like the teacher
+     * home: weekday TimeTable rows through Subject.teacher_id, with
+     * any already-submitted session attached.
+     *
+     * @param int|null $teacherId restrict to one teacher's subjects
+     * @param int|null $classId   restrict to one class's timetable
+     */
+    protected function periodsFor(Carbon $date, ?int $teacherId, ?int $classId)
+    {
+        if (!\Illuminate\Support\Facades\Schema::hasTable('time_tables')) {
+            return collect();
+        }
+
+        $query = TimeTable::with(['subject.my_class', 'subject.teacher', 'time_slot', 'tt_record.my_class'])
+            ->where('day', $date->format('l'))
+            ->whereNotNull('subject_id');
+
+        if ($teacherId !== null) {
+            $query->whereHas('subject', function ($q) use ($teacherId) {
+                $q->where('teacher_id', $teacherId);
+            });
+        }
+        if ($classId !== null) {
+            $query->whereHas('tt_record', function ($q) use ($classId) {
+                $q->where('my_class_id', $classId);
+            });
+        }
+
+        $periods = $query->get();
+
+        $sessions = AttendanceSession::whereDate('date', $date->toDateString())
+            ->whereIn('time_table_id', $periods->pluck('id')->all())
+            ->get()
+            ->keyBy('time_table_id');
+
+        return $periods
+            ->map(function (TimeTable $tt) use ($sessions, $date) {
+                $slot = $tt->time_slot;
+                $class = optional($tt->tt_record)->my_class ?: optional($tt->subject)->my_class;
+                $start = ($slot && $slot->time_from)
+                    ? Carbon::parse($date->toDateString() . ' ' . $slot->time_from)
+                    : null;
+
+                return [
+                    'tt' => $tt,
+                    'subject' => $tt->subject,
+                    'class' => $class,
+                    'teacher' => optional($tt->subject)->teacher,
+                    'time_label' => optional($slot)->full ?: '—',
+                    'sort' => $start ? $start->format('H:i') : '99:99',
+                    'session' => $sessions->get($tt->id),
+                ];
+            })
+            ->filter(function ($row) {
+                return $row['subject'] && $row['class'];
+            })
+            ->sortBy('sort')
+            ->values();
+    }
+
+    /** One period by timetable id, in the same shape periodsFor returns. */
+    protected function resolvePeriod(int $ttId): array
+    {
+        $tt = TimeTable::with(['subject.my_class', 'subject.teacher', 'time_slot', 'tt_record.my_class'])
+            ->findOrFail($ttId);
+
+        $class = optional($tt->tt_record)->my_class ?: optional($tt->subject)->my_class;
+        if (!$tt->subject || !$class) {
+            abort(404, 'This timetable entry has no subject or class.');
+        }
+
+        return [
+            'tt' => $tt,
+            'subject' => $tt->subject,
+            'class' => $class,
+            'teacher' => $tt->subject->teacher,
+            'time_label' => optional($tt->time_slot)->full ?: '—',
+        ];
+    }
+
+    /** Active (non-graduated) students of a class, in register order. */
+    protected function roster(int $classId)
+    {
+        return StudentRecord::with('user', 'section')
+            ->where('my_class_id', $classId)
+            ->where('grad', 0)
+            ->orderBy('id')
+            ->get();
+    }
+
+    protected function existingSession(Carbon $date, int $timeTableId)
+    {
+        return AttendanceSession::whereDate('date', $date->toDateString())
+            ->where('time_table_id', $timeTableId)
+            ->first();
+    }
+
+    /**
+     * Only the period's own teacher may take its attendance.
+     * Super Admin / Admin are oversight — they view, they do not
+     * submit. Returns a redirect when the user may not take it,
+     * null when they may.
+     */
+    protected function guardCanTake(Request $request, array $period)
+    {
+        if (!Qs::userIsTeacher()) {
+            return redirect()
+                ->route('attendance.periods.index', ['date' => $this->dateFromRequest($request)->toDateString()])
+                ->with('flash_danger', 'Period attendance is submitted by the subject teacher — this view is read-only for administrators.');
+        }
+
+        if ((int) optional($period['subject'])->teacher_id !== (int) $request->user()->id) {
+            abort(403, 'You can only take attendance for your own periods.');
+        }
+
+        return null;
+    }
+
+    /** A register only makes sense on the weekday the period runs. */
+    protected function guardDateMatchesPeriod(Carbon $date, TimeTable $tt): void
+    {
+        if ($tt->day && $date->format('l') !== $tt->day) {
+            throw ValidationException::withMessages([
+                'date' => 'This period runs on ' . $tt->day . ' — ' . $date->format('d M Y') . ' is a ' . $date->format('l') . '.',
+            ]);
+        }
+    }
+
+    protected function dateFromRequest(Request $request): Carbon
+    {
+        return $this->dateParam($request, 'date') ?: Carbon::today();
+    }
+
+    protected function dateParam(Request $request, string $key): ?Carbon
+    {
+        $value = $request->query($key) ?: $request->input($key);
+        if (!$value || !preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $value)) {
+            return null;
+        }
+
+        try {
+            return Carbon::createFromFormat('Y-m-d', $value)->startOfDay();
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+}

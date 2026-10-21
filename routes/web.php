@@ -180,6 +180,16 @@ Route::group(['middleware' => 'auth'], function () {
         Route::get('attendance/defaulters', 'AttendanceController@defaulters')->name('attendance.defaulters');
         Route::get('attendance/my', 'AttendanceController@my')->name('attendance.my');
 
+        /*************** Period Attendance (subject-wise, Workstream AC) *****************/
+        /* Submitted sessions are final: there is deliberately no
+           edit/update/delete route for a period register. */
+        Route::get('attendance/periods', 'PeriodAttendanceController@index')->name('attendance.periods.index');
+        Route::get('attendance/periods/report', 'PeriodAttendanceController@report')->name('attendance.periods.report');
+        Route::get('attendance/periods/export', 'PeriodAttendanceController@export')->name('attendance.periods.export');
+        Route::get('attendance/periods/session/{session_id}', 'PeriodAttendanceController@show')->name('attendance.periods.show');
+        Route::get('attendance/periods/{tt_id}/take', 'PeriodAttendanceController@take')->name('attendance.periods.take');
+        Route::post('attendance/periods/{tt_id}', 'PeriodAttendanceController@store')->name('attendance.periods.store');
+
         /*************** School Events *****************/
         Route::resource('events', 'SchoolEventController');
 

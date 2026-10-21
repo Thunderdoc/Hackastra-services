@@ -101,6 +101,12 @@
                         <span>Attendance Defaulters</span>
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a href="{{ route('attendance.periods.index') }}" class="nav-link {{ (Route::is('attendance.periods.*')) ? 'active' : '' }}">
+                        <i class="icon-clock3"></i>
+                        <span>Period Attendance</span>
+                    </a>
+                </li>
                 @endif
 
                 @if(Qs::userIsTeamSA())
