@@ -304,3 +304,89 @@
   .sidebar-expand-md.sidebar-main{transition:none}
   .dashboard-stat-card:hover{transform:none}
 }
+
+/* =====================================================================
+   LOOP 9 — UX standards pass (docs/UX_STANDARDS.md, Fixes 3, 4, 13, 15, 19)
+   ---------------------------------------------------------------------
+   1) Design tokens (:root) — the values below are the ONLY new colour
+      values introduced; each replaces an audited WCAG failure with the
+      ratio verified in UX_STANDARDS.md Appendix A. Rules earlier in this
+      file are untouched; the overrides here repeat the original selector
+      (equal specificity, later in the cascade) and point it at a token.
+   2) Inline field errors (Fix 4): .field-error + .is-invalid border.
+   3) Type floor (Fix 15): sub-12px text raised to the doc's values —
+      11px sidebar text -> 12.5px, 8px brand/session text -> 10.5px,
+      everything else below 12px -> the 12px scale step (S9).
+   4) Touch targets (Fix 13): coarse-pointer minimum heights.
+   5) Anchor scroll margin (Fix 19): error-summary links land below the
+      48px topbar instead of underneath it.
+   ===================================================================== */
+:root{
+  --qs-primary:#3478f6;
+  --qs-primary-action:#2867dc;
+  --qs-muted:#5c6f84;
+  --qs-meta:#66788c;
+  --qs-ink:#44546a;
+  --qs-success:#14714f;
+  --qs-success-tint:#e7f7f0;
+  --qs-warning:#97590f;
+  --qs-warning-tint:#fff3df;
+  --qs-danger:#c0392b;
+  --qs-font-caption:12px;
+  --qs-font-sm:13px;
+  --qs-font-base:14px;
+  --qs-font-lg:16px;
+  --qs-font-xl:20px;
+  --qs-font-2xl:24px;
+  --qs-space-1:4px;
+  --qs-space-2:8px;
+  --qs-space-3:12px;
+  --qs-space-4:16px;
+  --qs-space-6:24px;
+  --qs-radius:8px;
+}
+
+/* --- Fix 3a: muted text #718096 (4.02:1) -> token (5.17:1 on white) --- */
+.dashboard-muted,.dashboard-stat-label,.dashboard-stat-copy small,.dashboard-period,.dashboard-chart-value,.dashboard-chart-column small,.dashboard-fee-ring small,.dashboard-fee-list dt,.dashboard-table thead th,.lav-topbar-toggle,.lav-search,.lav-topbar-icon,.lav-profile small,.attendance-ring small,.dashboard-insight-grid small,.dashboard-hero-date,.delta-flat,.calendar-legend span,.attendance-donut small,.attendance-legend li span,.content .table thead th,.content .nav-tabs .nav-link,.lav-notif-item small,.lav-empty{color:var(--qs-muted)}
+
+/* --- Fix 3b: meta text #9aa7b5 (2.45:1) -> token (4.54:1 on white) --- */
+.dashboard-table td small,.lav-search kbd,.attendance-empty p,.calendar-weekdays span,.event-copy small,.insight-chevron{color:var(--qs-meta)}
+.dashboard-empty{color:var(--qs-meta)!important}
+.chart-axis{fill:var(--qs-meta)}
+
+/* --- Fix 3c: action fills #3478f6 (white text 4.07:1) -> token (5.17:1).
+       Only fills change; #3478f6 stays for large graphics, chart strokes
+       and dots, exactly as Fix 3 prescribes. --- */
+.dashboard-primary-action{background:var(--qs-primary-action);border-color:var(--qs-primary-action)}
+.content .btn-primary{background:var(--qs-primary-action);border-color:var(--qs-primary-action)}
+.content .paginate_button.current{background:var(--qs-primary-action)!important;border-color:var(--qs-primary-action)!important}
+.sidebar-main .nav-sidebar>.nav-item>.nav-link.active{background:var(--qs-primary-action)}
+.calendar-today{background:var(--qs-primary-action)}
+.l7-avatar{background:var(--qs-primary-action)}
+
+/* --- Fix 3d: status text colours -> verified tokens --- */
+.dashboard-stat-green .dashboard-stat-icon,.status-success,.text-green,.delta-up,.event-holiday,.pill-holiday{color:var(--qs-success)}
+.dashboard-stat-orange .dashboard-stat-icon,.status-warning,.text-orange,.event-fee,.pill-fee{color:var(--qs-warning)}
+
+/* --- Fix 4: inline field errors (S5) --- */
+.field-error{display:block;margin-top:6px;font-size:var(--qs-font-caption);line-height:1.35;color:var(--qs-danger)}
+.content .form-control.is-invalid{border-color:var(--qs-danger)}
+
+/* --- Fix 19 (support): anchored fields clear the 48px topbar --- */
+.form-control[id],.form-input-styled[id]{scroll-margin-top:64px}
+
+/* --- Fix 15: type floor — tier 1: 7–8px micro text -> 10.5px (doc value) --- */
+.lav-topbar-icon span,.lav-sidebar-brand-link small,.lav-sidebar-session small,.lav-search kbd,.lav-profile small,.dashboard-insight-grid small{font-size:10.5px}
+
+/* --- Fix 15: type floor — tier 2: 10px and .55–.68rem text -> 12px scale step --- */
+.sidebar-main .nav-item-submenu>.nav-link:after,.sidebar-main .nav-group-sub .nav-link,.lav-sidebar-session strong,.lav-search input,.lav-profile strong,.dashboard-action-grid a,.attendance-ring small,.attendance-empty p,.dashboard-event-empty,.dashboard-insight-grid strong,.chart-axis,.chart-tooltip-text,.event-date small,.event-pill,.calendar-weekdays span,.calendar-legend span,.attendance-donut small,.event-copy small,.insight-chevron,.dashboard-table thead th,.content .table thead th,.dashboard-status,.dashboard-stat-copy small i,.dashboard-chart-value,.dashboard-fee-ring small,.dashboard-table td small,.dashboard-delta,.calendar-grid span,.attendance-note{font-size:12px}
+
+/* --- Fix 15: type floor — tier 3: 11px sidebar text and .7–.74rem captions -> 12.5px (doc value) --- */
+.lav-sidebar-brand-link strong,.sidebar-main .nav-sidebar>.nav-item>.nav-link,.lav-sidebar-session>a,.l7-avatar-sm,.dashboard-chart-column small,.dashboard-hero-date small,.dashboard-eyebrow,.dashboard-stat-copy small,.attendance-legend li,.event-copy strong{font-size:12.5px}
+
+/* --- Fix 13: touch targets on coarse pointers (phones/tablets) --- */
+@media (pointer:coarse){
+  .btn-sm{min-height:40px}
+  .sidebar-main .nav-sidebar .nav-link{min-height:40px}
+  .content table td .btn{min-height:40px;min-width:40px}
+}
