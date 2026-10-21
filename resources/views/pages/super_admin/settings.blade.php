@@ -132,9 +132,35 @@
             </div>
         </div>
 
-        {{-- Future "Report Card" section (school stamp + principal name,
-             owned by the report-card batch) slots in here, after Exam
-             Security, as its own .pat-form-section in this same form. --}}
+        {{-- ======================= Report Card ======================= --}}
+        <div class="pat-form-section">
+            <div class="pat-form-section-title">Report Card</div>
+            <div class="pat-form-section-sub">The principal's name and the school stamp printed on every report card.</div>
+            <div class="pat-fields">
+                <div class="pat-field">
+                    <label for="principal_name">Principal Name</label>
+                    <input name="principal_name" id="principal_name" value="{{ $s['principal_name'] ?? '' }}" type="text" class="form-control @error('principal_name') is-invalid @enderror" placeholder="Name printed under the Principal's signature">
+                    @include('partials.errors.field', ['field' => 'principal_name'])
+                    <small class="form-text text-muted">Printed under the Principal's signature line on every report card. Leave blank to print the line only.</small>
+                </div>
+                <div class="pat-field">
+                    <label for="school_stamp">School Stamp</label>
+                    @if(!empty($s['school_stamp']))
+                        <div class="mb-2">
+                            <img style="max-width: 110px" src="{{ $s['school_stamp'] }}" alt="School stamp">
+                        </div>
+                        <label class="d-block font-weight-normal">
+                            <input type="checkbox" name="school_stamp_remove" value="1"> Remove this stamp
+                        </label>
+                    @else
+                        <div class="text-muted mb-2">No stamp uploaded — report cards print without one. A stamp appears on a card only when one is uploaded here; no placeholder is ever drawn.</div>
+                    @endif
+                    <input name="school_stamp" id="school_stamp" accept="image/*" type="file" class="file-input @error('school_stamp') is-invalid @enderror" data-show-caption="false" data-show-upload="false" data-fouc>
+                    @include('partials.errors.field', ['field' => 'school_stamp'])
+                    <small class="form-text text-muted">A transparent PNG of the school seal works best.</small>
+                </div>
+            </div>
+        </div>
 
     @endcomponent
 

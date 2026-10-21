@@ -353,28 +353,18 @@
                     <a href="#" class="nav-link"><i class="icon-books"></i> <span> Exams</span></a>
 
                     <ul class="nav nav-group-sub" data-submenu-title="Manage Exams">
+                        {{-- Workstream BG: items in exam-workflow order —
+                             set up the exam, enter marks, tabulate, print
+                             marksheet + admit cards, then grade bands and
+                             the marks-correction tool. Labels and order
+                             only; every route and permission gate below
+                             is exactly as before. --}}
                         @if(Qs::userIsTeamSA())
 
                         {{--Exam list--}}
                             <li class="nav-item">
                                 <a href="{{ route('exams.index') }}"
                                    class="nav-link {{ (Route::is('exams.index')) ? 'active' : '' }}">Exam List</a>
-                            </li>
-
-                            {{--Grades list--}}
-                            <li class="nav-item">
-                                    <a href="{{ route('grades.index') }}"
-                                       class="nav-link {{ in_array(Route::currentRouteName(), ['grades.index', 'grades.edit']) ? 'active' : '' }}">Grades</a>
-                            </li>
-
-                            {{--Tabulation Sheet--}}
-                            <li class="nav-item">
-                                <a href="{{ route('marks.tabulation') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['marks.tabulation']) ? 'active' : '' }}">Tabulation Sheet</a>
-                            </li>
-
-                            {{--Marks Batch Fix--}}
-                            <li class="nav-item">
-                                <a href="{{ route('marks.batch_fix') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['marks.batch_fix']) ? 'active' : '' }}">Batch Fix</a>
                             </li>
                         @endif
 
@@ -384,7 +374,16 @@
                                 <a href="{{ route('marks.index') }}"
                                    class="nav-link {{ in_array(Route::currentRouteName(), ['marks.index']) ? 'active' : '' }}">Marks</a>
                             </li>
+                        @endif
 
+                        @if(Qs::userIsTeamSA())
+                            {{--Tabulation Sheet--}}
+                            <li class="nav-item">
+                                <a href="{{ route('marks.tabulation') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['marks.tabulation']) ? 'active' : '' }}">Tabulation Sheet</a>
+                            </li>
+                        @endif
+
+                        @if(Qs::userIsTeamSAT())
                             {{--Marksheet--}}
                             <li class="nav-item">
                                 <a href="{{ route('marks.bulk') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['marks.bulk', 'marks.show']) ? 'active' : '' }}">Marksheet</a>
@@ -394,8 +393,20 @@
                             <li class="nav-item">
                                 <a href="{{ route('admit_cards.index') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['admit_cards.index', 'admit_cards.print']) ? 'active' : '' }}">Admit Cards</a>
                             </li>
+                        @endif
 
-                            @endif
+                        @if(Qs::userIsTeamSA())
+                            {{--Grades list--}}
+                            <li class="nav-item">
+                                    <a href="{{ route('grades.index') }}"
+                                       class="nav-link {{ in_array(Route::currentRouteName(), ['grades.index', 'grades.edit']) ? 'active' : '' }}">Grades</a>
+                            </li>
+
+                            {{--Marks Correction (labelled "Batch Fix" before Workstream BG)--}}
+                            <li class="nav-item">
+                                <a href="{{ route('marks.batch_fix') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['marks.batch_fix']) ? 'active' : '' }}">Marks Correction</a>
+                            </li>
+                        @endif
 
                     </ul>
                 </li>

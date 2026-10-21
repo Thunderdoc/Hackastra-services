@@ -6,6 +6,7 @@ use App\Helpers\Qs;
 use App\Support\Audit;
 use App\Support\MarkComputation;
 use App\Support\MarkScheme;
+use App\Support\ReportCard;
 use App\Support\TeacherScope;
 use App\Helpers\Mk;
 use App\Http\Requests\Mark\MarkComponentUpdate;
@@ -112,13 +113,25 @@ class MarkController extends Controller
         $d['marks'] = $this->exam->getMark($wh);
         $d['exam_records'] = $exr = $this->exam->getRecord($wh);
         $d['exams'] = $this->exam->getExam(['year' => $year]);
-        $d['sr'] = $this->student->getRecord(['user_id' => $student_id])->first();
+        $d['sr'] = $sr = $this->student->getRecord(['user_id' => $student_id])->first();
         $d['my_class'] = $mc = $this->my_class->getMC(['id' => $exr->first()->my_class_id])->first();
         $d['class_type'] = $this->my_class->findTypeByClass($mc->id);
         $d['subjects'] = $this->my_class->findSubjectByClass($mc->id);
         $d['year'] = $year;
         $d['student_id'] = $student_id;
         $d['skills'] = $this->exam->getSkillByClassType() ?: NULL;
+        $d['ct'] = $d['class_type']->code;
+        $d['s'] = Setting::all()->flatMap(function($s){
+            return [$s->type => $s->description];
+        });
+
+        /* Batch M3: one report-card assembly per exam, shared with
+           the printed document (print_view) — screen and print are
+           the same template over this same data. */
+        $d['cards'] = [];
+        foreach ($d['exams'] as $ex) {
+            $d['cards'][$ex->id] = ReportCard::build($sr, $ex, $d['subjects'], $d['marks']);
+        }
         //$d['ct'] = $d['class_type']->code;
         //$d['mark_type'] = Qs::getMarkType($d['ct']);
 
@@ -164,6 +177,11 @@ class MarkController extends Controller
         $d['s'] = Setting::all()->flatMap(function($s){
             return [$s->type => $s->description];
         });
+
+        /* Batch M3: the printed document renders the same report
+           card as the on-screen marksheet — one assembly, one
+           template (marks/partials/report_card). */
+        $d['card'] = ReportCard::build($sr, $exam, $d['subjects'], $mks);
 
         //$d['mark_type'] = Qs::getMarkType($ct);
 

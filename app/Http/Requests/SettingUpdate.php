@@ -26,6 +26,8 @@ class SettingUpdate extends FormRequest
             'system_email' => 'sometimes|nullable|email',
             'lock_exam' => 'required',
             'logo' => 'sometimes|nullable|image|mimes:jpeg,gif,png,jpg|max:2048',
+            'principal_name' => 'sometimes|nullable|string|max:120',
+            'school_stamp' => 'sometimes|nullable|image|mimes:jpeg,gif,png,jpg|max:2048',
 
         ];
     }

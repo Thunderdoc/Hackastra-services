@@ -55,8 +55,11 @@
                          chevron still collapses/expands the card. --}}
                     <div class="card-body">
 
-                        {{--Sheet Table--}}
-                        @include('pages.support_team.marks.show.sheet')
+                        {{-- Batch M3: the official report card — the SAME
+                             template the printed document uses
+                             (marks/partials/report_card), fed by the
+                             App\Support\ReportCard assembly. --}}
+                        @include('pages.support_team.marks.partials.report_card', ['card' => $cards[$ex->id]])
 
                         {{--Print Button--}}
                         <div class="text-center mt-3">
@@ -78,22 +81,7 @@
         @endforeach
     @endforeach
 
-    {{-- GRADE SCALE LEGEND (from the grades table for this class type) --}}
-    @if($class_type && Mk::getGradeList($class_type->id)->count())
-        <div class="card">
-            <div class="card-header">
-                <h6 class="card-title font-weight-bold">Grade Scale</h6>
-            </div>
-            <div class="card-body">
-                <div class="d-flex flex-wrap">
-                    @foreach(Mk::getGradeList($class_type->id) as $gr)
-                        <span class="badge badge-light border mr-2 mb-2" style="font-size: 0.85rem;">
-                            <strong>{{ $gr->name }}</strong>: {{ $gr->mark_from }}–{{ $gr->mark_to }}{{ $gr->remark ? ' ('.$gr->remark.')' : '' }}
-                        </span>
-                    @endforeach
-                </div>
-            </div>
-        </div>
-    @endif
+    {{-- The grade scale now lives inside the report card itself
+         (key to grading, from the class type's bands) — Batch M3. --}}
 
 @endsection

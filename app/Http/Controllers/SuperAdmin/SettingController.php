@@ -30,7 +30,7 @@ class SettingController extends Controller
 
     public function update(SettingUpdate $req)
     {
-        $sets = $req->except('_token', '_method', 'logo');
+        $sets = $req->except('_token', '_method', 'logo', 'school_stamp', 'school_stamp_remove');
         $sets['lock_exam'] = $sets['lock_exam'] == 1 ? 1 : 0;
         $keys = array_keys($sets);
         $values = array_values($sets);
@@ -45,6 +45,23 @@ class SettingController extends Controller
             $f['path'] = $logo->storeAs(Qs::getPublicUploadPath(), $f['name']);
             $logo_path = asset('storage/' . $f['path']);
             $this->setting->update('logo', $logo_path);
+        }
+
+        /* Batch M3: the school stamp follows the exact logo path —
+           uploaded file -> public uploads -> settings row holding the
+           asset URL. The report card renders it only while the
+           setting is non-empty; the form's remove checkbox (or a
+           fresh upload) is the only way it changes. */
+        if($req->hasFile('school_stamp')) {
+            $stamp = $req->file('school_stamp');
+            $f = Qs::getFileMetaData($stamp);
+            $f['name'] = 'school_stamp.' . $f['ext'];
+            $f['path'] = $stamp->storeAs(Qs::getPublicUploadPath(), $f['name']);
+            $stamp_path = asset('storage/' . $f['path']);
+            $this->setting->update('school_stamp', $stamp_path);
+        }
+        elseif($req->filled('school_stamp_remove')) {
+            $this->setting->update('school_stamp', '');
         }
 
         return back()->with('flash_success', __('msg.update_ok'));

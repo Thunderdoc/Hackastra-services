@@ -3,7 +3,7 @@
 @section('content')
     <div class="card">
         <div class="card-header header-elements-inline">
-            <h5 class="card-title"><i class="icon-wrench mr-2"></i> Batch Fix </h5>
+            <h5 class="card-title"><i class="icon-wrench mr-2"></i> Marks Correction </h5>
             {!! Qs::getPanelOptions() !!}
         </div>
 
