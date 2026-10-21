@@ -8,6 +8,9 @@
                 <img style="width: 90%; height:90%" src="{{ $sr->user->photo }}" alt="photo" class="rounded-circle">
                 <br>
                 <h3 class="mt-3">{{ $sr->user->name }}</h3>
+                @if(Qs::userIsTeamSA())
+                    <a href="{{ route('students.id_card', Qs::hash($sr->id)) }}" class="btn btn-primary mt-2"><i class="icon-vcard mr-1"></i> ID Card</a>
+                @endif
             </div>
         </div>
     </div>

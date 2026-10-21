@@ -1250,3 +1250,48 @@ a.t9-row:hover .t9-row-copy strong{color:var(--qs-primary-action)}
 @media print{
   .pay-slip{max-width:none}
 }
+/* ============================================================
+   Loop 27 — Student ID Card (Workstream AJ). One reusable card
+   partial (students/partials/id_card) shown to the student
+   (my_id_card), to parents per child, and to staff from the
+   student profile. Screen: the card sits centred on a pale
+   stage at CR80 landscape proportions. Print: ONLY the card
+   renders, at true ID size (85.6 x 54mm) — the app chrome is
+   already hidden by the global print rules; this section hides
+   the page header + on-screen controls and pins the stage to
+   the page origin with an exact-size @page.
+   ============================================================ */
+.idc-lead{color:#44546a;font-size:.9rem;margin-bottom:14px}
+.idc-switcher{align-items:center;display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.idc-switcher-label{color:#718096;font-size:.78rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
+.idc-stage{background:#eef2f7;border:1px solid #e4eaf1;border-radius:12px;display:flex;justify-content:center;margin-top:22px;padding:30px 18px}
+.idc-card{-webkit-print-color-adjust:exact;print-color-adjust:exact;aspect-ratio:85.6/54;background:#fff;border:1px solid #d7e0ec;border-radius:12px;box-shadow:0 10px 30px rgba(16,38,59,.14);display:flex;flex-direction:column;max-width:100%;overflow:hidden;width:430px}
+.idc-head{align-items:center;background:#10263b;display:flex;gap:11px;padding:10px 14px}
+.idc-logo{flex:none;height:30px;max-width:64px;object-fit:contain;width:auto}
+.idc-head-text{min-width:0}
+.idc-school{color:#fff;font-size:.93rem;font-weight:700;letter-spacing:.01em;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.idc-head-sub{color:rgba(255,255,255,.62);font-size:.56rem;font-weight:700;letter-spacing:.22em;margin-top:2px;text-transform:uppercase}
+.idc-body{display:flex;flex:1;gap:14px;padding:12px 14px}
+.idc-photo{background:#e8eef6;border-radius:8px;flex:none;height:104px;overflow:hidden;position:relative;width:84px}
+.idc-initial{align-items:center;color:#3478f6;display:flex;font-size:2rem;font-weight:700;height:100%;justify-content:center;left:0;position:absolute;top:0;width:100%}
+.idc-photo img{height:100%;left:0;object-fit:cover;position:absolute;top:0;width:100%}
+.idc-info{flex:1;min-width:0;padding-top:2px}
+.idc-name{color:#172536;font-size:1.06rem;font-weight:700;line-height:1.25;margin-bottom:9px}
+.idc-row{display:flex;font-size:.78rem;margin-top:5px}
+.idc-label{color:#718096;flex:none;font-size:.62rem;font-weight:700;letter-spacing:.08em;padding-top:2px;text-transform:uppercase;width:52px}
+.idc-value{color:#172536;font-weight:600}
+.idc-foot{background:#eef4ff;border-top:1px solid #dbe7fb;color:#2456a6;font-size:.66rem;letter-spacing:.05em;padding:7px 14px;text-transform:uppercase}
+.idc-foot strong{font-weight:700}
+@media (max-width:480px){
+  .idc-stage{padding:18px 10px}
+  .idc-photo{height:82px;width:66px}
+  .idc-name{font-size:.95rem}
+}
+@media print{
+  .page-header{display:none!important}
+  .idc-screen-only{display:none!important}
+  .idc-stage{background:#fff;border:0;border-radius:0;left:0;margin:0;padding:0;position:fixed;top:0}
+  .idc-card{border:1px solid #bbb;border-radius:3mm;box-shadow:none;height:54mm;width:85.6mm}
+  .idc-photo{height:28mm;width:22mm}
+  @page{size:85.6mm 54mm;margin:0}
+}

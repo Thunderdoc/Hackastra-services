@@ -31,6 +31,7 @@ Route::group(['middleware' => 'auth'], function () {
             Route::get('reset_pass/{st_id}', 'StudentRecordController@reset_pass')->name('st.reset_pass');
             Route::get('graduated', 'StudentRecordController@graduated')->name('students.graduated');
             Route::put('not_graduated/{id}', 'StudentRecordController@not_graduated')->name('st.not_graduated');
+            Route::get('id_card/{sr_id}', 'IdCardController@show')->name('students.id_card')->middleware('teamSA');
             Route::get('list/{class_id}', 'StudentRecordController@listByClass')->name('students.list')->middleware('teamSAT');
             Route::get('export/{class_id}/{section_id?}', 'StudentRecordController@export')->name('students.export')->middleware('teamSAT');
 
@@ -198,6 +199,11 @@ Route::group(['middleware' => 'auth'], function () {
         Route::get('attendance/report/export', 'AttendanceController@export')->name('attendance.export');
         Route::get('attendance/defaulters', 'AttendanceController@defaulters')->name('attendance.defaulters');
         Route::get('attendance/my', 'AttendanceController@my')->name('attendance.my');
+
+        /*************** Student ID Card (Workstream AJ) *****************/
+        /* Personal card: identity comes from the signed-in user's own
+           record — no student-id parameter exists to tamper with. */
+        Route::get('my_id_card', 'IdCardController@mine')->name('id_card.mine');
 
         /*************** Period Attendance (subject-wise, Workstream AC) *****************/
         /* Submitted sessions are final: there is deliberately no
