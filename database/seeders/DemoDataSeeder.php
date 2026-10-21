@@ -453,9 +453,16 @@ class DemoDataSeeder extends Seeder
             'name' => 'Term 1 Examination',
             'term' => 1,
             'year' => $session,
+            // Workstream BH: demo exams are published so students and
+            // parents can see the seeded results (the publish switch
+            // defaults new exams to unpublished in real use).
+            'results_published' => 1,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+        if ($exam) {
+            DB::table('exams')->where('id', $exam->id)->update(['results_published' => 1]);
+        }
 
         $subjectsByClass = DB::table('subjects')->orderBy('id')->get()->groupBy('my_class_id');
         $grades = DB::table('grades')->whereNull('class_type_id')->get();

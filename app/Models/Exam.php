@@ -6,7 +6,11 @@ use Eloquent;
 
 class Exam extends Eloquent
 {
-    protected $fillable = ['name', 'term', 'year'];
+    protected $fillable = ['name', 'term', 'year', 'results_published'];
+
+    protected $casts = [
+        'results_published' => 'boolean',
+    ];
 
     public function subjectComponents()
     {

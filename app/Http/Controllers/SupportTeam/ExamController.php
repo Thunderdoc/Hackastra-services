@@ -68,4 +68,23 @@ class ExamController extends Controller
         return redirect()->route('exams.index');
     }
 
+    /**
+     * Workstream BH — Result Publish switch. Publishing makes this
+     * exam's results visible to students and parents (their marksheet
+     * and print surfaces read the flag server-side). Staff surfaces
+     * never read the flag. teamSA gate: the constructor middleware
+     * covers these actions exactly like the rest of exam management.
+     */
+    public function publishResults($id)
+    {
+        $this->exam->update($id, ['results_published' => true]);
+        return back()->with('flash_success', 'Results published. Students and parents can now view results for this exam.');
+    }
+
+    public function unpublishResults($id)
+    {
+        $this->exam->update($id, ['results_published' => false]);
+        return back()->with('flash_success', 'Results unpublished. Students and parents can no longer view results for this exam.');
+    }
+
 }

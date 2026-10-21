@@ -16,13 +16,14 @@
 
             <div class="tab-content">
                     <div class="tab-pane fade show active" id="all-exams">
-                        <table class="table datatable-button-html5-columns">
+                        <table class="table">
                             <thead>
                             <tr>
                                 <th>S/N</th>
                                 <th>Name</th>
                                 <th>Term</th>
                                 <th>Session</th>
+                                <th>Results</th>
                                 <th>Action</th>
                             </tr>
                             </thead>
@@ -33,6 +34,13 @@
                                     <td>{{ $ex->name }}</td>
                                     <td>{{ 'Term '.$ex->term }}</td>
                                     <td>{{ $ex->year }}</td>
+                                    <td>
+                                        @if($ex->results_published)
+                                            <span class="badge badge-success">Published</span>
+                                        @else
+                                            <span class="badge badge-secondary">Not published</span>
+                                        @endif
+                                    </td>
                                     <td class="text-center">
                                         <div class="list-icons">
                                             <div class="dropdown">
@@ -46,6 +54,18 @@
                                                     @if(Qs::userIsTeamSA())
                                                     {{--Marking Scheme--}}
                                                     <a href="{{ route('exams.scheme', $ex->id) }}" class="dropdown-item"><i class="icon-list"></i> Marking Scheme</a>
+                                                    {{--Result Publish switch (Workstream BH)--}}
+                                                    @if($ex->results_published)
+                                                    <form method="post" action="{{ route('exams.unpublish_results', $ex->id) }}" data-confirm="Unpublish results for {{ $ex->name }}? Students and parents will no longer be able to see these results." data-confirm-title="Unpublish Results" data-confirm-action="Unpublish" data-confirm-danger>
+                                                        @csrf
+                                                        <button type="submit" class="dropdown-item"><i class="icon-eye-blocked"></i> Unpublish Results</button>
+                                                    </form>
+                                                    @else
+                                                    <form method="post" action="{{ route('exams.publish_results', $ex->id) }}">
+                                                        @csrf
+                                                        <button type="submit" class="dropdown-item"><i class="icon-eye"></i> Publish Results</button>
+                                                    </form>
+                                                    @endif
                                                     @endif
                                                     @if(Qs::userIsTeamSA())
                                                     {{--Edit--}}

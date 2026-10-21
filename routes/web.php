@@ -134,15 +134,12 @@ Route::group(['middleware' => 'auth'], function () {
             Route::get('{payroll}', 'PayrollController@myPayslip')->name('my_payslips.payslip');
         });
 
-        /*************** Pins *****************/
-        Route::group(['prefix' => 'pins'], function(){
-            Route::get('create', 'PinController@create')->name('pins.create');
-            Route::get('/', 'PinController@index')->name('pins.index');
-            Route::post('/', 'PinController@store')->name('pins.store');
-            Route::get('enter/{id}', 'PinController@enter_pin')->name('pins.enter');
-            Route::post('verify/{id}', 'PinController@verify')->name('pins.verify');
-            Route::delete('/', 'PinController@destroy')->name('pins.destroy');
-        });
+        /*************** Pins — REMOVED (Workstream BH) *****************/
+        /* The scratch-card PIN system is retired by owner decision
+           (2026-10-21): results are gated by login + the per-exam
+           results_published switch instead. The pins table and its
+           model/repo/request classes stay dormant in the codebase;
+           no routes, menus or pages point at them any more. */
 
         /*************** Marks *****************/
         Route::group(['prefix' => 'marks'], function(){
@@ -182,6 +179,11 @@ Route::group(['middleware' => 'auth'], function () {
         });
         Route::get('my-admit-cards', 'AdmitCardController@myCards')->name('admit_cards.my');
         Route::get('my-admit-cards/{exam}/{student_id}', 'AdmitCardController@myCard')->name('admit_cards.my_card');
+
+        /* Result Publish switch (Workstream BH) — registered before the
+           exams resource so the action names win cleanly. */
+        Route::post('exams/{exam}/publish-results', 'ExamController@publishResults')->name('exams.publish_results');
+        Route::post('exams/{exam}/unpublish-results', 'ExamController@unpublishResults')->name('exams.unpublish_results');
 
         Route::resource('students', 'StudentRecordController');
         Route::resource('users', 'UserController');

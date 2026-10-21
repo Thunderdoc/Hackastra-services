@@ -3,7 +3,7 @@
 @section('content')
     {{-- Batch 3: class picker + ONE table on the shared list_page pattern
          (Loop 28), replacing the 11-tab stack of per-class tables. The
-         table, its DataTable classes and every row action (profile, edit,
+         table and every row action (profile, edit,
          reset password, not-graduated, marksheet, delete) are unchanged;
          filtering is server-side via ?class_id= on students.graduated. --}}
     @component('partials.patterns.list_page')
@@ -33,7 +33,8 @@
         @endslot
 
         @if($students->count())
-            <table class="table datatable-button-html5-columns">
+            <div class="table-responsive">
+            <table class="table">
                 <thead>
                 <tr>
                     <th>S/N</th>
@@ -87,6 +88,7 @@
                 @endforeach
                 </tbody>
             </table>
+            </div>
         @else
             @include('partials.patterns.empty_state', [
                 'icon' => 'icon-users',

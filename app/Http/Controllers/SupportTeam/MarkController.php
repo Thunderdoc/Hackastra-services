@@ -8,7 +8,6 @@ use App\Support\MarkComputation;
 use App\Support\MarkScheme;
 use App\Support\ReportCard;
 use App\Support\TeacherScope;
-use App\Helpers\Mk;
 use App\Http\Requests\Mark\MarkComponentUpdate;
 use App\Http\Requests\Mark\MarkSelector;
 use App\Models\Setting;
@@ -19,7 +18,6 @@ use App\Http\Controllers\Controller;
 use App\Repositories\StudentRepo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Session;
 
 class MarkController extends Controller
 {
@@ -97,13 +95,6 @@ class MarkController extends Controller
             }
         }
 
-        if(Mk::examIsLocked() && !Qs::userIsTeamSA()){
-            Session::put('marks_url', route('marks.show', [Qs::hash($student_id), $year]));
-
-            if(!$this->checkPinVerified($student_id)){
-                return redirect()->route('pins.enter', Qs::hash($student_id));
-            }
-        }
 
         if(!$this->verifyStudentExamYear($student_id, $year)){
             return $this->noStudentRecord();
@@ -113,6 +104,27 @@ class MarkController extends Controller
         $d['marks'] = $this->exam->getMark($wh);
         $d['exam_records'] = $exr = $this->exam->getRecord($wh);
         $d['exams'] = $this->exam->getExam(['year' => $year]);
+
+        /* Workstream BH — Result Publish gate (replaces the retired
+           PIN gate): students and parents see only exams whose results
+           the school has published from the Exam List. Staff (teamSAT)
+           are never filtered. Unpublished exams' marks/records never
+           reach the view, and when nothing is published the honest
+           not-published page renders instead of an empty sheet. */
+        if(!Qs::userIsTeamSAT()){
+            $published_ids = $d['exams']->filter(function($ex){ return $ex->results_published; })->pluck('id');
+            $d['exams'] = $d['exams']->whereIn('id', $published_ids);
+            $d['exam_records'] = $exr = $d['exam_records']->whereIn('exam_id', $published_ids);
+            $d['marks'] = $d['marks']->whereIn('exam_id', $published_ids);
+
+            if($d['exams']->isEmpty() || $d['exam_records']->isEmpty()){
+                return view('pages.support_team.marks.not_published', [
+                    'sr' => $this->student->getRecord(['user_id' => $student_id])->first(),
+                    'year' => $year,
+                ]);
+            }
+        }
+
         $d['sr'] = $sr = $this->student->getRecord(['user_id' => $student_id])->first();
         $d['my_class'] = $mc = $this->my_class->getMC(['id' => $exr->first()->my_class_id])->first();
         $d['class_type'] = $this->my_class->findTypeByClass($mc->id);
@@ -145,12 +157,16 @@ class MarkController extends Controller
             return redirect(route('dashboard'))->with('pop_error', __('msg.denied'));
         }
 
-        if(Mk::examIsLocked() && !Qs::userIsTeamSA()){
-            Session::put('marks_url', route('marks.show', [Qs::hash($student_id), $year]));
-
-            if(!$this->checkPinVerified($student_id)){
-                return redirect()->route('pins.enter', Qs::hash($student_id));
-            }
+        /* Workstream BH — Result Publish gate (replaces the retired
+           PIN gate): a student or parent may print only a published
+           exam's result. teamSA staff printing is never gated. */
+        $gate_exam = $this->exam->find($exam_id);
+        if(!Qs::userIsTeamSA() && $gate_exam && !$gate_exam->results_published){
+            return view('pages.support_team.marks.not_published', [
+                'sr' => $this->student->getRecord(['user_id' => $student_id])->first(),
+                'exam' => $gate_exam,
+                'year' => $year,
+            ]);
         }
 
         if(!$this->verifyStudentExamYear($student_id, $year)){
@@ -547,9 +563,5 @@ class MarkController extends Controller
         return redirect()->route('dashboard')->with('flash_danger', __('msg.srnf'));
     }
 
-    protected function checkPinVerified($st_id)
-    {
-        return Session::has('pin_verified') && Session::get('pin_verified') == $st_id;
-    }
 
 }

@@ -19,7 +19,8 @@
 
         <div class="card-body">
 
-            <table id="promotions-list" class="table datatable-button-html5-columns">
+            <div class="table-responsive">
+            <table id="promotions-list" class="table">
                 <thead>
                 <tr>
                     <th>S/N</th>
@@ -54,6 +55,7 @@
                 @endforeach
                 </tbody>
             </table>
+            </div>
         </div>
     </div>
 
