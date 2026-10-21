@@ -46,6 +46,7 @@
     </div>
 </div>
 
+@include('partials.confirm_modal')
 @include('partials.inc_bottom')
 @yield('scripts')
 </body>

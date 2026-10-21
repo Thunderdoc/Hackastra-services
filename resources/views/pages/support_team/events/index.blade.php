@@ -23,7 +23,7 @@
                             <td>
                                 <a href="{{ route('events.edit', $event->id) }}" class="btn btn-light btn-sm">Edit</a>
                                 @if(Qs::userIsTeamSA())
-                                    <form method="post" action="{{ route('events.destroy', $event->id) }}" style="display:inline" onsubmit="return confirm('Delete this event?')">@csrf @method('delete')<button class="btn btn-light btn-sm text-danger">Delete</button></form>
+                                    <form method="post" action="{{ route('events.destroy', $event->id) }}" style="display:inline" data-confirm="Delete this event? This cannot be undone." data-confirm-title="Delete Event" data-confirm-action="Delete" data-confirm-danger>@csrf @method('delete')<button class="btn btn-light btn-sm text-danger">Delete</button></form>
                                 @endif
                             </td>
                         </tr>

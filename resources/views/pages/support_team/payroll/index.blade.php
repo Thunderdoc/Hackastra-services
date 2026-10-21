@@ -100,7 +100,7 @@
                                 <td class="text-right pay-actions">
                                     <a href="{{ route('payroll.payslip', $rec->id) }}" class="btn btn-light btn-sm"><i class="icon-file-text2 mr-1"></i> Payslip</a>
                                     @if(!$rec->isPaid())
-                                        <form method="POST" action="{{ route('payroll.pay', $rec->id) }}" class="d-inline" onsubmit="return confirm('Mark salary as paid for {{ $member->name }}?');">
+                                        <form method="POST" action="{{ route('payroll.pay', $rec->id) }}" class="d-inline" data-confirm="Mark salary as paid for {{ $member->name }}?" data-confirm-title="Mark Salary as Paid" data-confirm-action="Mark Paid">
                                             @csrf
                                             <button type="submit" class="btn btn-success btn-sm"><i class="icon-checkmark3 mr-1"></i> Mark Paid</button>
                                         </form>

@@ -1528,3 +1528,25 @@ input[type="file"].acct-file-input{position:absolute!important;width:1px!importa
 .lav-topbar-icon{position:relative}
 .lav-bell-badge{position:absolute;top:1px;right:1px;min-width:17px;height:17px;padding:0 4px;border-radius:99px;background:#d64545;color:#fff;font-size:10px;font-weight:700;line-height:17px;text-align:center}
 .lav-reminder-tag{margin-left:auto;align-self:center;background:#fdecec;color:#d64545;font-size:10px;font-weight:700;border-radius:99px;padding:2px 8px;white-space:nowrap}
+
+/* ============================================================
+   Loop 37 — Confirm modal (Workstream AY): the ONE styled
+   in-app confirmation dialog (partials/confirm_modal), driven
+   by data-confirm attributes via hackstra-ux.js. Replaces every
+   native browser confirmation prompt in the app.
+   ============================================================ */
+.hxc-dialog{max-width:min(440px,calc(100vw - 32px))}
+.hxc-content{border:0;border-radius:14px;box-shadow:0 18px 50px rgba(16,38,59,.28);overflow:hidden;position:relative}
+.hxc-close{position:absolute;top:10px;right:14px;z-index:2;color:#718096;opacity:.75;font-size:1.35rem;line-height:1}
+.hxc-close:hover{opacity:1;color:#172536}
+.hxc-body{text-align:center;padding:30px 28px 24px}
+.hxc-icon{align-items:center;background:#eef4ff;border-radius:50%;color:#3478f6;display:flex;font-size:26px;height:58px;justify-content:center;margin:0 auto 14px;width:58px}
+.hxc-modal.hxc-danger .hxc-icon{background:#fdecec;color:#d64545}
+.hxc-title{color:#172536;font-size:1.05rem;font-weight:700;margin:0 0 6px}
+.hxc-message{color:#5b6b7f;font-size:.92rem;line-height:1.5;margin:0 auto 20px;max-width:380px}
+.hxc-actions{display:flex;gap:10px;justify-content:center}
+.hxc-actions .btn{border-radius:8px;font-weight:600;min-width:112px;padding:9px 16px}
+@media (max-width:480px){
+  .hxc-body{padding:24px 18px 20px}
+  .hxc-actions .btn{flex:1;min-width:0}
+}

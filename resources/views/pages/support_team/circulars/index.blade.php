@@ -36,7 +36,7 @@
                                 <a href="{{ route('circulars.edit', $circular->id) }}" class="btn btn-light btn-sm">Edit</a>
                                 <form method="post" action="{{ route('circulars.toggle_publish', $circular->id) }}" style="display:inline">@csrf @method('patch')<button type="submit" class="btn btn-light btn-sm">{{ $circular->is_published ? 'Unpublish' : 'Publish' }}</button></form>
                                 @if(Qs::userIsTeamSA())
-                                    <form method="post" action="{{ route('circulars.destroy', $circular->id) }}" style="display:inline">@csrf @method('delete')<button type="submit" class="btn btn-light btn-sm text-danger" data-confirm="Delete this circular?">Delete</button></form>
+                                    <form method="post" action="{{ route('circulars.destroy', $circular->id) }}" style="display:inline">@csrf @method('delete')<button type="submit" class="btn btn-light btn-sm text-danger" data-confirm="Delete this circular?" data-confirm-title="Delete Circular" data-confirm-action="Delete" data-confirm-danger>Delete</button></form>
                                 @endif
                             </td>
                         </tr>

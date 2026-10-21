@@ -213,14 +213,27 @@
             });
             $(document).on('draw.dt', '#all-students table.datatable-button-html5-columns', refreshCount);
             $('#bulk-delete-form').on('submit', function (e) {
+                var form = this;
                 var ids = [];
                 checkedBoxes().each(function () { ids.push(this.value); });
                 if (!ids.length) { e.preventDefault(); return; }
-                if (!confirm('Delete ' + ids.length + ' selected student(s)? Their login accounts will be removed too. This cannot be undone.')) {
+                if (form.dataset.hxcConfirmed !== '1') {
                     e.preventDefault();
+                    window.hackstraConfirm('Delete ' + ids.length + ' selected student(s)? Their login accounts will be removed too. This cannot be undone.', { title: 'Delete Students', action: 'Delete', danger: true }).then(function (ok) {
+                        if (!ok) { return; }
+                        form.dataset.hxcConfirmed = '1';
+                        if (form.requestSubmit) { form.requestSubmit(); }
+                        else {
+                            $(form).find('input[type=hidden][data-bulk-id]').remove();
+                            ids.forEach(function (id) {
+                                $('<input>').attr({ type: 'hidden', name: 'student_ids[]', value: id, 'data-bulk-id': '1' }).appendTo(form);
+                            });
+                            form.submit();
+                        }
+                    });
                     return;
                 }
-                var form = this;
+                delete form.dataset.hxcConfirmed;
                 $(form).find('input[type=hidden][data-bulk-id]').remove();
                 ids.forEach(function (id) {
                     $('<input>').attr({ type: 'hidden', name: 'student_ids[]', value: id, 'data-bulk-id': '1' }).appendTo(form);

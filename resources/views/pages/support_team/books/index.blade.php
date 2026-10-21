@@ -46,7 +46,7 @@
                             <td>
                                 <a href="{{ route('books.edit', $book->id) }}" class="btn btn-light btn-sm">Edit</a>
                                 @if(Qs::userIsTeamSA())
-                                    <form method="post" action="{{ route('books.destroy', $book->id) }}" style="display:inline">@csrf @method('delete')<button type="submit" class="btn btn-light btn-sm text-danger" data-confirm="Delete this book from the catalogue?">Delete</button></form>
+                                    <form method="post" action="{{ route('books.destroy', $book->id) }}" style="display:inline">@csrf @method('delete')<button type="submit" class="btn btn-light btn-sm text-danger" data-confirm="Delete this book from the catalogue?" data-confirm-title="Delete Book" data-confirm-action="Delete" data-confirm-danger>Delete</button></form>
                                 @endif
                             </td>
                         </tr>
