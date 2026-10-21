@@ -4,6 +4,7 @@ namespace App\Http\Controllers\SupportTeam;
 
 use App\Helpers\Qs;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Attendance\AttendanceCreate;
 use App\Models\Attendance;
 use App\Models\MyClass;
 use App\Models\StudentRecord;
@@ -57,14 +58,9 @@ class AttendanceController extends Controller
         return view('pages.support_team.attendance.index', $d);
     }
 
-    public function store(Request $request)
+    public function store(AttendanceCreate $request)
     {
-        $data = $request->validate([
-            'date' => 'required|date',
-            'class_id' => 'required|exists:my_classes,id',
-            'statuses' => 'required|array',
-            'statuses.*' => 'required|in:' . implode(',', Attendance::statuses()),
-        ]);
+        $data = $request->validated();
 
         $studentIds = StudentRecord::where('my_class_id', $data['class_id'])
             ->where('grad', 0)
@@ -87,57 +83,5 @@ class AttendanceController extends Controller
         return redirect()
             ->route('attendance.index', ['class_id' => $data['class_id'], 'date' => $data['date']])
             ->with('flash_success', 'Attendance saved for ' . Carbon::parse($data['date'])->format('d M Y') . '.');
-    }
-
-    public function report(Request $request)
-    {
-        $d['classes'] = MyClass::orderBy('name')->get();
-        $d['selected_class'] = $request->query('class_id')
-            ? MyClass::find($request->query('class_id'))
-            : $d['classes']->first();
-        $monthParam = $request->query('month');
-        $d['month'] = $monthParam
-            ? Carbon::createFromFormat('Y-m', $monthParam)->startOfMonth()
-            : Carbon::today()->startOfMonth();
-        $d['rows'] = collect();
-        $d['totals'] = ['present' => 0, 'absent' => 0, 'late' => 0, 'marked' => 0];
-
-        if ($d['selected_class']) {
-            $students = StudentRecord::with('user', 'section')
-                ->where('my_class_id', $d['selected_class']->id)
-                ->where('grad', 0)
-                ->orderBy('id')
-                ->get();
-
-            $grouped = Attendance::whereIn('student_record_id', $students->pluck('id'))
-                ->whereYear('date', $d['month']->year)
-                ->whereMonth('date', $d['month']->month)
-                ->get()
-                ->groupBy('student_record_id');
-
-            $d['rows'] = $students->map(function ($student) use ($grouped, &$d) {
-                $records = $grouped->get($student->id, collect());
-                $present = $records->where('status', Attendance::STATUS_PRESENT)->count();
-                $absent = $records->where('status', Attendance::STATUS_ABSENT)->count();
-                $late = $records->where('status', Attendance::STATUS_LATE)->count();
-                $marked = $present + $absent + $late;
-                $d['totals']['present'] += $present;
-                $d['totals']['absent'] += $absent;
-                $d['totals']['late'] += $late;
-                $d['totals']['marked'] += $marked;
-
-                return [
-                    'student' => $student,
-                    'present' => $present,
-                    'absent' => $absent,
-                    'late' => $late,
-                    'marked' => $marked,
-                    // Late still counts as attended; unmarked days are excluded, never faked as absent.
-                    'percent' => $marked > 0 ? round((($present + $late) / $marked) * 100, 1) : null,
-                ];
-            });
-        }
-
-        return view('pages.support_team.attendance.report', $d);
     }
 }

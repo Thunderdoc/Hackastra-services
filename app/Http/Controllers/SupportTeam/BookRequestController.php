@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\SupportTeam;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\BookRequest\BookRequestCreate;
 use App\Models\Book;
 use App\Models\BookRequest;
 use App\User;
@@ -51,14 +52,9 @@ class BookRequestController extends Controller
         return view('pages.support_team.book_requests.create', $d);
     }
 
-    public function store(Request $request)
+    public function store(BookRequestCreate $request)
     {
-        $data = $request->validate([
-            'book_id' => 'required|exists:books,id',
-            'user_id' => 'required|exists:users,id',
-            'start_date' => 'required|date',
-            'end_date' => 'required|date|after_or_equal:start_date',
-        ]);
+        $data = $request->validated();
 
         $book = Book::findOrFail($data['book_id']);
 

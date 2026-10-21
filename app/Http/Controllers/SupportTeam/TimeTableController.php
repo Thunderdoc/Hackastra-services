@@ -6,6 +6,7 @@ use App\Helpers\Qs;
 use App\Http\Requests\TimeTable\TSRequest;
 use App\Http\Requests\TimeTable\TTRecordRequest;
 use App\Http\Requests\TimeTable\TTRequest;
+use App\Http\Requests\TimeTable\UseTimeSlotRequest;
 use App\Models\Setting;
 use App\Repositories\ExamRepo;
 use App\Repositories\MyClassRepo;
@@ -105,10 +106,8 @@ class TimeTableController extends Controller
         return Qs::jsonStoreOk();
     }
 
-    public function use_time_slot(Request $req, $ttr_id)
+    public function use_time_slot(UseTimeSlotRequest $req, $ttr_id)
     {
-        $this->validate($req, ['ttr_id' => 'required'], [], ['ttr_id' => 'TimeTable Record']);
-
         $d = [];  //  Empty Current Time Slot Before Adding New
         $this->tt->deleteTimeSlots(['ttr_id' => $ttr_id]);
         $time_slots = $this->tt->getTimeSlotByTTR($req->ttr_id)->toArray();

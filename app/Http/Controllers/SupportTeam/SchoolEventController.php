@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\SupportTeam;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\SchoolEvent\SchoolEventSave;
 use App\Models\SchoolEvent;
-use Illuminate\Http\Request;
 
 /**
  * School events management (audit §9) — powers the dashboard's
@@ -33,9 +33,9 @@ class SchoolEventController extends Controller
         return view('pages.support_team.events.create', $d);
     }
 
-    public function store(Request $request)
+    public function store(SchoolEventSave $request)
     {
-        $data = $this->validateEvent($request);
+        $data = $request->validated();
         $data['created_by'] = $request->user()->id;
         SchoolEvent::create($data);
 
@@ -50,10 +50,10 @@ class SchoolEventController extends Controller
         return view('pages.support_team.events.edit', $d);
     }
 
-    public function update(Request $request, $id)
+    public function update(SchoolEventSave $request, $id)
     {
         $event = SchoolEvent::findOrFail($id);
-        $event->update($this->validateEvent($request));
+        $event->update($request->validated());
 
         return redirect()->route('events.index')->with('flash_success', 'Event updated.');
     }
@@ -63,17 +63,5 @@ class SchoolEventController extends Controller
         SchoolEvent::findOrFail($id)->delete();
 
         return back()->with('flash_success', __('msg.del_ok'));
-    }
-
-    protected function validateEvent(Request $request): array
-    {
-        return $request->validate([
-            'title' => 'required|string|max:255',
-            'type' => 'required|in:' . implode(',', array_keys(SchoolEvent::types())),
-            'description' => 'nullable|string|max:2000',
-            'starts_at' => 'required|date',
-            'ends_at' => 'nullable|date|after_or_equal:starts_at',
-            'all_day' => 'nullable|boolean',
-        ]);
     }
 }

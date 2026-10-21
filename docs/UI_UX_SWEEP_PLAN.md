@@ -129,7 +129,34 @@ match the design system, ≤ ~350 KB per asset, stored under
       Built on branch `feature/library-module`, verified locally
       (php -l, Blade balance, route-name cross-check); pending the
       parent agent's batch push + live click pass.
+- [x] Loop 6 (2026-10-21): Form Requests for the largest legacy forms.
+      First finding: the audit's three priority flows were already covered
+      by the original codebase — StudentRecordCreate/Update, UserRequest,
+      PaymentCreate/Update all exist with full rules and were left
+      untouched. Loop 6 centralized every REMAINING inline validation in
+      the SupportTeam controllers, rules copied verbatim (incl. custom
+      attribute names), authorize() = true (existing route/controller
+      middleware still gates roles): Payment\PayNowRequest
+      (amt_paid, from PaymentController::pay_now) and
+      Payment\SelectClassRequest (my_class_id, from ::select_class);
+      Attendance\AttendanceCreate (bulk date/class/statuses grid);
+      Book\BookSave — ONE class for catalogue store+update (identical
+      rule set, replaces the shared validateBook() helper);
+      BookRequest\BookRequestCreate (issue-loan store);
+      SchoolEvent\SchoolEventSave — ONE class for event store+update
+      (replaces validateEvent()); TimeTable\UseTimeSlotRequest
+      (ttr_id selector). Controllers now call $request->validated();
+      redirects, flashes, repository calls unchanged. Deliberately
+      skipped: MarkController::update — its field names are dynamic
+      (t1_<mark_id>…) and the code does arithmetic on raw input, so
+      declarative rules could change stored values; needs runtime
+      testing before it can be centralized. Stock Auth\RegisterController
+      also left as-is. Built on branch `feature/form-requests`; verified
+      locally (php -l 13/13, no inline validate() left in the 6 refactored
+      controllers, route-name cross-check 148 referenced / 0 unresolved,
+      Blade balance 0 genuine imbalances across 109 views); pending the
+      parent agent's batch push.
 - [ ] Responsive pass 375 / 768 / 1024 on the live URL (needs deploy green)
 - [ ] Responsive pass 375 / 768 / 1024 on the live URL (needs deploy green)
 - [x] Audit log for login / marks / payment / role changes (Loop 4)
-- [ ] Form Requests for the largest legacy forms
+- [x] Form Requests for the largest legacy forms (Loop 6)

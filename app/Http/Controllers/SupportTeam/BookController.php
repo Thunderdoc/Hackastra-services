@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\SupportTeam;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Book\BookSave;
 use App\Models\Book;
 use App\Models\MyClass;
 use Illuminate\Http\Request;
@@ -50,9 +51,9 @@ class BookController extends Controller
         return view('pages.support_team.books.create', $d);
     }
 
-    public function store(Request $request)
+    public function store(BookSave $request)
     {
-        $data = $this->validateBook($request);
+        $data = $request->validated();
         $data['issued_copies'] = 0;
         Book::create($data);
 
@@ -68,10 +69,10 @@ class BookController extends Controller
         return view('pages.support_team.books.edit', $d);
     }
 
-    public function update(Request $request, $id)
+    public function update(BookSave $request, $id)
     {
         $book = Book::findOrFail($id);
-        $book->update($this->validateBook($request));
+        $book->update($request->validated());
 
         // Never let issued copies exceed the copies the library owns.
         if ((int) $book->issued_copies > (int) $book->total_copies) {
@@ -93,19 +94,5 @@ class BookController extends Controller
         $book->delete();
 
         return back()->with('flash_success', __('msg.del_ok'));
-    }
-
-    protected function validateBook(Request $request): array
-    {
-        return $request->validate([
-            'name' => 'required|string|max:100',
-            'author' => 'nullable|string|max:255',
-            'description' => 'nullable|string|max:255',
-            'book_type' => 'nullable|in:' . implode(',', array_keys(Book::types())),
-            'my_class_id' => 'nullable|exists:my_classes,id',
-            'url' => 'nullable|url|max:255',
-            'location' => 'nullable|string|max:255',
-            'total_copies' => 'nullable|integer|min:0',
-        ]);
     }
 }

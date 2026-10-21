@@ -8,6 +8,8 @@ use App\Helpers\Pay;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Payment\PaymentCreate;
 use App\Http\Requests\Payment\PaymentUpdate;
+use App\Http\Requests\Payment\PayNowRequest;
+use App\Http\Requests\Payment\SelectClassRequest;
 use App\Models\Setting;
 use App\Repositories\MyClassRepo;
 use App\Repositories\PaymentRepo;
@@ -133,12 +135,8 @@ class PaymentController extends Controller
         return PDF::loadHTML($html)->download($name);
     }
 
-    public function pay_now(Request $req, $pr_id)
+    public function pay_now(PayNowRequest $req, $pr_id)
     {
-        $this->validate($req, [
-            'amt_paid' => 'required|numeric'
-        ], [], ['amt_paid' => 'Amount Paid']);
-
         $pr = $this->pay->findRecord($pr_id);
         $this->authorize('update', $pr);
         $payment = $this->pay->find($pr->payment_id);
@@ -175,12 +173,8 @@ class PaymentController extends Controller
         return view('pages.support_team.payments.manage', $d);
     }
 
-    public function select_class(Request $req)
+    public function select_class(SelectClassRequest $req)
     {
-        $this->validate($req, [
-            'my_class_id' => 'required|exists:my_classes,id'
-        ], [], ['my_class_id' => 'Class']);
-
         $wh['my_class_id'] = $class_id = $req->my_class_id;
 
         $pay1 = $this->pay->getPayment(['my_class_id' => $class_id, 'year' => $this->year])->get();
