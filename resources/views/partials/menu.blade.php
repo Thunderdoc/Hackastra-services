@@ -42,7 +42,7 @@
             <div class="card-body">
                 <div class="media">
                     <div class="mr-3">
-                        <a href="{{ route('my_account') }}"><span class="l7-avatar l7-avatar-md" aria-hidden="true">{{ strtoupper(substr(Auth::user()->name, 0, 1)) }}<img src="{{ Auth::user()->photo }}" alt="" onerror="this.remove()"></span></a>
+                        <a href="{{ route('my_account') }}"><span class="l7-avatar l7-avatar-md" aria-hidden="true">{{ strtoupper(substr(Auth::user()->name, 0, 1)) }}@if(Qs::hasRealPhoto(Auth::user()->photo))<img src="{{ Auth::user()->photo }}" alt="" onerror="this.remove()">@endif</span></a>
                     </div>
 
                     <div class="media-body">

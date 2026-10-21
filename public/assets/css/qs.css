@@ -1803,3 +1803,32 @@ body.sidebar-xs .sidebar-main .lav-sidebar-session{margin-left:6px;margin-right:
 @media print{
   .pat-toolbar,.pat-filters{display:none!important}
 }
+
+/* ============================================================
+   Loop 42 — ID card branding + print (Workstream BK, owner
+   screenshots 2026-10-21 22:56 IST). Branding: the card header
+   no longer pulls Qs::getLogo(), whose empty-setting fallback is
+   the admin theme's logo_light.png (the "LIMITLESS" wordmark) —
+   the partial now prints the school's uploaded logo, or a
+   monogram tile built from the school name's initials.
+   Print: Loop 27 pinned the stage with position:fixed and forced
+   a card-sized @page; on a normal A4 sheet that combination
+   renders a tiny clipped sliver of the card. Here the stage
+   returns to normal flow (top-left of the sheet, normal @page
+   margins), the card keeps its true 85.6 x 54mm size, and the
+   head/body/foot are sized in mm so the flex column sums to
+   less than 54mm — photo included, nothing is clipped by the
+   card's overflow:hidden. Final word on .idc-* print rules.
+   ============================================================ */
+.idc-monogram{align-items:center;background:#3478f6;border-radius:8px;color:#fff;display:flex;flex:none;font-size:.88rem;font-weight:700;height:34px;justify-content:center;letter-spacing:.03em;width:34px}
+@media print{
+  @page{size:auto;margin:10mm}
+  .idc-stage{background:#fff!important;border:0!important;border-radius:0!important;display:block!important;left:auto!important;margin:0!important;padding:0!important;position:static!important;top:auto!important}
+  .idc-card{aspect-ratio:auto!important;border:1px solid #bbb!important;border-radius:3mm!important;box-shadow:none!important;height:54mm!important;max-width:none!important;page-break-inside:avoid;break-inside:avoid;width:85.6mm!important}
+  .idc-head{padding:2.2mm 3.7mm!important}
+  .idc-logo{height:7.5mm!important;max-width:16mm!important}
+  .idc-monogram{border-radius:1.8mm!important;font-size:3.6mm!important;height:8mm!important;width:8mm!important}
+  .idc-body{gap:3.5mm!important;padding:2.5mm 3.7mm!important}
+  .idc-photo{height:26mm!important;width:20mm!important}
+  .idc-foot{padding:1.8mm 3.7mm!important}
+}

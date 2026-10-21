@@ -13,12 +13,32 @@
         try { $idcDob = \Carbon\Carbon::parse($idcUser->dob)->format('d M Y'); }
         catch (\Exception $e) { $idcDob = $idcUser->dob; }
     }
+    // Branding (Workstream BK): the card carries the SCHOOL's identity
+    // only. Qs::getLogo() must NOT be used here — when no logo is
+    // uploaded it silently falls back to the admin theme's asset
+    // (global_assets/images/logo_light.png, the "LIMITLESS" wordmark).
+    // Read the raw setting instead: a real uploaded logo prints; when
+    // none exists, a monogram tile is built from the school's initials.
+    $idcLogo = Qs::getSetting('logo');
+    $idcSchool = (string) Qs::getSystemName();
+    $idcMonogram = '';
+    foreach (preg_split('/\s+/', trim($idcSchool)) as $idcWord) {
+        if ($idcWord !== '') {
+            $idcMonogram .= strtoupper(substr($idcWord, 0, 1));
+            if (strlen($idcMonogram) >= 2) { break; }
+        }
+    }
+    if ($idcMonogram === '') { $idcMonogram = 'S'; }
 @endphp
 <div class="idc-card">
     <div class="idc-head">
-        <img src="{{ Qs::getLogo() }}" alt="" class="idc-logo">
+        @if($idcLogo)
+            <img src="{{ $idcLogo }}" alt="" class="idc-logo">
+        @else
+            <span class="idc-monogram" aria-hidden="true">{{ $idcMonogram }}</span>
+        @endif
         <div class="idc-head-text">
-            <div class="idc-school">{{ Qs::getSystemName() }}</div>
+            <div class="idc-school">{{ $idcSchool }}</div>
             <div class="idc-head-sub">Student Identity Card</div>
         </div>
     </div>

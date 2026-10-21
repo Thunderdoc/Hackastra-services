@@ -7,6 +7,7 @@ use App\Models\StudentRecord;
 use App\Models\Subject;
 use Hashids\Hashids;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 class Qs
 {
@@ -32,6 +33,24 @@ class Qs
     public static function getDefaultUserImage()
     {
         return asset('global_assets/images/user.png');
+    }
+
+    /**
+     * Workstream BR — does this photo value hold a real uploaded photo?
+     * The users-table default and every seeded account carry
+     * getDefaultUserImage() — the theme's stock silhouette — as their
+     * photo value. That means "no photo": avatar renderings must fall
+     * back to the initials tile and never show the stock silhouette.
+     * Matches on the path suffix so any host/port variant of the
+     * stored default is recognised.
+     */
+    public static function hasRealPhoto($photo)
+    {
+        if (!$photo) {
+            return false;
+        }
+
+        return !Str::endsWith($photo, '/global_assets/images/user.png');
     }
 
     public static function getPanelOptions()

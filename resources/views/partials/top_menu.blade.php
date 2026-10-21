@@ -110,14 +110,14 @@
         @endif
         <div class="nav-item dropdown dropdown-user lav-profile">
             <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">
-                <span class="l7-avatar l7-avatar-sm" aria-hidden="true">{{ strtoupper(substr(Auth::user()->name, 0, 1)) }}<img src="{{ Auth::user()->photo }}" alt="" onerror="this.remove()"></span>
+                <span class="l7-avatar l7-avatar-sm" aria-hidden="true">{{ strtoupper(substr(Auth::user()->name, 0, 1)) }}@if(Qs::hasRealPhoto(Auth::user()->photo))<img src="{{ Auth::user()->photo }}" alt="" onerror="this.remove()">@endif</span>
                 <span class="lav-user-meta"><strong>{{ Auth::user()->name }}</strong><small>{{ ucwords(str_replace('_', ' ', Auth::user()->user_type)) }}</small></span>
             </a>
             <div class="dropdown-menu dropdown-menu-right lav-user-menu">
                 {{-- Loop 40: profile header block — same identity data
                      as the chip (name + role), presentation only. --}}
                 <div class="lav-user-menu-head">
-                    <span class="l7-avatar l7-avatar-md" aria-hidden="true">{{ strtoupper(substr(Auth::user()->name, 0, 1)) }}<img src="{{ Auth::user()->photo }}" alt="" onerror="this.remove()"></span>
+                    <span class="l7-avatar l7-avatar-md" aria-hidden="true">{{ strtoupper(substr(Auth::user()->name, 0, 1)) }}@if(Qs::hasRealPhoto(Auth::user()->photo))<img src="{{ Auth::user()->photo }}" alt="" onerror="this.remove()">@endif</span>
                     <span class="lav-user-menu-meta"><strong>{{ Auth::user()->name }}</strong><small>{{ ucwords(str_replace('_', ' ', Auth::user()->user_type)) }}</small></span>
                 </div>
                 <div class="dropdown-divider"></div>
