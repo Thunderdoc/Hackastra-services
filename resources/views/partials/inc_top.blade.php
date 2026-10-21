@@ -13,8 +13,11 @@
 {{--DatePickers--}}
 <link rel="stylesheet" href="{{ asset('assets/css/bootstrap-datepicker.min.css') }}" type="text/css">
 
-{{-- Custom App CSS--}}
-<link href=" {{ asset('assets/css/qs.css') }}" rel="stylesheet" type="text/css">
+{{-- Custom App CSS — the ?v= token is the file's mtime (Workstream BP):
+     qs.css changes on nearly every deploy and browsers held the cached
+     copy across deploys, so fixes "landed" but never reached the screen.
+     The guard keeps the link working even if the file is missing. --}}
+<link href=" {{ asset('assets/css/qs.css') }}?v={{ file_exists(public_path('assets/css/qs.css')) ? filemtime(public_path('assets/css/qs.css')) : 1 }}" rel="stylesheet" type="text/css">
 
 {{--   Core JS files --}}
     <script src="{{ asset('global_assets/js/main/jquery.min.js') }} "></script>

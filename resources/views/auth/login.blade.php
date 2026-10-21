@@ -5,7 +5,7 @@
      All component styles live in qs.css, section "Loop 16 — Login Design A".
      The guest layout does not load qs.css, so it is linked here — the previous
      version of this view likewise carried its own <style> block. --}}
-<link href="{{ asset('assets/css/qs.css') }}" rel="stylesheet" type="text/css">
+<link href="{{ asset('assets/css/qs.css') }}?v={{ file_exists(public_path('assets/css/qs.css')) ? filemtime(public_path('assets/css/qs.css')) : 1 }}" rel="stylesheet" type="text/css">
 <style>
     /* Page chrome only: paint the viewport navy and hide the guest layout's
        top/bottom navbars so the split card owns the screen, as in the reference. */

@@ -432,17 +432,11 @@
                 </ul>
             </div>
         </div>
-@if(Qs::userIsTeacher())
-        <div class="t9-session-card">
-            <i class="icon-calendar52"></i>
-            <span><small>Current Session</small><strong>{{ str_replace('-', ' - ', Qs::getSetting('current_session')) }}</strong></span>
-            <i class="icon-arrow-right7 t9-session-chev"></i>
-        </div>@else        <div class="lav-sidebar-session">
-            <i class="icon-calendar52"></i>
-            <span><small>Academic Session</small><strong>{{ Qs::getSetting('current_session') }}</strong></span>
-            @if(Qs::userIsTeamSA())
-                <a href="{{ route('settings') }}" aria-label="Change academic session"><i class="icon-chevron-down"></i></a>
-            @endif
-        </div>@endif
+{{-- Session display (owner directive 2026-10-21 23:30 IST): the session
+     is shown ONCE, in the topbar chip. The sidebar session card that used
+     to sit here (teacher "Current Session" / generic "Academic Session",
+     incl. its collapsed-rail calendar tile) is removed for every role —
+     the Loop 35 shell's nav scroll region now simply extends to the
+     bottom of the sidebar under the pinned brand. --}}
 
 </div>

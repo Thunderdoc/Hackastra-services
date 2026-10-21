@@ -1900,3 +1900,54 @@ body.sidebar-xs .sidebar-main .lav-sidebar-session{margin-left:6px;margin-right:
 @media (max-width:767px){
   .acct-form-grid{grid-template-columns:minmax(0,1fr)}
 }
+
+/* ============================================================
+   Loop 44 — Collapsed rail labels + sidebar scrollbar kill
+   (Workstream BP; owner escalation 2026-10-21 23:17 IST).
+
+   LABELS: the theme hides collapsed-rail labels through ONE
+   rule — .sidebar-xs .nav-link > span{display:none} — and CSS
+   cannot select a bare text node. The parent and student menu
+   fragments shipped their labels as bare text inside the
+   anchor, so in the 56px rail the text node took flex space,
+   wrapped, and its first characters painted, hard-clipped at
+   the rail edge ("M…/Ch…" for My Children). Those fragments
+   now wrap labels in <span> like every other menu (the theme
+   contract) and carry title attributes as the icon tooltip.
+   The font-size:0 net below is the guarantee for any future
+   fragment: a stray text node in a top-level rail link can
+   never paint. It cannot shrink the icons — their 15px size
+   is declared on the <i> itself (Loop 1 block), and the span
+   is display:none regardless.
+
+   SECTION HEADERS: in the rail the theme turns each header
+   into a 44px row showing only a dotted glyph. Here they
+   become a clean hairline divider instead.
+
+   SCROLLBAR — SUPERSEDES the styled-thin paint of Loops 29/35
+   for the SIDEBAR scroller only (Loop 35's shell, flex zones
+   and brand rules stay exactly as they are; the bell panel's
+   Loop 40 scrollbar is not the sidebar and is untouched):
+   the owner still saw a fat native track on the live site,
+   so the sidebar now paints NO scrollbar in any state
+   (expanded or collapsed) and either engine — Chromium via
+   the webkit pseudo at (0,4,1)+!important over Loop 35's
+   (0,3,1), Firefox via scrollbar-width:none. The scroller is
+   .card-sidebar-mobile in both states (DOM-measured); the
+   .sidebar-content and .nav-group-sub rules are the same
+   belt for the shell's other potential scroll boxes. The
+   element still scrolls (wheel / touch / keyboard) — only
+   the paint is gone.
+   ============================================================ */
+@media (min-width:768px){
+  .sidebar-xs .sidebar-main .nav-sidebar>.nav-item>.nav-link{font-size:0}
+  .sidebar-xs .sidebar-main .nav-sidebar>.nav-item>.nav-link>span{display:none}
+  .sidebar-xs .sidebar-main .nav-sidebar>.nav-item-header{border-top:1px solid rgba(255,255,255,.14);height:auto;margin:.55rem .8rem;padding:0}
+  .sidebar-xs .sidebar-main .nav-sidebar>.nav-item-header>i{display:none}
+}
+.sidebar.sidebar-main .card.card-sidebar-mobile,
+.sidebar.sidebar-main .sidebar-content,
+.sidebar.sidebar-main .nav-group-sub{scrollbar-width:none;-ms-overflow-style:none}
+.sidebar.sidebar-main .card.card-sidebar-mobile::-webkit-scrollbar,
+.sidebar.sidebar-main .sidebar-content::-webkit-scrollbar,
+.sidebar.sidebar-main .nav-group-sub::-webkit-scrollbar{display:none!important;width:0;height:0}
