@@ -16,6 +16,9 @@
                    {{-- <strong><span style="color: #1b0c80; font-size: 20px;">MINNA, NIGER STATE</span></strong><br/>--}}
                     <strong><span
                                 style="color: #000; font-size: 15px;"><i>{{ ucwords($s['address']) }}</i></span></strong><br/>
+                    @if(!empty($s['phone']) || !empty($s['system_email']))
+                        <span style="color: #000; font-size: 12px;">{{ !empty($s['phone']) ? 'Tel: '.$s['phone'] : '' }}{{ (!empty($s['phone']) && !empty($s['system_email'])) ? ' | ' : '' }}{{ !empty($s['system_email']) ? 'Email: '.$s['system_email'] : '' }}</span><br/>
+                    @endif
                     <strong><span style="color: #000; font-size: 15px;"> REPORT SHEET {{ '('.strtoupper($class_type->name).')' }}
                     </span></strong>
                 </td>
@@ -37,10 +40,12 @@
 @include('pages.support_team.marks.print.sheet')
 
         {{--Key to Grading--}}
-        {{--@include('pages.support_team.marks.print.grading')--}}
+        @include('pages.support_team.marks.print.grading')
 
         {{-- TRAITS - PSCHOMOTOR & AFFECTIVE --}}
-        @include('pages.support_team.marks.print.skills')
+        @if($skills)
+            @include('pages.support_team.marks.print.skills')
+        @endif
 
         <div style="margin-top: 25px; clear: both;"></div>
 

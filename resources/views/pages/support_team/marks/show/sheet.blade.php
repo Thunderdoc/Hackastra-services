@@ -1,4 +1,5 @@
-<table class="table table-bordered table-responsive text-center">
+<div class="table-responsive">
+<table class="table table-bordered text-center">
     <thead>
     <tr>
         <th rowspan="2">S/N</th>
@@ -26,7 +27,7 @@
     @foreach($subjects as $sub)
         <tr>
             <td>{{ $loop->iteration }}</td>
-            <td>{{ $sub->name }}</td>
+            <td class="text-left">{{ $sub->name }}</td>
             @foreach($marks->where('subject_id', $sub->id)->where('exam_id', $ex->id) as $mk)
                 <td>{{ ($mk->t1) ?: '-' }}</td>
                 <td>{{ ($mk->t2) ?: '-' }}</td>
@@ -56,9 +57,11 @@
         </tr>
     @endforeach
     <tr>
-        <td colspan="4"><strong>TOTAL SCORES OBTAINED: </strong> {{ $exr->total }}</td>
-        <td colspan="3"><strong>FINAL AVERAGE: </strong> {{ $exr->ave }}</td>
-        <td colspan="2"><strong>CLASS AVERAGE: </strong> {{ $exr->class_ave }}</td>
+        <td colspan="3"><strong>TOTAL SCORES OBTAINED: </strong> <strong>{{ $exr->total ?: '-' }}</strong></td>
+        <td colspan="2"><strong>FINAL AVERAGE: </strong> <strong>{{ $exr->ave ?: '-' }}</strong></td>
+        <td colspan="2"><strong>CLASS AVERAGE: </strong> <strong>{{ $exr->class_ave ?: '-' }}</strong></td>
+        <td colspan="2"><strong>POSITION: </strong> <strong>{!! $exr->pos ? Mk::getSuffix($exr->pos) : '-' !!}</strong></td>
     </tr>
     </tbody>
 </table>
+</div>

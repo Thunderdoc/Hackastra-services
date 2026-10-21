@@ -9,9 +9,9 @@
         {{--    Logo N School Details--}}
         <table width="100%">
             <tr>
-                {{--<td><img src="{{ $s['logo'] }}" style="max-height : 100px;"></td>--}}
+                <td>@if(!empty($s['logo']))<img src="{{ $s['logo'] }}" style="max-height : 100px;">@endif</td>
 
-                <td >
+                <td style="text-align: center;">
                     <strong><span style="color: #1b0c80; font-size: 25px;">{{ strtoupper(Qs::getSetting('system_name')) }}</span></strong><br/>
                     {{-- <strong><span style="color: #1b0c80; font-size: 20px;">MINNA, NIGER STATE</span></strong><br/>--}}
                     <strong><span
@@ -34,9 +34,9 @@
             <thead>
             <tr>
                 <th>#</th>
-                <th>NAMES_OF_STUDENTS_IN_CLASS</th>
+                <th style="text-align: left;">NAMES OF STUDENTS IN CLASS</th>
                 @foreach($subjects as $sub)
-                    <th rowspan="2">{{ strtoupper($sub->slug ?: $sub->name) }}</th>
+                    <th>{{ strtoupper($sub->slug ?: $sub->name) }}</th>
                 @endforeach
              {{--   @if($ex->term == 3)
                     <th>1ST TERM TOTAL</th>
@@ -54,7 +54,7 @@
             @foreach($students as $s)
                 <tr>
                     <td>{{ $loop->iteration }}</td>
-                    <td style="text-align: center">{{ $s->user->name }}</td>
+                    <td style="text-align: left;">{{ $s->user->name }}</td>
                     @foreach($subjects as $sub)
                         <td>{{ $marks->where('student_id', $s->user_id)->where('subject_id', $sub->id)->first()->$tex ?? '-' ?: '-' }}</td>
                     @endforeach
@@ -68,9 +68,9 @@
                         <td>{{ Mk::getTermTotal($s->user_id, 3, $year) ?: '-' }}</td>
                     @endif--}}
 
-                    <td style="color: darkred">{{ $exr->where('student_id', $s->user_id)->first()->total ?: '-' }}</td>
-                    <td style="color: darkblue">{{ $exr->where('student_id', $s->user_id)->first()->ave ?: '-' }}</td>
-                    <td style="color: darkgreen">{!! Mk::getSuffix($exr->where('student_id', $s->user_id)->first()->pos) ?: '-' !!}</td>
+                    <td style="color: darkred; font-weight: bold;">{{ $exr->where('student_id', $s->user_id)->first()->total ?: '-' }}</td>
+                    <td style="color: darkblue; font-weight: bold;">{{ $exr->where('student_id', $s->user_id)->first()->ave ?: '-' }}</td>
+                    <td style="color: darkgreen; font-weight: bold;">{!! Mk::getSuffix($exr->where('student_id', $s->user_id)->first()->pos) ?: '-' !!}</td>
                 </tr>
             @endforeach
             </tbody>

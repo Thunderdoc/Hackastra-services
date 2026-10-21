@@ -69,13 +69,14 @@
                 <h6 class="card-title font-weight-bold">Tabulation Sheet for {{ $my_class->name.' '.$section->name.' - '.$ex->name.' ('.$year.')' }}</h6>
             </div>
             <div class="card-body">
-                <table class="table table-responsive table-striped">
+                <div class="table-responsive">
+                <table class="table table-striped">
                     <thead>
                     <tr>
-                        <th>#</th>
-                        <th>NAMES_OF_STUDENTS_IN_CLASS</th>
+                        <th class="text-center">#</th>
+                        <th>NAMES OF STUDENTS IN CLASS</th>
                        @foreach($subjects as $sub)
-                       <th title="{{ $sub->name }}" rowspan="2">{{ strtoupper($sub->slug ?: $sub->name) }}</th>
+                       <th class="text-center" title="{{ $sub->name }}">{{ strtoupper($sub->slug ?: $sub->name) }}</th>
                        @endforeach
                         {{--@if($ex->term == 3)
                         <th>1ST TERM TOTAL</th>
@@ -84,18 +85,18 @@
                         <th style="color: darkred">CUM Total</th>
                         <th style="color: darkblue">CUM Average</th>
                         @endif--}}
-                        <th style="color: darkred">Total</th>
-                        <th style="color: darkblue">Average</th>
-                        <th style="color: darkgreen">Position</th>
+                        <th class="text-center text-danger">Total</th>
+                        <th class="text-center text-primary">Average</th>
+                        <th class="text-center text-success">Position</th>
                     </tr>
                     </thead>
                     <tbody>
                     @foreach($students as $s)
                         <tr>
-                            <td>{{ $loop->iteration }}</td>
-                            <td style="text-align: center">{{ $s->user->name }}</td>
+                            <td class="text-center">{{ $loop->iteration }}</td>
+                            <td>{{ $s->user->name }}</td>
                             @foreach($subjects as $sub)
-                            <td>{{ $marks->where('student_id', $s->user_id)->where('subject_id', $sub->id)->first()->$tex ?? '-' ?: '-' }}</td>
+                            <td class="text-center">{{ $marks->where('student_id', $s->user_id)->where('subject_id', $sub->id)->first()->$tex ?? '-' ?: '-' }}</td>
                             @endforeach
 
                             {{--@if($ex->term == 3)
@@ -107,13 +108,14 @@
                             <td>{{ Mk::getTermTotal($s->user_id, 3, $year) ?? '-' }}</td>
                             @endif--}}
 
-                            <td style="color: darkred">{{ $exr->where('student_id', $s->user_id)->first()->total ?: '-' }}</td>
-                            <td style="color: darkblue">{{ $exr->where('student_id', $s->user_id)->first()->ave ?: '-' }}</td>
-                            <td style="color: darkgreen">{!! Mk::getSuffix($exr->where('student_id', $s->user_id)->first()->pos) ?: '-' !!}</td>
+                            <td class="text-center font-weight-bold text-danger">{{ $exr->where('student_id', $s->user_id)->first()->total ?: '-' }}</td>
+                            <td class="text-center font-weight-bold text-primary">{{ $exr->where('student_id', $s->user_id)->first()->ave ?: '-' }}</td>
+                            <td class="text-center font-weight-bold text-success">{!! Mk::getSuffix($exr->where('student_id', $s->user_id)->first()->pos) ?: '-' !!}</td>
                         </tr>
                     @endforeach
                     </tbody>
                 </table>
+                </div>
                 {{--Print Button--}}
                 <div class="text-center mt-4">
                     <a target="_blank" href="{{  route('marks.print_tabulation', [$exam_id, $my_class_id, $section_id]) }}" class="btn btn-danger btn-lg"><i class="icon-printer mr-2"></i> Print Tabulation Sheet</a>

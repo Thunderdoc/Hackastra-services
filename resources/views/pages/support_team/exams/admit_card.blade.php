@@ -1,0 +1,90 @@
+{{-- Admit card for one student. Expects: $sr (StudentRecord with user/my_class/section),
+     $exam, $schedule (rows: subject/date/time), $schedule_fallback, $school (settings array). --}}
+<div class="admit-card">
+    <table class="admit-head">
+        <tr>
+            <td class="admit-head-main">
+                @if(!empty($school['logo']))
+                    <img src="{{ $school['logo'] }}" alt="" class="admit-logo">
+                @endif
+                <h3>{{ $school['name'] }}</h3>
+                <p>{{ $school['address'] }}</p>
+                <p>@if($school['phone']) Tel: {{ $school['phone'] }} @endif @if($school['email']) &nbsp;|&nbsp; {{ $school['email'] }} @endif</p>
+            </td>
+            <td class="admit-photo-cell">
+                <img src="{{ $sr->user->photo }}" alt="Student photo" class="admit-photo"
+                     onerror="this.onerror=null;this.src='{{ asset('global_assets/images/user.png') }}'">
+            </td>
+        </tr>
+    </table>
+
+    <div class="admit-title">
+        <span>ADMIT CARD</span>
+        <strong>{{ $exam->name }}</strong>
+        <small>Term {{ $exam->term }} &nbsp;&bull;&nbsp; Session {{ $exam->year }}</small>
+    </div>
+
+    <table class="admit-fields">
+        <tr>
+            <th>Student Name</th>
+            <td>{{ $sr->user->name }}</td>
+            <th>Admission No</th>
+            <td>{{ $sr->adm_no }}</td>
+        </tr>
+        <tr>
+            <th>Class</th>
+            <td>{{ $sr->my_class->name }}</td>
+            <th>Section</th>
+            <td>{{ $sr->section->name ?? '—' }}</td>
+        </tr>
+    </table>
+
+    <table class="admit-subjects">
+        <thead>
+        <tr>
+            <th style="width:34px">S/N</th>
+            <th>Subject</th>
+            <th style="width:170px">Date</th>
+            <th style="width:150px">Time</th>
+            <th style="width:130px">Invigilator's Sign</th>
+        </tr>
+        </thead>
+        <tbody>
+        @forelse($schedule as $row)
+            <tr>
+                <td class="text-center">{{ $loop->iteration }}</td>
+                <td>{{ $row['subject'] }}</td>
+                <td>{{ $row['date'] ?? '—' }}</td>
+                <td>{{ $row['time'] ?? '—' }}</td>
+                <td></td>
+            </tr>
+        @empty
+            <tr>
+                <td colspan="5" class="text-center">No subjects found for this class.</td>
+            </tr>
+        @endforelse
+        </tbody>
+    </table>
+
+    @if($schedule_fallback)
+        <p class="admit-note">Note: Exam dates &amp; times for the subjects above will be announced by the school office.</p>
+    @endif
+
+    <div class="admit-instructions">
+        <strong>Instructions:</strong>
+        <ol>
+            <li>Bring this admit card on every day of the examination; entry to the hall is not allowed without it.</li>
+            <li>Report at the examination hall at least 30 minutes before the scheduled time.</li>
+            <li>Mobile phones, smart watches and other electronic devices are not allowed in the examination hall.</li>
+            <li>This card is not transferable. Report any error in the details above to the school office immediately.</li>
+        </ol>
+    </div>
+
+    <table class="admit-sign">
+        <tr>
+            <td><span class="sign-line"></span>Class Teacher's Signature</td>
+            <td><span class="sign-line"></span>Principal's Signature</td>
+            <td class="admit-seal-cell"><span class="admit-seal">SCHOOL SEAL</span></td>
+        </tr>
+    </table>
+</div>

@@ -2,15 +2,16 @@
 <table style="width:100%; border-collapse:collapse; ">
     <tbody>
     <tr>
-        <td><strong>NAME:</strong> {{ strtoupper($sr->user->name) }}</td>
-        <td><strong>ADM NO:</strong> {{ $sr->adm_no }}</td>
-        <td><strong>HOUSE:</strong> {{ strtoupper($sr->house) }}</td>
-        <td><strong>CLASS:</strong> {{ strtoupper($my_class->name) }}</td>
+        <td style="text-align: left;"><strong>NAME:</strong> {{ strtoupper($sr->user->name) }}</td>
+        <td style="text-align: left;"><strong>ADM NO:</strong> {{ $sr->adm_no }}</td>
+        <td style="text-align: left;"><strong>CLASS:</strong> {{ strtoupper($my_class->name) }}</td>
+        <td style="text-align: left;"><strong>SECTION:</strong> {{ $sr->section ? strtoupper($sr->section->name) : '-' }}</td>
     </tr>
     <tr>
-        <td><strong>REPORT SHEET FOR</strong> {!! strtoupper(Mk::getSuffix($ex->term)) !!} TERM </td>
-        <td><strong>ACADEMIC YEAR:</strong> {{ $ex->year }}</td>
-        <td><strong>AGE:</strong> {{ $sr->age ?: ($sr->user->dob ? date_diff(date_create($sr->user->dob), date_create('now'))->y : '-') }}</td>
+        <td style="text-align: left;"><strong>REPORT SHEET FOR</strong> {!! strtoupper(Mk::getSuffix($ex->term)) !!} TERM </td>
+        <td style="text-align: left;"><strong>ACADEMIC YEAR:</strong> {{ $ex->year }}</td>
+        <td style="text-align: left;"><strong>HOUSE:</strong> {{ $sr->house ? strtoupper($sr->house) : '-' }}</td>
+        <td style="text-align: left;"><strong>AGE:</strong> {{ $sr->age ?: ($sr->user->dob ? date_diff(date_create($sr->user->dob), date_create('now'))->y : '-') }}</td>
     </tr>
 
     </tbody>
@@ -49,7 +50,7 @@
     <tbody>
     @foreach($subjects as $sub)
         <tr>
-            <td style="font-weight: bold">{{ $sub->name }}</td>
+            <td style="font-weight: bold; text-align: left;">{{ $sub->name }}</td>
             @foreach($marks->where('subject_id', $sub->id)->where('exam_id', $ex->id) as $mk)
                 <td>{{ $mk->t1 ?: '-' }}</td>
                 <td>{{ $mk->t2 ?: '-' }}</td>
@@ -59,7 +60,7 @@
                 <td>{{ $mk->$tex ?: '-'}}</td>
                 <td>{{ $mk->grade ? $mk->grade->name : '-' }}</td>
                 <td>{!! ($mk->grade) ? Mk::getSuffix($mk->sub_pos) : '-' !!}</td>
-                <td>{{ $mk->grade ? $mk->grade->remark : '-' }}</td>
+                <td style="text-align: left;">{{ $mk->grade ? $mk->grade->remark : '-' }}</td>
 
                 {{--@if($ex->term == 3)
                     <td>{{ $mk->tex3 ?: '-' }}</td>
@@ -75,9 +76,10 @@
         </tr>
     @endforeach
     <tr>
-        <td colspan="3"><strong>TOTAL SCORES OBTAINED: </strong> {{ $exr->total }}</td>
-        <td colspan="3"><strong>FINAL AVERAGE: </strong> {{ $exr->ave }}</td>
-        <td colspan="3"><strong>CLASS AVERAGE: </strong> {{ $exr->class_ave }}</td>
+        <td colspan="3"><strong>TOTAL SCORES OBTAINED: </strong> <strong>{{ $exr->total ?: '-' }}</strong></td>
+        <td colspan="2"><strong>FINAL AVERAGE: </strong> <strong>{{ $exr->ave ?: '-' }}</strong></td>
+        <td colspan="2"><strong>CLASS AVERAGE: </strong> <strong>{{ $exr->class_ave ?: '-' }}</strong></td>
+        <td colspan="2"><strong>POSITION: </strong> <strong>{!! $exr->pos ? Mk::getSuffix($exr->pos) : '-' !!}</strong></td>
     </tr>
     </tbody>
 </table>
