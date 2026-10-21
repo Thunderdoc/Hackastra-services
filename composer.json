@@ -10,6 +10,7 @@
     "require": {
         "php": "^8.2",
         "barryvdh/laravel-dompdf": "^3.0",
+        "fakerphp/faker": "^1.20",
         "guzzlehttp/guzzle": "^7.8",
         "hashids/hashids": "^4.1.0",
         "laravel/framework": "^11.0",
@@ -19,7 +20,6 @@
     },
     "require-dev": {
         "barryvdh/laravel-ide-helper": "^3.0",
-        "fakerphp/faker": "^1.20",
         "mockery/mockery": "^1.6",
         "nunomaduro/collision": "^8.0",
         "phpunit/phpunit": "^10.0",
