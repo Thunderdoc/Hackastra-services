@@ -13,7 +13,7 @@
     @include('partials.inc_top')
 </head>
 
-<body class="{{ in_array(Route::currentRouteName(), ['ttr.manage', 'ttr.show']) ? 'sidebar-xs' : '' }}">
+<body class="{{ in_array(Route::currentRouteName(), ['ttr.manage', 'ttr.show']) ? 'sidebar-xs' : '' }}{{ Qs::userIsTeacher() ? ' portal-teacher' : '' }}">
 
 @include('partials.top_menu')
 <div class="page-content">

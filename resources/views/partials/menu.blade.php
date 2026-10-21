@@ -1,6 +1,16 @@
 <div class="sidebar sidebar-dark sidebar-main sidebar-expand-md">
 
-    <div class="lav-sidebar-brand">
+@if(Qs::userIsTeacher())
+    <div class="t9-brand">
+        <a href="{{ route('dashboard') }}" class="t9-brand-link">
+            <img src="{{ asset('global_assets/images/logo_icon_light.png') }}" alt="" class="t9-brand-icon">
+            <span class="t9-brand-copy"><strong>Hackstra</strong><small>School Management System</small></span>
+        </a>
+    </div>
+    <div class="t9-academy">
+        <i class="icon-library2"></i>
+        <span>{{ strtoupper(Qs::getSystemName()) }}</span>
+    </div>@else    <div class="lav-sidebar-brand">
         <a href="{{ route('dashboard') }}" class="lav-sidebar-brand-link">
             <img src="{{ Qs::getLogo(asset('global_assets/images/logo_icon_light.png')) }}" alt="" class="lav-sidebar-brand-icon">
             <span>
@@ -8,7 +18,8 @@
                 <small>School Management System</small>
             </span>
         </a>
-    </div>
+    </div>@endif
+
 
     <!-- Sidebar mobile toggler -->
     <div class="sidebar-mobile-toggler text-center">
@@ -26,7 +37,7 @@
     <!-- Sidebar content -->
     <div class="sidebar-content">
 
-        <!-- User menu -->
+@if(!Qs::userIsTeacher())        <!-- User menu -->
         <div class="sidebar-user">
             <div class="card-body">
                 <div class="media">
@@ -47,11 +58,94 @@
                 </div>
             </div>
         </div>
-        <!-- /user menu -->
+        <!-- /user menu -->@endif
+
 
         <!-- Main navigation -->
         <div class="card card-sidebar-mobile">
-            <ul class="nav nav-sidebar" data-nav-type="accordion">
+            <ul class="nav nav-sidebar" data-nav-type="accordion">@if(Qs::userIsTeacher())
+                <li class="nav-item">
+                    <a href="{{ route('dashboard') }}" class="nav-link {{ (Route::is('dashboard')) ? 'active' : '' }}">
+                        <i class="icon-home4"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Attendance</div><i class="icon-menu" title="Attendance"></i></li>
+                <li class="nav-item">
+                    <a href="{{ route('attendance.index') }}" class="nav-link {{ (Route::is('attendance.index')) ? 'active' : '' }}">
+                        <i class="icon-calendar52"></i>
+                        <span>Attendance</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('attendance.report') }}" class="nav-link {{ (Route::is('attendance.report')) ? 'active' : '' }}">
+                        <i class="icon-stats-bars2"></i>
+                        <span>Attendance Report</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('attendance.defaulters') }}" class="nav-link {{ (Route::is('attendance.defaulters')) ? 'active' : '' }}">
+                        <i class="icon-alarm"></i>
+                        <span>Attendance Defaulters</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('attendance.periods.index') }}" class="nav-link {{ (Route::is('attendance.periods.*')) ? 'active' : '' }}">
+                        <i class="icon-watch"></i>
+                        <span>Period Attendance</span>
+                    </a>
+                </li>
+                <li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Communication</div><i class="icon-menu" title="Communication"></i></li>
+                <li class="nav-item">
+                    <a href="{{ route('circulars.index') }}" class="nav-link {{ (Route::is('circulars.*')) ? 'active' : '' }}">
+                        <i class="icon-megaphone"></i>
+                        <span>Circulars</span>
+                    </a>
+                </li>
+                <li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Academics</div><i class="icon-menu" title="Academics"></i></li>
+                <li class="nav-item nav-item-submenu {{ in_array(Route::currentRouteName(), ['tt.index', 'ttr.edit', 'ttr.show', 'ttr.manage']) ? 'nav-item-expanded nav-item-open' : '' }} ">
+                    <a href="#" class="nav-link"><i class="icon-graduation2"></i> <span> Academics</span></a>
+                    <ul class="nav nav-group-sub" data-submenu-title="Manage Academics">
+                        <li class="nav-item"><a href="{{ route('tt.index') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['tt.index']) ? 'active' : '' }}">Timetables</a></li>
+                    </ul>
+                </li>
+                <li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Students</div><i class="icon-menu" title="Students"></i></li>
+                <li class="nav-item nav-item-submenu {{ in_array(Route::currentRouteName(), ['students.create', 'students.list', 'students.edit', 'students.show', 'students.promotion', 'students.promotion_manage', 'students.graduated']) ? 'nav-item-expanded nav-item-open' : '' }} ">
+                    <a href="#" class="nav-link"><i class="icon-users"></i> <span> Students</span></a>
+                    <ul class="nav nav-group-sub" data-submenu-title="Manage Students">
+                        <li class="nav-item nav-item-submenu {{ in_array(Route::currentRouteName(), ['students.list', 'students.edit', 'students.show']) ? 'nav-item-expanded' : '' }}">
+                            <a href="#" class="nav-link {{ in_array(Route::currentRouteName(), ['students.list', 'students.edit', 'students.show']) ? 'active' : '' }}">Student Information</a>
+                            <ul class="nav nav-group-sub">
+                                @foreach(App\Models\MyClass::orderBy('name')->get() as $c)
+                                    <li class="nav-item"><a href="{{ route('students.list', $c->id) }}" class="nav-link ">{{ $c->name }}</a></li>
+                                @endforeach
+                            </ul>
+                        </li>
+                    </ul>
+                </li>
+                <li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Examinations</div><i class="icon-menu" title="Examinations"></i></li>
+                <li class="nav-item nav-item-submenu {{ in_array(Route::currentRouteName(), ['exams.index', 'exams.edit', 'grades.index', 'grades.edit', 'marks.index', 'marks.manage', 'marks.bulk', 'marks.tabulation', 'marks.show', 'marks.batch_fix', 'admit_cards.index', 'admit_cards.print',]) ? 'nav-item-expanded nav-item-open' : '' }} ">
+                    <a href="#" class="nav-link"><i class="icon-books"></i> <span> Exams</span></a>
+                    <ul class="nav nav-group-sub" data-submenu-title="Manage Exams">
+                        <li class="nav-item">
+                            <a href="{{ route('marks.index') }}" class="nav-link {{ (Route::is('marks.index')) ? 'active' : '' }}">Marks</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('marks.bulk') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['marks.bulk', 'marks.show']) ? 'active' : '' }}">Marksheet</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('admit_cards.index') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['admit_cards.index', 'admit_cards.print']) ? 'active' : '' }}">Admit Cards</a>
+                        </li>
+                    </ul>
+                </li>
+                <li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Account</div><i class="icon-menu" title="Account"></i></li>
+                <li class="nav-item">
+                    <a href="{{ route('my_account') }}" class="nav-link {{ (Route::is('my_account')) ? 'active' : '' }}">
+                        <i class="icon-user"></i>
+                        <span>My Account</span>
+                    </a>
+                </li>@else
+
 
                 <!-- Main -->
                 @if(Qs::userIsSuperAdmin())
@@ -299,15 +393,22 @@
                 <li class="nav-item">
                     <a href="{{ route('my_account') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['my_account']) ? 'active' : '' }}"><i class="icon-user"></i> <span>My Account</span></a>
                 </li>
+@endif
 
                 </ul>
             </div>
         </div>
-        <div class="lav-sidebar-session">
+@if(Qs::userIsTeacher())
+        <div class="t9-session-card">
+            <i class="icon-calendar52"></i>
+            <span><small>Current Session</small><strong>{{ str_replace('-', ' - ', Qs::getSetting('current_session')) }}</strong></span>
+            <i class="icon-arrow-right7 t9-session-chev"></i>
+        </div>@else        <div class="lav-sidebar-session">
             <i class="icon-calendar52"></i>
             <span><small>Academic Session</small><strong>{{ Qs::getSetting('current_session') }}</strong></span>
             @if(Qs::userIsTeamSA())
                 <a href="{{ route('settings') }}" aria-label="Change academic session"><i class="icon-chevron-down"></i></a>
             @endif
-        </div>
+        </div>@endif
+
 </div>

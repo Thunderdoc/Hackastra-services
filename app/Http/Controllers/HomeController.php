@@ -519,6 +519,15 @@ class HomeController extends Controller
                 return $sections->pluck('name')->all();
             });
 
+        // Batch 9: period-attendance sessions already submitted today,
+        // keyed by timetable row — the redesigned home links each period
+        // to its locked record when one exists, else to the take page.
+        $session_by_period = collect();
+        if (Schema::hasTable('attendance_sessions')) {
+            $session_by_period = \App\Models\AttendanceSession::whereDate('date', $now->toDateString())
+                ->pluck('id', 'time_table_id');
+        }
+
         $today_periods = collect();
         if (Schema::hasTable('time_tables')) {
             $today_periods = TimeTable::with(['subject.my_class', 'time_slot', 'tt_record.my_class'])
@@ -527,7 +536,7 @@ class HomeController extends Controller
                     $q->where('teacher_id', $teacher_id);
                 })
                 ->get()
-                ->map(function (TimeTable $period) use ($now, $led_by_class) {
+                ->map(function (TimeTable $period) use ($now, $led_by_class, $session_by_period) {
                     $slot = $period->time_slot;
                     $start = $end = null;
                     if ($slot && $slot->time_from && $slot->time_to) {
@@ -561,6 +570,8 @@ class HomeController extends Controller
                         'status_label' => $status_label,
                         'sort' => $start ? $start->format('H:i') : (optional($slot)->timestamp_from ?? '99:99'),
                         'ttr_id' => $period->ttr_id,
+                        'tt_id' => $period->id,
+                        'session_id' => $session_by_period[$period->id] ?? null,
                     ];
                 })
                 ->sortBy('sort')
@@ -610,7 +621,7 @@ class HomeController extends Controller
             $recent_circulars = \App\Models\Circular::published()
                 ->forAudience('teacher')
                 ->latest()
-                ->take(5)
+                ->take(4)
                 ->get();
             $new_circulars_count = \App\Models\Circular::published()
                 ->forAudience('teacher')
@@ -661,9 +672,82 @@ class HomeController extends Controller
             ];
         }
 
+        // Batch 9 — Upcoming Tasks / Important Reminders for the
+        // redesigned teacher home. Every row is derived from real
+        // records; nothing is illustrative. Derivations, in order:
+        //  (a) today's periods whose register is not yet submitted;
+        //  (b) tomorrow's scheduled periods;
+        //  (c) upcoming exam sittings — exam dates live ONLY on exam
+        //      timetable rows (time_tables.exam_date, linked to an Exam
+        //      via the timetable record), because the exams table itself
+        //      carries no date column in this schema;
+        //  (d) "marks not yet entered" is deliberately NOT derived: with
+        //      no exam dates on the exams table, an exam cannot honestly
+        //      be called upcoming/ongoing, so the row would be a guess.
+        $t9_tasks = [];
+        $unsubmitted = $today_periods->filter(function ($row) {
+            return empty($row['session_id']);
+        })->count();
+        if ($unsubmitted > 0) {
+            $t9_tasks[] = [
+                'icon' => 'icon-calendar52', 'tone' => 'red',
+                'title' => $unsubmitted . ' ' . ($unsubmitted === 1 ? 'period' : 'periods') . ' not yet submitted',
+                'meta' => 'Period registers awaiting submission',
+                'badge' => 'Pending', 'badge_tone' => 'red',
+                'date_label' => $now->format('d M Y'),
+                'link' => route('attendance.periods.index'),
+            ];
+        }
+        $tomorrow = $now->copy()->addDay();
+        $tomorrow_count = 0;
+        if (Schema::hasTable('time_tables')) {
+            $tomorrow_count = TimeTable::where('day', $tomorrow->format('l'))
+                ->whereHas('subject', function ($q) use ($teacher_id) {
+                    $q->where('teacher_id', $teacher_id);
+                })
+                ->count();
+        }
+        if ($tomorrow_count > 0) {
+            $t9_tasks[] = [
+                'icon' => 'icon-calendar3', 'tone' => 'blue',
+                'title' => $tomorrow_count . ' ' . ($tomorrow_count === 1 ? 'period' : 'periods') . ' scheduled for tomorrow',
+                'meta' => 'Check your timetable',
+                'badge' => 'Upcoming', 'badge_tone' => 'blue',
+                'date_label' => $tomorrow->format('d M Y'),
+                'link' => route('tt.index'),
+            ];
+        }
+        if (Schema::hasTable('time_tables')) {
+            $exam_rows = TimeTable::with(['subject.my_class', 'tt_record.exam'])
+                ->whereNotNull('exam_date')
+                ->where('exam_date', '>=', $now->toDateString())
+                ->whereHas('subject', function ($q) use ($teacher_id) {
+                    $q->where('teacher_id', $teacher_id);
+                })
+                ->orderBy('exam_date')
+                ->take(2)
+                ->get();
+            foreach ($exam_rows as $exam_row) {
+                $exam_name = optional(optional($exam_row->tt_record)->exam)->name;
+                $subject_name = optional($exam_row->subject)->name ?: '—';
+                $exam_class = optional(optional($exam_row->subject)->my_class)->name;
+                $t9_tasks[] = [
+                    'icon' => 'icon-file-text2', 'tone' => 'orange',
+                    'title' => 'Exam: ' . ($exam_name ?: $subject_name),
+                    'meta' => $subject_name . ($exam_class ? ' · ' . $exam_class : ''),
+                    'badge' => 'Exam', 'badge_tone' => 'orange',
+                    'date_label' => Carbon::parse($exam_row->exam_date)->format('d M Y'),
+                    'link' => route('marks.index'),
+                ];
+            }
+        }
+        $t9_tasks = array_slice($t9_tasks, 0, 4);
+
         return [
             'my_subjects' => $subjects,
             'my_class_count' => $class_ids->count(),
+            'first_class_id' => $class_ids->first(),
+            't9_tasks' => $t9_tasks,
             'sections_led' => $sections_led,
             'my_student_count' => $class_ids->isEmpty()
                 ? 0

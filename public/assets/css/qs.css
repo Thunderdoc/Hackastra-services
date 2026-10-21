@@ -794,3 +794,135 @@ a.par-reminder-info:hover{background:#e2ebfa}
 .lav-search{gap:8px;max-width:440px;padding:6px 12px}
 .lav-search input{font-size:12px}
 .lav-search kbd{font-size:9px}
+
+/* ============================================================
+   Loop 19 — Teacher portal redesign (Batch 9, reference-matched).
+   Every rule is scoped to .portal-teacher or .t9- components,
+   which render ONLY for teacher users; other portals untouched.
+   ============================================================ */
+
+/* --- Teacher sidebar chrome --- */
+.portal-teacher .sidebar-main{display:flex;flex-direction:column}
+.portal-teacher .sidebar-content{flex:1 1 auto;min-height:0}
+.t9-brand{padding:16px 16px 4px}
+.t9-brand-link{display:flex;align-items:center;gap:10px;text-decoration:none}
+.t9-brand-icon{width:34px;height:34px;flex:0 0 auto}
+.t9-brand-copy strong{display:block;color:#fff;font-size:17px;line-height:1.15;font-weight:700}
+.t9-brand-copy small{display:block;color:rgba(255,255,255,.55);font-size:10.5px;line-height:1.2}
+.t9-academy{display:flex;align-items:center;gap:9px;margin:10px 16px 14px;padding-bottom:13px;border-bottom:1px solid rgba(255,255,255,.12);color:#fff;font-size:12px;font-weight:600;letter-spacing:.06em}
+.t9-academy i{font-size:15px;color:rgba(255,255,255,.75)}
+.t9-session-card{display:flex;align-items:center;gap:10px;margin:12px;padding:11px 13px;border:1px solid rgba(255,255,255,.18);border-radius:10px;color:#fff}
+.t9-session-card>i:first-child{font-size:17px;color:rgba(255,255,255,.8)}
+.t9-session-card small{display:block;color:rgba(255,255,255,.55);font-size:10px;line-height:1.2}
+.t9-session-card strong{display:block;color:#fff;font-size:13px;line-height:1.3}
+.t9-session-chev{margin-left:auto;color:rgba(255,255,255,.5);font-size:12px}
+
+/* --- Teacher dashboard sub-header strip --- */
+.t9-subheader{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin:20px 22px 0}
+.t9-subheader-left{display:flex;align-items:center;gap:12px}
+.t9-back{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;background:#fff;border:1px solid #dbe4ef;color:#43556c;font-size:13px;text-decoration:none}
+.t9-back:hover{color:var(--qs-primary-action);border-color:var(--qs-primary-action)}
+.t9-crumb{font-size:15px;font-weight:600;color:#43556c}
+.t9-subheader-right{display:flex;align-items:stretch;gap:12px;flex-wrap:wrap}
+.t9-datebox{display:flex;align-items:center;gap:11px;background:#fff;border:1px solid #e4eaf1;border-radius:10px;padding:7px 16px 7px 13px}
+.t9-datebox>i{font-size:19px;color:var(--qs-primary-action)}
+.t9-datebox strong{display:block;font-size:13.5px;color:#172536;line-height:1.25}
+.t9-datebox small{display:block;font-size:11px;color:#8494a7;line-height:1.25}
+.t9-take-btn{display:inline-flex;align-items:center;gap:8px;background:var(--qs-primary-action);border-color:var(--qs-primary-action);color:#fff;font-weight:600;font-size:13.5px;border-radius:9px;padding:0 20px}
+.t9-take-btn:hover,.t9-take-btn:focus{color:#fff;filter:brightness(1.07)}
+
+/* --- Greeting --- */
+.t9-greeting{margin-bottom:18px}
+.t9-greeting h2{display:flex;align-items:center;gap:10px;font-size:24px;font-weight:700;color:#172536;margin:0 0 4px}
+.t9-greet-mark{display:inline-flex;align-items:center;justify-content:center;width:27px;height:27px;border-radius:50%;background:#e8f1fe;color:var(--qs-primary-action);font-size:11px;flex:0 0 auto}
+.t9-greeting p{color:#718096;font-size:13.5px;margin:0}
+
+/* --- KPI cards --- */
+.t9-kpi-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin-bottom:20px}
+.t9-kpi{display:flex;align-items:center;gap:14px;border-radius:12px;padding:16px 18px;text-decoration:none;border:1px solid rgba(23,37,54,.04)}
+a.t9-kpi:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(23,37,54,.08)}
+.t9-kpi-icon{display:inline-flex;align-items:center;justify-content:center;width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,.7);font-size:20px;flex:0 0 auto}
+.t9-kpi-copy{min-width:0}
+.t9-kpi-label{display:block;font-size:12.5px;font-weight:600;line-height:1.2}
+.t9-kpi-copy strong{display:block;font-size:26px;font-weight:700;color:#172536;line-height:1.15}
+.t9-kpi-copy small{display:block;font-size:12px;color:#7a8797;line-height:1.25}
+.t9-kpi-chev{margin-left:auto;font-size:14px;flex:0 0 auto}
+.t9-kpi-blue{background:#eef4fe}.t9-kpi-blue .t9-kpi-icon,.t9-kpi-blue .t9-kpi-label,.t9-kpi-blue .t9-kpi-chev{color:#2867dc}
+.t9-kpi-green{background:#e9f7f0}.t9-kpi-green .t9-kpi-icon,.t9-kpi-green .t9-kpi-label,.t9-kpi-green .t9-kpi-chev{color:#188b66}
+.t9-kpi-orange{background:#fdf1e7}.t9-kpi-orange .t9-kpi-icon,.t9-kpi-orange .t9-kpi-label,.t9-kpi-orange .t9-kpi-chev{color:#d97a1f}
+.t9-kpi-lavender{background:#f1edfd}.t9-kpi-lavender .t9-kpi-icon,.t9-kpi-lavender .t9-kpi-label,.t9-kpi-lavender .t9-kpi-chev{color:#6845d8}
+
+/* --- Panels + grids --- */
+.t9-main{display:grid;grid-template-columns:minmax(0,1.62fr) minmax(0,1fr);gap:20px;margin-bottom:20px}
+.t9-bottom{display:grid;grid-template-columns:minmax(0,1.22fr) minmax(0,1fr);gap:20px}
+.t9-panel{background:#fff;border:1px solid #e4eaf1;border-radius:12px;padding:18px 20px;min-width:0}
+.t9-panel-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
+.t9-panel-title{display:flex;align-items:center;gap:11px;min-width:0}
+.t9-panel-icon{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:9px;font-size:16px;flex:0 0 auto}
+.t9-tone-blue{background:#e8f1fe;color:#2867dc}
+.t9-tone-amber{background:#fdf3e0;color:#b97a0c}
+.t9-tone-red{background:#fdecec;color:#d64545}
+.t9-panel h5{font-size:16.5px;font-weight:700;color:#172536;margin:0;line-height:1.25}
+.t9-panel-sub{font-size:12.5px;color:#8494a7;margin:2px 0 0}
+.t9-view-all{font-size:13px;font-weight:600;color:var(--qs-primary-action);white-space:nowrap;text-decoration:none}
+.t9-view-all i{font-size:11px}
+
+/* --- Today's timetable table --- */
+.t9-table-wrap{overflow-x:auto}
+.t9-table{width:100%;border-collapse:collapse}
+.t9-table th{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#8494a7;font-weight:600;text-align:left;padding:8px 10px;background:#f7fafc;border-bottom:1px solid #e8edf3;white-space:nowrap}
+.t9-table td{font-size:13.5px;color:#33475e;padding:11px 10px;border-bottom:1px solid #eef2f6;vertical-align:middle}
+.t9-table tbody tr:last-child td{border-bottom:0}
+.t9-table .t9-subject{font-weight:600;color:#22344a}
+.t9-time{color:#5b6b7f;white-space:nowrap}
+.portal-teacher .t9-table .period-status-completed{background:var(--qs-success-tint);color:var(--qs-success)}
+.portal-teacher .t9-table .period-status-live{background:#e9f1ff;color:var(--qs-primary-action)}
+.portal-teacher .t9-table .period-status-upcoming{background:#eef1f5;color:var(--qs-meta)}
+.t9-view-link{display:inline-block;padding:4px 15px;border-radius:999px;background:#e8f1fe;color:#2867dc;font-size:12.5px;font-weight:600;text-decoration:none;white-space:nowrap}
+.t9-view-link:hover{background:#d8e8fd;color:#2867dc}
+
+/* --- Quick action tiles --- */
+.t9-tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.t9-tile{display:block;border-radius:12px;padding:16px;text-decoration:none}
+a.t9-tile:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(23,37,54,.08)}
+.t9-tile-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px}
+.t9-tile-icon{display:inline-flex;align-items:center;justify-content:center;width:37px;height:37px;border-radius:50%;background:rgba(255,255,255,.75);font-size:17px}
+.t9-tile-chev{font-size:13px;margin-top:2px}
+.t9-tile-title{display:block;font-size:15px;font-weight:700;line-height:1.25}
+.t9-tile-sub{display:block;font-size:12.5px;color:#7a8797;margin-top:2px;line-height:1.35}
+.t9-tile-blue{background:#eef4fe}.t9-tile-blue .t9-tile-icon,.t9-tile-blue .t9-tile-title,.t9-tile-blue .t9-tile-chev{color:#2867dc}
+.t9-tile-green{background:#e9f7f0}.t9-tile-green .t9-tile-icon,.t9-tile-green .t9-tile-title,.t9-tile-green .t9-tile-chev{color:#188b66}
+.t9-tile-lavender{background:#f1edfd}.t9-tile-lavender .t9-tile-icon,.t9-tile-lavender .t9-tile-title,.t9-tile-lavender .t9-tile-chev{color:#6845d8}
+.t9-tile-peach{background:#fdf1e7}.t9-tile-peach .t9-tile-icon,.t9-tile-peach .t9-tile-title,.t9-tile-peach .t9-tile-chev{color:#d97a1f}
+
+/* --- Task / circular rows --- */
+.t9-row{display:flex;align-items:center;gap:12px;padding:11px 2px;border-bottom:1px solid #eef2f6;text-decoration:none}
+.t9-row:last-child{border-bottom:0}
+a.t9-row:hover .t9-row-copy strong{color:var(--qs-primary-action)}
+.t9-row-icon{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:9px;font-size:15px;flex:0 0 auto}
+.t9-row-copy{min-width:0;flex:1 1 auto}
+.t9-row-copy strong{display:block;font-size:13.5px;font-weight:600;color:#22344a;line-height:1.3}
+.t9-row-copy small{display:block;font-size:12px;color:#8494a7;line-height:1.3}
+.t9-badge{flex:0 0 auto;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;white-space:nowrap}
+.t9-badge-red{background:#fdecec;color:#d64545}
+.t9-badge-blue{background:#e8f1fe;color:#2867dc}
+.t9-badge-amber{background:#fdf3e0;color:#b97a0c}
+.t9-row-date{flex:0 0 auto;font-size:12.5px;color:#8494a7;min-width:74px;text-align:right;white-space:nowrap}
+.t9-caught-up{padding:16px 6px 8px;text-align:center;color:#718096;font-size:13.5px}
+.t9-caught-up i{display:block;font-size:26px;color:var(--qs-success);margin-bottom:6px}
+.t9-empty{padding:22px 10px;text-align:center;color:#8494a7;font-size:13.5px}
+.t9-empty i{display:block;font-size:26px;margin-bottom:7px;color:#b7c3d1}
+
+/* --- Responsive --- */
+@media (max-width:1199px){
+  .t9-main,.t9-bottom{grid-template-columns:minmax(0,1fr)}
+  .t9-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:767px){
+  .t9-subheader{margin:14px 14px 0}
+  .t9-take-btn{padding:9px 16px}
+}
+@media (max-width:575px){
+  .t9-kpi-grid,.t9-tiles{grid-template-columns:minmax(0,1fr)}
+  .t9-row-date{display:none}
+}
