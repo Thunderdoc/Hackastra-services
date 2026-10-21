@@ -1090,3 +1090,22 @@ a.t9-row:hover .t9-row-copy strong{color:var(--qs-primary-action)}
 .page-header .page-title{padding:13px 0}
 .page-header .page-title h4,.page-header .page-title h5,.page-header .page-title h6{margin:0;line-height:1.3}
 @media (max-width:767px){.page-header-content{padding:0 14px}.page-header .page-title{padding:10px 0}}
+
+/* ============================================================
+   Loop 22 — Sidebar double-offset fix (owner: "har login me
+   space khali"). Root cause, proven from the cascade:
+   layout.min.css sets `.sidebar-expand-md:not(.sidebar-
+   component){position:static}` at specificity (0,2,0), which
+   BEATS qs.css's `.sidebar-main{position:fixed}` (0,1,0) —
+   so the sidebar stayed in the flex flow (218px) while
+   .content-wrapper ALSO kept margin-left:218px, pushing
+   every page's content ~436px from the left in EVERY portal.
+   Fix: match the specificity (0,2,0) in qs.css, which loads
+   last, so the sidebar is truly fixed and the margin is the
+   single offset. The 768–991.98px drawer rules later in this
+   file keep their transform/width, so tablet behavior is
+   unchanged.
+   ============================================================ */
+@media (min-width:768px){
+  .sidebar-expand-md.sidebar-main{position:fixed;top:0;bottom:0;left:0}
+}
