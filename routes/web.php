@@ -12,6 +12,7 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get('/', 'HomeController@dashboard')->name('home');
     Route::get('/home', 'HomeController@dashboard');
     Route::get('/dashboard', 'HomeController@dashboard')->name('dashboard');
+    Route::get('/dashboard/school', 'HomeController@schoolDashboard')->name('dashboard.school');
     Route::get('/dashboard/search', 'DashboardSearchController')->name('dashboard.search');
 
     Route::group(['prefix' => 'my_account'], function() {
@@ -64,11 +65,11 @@ Route::group(['middleware' => 'auth'], function () {
                     Route::post('/', 'TimeTableController@store_record')->name('ttr.store');
                     Route::get('edit/{ttr}', 'TimeTableController@edit_record')->name('ttr.edit');
                     Route::put('/{ttr}', 'TimeTableController@update_record')->name('ttr.update');
+                    Route::delete('/{ttr}', 'TimeTableController@delete_record')->name('ttr.destroy');
                 });
 
                 Route::get('show/{ttr}', 'TimeTableController@show_record')->name('ttr.show');
                 Route::get('print/{ttr}', 'TimeTableController@print_record')->name('ttr.print');
-                Route::delete('/{ttr}', 'TimeTableController@delete_record')->name('ttr.destroy');
 
             });
 
@@ -172,6 +173,10 @@ Route::group(['middleware' => 'auth'], function () {
 
         /*************** School Events *****************/
         Route::resource('events', 'SchoolEventController');
+
+        /*************** Circulars *****************/
+        Route::patch('circulars/{circular}/toggle-publish', 'CircularController@togglePublish')->name('circulars.toggle_publish');
+        Route::resource('circulars', 'CircularController');
 
         /*************** Library *****************/
         Route::resource('books', 'BookController')->except(['show']);

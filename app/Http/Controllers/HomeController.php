@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Helpers\Qs;
 use App\Models\Attendance;
+use App\Models\AuditLog;
 use App\Models\Mark;
 use App\Models\PaymentRecord;
 use App\Models\SchoolEvent;
@@ -49,12 +50,8 @@ class HomeController extends Controller
 
     public function dashboard()
     {
-        $d = [];
         $now = Carbon::now();
-        $d['today'] = $now->copy();
-        $d['current_session'] = Qs::getCurrentSession();
-        $hour = (int) $now->format('H');
-        $d['greeting'] = $hour < 12 ? 'Good morning' : ($hour < 17 ? 'Good afternoon' : 'Good evening');
+        $d = $this->baseDashboardData($now);
 
         // Loop 7 (Workstream A): roles that used to land on the bare
         // welcome panel (or, for teachers, the school-wide SAT board) get
@@ -78,6 +75,50 @@ class HomeController extends Controller
             return view('pages.accountant.home', array_merge($d, $this->accountantHomeData($now)));
         }
 
+        // Workstream R: the platform owner lands on a platform home —
+        // users & roles, audit & security, configuration — not the
+        // school's daily-operations board. The school dashboard stays
+        // fully reachable (route dashboard.school) and unchanged.
+        if ($user_type === 'super_admin') {
+            return view('pages.super_admin.platform_home', array_merge($d, $this->platformHomeData($now)));
+        }
+
+        return $this->schoolDashboardView($d, $now);
+    }
+
+    /**
+     * The school-operations dashboard as its own page, so a Super Admin
+     * can step from the platform home into the school's board (and a
+     * School Admin bookmark of it works too). Any other role is sent
+     * back to its own home — the dispatch above stays the single
+     * front door.
+     */
+    public function schoolDashboard()
+    {
+        if (!in_array(Auth::user()->user_type, ['super_admin', 'admin'], true)) {
+            return redirect()->route('dashboard');
+        }
+
+        $now = Carbon::now();
+
+        return $this->schoolDashboardView($this->baseDashboardData($now), $now);
+    }
+
+    /** Greeting / date / session data every home view shares. */
+    protected function baseDashboardData(Carbon $now): array
+    {
+        $hour = (int) $now->format('H');
+
+        return [
+            'today' => $now->copy(),
+            'current_session' => Qs::getCurrentSession(),
+            'greeting' => $hour < 12 ? 'Good morning' : ($hour < 17 ? 'Good afternoon' : 'Good evening'),
+        ];
+    }
+
+    /** The original school-operations dashboard, verbatim. */
+    protected function schoolDashboardView(array $d, Carbon $now)
+    {
         if (Qs::userIsTeamSAT()) {
             $d['users'] = $this->user->getAll();
             $d['student_count'] = StudentRecord::where('grad', 0)->count();
@@ -138,6 +179,90 @@ class HomeController extends Controller
         }
 
         return view('pages.support_team.dashboard', $d);
+    }
+
+    /**
+     * Workstream R — Platform Super Admin home data. Every number
+     * traces to a query named here. Platform capabilities this
+     * deployment does not actually have (multiple schools, queues,
+     * backups, billing) are simply not shown rather than faked.
+     */
+    protected function platformHomeData(Carbon $now): array
+    {
+        $role_labels = [
+            'super_admin' => 'Platform Super Admin',
+            'admin' => 'School Admin',
+            'teacher' => 'Teachers',
+            'student' => 'Students',
+            'parent' => 'Parents',
+            'accountant' => 'Accountant',
+            'librarian' => 'Librarian',
+        ];
+
+        $counts = DB::table('users')
+            ->select('user_type', DB::raw('count(*) as total'))
+            ->groupBy('user_type')
+            ->pluck('total', 'user_type');
+
+        $role_counts = [];
+        foreach ($role_labels as $type => $label) {
+            $role_counts[] = ['type' => $type, 'label' => $label, 'total' => (int) ($counts[$type] ?? 0)];
+            unset($counts[$type]);
+        }
+        // Any user_type outside the known list is still accounted for.
+        foreach ($counts as $type => $total) {
+            $role_counts[] = ['type' => $type, 'label' => ucwords(str_replace('_', ' ', $type)), 'total' => (int) $total];
+        }
+
+        $audit_today = 0;
+        $audit_week = 0;
+        $recent_audit = collect();
+        $recent_logins = collect();
+        if (Schema::hasTable('audit_logs')) {
+            $audit_today = AuditLog::whereDate('created_at', $now->toDateString())->count();
+            $audit_week = AuditLog::where('created_at', '>=', $now->copy()->startOfWeek())->count();
+            $recent_audit = AuditLog::with('user')->latest()->take(10)->get();
+            // Only successful sign-ins are audited (the LogSuccessfulLogin
+            // listener); failed attempts are never written to the log.
+            $recent_logins = AuditLog::with('user')
+                ->where('action', 'auth.login')
+                ->latest()
+                ->take(8)
+                ->get();
+        }
+
+        $settings_checklist = [];
+        foreach ([
+            'system_name' => 'School name',
+            'logo' => 'School logo',
+            'phone' => 'Contact phone',
+            'system_email' => 'School email',
+            'current_session' => 'Current session',
+        ] as $key => $label) {
+            $settings_checklist[] = [
+                'key' => $key,
+                'label' => $label,
+                'set' => filled(Qs::getSetting($key)),
+            ];
+        }
+
+        return [
+            'school_name' => Qs::getSetting('system_name'),
+            'role_counts' => $role_counts,
+            'total_users' => array_sum(array_column($role_counts, 'total')),
+            'audit_today' => $audit_today,
+            'audit_week' => $audit_week,
+            'audit_week_from' => $now->copy()->startOfWeek(),
+            'recent_audit' => $recent_audit,
+            'recent_logins' => $recent_logins,
+            'settings_checklist' => $settings_checklist,
+            'settings_done' => collect($settings_checklist)->where('set', true)->count(),
+            'settings_total' => count($settings_checklist),
+            // Secondary "school snapshot": the deployment serves one
+            // school today; these are its headline sizes, not tenants.
+            'snapshot_student_count' => StudentRecord::where('grad', 0)->count(),
+            'snapshot_teacher_count' => (int) DB::table('users')->where('user_type', 'teacher')->count(),
+        ];
     }
 
     /** Percent change of a query's count: last 30 days vs previous 30 days. */

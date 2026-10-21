@@ -60,6 +60,22 @@ class DemoDataSeeder extends Seeder
             ->orderBy('id')
             ->get();
 
+        // Demo parent linkage: the seeded demo parent account
+        // (parent@parent.com) ships with no children linked, which
+        // makes every parent page (children, fees, attendance, admit
+        // cards) render its empty state in the sales demo. Link the
+        // first two demo students to it so the parent portal shows
+        // real data. Deterministic and idempotent.
+        $demoParentId = DB::table('users')
+            ->where('email', 'parent@parent.com')->value('id');
+        if ($demoParentId) {
+            $firstTwo = DB::table('student_records')
+                ->where('grad', 0)->orderBy('id')->limit(2)->pluck('id');
+            DB::table('student_records')
+                ->whereIn('id', $firstTwo)
+                ->update(['my_parent_id' => $demoParentId]);
+        }
+
         if ($students->isEmpty()) {
             return;
         }
@@ -319,7 +335,7 @@ class DemoDataSeeder extends Seeder
             $id = DB::table('books')->insertGetId([
                 'name' => $name,
                 'my_class_id' => $classId,
-                'description' => 'Demo library title for Hackstra.',
+                'description' => 'Demo library title.',
                 'author' => $author,
                 'book_type' => $type,
                 'url' => null,
