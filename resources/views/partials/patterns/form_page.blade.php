@@ -2,7 +2,8 @@
     PATTERN · form_page (Loop 28 — shared patterns)
     ---------------------------------------------------------------
     Standard shell for create/edit pages: ONE form card split into
-    titled sections, fields laid out in a two-column grid, and a
+    titled sections, fields in a responsive grid (Loop 39 density:
+    3 per row on wide screens, 2 on medium, 1 on small), and a
     sticky action bar (Cancel + Save) pinned to the card's bottom.
 
     USAGE (component + slots):
@@ -11,8 +12,6 @@
             'form_action'  => route('things.update', $id),   // required
             'form_method'  => 'PUT',                          // optional, default POST (GET also honoured)
             'form_enctype' => 'multipart/form-data',          // optional
-            'form_class'   => 'ajax-store',                   // optional, appended to the form's class
-                                                              // (keeps legacy AJAX form handlers working)
             'back'         => route('things.index'),          // optional Cancel link
             'submit_label' => 'Save Changes',                 // optional
         ])
@@ -27,12 +26,22 @@
                         <label for="name">Name</label>
                         <input id="name" name="name" class="form-control" ...>
                     </div>
+                    <div class="pat-field pat-field-span2">
+                        <label for="address">Address</label>
+                        <input id="address" name="address" class="form-control" ...>
+                    </div>
                     <div class="pat-field pat-field-wide">
                         <label for="notes">Notes</label>
                         <textarea id="notes" name="notes" class="form-control"></textarea>
                     </div>
                 </div>
             </div>
+
+    Field spans (Loop 39): .pat-field = one track;
+            .pat-field-span2 = two tracks (of 3 on wide screens,
+            the full row on medium); .pat-field-wide = whole row.
+            Use span2 for mid-length fields (address, full name),
+            wide for textareas, file uploads and photo rows.
             ... more .pat-form-section blocks ...
 
             @slot('actions')  (optional: replaces the default Cancel/Save bar content)
@@ -51,7 +60,7 @@
     $patHasSubtitle = isset($subtitle) && trim((string) $subtitle) !== '';
     $patHasActions  = isset($actions) && trim((string) $actions) !== '';
 @endphp
-<form method="{{ $patMethod === 'GET' ? 'GET' : 'POST' }}" action="{{ $form_action ?? '' }}" class="pat-form{{ !empty($form_class ?? null) ? ' ' . $form_class : '' }}"
+<form method="{{ $patMethod === 'GET' ? 'GET' : 'POST' }}" action="{{ $form_action ?? '' }}" class="pat-form"
       @if(!empty($form_enctype ?? null)) enctype="{{ $form_enctype }}" @endif>
     @if($patMethod !== 'GET')
         @csrf

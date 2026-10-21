@@ -128,6 +128,28 @@ class StudentRecordController extends Controller
         $data['students'] = $this->student->findStudentsByClass($class_id);
         $data['sections'] = $this->my_class->getClassSections($class_id);
 
+        // Batch 3B (additive): the pattern list filters server-side —
+        // ?section_id= restricts to one section, ?q= matches name /
+        // admission number / email. $students stays the FULL class
+        // roster (the print header's total and the export contract
+        // are unchanged); the screen table renders $listed.
+        $data['selected_section'] = NULL;
+        $data['q'] = $q = trim((string) request('q'));
+        $listed = $data['students'];
+        $section_id = (int) request('section_id');
+        if ($section_id && $data['sections']->contains('id', $section_id)) {
+            $data['selected_section'] = $data['sections']->firstWhere('id', $section_id);
+            $listed = $listed->where('section_id', $section_id);
+        }
+        if ($q !== '') {
+            $listed = $listed->filter(function ($s) use ($q) {
+                return stripos((string) optional($s->user)->name, $q) !== false
+                    || stripos((string) $s->adm_no, $q) !== false
+                    || stripos((string) optional($s->user)->email, $q) !== false;
+            });
+        }
+        $data['listed'] = $listed;
+
         return view('pages.support_team.students.list', $data);
     }
 

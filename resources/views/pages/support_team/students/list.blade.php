@@ -13,166 +13,145 @@
         </div>
     </div>
 
-    <div class="card">
-        <div class="card-header header-elements-inline">
-            <h6 class="card-title">Students List</h6>
-            <div>
-                <button type="button" class="btn btn-light btn-sm" onclick="window.print()"><i class="icon-printer mr-1"></i> Print</button>
-                <a href="{{ route('students.export', $my_class->id) }}" class="btn btn-primary btn-sm"><i class="icon-download mr-1"></i> Export</a>
-                @if(Qs::userIsTeamSA())
-                    <a href="{{ route('students.import') }}" class="btn btn-success btn-sm"><i class="icon-upload mr-1"></i> Import CSV</a>
-                @endif
-            </div>
-            {!! Qs::getPanelOptions() !!}
-        </div>
-
-        <div class="card-body">
-            <ul class="nav nav-tabs nav-tabs-highlight print-hide">
-                <li class="nav-item"><a href="#all-students" class="nav-link active" data-toggle="tab">All {{ $my_class->name }} Students</a></li>
-                <li class="nav-item dropdown">
-                    <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">Sections</a>
-                    <div class="dropdown-menu dropdown-menu-right">
+    {{-- Batch 3B: rebuilt on the shared list_page pattern (Loop 28).
+         The legacy DataTables stack (five tables across section tabs,
+         Copy/Excel/PDF/Visibility chrome duplicating the app Export)
+         is replaced by ONE server-filtered table: the section picker
+         and search are a GET filter (StudentRecordController@listByClass
+         reads ?section_id= / ?q= additively). The print contract is
+         unchanged — print-doc-head/foot above/below, print-hide on the
+         photo/action/checkbox columns, print-nowrap on S/N + ADM_No —
+         and the bulk-delete bar + script below are the Workstream AA
+         originals, with the confirmation flowing through the styled
+         modal helper (Workstream AY) exactly as on master. --}}
+    @component('partials.patterns.list_page')
+        @slot('title')
+            <i class="icon-users mr-2"></i> Students &mdash; {{ $my_class->name }}
+        @endslot
+        @slot('subtitle')
+            {{ $students->count() }} {{ $students->count() == 1 ? 'student' : 'students' }} &middot; Session {{ Qs::getCurrentSession() }}@if($selected_section || $q !== '') &middot; Showing {{ $listed->count() }}@endif
+        @endslot
+        @slot('action')
+            <button type="button" class="btn btn-light btn-sm" onclick="window.print()"><i class="icon-printer mr-1"></i> Print</button>
+            <a href="{{ route('students.export', $selected_section ? [$my_class->id, $selected_section->id] : $my_class->id) }}" class="btn btn-primary btn-sm"><i class="icon-download mr-1"></i> Export{{ $selected_section ? ' Section' : '' }}</a>
+            @if(Qs::userIsTeamSA())
+                <a href="{{ route('students.import') }}" class="btn btn-success btn-sm"><i class="icon-upload mr-1"></i> Import CSV</a>
+            @endif
+        @endslot
+        @slot('filters')
+            <form method="get" action="{{ route('students.list', $my_class->id) }}" class="pat-filter-form">
+                <div class="pat-filter-field">
+                    <label for="section_id">Section:</label>
+                    <select id="section_id" name="section_id" class="form-control">
+                        <option value="">All Sections</option>
                         @foreach($sections as $s)
-                            <a href="#s{{ $s->id }}" class="dropdown-item" data-toggle="tab">{{ $my_class->name.' '.$s->name }}</a>
+                            <option {{ $selected_section && $selected_section->id == $s->id ? 'selected' : '' }} value="{{ $s->id }}">{{ $my_class->name.' '.$s->name }}</option>
                         @endforeach
-                    </div>
-                </li>
-            </ul>
-
-            <div class="tab-content">
-                <div class="tab-pane fade show active" id="all-students">
-                    @if(Qs::userIsTeamSA())
-                        {{-- Bulk delete (Workstream AA). The form deliberately does
-                             NOT wrap the table: every row already contains its own
-                             (hidden) delete form, and nested forms are invalid HTML.
-                             The checkboxes carry no name — the script section collects
-                             the checked ids across all DataTables pages and appends
-                             them to this form as student_ids[] on submit. --}}
-                        <form id="bulk-delete-form" class="print-hide" method="post" action="{{ route('students.bulk_delete') }}">
-                            @csrf
-                            <div class="d-flex align-items-center mb-2">
-                                <span id="bulk-selected-count" class="mr-2 text-muted">0 selected</span>
-                                <button type="submit" id="bulk-delete-btn" class="btn btn-danger btn-sm" disabled><i class="icon-trash mr-1"></i> Delete Selected</button>
-                            </div>
-                        </form>
+                    </select>
+                </div>
+                <div class="pat-filter-field">
+                    <label for="q">Search:</label>
+                    <input id="q" name="q" type="text" class="form-control" value="{{ $q }}" placeholder="Name, ADM No or email">
+                </div>
+                <div class="pat-filter-action">
+                    <button type="submit" class="btn btn-primary">Filter</button>
+                    @if($selected_section || $q !== '')
+                        <a href="{{ route('students.list', $my_class->id) }}" class="btn btn-light ml-2">Clear</a>
                     @endif
-                    <table class="table datatable-button-html5-columns">
-                        <thead>
+                </div>
+            </form>
+        @endslot
+
+        @if(Qs::userIsTeamSA())
+            {{-- Bulk delete (Workstream AA). The form deliberately does
+                 NOT wrap the table: every row already contains its own
+                 (hidden) delete form, and nested forms are invalid HTML.
+                 The checkboxes carry no name — the script section collects
+                 the checked ids and appends them to this form as
+                 student_ids[] on submit, after the styled confirmation
+                 modal (Workstream AY) approves. --}}
+            <form id="bulk-delete-form" class="print-hide" method="post" action="{{ route('students.bulk_delete') }}">
+                @csrf
+                <div class="d-flex align-items-center mb-2">
+                    <span id="bulk-selected-count" class="mr-2 text-muted">0 selected</span>
+                    <button type="submit" id="bulk-delete-btn" class="btn btn-danger btn-sm" disabled><i class="icon-trash mr-1"></i> Delete Selected</button>
+                </div>
+            </form>
+        @endif
+
+        <div id="all-students">
+            @if($listed->isEmpty())
+                @include('partials.patterns.empty_state', [
+                    'icon' => 'icon-users',
+                    'message' => ($selected_section || $q !== '')
+                        ? 'No students match this filter. Clear the filter to see the full '.$my_class->name.' roster.'
+                        : 'No students in '.$my_class->name.' yet.',
+                ])
+            @else
+                <table class="table">
+                    <thead>
+                    <tr>
+                        @if(Qs::userIsTeamSA())
+                            <th class="print-hide"><input type="checkbox" id="bulk-check-all" title="Select all"></th>
+                        @endif
+                        <th class="print-nowrap">S/N</th>
+                        <th class="print-hide">Photo</th>
+                        <th>Name</th>
+                        <th>ADM_No</th>
+                        <th>Section</th>
+                        <th>Email</th>
+                        <th class="print-hide">Action</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    @foreach($listed as $s)
                         <tr>
                             @if(Qs::userIsTeamSA())
-                                <th class="print-hide"><input type="checkbox" id="bulk-check-all" title="Select all"></th>
+                                <td class="print-hide"><input type="checkbox" class="bulk-check" value="{{ $s->id }}"></td>
                             @endif
-                            <th class="print-nowrap">S/N</th>
-                            <th class="print-hide">Photo</th>
-                            <th>Name</th>
-                            <th>ADM_No</th>
-                            <th>Section</th>
-                            <th>Email</th>
-                            <th class="print-hide">Action</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        @foreach($students as $s)
-                            <tr>
-                                @if(Qs::userIsTeamSA())
-                                    <td class="print-hide"><input type="checkbox" class="bulk-check" value="{{ $s->id }}"></td>
-                                @endif
-                                <td>{{ $loop->iteration }}</td>
-                                <td class="print-hide"><img class="rounded-circle" style="height: 40px; width: 40px;" src="{{ $s->user->photo }}" alt="photo"></td>
-                                <td>{{ $s->user->name }}</td>
-                                <td class="print-nowrap">{{ $s->adm_no }}</td>
-                                <td>{{ $my_class->name.' '.$s->section->name }}</td>
-                                <td>{{ $s->user->email }}</td>
-                                <td class="text-center print-hide">
-                                    <div class="list-icons">
-                                        <div class="dropdown">
-                                            <a href="#" class="list-icons-item" data-toggle="dropdown">
-                                                <i class="icon-menu9"></i>
-                                            </a>
+                            <td class="print-nowrap">{{ $loop->iteration }}</td>
+                            <td class="print-hide"><img class="rounded-circle" style="height: 40px; width: 40px;" src="{{ $s->user->photo }}" alt="photo"></td>
+                            <td>{{ $s->user->name }}</td>
+                            <td class="print-nowrap">{{ $s->adm_no }}</td>
+                            <td>{{ $my_class->name.' '.$s->section->name }}</td>
+                            <td>{{ $s->user->email }}</td>
+                            <td class="text-center print-hide">
+                                <div class="list-icons">
+                                    <div class="dropdown">
+                                        <a href="#" class="list-icons-item" data-toggle="dropdown">
+                                            <i class="icon-menu9"></i>
+                                        </a>
 
-                                            <div class="dropdown-menu dropdown-menu-left">
-                                                <a href="{{ route('students.show', Qs::hash($s->id)) }}" class="dropdown-item"><i class="icon-eye"></i> View Profile</a>
-                                                @if(Qs::userIsTeamSA())
-                                                    <a href="{{ route('students.edit', Qs::hash($s->id)) }}" class="dropdown-item"><i class="icon-pencil"></i> Edit</a>
-                                                    <a href="{{ route('st.reset_pass', Qs::hash($s->user->id)) }}" class="dropdown-item"><i class="icon-lock"></i> Reset password</a>
-                                                @endif
-                                                <a target="_blank" href="{{ route('marks.year_selector', Qs::hash($s->user->id)) }}" class="dropdown-item"><i class="icon-check"></i> Marksheet</a>
+                                        <div class="dropdown-menu dropdown-menu-left">
+                                            <a href="{{ route('students.show', Qs::hash($s->id)) }}" class="dropdown-item"><i class="icon-eye"></i> View Profile</a>
+                                            @if(Qs::userIsTeamSA())
+                                                <a href="{{ route('students.edit', Qs::hash($s->id)) }}" class="dropdown-item"><i class="icon-pencil"></i> Edit</a>
+                                                <a href="{{ route('st.reset_pass', Qs::hash($s->user->id)) }}" class="dropdown-item"><i class="icon-lock"></i> Reset password</a>
+                                            @endif
+                                            <a target="_blank" href="{{ route('marks.year_selector', Qs::hash($s->user->id)) }}" class="dropdown-item"><i class="icon-check"></i> Marksheet</a>
+                                            @if(Qs::userIsTeamAccount())
+                                                <a href="{{ route('payments.invoice', Qs::hash($s->user->id)) }}" class="dropdown-item"><i class="icon-coins"></i> Payments</a>
+                                            @endif
+                                            @if(Qs::userIsTeamSA())
+                                                <a target="_blank" href="{{ route('students.id_card', Qs::hash($s->id)) }}" class="dropdown-item"><i class="icon-vcard"></i> ID Card</a>
+                                            @endif
 
-                                                {{--Delete--}}
-                                                @if(Qs::userIsTeamSA())
-                                                    <a id="{{ Qs::hash($s->user->id) }}" onclick="confirmDelete(this.id)" href="#" class="dropdown-item"><i class="icon-trash"></i> Delete</a>
-                                                    <form method="post" id="item-delete-{{ Qs::hash($s->user->id) }}" action="{{ route('students.destroy', Qs::hash($s->user->id)) }}" class="hidden">@csrf @method('delete')</form>
-                                                @endif
-                                            </div>
+                                            {{--Delete--}}
+                                            @if(Qs::userIsTeamSA())
+                                                <a id="{{ Qs::hash($s->user->id) }}" onclick="confirmDelete(this.id)" href="#" class="dropdown-item"><i class="icon-trash"></i> Delete</a>
+                                                <form method="post" id="item-delete-{{ Qs::hash($s->user->id) }}" action="{{ route('students.destroy', Qs::hash($s->user->id)) }}" class="hidden">@csrf @method('delete')</form>
+                                            @endif
                                         </div>
                                     </div>
-                                </td>
-                            </tr>
-                        @endforeach
-                        </tbody>
-                    </table>
-                </div>
-
-                @foreach($sections as $se)
-                    <div class="tab-pane fade" id="s{{$se->id}}">
-                        <div class="text-right mb-2 print-hide">
-                            <a href="{{ route('students.export', [$my_class->id, $se->id]) }}" class="btn btn-light btn-sm"><i class="icon-download mr-1"></i> Export Section</a>
-                        </div>
-                        <table class="table datatable-button-html5-columns">
-                            <thead>
-                            <tr>
-                                <th class="print-nowrap">S/N</th>
-                                <th class="print-hide">Photo</th>
-                                <th>Name</th>
-                                <th>ADM_No</th>
-                                <th>Email</th>
-                                <th class="print-hide">Action</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            @foreach($students->where('section_id', $se->id) as $sr)
-                                <tr>
-                                    <td>{{ $loop->iteration }}</td>
-                                    <td class="print-hide"><img class="rounded-circle" style="height: 40px; width: 40px;" src="{{ $sr->user->photo }}" alt="photo"></td>
-                                    <td>{{ $sr->user->name }}</td>
-                                    <td class="print-nowrap">{{ $sr->adm_no }}</td>
-                                    <td>{{ $sr->user->email }}</td>
-                                    <td class="text-center print-hide">
-                                        <div class="list-icons">
-                                            <div class="dropdown">
-                                                <a href="#" class="list-icons-item" data-toggle="dropdown">
-                                                    <i class="icon-menu9"></i>
-                                                </a>
-
-                                                <div class="dropdown-menu dropdown-menu-right">
-                                                    <a href="{{ route('students.show', Qs::hash($sr->id)) }}" class="dropdown-item"><i class="icon-eye"></i> View Info</a>
-                                                    @if(Qs::userIsTeamSA())
-                                                        <a href="{{ route('students.edit', Qs::hash($sr->id)) }}" class="dropdown-item"><i class="icon-pencil"></i> Edit</a>
-                                                        <a href="{{ route('st.reset_pass', Qs::hash($sr->user->id)) }}" class="dropdown-item"><i class="icon-lock"></i> Reset password</a>
-                                                    @endif
-                                                    <a target="_blank" href="{{ route('marks.year_selector', Qs::hash($sr->user->id)) }}" class="dropdown-item"><i class="icon-check"></i> Marksheet</a>
-
-                                                    {{--Delete--}}
-                                                    @if(Qs::userIsTeamSA())
-                                                        <a id="{{ Qs::hash($sr->user->id) }}" onclick="confirmDelete(this.id)" href="#" class="dropdown-item"><i class="icon-trash"></i> Delete</a>
-                                                        <form method="post" id="item-delete-{{ Qs::hash($sr->user->id) }}" action="{{ route('students.destroy', Qs::hash($sr->user->id)) }}" class="hidden">@csrf @method('delete')</form>
-                                                    @endif
-
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                </tr>
-                            @endforeach
-
-                            </tbody>
-                        </table>
-                    </div>
-                @endforeach
-
-            </div>
+                                </div>
+                            </td>
+                        </tr>
+                    @endforeach
+                    </tbody>
+                </table>
+            @endif
         </div>
-    </div>
+    @endcomponent
 
     <div class="print-doc-foot">
         <span>Printed on {{ now()->format('d M Y, g:i A') }} &middot; {{ Qs::getSystemName() }}</span>
@@ -185,7 +164,7 @@
 
 @if(Qs::userIsTeamSA())
 @section('scripts')
-    <script>
+<script>
         (function () {
             function bulkTable() {
                 try {

@@ -1645,3 +1645,161 @@ input[type="file"].acct-file-input{position:absolute!important;width:1px!importa
    (Loop 29 tried left/right offsets — inert on a static,
    in-flow card; margins do the job now). */
 body.sidebar-xs .sidebar-main .lav-sidebar-session{margin-left:6px;margin-right:6px}
+
+/* ============================================================
+   Loop 39 — Form density (Workstream BE). On form_page pages
+   the Loop 28 two-column grid stretched every field across
+   the full ~1700px content width — an 800px "Full Name" and
+   pairs marooned far apart, so forms felt empty. Density is
+   now responsive at the PATTERN level (every .pat-fields
+   grid, no per-page edits):
+     >=1400px  three fields per row
+     768-1399  two fields per row (the Loop 28 default)
+     <768px    one field per row (Loop 28 collapse, kept)
+   Span hooks: .pat-field-wide still takes the whole row;
+   the new .pat-field-span2 takes two tracks (of 3 on wide
+   screens, the full row on medium) for mid-length fields
+   like addresses. Its rule only exists at >=768px, so the
+   single-column layout can never grow implicit tracks (no
+   horizontal scroll, FIT rule). Vertical rhythm is tightened
+   across all widths (section padding, label gap, row gap);
+   inputs and the sticky action bar are untouched.
+   ============================================================ */
+/* Tighter rhythm at every width (stacked after Loop 28). */
+.pat-form-head{padding:16px 22px 0}
+.pat-form-section{padding:14px 22px 16px}
+.pat-form-head+.pat-form-section{padding-top:10px}
+.pat-form-section-sub{margin-bottom:10px}
+.pat-fields{gap:12px 18px;margin-top:10px}
+.pat-field label{margin-bottom:4px}
+/* Span-2 hook: two grid tracks wherever columns exist. */
+@media (min-width:768px){
+  .pat-field-span2{grid-column:span 2}
+}
+/* Wide screens: three fields per row. */
+@media (min-width:1400px){
+  .pat-fields{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+/* Small screens: keep the Loop 28 single column, compact pads. */
+@media (max-width:767px){
+  .pat-form-head{padding:14px 16px 0}
+  .pat-form-section{padding:14px 16px}
+}
+
+/* ============================================================
+   Loop 40 — Topbar polish (Workstream BF). Visual finish on
+   the Loop 33 unified bar (partials/top_menu) — markup hooks
+   and behaviour are untouched: the search stops stretching
+   across the bar (540px cap, soft grey field, blue focus
+   ring), the session chip becomes a tidy labelled pill, the
+   bell is a clean icon button with the Loop 31 badge seated
+   at its corner, and the user dropdown becomes a panel with
+   a profile header. Every rule is scoped under .lav-topbar.
+   The bar's height/min-height and the Loop 25 offsets are
+   deliberately NOT set here — the bar stays exactly as tall
+   as Loop 33 left it, so page content cannot shift.
+   ============================================================ */
+.lav-topbar{border-bottom:1px solid #dfe7f0;box-shadow:0 1px 4px rgba(23,37,54,.06)}
+/* Hamburger: clean icon button with a hover wash (desktop
+   toggle; the mobile toggler gets the same treatment). */
+@media (min-width:768px){
+  .lav-topbar .lav-topbar-toggle{align-items:center;border-radius:8px;display:inline-flex;height:36px;justify-content:center;margin-right:14px;width:36px;transition:background .15s ease,color .15s ease}
+  .lav-topbar .lav-topbar-toggle:hover{background:#eef3fb;color:#3478f6;text-decoration:none}
+}
+.lav-topbar .lav-topbar-mobile .navbar-toggler{border:0;border-radius:8px;color:#718096;height:36px;padding:0;width:36px;transition:background .15s ease,color .15s ease}
+.lav-topbar .lav-topbar-mobile .navbar-toggler:hover{background:#eef3fb;color:#3478f6}
+/* Search: capped, soft grey, rounded; turns white with a
+   blue focus ring while typing. The Ctrl+K chip stays. */
+@media (min-width:768px){
+  .lav-topbar .lav-search{flex:0 1 540px;max-width:540px}
+}
+.lav-topbar .lav-search{background:#f4f6fa;border:1px solid #e1e8f0;border-radius:10px;padding:7px 12px;transition:background .15s ease,border-color .15s ease,box-shadow .15s ease}
+.lav-topbar .lav-search:focus-within{background:#fff;border-color:#3478f6;box-shadow:0 0 0 3px rgba(52,120,246,.18)}
+.lav-topbar .lav-search i{color:#718096}
+.lav-topbar .lav-search kbd{background:#fff;border:1px solid #dce3ec;border-radius:5px;color:#9aa7b5}
+/* Session chip: tidy pill — blue calendar, muted label,
+   semibold value. Still exactly ONE chip, here in the bar. */
+.lav-topbar .lav-session-chip{background:#eef3fb;border:1px solid #d7e2f2;border-radius:999px;gap:7px;padding:6px 14px}
+.lav-topbar .lav-session-chip i{color:#3478f6;font-size:15px}
+.lav-topbar .lav-session-chip .lav-session-label{color:#718096;font-size:.78rem;font-weight:500}
+.lav-topbar .lav-session-chip strong{color:#172536;font-size:.84rem;font-weight:700}
+.lav-topbar a.lav-session-chip:hover{background:#e2ebfa;color:#43556c;text-decoration:none}
+/* Bell: the old left divider is gone — a rounded icon
+   button; the Loop 31 badge re-seats at the very corner. */
+.lav-topbar .lav-topbar-icon{border-left:0;border-radius:8px;color:#5b6b7f;margin-left:2px;transition:background .15s ease,color .15s ease}
+.lav-topbar .lav-topbar-icon:hover,.lav-topbar .lav-topbar-icon[aria-expanded="true"]{background:#eef3fb;color:#3478f6}
+.lav-topbar .lav-bell-badge{right:2px;top:2px}
+/* User chip: hover pill, ringed avatar, semibold name over
+   a small muted role, quiet chevron. */
+.lav-topbar .lav-profile{border-left:0;margin-left:0;padding-left:2px}
+.lav-topbar .lav-profile .nav-link{border-radius:10px;padding:4px 10px 4px 5px;transition:background .15s ease}
+.lav-topbar .lav-profile .nav-link:hover{background:#f4f6fa}
+.lav-topbar .lav-profile .l7-avatar{box-shadow:0 0 0 2px #fff,0 0 0 4px #cfddf5}
+.lav-topbar .lav-profile .lav-user-meta strong{color:#172536;font-size:12.5px;font-weight:600;line-height:1.25}
+.lav-topbar .lav-profile .lav-user-meta small{color:#718096;font-size:10.5px;margin-top:1px}
+.lav-topbar .lav-profile .dropdown-toggle:after{color:#9aa7b5;margin-left:7px}
+/* User dropdown panel: profile header, divider, then the
+   same two entries as always — My Account + Logout (red on
+   hover). Nothing new was added to the menu. */
+.lav-topbar .lav-user-menu{border:1px solid #e4eaf1;border-radius:12px;box-shadow:0 14px 34px rgba(23,37,54,.14);margin-top:10px;padding:8px;width:250px}
+.lav-topbar .lav-user-menu-head{align-items:center;display:flex;gap:11px;padding:10px 10px 12px}
+.lav-topbar .lav-user-menu-head .l7-avatar{box-shadow:0 0 0 2px #fff,0 0 0 4px #cfddf5;flex:none}
+.lav-topbar .lav-user-menu-meta{min-width:0}
+.lav-topbar .lav-user-menu-meta strong{color:#172536;display:block;font-size:13.5px;font-weight:600;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lav-topbar .lav-user-menu-meta small{color:#718096;display:block;font-size:11px;margin-top:1px}
+.lav-topbar .lav-user-menu .dropdown-divider{border-top-color:#edf1f5;margin:6px 2px}
+.lav-topbar .lav-user-menu .dropdown-item{align-items:center;border-radius:8px;color:#43556c;display:flex;font-size:.86rem;gap:10px;padding:9px 10px}
+.lav-topbar .lav-user-menu .dropdown-item i{color:#718096;font-size:15px;margin:0}
+.lav-topbar .lav-user-menu .dropdown-item:hover,.lav-topbar .lav-user-menu .dropdown-item:focus{background:#eef3fb;color:#172536}
+.lav-topbar .lav-user-menu .dropdown-item:hover i,.lav-topbar .lav-user-menu .dropdown-item:focus i{color:#3478f6}
+.lav-topbar .lav-user-menu .lav-logout:hover,.lav-topbar .lav-user-menu .lav-logout:focus{background:#fdf0f0;color:#d64545}
+.lav-topbar .lav-user-menu .lav-logout:hover i,.lav-topbar .lav-user-menu .lav-logout:focus i{color:#d64545}
+@media (max-width:767px){
+  /* Search compresses into the remaining space; nothing in
+     the bar may push the page sideways. */
+  .lav-topbar .lav-search{flex:1 1 auto;min-width:0}
+  .lav-topbar .lav-user-menu{width:240px}
+}
+
+/* --- Loop 40 (contd.): the bell panel itself (owner
+   screenshot, 22:41 IST) — presentation only. Same items,
+   same order, same links: a 340px rounded panel, a clear
+   header row, medallion icons, semibold titles over muted
+   timestamps, hairline dividers, and a capped height whose
+   overflow scrolls on a thin styled bar (webkit pseudos do
+   the painting; the standard properties live in the
+   Firefox-only block, per the Loop 35 lesson). --- */
+.lav-topbar .lav-notif-menu{border:1px solid #e4eaf1;border-radius:12px;box-shadow:0 14px 34px rgba(23,37,54,.14);margin-top:10px;max-height:min(430px,72vh);max-width:92vw;overflow-y:auto;padding:8px;width:340px}
+.lav-topbar .lav-notif-menu .dropdown-header{color:#172536;font-size:.8rem;font-weight:700;letter-spacing:.01em;padding:8px 10px 6px;text-transform:none}
+.lav-topbar .lav-notif-menu .dropdown-divider{border-top-color:#edf1f5;margin:6px 2px}
+.lav-topbar .lav-notif-menu a.dropdown-item{border-radius:8px;padding:9px 10px}
+.lav-topbar .lav-notif-menu a.dropdown-item:hover,.lav-topbar .lav-notif-menu a.dropdown-item:focus{background:#f4f6fa;color:#172536}
+.lav-topbar .lav-notif-menu .lav-notif-item{align-items:center;gap:11px;white-space:normal}
+.lav-topbar .lav-notif-menu .lav-notif-item + .lav-notif-item{border-top:1px solid #f0f3f7}
+.lav-topbar .lav-notif-menu .lav-notif-item i{align-items:center;background:#eef3fb;border-radius:50%;color:#3478f6;display:inline-flex;flex:none;font-size:15px;height:34px;justify-content:center;margin-top:0;width:34px}
+.lav-topbar .lav-notif-menu .lav-notif-item span{color:#172536;font-size:.84rem;font-weight:600;line-height:1.35;min-width:0}
+.lav-topbar .lav-notif-menu .lav-notif-item small{color:#718096;display:block;font-size:.74rem;font-weight:400;margin-top:1px}
+.lav-topbar .lav-notif-menu::-webkit-scrollbar{width:5px;height:5px}
+.lav-topbar .lav-notif-menu::-webkit-scrollbar-track{background:transparent}
+.lav-topbar .lav-notif-menu::-webkit-scrollbar-thumb{background:rgba(23,37,54,.18);border-radius:3px}
+.lav-topbar .lav-notif-menu::-webkit-scrollbar-thumb:hover{background:rgba(23,37,54,.32)}
+.lav-topbar .lav-notif-menu::-webkit-scrollbar-button{display:none;width:0;height:0}
+@supports (-moz-appearance:none){
+  .lav-topbar .lav-notif-menu{scrollbar-width:thin;scrollbar-color:rgba(23,37,54,.25) transparent}
+}
+@media (max-width:767px){
+  .lav-topbar .lav-notif-menu{max-width:88vw}
+}
+
+/* ============================================================
+   Loop 41 — Batch 3B: pattern chrome stays off paper. On
+   list_page screens the toolbar (title + actions) and the
+   filter row are screen furniture; a printed list document is
+   the print-doc-head + table + print-doc-foot (Loop 31), so
+   the pattern chrome is hidden in print exactly like the
+   legacy card header elements were. Screen rendering is
+   untouched; Loop 31's print contract is unchanged.
+   ============================================================ */
+@media print{
+  .pat-toolbar,.pat-filters{display:none!important}
+}
