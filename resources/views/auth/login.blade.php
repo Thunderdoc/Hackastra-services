@@ -21,6 +21,7 @@
     .hackstra-login-btn:hover{background:#2867dc;color:#fff}
     .hackstra-login .alert{border:0;border-radius:10px}
     @media (max-width:767px){.hackstra-login-brand{display:none}.hackstra-login-form{padding:32px 24px}}
+    @media (max-width:480px){.hackstra-login{padding:12px}.hackstra-login-card{border-radius:14px}.hackstra-login-form{padding:26px 18px}.hackstra-login-form h5{font-size:1.12rem}}
 </style>
 <div class="hackstra-login">
     <div class="hackstra-login-card">
