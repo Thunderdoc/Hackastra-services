@@ -170,6 +170,7 @@ Route::group(['namespace' => 'SuperAdmin','middleware' => 'super_admin', 'prefix
 
     Route::get('/settings', 'SettingController@index')->name('settings');
     Route::put('/settings', 'SettingController@update')->name('settings.update');
+    Route::get('/audit-logs', 'AuditLogController@index')->name('audit_logs.index');
 
 });
 

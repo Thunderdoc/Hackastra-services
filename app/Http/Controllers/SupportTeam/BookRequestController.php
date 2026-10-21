@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\SupportTeam;
 
-use App\BookRequest;
+use App\Models\BookRequest;
 use Illuminate\Http\Request;
 
 class BookRequestController extends Controller
@@ -41,7 +41,7 @@ class BookRequestController extends Controller
     /**
      * Display the specified resource.
      *
-     * @param  \App\BookRequest  $bookRequest
+     * @param  \App\Models\BookRequest  $bookRequest
      * @return \Illuminate\Http\Response
      */
     public function show(BookRequest $bookRequest)
@@ -52,7 +52,7 @@ class BookRequestController extends Controller
     /**
      * Show the form for editing the specified resource.
      *
-     * @param  \App\BookRequest  $bookRequest
+     * @param  \App\Models\BookRequest  $bookRequest
      * @return \Illuminate\Http\Response
      */
     public function edit(BookRequest $bookRequest)
@@ -64,7 +64,7 @@ class BookRequestController extends Controller
      * Update the specified resource in storage.
      *
      * @param  \Illuminate\Http\Request  $request
-     * @param  \App\BookRequest  $bookRequest
+     * @param  \App\Models\BookRequest  $bookRequest
      * @return \Illuminate\Http\Response
      */
     public function update(Request $request, BookRequest $bookRequest)
@@ -75,7 +75,7 @@ class BookRequestController extends Controller
     /**
      * Remove the specified resource from storage.
      *
-     * @param  \App\BookRequest  $bookRequest
+     * @param  \App\Models\BookRequest  $bookRequest
      * @return \Illuminate\Http\Response
      */
     public function destroy(BookRequest $bookRequest)
