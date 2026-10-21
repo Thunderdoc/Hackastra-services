@@ -1832,3 +1832,71 @@ body.sidebar-xs .sidebar-main .lav-sidebar-session{margin-left:6px;margin-right:
   .idc-photo{height:26mm!important;width:20mm!important}
   .idc-foot{padding:1.8mm 3.7mm!important}
 }
+
+/* ============================================================
+   Loop 43 — My Account, ONE coherent design (Workstream BN).
+   The page had grown by patches (base .acct- section + Loop 31
+   Fixes 5/6b/7). This loop is the FINAL word on every .acct-
+   rule: a cover-style profile header, pill tabs, the tabbed
+   card at full width, an even 3-card row under it, activity
+   full-width last, and form_page-grade field density. The
+   blade dropped its breadcrumb + empty session-chip shell
+   (the topbar owns the chip; the layout header stays
+   suppressed, so the page has exactly ONE title). All field
+   names, forms, ids and JS hooks are unchanged.
+   ============================================================ */
+.acct-page{max-width:1400px;margin:0 auto}
+.acct-title{color:#172536;font-size:1.65rem;font-weight:700;margin:2px 0 4px}
+.acct-subtitle{color:#718096;font-size:.92rem;margin:0 0 20px}
+
+/* --- Profile header: cover strip + overlapping avatar --- */
+.acct-profile-head{background:#fff;border:1px solid #e4eaf1;border-radius:14px;margin-bottom:22px;overflow:hidden}
+.acct-cover{background:linear-gradient(120deg,#172536 0%,#22477a 52%,#3478f6 100%);height:104px;position:relative}
+.acct-cover:after{background:radial-gradient(circle at 85% 20%,rgba(255,255,255,.22),rgba(255,255,255,0) 55%);content:"";inset:0;position:absolute}
+.acct-profile-body{align-items:flex-end;display:flex;flex-wrap:wrap;gap:14px 22px;padding:0 26px 22px}
+.acct-profile-head .acct-avatar-wrap{margin-top:-46px;z-index:1}
+.acct-profile-head .acct-avatar{border:4px solid #fff;box-shadow:0 6px 16px rgba(23,37,54,.20);font-size:1.7rem;height:94px;width:94px}
+.acct-profile-head .acct-avatar-btn{font-size:.8rem;height:30px;width:30px}
+.acct-banner-info{flex:1 1 320px;min-width:0;padding-top:12px}
+.acct-name-row{align-items:center;display:flex;flex-wrap:wrap;gap:8px 12px}
+.acct-banner-name{color:#172536;font-size:1.35rem;font-weight:700;line-height:1.25;margin:0}
+.acct-banner-meta{color:#5a6b80;display:flex;flex-wrap:wrap;font-size:.85rem;gap:4px 20px;margin-top:5px}
+.acct-chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
+.acct-banner-stats{display:flex;flex-wrap:wrap;gap:12px;margin-left:auto;padding-top:12px}
+.acct-stat{background:#f7fafd;border:1px solid #e4eaf1;border-radius:12px;min-width:128px}
+
+/* --- Layout: one column, nothing can end early --- */
+.acct-grid{display:flex;flex-direction:column;gap:22px}
+.acct-main{display:flex;flex-direction:column;gap:22px;min-width:0}
+.acct-rail{align-items:stretch;display:grid;gap:22px;grid-template-columns:repeat(3,minmax(0,1fr))}
+.acct-rail .acct-side-card{height:100%}
+.acct-card{background:#fff;border:1px solid #e4eaf1;border-radius:14px;padding:22px}
+@media (max-width:991px){
+  .acct-rail{grid-template-columns:minmax(0,1fr)}
+  .acct-banner-stats{margin-left:0}
+}
+@media (max-width:767px){
+  .acct-cover{height:84px}
+  .acct-profile-body{padding:0 18px 18px}
+  .acct-profile-head .acct-avatar-wrap{margin-top:-38px}
+  .acct-profile-head .acct-avatar{height:80px;width:80px}
+  .acct-banner-stats{width:100%}
+  .acct-stat{flex:1 1 140px}
+}
+
+/* --- Tabs: modern pills on a soft track --- */
+.acct-tabs{background:#eef2f7;border:1px solid #e4eaf1;border-radius:12px;display:flex;gap:3px;margin:0 0 20px;overflow-x:auto;padding:4px}
+.acct-tab{align-items:center;background:none;border:none;border-radius:9px;color:#5a6b80;display:inline-flex;font-size:.9rem;font-weight:600;gap:8px;margin:0;padding:9px 16px;white-space:nowrap}
+.acct-tab i{font-size:.95rem}
+.acct-tab:hover{background:#fff;color:#2867dc}
+.acct-tab.active{background:#3478f6;box-shadow:0 4px 10px rgba(52,120,246,.25);color:#fff}
+
+/* --- Form density: labels above fields; short fields never
+   stretch across the whole card on wide screens. --- */
+.acct-form-grid{display:grid;gap:16px 20px;grid-template-columns:repeat(2,minmax(0,1fr))}
+@media (min-width:1400px){
+  .acct-form-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media (max-width:767px){
+  .acct-form-grid{grid-template-columns:minmax(0,1fr)}
+}

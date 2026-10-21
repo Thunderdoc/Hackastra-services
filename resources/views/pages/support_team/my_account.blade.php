@@ -1,9 +1,11 @@
 @extends('layouts.master')
 @section('page_title', 'My Account')
-{{-- Loop 31 (Fix 5): this page renders its own designed header
-     (breadcrumb + H1 + subtitle + session chip), so the layout's
-     generic title bar is suppressed — title and session chip would
-     otherwise each print twice. --}}
+{{-- This page renders its own designed header (ONE H1 + subtitle
+     + profile cover), so the layout's generic title bar is
+     suppressed — the title would otherwise print twice. No
+     breadcrumb and no session chip here: the topbar owns the
+     session chip, and a one-item breadcrumb is pure duplication
+     (owner flagged both repeatedly; final design = Loop 43). --}}
 @section('hide_page_header', true)
 @section('content')
 
@@ -16,17 +18,6 @@
     @endphp
 
     <div class="acct-page">
-
-        {{-- Page head: breadcrumb + session chip --}}
-        <div class="acct-head">
-            <nav class="acct-crumb" aria-label="Breadcrumb">
-                <a href="{{ route('dashboard') }}" aria-label="Dashboard"><i class="icon-home5"></i></a>
-                <span class="acct-crumb-sep">&rsaquo;</span>
-                <span class="acct-crumb-current">My Account</span>
-            </nav>
-            @if($current_session)
-            @endif
-        </div>
 
         <h1 class="acct-title">My Account</h1>
         <p class="acct-subtitle">Manage your profile, security settings and preferences.</p>
@@ -41,38 +32,43 @@
             <div class="acct-alert acct-alert-danger"><i class="icon-info3"></i> {{ session('pop_error') }}</div>
         @endif
 
-        {{-- Profile banner --}}
-        <div class="acct-banner">
-            <div class="acct-banner-main">
+        {{-- Profile header: cover strip + overlapping avatar (Loop 43) --}}
+        <div class="acct-profile-head">
+            <div class="acct-cover" aria-hidden="true"></div>
+            <div class="acct-profile-body">
                 <div class="acct-avatar-wrap">
-                    <span class="acct-avatar" aria-hidden="true">{{ $initial }}<img src="{{ Auth::user()->photo }}" alt="" onerror="this.remove()"></span>
+                    <span class="acct-avatar" aria-hidden="true">{{ $initial }}@if(\App\Helpers\Qs::hasRealPhoto(Auth::user()->photo))<img src="{{ Auth::user()->photo }}" alt="" onerror="this.remove()">@endif</span>
                     <button type="button" class="acct-avatar-btn" id="acct-photo-btn" title="Change profile photo" aria-label="Change profile photo"><i class="icon-camera"></i></button>
                 </div>
                 <div class="acct-banner-info">
-                    <h2 class="acct-banner-name">{{ $my->name }}</h2>
+                    <div class="acct-name-row">
+                        <h2 class="acct-banner-name">{{ $my->name }}</h2>
+                        <span class="acct-chip acct-chip-role">{{ $role_label }}</span>
+                    </div>
                     <div class="acct-banner-meta">
                         @if($my->email)<span><i class="icon-envelop"></i> {{ $my->email }}</span>@endif
                         @if($my->phone)<span><i class="icon-phone"></i> {{ $my->phone }}</span>@endif
                         @if($my->created_at)<span><i class="icon-calendar"></i> Member since {{ $my->created_at->format($date_fmt) }}</span>@endif
                     </div>
-                    <div class="acct-chips">
-                        <span class="acct-chip acct-chip-role">{{ $role_label }}</span>
-                        @foreach($banner_chips as $chip)
-                            <span class="acct-chip">{{ $chip }}</span>
+                    @if(count($banner_chips))
+                        <div class="acct-chips">
+                            @foreach($banner_chips as $chip)
+                                <span class="acct-chip">{{ $chip }}</span>
+                            @endforeach
+                        </div>
+                    @endif
+                </div>
+                @if(count($banner_stats))
+                    <div class="acct-banner-stats">
+                        @foreach($banner_stats as $stat)
+                            <div class="acct-stat">
+                                <span class="acct-stat-icon"><i class="{{ $stat['icon'] }}"></i></span>
+                                <span class="acct-stat-text"><small>{{ $stat['label'] }}</small><strong>{{ $stat['value'] }}</strong></span>
+                            </div>
                         @endforeach
                     </div>
-                </div>
+                @endif
             </div>
-            @if(count($banner_stats))
-                <div class="acct-banner-stats">
-                    @foreach($banner_stats as $stat)
-                        <div class="acct-stat">
-                            <span class="acct-stat-icon"><i class="{{ $stat['icon'] }}"></i></span>
-                            <span class="acct-stat-text"><small>{{ $stat['label'] }}</small><strong>{{ $stat['value'] }}</strong></span>
-                        </div>
-                    @endforeach
-                </div>
-            @endif
         </div>
 
         <div class="acct-grid">
@@ -158,7 +154,7 @@
                                 <div class="acct-field acct-field-wide">
                                     <label>Profile Photo</label>
                                     <div class="acct-photo-row">
-                                        <span class="acct-avatar acct-avatar-md" aria-hidden="true">{{ $initial }}<img src="{{ Auth::user()->photo }}" alt="" onerror="this.remove()"></span>
+                                        <span class="acct-avatar acct-avatar-md" aria-hidden="true">{{ $initial }}@if(\App\Helpers\Qs::hasRealPhoto(Auth::user()->photo))<img src="{{ Auth::user()->photo }}" alt="" onerror="this.remove()">@endif</span>
                                         <span class="acct-photo-preview" id="acct-photo-preview" hidden><img id="acct-photo-preview-img" src="" alt="Preview of the selected photo"><small>New photo</small></span>
                                         <div>
                                             <label for="acct-photo" class="acct-upload-btn"><i class="icon-upload"></i> Upload Photo</label>
