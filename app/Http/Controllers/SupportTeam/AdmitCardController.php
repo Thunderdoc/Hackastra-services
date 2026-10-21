@@ -1,0 +1,239 @@
+<?php
+
+namespace App\Http\Controllers\SupportTeam;
+
+use App\Helpers\Qs;
+use App\Http\Controllers\Controller;
+use App\Models\Exam;
+use App\Models\StudentRecord;
+use App\Models\Subject;
+use App\Models\TimeTable;
+use App\Models\TimeTableRecord;
+use App\Repositories\ExamRepo;
+use App\Repositories\MyClassRepo;
+use App\Repositories\StudentRepo;
+use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Auth;
+
+class AdmitCardController extends Controller
+{
+    protected $exam, $my_class, $student;
+
+    public function __construct(ExamRepo $exam, MyClassRepo $my_class, StudentRepo $student)
+    {
+        $this->middleware('teamSAT', ['only' => ['index', 'printSheet']]);
+
+        $this->exam = $exam;
+        $this->my_class = $my_class;
+        $this->student = $student;
+    }
+
+    /**
+     * Staff screen: pick an exam + class (+ optional section) and get the
+     * roster of students whose admit cards can be printed.
+     */
+    public function index(Request $req)
+    {
+        $d['exams'] = $this->exam->getExam(['year' => Qs::getCurrentSession()]);
+        $d['my_classes'] = $this->my_class->all();
+        $d['sections'] = $this->my_class->getAllSections();
+
+        $d['exam_id'] = $req->query('exam_id');
+        $d['class_id'] = $req->query('class_id');
+        $d['section_id'] = $req->query('section_id');
+        $d['selected'] = false;
+        $d['students'] = collect();
+
+        if ($d['exam_id'] && $d['class_id']) {
+            $d['selected'] = true;
+            $d['exam'] = $this->exam->find($d['exam_id']);
+            $d['students'] = $this->roster($d['class_id'], $d['section_id']);
+        }
+
+        return view('pages.support_team.exams.admit_cards', $d);
+    }
+
+    /**
+     * Print sheet: one admit card per student in the class/section
+     * (or a single student when ?student=<user_id> is present).
+     */
+    public function printSheet($exam_id, $class_id, Request $req)
+    {
+        $exam = $this->exam->find($exam_id) ?: abort(404);
+        $class = $this->my_class->find($class_id) ?: abort(404);
+
+        $students = $this->roster($class_id, $req->query('section_id'));
+
+        if ($req->query('student')) {
+            $students = $students->where('user_id', (int) $req->query('student'))->values();
+        }
+
+        $d['exam'] = $exam;
+        $d['my_class'] = $class;
+        $d['students'] = $students;
+        $d['school'] = $this->schoolInfo();
+        $schedule = $this->buildSchedule($exam, $class_id);
+        $d['schedule'] = $schedule['rows'];
+        $d['schedule_fallback'] = $schedule['fallback'];
+
+        return view('pages.support_team.exams.admit_print', $d);
+    }
+
+    /**
+     * Self-service list: the logged-in student (own exams) or parent
+     * (each child's exams) picks an exam to print an admit card for.
+     */
+    public function myCards()
+    {
+        $user = Auth::user();
+
+        if (Qs::userIsTeamSAT()) {
+            return redirect()->route('admit_cards.index');
+        }
+
+        if ($user->user_type === 'parent') {
+            $d['records'] = Qs::findMyChildren($user->id);
+        } else {
+            $sr = Qs::getSRByUserID($user->id);
+            $d['records'] = $sr ? collect([$sr]) : collect();
+        }
+
+        $d['exams'] = $this->exam->getExam(['year' => Qs::getCurrentSession()]);
+
+        return view('pages.support_team.exams.admit_my', $d);
+    }
+
+    /**
+     * Self-service card: a student prints their own card, a parent prints
+     * a card for one of their children. Staff may also use it.
+     * Anyone else gets a 403.
+     */
+    public function myCard($exam_id, $student_id)
+    {
+        $user = Auth::user();
+        $student_id = (int) $student_id;
+
+        $allowed = $user->id === $student_id
+            || Qs::userIsMyChild($student_id, $user->id)
+            || Qs::userIsTeamSAT();
+
+        if (!$allowed) {
+            abort(403);
+        }
+
+        $exam = $this->exam->find($exam_id) ?: abort(404);
+        $sr = $this->student->getRecord(['user_id' => $student_id])->first() ?: abort(404);
+
+        $d['exam'] = $exam;
+        $d['my_class'] = $this->my_class->find($sr->my_class_id);
+        $d['students'] = collect([$sr]);
+        $d['school'] = $this->schoolInfo();
+        $schedule = $this->buildSchedule($exam, $sr->my_class_id);
+        $d['schedule'] = $schedule['rows'];
+        $d['schedule_fallback'] = $schedule['fallback'];
+
+        return view('pages.support_team.exams.admit_print', $d);
+    }
+
+    /**
+     * Active (non-graduated) students of a class, optionally one section,
+     * sorted by name — the same population StudentRepo::findStudentsByClass
+     * returns, with section eager-loaded for the roster/card.
+     */
+    protected function roster($class_id, $section_id = null)
+    {
+        $q = $this->student->activeStudents()
+            ->where('my_class_id', $class_id)
+            ->with(['user', 'my_class', 'section']);
+
+        if ($section_id) {
+            $q->where('section_id', $section_id);
+        }
+
+        return $q->get()->sortBy('user.name')->values();
+    }
+
+    /**
+     * Subject schedule for an exam + class, from the exam timetable
+     * (time_table_records -> time_tables.exam_date + time_slots.full).
+     * When the school has not built an exam timetable for the class,
+     * fall back to the class's subject list with no dates — dates are
+     * never invented.
+     */
+    protected function buildSchedule(Exam $exam, $class_id)
+    {
+        $ttr = TimeTableRecord::where([
+            'exam_id' => $exam->id,
+            'my_class_id' => $class_id,
+            'year' => $exam->year,
+        ])->first();
+
+        $rows = [];
+
+        if ($ttr) {
+            $entries = TimeTable::with(['subject', 'time_slot'])
+                ->where('ttr_id', $ttr->id)
+                ->whereNotNull('subject_id')
+                ->whereNotNull('exam_date')
+                ->get();
+
+            foreach ($entries as $e) {
+                if (!$e->subject) {
+                    continue;
+                }
+                $rows[] = [
+                    'subject' => $e->subject->name,
+                    'date' => $this->formatExamDate($e->exam_date),
+                    'sort' => $this->dateSortKey($e->exam_date) . '|' . ($e->timestamp_from ?: ''),
+                    'time' => $e->time_slot ? $e->time_slot->full : null,
+                ];
+            }
+
+            usort($rows, function ($a, $b) {
+                return strcmp($a['sort'], $b['sort']);
+            });
+        }
+
+        if (!empty($rows)) {
+            return ['rows' => $rows, 'fallback' => false];
+        }
+
+        $subjects = Subject::where('my_class_id', $class_id)->orderBy('name')->get();
+        foreach ($subjects as $s) {
+            $rows[] = ['subject' => $s->name, 'date' => null, 'sort' => $s->name, 'time' => null];
+        }
+
+        return ['rows' => $rows, 'fallback' => true];
+    }
+
+    protected function formatExamDate($value)
+    {
+        try {
+            return Carbon::parse($value)->format('D, d M Y');
+        } catch (\Exception $e) {
+            return $value;
+        }
+    }
+
+    protected function dateSortKey($value)
+    {
+        try {
+            return Carbon::parse($value)->format('Y-m-d');
+        } catch (\Exception $e) {
+            return (string) $value;
+        }
+    }
+
+    protected function schoolInfo()
+    {
+        return [
+            'name' => Qs::getSetting('system_name'),
+            'address' => Qs::getSetting('address'),
+            'phone' => Qs::getSetting('phone'),
+            'email' => Qs::getSetting('system_email'),
+            'logo' => Qs::getSetting('logo'),
+            'session' => Qs::getCurrentSession(),
+        ];
+    }
+}

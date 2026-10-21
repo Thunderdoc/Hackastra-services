@@ -4,6 +4,7 @@ namespace App\Http\Controllers\SupportTeam;
 
 use App\Helpers\Qs;
 use App\Support\Audit;
+use App\Support\CsvExport;
 use App\Helpers\Mk;
 use App\Http\Requests\Student\StudentRecordCreate;
 use App\Http\Requests\Student\StudentRecordUpdate;
@@ -202,4 +203,45 @@ class StudentRecordController extends Controller
         return back()->with('flash_success', __('msg.del_ok'));
     }
 
+
+    /**
+     * CSV export of the students list (Loop 8) — same class/section
+     * filter as the list page, so what the office sees is what prints.
+     */
+    public function export($class_id, $section_id = NULL)
+    {
+        $mc = $this->my_class->getMC(['id' => $class_id])->first();
+        if (is_null($mc)) {
+            return Qs::goWithDanger();
+        }
+
+        $students = $this->student->findStudentsByClass($class_id)->load('section', 'my_parent');
+
+        $section = NULL;
+        if ($section_id) {
+            $section = $this->my_class->getClassSections($class_id)->firstWhere('id', (int) $section_id);
+            $students = $students->where('section_id', (int) $section_id);
+        }
+
+        $rows = $students->map(function ($s) use ($mc) {
+            return [
+                optional($s->user)->name,
+                $s->adm_no,
+                $mc->name,
+                optional($s->section)->name,
+                optional($s->user)->gender,
+                optional($s->my_parent)->name,
+                optional($s->my_parent)->phone,
+                optional($s->my_parent)->email,
+            ];
+        });
+
+        $filename = 'students-' . Str::slug($mc->name)
+            . ($section ? '-' . Str::slug($section->name) : '')
+            . '.csv';
+
+        return CsvExport::download($filename,
+            ['Name', 'Admission No', 'Class', 'Section', 'Gender', 'Parent Name', 'Parent Phone', 'Parent Email'],
+            $rows);
+    }
 }

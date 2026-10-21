@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\SupportTeam;
 
 use App\Helpers\Qs;
+use App\Support\CsvExport;
 use App\Support\Audit;
 use App\Helpers\Pay;
 use App\Http\Controllers\Controller;
@@ -16,6 +17,7 @@ use App\Repositories\PaymentRepo;
 use App\Repositories\StudentRepo;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
 use PDF;
 
@@ -73,14 +75,62 @@ class PaymentController extends Controller
     {
         if(!$st_id) {return Qs::goWithDanger();}
 
+        // Invoice links carry a hashed user id; resolve it to the plain
+        // id first (mirrors PaymentController@export_student), and apply
+        // the same record-level check the receipt actions use.
+        $sr = $this->student->findByUserId($st_id)->first();
+        if (is_null($sr)) {
+            $decoded = Qs::decodeHash($st_id);
+            if ($decoded && (string) $decoded !== (string) $st_id) {
+                $candidate = $this->student->findByUserId($decoded)->first();
+                if ($candidate) { $sr = $candidate; $st_id = $decoded; }
+            }
+        }
+        if (is_null($sr)) { return Qs::goWithDanger(); }
+        $this->authorize('view', $sr);
+
         $inv = $year ? $this->pay->getAllMyPR($st_id, $year) : $this->pay->getAllMyPR($st_id);
 
-        $d['sr'] = $this->student->findByUserId($st_id)->first();
+        $d['sr'] = $sr;
+        $d['year'] = $year;
         $pr = $inv->get();
         $d['uncleared'] = $pr->where('paid', 0);
         $d['cleared'] = $pr->where('paid', 1);
 
         return view('pages.support_team.payments.invoice', $d);
+    }
+
+    /**
+     * CSV export of one student's payment records (Loop 8) — the same
+     * records the invoice page lists, cleared and uncleared together.
+     * The invoice links carry a hashed id; resolve it to the plain user
+     * id first so the export is correct either way.
+     */
+    public function export_student($st_id, $year = NULL)
+    {
+        if (!$st_id) { return Qs::goWithDanger(); }
+
+        $sr = $this->student->findByUserId($st_id)->first();
+        if (is_null($sr)) {
+            $decoded = Qs::decodeHash($st_id);
+            if ($decoded && (string) $decoded !== (string) $st_id) {
+                $sr = $this->student->findByUserId($decoded)->first();
+                if ($sr) { $st_id = $decoded; }
+            }
+        }
+
+        $records = ($year ? $this->pay->getAllMyPR($st_id, $year) : $this->pay->getAllMyPR($st_id))->get();
+        $name = $sr ? optional($sr->user)->name : '';
+
+        $rows = $records->map(function ($pr) use ($name) {
+            return $this->exportRow($pr, $name);
+        });
+
+        $filename = 'payments-' . Str::slug($name ?: 'student') . ($year ? '-' . $year : '') . '.csv';
+
+        return CsvExport::download($filename,
+            ['Receipt No', 'Student', 'Title', 'Amount Paid', 'Balance', 'Date'],
+            $rows);
     }
 
     public function receipts($pr_id)
@@ -171,6 +221,56 @@ class PaymentController extends Controller
         }
 
         return view('pages.support_team.payments.manage', $d);
+    }
+
+    /**
+     * CSV export of payment records for a whole class (Loop 8) — the
+     * manage page's current filter: this class, current session year.
+     */
+    public function export($class_id)
+    {
+        $students = $this->student->getRecord(['my_class_id' => $class_id])->get();
+        if ($students->count() < 1) {
+            return Qs::goWithDanger('payments.manage');
+        }
+
+        $names = $students->mapWithKeys(function ($s) {
+            return [$s->user_id => optional($s->user)->name];
+        });
+
+        $records = $this->pay->getRecord(['year' => $this->year])
+            ->whereIn('student_id', $students->pluck('user_id')->all())
+            ->get()
+            ->sortBy(function ($pr) use ($names) { return $names[$pr->student_id] ?? ''; })
+            ->values();
+
+        $rows = $records->map(function ($pr) use ($names) {
+            return $this->exportRow($pr, $names[$pr->student_id] ?? '');
+        });
+
+        $mc = $this->my_class->getMC(['id' => $class_id])->first();
+        $filename = 'payments-' . Str::slug(optional($mc)->name ?? 'class') . '-' . $this->year . '.csv';
+
+        return CsvExport::download($filename,
+            ['Receipt No', 'Student', 'Title', 'Amount Paid', 'Balance', 'Date'],
+            $rows);
+    }
+
+    /**
+     * One CSV row for a payment record, shared by both payment exports.
+     * Balance mirrors the invoice page: an untouched record owes the
+     * full payment amount.
+     */
+    protected function exportRow($pr, $studentName)
+    {
+        return [
+            $pr->ref_no,
+            $studentName,
+            optional($pr->payment)->title,
+            $pr->amt_paid ?: 0,
+            $pr->balance ?: optional($pr->payment)->amount,
+            optional($pr->updated_at)->format('d M Y'),
+        ];
     }
 
     public function select_class(SelectClassRequest $req)

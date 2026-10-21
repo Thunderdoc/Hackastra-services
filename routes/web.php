@@ -29,6 +29,7 @@ Route::group(['middleware' => 'auth'], function () {
             Route::get('graduated', 'StudentRecordController@graduated')->name('students.graduated');
             Route::put('not_graduated/{id}', 'StudentRecordController@not_graduated')->name('st.not_graduated');
             Route::get('list/{class_id}', 'StudentRecordController@listByClass')->name('students.list')->middleware('teamSAT');
+            Route::get('export/{class_id}/{section_id?}', 'StudentRecordController@export')->name('students.export')->middleware('teamSAT');
 
             /* Promotions */
             Route::post('promote_selector', 'PromotionController@selector')->name('students.promote_selector');
@@ -86,6 +87,8 @@ Route::group(['middleware' => 'auth'], function () {
         Route::group(['prefix' => 'payments'], function(){
 
             Route::get('manage/{class_id?}', 'PaymentController@manage')->name('payments.manage');
+            Route::get('export/{class_id}', 'PaymentController@export')->name('payments.export');
+            Route::get('export_student/{id}/{year?}', 'PaymentController@export_student')->name('payments.export_student');
             Route::get('invoice/{id}/{year?}', 'PaymentController@invoice')->name('payments.invoice');
             Route::get('receipts/{id}', 'PaymentController@receipts')->name('payments.receipts');
             Route::get('pdf_receipts/{id}', 'PaymentController@pdf_receipts')->name('payments.pdf_receipts');
@@ -136,6 +139,14 @@ Route::group(['middleware' => 'auth'], function () {
 
         });
 
+        /*************** Admit Cards *****************/
+        Route::group(['prefix' => 'exams/admit-cards'], function(){
+            Route::get('/', 'AdmitCardController@index')->name('admit_cards.index');
+            Route::get('print/{exam}/{class}', 'AdmitCardController@printSheet')->name('admit_cards.print');
+        });
+        Route::get('my-admit-cards', 'AdmitCardController@myCards')->name('admit_cards.my');
+        Route::get('my-admit-cards/{exam}/{student_id}', 'AdmitCardController@myCard')->name('admit_cards.my_card');
+
         Route::resource('students', 'StudentRecordController');
         Route::resource('users', 'UserController');
         Route::resource('classes', 'MyClassController');
@@ -150,6 +161,9 @@ Route::group(['middleware' => 'auth'], function () {
         Route::get('attendance', 'AttendanceController@index')->name('attendance.index');
         Route::post('attendance', 'AttendanceController@store')->name('attendance.store');
         Route::get('attendance/report', 'AttendanceController@report')->name('attendance.report');
+        Route::get('attendance/report/export', 'AttendanceController@export')->name('attendance.export');
+        Route::get('attendance/defaulters', 'AttendanceController@defaulters')->name('attendance.defaulters');
+        Route::get('attendance/my', 'AttendanceController@my')->name('attendance.my');
 
         /*************** School Events *****************/
         Route::resource('events', 'SchoolEventController');
