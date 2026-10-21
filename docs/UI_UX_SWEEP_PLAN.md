@@ -114,6 +114,21 @@ match the design system, ≤ ~350 KB per asset, stored under
   App\Support\Audit, login listener, wired into payment record/reset/
   delete, student delete, marks update; Super Admin viewer page);
   PSR-4 namespaces fixed for Book/BookRequest (build warnings cleared)
+- [x] Loop 5 (2026-10-21): Library module built end-to-end — the empty
+      Book/BookRequest scaffolds are now real. Catalogue CRUD with search
+      + pagination (`books`); issue/return loan flow (`book_requests` +
+      PATCH `book_requests.return`) with copy-count integrity kept inside
+      transactions; overdue flagging; empty states; `data-confirm` on
+      delete and mark-returned. Role gating is Super Admin / Admin /
+      Librarian via a new `teamLibrary` middleware + `Qs::userIsTeamLibrary()`
+      mirroring the TeamSA pattern; delete stays Super Admin only
+      (mirroring Events) and is blocked while copies are out on loan.
+      The Librarian "Books" item removed in Loop 2 is restored, pointing
+      at `books.index`; Super Admin gains a Library item too. No new
+      migration — the 2018 books/book_requests tables already exist.
+      Built on branch `feature/library-module`, verified locally
+      (php -l, Blade balance, route-name cross-check); pending the
+      parent agent's batch push + live click pass.
 - [ ] Responsive pass 375 / 768 / 1024 on the live URL (needs deploy green)
 - [ ] Responsive pass 375 / 768 / 1024 on the live URL (needs deploy green)
 - [x] Audit log for login / marks / payment / role changes (Loop 4)

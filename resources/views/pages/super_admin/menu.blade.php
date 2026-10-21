@@ -8,6 +8,11 @@
     <a href="{{ route('audit_logs.index') }}" class="nav-link {{ (Route::is('audit_logs.index')) ? 'active' : '' }}"><i class="icon-history"></i> <span>Audit Log</span></a>
 </li>
 
+{{--Library--}}
+<li class="nav-item">
+    <a href="{{ route('books.index') }}" class="nav-link {{ (Route::is('books.*') || Route::is('book_requests.*')) ? 'active' : '' }}"><i class="icon-books"></i> <span>Library</span></a>
+</li>
+
 {{--Pins--}}
 <li class="nav-item nav-item-submenu {{ in_array(Route::currentRouteName(), ['pins.create', 'pins.index']) ? 'nav-item-expanded nav-item-open' : '' }} ">
     <a href="#" class="nav-link"><i class="icon-lock2"></i> <span> Pins</span></a>
