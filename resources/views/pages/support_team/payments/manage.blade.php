@@ -47,7 +47,8 @@
     @if($selected)
         <div class="card">
             <div class="card-body">
-                <table class="table datatable-button-html5-columns">
+                <div class="table-responsive">
+                <table class="table">
                     <thead>
                     <tr>
                         <th>S/N</th>
@@ -83,6 +84,7 @@
                     @endforeach
                     </tbody>
                 </table>
+                </div>
             </div>
         </div>
     @endif

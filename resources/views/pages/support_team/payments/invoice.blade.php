@@ -2,25 +2,34 @@
 @section('page_title', 'Manage Payments')
 @section('content')
 
-    <div class="card">
-        <div class="card-header header-elements-inline">
-            <h6 class="card-title font-weight-bold">Manage Payment Records for {{ $sr->user->name}} </h6>
-            {!! Qs::getPanelOptions() !!}
-            <div class="header-elements">
-                <a href="{{ route('payments.export_student', $year ? [Qs::hash($sr->user_id), $year] : [Qs::hash($sr->user_id)]) }}" class="btn btn-primary btn-sm"><i class="icon-download mr-1"></i> Export</a>
-            </div>
-        </div>
+    {{-- Batch 5C: per-student payment records on the list_page pattern.
+         The DataTables button bar (Copy/Excel/PDF/Visibility) is gone —
+         the app's own Export (toolbar) is the single export control —
+         and the tables are plain full-width tables again. Tab ids,
+         row ids (amt-/amt_paid-/bal-/val-), the ajax-pay forms and the
+         reset/receipt actions are byte-identical to the legacy page:
+         the pay-now JS and the print stylesheet depend on them. --}}
+    @component('partials.patterns.list_page')
+        @slot('title')
+            <i class="icon-cash2 mr-2"></i> Manage Payment Records for {{ $sr->user->name }}
+        @endslot
+        @slot('subtitle')
+            {{ $year ? 'Session '.$year : 'All sessions' }} &mdash; fee records, balances and receipts for this student.
+        @endslot
+        @slot('action')
+            <a href="{{ route('payments.export_student', $year ? [Qs::hash($sr->user_id), $year] : [Qs::hash($sr->user_id)]) }}" class="btn btn-primary"><i class="icon-download mr-1"></i> Export</a>
+        @endslot
 
-        <div class="card-body">
-                <ul class="nav nav-tabs nav-tabs-highlight">
-                    <li class="nav-item"><a href="#all-uc" class="nav-link active" data-toggle="tab">Incomplete Payments</a></li>
-                    <li class="nav-item"><a href="#all-cl" class="nav-link" data-toggle="tab">Completed Payments</a></li>
-                </ul>
+        <ul class="nav nav-tabs nav-tabs-highlight">
+            <li class="nav-item"><a href="#all-uc" class="nav-link active" data-toggle="tab">Incomplete Payments</a></li>
+            <li class="nav-item"><a href="#all-cl" class="nav-link" data-toggle="tab">Completed Payments</a></li>
+        </ul>
 
         <div class="tab-content">
             <div class="tab-pane fade show active" id="all-uc">
                 @if($uncleared->count())
-                <table class="table datatable-button-html5-columns table-responsive">
+                <div class="table-responsive">
+                <table class="table">
                     <thead>
                     <tr>
                         <th>#</th>
@@ -115,6 +124,7 @@
                     </tr>
                     </tfoot>
                 </table>
+                </div>
                 @else
                     <div class="lav-empty">
                         <p class="mb-0">No incomplete payments. Every fee for {{ $sr->user->name }} is fully paid.</p>
@@ -124,7 +134,8 @@
 
             <div class="tab-pane fade" id="all-cl">
                 @if($cleared->count())
-                <table class="table datatable-button-html5-columns table-responsive">
+                <div class="table-responsive">
+                <table class="table">
                     <thead>
                     <tr>
                         <th>#</th>
@@ -189,6 +200,7 @@
                     </tr>
                     </tfoot>
                 </table>
+                </div>
                 @else
                     <div class="lav-empty">
                         <p class="mb-0">No completed payments yet for {{ $sr->user->name }}.</p>
@@ -197,8 +209,7 @@
 
             </div>
         </div>
-        </div>
-    </div>
+    @endcomponent
 
     {{--Payments Invoice List Ends--}}
 
