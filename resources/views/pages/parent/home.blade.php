@@ -76,6 +76,24 @@
                             </table>
                         </div>
 
+                        {{-- Loop 9 (Workstream O): fees-due strip — same figures as the Fees rows above, with a straight path into the fees portal. --}}
+                        @if($child['fees']['pending'] > 0)
+                            <div class="alert alert-warning border-0 d-flex justify-content-between align-items-center flex-wrap mt-3 mb-0">
+                                <span><i class="icon-warning2 mr-1"></i> <strong>Fees due:</strong> {{ \App\Helpers\Money::inr($child['fees']['pending']) }} outstanding</span>
+                                <a href="{{ route('my_fees.show', $record->user_id) }}" class="btn btn-warning btn-sm"><i class="icon-coins mr-1"></i> View Fees</a>
+                            </div>
+                        @elseif($child['fees']['has_records'])
+                            <div class="alert alert-success border-0 mt-3 mb-0">
+                                <i class="icon-checkmark3 mr-1"></i> <strong>Fees clear</strong> — nothing outstanding for {{ optional($record->user)->name }}.
+                                <a href="{{ route('my_fees.show', $record->user_id) }}">View fee history</a>
+                            </div>
+                        @else
+                            <div class="alert alert-info border-0 mt-3 mb-0">
+                                <i class="icon-info22 mr-1"></i> No fee records yet for {{ optional($record->user)->name }}.
+                                <a href="{{ route('my_fees.show', $record->user_id) }}">Open fees</a>
+                            </div>
+                        @endif
+
                         <div class="dashboard-action-grid mt-3">
                             <a href="{{ route('students.show', Qs::hash($record->id)) }}"><i class="icon-eye"></i><span>View Profile</span></a>
                             <a href="{{ route('marks.year_selector', Qs::hash($record->user_id)) }}"><i class="icon-stats-bars"></i><span>Marksheet</span></a>

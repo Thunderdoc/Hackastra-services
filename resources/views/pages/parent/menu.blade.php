@@ -12,3 +12,8 @@
 <li class="nav-item">
     <a href="{{ route('attendance.my') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['attendance.my']) ? 'active' : '' }}"><i class="icon-calendar3"></i> Attendance</a>
 </li>
+
+{{--Fees--}}
+<li class="nav-item">
+    <a href="{{ route('my_fees') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['my_fees', 'my_fees.show']) ? 'active' : '' }}"><i class="icon-coins"></i> Fees</a>
+</li>
