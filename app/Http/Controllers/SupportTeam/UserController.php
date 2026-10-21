@@ -38,6 +38,16 @@ class UserController extends Controller
         $d['users'] = $this->user->getPTAUsers();
         $d['nationals'] = $this->loc->getAllNationals();
         $d['blood_groups'] = $this->user->getBloodGroups();
+
+        /* Batch 5A: server-side role filter for the rebuilt index —
+           ?user_type=<title> narrows the list to that role; anything
+           else (absent/unknown) shows every non-student user. */
+        $selected = request('user_type');
+        $d['selected_user_type'] = $d['user_types']->contains('title', $selected) ? $selected : null;
+        if ($d['selected_user_type']) {
+            $d['users'] = $d['users']->where('user_type', $d['selected_user_type']);
+        }
+
         return view('pages.support_team.users.index', $d);
     }
 
@@ -201,9 +211,16 @@ class UserController extends Controller
 
     public function create()
     {
-        // No separate create page exists: the create form lives on the
-        // index page (the resource route otherwise returned 500).
-        return $this->index();
+        // Batch 5A: the create form is its own page (users/create) —
+        // it used to render the whole index page with every user table.
+        $ut = $this->user->getAllTypes();
+        $ut2 = $ut->where('level', '>', 2);
+
+        $d['user_types'] = Qs::userIsAdmin() ? $ut2 : $ut;
+        $d['states'] = $this->loc->getStates();
+        $d['nationals'] = $this->loc->getAllNationals();
+        $d['blood_groups'] = $this->user->getBloodGroups();
+        return view('pages.support_team.users.create', $d);
     }
 
 }
