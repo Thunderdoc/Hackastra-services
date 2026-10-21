@@ -1,0 +1,519 @@
+<?php
+
+namespace Database\Seeders;
+
+use Illuminate\Database\Seeder;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+
+/**
+ * DemoDataSeeder — enriches the demo database so a buyer evaluating
+ * Hackstra sees a living school, not empty pages.
+ *
+ * The base seeders create users, classes, sections, subjects and student
+ * records, but no payments, no attendance, no library and no exam data —
+ * so the Super Admin dashboard's fee donut and attendance donut render
+ * 0% and several modules look dead. This seeder fills exactly those
+ * gaps using ONLY rows the base seeders already created.
+ *
+ * Safety: every domain is guarded by a row count on its own table, and
+ * the whole seeder no-ops when both payment_records and attendances
+ * already have rows. It is therefore safe to run on any database,
+ * although the entrypoints only seed empty databases anyway.
+ *
+ * Field provenance (every column below was read from the migration /
+ * model / repository named beside it — nothing is invented):
+ *  - payments / payment_records / receipts: migrations
+ *    2018_11_03_210758, 2018_11_03_210817, 2018_11_06_083707 and
+ *    PaymentRepo + PaymentController@pay_now (balance = amount - paid,
+ *    paid = 1 when balance < 1, one Receipt per payment transaction).
+ *  - attendances: migration 2026_10_21_000002, Attendance model status
+ *    constants, AttendanceController@store (student_record_id + date
+ *    unique, status + recorded_by written).
+ *  - books / book_requests: migrations 2018_10_31_191358 /
+ *    2018_10_31_192540, Book::types(), BookRequestController@store
+ *    (status 'issued', returned 0, issued_copies incremented).
+ *  - school_events: migration 2026_10_21_000001, SchoolEvent::types(),
+ *    SchoolEventController@store (created_by set).
+ *  - exams / marks / exam_records: migrations 2018_10_04_224910,
+ *    2018_10_06_224846, 2018_10_18_205842 and the exact field pattern
+ *    DashboardDemoDataSeeder already uses (t1, t2, tca, exm, tex1 for
+ *    a term-1 exam; grade resolved from the grades table ranges).
+ */
+class DemoDataSeeder extends Seeder
+{
+    public function run()
+    {
+        // Global idempotency guard: a database that already has payment
+        // records AND attendance is a working school, not a fresh demo.
+        if (DB::table('payment_records')->count() > 0
+            && DB::table('attendances')->count() > 0) {
+            return;
+        }
+
+        $session = (string) (DB::table('settings')
+            ->where('type', 'current_session')->value('description') ?: '2018-2019');
+
+        $students = DB::table('student_records')
+            ->where('grad', 0)
+            ->orderBy('id')
+            ->get();
+
+        if ($students->isEmpty()) {
+            return;
+        }
+
+        $this->seedPayments($students, $session);
+        $this->seedAttendance($students);
+        $this->seedLibrary($students);
+        $this->seedEvents();
+        $this->seedExamAndMarks($students, $session);
+    }
+
+    /**
+     * Fee definitions + a payment record (and receipt, where money moved)
+     * for every demo student.
+     *
+     * Definitions: three per class — Term 1 Tuition Fee, Transport Fee,
+     * Exam Fee — with the tuition level banded by the class's type
+     * (Nursery / Primary / Junior Secondary / Senior Secondary).
+     * Records: ~70% of students fully paid, ~20% partially paid,
+     * ~10% unpaid, assigned deterministically by student order so a
+     * re-seed always produces the same demo.
+     */
+    protected function seedPayments($students, string $session): void
+    {
+        if (DB::table('payment_records')->count() > 0) {
+            return;
+        }
+
+        $classes = DB::table('my_classes')
+            ->leftJoin('class_types', 'class_types.id', '=', 'my_classes.class_type_id')
+            ->orderBy('my_classes.id')
+            ->get(['my_classes.id', 'my_classes.name', 'class_types.code as type_code']);
+
+        $paymentsByClass = [];
+        foreach ($classes as $class) {
+            $existing = DB::table('payments')
+                ->where('my_class_id', $class->id)
+                ->where('year', $session)
+                ->orderBy('id')
+                ->get();
+
+            if ($existing->isNotEmpty()) {
+                $paymentsByClass[$class->id] = $existing;
+                continue;
+            }
+
+            $ids = [];
+            foreach ($this->feeSchedule($class->type_code, $class->name) as $i => $fee) {
+                $ids[] = DB::table('payments')->insertGetId([
+                    'title' => $fee[0],
+                    'amount' => $fee[1],
+                    'ref_no' => sprintf('DEMO-PAY-%02d-%d', $class->id, $i + 1),
+                    'method' => 'cash',
+                    'my_class_id' => $class->id,
+                    'description' => 'Demo fee for ' . $class->name . ' (' . $session . ').',
+                    'year' => $session,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
+            $paymentsByClass[$class->id] = DB::table('payments')
+                ->whereIn('id', $ids)->orderBy('id')->get();
+        }
+
+        // Payment buckets: rank students by a stable hash so the split
+        // lands at ~70% fully paid / ~20% partially / ~10% unpaid for
+        // any class size, while staying scattered through every class
+        // list instead of appearing in paid/unpaid blocks.
+        $ranked = $students->sortBy(function ($s) {
+            return $this->hashOf('fees|' . $s->user_id);
+        })->values();
+        $fullCount = (int) round($ranked->count() * 0.7);
+        $partialCount = (int) round($ranked->count() * 0.2);
+        $bucketByUserId = [];
+        foreach ($ranked as $rank => $s) {
+            $bucketByUserId[$s->user_id] = $rank < $fullCount
+                ? 'full'
+                : ($rank < $fullCount + $partialCount ? 'partial' : 'unpaid');
+        }
+
+        $recordRows = [];
+        $receiptRows = [];
+        foreach ($students as $student) {
+            $bucket = $bucketByUserId[$student->user_id];
+            foreach (($paymentsByClass[$student->my_class_id] ?? []) as $j => $payment) {
+                if ($bucket === 'full') {
+                    $amtPaid = (int) $payment->amount;
+                    $balance = 0;
+                    $paid = 1;
+                } elseif ($bucket === 'partial') {
+                    $amtPaid = (int) round($payment->amount * [0.4, 0.5, 0.6][$j % 3]);
+                    $balance = (int) $payment->amount - $amtPaid;
+                    $paid = 0;
+                } else {
+                    $amtPaid = null;
+                    $balance = (int) $payment->amount;
+                    $paid = 0;
+                }
+
+                $recordRows[] = [
+                    'payment_id' => $payment->id,
+                    'student_id' => $student->user_id,
+                    'ref_no' => sprintf('DEMO-RCPT-%02d-%03d', $payment->id, $student->user_id),
+                    'amt_paid' => $amtPaid,
+                    'balance' => $balance,
+                    'paid' => $paid,
+                    'year' => $session,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                    // Stash the record key so receipts can find their
+                    // payment_record id after the bulk insert.
+                    '_key' => $payment->id . ':' . $student->user_id,
+                ];
+
+                if ($amtPaid) {
+                    $receiptRows[] = [
+                        'amt_paid' => $amtPaid,
+                        'balance' => $balance,
+                        'year' => $session,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                        '_key' => $payment->id . ':' . $student->user_id,
+                    ];
+                }
+            }
+        }
+
+        foreach (array_chunk($recordRows, 200) as $chunk) {
+            DB::table('payment_records')->insert(array_map(function ($row) {
+                unset($row['_key']);
+                return $row;
+            }, $chunk));
+        }
+
+        if ($receiptRows) {
+            $recordIds = DB::table('payment_records')
+                ->get(['id', 'payment_id', 'student_id'])
+                ->mapWithKeys(function ($row) {
+                    return [$row->payment_id . ':' . $row->student_id => $row->id];
+                });
+
+            $receipts = [];
+            foreach ($receiptRows as $row) {
+                $key = $row['_key'];
+                unset($row['_key']);
+                if (isset($recordIds[$key])) {
+                    $row['pr_id'] = $recordIds[$key];
+                    $receipts[] = $row;
+                }
+            }
+
+            foreach (array_chunk($receipts, 200) as $chunk) {
+                DB::table('receipts')->insert($chunk);
+            }
+        }
+    }
+
+    /** [title, amount] pairs for one class, banded by class type. */
+    protected function feeSchedule(?string $typeCode, string $className): array
+    {
+        $bands = [
+            'nursery' => [18000, 6000, 1500],
+            'primary' => [24000, 7000, 2000],
+            'junior' => [32000, 8000, 2500],
+            'senior' => [38000, 9000, 3000],
+        ];
+
+        $band = 'primary';
+        if (in_array($typeCode, ['C', 'PN', 'N'], true)
+            || stripos($className, 'nursery') !== false || stripos($className, 'creche') !== false) {
+            $band = 'nursery';
+        } elseif ($typeCode === 'J' || stripos($className, 'JSS') !== false) {
+            $band = 'junior';
+        } elseif ($typeCode === 'S' || stripos($className, 'SSS') !== false) {
+            $band = 'senior';
+        }
+
+        [$tuition, $transport, $exam] = $bands[$band];
+
+        return [
+            ['Term 1 Tuition Fee', $tuition],
+            ['Transport Fee', $transport],
+            ['Exam Fee', $exam],
+        ];
+    }
+
+    /**
+     * Attendance for the last 10 school days (Sundays skipped), ending
+     * today: ~85% present, ~10% absent, ~5% late per student per day,
+     * assigned by a stable hash so the demo never changes shape.
+     */
+    protected function seedAttendance($students): void
+    {
+        if (!Schema::hasTable('attendances') || DB::table('attendances')->count() > 0) {
+            return;
+        }
+
+        $recorder = DB::table('users')->where('user_type', 'teacher')->value('id')
+            ?: DB::table('users')->where('user_type', 'super_admin')->value('id');
+
+        $days = [];
+        $cursor = Carbon::today();
+        while (count($days) < 10) {
+            if (!$cursor->isSunday()) {
+                $days[] = $cursor->copy();
+            }
+            $cursor->subDay();
+        }
+
+        $rows = [];
+        foreach ($days as $day) {
+            $date = $day->toDateString();
+            foreach ($students as $student) {
+                $roll = $this->hashOf($student->id . '|' . $date) % 100;
+                $rows[] = [
+                    'student_record_id' => $student->id,
+                    'date' => $date,
+                    'status' => $roll < 85 ? 'present' : ($roll < 95 ? 'absent' : 'late'),
+                    'remarks' => null,
+                    'recorded_by' => $recorder,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
+        }
+
+        foreach (array_chunk($rows, 200) as $chunk) {
+            DB::table('attendances')->insert($chunk);
+        }
+    }
+
+    /** A small believable library: 7 titles plus one copy out on loan. */
+    protected function seedLibrary($students): void
+    {
+        if (!Schema::hasTable('books') || DB::table('books')->count() > 0) {
+            return;
+        }
+
+        $classIds = DB::table('my_classes')->orderBy('id')->pluck('id')->values();
+        $seniorClass = $classIds->get(9) ?: $classIds->last();
+        $primaryClass = $classIds->get(3) ?: $classIds->first();
+
+        // name, author, book_type, total_copies, location, my_class_id
+        $catalogue = [
+            ['English Grammar and Composition', 'Wren & Martin', 'Book', 4, 'Shelf A1', null],
+            ['Mathematics Textbook', 'NCERT', 'Textbook', 5, 'Shelf B2', $seniorClass],
+            ['General Science Textbook', 'NCERT', 'Textbook', 4, 'Shelf B3', $primaryClass],
+            ['Atlas of India and the World', 'Oxford University Press', 'Book', 3, 'Shelf C1', null],
+            ['Panchatantra: Classic Tales for Children', 'Traditional Tales', 'Book', 3, 'Shelf A4', null],
+            ['Young Scientist: Journal for Schools', 'Science Association', 'Journal', 2, 'Shelf D1', null],
+            ['Education Today: Monthly Magazine', 'Education Media Group', 'Magazine', 2, 'Shelf D2', null],
+        ];
+
+        $loanedBookId = null;
+        foreach ($catalogue as $i => [$name, $author, $type, $copies, $location, $classId]) {
+            $id = DB::table('books')->insertGetId([
+                'name' => $name,
+                'my_class_id' => $classId,
+                'description' => 'Demo library title for Hackstra.',
+                'author' => $author,
+                'book_type' => $type,
+                'url' => null,
+                'location' => $location,
+                'total_copies' => $copies,
+                // The loaned title starts with one copy out, exactly as
+                // BookRequestController@store leaves it after issuing.
+                'issued_copies' => $i === 0 ? 1 : 0,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            if ($i === 0) {
+                $loanedBookId = $id;
+            }
+        }
+
+        // One live loan so the Loans screen is not empty: the first demo
+        // student borrowed the grammar book three days ago for two weeks.
+        if ($loanedBookId && Schema::hasTable('book_requests')
+            && DB::table('book_requests')->count() === 0) {
+            DB::table('book_requests')->insert([
+                'book_id' => $loanedBookId,
+                'user_id' => $students->first()->user_id,
+                'start_date' => Carbon::today()->subDays(3)->toDateString(),
+                'end_date' => Carbon::today()->addDays(11)->toDateString(),
+                'returned' => 0,
+                'status' => 'issued',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+    }
+
+    /** Two upcoming events and one past event for this term. */
+    protected function seedEvents(): void
+    {
+        if (!Schema::hasTable('school_events') || DB::table('school_events')->count() > 0) {
+            return;
+        }
+
+        $creator = DB::table('users')->where('user_type', 'super_admin')->value('id');
+
+        // title, type, days from today, description
+        $events = [
+            ['Parent-Teacher Meeting', 'meeting', 3, 'Term 1 progress discussion with parents.'],
+            ['Annual Sports Day', 'event', 6, 'Inter-house athletics and march-past on the school ground.'],
+            ['Term 1 Orientation Day', 'event', -12, 'Welcome and orientation for the new term.'],
+        ];
+
+        $rows = [];
+        foreach ($events as [$title, $type, $offset, $description]) {
+            $date = Carbon::today()->addDays($offset)->toDateString();
+            $rows[] = [
+                'title' => $title,
+                'type' => $type,
+                'description' => $description,
+                'starts_at' => $date,
+                'ends_at' => $date,
+                'all_day' => 1,
+                'created_by' => $creator,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+        }
+
+        DB::table('school_events')->insert($rows);
+    }
+
+    /**
+     * One term-1 exam with marks for every demo student in each of their
+     * class's seeded subjects (English Language + Mathematics), plus the
+     * matching exam_records totals — the same shape MarkController and
+     * DashboardDemoDataSeeder write, so a marksheet renders end to end.
+     */
+    protected function seedExamAndMarks($students, string $session): void
+    {
+        if (DB::table('marks')->count() > 0) {
+            return;
+        }
+
+        $exam = DB::table('exams')->where('year', $session)->orderBy('id')->first();
+        $examId = $exam ? $exam->id : DB::table('exams')->insertGetId([
+            'name' => 'Term 1 Examination',
+            'term' => 1,
+            'year' => $session,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $subjectsByClass = DB::table('subjects')->orderBy('id')->get()->groupBy('my_class_id');
+        $grades = DB::table('grades')->whereNull('class_type_id')->get();
+
+        $markRows = [];
+        $totals = []; // student user_id => [total, count, student row]
+        foreach ($students as $student) {
+            $subjects = $subjectsByClass->get($student->my_class_id) ?? collect();
+            $total = 0;
+            foreach ($subjects as $subject) {
+                $seed = $this->hashOf($student->user_id . '|' . $subject->id . '|' . $examId);
+                $t1 = 8 + ($seed % 13);          // 8–20 of 20
+                $t2 = 8 + (intdiv($seed, 13) % 13); // 8–20 of 20
+                $exm = 25 + (intdiv($seed, 169) % 36); // 25–60 of 60
+                $subjectTotal = $t1 + $t2 + $exm;   // ≤ 100
+                $total += $subjectTotal;
+
+                $grade = $grades->first(function ($g) use ($subjectTotal) {
+                    return $g->mark_from <= $subjectTotal && $g->mark_to >= $subjectTotal;
+                });
+
+                $markRows[] = [
+                    'student_id' => $student->user_id,
+                    'subject_id' => $subject->id,
+                    'my_class_id' => $student->my_class_id,
+                    'section_id' => $student->section_id,
+                    'exam_id' => $examId,
+                    't1' => $t1,
+                    't2' => $t2,
+                    't3' => null,
+                    't4' => null,
+                    'tca' => $t1 + $t2,
+                    'exm' => $exm,
+                    'tex1' => $subjectTotal,
+                    'tex2' => null,
+                    'tex3' => null,
+                    'sub_pos' => null,
+                    'cum' => $subjectTotal,
+                    'cum_ave' => (string) $subjectTotal,
+                    'grade_id' => $grade ? $grade->id : null,
+                    'year' => $session,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
+            $totals[$student->user_id] = [$total, max(1, $subjects->count()), $student];
+        }
+
+        foreach (array_chunk($markRows, 200) as $chunk) {
+            DB::table('marks')->insert($chunk);
+        }
+
+        // Exam records: totals per student, position within their
+        // class + section (the grouping MarkRepo::getPos uses), and the
+        // class average across the whole class.
+        $groups = [];
+        foreach ($totals as $userId => [$total, $count, $student]) {
+            $groups[$student->my_class_id . ':' . $student->section_id][] = $userId;
+        }
+        $positions = [];
+        foreach ($groups as $members) {
+            usort($members, function ($a, $b) use ($totals) {
+                return $totals[$b][0] <=> $totals[$a][0];
+            });
+            foreach ($members as $rank => $userId) {
+                $positions[$userId] = $rank + 1;
+            }
+        }
+        $classAves = [];
+        foreach ($totals as [$total, $count, $student]) {
+            $classAves[$student->my_class_id][] = $total / $count;
+        }
+        foreach ($classAves as $classId => $aves) {
+            $classAves[$classId] = number_format(array_sum($aves) / count($aves), 2);
+        }
+
+        $recordRows = [];
+        foreach ($totals as $userId => [$total, $count, $student]) {
+            $recordRows[] = [
+                'exam_id' => $examId,
+                'student_id' => $userId,
+                'my_class_id' => $student->my_class_id,
+                'section_id' => $student->section_id,
+                'total' => $total,
+                'ave' => number_format($total / $count, 2),
+                'class_ave' => $classAves[$student->my_class_id],
+                'pos' => $positions[$userId],
+                'af' => null,
+                'ps' => null,
+                'p_comment' => null,
+                't_comment' => null,
+                'year' => $session,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+        }
+
+        foreach (array_chunk($recordRows, 200) as $chunk) {
+            DB::table('exam_records')->insert($chunk);
+        }
+    }
+
+    /** Unsigned crc32 so hash-derived values are identical on any platform. */
+    protected function hashOf(string $key): int
+    {
+        return (int) sprintf('%u', crc32($key));
+    }
+}
