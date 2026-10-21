@@ -193,8 +193,8 @@ Route::group(['middleware' => 'auth'], function () {
         /*************** Marking Schemes (Batch M1, teamSA in controller) *****************/
         Route::get('exams/{exam}/scheme', 'MarkSchemeController@index')->name('exams.scheme');
         Route::get('exams/{exam}/scheme/{class}', 'MarkSchemeController@edit')->name('exams.scheme.edit');
-        Route::post('exams/{exam}/scheme/{class}/{subject}', 'MarkSchemeController@update')->name('exams.scheme.update');
         Route::post('exams/{exam}/scheme/{class}/copy', 'MarkSchemeController@copy')->name('exams.scheme.copy');
+        Route::post('exams/{exam}/scheme/{class}/{subject}', 'MarkSchemeController@update')->name('exams.scheme.update');
         Route::resource('dorms', 'DormController');
         Route::resource('payments', 'PaymentController');
 
