@@ -15,7 +15,7 @@ class SchoolEventController extends Controller
     public function __construct()
     {
         $this->middleware('teamSA');
-        $this->middleware('super_admin', ['only' => ['destroy']]);
+        $this->middleware('teamSA', ['only' => ['destroy']]);
     }
 
     public function index()

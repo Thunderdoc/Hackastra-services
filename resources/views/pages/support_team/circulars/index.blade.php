@@ -35,7 +35,7 @@
                             <td style="white-space:nowrap">
                                 <a href="{{ route('circulars.edit', $circular->id) }}" class="btn btn-light btn-sm">Edit</a>
                                 <form method="post" action="{{ route('circulars.toggle_publish', $circular->id) }}" style="display:inline">@csrf @method('patch')<button type="submit" class="btn btn-light btn-sm">{{ $circular->is_published ? 'Unpublish' : 'Publish' }}</button></form>
-                                @if(Qs::userIsSuperAdmin())
+                                @if(Qs::userIsTeamSA())
                                     <form method="post" action="{{ route('circulars.destroy', $circular->id) }}" style="display:inline">@csrf @method('delete')<button type="submit" class="btn btn-light btn-sm text-danger" data-confirm="Delete this circular?">Delete</button></form>
                                 @endif
                             </td>

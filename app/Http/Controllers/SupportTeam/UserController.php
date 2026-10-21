@@ -21,7 +21,7 @@ class UserController extends Controller
     public function __construct(UserRepo $user, LocationRepo $loc, MyClassRepo $my_class)
     {
         $this->middleware('teamSA', ['only' => ['index', 'store', 'edit', 'update'] ]);
-        $this->middleware('super_admin', ['only' => ['reset_pass','destroy'] ]);
+        $this->middleware('teamSA', ['only' => ['reset_pass','destroy'] ]);
 
         $this->user = $user;
         $this->loc = $loc;

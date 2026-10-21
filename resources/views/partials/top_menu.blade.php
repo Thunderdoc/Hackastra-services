@@ -32,7 +32,7 @@
                 <div class="dropdown-menu dropdown-menu-right lav-notif-menu">
                     <div class="dropdown-header">Recent activity</div>
                     @forelse($lavRecentPayments as $lavPay)
-                        <a class="dropdown-item lav-notif-item" href="{{ route('payments.receipts', $lavPay->id) }}">
+                        <a class="dropdown-item lav-notif-item" href="{{ route('payments.receipts', Qs::hash($lavPay->id)) }}">
                             <i class="icon-coins"></i>
                             <span>{{ optional($lavPay->payment)->title ?: 'Fee payment' }} &mdash; {{ \App\Helpers\Money::inr($lavPay->amt_paid) }}<small>{{ $lavPay->created_at->diffForHumans() }}</small></span>
                         </a>

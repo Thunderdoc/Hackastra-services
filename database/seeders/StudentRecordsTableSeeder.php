@@ -19,6 +19,34 @@ class StudentRecordsTableSeeder extends Seeder
     {
         $this->createStudentRecord();
         $this->createManyStudentRecords(3);
+        $this->backfillAdmissionNumbers();
+    }
+
+    protected function backfillAdmissionNumbers()
+    {
+        // Batch 6 (audit: receipt "Adm. No." was blank): the factories never
+        // set adm_no, so every seeded student had a blank admission number
+        // on receipts and marksheets. Mirror StudentRecordController@store:
+        // the admission number is APP_CODE/ClassType/YearAdmitted/Number
+        // and doubles as the student's username.
+        $appCode = strtoupper(\App\Helpers\Qs::getAppCode());
+        StudentRecord::with(['my_class.class_type', 'user'])
+            ->where(function ($q) {
+                $q->whereNull('adm_no')->orWhere('adm_no', '');
+            })
+            ->each(function ($sr) use ($appCode) {
+                $ct = optional(optional($sr->my_class)->class_type)->code ?: 'N';
+                $year = $sr->year_admitted ?: date('Y');
+                do {
+                    $admNo = $appCode . '/' . $ct . '/' . $year . '/' . mt_rand(1000, 99999);
+                } while (StudentRecord::where('adm_no', $admNo)->exists());
+                $sr->adm_no = $admNo;
+                $sr->save();
+                if ($sr->user && $sr->user->username !== $admNo) {
+                    $sr->user->username = $admNo;
+                    $sr->user->save();
+                }
+            });
     }
 
     protected function createManyStudentRecords(int $count)

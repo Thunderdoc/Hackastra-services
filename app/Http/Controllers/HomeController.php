@@ -157,14 +157,38 @@ class HomeController extends Controller
                 ->take(5)
                 ->get();
 
+            // D4 (Loop 17): year selector wiring. One shared ?year= drives
+            // the two panels that carry a year dropdown (Fee Collection
+            // Overview + Student Enrollment Trend). Offered years span the
+            // record timestamps actually present, plus the current year;
+            // anything else falls back to the current year. Fees are
+            // scoped by the calendar year the money was recorded
+            // (payment_records.updated_at) — the records' own `year`
+            // column holds a session label ('2018-2019'), not a calendar
+            // year, so it cannot drive a calendar-year dropdown honestly.
+            $current_year = (int) $now->format('Y');
+            $data_years = collect([
+                StudentRecord::min('created_at'), StudentRecord::max('created_at'),
+                PaymentRecord::min('updated_at'), PaymentRecord::max('updated_at'),
+            ])->filter()->map(function ($ts) { return (int) Carbon::parse($ts)->format('Y'); });
+            $first_year = $data_years->isNotEmpty() ? min($data_years->min(), $current_year) : $current_year;
+            $last_year = $data_years->isNotEmpty() ? max($data_years->max(), $current_year) : $current_year;
+            $d['year_options'] = range($last_year, $first_year);
+            $requested_year = (int) request()->query('year', $current_year);
+            $d['selected_year'] = $selected_year = in_array($requested_year, $d['year_options'], true) ? $requested_year : $current_year;
+
             // Fee totals (audit §8): owed = sum of the fee amount for every
             // payment record; collected = sum actually paid; pending = rest.
             // One query path, so the donut can never disagree with the
             // Recent Payments table the way the old screenshot did.
+            // D4: scoped to the selected calendar year (see note above).
             $d['payment_total'] = (int) DB::table('payment_records')
                 ->join('payments', 'payments.id', '=', 'payment_records.payment_id')
+                ->whereYear('payment_records.updated_at', $selected_year)
                 ->sum('payments.amount');
-            $d['payment_collected'] = (int) DB::table('payment_records')->sum('amt_paid');
+            $d['payment_collected'] = (int) DB::table('payment_records')
+                ->whereYear('updated_at', $selected_year)
+                ->sum('amt_paid');
             $d['payment_pending'] = max(0, $d['payment_total'] - $d['payment_collected']);
             $d['payment_percent'] = $d['payment_total'] > 0
                 ? (int) round(($d['payment_collected'] / $d['payment_total']) * 100)
@@ -174,8 +198,15 @@ class HomeController extends Controller
                 ->whereMonth('updated_at', $now->month)
                 ->sum('amt_paid');
 
-            $d['enrollment_trend'] = collect(range(5, 0))->map(function ($monthsAgo) {
-                $date = Carbon::now()->startOfMonth()->subMonths($monthsAgo);
+            // D4: the trend stays a cumulative 6-month window, ending in
+            // the selected year — December for a past year, the current
+            // month for the current year (the original behaviour).
+            $trend_end = $selected_year === $current_year
+                ? $now->copy()->startOfMonth()
+                : Carbon::create($selected_year, 12, 1)->startOfMonth();
+            $d['trend_window_label'] = $trend_end->copy()->endOfMonth()->format('M Y');
+            $d['enrollment_trend'] = collect(range(5, 0))->map(function ($monthsAgo) use ($trend_end) {
+                $date = $trend_end->copy()->subMonths($monthsAgo);
 
                 return [
                     'label' => $date->format('M'),
@@ -926,9 +957,14 @@ class HomeController extends Controller
             ->sum('amt_paid');
 
         // Collection trend: receipts grouped by month, last six months
-        // including the current one, oldest first.
+        // including the current one, oldest first. (Month expression is
+        // driver-aware so the dashboard also runs on sqlite in dev;
+        // MySQL/MariaDB behaviour is unchanged.)
+        $month_expr = DB::connection()->getDriverName() === 'sqlite'
+            ? "strftime('%Y-%m', created_at)"
+            : "DATE_FORMAT(created_at, '%Y-%m')";
         $monthly = Receipt::where('created_at', '>=', $now->copy()->startOfMonth()->subMonths(5))
-            ->selectRaw("DATE_FORMAT(created_at, '%Y-%m') as ym, COALESCE(SUM(amt_paid), 0) as total")
+            ->selectRaw("$month_expr as ym, COALESCE(SUM(amt_paid), 0) as total")
             ->groupBy('ym')
             ->pluck('total', 'ym');
         $collection_labels = [];
@@ -1105,6 +1141,55 @@ class HomeController extends Controller
                 ? Circular::published()->forAudience('librarian')->latest()->take(4)->get()
                 : collect(),
         ];
+    }
+
+    /**
+     * Attendance summary for one student record. Percent counts present
+     * and late over every marked day — the same formula as the monthly
+     * attendance report. Percent stays null when nothing was recorded.
+     */
+
+    protected function feeDefaulterRows($year)
+    {
+        $students = StudentRecord::with(['user', 'my_class', 'section'])
+            ->where('grad', 0)
+            ->orderBy('id')
+            ->get();
+
+        $owing = PaymentRecord::with('payment')
+            ->where('year', $year)
+            ->where('paid', 0)
+            ->whereIn('student_id', $students->pluck('user_id')->all())
+            ->get()
+            ->groupBy('student_id');
+
+        return $students
+            ->map(function ($student) use ($owing) {
+                $records = $owing->get($student->user_id);
+                if (!$records || $records->isEmpty()) {
+                    return null;
+                }
+
+                $total_due = (int) $records->sum(function ($r) {
+                    return $r->balance ?: $r->payment->amount;
+                });
+                if ($total_due <= 0) {
+                    return null;
+                }
+
+                $oldest = $records->sortBy('created_at')->first();
+
+                return [
+                    'student' => $student,
+                    'total_due' => $total_due,
+                    'items' => $records->count(),
+                    'oldest_title' => optional($oldest->payment)->title,
+                    'oldest_since' => $oldest->created_at,
+                ];
+            })
+            ->filter()
+            ->sortByDesc('total_due')
+            ->values();
     }
 
     /**

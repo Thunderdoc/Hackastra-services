@@ -6,7 +6,7 @@
         </div>
 
         <div class="header-elements">
-            @if(Qs::userIsSuperAdmin())
+            @if(Qs::userIsTeamSA())
                 <a href="{{ route('settings') }}" class="session-chip" title="Open settings to change the current session"><i class="icon-calendar5"></i><span>Current Session: <strong>{{ Qs::getSetting('current_session') }}</strong></span></a>
             @else
                 <span class="session-chip"><i class="icon-calendar5"></i><span>Current Session: <strong>{{ Qs::getSetting('current_session') }}</strong></span></span>

@@ -18,8 +18,9 @@ use Illuminate\Support\Facades\Auth;
  *  - every other role gets a read-only feed of the circulars that are
  *    published, inside their display window, and addressed to them.
  *
- * Mutating actions are gated by the teamSA middleware below; deletion
- * additionally requires super_admin, mirroring SchoolEventController.
+ * Mutating actions (deletion included) are gated by the teamSA middleware
+ * below, mirroring SchoolEventController: the school Admin runs the school
+ * day to day, the Super Admin keeps platform-level oversight.
  * Circulars live in-app only — no mail/SMS is sent.
  */
 class CircularController extends Controller
@@ -27,7 +28,7 @@ class CircularController extends Controller
     public function __construct()
     {
         $this->middleware('teamSA', ['except' => ['index', 'show']]);
-        $this->middleware('super_admin', ['only' => ['destroy']]);
+        $this->middleware('teamSA', ['only' => ['destroy']]);
     }
 
     public function index()

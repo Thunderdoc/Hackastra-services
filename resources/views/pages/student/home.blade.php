@@ -93,7 +93,7 @@
                             <tr>
                                 <td>{{ $period['time'] }}</td>
                                 <td><strong>{{ $period['subject'] }}</strong></td>
-                                <td><span class="dashboard-status stu-status-{{ Str::slug($period['status']) }}">{{ $period['status'] }}</span></td>
+                                <td><span class="dashboard-status stu-status-{{ \Illuminate\Support\Str::slug($period['status']) }}">{{ $period['status'] }}</span></td>
                             </tr>
                         @empty
                             <tr><td colspan="3" class="dashboard-empty">No periods are scheduled for your class today.</td></tr>

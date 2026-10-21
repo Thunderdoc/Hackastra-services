@@ -593,3 +593,186 @@ a.par-reminder-info:hover{background:#e2ebfa}
 .acc-reminder:hover{background:#edf4ff;text-decoration:none}
 .acc-reminder-copy strong{color:#172536;display:block;font-size:13px}
 .acc-reminder-copy small{color:var(--qs-muted);display:block;font-size:12px;margin-top:2px}
+
+/* =====================================================================
+   Loop 16 — Login Design A (Workstream Z)
+   Split-screen login, modelled on the approved Design A reference:
+   deep-navy page, one centered card, navy brand panel (left) + white
+   sign-in panel (right). Every rule is scoped under login-a-* classes
+   so app pages are unaffected. The guest layout does not load qs.css,
+   so the login view links it explicitly.
+   ===================================================================== */
+.login-a-page{align-items:center;background-color:#081c30;background-image:radial-gradient(1100px 620px at 88% -10%,rgba(46,109,230,.20),rgba(46,109,230,0) 60%),radial-gradient(920px 540px at -12% 112%,rgba(46,109,230,.15),rgba(46,109,230,0) 60%);display:flex;flex-direction:column;font-family:'Roboto',Helvetica,Arial,sans-serif;justify-content:center;min-height:100vh;padding:32px 24px}
+.login-a-page *,.login-a-page *::before,.login-a-page *::after{box-sizing:border-box}
+.login-a-card{background:#fff;border-radius:18px;box-shadow:0 32px 80px rgba(2,12,24,.55),0 4px 18px rgba(2,12,24,.35);display:flex;max-width:1180px;overflow:hidden;width:100%}
+
+/* ----- Brand (left) panel ----- */
+.login-a-brand{background-color:#0a2138;background-image:linear-gradient(165deg,rgba(10,33,56,.52) 0%,rgba(10,33,56,.78) 52%,rgba(8,28,48,.95) 100%),url('../img/ai/login-campus.jpg'),linear-gradient(158deg,#16406e 0%,#0b2239 56%,#081c30 100%);background-position:center,center bottom,center;background-repeat:no-repeat;background-size:cover,cover,cover;color:#fff;display:flex;flex:0 0 50%;flex-direction:column;justify-content:center;overflow:hidden;padding:56px;position:relative}
+.login-a-brand-art{height:100%;left:0;pointer-events:none;position:absolute;top:0;width:100%}
+.login-a-brand-inner{position:relative;z-index:1}
+.login-a-brand-title{color:#fff;font-size:clamp(2rem,3.1vw,2.8rem);font-weight:700;letter-spacing:-.01em;line-height:1.14;margin:0 0 16px}
+.login-a-brand-tag{color:#8db4ff;font-size:1.12rem;line-height:1.55;margin:0 0 40px;max-width:430px}
+.login-a-brand-list{list-style:none;margin:0;padding:0}
+.login-a-brand-list li{align-items:center;color:#eaf1fb;display:flex;font-size:1.02rem;font-weight:500;gap:14px;margin-bottom:20px}
+.login-a-brand-list li:last-child{margin-bottom:0}
+.login-a-check{display:inline-flex;flex:0 0 26px;height:26px;width:26px}
+.login-a-check svg{display:block;height:100%;width:100%}
+
+/* ----- Sign-in (right) panel ----- */
+.login-a-panel{display:flex;flex:1 1 50%;flex-direction:column;padding:48px 64px 40px}
+.login-a-brandmark{align-items:center;display:flex;gap:12px;justify-content:center;margin-bottom:32px;min-height:52px}
+.login-a-logo{max-height:52px;max-width:230px}
+.login-a-mark{display:inline-flex;flex:0 0 46px;height:46px;width:46px}
+.login-a-mark svg{display:block;height:100%;width:100%}
+.login-a-wordmark{color:#0b2239;font-size:1.9rem;font-weight:700;letter-spacing:-.01em;line-height:1}
+.login-a-title{color:#0b2239;font-size:2rem;font-weight:700;line-height:1.2;margin:0 0 8px;text-align:center}
+.login-a-sub{color:#718096;font-size:.98rem;margin:0 0 32px;text-align:center}
+.login-a-form{width:100%}
+.login-a-alert{background:#fdecec;border:1px solid #f3c2c2;border-radius:10px;color:#8a2b2b;font-size:.88rem;line-height:1.5;margin-bottom:24px;padding:12px 40px 12px 16px}
+.login-a-alert .close{color:#8a2b2b;opacity:.55}
+.login-a-alert .close:hover{opacity:.85}
+.login-a-field{margin-bottom:24px}
+.login-a-label{color:#172536;display:block;font-size:.92rem;font-weight:600;margin-bottom:8px}
+.login-a-input{background:#fff;border:1px solid #d5dde7;border-radius:9px;color:#172536;display:block;font-size:.95rem;height:48px;padding:0 14px;transition:border-color .15s ease,box-shadow .15s ease;width:100%}
+.login-a-input::placeholder{color:#9aa8ba}
+.login-a-input:focus{border-color:#2867dc;box-shadow:0 0 0 3px rgba(40,103,220,.16);outline:none}
+.login-a-input-invalid{border-color:#d9534f}
+.login-a-input-invalid:focus{border-color:#d9534f;box-shadow:0 0 0 3px rgba(217,83,79,.14)}
+.login-a-error{color:#c0392b;display:block;font-size:.82rem;margin-top:6px}
+.login-a-password{position:relative}
+.login-a-input-password{padding-right:48px}
+.login-a-eye{align-items:center;background:transparent;border:0;border-radius:8px;color:#718096;cursor:pointer;display:flex;height:40px;justify-content:center;padding:0;position:absolute;right:4px;top:50%;transform:translateY(-50%);width:40px}
+.login-a-eye:hover{color:#2867dc}
+.login-a-eye:focus{box-shadow:0 0 0 3px rgba(40,103,220,.18);outline:none}
+.login-a-eye svg{height:20px;width:20px}
+.login-a-eye .login-a-eye-hide{display:none}
+.login-a-eye-on .login-a-eye-show{display:none}
+.login-a-eye-on .login-a-eye-hide{display:block}
+.login-a-row{align-items:center;display:flex;justify-content:space-between;margin-bottom:28px}
+.login-a-remember{margin:0}
+.login-a-remember .form-check-label{color:#44546a;cursor:pointer;font-size:.9rem}
+.login-a-forgot{color:#2867dc;font-size:.9rem;font-weight:500;white-space:nowrap}
+.login-a-forgot:hover{color:#1d4fa3;text-decoration:underline}
+.login-a-btn{background:#2867dc;border:0;border-radius:9px;box-shadow:0 10px 24px rgba(40,103,220,.28);color:#fff;cursor:pointer;font-size:1.02rem;font-weight:600;height:52px;transition:background .15s ease,box-shadow .15s ease;width:100%}
+.login-a-btn:hover{background:#1f56bd;box-shadow:0 12px 28px rgba(40,103,220,.34);color:#fff}
+.login-a-btn:active{background:#1a49a0}
+.login-a-btn:focus{box-shadow:0 0 0 3px rgba(40,103,220,.25);outline:none}
+.login-a-powered{color:#93a3b8;font-size:.85rem;margin:auto 0 0;padding-top:32px;text-align:center}
+
+/* ----- Under-card legal line ----- */
+.login-a-legal{color:rgba(190,210,235,.72);font-size:.8rem;line-height:1.6;margin:20px 0 0;max-width:1180px;text-align:center}
+.login-a-legal a{color:rgba(214,229,250,.92)}
+.login-a-legal a:hover{color:#fff}
+.login-a-legal-sep{margin:0 6px;opacity:.55}
+
+/* ----- Responsive ----- */
+@media (max-width:1199.98px){
+    .login-a-brand{padding:48px}
+    .login-a-panel{padding:44px 44px 36px}
+}
+@media (max-width:991.98px){
+    .login-a-page{padding:24px 16px}
+    .login-a-card{flex-direction:column}
+    .login-a-brand{flex:none;padding:28px 28px 24px}
+    .login-a-brand-art{opacity:.45}
+    .login-a-brand-title{font-size:1.45rem;margin-bottom:8px}
+    .login-a-brand-tag{font-size:.95rem;margin-bottom:0;max-width:none}
+    .login-a-brand-list{display:none}
+    .login-a-panel{padding:32px 28px 28px}
+}
+@media (max-width:480px){
+    .login-a-page{padding:16px 12px}
+    .login-a-card{border-radius:14px}
+    .login-a-brand{padding:24px 20px 20px}
+    .login-a-brand-title{font-size:1.28rem}
+    .login-a-panel{padding:28px 20px 24px}
+    .login-a-brandmark{margin-bottom:24px}
+    .login-a-mark{flex-basis:38px;height:38px;width:38px}
+    .login-a-wordmark{font-size:1.55rem}
+    .login-a-title{font-size:1.6rem}
+    .login-a-sub{margin-bottom:24px}
+}
+
+/* =====================================================================
+   Loop 17 — Batch 6 layout fixes (live browser audit + owner screenshot)
+   ---------------------------------------------------------------------
+   L1 Platform home: Loop 7's equal-height rule
+      (.row>[class*=col]>.dashboard-panel{height:calc(100% - 1.5rem)})
+      forced EVERY panel in the platform columns (2 in col-xl-8, 4 in
+      col-xl-4) to full column height, multiplying the page into 4–5
+      viewports of empty white. Panels that share a column now hug
+      their content; a column with a single panel keeps the intended
+      equal-height row look. Long platform lists scroll inside their
+      panel (.l17-list-scroll) and the action grids in the two owned
+      dashboards use auto-fit so a tile can never clip (.l17-action-grid).
+   L2 Smart Insights: repeat(4,1fr) tracks are minmax(auto,1fr) — they
+      cannot shrink below a card's max-content, so the 4th card was
+      clipped by the panel's overflow:hidden. Tracks are now
+      minmax(0,1fr) and the cards may shrink.
+   L4 School dashboard tables: Loop 7 forced min-width:600px on
+      .l7-table-scroll tables inside ~320–475px cards — a guaranteed
+      horizontal scrollbar. Inside dashboard panels the tables now fit
+      the card (min-width:0, tighter cell padding).
+   L5 Role homes: the 5-card stat grids had the same minmax(auto,1fr)
+      blowout class (cards/hero clipped at the right edge). All role
+      stat grids are minmax(0,1fr) with min-width:0 children, so they
+      fit or wrap (3+2) instead of overflowing; the hero side wraps.
+   L6 Air removal: page-header band, content padding, hero, panel
+      headings, stat cards and panel rhythm tightened so a role home's
+      hero + stats + first panel sit in the first viewport.
+   D4 Year dropdowns: real <select> chips on the school dashboard.
+   ===================================================================== */
+
+/* --- L1: multi-panel columns hug content (single-panel rows keep
+       the Loop 7 equal-height behaviour) --- */
+.row>[class*=col]>.dashboard-panel:not(:only-of-type){height:auto}
+.l17-list-scroll{max-height:324px;overflow-y:auto}
+.l17-list-scroll thead th{position:sticky;top:0;z-index:2}
+.l17-action-grid{grid-template-columns:repeat(auto-fit,minmax(96px,1fr))}
+
+/* --- L2: Smart Insights tracks may shrink below max-content --- */
+.dashboard-insight-grid,.dashboard-insight-scroll{grid-template-columns:repeat(4,minmax(0,1fr))}
+.dashboard-insight-grid>div,.dashboard-insight-grid>div>span{min-width:0}
+@media (max-width:1199px){.dashboard-insight-grid,.dashboard-insight-scroll{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:767px){.dashboard-insight-grid,.dashboard-insight-scroll{grid-template-columns:minmax(0,1fr)}}
+
+/* --- L4: dashboard tables fit their card — no sideways scroll --- */
+.dashboard-panel .l7-table-scroll>table{min-width:0;width:100%}
+.dashboard-panel .dashboard-table td,.dashboard-panel .dashboard-table th{padding-left:14px;padding-right:14px}
+
+/* --- L5: role stat grids can shrink and wrap, never overflow --- */
+.teacher-stat-grid,.acc-stat-grid,.stu-stats-row{grid-template-columns:repeat(5,minmax(0,1fr))}
+.teacher-stat-grid>*,.acc-stat-grid>*,.stu-stats-row>*{min-width:0}
+@media (max-width:1399px){.teacher-stat-grid,.acc-stat-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:1199px){.stu-stats-row{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:767px){.teacher-stat-grid,.acc-stat-grid,.stu-stats-row{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:480px){.teacher-stat-grid,.acc-stat-grid{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:479px){.stu-stats-row{grid-template-columns:minmax(0,1fr)}}
+.dashboard-stat-card,.dashboard-stat-copy{min-width:0}
+.dashboard-stats>[class*=col]{min-width:0}
+.dashboard-hero>*{min-width:0}
+.dashboard-hero-side{flex-wrap:wrap;min-width:0}
+
+/* --- L6: tighten the vertical rhythm (air out, content kept) --- */
+.page-header-content{min-height:54px}
+#page-header .page-title{padding:.55rem 0}
+.content-wrapper>.content{padding:18px 22px}
+.dashboard-hero{padding-top:2px}
+.dashboard-hero.mb-4{margin-bottom:16px!important}
+.dashboard-stats{margin-bottom:16px}
+.dashboard-panel.mb-4{margin-bottom:16px!important}
+.teacher-stat-grid.mb-4,.acc-stat-grid.mb-4{margin-bottom:16px!important}
+.dashboard-panel-heading{padding:16px 20px}
+.dashboard-stat-card{min-height:110px;padding:16px}
+.dashboard-action-grid{padding:0 20px 18px}
+.dashboard-insight-grid{padding:0 20px 18px}
+.dashboard-table td,.dashboard-table th{padding-bottom:10px;padding-top:10px}
+.attendance-summary{padding-bottom:16px}
+.dashboard-fee-summary{padding-bottom:20px}
+.teacher-donut-wrap{padding-bottom:18px}
+.stu-attendance-body,.par-action-grid,.lib-reminders,.teacher-reminder-grid,.acc-reminder-grid{padding-bottom:16px}
+
+/* --- D4: year <select> chips (school dashboard) --- */
+.dashboard-period-form{display:inline-block;margin:0}
+.dashboard-period-select{background:#f5f7fb;border:1px solid #e4eaf1;border-radius:6px;color:#44546a;cursor:pointer;font-size:.75rem;font-weight:600;line-height:1.35;padding:5px 8px}
+.dashboard-period-select:focus{border-color:#3478f6;box-shadow:0 0 0 3px rgba(52,120,246,.14);outline:none}

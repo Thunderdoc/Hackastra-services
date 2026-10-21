@@ -32,6 +32,15 @@ Route::group(['middleware' => 'auth'], function () {
             Route::get('list/{class_id}', 'StudentRecordController@listByClass')->name('students.list')->middleware('teamSAT');
             Route::get('export/{class_id}/{section_id?}', 'StudentRecordController@export')->name('students.export')->middleware('teamSAT');
 
+            /* Bulk operations — CSV import + bulk delete (Workstream AA).
+               teamSA gate lives in StudentBulkController's constructor,
+               same pattern as PromotionController. No {id} params: the
+               delete list travels in the POST body. */
+            Route::get('import', 'StudentBulkController@import')->name('students.import');
+            Route::get('import/template', 'StudentBulkController@importTemplate')->name('students.import.template');
+            Route::post('import', 'StudentBulkController@importStore')->name('students.import.store');
+            Route::post('bulk_delete', 'StudentBulkController@bulkDelete')->name('students.bulk_delete');
+
             /* Promotions */
             Route::post('promote_selector', 'PromotionController@selector')->name('students.promote_selector');
             Route::get('promotion/manage', 'PromotionController@manage')->name('students.promotion_manage');
@@ -194,11 +203,21 @@ Route::group(['middleware' => 'auth'], function () {
 
 });
 
-/************************ SUPER ADMIN ****************************/
-Route::group(['namespace' => 'SuperAdmin','middleware' => 'super_admin', 'prefix' => 'super_admin'], function(){
+/************************ SCHOOL SETTINGS (teamSA: Super Admin + school Admin) ****************************/
+/* Workstream AB: school settings (system name, logo, current session, exam
+   lock) are day-to-day SCHOOL operations, so the school Admin — who runs the
+   school — manages them alongside the Super Admin. Same URLs and route names
+   as before; only the gate widened from super_admin to teamSA. */
+Route::group(['namespace' => 'SuperAdmin','middleware' => 'teamSA', 'prefix' => 'super_admin'], function(){
 
     Route::get('/settings', 'SettingController@index')->name('settings');
     Route::put('/settings', 'SettingController@update')->name('settings.update');
+
+});
+
+/************************ SUPER ADMIN (platform owner only) ****************************/
+Route::group(['namespace' => 'SuperAdmin','middleware' => 'super_admin', 'prefix' => 'super_admin'], function(){
+
     Route::get('/audit-logs', 'AuditLogController@index')->name('audit_logs.index');
 
 });

@@ -22,7 +22,7 @@
                             <td>{{ $event->all_day ? 'Yes' : 'No' }}</td>
                             <td>
                                 <a href="{{ route('events.edit', $event->id) }}" class="btn btn-light btn-sm">Edit</a>
-                                @if(Qs::userIsSuperAdmin())
+                                @if(Qs::userIsTeamSA())
                                     <form method="post" action="{{ route('events.destroy', $event->id) }}" style="display:inline" onsubmit="return confirm('Delete this event?')">@csrf @method('delete')<button class="btn btn-light btn-sm text-danger">Delete</button></form>
                                 @endif
                             </td>

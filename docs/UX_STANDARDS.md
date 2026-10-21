@@ -600,3 +600,29 @@ with the WCAG relative‑luminance formula. Code evidence from
 *End of Workstream L deliverable. Companion: Workstream D's
 `docs/CASE_STUDY.md` covers **what** features top school software ships;
 this document covers **how well** ours must behave.*
+
+## Layout regression rules (Loop 17, 2026-10-21 — mandatory for all future edits)
+
+Root cause of the "every page is broken" incident: all portals share
+`public/assets/css/qs.css` and the same dashboard components, so two CSS
+defect classes broke every page at once. They must never be reintroduced:
+
+1. **Unshrinkable grid tracks.** `grid-template-columns: repeat(N, 1fr)`
+   means `minmax(auto, 1fr)` — tracks cannot shrink below their content,
+   so cards and hero buttons run off the right edge on laptop widths.
+   Always write `repeat(N, minmax(0, 1fr))` and `min-width: 0` on grid
+   children.
+2. **Forced panel height.** Never set a fixed/`calc(100% - …)` height on
+   `.dashboard-panel` for columns that stack multiple panels; stacked
+   panels must hug their content (long lists scroll inside the panel).
+   Equal-height is only for a column holding a single panel.
+3. **No dead controls.** Every visible button/select must work; decorative
+   heading icons that look clickable are forbidden.
+4. **Fit at 1366px.** Every role home must render hero + stats + first
+   panel without horizontal scrolling at 1366px and without screens of
+   empty vertical space.
+
+Enforcement: `scripts/qa-smoke.sh` runs before every push. It lints all
+PHP, compiles all blades, asserts these CSS guards, and (with `BASE_URL`
+set) logs in as every role and checks the homes return 200. A red run
+blocks the push.

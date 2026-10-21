@@ -82,7 +82,7 @@
         <table class="info">
             <tr>
                 <td class="k">Name</td><td>{{ $sr->user->name }}</td>
-                <td class="k">Adm. No.</td><td>{{ $sr->adm_no }}</td>
+                <td class="k">Adm. No.</td><td>{{ $sr->adm_no ?: '—' }}</td>
             </tr>
             <tr>
                 <td class="k">Class</td><td>{{ $sr->my_class->name }}</td>

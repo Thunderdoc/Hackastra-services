@@ -225,7 +225,7 @@
                                                     <a href="{{ route('users.show', Qs::hash($u->id)) }}" class="dropdown-item"><i class="icon-eye"></i> View Profile</a>
                                                     {{--Edit--}}
                                                     <a href="{{ route('users.edit', Qs::hash($u->id)) }}" class="dropdown-item"><i class="icon-pencil"></i> Edit</a>
-                                                @if(Qs::userIsSuperAdmin())
+                                                @if(Qs::userIsTeamSA())
 
                                                         <a href="{{ route('users.reset_pass', Qs::hash($u->id)) }}" class="dropdown-item"><i class="icon-lock"></i> Reset password</a>
                                                         {{--Delete--}}

@@ -80,14 +80,31 @@ class DemoDataSeeder extends Seeder
             return;
         }
 
-        $this->seedPayments($students, $session);
-        $this->seedAttendance($students);
-        $this->seedLibrary($students);
-        $this->seedEvents();
-        $this->seedExamAndMarks($students, $session);
-        $this->seedCirculars();
-        $this->seedTeacherTimetables($session);
-        $this->seedLibrarianUser();
+        // Batch 6 (D17): every step runs in isolation, and the teacher
+        // timetables run FIRST. They used to run last, so any upstream
+        // throw (the entrypoint only warns and keeps serving) left the
+        // teacher home showing "No periods are scheduled" while the
+        // rest of the demo looked complete. Nothing else in this seeder
+        // feeds the timetables — their inputs (users, subjects, classes)
+        // are seeded before DemoDataSeeder ever runs.
+        $this->step(function () use ($session) { $this->seedTeacherTimetables($session); });
+        $this->step(function () use ($students, $session) { $this->seedPayments($students, $session); });
+        $this->step(function () use ($students) { $this->seedAttendance($students); });
+        $this->step(function () use ($students) { $this->seedLibrary($students); });
+        $this->step(function () { $this->seedEvents(); });
+        $this->step(function () use ($students, $session) { $this->seedExamAndMarks($students, $session); });
+        $this->step(function () { $this->seedCirculars(); });
+        $this->step(function () { $this->seedLibrarianUser(); });
+    }
+
+    /** Run one demo step in isolation; log the failure and continue. */
+    protected function step(callable $fn): void
+    {
+        try {
+            $fn();
+        } catch (\Throwable $e) {
+            error_log('DemoDataSeeder step failed: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -650,9 +667,13 @@ class DemoDataSeeder extends Seeder
                 ]);
             }
 
-            // Idempotency guard: never add periods to a timetable that
-            // already has entries.
-            if (DB::table('time_tables')->where('ttr_id', $ttrId)->count() > 0) {
+            // Idempotency guard (Batch 6, D17): skip only when THIS subject
+            // already has periods in the timetable. The old guard skipped
+            // the whole subject whenever the class timetable had ANY entry
+            // (another subject, or the first pick sharing the same class),
+            // which intermittently left the demo teacher with half — or
+            // none — of the seeded periods after a fresh seed.
+            if (DB::table('time_tables')->where('ttr_id', $ttrId)->where('subject_id', $subject->id)->count() > 0) {
                 continue;
             }
 
@@ -705,7 +726,11 @@ class DemoDataSeeder extends Seeder
                     ];
                 }
             }
-            DB::table('time_tables')->insert($rows);
+            // insertOrIgnore: a (ttr, slot, day) cell holds ONE subject.
+            // If a real timetable entry already occupies a cell, that row
+            // is skipped instead of aborting the whole seed with a unique
+            // constraint violation; every free cell still gets its period.
+            DB::table('time_tables')->insertOrIgnore($rows);
         }
     }
 

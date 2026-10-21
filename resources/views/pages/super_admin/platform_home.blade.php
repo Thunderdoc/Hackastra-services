@@ -76,7 +76,7 @@
                     <div><h5 class="mb-1"><i class="icon-history text-blue mr-1"></i> Recent Audit Activity</h5><p class="dashboard-muted mb-0">Who did what, and when — latest first</p></div>
                     <a href="{{ route('audit_logs.index') }}" class="dashboard-view-all">View All <i class="icon-arrow-right7"></i></a>
                 </div>
-                <div class="table-responsive">
+                <div class="table-responsive l17-list-scroll">
                     <table class="table dashboard-table mb-0">
                         <thead><tr><th>When</th><th>User</th><th>Action</th><th>Subject</th></tr></thead>
                         <tbody>
@@ -101,9 +101,8 @@
             <section class="dashboard-panel dashboard-quick-actions mb-4">
                 <div class="dashboard-panel-heading">
                     <div><h5 class="mb-1"><i class="icon-flash2 text-blue mr-1"></i> Platform Actions</h5><p class="dashboard-muted mb-0">Platform-level administration.</p></div>
-                    <span class="dashboard-heading-icon"><i class="icon-arrow-right7"></i></span>
                 </div>
-                <div class="dashboard-action-grid">
+                <div class="dashboard-action-grid l17-action-grid">
                     <a href="{{ route('users.index') }}"><i class="icon-users4"></i><span>Manage Users</span></a>
                     <a href="{{ route('users.create') }}"><i class="icon-user-plus"></i><span>Create User</span></a>
                     <a href="{{ route('settings') }}"><i class="icon-cog5"></i><span>School Settings</span></a>
@@ -133,7 +132,7 @@
                 <div class="dashboard-panel-heading">
                     <div><h5 class="mb-1"><i class="icon-enter text-blue mr-1"></i> Recent Sign-ins</h5><p class="dashboard-muted mb-0">Latest successful sign-ins. Failed attempts are not recorded.</p></div>
                 </div>
-                <div class="table-responsive">
+                <div class="table-responsive l17-list-scroll">
                     <table class="table dashboard-table mb-0">
                         <thead><tr><th>User</th><th>When</th><th>IP</th></tr></thead>
                         <tbody>

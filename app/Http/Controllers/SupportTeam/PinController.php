@@ -20,7 +20,12 @@ class PinController extends Controller
     {
         $this->pin = $pin;
         $this->user = $user;
-        $this->middleware('examIsLocked');
+        // Batch 6 (D1): the examIsLocked gate belongs only on the
+        // student/parent PIN-entry flow — the lock_exam setting decides
+        // whether results need a PIN. It must not lock the management
+        // pages themselves away from teamSA (with lock_exam off, /pins
+        // and /pins/create used to redirect everyone to the dashboard).
+        $this->middleware('examIsLocked', ['only' => ['verify', 'enter_pin']]);
         $this->middleware('teamSA', ['except' => ['verify', 'enter_pin'] ]);
     }
 

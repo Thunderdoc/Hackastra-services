@@ -45,7 +45,7 @@
                             </td>
                             <td>
                                 <a href="{{ route('books.edit', $book->id) }}" class="btn btn-light btn-sm">Edit</a>
-                                @if(Qs::userIsSuperAdmin())
+                                @if(Qs::userIsTeamSA())
                                     <form method="post" action="{{ route('books.destroy', $book->id) }}" style="display:inline">@csrf @method('delete')<button type="submit" class="btn btn-light btn-sm text-danger" data-confirm="Delete this book from the catalogue?">Delete</button></form>
                                 @endif
                             </td>

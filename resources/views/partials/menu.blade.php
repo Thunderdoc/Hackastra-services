@@ -54,12 +54,33 @@
             <ul class="nav nav-sidebar" data-nav-type="accordion">
 
                 <!-- Main -->
+                @if(Qs::userIsSuperAdmin())
+                {{-- Portal switcher (Workstream AB): the Super Admin owns the
+                     PLATFORM and oversees many schools; the school portal is
+                     one click away. These two links replace the generic
+                     "Dashboard" item for super_admin only — every other role
+                     keeps the single Dashboard link below. --}}
+                <li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Portals</div><i class="icon-menu" title="Portals"></i></li>
+                <li class="nav-item">
+                    <a href="{{ route('dashboard') }}" class="nav-link {{ (Route::is('dashboard') || Route::is('home')) ? 'active' : '' }}">
+                        <i class="icon-office"></i>
+                        <span>Platform Overview</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('dashboard.school') }}" class="nav-link {{ (Route::is('dashboard.school')) ? 'active' : '' }}">
+                        <i class="icon-graduation2"></i>
+                        <span>School Dashboard</span>
+                    </a>
+                </li>
+                @else
                 <li class="nav-item">
                     <a href="{{ route('dashboard') }}" class="nav-link {{ (Route::is('dashboard')) ? 'active' : '' }}">
                         <i class="icon-home4"></i>
                         <span>Dashboard</span>
                     </a>
                 </li>
+                @endif
 
                 @if(Qs::userIsTeamSAT())
                 <li class="nav-item">
@@ -279,7 +300,7 @@
         <div class="lav-sidebar-session">
             <i class="icon-calendar52"></i>
             <span><small>Academic Session</small><strong>{{ Qs::getSetting('current_session') }}</strong></span>
-            @if(Qs::userIsSuperAdmin())
+            @if(Qs::userIsTeamSA())
                 <a href="{{ route('settings') }}" aria-label="Change academic session"><i class="icon-chevron-down"></i></a>
             @endif
         </div>

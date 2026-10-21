@@ -2,6 +2,17 @@
 @section('page_title', 'Student Marksheet')
 @section('content')
 
+    {{-- Batch 6 (M2): one calm header scheme for every marksheet section card
+         (exam comments, affective traits, psychomotor skills) — light
+         background, dark readable title, thin blue accent. Replaces the old
+         bg-dark / bg-danger / bg-success bars whose titles were dark-on-dark
+         or loud solid colours. Used by show/comments + show/skills. --}}
+    <style>
+        .marks-section-header { background: #eef3fb; border-bottom: 2px solid #2867dc; color: #172536; }
+        .marks-section-header .card-title { color: #172536; }
+        .marks-section-header .list-icons-item { color: #43556c; }
+    </style>
+
     <div class="card">
         <div class="card-header text-center">
             <h4 class="card-title font-weight-bold">Student Marksheet — {{ $sr->user->name.' ('.$my_class->name.' '.($sr->section ? $sr->section->name : $my_class->section->first()->name).')' }} </h4>
@@ -37,7 +48,12 @@
                         {!! Qs::getPanelOptions() !!}
                     </div>
 
-                    <div class="card-body collapse">
+                    {{-- Batch 6 (M4): expanded by default. The marks are the point
+                         of this page; hiding them behind a collapsed card whose
+                         only toggle is a 16px icon made the sheet unreachable
+                         in practice (audit: student could not open it). The
+                         chevron still collapses/expands the card. --}}
+                    <div class="card-body">
 
                         {{--Sheet Table--}}
                         @include('pages.support_team.marks.show.sheet')

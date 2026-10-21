@@ -56,15 +56,14 @@
             <section class="dashboard-panel dashboard-quick-actions mb-4">
                 <div class="dashboard-panel-heading">
                     <div><h5 class="mb-1"><i class="icon-flash2 text-blue mr-1"></i> Quick Actions</h5><p class="dashboard-muted mb-0">Perform common administrative tasks quickly.</p></div>
-                    <span class="dashboard-heading-icon"><i class="icon-arrow-right7"></i></span>
                 </div>
-                <div class="dashboard-action-grid">
+                <div class="dashboard-action-grid l17-action-grid">
                     <a href="{{ route('students.create') }}"><i class="icon-user-plus"></i><span>Add Student</span></a>
                     <a href="{{ route('users.create') }}"><i class="icon-user-tie"></i><span>Add Teacher</span></a>
                     <a href="{{ route('classes.index') }}"><i class="icon-windows2"></i><span>Manage Classes</span></a>
                     <a href="{{ route('exams.create') }}"><i class="icon-book"></i><span>Create Exam</span></a>
                     <a href="{{ route('payments.create') }}"><i class="icon-wallet"></i><span>Record Payment</span></a>
-                    <a href="{{ route('marks.tabulation') }}"><i class="icon-stats-bars"></i><span>View Reports</span></a>
+                    <a href="{{ route('marks.tabulation') }}"><i class="icon-stats-bars"></i><span>Marks Tabulation</span></a>
                     <a href="{{ route('settings') }}"><i class="icon-cog5"></i><span>School Settings</span></a>
                 </div>
             </section>
@@ -102,8 +101,12 @@
         <div class="col-xl-5">
             <section class="dashboard-panel mb-4">
                 <div class="dashboard-panel-heading">
-                    <div><h5 class="mb-1"><i class="icon-stats-growth text-blue mr-1"></i> Student Enrollment Trend</h5><p class="dashboard-muted mb-0">Active students over the last 6 months</p></div>
-                    <span class="dashboard-period">{{ $today->format('Y') }} <i class="icon-arrow-down5"></i></span>
+                    <div><h5 class="mb-1"><i class="icon-stats-growth text-blue mr-1"></i> Student Enrollment Trend</h5><p class="dashboard-muted mb-0">Active students &middot; 6 months to {{ $trend_window_label }}</p></div>
+                    <form method="GET" class="dashboard-period-form">
+                        <select name="year" class="dashboard-period-select" onchange="this.form.submit()" aria-label="Enrollment trend year">
+                            @foreach($year_options as $yr)<option value="{{ $yr }}" {{ (int) $yr === (int) $selected_year ? 'selected' : '' }}>{{ $yr }}</option>@endforeach
+                        </select>
+                    </form>
                 </div>
                 @php
                     $trend = $enrollment_trend->values();
@@ -118,6 +121,12 @@
                     }
                     $polyline = implode(' ', array_map(function ($p) { return round($p[0], 1) . ',' . round($p[1], 1); }, $points));
                     $lastPoint = end($points);
+                    // Loop 17: clamp the value callout inside the plot area.
+                    // It was centred on the last point (x = chart edge), so
+                    // its right half overflowed the viewBox and rendered
+                    // clipped against the card's right edge.
+                    $ttX = $lastPoint ? min(max(0, round($lastPoint[0], 1) - 42), $chartW - 86) : 0;
+                    $ttY = $lastPoint ? max(0, round($lastPoint[1], 1) - 34) : 0;
                 @endphp
                 <div class="dashboard-linechart">
                     <svg viewBox="0 0 {{ $chartW }} {{ $chartH }}" role="img" aria-label="Student enrollment trend chart" preserveAspectRatio="none">
@@ -134,8 +143,8 @@
                         @endforeach
                         @if($lastPoint)
                             <g class="chart-tooltip">
-                                <rect x="{{ max(0, round($lastPoint[0], 1) - 42) }}" y="{{ max(0, round($lastPoint[1], 1) - 34) }}" width="84" height="22" rx="5"/>
-                                <text x="{{ round($lastPoint[0], 1) }}" y="{{ max(0, round($lastPoint[1], 1) - 19) }}" text-anchor="middle" class="chart-tooltip-text">{{ $lastPoint[2]['value'] }} Students</text>
+                                <rect x="{{ $ttX }}" y="{{ $ttY }}" width="84" height="22" rx="5"/>
+                                <text x="{{ $ttX + 42 }}" y="{{ $ttY + 15 }}" text-anchor="middle" class="chart-tooltip-text">{{ $lastPoint[2]['value'] }} Students</text>
                             </g>
                         @endif
                     </svg>
@@ -147,8 +156,12 @@
         <div class="col-xl-4">
             <section class="dashboard-panel mb-4">
                 <div class="dashboard-panel-heading">
-                    <div><h5 class="mb-1"><i class="icon-wallet text-blue mr-1"></i> Fee Collection Overview</h5><p class="dashboard-muted mb-0">Current recorded payment activity</p></div>
-                    <span class="dashboard-period">{{ $today->format('Y') }} <i class="icon-arrow-down5"></i></span>
+                    <div><h5 class="mb-1"><i class="icon-wallet text-blue mr-1"></i> Fee Collection Overview</h5><p class="dashboard-muted mb-0">Recorded payment activity &middot; {{ $selected_year }}</p></div>
+                    <form method="GET" class="dashboard-period-form">
+                        <select name="year" class="dashboard-period-select" onchange="this.form.submit()" aria-label="Fee collection year">
+                            @foreach($year_options as $yr)<option value="{{ $yr }}" {{ (int) $yr === (int) $selected_year ? 'selected' : '' }}>{{ $yr }}</option>@endforeach
+                        </select>
+                    </form>
                 </div>
                 <div class="dashboard-fee-summary">
                     <div class="dashboard-fee-ring" style="--fee-progress: {{ $payment_percent }}%">

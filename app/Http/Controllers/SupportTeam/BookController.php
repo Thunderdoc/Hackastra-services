@@ -19,7 +19,7 @@ class BookController extends Controller
     public function __construct()
     {
         $this->middleware('teamLibrary');
-        $this->middleware('super_admin', ['only' => ['destroy']]);
+        $this->middleware('teamSA', ['only' => ['destroy']]);
     }
 
     public function index(Request $request)

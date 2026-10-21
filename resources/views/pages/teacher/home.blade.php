@@ -89,7 +89,7 @@
                     <a href="{{ route('tt.index') }}"><i class="icon-calendar3"></i><span>View Timetable</span></a>
                     <a href="{{ route('students.index') }}"><i class="icon-users4"></i><span>Manage Students</span></a>
                     <a href="{{ route('circulars.index') }}"><i class="icon-megaphone"></i><span>View Circulars</span></a>
-                    <a href="{{ route('marks.tabulation') }}"><i class="icon-stats-bars"></i><span>View Reports</span></a>
+                    <a href="{{ route('attendance.report') }}"><i class="icon-stats-bars"></i><span>Attendance Report</span></a>
                     <a href="{{ route('my_account') }}"><i class="icon-user-tie"></i><span>My Profile</span></a>
                 </div>
             </section>

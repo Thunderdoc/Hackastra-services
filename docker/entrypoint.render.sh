@@ -22,6 +22,13 @@ if [ -z "$APP_URL" ] && [ -n "$RENDER_EXTERNAL_URL" ]; then
     export APP_URL="$RENDER_EXTERNAL_URL"
 fi
 
+# Timezone (Batch 6, D18): the demo school is in India — greetings,
+# "today" for attendance/periods and all Carbon dates must follow
+# Asia/Kolkata, not the container's UTC. An APP_TIMEZONE set in the
+# Render dashboard still wins; this is only the default. Exported
+# before `config:cache` below so the cached config picks it up.
+export APP_TIMEZONE="${APP_TIMEZONE:-Asia/Kolkata}"
+
 # ---- Bundled MariaDB (demo data lives and dies with the container) ----
 export DB_CONNECTION=mysql
 export DB_HOST=127.0.0.1

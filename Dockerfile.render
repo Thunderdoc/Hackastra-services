@@ -52,6 +52,9 @@ COPY docker/entrypoint.render.sh /usr/local/bin/entrypoint.render.sh
 RUN chmod +x /usr/local/bin/entrypoint.render.sh
 
 ENV PORT=10000
+# Demo default timezone (D18); a service-level APP_TIMEZONE overrides it,
+# and docker/entrypoint.render.sh applies the same default at boot.
+ENV APP_TIMEZONE=Asia/Kolkata
 EXPOSE 10000
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.render.sh"]

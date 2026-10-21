@@ -46,7 +46,10 @@ class StudentRecordPolicy
 
     public function delete(User $user, StudentRecord $record): bool
     {
-        // Destructive actions stay Super Admin-only (readme + audit §6).
-        return $user->user_type === 'super_admin';
+        // Workstream AB (owner's role model, 2026-10-21): the school Admin
+        // runs the school alone, so student deletion sits with teamSA like
+        // create/update above. Every deletion is still audit-logged by the
+        // controller (Audit::log('student.deleted', ...)).
+        return in_array($user->user_type, ['super_admin', 'admin'], true);
     }
 }
