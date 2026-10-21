@@ -64,14 +64,13 @@ FLUSH PRIVILEGES;
 SQL
 
 # ---- Laravel ----
-php artisan migrate --force || echo "WARNING: migrations failed - check logs."
-
-# Seed the demo only when the users table is empty (fresh container).
-USER_COUNT="$(php -r '$pdo=new PDO("mysql:host=127.0.0.1;dbname=".getenv("DB_DATABASE"), getenv("DB_USERNAME"), getenv("DB_PASSWORD")); echo $pdo->query("SELECT COUNT(*) FROM users")->fetchColumn();' 2>/dev/null || echo "0")"
-if [ "$USER_COUNT" = "0" ]; then
-    echo "Empty database - seeding demo data..."
-    php artisan db:seed --force || true
-fi
+# DEMO DEPLOYMENT: the database is ephemeral by design, so every boot
+# rebuilds it from scratch and seeds the complete demo dataset. This
+# guarantees the checking/demo site always shows full demo data and
+# never a half-seeded state.
+php artisan migrate:fresh --force || echo "WARNING: migrations failed - check logs."
+echo "Seeding demo data..."
+php artisan db:seed --force || echo "WARNING: seeding failed - check logs."
 
 php artisan storage:link || true
 php artisan config:cache || true
