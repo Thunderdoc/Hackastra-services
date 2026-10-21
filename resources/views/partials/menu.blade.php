@@ -2,7 +2,7 @@
 
     <div class="lav-sidebar-brand">
         <a href="{{ route('dashboard') }}" class="lav-sidebar-brand-link">
-            <img src="{{ asset('global_assets/images/logo_icon_light.png') }}" alt="" class="lav-sidebar-brand-icon">
+            <img src="{{ Qs::getLogo(asset('global_assets/images/logo_icon_light.png')) }}" alt="" class="lav-sidebar-brand-icon">
             <span>
                 <strong>{{ Qs::getSystemName() }}</strong>
                 <small>School Management System</small>
@@ -72,6 +72,12 @@
                     <a href="{{ route('attendance.report') }}" class="nav-link {{ (Route::is('attendance.report')) ? 'active' : '' }}">
                         <i class="icon-stats-bars2"></i>
                         <span>Attendance Report</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('attendance.defaulters') }}" class="nav-link {{ (Route::is('attendance.defaulters')) ? 'active' : '' }}">
+                        <i class="icon-alarm"></i>
+                        <span>Attendance Defaulters</span>
                     </a>
                 </li>
                 @endif
@@ -196,7 +202,7 @@
 
                 {{--Exam--}}
                 @if(Qs::userIsTeamSAT())
-                <li class="nav-item nav-item-submenu {{ in_array(Route::currentRouteName(), ['exams.index', 'exams.edit', 'grades.index', 'grades.edit', 'marks.index', 'marks.manage', 'marks.bulk', 'marks.tabulation', 'marks.show', 'marks.batch_fix',]) ? 'nav-item-expanded nav-item-open' : '' }} ">
+                <li class="nav-item nav-item-submenu {{ in_array(Route::currentRouteName(), ['exams.index', 'exams.edit', 'grades.index', 'grades.edit', 'marks.index', 'marks.manage', 'marks.bulk', 'marks.tabulation', 'marks.show', 'marks.batch_fix', 'admit_cards.index', 'admit_cards.print',]) ? 'nav-item-expanded nav-item-open' : '' }} ">
                     <a href="#" class="nav-link"><i class="icon-books"></i> <span> Exams</span></a>
 
                     <ul class="nav nav-group-sub" data-submenu-title="Manage Exams">
@@ -235,6 +241,11 @@
                             {{--Marksheet--}}
                             <li class="nav-item">
                                 <a href="{{ route('marks.bulk') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['marks.bulk', 'marks.show']) ? 'active' : '' }}">Marksheet</a>
+                            </li>
+
+                            {{--Admit Cards--}}
+                            <li class="nav-item">
+                                <a href="{{ route('admit_cards.index') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['admit_cards.index', 'admit_cards.print']) ? 'active' : '' }}">Admit Cards</a>
                             </li>
 
                             @endif

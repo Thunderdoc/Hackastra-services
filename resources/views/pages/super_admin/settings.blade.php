@@ -4,7 +4,7 @@
 
     <div class="card">
         <div class="card-header header-elements-inline">
-            <h6 class="card-title font-weight-semibold">Update System Settungs </h6>
+            <h6 class="card-title font-weight-semibold">Update System Settings</h6>
             {!! Qs::getPanelOptions() !!}
         </div>
 
@@ -24,9 +24,14 @@
                             <div class="col-lg-9">
                                 <select data-placeholder="Choose..." required name="current_session" id="current_session" class="select-search form-control">
                                     <option value=""></option>
+                                    @php $sessionInRange = false; @endphp
                                     @for($y=date('Y', strtotime('- 3 years')); $y<=date('Y', strtotime('+ 1 years')); $y++)
-                                        <option {{ ($s['current_session'] == (($y-=1).'-'.($y+=1))) ? 'selected' : '' }}>{{ ($y-=1).'-'.($y+=1) }}</option>
+                                        @php $sessionLabel = ($y-1).'-'.$y; if($sessionLabel === $s['current_session']) $sessionInRange = true; @endphp
+                                        <option value="{{ $sessionLabel }}" {{ $s['current_session'] == $sessionLabel ? 'selected' : '' }}>{{ $sessionLabel }}</option>
                                     @endfor
+                                    @unless($sessionInRange)
+                                        <option value="{{ $s['current_session'] }}" selected>{{ $s['current_session'] }} (current)</option>
+                                    @endunless
                                 </select>
                             </div>
                         </div>
@@ -105,7 +110,10 @@
                         <label class="col-lg-3 col-form-label font-weight-semibold">Change Logo:</label>
                         <div class="col-lg-9">
                             <div class="mb-3">
-                                <img style="width: 100px" height="100px" src="{{ $s['logo'] }}" alt="">
+                                <img style="max-width: 140px" src="{{ Qs::getLogo() }}" alt="School logo">
+                                @unless($s['logo'])
+                                    <div class="text-muted mt-1">Default logo shown — upload a file here to use your school's own logo across the sidebar, login page and printed documents.</div>
+                                @endunless
                             </div>
                             <input name="logo" accept="image/*" type="file" class="file-input" data-show-caption="false" data-show-upload="false" data-fouc>
                         </div>

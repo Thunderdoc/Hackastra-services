@@ -26,8 +26,12 @@
 <div class="hackstra-login">
     <div class="hackstra-login-card">
         <div class="hackstra-login-brand">
-            <span class="brand-mark"><i class="icon-graduation2"></i></span>
-            <h3>Hackstra</h3>
+            @if(Qs::getSetting('logo'))
+                <img src="{{ Qs::getLogo() }}" alt="" style="max-height:52px;max-width:190px;margin-bottom:22px">
+            @else
+                <span class="brand-mark"><i class="icon-graduation2"></i></span>
+            @endif
+            <h3>{{ Qs::getAppCode() }}</h3>
             <p>{{ Qs::getSystemName() ?: 'School Management System' }}<br>Students, staff, marks, fees and reports — one calm workspace for the whole school.</p>
             <ul>
                 <li><i class="icon-checkmark3"></i> Role-based access for every account type</li>
