@@ -13,6 +13,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && docker-php-ext-install pdo_mysql mbstring zip xml gd bcmath exif pcntl fileinfo \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
+# Production PHP settings: hide deprecation notices from pages (legacy
+# libraries on PHP 8.4 print them into responses otherwise).
+RUN cp "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
+
 # Composer (official binary)
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 ENV COMPOSER_ALLOW_SUPERUSER=1 COMPOSER_MEMORY_LIMIT=-1
