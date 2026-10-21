@@ -32,7 +32,8 @@ RUN composer dump-autoload --optimize \
     && chmod -R 775 storage bootstrap/cache
 
 # Apache: serve Laravel's public/ folder, allow rewrites, respect $PORT (Railway)
-RUN a2enmod rewrite \
+RUN (a2dismod mpm_event mpm_worker || true) \
+    && a2enmod mpm_prefork rewrite \
     && sed -i 's|/var/www/html|/var/www/html/public|g' /etc/apache2/sites-available/000-default.conf \
     && sed -i 's|/var/www/|/var/www/html/public|g' /etc/apache2/apache2.conf \
     && sed -i 's|Listen 80|Listen ${PORT}|' /etc/apache2/ports.conf \

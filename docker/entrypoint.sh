@@ -60,4 +60,10 @@ php artisan config:cache || true
 php artisan route:cache || true
 php artisan view:cache || true
 
+# mod_php needs exactly one MPM (prefork). If another MPM (event/worker)
+# is also enabled, Apache refuses to start: AH00534 "More than one MPM
+# loaded." Force the correct state before handing over to Apache.
+a2dismod mpm_event mpm_worker >/dev/null 2>&1 || true
+a2enmod mpm_prefork >/dev/null 2>&1 || true
+
 exec "$@"
