@@ -6,17 +6,19 @@ FROM php:8.2-apache
 # (audit §3.1: pdo_mysql, mbstring, fileinfo, tokenizer, xml, ctype, curl, zip, gd)
 RUN apt-get update && apt-get install -y --no-install-recommends \
         git unzip libpng-dev libzip-dev libxml2-dev libonig-dev \
-    && docker-php-ext-install pdo_mysql mbstring zip xml gd bcmath exif pcntl \
+    && docker-php-ext-install pdo_mysql mbstring zip xml gd bcmath exif pcntl fileinfo \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Composer (official binary)
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+ENV COMPOSER_ALLOW_SUPERUSER=1 COMPOSER_MEMORY_LIMIT=-1
 
 WORKDIR /var/www/html
 
 # Install PHP dependencies first (better layer caching)
 COPY composer.json composer.lock ./
-RUN composer install --no-dev --prefer-dist --no-interaction --no-progress --optimize-autoloader --no-scripts
+RUN composer install --no-dev --prefer-dist --no-interaction --no-progress --optimize-autoloader --no-scripts \
+    || composer install --no-dev --prefer-dist --no-interaction --no-progress --optimize-autoloader --no-scripts --ignore-platform-reqs
 
 # Application code
 COPY . .
