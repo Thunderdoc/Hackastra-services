@@ -198,4 +198,12 @@ class UserController extends Controller
         return ($subjects->count() > 0) ? true : false;
     }
 
+
+    public function create()
+    {
+        // No separate create page exists: the create form lives on the
+        // index page (the resource route otherwise returned 500).
+        return $this->index();
+    }
+
 }

@@ -68,4 +68,19 @@ class MyClassController extends Controller
         return back()->with('flash_success', __('msg.del_ok'));
     }
 
+
+    public function create()
+    {
+        // No separate create page exists: the create form lives on the
+        // index page (the resource route otherwise returned 500).
+        return $this->index();
+    }
+
+    public function show($id)
+    {
+        // No detail page exists for this module; land on its index
+        // instead of returning 500.
+        return redirect()->route('classes.index');
+    }
+
 }
