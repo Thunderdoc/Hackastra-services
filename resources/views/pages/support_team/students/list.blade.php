@@ -2,6 +2,17 @@
 @section('page_title', 'Student Information - '.$my_class->name)
 @section('content')
 
+    {{-- Loop 31 (Fix 4): print-only document header/footer — hidden on
+         screen (Loop 31 CSS), shown by window.print() so the student
+         list prints as a professional school document. --}}
+    <div class="print-doc-head">
+        <img src="{{ Qs::getLogo() }}" alt="">
+        <div>
+            <h1>{{ Qs::getSystemName() }}</h1>
+            <p>Student Information &mdash; {{ $my_class->name }} &middot; Session: {{ Qs::getCurrentSession() }} &middot; Total Students: {{ $students->count() }}</p>
+        </div>
+    </div>
+
     <div class="card">
         <div class="card-header header-elements-inline">
             <h6 class="card-title">Students List</h6>
@@ -16,7 +27,7 @@
         </div>
 
         <div class="card-body">
-            <ul class="nav nav-tabs nav-tabs-highlight">
+            <ul class="nav nav-tabs nav-tabs-highlight print-hide">
                 <li class="nav-item"><a href="#all-students" class="nav-link active" data-toggle="tab">All {{ $my_class->name }} Students</a></li>
                 <li class="nav-item dropdown">
                     <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">Sections</a>
@@ -37,7 +48,7 @@
                              The checkboxes carry no name — the script section collects
                              the checked ids across all DataTables pages and appends
                              them to this form as student_ids[] on submit. --}}
-                        <form id="bulk-delete-form" method="post" action="{{ route('students.bulk_delete') }}">
+                        <form id="bulk-delete-form" class="print-hide" method="post" action="{{ route('students.bulk_delete') }}">
                             @csrf
                             <div class="d-flex align-items-center mb-2">
                                 <span id="bulk-selected-count" class="mr-2 text-muted">0 selected</span>
@@ -49,30 +60,30 @@
                         <thead>
                         <tr>
                             @if(Qs::userIsTeamSA())
-                                <th><input type="checkbox" id="bulk-check-all" title="Select all"></th>
+                                <th class="print-hide"><input type="checkbox" id="bulk-check-all" title="Select all"></th>
                             @endif
-                            <th>S/N</th>
-                            <th>Photo</th>
+                            <th class="print-nowrap">S/N</th>
+                            <th class="print-hide">Photo</th>
                             <th>Name</th>
                             <th>ADM_No</th>
                             <th>Section</th>
                             <th>Email</th>
-                            <th>Action</th>
+                            <th class="print-hide">Action</th>
                         </tr>
                         </thead>
                         <tbody>
                         @foreach($students as $s)
                             <tr>
                                 @if(Qs::userIsTeamSA())
-                                    <td><input type="checkbox" class="bulk-check" value="{{ $s->id }}"></td>
+                                    <td class="print-hide"><input type="checkbox" class="bulk-check" value="{{ $s->id }}"></td>
                                 @endif
                                 <td>{{ $loop->iteration }}</td>
-                                <td><img class="rounded-circle" style="height: 40px; width: 40px;" src="{{ $s->user->photo }}" alt="photo"></td>
+                                <td class="print-hide"><img class="rounded-circle" style="height: 40px; width: 40px;" src="{{ $s->user->photo }}" alt="photo"></td>
                                 <td>{{ $s->user->name }}</td>
-                                <td>{{ $s->adm_no }}</td>
+                                <td class="print-nowrap">{{ $s->adm_no }}</td>
                                 <td>{{ $my_class->name.' '.$s->section->name }}</td>
                                 <td>{{ $s->user->email }}</td>
-                                <td class="text-center">
+                                <td class="text-center print-hide">
                                     <div class="list-icons">
                                         <div class="dropdown">
                                             <a href="#" class="list-icons-item" data-toggle="dropdown">
@@ -104,29 +115,29 @@
 
                 @foreach($sections as $se)
                     <div class="tab-pane fade" id="s{{$se->id}}">
-                        <div class="text-right mb-2">
+                        <div class="text-right mb-2 print-hide">
                             <a href="{{ route('students.export', [$my_class->id, $se->id]) }}" class="btn btn-light btn-sm"><i class="icon-download mr-1"></i> Export Section</a>
                         </div>
                         <table class="table datatable-button-html5-columns">
                             <thead>
                             <tr>
-                                <th>S/N</th>
-                                <th>Photo</th>
+                                <th class="print-nowrap">S/N</th>
+                                <th class="print-hide">Photo</th>
                                 <th>Name</th>
                                 <th>ADM_No</th>
                                 <th>Email</th>
-                                <th>Action</th>
+                                <th class="print-hide">Action</th>
                             </tr>
                             </thead>
                             <tbody>
                             @foreach($students->where('section_id', $se->id) as $sr)
                                 <tr>
                                     <td>{{ $loop->iteration }}</td>
-                                    <td><img class="rounded-circle" style="height: 40px; width: 40px;" src="{{ $sr->user->photo }}" alt="photo"></td>
+                                    <td class="print-hide"><img class="rounded-circle" style="height: 40px; width: 40px;" src="{{ $sr->user->photo }}" alt="photo"></td>
                                     <td>{{ $sr->user->name }}</td>
-                                    <td>{{ $sr->adm_no }}</td>
+                                    <td class="print-nowrap">{{ $sr->adm_no }}</td>
                                     <td>{{ $sr->user->email }}</td>
-                                    <td class="text-center">
+                                    <td class="text-center print-hide">
                                         <div class="list-icons">
                                             <div class="dropdown">
                                                 <a href="#" class="list-icons-item" data-toggle="dropdown">
@@ -161,6 +172,11 @@
 
             </div>
         </div>
+    </div>
+
+    <div class="print-doc-foot">
+        <span>Printed on {{ now()->format('d M Y, g:i A') }} &middot; {{ Qs::getSystemName() }}</span>
+        <span>Student Information &mdash; {{ $my_class->name }}</span>
     </div>
 
     {{--Student List Ends--}}

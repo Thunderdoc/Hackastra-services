@@ -1441,3 +1441,90 @@ body.sidebar-xs .t9-session-card span,body.sidebar-xs .t9-session-card .t9-sessi
   .lav-topbar .lav-session-chip{padding:5px 9px}
   .lav-search{flex:1 1 auto;min-width:0}
 }
+
+/* ============================================================
+   Loop 31 — Live hotfixes (owner screenshots, 2026-10-21 21:28+).
+   Fix 1: sidebar scrollbar + collapsed brand. Fix 2: teacher
+   Quick Action tiles. Fix 5: (blade-side, no CSS). Fix 6b:
+   My Account layout rebalance. Fix 7: photo file input.
+   Fix 4 + Fix 9: professional print (lists + payslip).
+   ============================================================ */
+
+/* --- Fix 1 (sidebar scrollbar + collapsed brand): rules already
+   shipped as Loop 29 in Batch 1B — duplicates dropped at
+   integration; the sidebar panel batch (Loop 35) is the final
+   word for the collapsed rail. */
+
+/* --- Fix 2: Quick Action tiles — title on its own line, the
+   description as a block under it (pairs with the t9-tile-title /
+   t9-tile-sub classes; these element rules guarantee the layout
+   even where a tile is rendered without them). */
+.t9-tile>strong{display:block;font-size:15px;font-weight:700;line-height:1.25}
+.t9-tile>small{display:block;font-size:12.5px;color:#7a8797;margin-top:2px;line-height:1.35}
+
+/* --- Fix 6b: My Account rebalance — the tabbed card spans the
+   full width, the three side cards form one even row under it,
+   and Account Activity is a full-width row: no column can end
+   early and leave a dead void beside a longer rail. */
+.acct-grid{display:flex;flex-direction:column;gap:22px}
+.acct-rail{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px;align-items:start}
+@media (max-width:1199px){.acct-rail{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:767px){.acct-rail{grid-template-columns:minmax(0,1fr)}}
+
+/* --- Fix 7: the native photo input is visually hidden (but
+   functional: the styled label and the banner camera button both
+   trigger it). It must beat bootstrap_limitless.min.css's
+   input[type=file]{display:block}, hence the attribute selector.
+   Visually-hidden pattern (not display:none) keeps label/JS
+   activation reliable in every browser. */
+input[type="file"].acct-file-input{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;clip-path:inset(50%)!important;border:0!important;opacity:0!important;white-space:nowrap!important}
+.acct-photo-preview{flex:0 0 auto;text-align:center}
+.acct-photo-preview img{width:56px;height:56px;border-radius:50%;object-fit:cover;border:2px solid #cfdefc;display:block}
+.acct-photo-preview small{display:block;color:#718096;font-size:.66rem;margin-top:3px}
+
+/* --- Fix 4 + Fix 9: professional print. Print-only document
+   header/footer (students list) stay hidden on screen. */
+.print-doc-head,.print-doc-foot{display:none}
+@media print{
+  /* Un-clip paged output: the theme's flex page shell and
+     overflow containers are the classic cause of prints that
+     stop after the first fragment (Fix 9 payslip, Fix 4 lists). */
+  .page-content,.content-wrapper,.content{display:block!important;height:auto!important;max-height:none!important;overflow:visible!important}
+  .table-responsive{overflow:visible!important}
+  /* DataTables chrome never belongs on paper (shared: students,
+     graduated, payments, attendance and every DT list page). */
+  .dataTables_filter,.dataTables_length,.dataTables_info,.dt-buttons{display:none!important}
+  .print-hide{display:none!important}
+  .print-nowrap{white-space:nowrap!important}
+  /* Full-width, cleanly bordered tables with a shaded,
+     repeating header row. */
+  .content .table{width:100%!important;font-size:12px}
+  .content .table thead{display:table-header-group}
+  .content .table thead th{background:#eef2f6!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .content .table tfoot{display:table-footer-group}
+  /* Students-list document header/footer (Fix 4). */
+  .print-doc-head{display:flex!important;align-items:center;gap:14px;border-bottom:2px solid #10263b;padding-bottom:10px;margin-bottom:14px}
+  .print-doc-head img{height:44px;width:auto}
+  .print-doc-head h1{font-size:19px;margin:0;color:#10263b;line-height:1.2}
+  .print-doc-head p{margin:3px 0 0;color:#44546a;font-size:12px}
+  .print-doc-foot{display:flex!important;justify-content:space-between;gap:14px;color:#718096;font-size:11px;border-top:1px solid #ccd6e0;margin-top:12px;padding-top:8px}
+  @page{margin:14mm;@bottom-right{content:"Page " counter(page) " of " counter(pages);font-size:10px;color:#718096}}
+  /* Payslip (Fix 9): the complete slip on one page. Loop 4 sets
+     .card{break-inside:avoid} — an unbreakable card taller than
+     the printable area gets clipped by Chrome after its first
+     rows, which is exactly how the amounts/net/stamp vanished.
+     Let the slip break naturally; keep its blocks intact. */
+  .pay-slip{break-inside:auto!important;page-break-inside:auto!important;max-width:none!important;width:100%!important}
+  .pay-slip-head,.pay-slip-staff,.pay-slip-net,.pay-slip-foot{break-inside:avoid}
+  .pay-slip-table thead{display:table-header-group}
+  .pay-slip-table tr{break-inside:avoid}
+  .pay-slip-table th,.pay-slip-net{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+
+/* --- Loop 31 (Fix 10): teacher-home bottom cards size to their
+   content (no cavernous empty card beside a taller neighbour),
+   bell reminder badge + tag. */
+.t9-bottom{align-items:start}
+.lav-topbar-icon{position:relative}
+.lav-bell-badge{position:absolute;top:1px;right:1px;min-width:17px;height:17px;padding:0 4px;border-radius:99px;background:#d64545;color:#fff;font-size:10px;font-weight:700;line-height:17px;text-align:center}
+.lav-reminder-tag{margin-left:auto;align-self:center;background:#fdecec;color:#d64545;font-size:10px;font-weight:700;border-radius:99px;padding:2px 8px;white-space:nowrap}

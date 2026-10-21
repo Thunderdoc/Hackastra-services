@@ -1,5 +1,10 @@
 @extends('layouts.master')
 @section('page_title', 'My Account')
+{{-- Loop 31 (Fix 5): this page renders its own designed header
+     (breadcrumb + H1 + subtitle + session chip), so the layout's
+     generic title bar is suppressed — title and session chip would
+     otherwise each print twice. --}}
+@section('hide_page_header', true)
 @section('content')
 
     @php
@@ -20,7 +25,6 @@
                 <span class="acct-crumb-current">My Account</span>
             </nav>
             @if($current_session)
-                <span class="acct-session-chip"><i class="icon-calendar"></i> Current Session: <strong>{{ $current_session }}</strong></span>
             @endif
         </div>
 
@@ -41,7 +45,7 @@
         <div class="acct-banner">
             <div class="acct-banner-main">
                 <div class="acct-avatar-wrap">
-                    <span class="acct-avatar" aria-hidden="true">{{ $initial }}<img src="{{ $my->photo }}" alt="" onerror="this.remove()"></span>
+                    <span class="acct-avatar" aria-hidden="true">{{ $initial }}<img src="{{ Auth::user()->photo }}" alt="" onerror="this.remove()"></span>
                     <button type="button" class="acct-avatar-btn" id="acct-photo-btn" title="Change profile photo" aria-label="Change profile photo"><i class="icon-camera"></i></button>
                 </div>
                 <div class="acct-banner-info">
@@ -72,7 +76,6 @@
         </div>
 
         <div class="acct-grid">
-            <div class="acct-main">
                 <div class="acct-card">
                     {{-- Tab bar --}}
                     <div class="acct-tabs" role="tablist" aria-label="Account sections">
@@ -155,7 +158,8 @@
                                 <div class="acct-field acct-field-wide">
                                     <label>Profile Photo</label>
                                     <div class="acct-photo-row">
-                                        <span class="acct-avatar acct-avatar-md" aria-hidden="true">{{ $initial }}<img src="{{ $my->photo }}" alt="" onerror="this.remove()"></span>
+                                        <span class="acct-avatar acct-avatar-md" aria-hidden="true">{{ $initial }}<img src="{{ Auth::user()->photo }}" alt="" onerror="this.remove()"></span>
+                                        <span class="acct-photo-preview" id="acct-photo-preview" hidden><img id="acct-photo-preview-img" src="" alt="Preview of the selected photo"><small>New photo</small></span>
                                         <div>
                                             <label for="acct-photo" class="acct-upload-btn"><i class="icon-upload"></i> Upload Photo</label>
                                             <input id="acct-photo" name="photo" type="file" accept="image/*" class="acct-file-input">
@@ -306,31 +310,6 @@
                     </section>
                 </div>
 
-                {{-- Account activity --}}
-                <div class="acct-card acct-activity" id="acct-activity">
-                    <div class="acct-card-head">
-                        <span class="acct-toggle-icon acct-tint-blue"><i class="icon-history"></i></span>
-                        <div>
-                            <h3 class="acct-card-title">Account Activity</h3>
-                            <p class="acct-panel-sub">Your recent sign-ins on this account.</p>
-                        </div>
-                    </div>
-
-                    @forelse($activity as $row)
-                        <div class="acct-activity-row">
-                            <span class="acct-activity-icon"><i class="icon-user-check"></i></span>
-                            <span class="acct-activity-text"><strong>Signed in</strong><small>{{ $row->description ?: 'Successful sign-in' }}</small></span>
-                            @if($row->ip_address)<span class="acct-ip">{{ $row->ip_address }}</span>@endif
-                            <span class="acct-activity-when">{{ $row->created_at->format($date_fmt . ', ' . $time_fmt) }}</span>
-                        </div>
-                    @empty
-                        <div class="acct-empty">
-                            <i class="icon-history"></i>
-                            <p>No sign-in activity recorded yet.</p>
-                        </div>
-                    @endforelse
-                </div>
-            </div>
 
             {{-- Right rail --}}
             <aside class="acct-rail">
@@ -408,6 +387,32 @@
                     </form>
                 </div>
             </aside>
+
+            {{-- Account activity — full-width row under the columns (Loop 31, Fix 6b) --}}
+            <div class="acct-card acct-activity" id="acct-activity">
+                <div class="acct-card-head">
+                <span class="acct-toggle-icon acct-tint-blue"><i class="icon-history"></i></span>
+                <div>
+                    <h3 class="acct-card-title">Account Activity</h3>
+                    <p class="acct-panel-sub">Your recent sign-ins on this account.</p>
+                </div>
+                </div>
+
+                @forelse($activity as $row)
+                <div class="acct-activity-row">
+                    <span class="acct-activity-icon"><i class="icon-user-check"></i></span>
+                    <span class="acct-activity-text"><strong>Signed in</strong><small>{{ $row->description ?: 'Successful sign-in' }}</small></span>
+                    @if($row->ip_address)<span class="acct-ip">{{ $row->ip_address }}</span>@endif
+                    <span class="acct-activity-when">{{ $row->created_at->format($date_fmt . ', ' . $time_fmt) }}</span>
+                </div>
+                @empty
+                <div class="acct-empty">
+                    <i class="icon-history"></i>
+                    <p>No sign-in activity recorded yet.</p>
+                </div>
+                @endforelse
+            </div>
+
         </div>
     </div>
 
@@ -477,8 +482,22 @@
             });
             photoInput.addEventListener('change', function () {
                 var nameEl = document.getElementById('acct-photo-name');
-                if (nameEl && photoInput.files && photoInput.files.length) {
-                    nameEl.textContent = photoInput.files[0].name + ' — press Save Changes to apply.';
+                if (!photoInput.files || !photoInput.files.length) { return; }
+                var file = photoInput.files[0];
+                if (nameEl) {
+                    nameEl.textContent = file.name + ' — press Save Changes to apply.';
+                }
+                // Loop 31 (Fix 7): live preview of the chosen image next
+                // to the current avatar, before anything is saved.
+                var wrap = document.getElementById('acct-photo-preview');
+                var img = document.getElementById('acct-photo-preview-img');
+                if (wrap && img && window.FileReader && /^image\//.test(file.type)) {
+                    var reader = new FileReader();
+                    reader.onload = function (e) {
+                        img.src = e.target.result;
+                        wrap.hidden = false;
+                    };
+                    reader.readAsDataURL(file);
                 }
             });
         }

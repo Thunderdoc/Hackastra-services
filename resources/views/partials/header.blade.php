@@ -1,7 +1,6 @@
 @if(Qs::userIsTeacher() && in_array(request()->path(), ['/', 'home', 'dashboard'], true))
 <div class="t9-subheader">
     <div class="t9-subheader-left">
-        <a href="{{ route('dashboard') }}" class="t9-back" aria-label="Back to dashboard"><i class="icon-arrow-left8"></i></a>
         <span class="t9-crumb">Dashboard</span>
     </div>
     <div class="t9-subheader-right">
@@ -17,6 +16,11 @@
         </a>
     </div>
 </div>
+@elseif(View::hasSection('hide_page_header'))
+    {{-- Loop 31 (Fix 5): this page renders its own designed header
+         (breadcrumb + title + subtitle), so the generic layout title
+         bar is suppressed to avoid printing the title twice. The page
+         opts in with @section('hide_page_header', true). --}}
 @else<div id="page-header" class="page-header page-header-light">
     <div class="page-header-content header-elements-md-inline">
         <div class="page-title d-flex">

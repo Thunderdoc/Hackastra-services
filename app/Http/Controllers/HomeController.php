@@ -674,74 +674,16 @@ class HomeController extends Controller
 
         // Batch 9 — Upcoming Tasks / Important Reminders for the
         // redesigned teacher home. Every row is derived from real
-        // records; nothing is illustrative. Derivations, in order:
-        //  (a) today's periods whose register is not yet submitted;
-        //  (b) tomorrow's scheduled periods;
-        //  (c) upcoming exam sittings — exam dates live ONLY on exam
-        //      timetable rows (time_tables.exam_date, linked to an Exam
-        //      via the timetable record), because the exams table itself
-        //      carries no date column in this schema;
-        //  (d) "marks not yet entered" is deliberately NOT derived: with
-        //      no exam dates on the exams table, an exam cannot honestly
-        //      be called upcoming/ongoing, so the row would be a guess.
-        $t9_tasks = [];
-        $unsubmitted = $today_periods->filter(function ($row) {
-            return empty($row['session_id']);
-        })->count();
-        if ($unsubmitted > 0) {
-            $t9_tasks[] = [
-                'icon' => 'icon-calendar52', 'tone' => 'red',
-                'title' => $unsubmitted . ' ' . ($unsubmitted === 1 ? 'period' : 'periods') . ' not yet submitted',
-                'meta' => 'Period registers awaiting submission',
-                'badge' => 'Pending', 'badge_tone' => 'red',
-                'date_label' => $now->format('d M Y'),
-                'link' => route('attendance.periods.index'),
-            ];
-        }
-        $tomorrow = $now->copy()->addDay();
-        $tomorrow_count = 0;
-        if (Schema::hasTable('time_tables')) {
-            $tomorrow_count = TimeTable::where('day', $tomorrow->format('l'))
-                ->whereHas('subject', function ($q) use ($teacher_id) {
-                    $q->where('teacher_id', $teacher_id);
-                })
-                ->count();
-        }
-        if ($tomorrow_count > 0) {
-            $t9_tasks[] = [
-                'icon' => 'icon-calendar3', 'tone' => 'blue',
-                'title' => $tomorrow_count . ' ' . ($tomorrow_count === 1 ? 'period' : 'periods') . ' scheduled for tomorrow',
-                'meta' => 'Check your timetable',
-                'badge' => 'Upcoming', 'badge_tone' => 'blue',
-                'date_label' => $tomorrow->format('d M Y'),
-                'link' => route('tt.index'),
-            ];
-        }
-        if (Schema::hasTable('time_tables')) {
-            $exam_rows = TimeTable::with(['subject.my_class', 'tt_record.exam'])
-                ->whereNotNull('exam_date')
-                ->where('exam_date', '>=', $now->toDateString())
-                ->whereHas('subject', function ($q) use ($teacher_id) {
-                    $q->where('teacher_id', $teacher_id);
-                })
-                ->orderBy('exam_date')
-                ->take(2)
-                ->get();
-            foreach ($exam_rows as $exam_row) {
-                $exam_name = optional(optional($exam_row->tt_record)->exam)->name;
-                $subject_name = optional($exam_row->subject)->name ?: '—';
-                $exam_class = optional(optional($exam_row->subject)->my_class)->name;
-                $t9_tasks[] = [
-                    'icon' => 'icon-file-text2', 'tone' => 'orange',
-                    'title' => 'Exam: ' . ($exam_name ?: $subject_name),
-                    'meta' => $subject_name . ($exam_class ? ' · ' . $exam_class : ''),
-                    'badge' => 'Exam', 'badge_tone' => 'orange',
-                    'date_label' => Carbon::parse($exam_row->exam_date)->format('d M Y'),
-                    'link' => route('marks.index'),
-                ];
-            }
-        }
-        $t9_tasks = array_slice($t9_tasks, 0, 4);
+        // records; nothing is illustrative. Loop 31 (Fix 10): the
+        // derivation itself moved to App\Support\TeacherReminders
+        // so the SAME reminders feed this card and the topbar bell
+        // dropdown — today's unsubmitted registers (one actionable
+        // row per period), tomorrow's periods, urgent/important
+        // circulars for teachers, upcoming exam sittings.
+        // "Marks not yet entered" is deliberately NOT derived: with
+        // no exam dates on the exams table, an exam cannot honestly
+        // be called upcoming/ongoing, so the row would be a guess.
+        $t9_tasks = array_slice(\App\Support\TeacherReminders::forTeacher(Auth::user(), $now), 0, 5);
 
         return [
             'my_subjects' => $subjects,

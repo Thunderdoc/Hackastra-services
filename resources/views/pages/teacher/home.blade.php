@@ -7,7 +7,7 @@
          value is real data from HomeController@teacherHomeData; all
          styling is Loop 19 CSS scoped to .portal-teacher / .t9-*. --}}
     <div class="t9-greeting">
-        <h2><span class="t9-greet-mark"><i class="icon-play3"></i></span>{{ $greeting }}, {{ Auth::user()->name }} <span aria-hidden="true">👋</span></h2>
+        <h2>{{ $greeting }}, {{ Auth::user()->name }} <span aria-hidden="true">👋</span></h2>
         <p>Here&rsquo;s your teaching overview for today. Keep up the great work!</p>
     </div>
 
@@ -116,23 +116,23 @@
             <div class="t9-tiles">
                 <a href="{{ route('attendance.periods.index') }}" class="t9-tile t9-tile-blue">
                     <span class="t9-tile-top"><span class="t9-tile-icon"><i class="icon-calendar52"></i></span><i class="icon-arrow-right7 t9-tile-chev"></i></span>
-                    <strong>Take Attendance</strong>
-                    <small>Mark a period register</small>
+                    <strong class="t9-tile-title">Take Attendance</strong>
+                    <small class="t9-tile-sub">Mark a period register</small>
                 </a>
                 <a href="{{ route('marks.index') }}" class="t9-tile t9-tile-green">
                     <span class="t9-tile-top"><span class="t9-tile-icon"><i class="icon-pencil7"></i></span><i class="icon-arrow-right7 t9-tile-chev"></i></span>
-                    <strong>Enter Marks</strong>
-                    <small>Record exam marks</small>
+                    <strong class="t9-tile-title">Enter Marks</strong>
+                    <small class="t9-tile-sub">Record exam marks</small>
                 </a>
                 <a href="{{ route('tt.index') }}" class="t9-tile t9-tile-lavender">
                     <span class="t9-tile-top"><span class="t9-tile-icon"><i class="icon-calendar3"></i></span><i class="icon-arrow-right7 t9-tile-chev"></i></span>
-                    <strong>View Timetable</strong>
-                    <small>Check your schedule</small>
+                    <strong class="t9-tile-title">View Timetable</strong>
+                    <small class="t9-tile-sub">Check your schedule</small>
                 </a>
                 <a href="{{ $first_class_id ? route('students.list', $first_class_id) : route('students.index') }}" class="t9-tile t9-tile-peach">
                     <span class="t9-tile-top"><span class="t9-tile-icon"><i class="icon-users4"></i></span><i class="icon-arrow-right7 t9-tile-chev"></i></span>
-                    <strong>Manage Students</strong>
-                    <small>View and manage student profiles</small>
+                    <strong class="t9-tile-title">Manage Students</strong>
+                    <small class="t9-tile-sub">View and manage student profiles</small>
                 </a>
             </div>
         </section>

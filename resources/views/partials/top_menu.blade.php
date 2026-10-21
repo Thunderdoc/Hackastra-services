@@ -44,8 +44,29 @@
                 $lavRecentStudents = \App\Models\StudentRecord::with('user')->latest()->take(4)->get();
             @endphp
             <div class="nav-item dropdown">
-                <button type="button" class="lav-topbar-icon" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="Recent activity" title="Recent activity"><i class="icon-bell2"></i></button>
+                <button type="button" class="lav-topbar-icon" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="Recent activity" title="Recent activity"><i class="icon-bell2"></i>@if(Qs::userIsTeacher() && ($lavReminderBadge = \App\Support\TeacherReminders::actionableCount(Auth::user())) > 0)<span class="lav-bell-badge">{{ $lavReminderBadge }}</span>@endif</button>
                 <div class="dropdown-menu dropdown-menu-right lav-notif-menu">
+                    {{-- LOOP31-FIX10-REMINDERS-LIST (start): the teacher's
+                         derived reminders, rendered distinctly with a
+                         Reminder tag, above the recent-activity feed.
+                         (Re-applied onto the Loop 33 topbar at integration.) --}}
+                    @if(Qs::userIsTeacher())
+                        @php
+                            $lavReminders = \App\Support\TeacherReminders::forTeacher(Auth::user());
+                        @endphp
+                        @if(count($lavReminders))
+                            <div class="dropdown-header">Reminders</div>
+                            @foreach(array_slice($lavReminders, 0, 5) as $lavReminder)
+                                <a class="dropdown-item lav-notif-item" href="{{ $lavReminder['link'] }}">
+                                    <i class="{{ $lavReminder['icon'] }}"></i>
+                                    <span>{{ $lavReminder['title'] }}<small>{{ $lavReminder['meta'] }} &middot; {{ $lavReminder['date_label'] }}</small></span>
+                                    <span class="lav-reminder-tag">{{ $lavReminder['tag'] }}</span>
+                                </a>
+                            @endforeach
+                            <div class="dropdown-divider"></div>
+                        @endif
+                    @endif
+                    {{-- LOOP31-FIX10-REMINDERS-LIST (end) --}}
                     <div class="dropdown-header">Recent activity</div>
                     @forelse($lavRecentPayments as $lavPay)
                         <a class="dropdown-item lav-notif-item" href="{{ route('payments.receipts', Qs::hash($lavPay->id)) }}">
