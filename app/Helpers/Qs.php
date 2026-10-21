@@ -268,7 +268,19 @@ class Qs
 
     public static function getSetting($type)
     {
-        return Setting::where('type', $type)->first()->description;
+        $setting = Setting::where('type', $type)->first();
+        return $setting ? $setting->description : null;
+    }
+
+    /**
+     * The school logo for branding spots (sidebar, login, settings preview):
+     * the logo uploaded in Settings when one exists, otherwise a bundled
+     * default so the <img> is never empty/broken.
+     */
+    public static function getLogo($fallback = null)
+    {
+        $logo = self::getSetting('logo');
+        return $logo ?: ($fallback ?: asset('global_assets/images/logo_light.png'));
     }
 
     public static function getCurrentSession()

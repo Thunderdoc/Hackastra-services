@@ -6,9 +6,9 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <meta id="csrf-token" name="csrf-token" content="{{ csrf_token() }}">
-    <meta name="author" content="Hackstra">
+    <meta name="author" content="{{ Qs::getSystemName() }}">
 
-    <title> @yield('page_title') | {{ config('app.name') }} </title>
+    <title> @yield('page_title') | {{ Qs::getAppCode() }} </title>
 
     @include('partials.inc_top')
 </head>
