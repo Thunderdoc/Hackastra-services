@@ -2,84 +2,110 @@
 
 namespace App\Http\Controllers\SupportTeam;
 
+use App\Http\Controllers\Controller;
 use App\Models\Book;
+use App\Models\MyClass;
 use Illuminate\Http\Request;
 
+/**
+ * Library catalogue management (UI/UX sweep — Library module).
+ * Access: Super Admin, Admin and Librarian (teamLibrary middleware);
+ * deleting a catalogue record stays Super Admin only, mirroring the
+ * School Events module's gating.
+ */
 class BookController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function index()
+    public function __construct()
     {
-        //
+        $this->middleware('teamLibrary');
+        $this->middleware('super_admin', ['only' => ['destroy']]);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
+    public function index(Request $request)
+    {
+        $books = Book::with('myClass')
+            ->when($request->filled('q'), function ($query) use ($request) {
+                $q = $request->input('q');
+                $query->where(function ($sub) use ($q) {
+                    $sub->where('name', 'like', "%{$q}%")
+                        ->orWhere('author', 'like', "%{$q}%")
+                        ->orWhere('book_type', 'like', "%{$q}%")
+                        ->orWhere('location', 'like', "%{$q}%");
+                });
+            })
+            ->orderBy('name')
+            ->paginate(15);
+
+        $d['books'] = $books;
+        $d['q'] = $request->input('q');
+
+        return view('pages.support_team.books.index', $d);
+    }
+
     public function create()
     {
-        //
+        $d['types'] = Book::types();
+        $d['classes'] = MyClass::orderBy('name')->get(['id', 'name']);
+
+        return view('pages.support_team.books.create', $d);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
-     */
     public function store(Request $request)
     {
-        //
+        $data = $this->validateBook($request);
+        $data['issued_copies'] = 0;
+        Book::create($data);
+
+        return redirect()->route('books.index')->with('flash_success', 'Book added to the catalogue.');
     }
 
-    /**
-     * Display the specified resource.
-     *
-     * @param  \App\Models\Book  $book
-     * @return \Illuminate\Http\Response
-     */
-    public function show(Book $book)
+    public function edit($id)
     {
-        //
+        $d['book'] = Book::findOrFail($id);
+        $d['types'] = Book::types();
+        $d['classes'] = MyClass::orderBy('name')->get(['id', 'name']);
+
+        return view('pages.support_team.books.edit', $d);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  \App\Models\Book  $book
-     * @return \Illuminate\Http\Response
-     */
-    public function edit(Book $book)
+    public function update(Request $request, $id)
     {
-        //
+        $book = Book::findOrFail($id);
+        $book->update($this->validateBook($request));
+
+        // Never let issued copies exceed the copies the library owns.
+        if ((int) $book->issued_copies > (int) $book->total_copies) {
+            $book->issued_copies = (int) $book->total_copies;
+            $book->save();
+        }
+
+        return redirect()->route('books.index')->with('flash_success', 'Book updated.');
     }
 
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \App\Models\Book  $book
-     * @return \Illuminate\Http\Response
-     */
-    public function update(Request $request, Book $book)
+    public function destroy($id)
     {
-        //
+        $book = Book::findOrFail($id);
+
+        if ($book->activeRequests()->exists()) {
+            return back()->with('flash_danger', 'This book still has copies out on loan. It can be deleted once every copy is returned.');
+        }
+
+        $book->delete();
+
+        return back()->with('flash_success', __('msg.del_ok'));
     }
 
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param  \App\Models\Book  $book
-     * @return \Illuminate\Http\Response
-     */
-    public function destroy(Book $book)
+    protected function validateBook(Request $request): array
     {
-        //
+        return $request->validate([
+            'name' => 'required|string|max:100',
+            'author' => 'nullable|string|max:255',
+            'description' => 'nullable|string|max:255',
+            'book_type' => 'nullable|in:' . implode(',', array_keys(Book::types())),
+            'my_class_id' => 'nullable|exists:my_classes,id',
+            'url' => 'nullable|url|max:255',
+            'location' => 'nullable|string|max:255',
+            'total_copies' => 'nullable|integer|min:0',
+        ]);
     }
 }

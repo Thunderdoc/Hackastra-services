@@ -154,6 +154,11 @@ Route::group(['middleware' => 'auth'], function () {
         /*************** School Events *****************/
         Route::resource('events', 'SchoolEventController');
 
+        /*************** Library *****************/
+        Route::resource('books', 'BookController')->except(['show']);
+        Route::resource('book_requests', 'BookRequestController')->only(['index', 'create', 'store']);
+        Route::patch('book_requests/{id}/return', 'BookRequestController@markReturned')->name('book_requests.return');
+
     });
 
     /************************ AJAX ****************************/

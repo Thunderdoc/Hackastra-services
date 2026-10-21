@@ -78,6 +78,11 @@ class Qs
         return ['admin', 'super_admin', 'accountant'];
     }
 
+    public static function getTeamLibrary()
+    {
+        return ['admin', 'super_admin', 'librarian'];
+    }
+
     public static function hash($id)
     {
         $date = date('dMY').'HACKSTRA';
@@ -128,6 +133,11 @@ class Qs
     public static function userIsTeamSAT()
     {
         return in_array(Auth::user()->user_type, self::getTeamSAT());
+    }
+
+    public static function userIsTeamLibrary()
+    {
+        return in_array(Auth::user()->user_type, self::getTeamLibrary());
     }
 
     public static function userIsAcademic()

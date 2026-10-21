@@ -2,84 +2,109 @@
 
 namespace App\Http\Controllers\SupportTeam;
 
+use App\Http\Controllers\Controller;
+use App\Models\Book;
 use App\Models\BookRequest;
+use App\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
+/**
+ * Library loans (book requests): issue a book to a borrower and record
+ * its return. Access: Super Admin, Admin and Librarian (teamLibrary).
+ * Issuing/returning keeps Book.issued_copies in step, in a transaction.
+ */
 class BookRequestController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function index()
+    public function __construct()
     {
-        //
+        $this->middleware('teamLibrary');
     }
 
-    /**
-     * Show the form for creating a new resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
+    public function index(Request $request)
+    {
+        $status = $request->input('status');
+
+        $loans = BookRequest::with(['book', 'user'])
+            ->when($status === BookRequest::STATUS_ISSUED, function ($query) {
+                $query->active();
+            })
+            ->when($status === BookRequest::STATUS_RETURNED, function ($query) {
+                $query->returned();
+            })
+            ->orderByDesc('created_at')
+            ->paginate(15);
+
+        $d['loans'] = $loans;
+        $d['status'] = $status;
+
+        return view('pages.support_team.book_requests.index', $d);
+    }
+
     public function create()
     {
-        //
+        $d['books'] = Book::orderBy('name')->get();
+        $d['borrowers'] = User::whereIn('user_type', ['student', 'teacher', 'parent', 'accountant', 'librarian', 'admin'])
+            ->orderBy('name')
+            ->get(['id', 'name', 'user_type']);
+
+        return view('pages.support_team.book_requests.create', $d);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
-     */
     public function store(Request $request)
     {
-        //
+        $data = $request->validate([
+            'book_id' => 'required|exists:books,id',
+            'user_id' => 'required|exists:users,id',
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after_or_equal:start_date',
+        ]);
+
+        $book = Book::findOrFail($data['book_id']);
+
+        if ($book->availableCopies() < 1) {
+            return back()->withInput()
+                ->with('flash_danger', 'No copies of "' . $book->name . '" are available to issue right now.');
+        }
+
+        DB::transaction(function () use ($book, $data) {
+            BookRequest::create([
+                'book_id' => $data['book_id'],
+                'user_id' => $data['user_id'],
+                'start_date' => $data['start_date'],
+                'end_date' => $data['end_date'],
+                'returned' => 0,
+                'status' => BookRequest::STATUS_ISSUED,
+            ]);
+
+            $book->increment('issued_copies');
+        });
+
+        return redirect()->route('book_requests.index')
+            ->with('flash_success', 'Book issued.');
     }
 
-    /**
-     * Display the specified resource.
-     *
-     * @param  \App\Models\BookRequest  $bookRequest
-     * @return \Illuminate\Http\Response
-     */
-    public function show(BookRequest $bookRequest)
+    /** Record that a borrowed copy has been brought back. */
+    public function markReturned($id)
     {
-        //
-    }
+        $loan = BookRequest::findOrFail($id);
 
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  \App\Models\BookRequest  $bookRequest
-     * @return \Illuminate\Http\Response
-     */
-    public function edit(BookRequest $bookRequest)
-    {
-        //
-    }
+        if ($loan->returned) {
+            return back()->with('flash_success', 'This loan was already marked as returned.');
+        }
 
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \App\Models\BookRequest  $bookRequest
-     * @return \Illuminate\Http\Response
-     */
-    public function update(Request $request, BookRequest $bookRequest)
-    {
-        //
-    }
+        DB::transaction(function () use ($loan) {
+            $loan->update([
+                'returned' => 1,
+                'status' => BookRequest::STATUS_RETURNED,
+            ]);
 
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param  \App\Models\BookRequest  $bookRequest
-     * @return \Illuminate\Http\Response
-     */
-    public function destroy(BookRequest $bookRequest)
-    {
-        //
+            $book = $loan->book;
+            if ($book && (int) $book->issued_copies > 0) {
+                $book->decrement('issued_copies');
+            }
+        });
+
+        return back()->with('flash_success', 'Book marked as returned.');
     }
 }
