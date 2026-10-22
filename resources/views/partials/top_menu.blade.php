@@ -141,6 +141,18 @@
                 $lavToastReminder = collect(\App\Support\TeacherReminders::forTeacher(Auth::user()))
                     ->where('actionable', true)->first();
             }
+            // Workstream CZ (LMS): per-user notifications (assignment
+            // graded / internal marks pushed) — the store the
+            // student + parent bell lists. Writers only ever create
+            // rows for students and their parents, so for every other
+            // role these stay empty and the badge is unchanged.
+            $lavNotifications = collect();
+            $lavUnreadNotifs = 0;
+            if (\Illuminate\Support\Facades\Schema::hasTable('user_notifications')) {
+                $lavUnreadNotifs = \App\Support\Notify::unreadCount(Auth::id());
+                $lavNotifications = \App\Support\Notify::latestFor(Auth::id(), 5);
+                $lavBellBadge += $lavUnreadNotifs;
+            }
             $lavIsHome = request()->routeIs('home') || request()->routeIs('dashboard')
                 || request()->routeIs('dashboard.school') || request()->path() === 'home';
         @endphp
@@ -217,9 +229,24 @@
             @php
                 $lavCirculars = \App\Models\Circular::published()->forAudience(Auth::user()->user_type)->latest()->take(4)->get();
             @endphp
-            <div class="nav-item dropdown">
-                <button type="button" class="lav-topbar-icon" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="Circulars" title="Circulars"><i class="icon-bell2"></i>@if($lavBellBadge > 0)<span class="lav-bell-badge">{{ $lavBellBadge }}</span>@endif</button>
+            <div class="nav-item dropdown" id="lavNotifBell">
+                <button type="button" class="lav-topbar-icon" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="Circulars" title="Circulars" data-lav-events-today="{{ $lavEventsToday }}"><i class="icon-bell2"></i>@if($lavBellBadge > 0)<span class="lav-bell-badge">{{ $lavBellBadge }}</span>@endif</button>
                 <div class="dropdown-menu dropdown-menu-right lav-notif-menu">
+                    {{-- Workstream CZ (LMS): the caller's own
+                         notifications (grades + internal pushes for
+                         students/parents). Opening this dropdown marks
+                         them read (script below the menu). --}}
+                    @if($lavNotifications->isNotEmpty())
+                        <div class="dropdown-header">Notifications</div>
+                        @foreach($lavNotifications as $lavNotif)
+                            <a class="dropdown-item lav-notif-item" href="{{ $lavNotif->link ?: '#' }}">
+                                <i class="icon-file-text2"></i>
+                                <span>@if($lavNotif->isUnread())<strong>{{ $lavNotif->title }}</strong>@else{{ $lavNotif->title }}@endif<small>{{ $lavNotif->created_at->diffForHumans() }}@if($lavNotif->body) &middot; {{ \Illuminate\Support\Str::limit($lavNotif->body, 60) }}@endif</small></span>
+                                @if($lavNotif->isUnread())<span class="lav-event-tag">New</span>@endif
+                            </a>
+                        @endforeach
+                        <div class="dropdown-divider"></div>
+                    @endif
                     <div class="dropdown-header">Latest circulars</div>
                     @forelse($lavCirculars as $lavCircular)
                         <a class="dropdown-item lav-notif-item" href="{{ route('circulars.show', $lavCircular->id) }}">
@@ -247,6 +274,31 @@
                     <a class="dropdown-item" href="{{ route('circulars.index') }}">View all circulars</a>
                 </div>
             </div>
+            @if($lavUnreadNotifs > 0)
+            <script>
+                // Workstream CZ: opening the bell marks the caller's
+                // notifications read; the badge then falls back to
+                // today's-events only (its other component).
+                (function () {
+                    var wrap = document.getElementById('lavNotifBell');
+                    if (!wrap || !window.jQuery) { return; }
+                    window.jQuery(wrap).on('show.bs.dropdown', function () {
+                        var meta = document.querySelector('meta[name="csrf-token"]');
+                        fetch('{{ route('notifications.read') }}', {
+                            method: 'POST',
+                            credentials: 'same-origin',
+                            headers: { 'X-CSRF-TOKEN': meta ? meta.getAttribute('content') : '' }
+                        }).then(function () {
+                            var btn = wrap.querySelector('[data-lav-events-today]');
+                            var badge = wrap.querySelector('.lav-bell-badge');
+                            if (!badge) { return; }
+                            var left = btn ? parseInt(btn.getAttribute('data-lav-events-today') || '0', 10) : 0;
+                            if (left > 0) { badge.textContent = left; } else { badge.remove(); }
+                        }).catch(function () {});
+                    });
+                })();
+            </script>
+            @endif
         @endif
         <div class="nav-item dropdown dropdown-user lav-profile">
             <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">

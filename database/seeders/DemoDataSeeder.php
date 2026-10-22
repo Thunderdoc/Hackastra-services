@@ -103,6 +103,9 @@ class DemoDataSeeder extends Seeder
         $this->step(function () use ($students, $session) { $this->seedExamAndMarks($students, $session); });
         $this->step(function () { $this->seedCirculars(); });
         $this->step(function () { $this->seedLibrarianUser(); });
+        // Workstream CS1: LMS demo content (assignments, submissions,
+        // study materials) lives in its own seeder class.
+        $this->step(function () { $this->call(LmsDemoSeeder::class); });
     }
 
     /** Run one demo step in isolation; log the failure and continue. */

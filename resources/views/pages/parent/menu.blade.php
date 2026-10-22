@@ -40,4 +40,10 @@
     <a href="{{ route('id_card.mine') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['id_card.mine']) ? 'active' : '' }}" title="ID Cards"><i class="icon-vcard"></i> <span>ID Cards</span></a>
 </li>
 
+{{--Assignments — Workstream CS2 (LMS, owner-ordered module): new
+     item only; read-only status + marks for their children. --}}
+<li class="nav-item">
+    <a href="{{ route('assignments.index') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['assignments.*']) ? 'active' : '' }}" title="Assignments"><i class="icon-file-text2"></i> <span>Assignments</span></a>
+</li>
+
 {{-- Circulars lives once in the shared sidebar (partials/menu) — Batch 6 (D13) removed the duplicate that used to sit here. --}}

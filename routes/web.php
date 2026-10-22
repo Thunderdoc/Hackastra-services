@@ -15,6 +15,10 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get('/dashboard/school', 'HomeController@schoolDashboard')->name('dashboard.school');
     Route::get('/dashboard/search', 'DashboardSearchController')->name('dashboard.search');
 
+    // Workstream CZ (LMS): bell notifications — opening the bell
+    // marks the caller's per-user notifications read.
+    Route::post('/notifications/read', 'NotificationController@markRead')->name('notifications.read');
+
     Route::group(['prefix' => 'my_account'], function() {
         Route::get('/', 'MyAccountController@edit_profile')->name('my_account');
         Route::put('/', 'MyAccountController@update_profile')->name('my_account.update');
@@ -242,6 +246,41 @@ Route::group(['middleware' => 'auth'], function () {
         /*************** Circulars *****************/
         Route::patch('circulars/{circular}/toggle-publish', 'CircularController@togglePublish')->name('circulars.toggle_publish');
         Route::resource('circulars', 'CircularController');
+
+        /*************** LMS — Assignments (Workstream CS1 + CS2 alignment) *****************/
+        // Raw numeric ids under NON-{id} parameter names on purpose:
+        // the global {id} binder runs through Qs::decodeHash and would
+        // turn raw ids into garbage. Shapes follow CS2's blades:
+        //   assignments.grade takes the SUBMISSION id (per-submission
+        //     grading form on the show page);
+        //   assignments.download sits ON the assignment — the plain
+        //     call serves the assignment's question file, and
+        //     ?submission={id} serves that submission's private file;
+        //   internal preview/push hang off the assignment, exam chosen
+        //     by request parameter (exam_id).
+        Route::group(['prefix' => 'assignments'], function(){
+            Route::get('/', 'AssignmentController@index')->name('assignments.index');
+            Route::get('create', 'AssignmentController@create')->name('assignments.create');
+            Route::post('/', 'AssignmentController@store')->name('assignments.store');
+            Route::post('grade/{submission}', 'AssignmentController@grade')->name('assignments.grade');
+            Route::get('{assignment}/internal/preview', 'AssignmentController@internalPreview')->name('assignments.internal_preview');
+            Route::post('{assignment}/internal/push', 'AssignmentController@pushInternal')->name('assignments.push_internal');
+            Route::get('{assignment}/download', 'AssignmentController@download')->name('assignments.download');
+            Route::get('{assignment}', 'AssignmentController@show')->name('assignments.show');
+            Route::get('{assignment}/edit', 'AssignmentController@edit')->name('assignments.edit');
+            Route::put('{assignment}', 'AssignmentController@update')->name('assignments.update');
+            Route::delete('{assignment}', 'AssignmentController@destroy')->name('assignments.destroy');
+            Route::post('{assignment}/submit', 'AssignmentController@submit')->name('assignments.submit');
+        });
+
+        /*************** LMS — Study Materials (Workstream CS1) *****************/
+        Route::group(['prefix' => 'materials'], function(){
+            Route::get('/', 'StudyMaterialController@index')->name('materials.index');
+            Route::get('create', 'StudyMaterialController@create')->name('materials.create');
+            Route::post('/', 'StudyMaterialController@store')->name('materials.store');
+            Route::get('download/{material}', 'StudyMaterialController@download')->name('materials.download');
+            Route::delete('{material}', 'StudyMaterialController@destroy')->name('materials.destroy');
+        });
 
         /*************** Library *****************/
         Route::resource('books', 'BookController')->except(['show']);

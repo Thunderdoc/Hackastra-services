@@ -101,6 +101,20 @@
                 </span>
             </div>
         </div>
+        {{-- Workstream CZ (LMS): homework the children have not
+             submitted yet, across every linked child. --}}
+        <div class="col-sm-6 col-xl">
+            <a href="{{ route('assignments.index') }}" class="dashboard-stat-card dashboard-stat-green">
+                <span class="dashboard-stat-top">
+                    <span class="dashboard-stat-icon"><i class="icon-clipboard3"></i></span>
+                </span>
+                <span class="dashboard-stat-copy">
+                    <span class="dashboard-stat-label">Children&rsquo;s Pending Assignments</span>
+                    <strong>{{ number_format($lms_pending_assignments ?? 0) }}</strong>
+                    <small>{{ ($lms_pending_assignments ?? 0) > 0 ? 'Not yet submitted' : 'All caught up' }}</small>
+                </span>
+            </a>
+        </div>
     </div>
 
     {{-- Reminders — every chip is a real record, nothing decorative --}}

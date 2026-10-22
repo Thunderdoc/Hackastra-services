@@ -3243,3 +3243,114 @@ body:not(.sidebar-xs) .sidebar-main .nav-sidebar .nav-item-open>.nav-link:not(.d
 body:not(.sidebar-xs) .sidebar.sidebar-dark .nav-group-sub .nav-item-submenu>.nav-link.active{background-color:rgba(255,255,255,.06);color:#fff;font-weight:600}
 /* Collapsed-rail flyout joins the sidebar's own navy (theme slate grey retired) */
 .sidebar-xs .sidebar-main .nav-group-sub{background-color:rgb(16,38,59);border:1px solid rgba(255,255,255,.08);box-shadow:0 10px 30px rgba(0,0,0,.45)}
+/* ============================================================
+   Loop 67 — LMS (Workstream CS2). Assignments + study materials:
+   status chips, due-state colours, the student assignment cards,
+   the per-row grading form, the internal-marks push bar, the
+   graded-result card and the subject-grouped materials list.
+   Colours ride the Loop 28 --qs-* tokens; dark variants sit on
+   html.hk-dark like every other Loop. Print: nothing here is a
+   document surface, so no print rules.
+   ============================================================ */
+.lms-chip{border-radius:20px;display:inline-block;font-size:.67rem;font-weight:700;line-height:1;padding:5px 10px;vertical-align:middle;white-space:nowrap}
+.lms-chip{background:#eef3fb;color:#3478f6}
+.lms-chip-subject{background:#eef3fb;color:#2867dc}
+.lms-chip-open{background:var(--qs-success-tint);color:var(--qs-success)}
+.lms-chip-submitted{background:#e7f7f0;color:#188b66}
+.lms-chip-graded{background:#e9f9f1;color:#14714f}
+.lms-chip-pending{background:var(--qs-warning-tint);color:var(--qs-warning)}
+.lms-chip-late{background:#fdecec;color:#c0392b}
+.lms-chip-closed{background:#edf1f5;color:#66788c}
+.lms-chip-marks{background:#172536;color:#fff}
+.lms-table td,.lms-table th{vertical-align:middle}
+.lms-description{font-size:.92rem;line-height:1.65}
+.lms-answer{background:#f7fafc;border:1px solid #e4eaf1;border-radius:8px;color:#44546a;font-size:.85rem;line-height:1.55;padding:8px 11px;white-space:pre-wrap;word-break:break-word}
+/* Due states (student surfaces) */
+.lms-due{font-weight:600}
+.lms-due-ok{color:var(--qs-success)}
+.lms-due-soon{color:var(--qs-warning)}
+.lms-due-overdue{color:var(--qs-danger)}
+/* Student assignment cards */
+.lms-card-list{display:flex;flex-direction:column;gap:12px}
+.lms-card{align-items:flex-start;display:flex;gap:16px;justify-content:space-between;margin-bottom:0;padding:16px 18px}
+.lms-card-main{flex:1;min-width:0}
+.lms-card-title{color:#172536;font-size:1rem;font-weight:700}
+.lms-card-title:hover{color:#2867dc;text-decoration:none}
+.lms-card-side{flex:none;text-align:right}
+/* Grading form (teacher submissions table) */
+.lms-sub-table td{vertical-align:top}
+.lms-grade-fields{align-items:center;display:flex;flex-wrap:wrap;gap:8px}
+.lms-grade-marks{align-items:center;display:inline-flex;gap:6px}
+.lms-grade-marks input{width:86px}
+.lms-grade-feedback{flex:1 1 140px;min-width:120px}
+.lms-row-graded td{background:rgba(20,113,79,.045)}
+/* Internal-marks push bar */
+.lms-push-bar{align-items:center;border-top:1px solid #e4eaf1;display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;margin-top:16px;padding-top:16px}
+/* Graded result (student show) */
+.lms-result-card{border-left:4px solid #14714f}
+.lms-result{align-items:center;display:flex;flex-wrap:wrap;gap:18px}
+.lms-result-marks{align-items:center;display:flex;gap:12px}
+.lms-result-score{color:#14714f;font-size:2rem;font-weight:800;line-height:1}
+.lms-result-score small{color:#66788c;font-size:1rem;font-weight:600}
+.lms-result-feedback{flex:1;min-width:200px}
+/* Study materials */
+.lms-mat-group{padding:4px 0 10px}
+.lms-mat-group + .lms-mat-group{border-top:1px solid #e4eaf1}
+.lms-mat-group-title{color:#172536;font-size:.82rem;font-weight:700;letter-spacing:.03em;margin:10px 0 4px;text-transform:uppercase}
+.lms-mat-row{align-items:flex-start;display:flex;gap:12px;padding:10px 0}
+.lms-mat-row + .lms-mat-row{border-top:1px dashed #e4eaf1}
+.lms-mat-icon{align-items:center;background:#eef3fb;border-radius:8px;color:#3478f6;display:inline-flex;flex:none;font-size:16px;height:38px;justify-content:center;width:38px}
+.lms-mat-copy{flex:1;min-width:0}
+.lms-mat-copy strong{color:#172536;display:block}
+.lms-mat-copy small{color:#718096;display:block;margin-top:1px}
+.lms-mat-desc{color:#44546a;display:block;font-size:.85rem;margin-top:3px}
+.lms-mat-actions{flex:none;white-space:nowrap}
+/* Dark mode (Loop 50 family) */
+html.hk-dark .lms-chip{background:#17334d;color:#7db3f8}
+html.hk-dark .lms-chip-open,html.hk-dark .lms-chip-submitted,html.hk-dark .lms-chip-graded{background:#123527;color:#4ade80}
+html.hk-dark .lms-chip-pending{background:#3a2c10;color:#f5b942}
+html.hk-dark .lms-chip-late{background:#3d1a1a;color:#f87171}
+html.hk-dark .lms-chip-closed{background:#1d3a55;color:#8fb0cc}
+html.hk-dark .lms-chip-marks{background:#e8f1f9;color:#0a1826}
+html.hk-dark .lms-card-title{color:#e8f1f9}
+html.hk-dark .lms-card-title:hover{color:#7db3f8}
+html.hk-dark .lms-answer{background:#0d2036;border-color:#1d3a55;color:#c7d8e8}
+html.hk-dark .lms-row-graded td{background:rgba(74,222,128,.06)}
+html.hk-dark .lms-push-bar{border-top-color:#1d3a55}
+html.hk-dark .lms-result-score{color:#4ade80}
+html.hk-dark .lms-mat-group + .lms-mat-group{border-top-color:#1d3a55}
+html.hk-dark .lms-mat-row + .lms-mat-row{border-top-color:#1d3a55}
+html.hk-dark .lms-mat-icon{background:#17334d;color:#7db3f8}
+html.hk-dark .lms-mat-copy strong{color:#e8f1f9}
+html.hk-dark .lms-mat-copy small{color:#8fb0cc}
+html.hk-dark .lms-mat-desc{color:#c7d8e8}
+html.hk-dark .lms-mat-group-title{color:#e8f1f9}
+/* Mobile: cards and rows stack; nothing pushes the page sideways.
+   Tables already live inside .table-responsive wrappers. */
+@media (max-width:575px){
+  .lms-card{flex-direction:column;gap:8px;padding:14px}
+  .lms-card-side{text-align:left}
+  .lms-grade-fields{flex-direction:column;align-items:stretch}
+  .lms-grade-marks input{flex:1;width:auto}
+  .lms-mat-row{flex-wrap:wrap}
+  .lms-mat-actions{padding-left:50px;white-space:normal}
+  .lms-result{gap:10px}
+  .lms-push-bar{flex-direction:column;align-items:stretch}
+}
+/* ============================================================
+   Loop 69 — LMS milestone (Workstream CZ). The dashboard count
+   cards (teacher grading queue, student due-this-week, parent
+   pending assignments) join the existing stat rows, so both
+   grids gain a column on wide screens; the teacher KPI gains a
+   purple variant in the same shape as the other t9 colours
+   (light + hk-dark); stat cards used as links keep body colour.
+   ============================================================ */
+.t9-kpi-purple{background:#f6ecf9}.t9-kpi-purple .t9-kpi-icon,.t9-kpi-purple .t9-kpi-label,.t9-kpi-purple .t9-kpi-chev{color:#9b3dc7}
+html.hk-dark .t9-kpi-purple{background:#241631}
+html.hk-dark .t9-kpi-purple .t9-kpi-icon,html.hk-dark .t9-kpi-purple .t9-kpi-label,html.hk-dark .t9-kpi-purple .t9-kpi-chev{color:#d3a1ec}
+@media (min-width:1200px){
+  .t9-kpi-grid{grid-template-columns:repeat(5,minmax(0,1fr))}
+  .stu-stats-row{grid-template-columns:repeat(6,minmax(0,1fr))}
+}
+a.dashboard-stat-card{color:inherit;text-decoration:none}
+a.dashboard-stat-card:hover{box-shadow:0 6px 16px rgba(23,37,54,.08)}

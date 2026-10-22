@@ -736,7 +736,19 @@ class HomeController extends Controller
         // be called upcoming/ongoing, so the row would be a guess.
         $t9_tasks = array_slice(\App\Support\TeacherReminders::forTeacher(Auth::user(), $now), 0, 5);
 
+        // Workstream CZ (LMS): submissions on THIS teacher's
+        // assignments that are still waiting for a grade.
+        $lms_to_grade = 0;
+        if (Schema::hasTable('assignments') && Schema::hasTable('assignment_submissions')) {
+            $lms_to_grade = \App\Models\AssignmentSubmission::whereNull('marks_awarded')
+                ->whereHas('assignment', function ($q) use ($teacher_id) {
+                    $q->where('teacher_id', $teacher_id);
+                })
+                ->count();
+        }
+
         return [
+            'lms_to_grade' => $lms_to_grade,
             'my_subjects' => $subjects,
             'my_class_count' => $class_ids->count(),
             'first_class_id' => $class_ids->first(),
@@ -873,7 +885,25 @@ class HomeController extends Controller
                 ->count();
         }
 
+        // Workstream CZ (LMS): assignments for this student's class
+        // (+ section) due in the next 7 days that they have not
+        // submitted yet.
+        $lms_due_week = 0;
+        if ($record && Schema::hasTable('assignments')) {
+            $lms_due_week = \App\Models\Assignment::where('my_class_id', $record->my_class_id)
+                ->where(function ($q) use ($record) {
+                    $q->whereNull('section_id')->orWhere('section_id', $record->section_id);
+                })
+                ->where('due_at', '>=', $now)
+                ->where('due_at', '<=', $now->copy()->addDays(7))
+                ->whereDoesntHave('submissions', function ($q) use ($user_id) {
+                    $q->where('student_id', $user_id);
+                })
+                ->count();
+        }
+
         return [
+            'lms_due_week' => $lms_due_week,
             'student_record' => $record,
             'attendance' => $record ? $this->attendanceSummary($record->id) : $this->attendanceSummary(0),
             'subjects' => $subjects,
@@ -1013,7 +1043,25 @@ class HomeController extends Controller
 
         $upcoming_events = $this->upcomingEvents($now);
 
+        // Workstream CZ (LMS): assignments across the linked children
+        // that none of them has submitted yet (pending homework).
+        $lms_pending_assignments = 0;
+        if (Schema::hasTable('assignments')) {
+            foreach ($children as $childRow) {
+                $child = $childRow['record'];
+                $lms_pending_assignments += \App\Models\Assignment::where('my_class_id', $child->my_class_id)
+                    ->where(function ($q) use ($child) {
+                        $q->whereNull('section_id')->orWhere('section_id', $child->section_id);
+                    })
+                    ->whereDoesntHave('submissions', function ($q) use ($child) {
+                        $q->where('student_id', $child->user_id);
+                    })
+                    ->count();
+            }
+        }
+
         return [
+            'lms_pending_assignments' => $lms_pending_assignments,
             'children' => $children,
             'fees_total' => $sum('total'),
             'fees_paid' => $sum('paid'),

@@ -59,6 +59,17 @@
             </span>
             <i class="icon-arrow-right7 t9-kpi-chev"></i>
         </a>
+        {{-- Workstream CZ (LMS): the grading queue as a KPI card —
+             ungraded submissions across this teacher's assignments. --}}
+        <a href="{{ route('assignments.index') }}" class="t9-kpi t9-kpi-purple">
+            <span class="t9-kpi-icon"><i class="icon-file-text2"></i></span>
+            <span class="t9-kpi-copy">
+                <span class="t9-kpi-label">Assignments to Grade</span>
+                <strong>{{ number_format($lms_to_grade ?? 0) }}</strong>
+                <small>Ungraded submissions</small>
+            </span>
+            <i class="icon-arrow-right7 t9-kpi-chev"></i>
+        </a>
     </div>
 
     <div class="t9-main">

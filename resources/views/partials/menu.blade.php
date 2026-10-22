@@ -106,6 +106,21 @@
                         <li class="nav-item"><a href="{{ route('tt.mine') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['tt.mine']) ? 'active' : '' }}">My Timetable</a></li>
                     </ul>
                 </li>
+                {{-- Workstream CS2 (LMS, owner-ordered module): new items
+                     only — nothing existing moved, renamed or removed. --}}
+                <li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Learning</div><i class="icon-menu" title="Learning"></i></li>
+                <li class="nav-item">
+                    <a href="{{ route('assignments.index') }}" class="nav-link {{ (Route::is('assignments.*')) ? 'active' : '' }}">
+                        <i class="icon-file-text2"></i>
+                        <span>Assignments</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('materials.index') }}" class="nav-link {{ (Route::is('materials.*')) ? 'active' : '' }}">
+                        <i class="icon-book"></i>
+                        <span>Study Materials</span>
+                    </a>
+                </li>
                 <li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Students</div><i class="icon-menu" title="Students"></i></li>
                 <li class="nav-item nav-item-submenu {{ in_array(Route::currentRouteName(), ['students.create', 'students.list', 'students.edit', 'students.show', 'students.promotion', 'students.promotion_manage', 'students.graduated']) ? 'nav-item-expanded nav-item-open' : '' }} ">
                     <a href="#" class="nav-link"><i class="icon-users"></i> <span> Students</span></a>

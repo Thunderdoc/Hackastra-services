@@ -72,6 +72,17 @@
                 <small>{{ $next_exam ? 'Next: ' . $next_exam['name'] . ' · ' . \Illuminate\Support\Carbon::parse($next_exam['date'])->format('d M Y') : 'No exam dates scheduled yet' }}</small>
             </span>
         </div>
+        {{-- Workstream CZ (LMS): work due in the next 7 days that this
+             student has not submitted yet — the whole card links to
+             the student's assignment list. --}}
+        <a href="{{ route('assignments.index') }}" class="dashboard-stat-card dashboard-stat-green">
+            <span class="dashboard-stat-top"><span class="dashboard-stat-icon"><i class="icon-clipboard3"></i></span></span>
+            <span class="dashboard-stat-copy">
+                <span class="dashboard-stat-label">Assignments Due This Week</span>
+                <strong>{{ $lms_due_week ?? 0 }}</strong>
+                <small>{{ ($lms_due_week ?? 0) > 0 ? 'Due in the next 7 days, not yet submitted' : 'Nothing due in the next 7 days' }}</small>
+            </span>
+        </a>
     </div>
 
     <div class="row">
