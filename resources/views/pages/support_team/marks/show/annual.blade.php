@@ -51,7 +51,7 @@
                  marksheet's: only users the print gate admits
                  (teamSA, the student, or their parent) see it. --}}
             @if(Qs::userIsTeamSA() || Auth::id() == $student_id || Qs::userIsMyChild($student_id, Auth::id()))
-            <div class="text-center mt-3">
+            <div class="text-center mt-3 de-marks-show">
                 <a target="_blank" href="{{ route('marks.print_annual', [Qs::hash($student_id), $year]) }}" class="btn btn-secondary btn-lg">Print Annual Report <i class="icon-printer ml-2"></i></a>
             </div>
             @endif

@@ -75,7 +75,7 @@
                              owner later allows teacher printing, widen
                              the gate and this condition together. --}}
                         @if(Qs::userIsTeamSA() || Auth::id() == $student_id || Qs::userIsMyChild($student_id, Auth::id()))
-                        <div class="text-center mt-3">
+                        <div class="text-center mt-3 de-marks-show">
                             <a target="_blank" href="{{ route('marks.print', [Qs::hash($student_id), $ex->id, $year]) }}" class="btn btn-secondary btn-lg">Print Marksheet <i class="icon-printer ml-2"></i></a>
                         </div>
                         @endif

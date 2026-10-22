@@ -3518,3 +3518,132 @@ html.hk-dark .ttx-grid.table-striped tbody tr:nth-of-type(odd) .ttx-day-col{back
    did) — near-black on the dark card; the strip now carries the
    redesigned view page, so its values take the dark ink. */
 html.hk-dark .ttx-meta-item strong{color:#e8eef5}
+/* ============================================================
+/* ============================================================
+   Loop 73 — Visual standard sweep (Workstream DE, 2026-10-22).
+   Three parts: (A) one custom select chrome for the whole app —
+   the owner's flagged defect: plain selects rendered with
+   native browser chrome while Select2-styled ones did not;
+   (B) School Events list redesign; (C) Low Attendance
+   (attendance defaulters) redesign. All selectors are scoped
+   (page wrapper classes for B/C) so no other page changes.
+   ============================================================ */
+
+/* --- (A) Custom selects, app-wide --------------------------
+   Applies to every real <select> that is NOT Select2-enhanced.
+   Select2 (.select / .select-search) hides its source element
+   once initialised, so styling it here changes nothing when
+   the plugin runs and gives it the app chrome when it does
+   not. The Select2 widget itself is harmonised separately
+   below so both flavours read as one component. Native
+   keyboard / screen-reader behaviour is untouched: these
+   remain real selects, only the chrome is CSS. */
+.content select.form-control:not([multiple]):not([size]),
+.content .dataTables_wrapper .dataTables_length select {
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2344546a' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 12px 12px;
+  padding-right: 34px;
+}
+.content select.form-control:not([multiple]):not([size]):disabled {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239aa7b5' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  cursor: not-allowed;
+}
+html.hk-dark .content select.form-control:not([multiple]):not([size]),
+html.hk-dark .content .dataTables_wrapper .dataTables_length select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2393a9bf' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+}
+/* Select2 widget harmonised to the same component: token
+   border + radius, and the same SVG chevron instead of the
+   CSS-triangle arrow. */
+.content .select2-container--default .select2-selection--single {
+  border: 1px solid #dce3ec;
+  border-radius: 8px;
+}
+.content .select2-container--default .select2-selection--single .select2-selection__arrow {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2344546a' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+}
+.content .select2-container--default .select2-selection--single .select2-selection__arrow b {
+  border-color: transparent;
+}
+html.hk-dark .content .select2-container--default .select2-selection--single .select2-selection__arrow {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2393a9bf' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+}
+
+/* --- (B) School Events list (Workstream DE) ---------------- */
+.de-events .table td { vertical-align: middle; }
+.ev-date {
+  align-items: center;
+  background: #eef3fb;
+  border: 1px solid #d7e2f2;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  line-height: 1.15;
+  min-width: 58px;
+  padding: 6px 4px;
+  text-align: center;
+}
+.ev-date .ev-day { color: #172536; font-size: 19px; font-weight: 700; }
+.ev-date .ev-mon { color: #5c6f84; font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+.ev-date .ev-range { color: #5c6f84; font-size: 11px; font-weight: 600; margin-top: 2px; }
+html.hk-dark .ev-date { background: #11283f; border-color: #1d3a55; }
+html.hk-dark .ev-date .ev-day { color: #e8f1f9; }
+html.hk-dark .ev-date .ev-mon, html.hk-dark .ev-date .ev-range { color: #93a9bf; }
+.ev-title { color: #172536; font-weight: 600; }
+html.hk-dark .ev-title { color: #e8f1f9; }
+.ev-desc { color: #5c6f84; font-size: 13px; }
+.ev-chip { border-radius: 999px; display: inline-block; font-size: 12px; font-weight: 600; padding: 3px 10px; white-space: nowrap; }
+.ev-chip-examination { background: #efeaff; color: #5b3df0; }
+.ev-chip-meeting { background: #e8f0fe; color: #2867dc; }
+.ev-chip-fee { background: #e7f7f0; color: #14714f; }
+.ev-chip-holiday { background: #fff3df; color: #97590f; }
+.ev-chip-event { background: #fdecec; color: #c0392b; }
+html.hk-dark .ev-chip-examination { background: rgba(108,75,216,.22); color: #c4b0fa; }
+html.hk-dark .ev-chip-meeting { background: rgba(52,120,246,.2); color: #a9c8fa; }
+html.hk-dark .ev-chip-fee { background: rgba(20,113,79,.25); color: #8fd8ba; }
+html.hk-dark .ev-chip-holiday { background: rgba(151,89,15,.28); color: #f3cd8d; }
+html.hk-dark .ev-chip-event { background: rgba(192,57,43,.22); color: #f0a49c; }
+.ev-allday { background: #eef3fb; border-radius: 999px; color: #43556c; display: inline-block; font-size: 12px; font-weight: 600; padding: 3px 10px; }
+html.hk-dark .ev-allday { background: #11283f; color: #a9c8fa; }
+.ev-no { color: #9aa7b5; }
+
+/* --- (C) Low Attendance / defaulters (Workstream DE) ------- */
+.ad-summary { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; }
+.ad-stat {
+  background: #f5f8fc;
+  border: 1px solid #e4eaf1;
+  border-radius: 8px;
+  flex: 1 1 140px;
+  padding: 10px 14px;
+}
+.ad-stat .ad-stat-label { color: #5c6f84; display: block; font-size: 12px; font-weight: 600; letter-spacing: .03em; text-transform: uppercase; }
+.ad-stat .ad-stat-value { color: #172536; display: block; font-size: 20px; font-weight: 700; line-height: 1.3; }
+html.hk-dark .ad-stat { background: #11283f; border-color: #1d3a55; }
+html.hk-dark .ad-stat .ad-stat-label { color: #93a9bf; }
+html.hk-dark .ad-stat .ad-stat-value { color: #e8f1f9; }
+.de-defaulters .table td { vertical-align: middle; }
+.de-defaulters .ad-num { text-align: center; }
+.ad-meter { align-items: center; display: flex; gap: 10px; min-width: 170px; }
+.ad-meter .ad-track { background: #e8eef5; border-radius: 999px; flex: 1 1 auto; height: 10px; overflow: hidden; }
+.ad-meter .ad-fill { border-radius: 999px; height: 100%; }
+.ad-fill-danger { background: #d64545; }
+.ad-fill-warning { background: #e8a13a; }
+html.hk-dark .ad-meter .ad-track { background: #1d3a55; }
+.ad-pct { border-radius: 999px; flex: 0 0 auto; font-size: 12.5px; font-weight: 700; min-width: 54px; padding: 3px 8px; text-align: center; }
+.ad-pct-danger { background: #fdecec; color: #c0392b; }
+.ad-pct-warning { background: #fff3df; color: #97590f; }
+html.hk-dark .ad-pct-danger { background: rgba(192,57,43,.22); color: #f0a49c; }
+html.hk-dark .ad-pct-warning { background: rgba(151,89,15,.28); color: #f3cd8d; }
+
+/* Marksheet screens (marks/show, marks/annual): the print
+   actions were the last oversized btn-lg in the app — bring
+   them to the standard button size. Screen only; the print
+   documents themselves are untouched. */
+.de-marks-show .btn-lg { border-radius: 8px; font-size: 14px; padding: 8px 18px; }
