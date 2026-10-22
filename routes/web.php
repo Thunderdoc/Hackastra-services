@@ -65,7 +65,8 @@ Route::group(['middleware' => 'auth'], function () {
             Route::get('/', 'TimeTableController@index')->name('tt.index');
             Route::get('mine', 'TimeTableController@mine')->name('tt.mine');
 
-            Route::group(['middleware' => 'teamSA'], function() {
+            // Workstream CM: timetable writes are school writes — Admin only.
+            Route::group(['middleware' => 'teamSAWrite'], function() {
                 Route::post('/', 'TimeTableController@store')->name('tt.store');
                 Route::put('/{tt}', 'TimeTableController@update')->name('tt.update');
                 Route::delete('/{tt}', 'TimeTableController@delete')->name('tt.delete');
@@ -74,7 +75,7 @@ Route::group(['middleware' => 'auth'], function () {
             /*************** TimeTable Records *****************/
             Route::group(['prefix' => 'records'], function(){
 
-                Route::group(['middleware' => 'teamSA'], function(){
+                Route::group(['middleware' => 'teamSAWrite'], function(){
                     Route::get('manage/{ttr}', 'TimeTableController@manage')->name('ttr.manage');
                     Route::post('/', 'TimeTableController@store_record')->name('ttr.store');
                     Route::get('edit/{ttr}', 'TimeTableController@edit_record')->name('ttr.edit');
@@ -88,7 +89,7 @@ Route::group(['middleware' => 'auth'], function () {
             });
 
             /*************** Time Slots *****************/
-            Route::group(['prefix' => 'time_slots', 'middleware' => 'teamSA'], function(){
+            Route::group(['prefix' => 'time_slots', 'middleware' => 'teamSAWrite'], function(){
                 Route::post('/', 'TimeTableController@store_time_slot')->name('ts.store');
                 Route::post('/use/{ttr}', 'TimeTableController@use_time_slot')->name('ts.use');
                 Route::get('edit/{ts}', 'TimeTableController@edit_time_slot')->name('ts.edit');
@@ -145,17 +146,25 @@ Route::group(['middleware' => 'auth'], function () {
         /*************** Marks *****************/
         Route::group(['prefix' => 'marks'], function(){
 
-           // FOR teamSA
+           // FOR teamSA — views only (Workstream CM): SA keeps the
+           // tabulation sheet + its print document; the selector POST
+           // only redirects into that view.
             Route::group(['middleware' => 'teamSA'], function(){
-                Route::get('batch_fix', 'MarkController@batch_fix')->name('marks.batch_fix');
-                Route::put('batch_update', 'MarkController@batch_update')->name('marks.batch_update');
                 Route::get('tabulation/{exam?}/{class?}/{sec_id?}', 'MarkController@tabulation')->name('marks.tabulation');
                 Route::post('tabulation', 'MarkController@tabulation_select')->name('marks.tabulation_select');
                 Route::get('tabulation/print/{exam}/{class}/{sec_id}', 'MarkController@print_tabulation')->name('marks.print_tabulation');
             });
 
-            // FOR teamSAT
-            Route::group(['middleware' => 'teamSAT'], function(){
+            // Marks Correction (batch fix) is a WRITE — Admin only.
+            Route::group(['middleware' => 'teamSAWrite'], function(){
+                Route::get('batch_fix', 'MarkController@batch_fix')->name('marks.batch_fix');
+                Route::put('batch_update', 'MarkController@batch_update')->name('marks.batch_update');
+            });
+
+            // FOR teamSATWrite (Workstream CM): marks entry is a write
+            // surface — Admin + assigned teachers; SA's marks read is
+            // show/tabulation below, untouched.
+            Route::group(['middleware' => 'teamSATWrite'], function(){
                 Route::get('/', 'MarkController@index')->name('marks.index');
                 Route::get('manage/{exam}/{class}/{section}/{subject}', 'MarkController@manage')->name('marks.manage');
                 Route::put('update/{exam}/{class}/{section}/{subject}', 'MarkController@update')->name('marks.update');
@@ -262,8 +271,11 @@ Route::group(['namespace' => 'SuperAdmin','middleware' => 'teamSA', 'prefix' => 
 
 });
 
-/************************ SUPER ADMIN (platform owner only) ****************************/
-Route::group(['namespace' => 'SuperAdmin','middleware' => 'super_admin', 'prefix' => 'super_admin'], function(){
+/************************ AUDIT LOG (Workstream CM: teamSA reads) ****************************/
+/* The school Admin gains a read of the school's trail (owner ruling):
+   the controller scopes Admin to entries NOT acted by a super_admin —
+   the company's own platform activity stays Super-Admin-only. */
+Route::group(['namespace' => 'SuperAdmin','middleware' => 'teamSA', 'prefix' => 'super_admin'], function(){
 
     Route::get('/audit-logs', 'AuditLogController@index')->name('audit_logs.index');
 

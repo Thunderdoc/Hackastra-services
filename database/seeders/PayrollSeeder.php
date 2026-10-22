@@ -25,15 +25,15 @@ class PayrollSeeder extends Seeder
             return;
         }
 
-        $creatorId = DB::table('users')->where('email', 'cj@cj.com')->value('id')
+        $creatorId = DB::table('users')->where('email', 'superadmin@hackstra.app')->value('id')
             ?: DB::table('users')->where('user_type', 'super_admin')->value('id');
 
         $rows = [
             // email, basic, allowances, deductions, status, paid day
-            ['teacher@teacher.com', 45000, 6500, 2500, 'paid', 5],
-            ['admin@admin.com', 60000, 8000, 4000, 'pending', null],
-            ['accountant@accountant.com', 38000, 4500, 1800, 'pending', null],
-            ['librarian@librarian.com', 28000, 3000, 1200, 'pending', null],
+            ['teacher@hackstra.app', 45000, 6500, 2500, 'paid', 5],
+            ['admin@hackstra.app', 60000, 8000, 4000, 'pending', null],
+            ['accountant@hackstra.app', 38000, 4500, 1800, 'pending', null],
+            ['librarian@hackstra.app', 28000, 3000, 1200, 'pending', null],
         ];
 
         foreach ($rows as [$email, $basic, $allowances, $deductions, $status, $paidDay]) {

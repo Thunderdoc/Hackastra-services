@@ -27,7 +27,9 @@
         @endslot
         @slot('action')
             <a href="{{ route('book_requests.index') }}" class="btn btn-light"><i class="icon-list mr-1"></i> Loans &amp; Requests</a>
+            @if(Qs::userIsTeamLibraryWrite())
             <a href="{{ route('books.create') }}" class="btn btn-primary"><i class="icon-plus2 mr-1"></i> New Book</a>
+            @endif
         @endslot
 
         @slot('stats')
@@ -150,8 +152,8 @@
                     </td>
                     <td><span class="dashboard-status {{ $statusTone }}">{{ $statusLabel }}</span></td>
                     <td>
+                        @if(Qs::userIsTeamLibraryWrite())
                         <a href="{{ route('books.edit', $book->id) }}" class="btn btn-light btn-sm"><i class="icon-pencil7 mr-1"></i> Edit</a>
-                        @if(Qs::userIsTeamSA())
                             <form method="post" action="{{ route('books.destroy', $book->id) }}" style="display:inline">@csrf @method('delete')<button type="submit" class="btn btn-light btn-sm text-danger" data-confirm="Delete this book from the catalogue?" data-confirm-title="Delete Book" data-confirm-action="Delete" data-confirm-danger><i class="icon-trash mr-1"></i> Delete</button></form>
                         @endif
                     </td>
@@ -170,7 +172,7 @@
                             @include('partials.patterns.empty_state', [
                                 'icon' => 'icon-books',
                                 'message' => 'No books found. Add the first book to the library catalogue.',
-                                'action_url' => route('books.create'),
+                                'action_url' => Qs::userIsTeamLibraryWrite() ? route('books.create') : null,
                                 'action_label' => 'New Book',
                             ])
                         @endif

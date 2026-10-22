@@ -97,7 +97,9 @@
                     <div><h5 class="mb-1"><i class="icon-rocket text-blue mr-1"></i> Quick Actions</h5><p class="dashboard-muted mb-0">Your everyday finance tasks.</p></div>
                 </div>
                 <div class="dashboard-action-grid acc-action-grid">
-                    <a href="{{ route('payments.create') }}"><i class="icon-wallet"></i><span>Record Payment</span></a>
+                    {{-- Workstream CO: no "Record Payment" tile here —
+                         the hero primary action above is that same
+                         button (same label, same route, one page). --}}
                     <a href="{{ route('payments.manage') }}"><i class="icon-list2"></i><span>Payments List</span></a>
                     <a href="{{ route('payments.defaulters') }}"><i class="icon-users4"></i><span>Defaulters Report</span></a>
                     <a href="{{ route('payments.collection') }}"><i class="icon-stats-bars"></i><span>Collection Report</span></a>

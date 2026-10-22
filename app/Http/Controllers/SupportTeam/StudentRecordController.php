@@ -25,8 +25,15 @@ class StudentRecordController extends Controller
 
    public function __construct(LocationRepo $loc, MyClassRepo $my_class, UserRepo $user, StudentRepo $student)
    {
-       $this->middleware('teamSA', ['only' => ['edit','update', 'reset_pass', 'create', 'store', 'graduated'] ]);
-       $this->middleware('teamSA', ['only' => ['destroy',] ]);
+       // Workstream CM: student writes belong to the school Admin —
+       // the write team (teamSA minus super_admin) gates every
+       // mutating method; reads stay on the in-method/policy guards.
+       // (graduated() is a GET list view — SA keeps it; the write it
+       // sits next to, not_graduated, was previously ungated and is
+       // now on the write team too.)
+       $this->middleware('teamSAWrite', ['only' => ['edit','update', 'reset_pass', 'create', 'store', 'not_graduated'] ]);
+       $this->middleware('teamSAWrite', ['only' => ['destroy',] ]);
+       $this->middleware('teamSA', ['only' => ['graduated']]);
 
         $this->loc = $loc;
         $this->my_class = $my_class;
@@ -254,6 +261,7 @@ class StudentRecordController extends Controller
         $path = Qs::getUploadPath('student').$sr->user->code;
         Storage::exists($path) ? Storage::deleteDirectory($path) : false;
         $this->user->delete($sr->user->id);
+        $sr->delete(); // Integration fix: the record row was left orphaned (its user gone), which broke class lists reading $record->user->photo
         Audit::log('student.deleted', $sr, 'Student record deleted');
 
         return back()->with('flash_success', __('msg.del_ok'));

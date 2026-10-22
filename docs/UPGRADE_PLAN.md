@@ -214,7 +214,7 @@ at least one write flow per module, not just page loads).
 
 ## 7. Regression script (the live crawl list — run per hop, in order)
 
-1. Login per role (Super Admin cj@cj.com, Admin, Teacher, Parent — all / cj)
+1. Login per role (Super Admin superadmin@hackstra.app, Admin, Teacher, Parent — all / hackstra)
    → each lands on a 200 dashboard with real stats.
 2. **Asset scheme check:** dashboard HTML contains 0 `http://` asset refs
    (guards the TrustProxies rewrite).

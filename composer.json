@@ -1,8 +1,9 @@
 {
-    "name": "laravel/laravel",
-    "description": "The Laravel Framework.",
+    "name": "hackstra/hackstra",
+    "description": "Hackstra - School Management System.",
     "keywords": [
-        "framework",
+        "school",
+        "management",
         "laravel"
     ],
     "license": "MIT",

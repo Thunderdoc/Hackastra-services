@@ -9,6 +9,7 @@
                 <strong>{{ collect($scheme['components'])->map(function($c){ return $c['name'].' ('.$c['max_marks'].')'; })->implode(' + ') }} = {{ $scheme['max_total'] }}</strong>.
                 Leave a cell blank if the score has not been entered; enter 0 for a real zero.</span>
         </div>
+        <div class="table-responsive">
         <table class="table table-striped">
             <thead>
             <tr>
@@ -33,11 +34,13 @@
             @endforeach
             </tbody>
         </table>
+        </div>
     @else
         {{-- Legacy scheme — the grid exactly as it has always been
              (CA 20 + CA 20 + Exam 60 over t1/t2/exm). One change, from
              the Batch M2 audit: min is 0, not 1 — a real zero must be
              enterable, and a blank cell means "not entered". --}}
+        <div class="table-responsive">
         <table class="table table-striped">
             <thead>
             <tr>
@@ -65,6 +68,7 @@
             @endforeach
             </tbody>
         </table>
+        </div>
     @endif
 
     <div class="text-center mt-2">

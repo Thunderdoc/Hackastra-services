@@ -22,7 +22,9 @@
                 <div class="pat-toolbar-sub"><i class="icon-cash2 mr-1"></i> <strong>Collect Fee</strong> &mdash; a student comes to pay: find them here and jump straight to their payment records.</div>
             </div>
             <div class="pat-toolbar-actions">
+                @if(Qs::userIsTeamAccountWrite())
                 <a href="{{ route('payments.create') }}" class="btn btn-primary"><i class="icon-plus3 mr-1"></i> Create Payment</a>
+                @endif
             </div>
         </div>
 

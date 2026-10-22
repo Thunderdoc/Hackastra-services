@@ -3,7 +3,8 @@
 @section('content')
     <div class="card">
         <div class="card-header header-elements-inline">
-            <h5 class="card-title"><i class="icon-books mr-2"></i> Tabulation Sheet</h5>
+            {{-- Workstream CO: card title removed — it repeated the
+                 page title verbatim (the common header owns titles). --}}
             {!! Qs::getPanelOptions() !!}
         </div>
 

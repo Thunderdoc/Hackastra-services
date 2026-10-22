@@ -79,22 +79,25 @@ class StudentRecordPolicy
         return false;
     }
 
+    /*
+     * Writes (Workstream CM — SA view-only boundary): student records
+     * are school records; creating, editing and deleting them belongs
+     * to the school's Admin alone (staff flows). The Super Admin keeps
+     * the reads above but writes nothing. Every deletion is still
+     * audit-logged by the controller (Audit::log('student.deleted')).
+     */
     public function create(User $user): bool
     {
-        return in_array($user->user_type, ['super_admin', 'admin'], true);
+        return $user->user_type === 'admin';
     }
 
     public function update(User $user, StudentRecord $record): bool
     {
-        return in_array($user->user_type, ['super_admin', 'admin'], true);
+        return $user->user_type === 'admin';
     }
 
     public function delete(User $user, StudentRecord $record): bool
     {
-        // Workstream AB (owner's role model, 2026-10-21): the school Admin
-        // runs the school alone, so student deletion sits with teamSA like
-        // create/update above. Every deletion is still audit-logged by the
-        // controller (Audit::log('student.deleted', ...)).
-        return in_array($user->user_type, ['super_admin', 'admin'], true);
+        return $user->user_type === 'admin';
     }
 }

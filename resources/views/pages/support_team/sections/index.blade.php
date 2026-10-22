@@ -23,7 +23,9 @@
             @endif
         @endslot
         @slot('action')
+            @if(Qs::userIsTeamSAWrite())
             <a href="#add-section" class="btn btn-primary"><i class="icon-plus2 mr-2"></i> Create New Section</a>
+            @endif
         @endslot
 
         @slot('filters')
@@ -66,7 +68,7 @@
                             <td> - </td>
                         @endif
                         <td class="text-center">
-                            @if(Qs::userIsTeamSA())
+                            @if(Qs::userIsTeamSAWrite())
                                 <a href="{{ route('sections.edit', $s->id) }}" class="btn btn-sm btn-primary"><i class="icon-pencil"></i> Edit</a>
                                 <button type="button" id="{{ $s->id }}" onclick="confirmDelete(this.id)" class="btn btn-sm btn-danger"><i class="icon-trash"></i> Delete</button>
                                 <form method="post" id="item-delete-{{ $s->id }}" action="{{ route('sections.destroy', $s->id) }}" class="hidden">@csrf @method('delete')</form>
@@ -86,6 +88,7 @@
     @endcomponent
 
     <div id="add-section">
+        @if(Qs::userIsTeamSAWrite())
         @component('partials.patterns.form_page', [
             'form_action' => route('sections.store'),
             'form_class' => 'ajax-store',
@@ -121,5 +124,6 @@
                 </div>
             </div>
         @endcomponent
+        @endif
     </div>
 @endsection

@@ -152,7 +152,8 @@
                     <div><h5 class="mb-1"><i class="icon-rocket text-blue mr-1"></i> Quick Actions</h5><p class="dashboard-muted mb-0">Jump to your pages.</p></div>
                 </div>
                 <div class="dashboard-action-grid stu-action-grid">
-                    <a href="{{ route('attendance.my') }}"><i class="icon-calendar52"></i><span>My Attendance</span></a>
+                    {{-- Zero-tolerance dedup: no "My Attendance" tile here — the
+                         Attendance Summary panel above carries that link. --}}
                     <a href="{{ route('admit_cards.my') }}"><i class="icon-file-text2"></i><span>My Admit Card</span></a>
                     <a href="{{ route('tt.index') }}"><i class="icon-calendar3"></i><span>Timetable</span></a>
                     <a href="{{ route('circulars.index') }}"><i class="icon-megaphone"></i><span>Circulars</span></a>

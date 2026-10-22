@@ -16,9 +16,11 @@
                     <strong>{{ $today->format('l, d F Y') }}</strong>
                 </span>
             </div>
+            @if(Qs::userIsTeamSAWrite())
             <a href="{{ route('students.create') }}" class="btn dashboard-primary-action">
                 <i class="icon-plus3 mr-2"></i> Add Student
             </a>
+            @endif
         </div>
     </div>
 
@@ -58,11 +60,19 @@
                     <div><h5 class="mb-1"><i class="icon-rocket text-blue mr-1"></i> Quick Actions</h5><p class="dashboard-muted mb-0">Perform common administrative tasks quickly.</p></div>
                 </div>
                 <div class="dashboard-action-grid l17-action-grid">
-                    <a href="{{ route('students.create') }}"><i class="icon-user-plus"></i><span>Add Student</span></a>
+                    @if(Qs::userIsTeamSAWrite())
+                    {{-- Workstream CO: no "Add Student" tile here — the
+                         hero primary action above is that same button
+                         (same label, same route, one page). --}}
                     <a href="{{ route('users.create') }}"><i class="icon-user-tie"></i><span>Add Teacher</span></a>
+                    @endif
                     <a href="{{ route('classes.index') }}"><i class="icon-windows2"></i><span>Manage Classes</span></a>
+                    @if(Qs::userIsTeamSAWrite())
                     <a href="{{ route('exams.create') }}"><i class="icon-book"></i><span>Create Exam</span></a>
+                    @endif
+                    @if(Qs::userIsTeamAccountWrite())
                     <a href="{{ route('payments.create') }}"><i class="icon-wallet"></i><span>Record Payment</span></a>
+                    @endif
                     <a href="{{ route('marks.tabulation') }}"><i class="icon-stats-bars"></i><span>Marks Tabulation</span></a>
                     <a href="{{ route('settings') }}"><i class="icon-cog5"></i><span>School Settings</span></a>
                 </div>

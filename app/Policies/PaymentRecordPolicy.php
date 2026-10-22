@@ -34,18 +34,26 @@ class PaymentRecordPolicy
         return false;
     }
 
+    /*
+     * Writes (Workstream CM — SA view-only boundary): recording,
+     * correcting and deleting payments are school finance jobs, so
+     * they belong to the school's Admin + Accountant. The Super Admin
+     * keeps every read above but writes nothing. delete() previously
+     * sat with super_admin alone — the one school-operational right on
+     * the wrong side of the boundary; it moves to Admin + Accountant.
+     */
     public function create(User $user): bool
     {
-        return in_array($user->user_type, ['super_admin', 'admin', 'accountant'], true);
+        return in_array($user->user_type, ['admin', 'accountant'], true);
     }
 
     public function update(User $user, PaymentRecord $record): bool
     {
-        return in_array($user->user_type, ['super_admin', 'admin', 'accountant'], true);
+        return in_array($user->user_type, ['admin', 'accountant'], true);
     }
 
     public function delete(User $user, PaymentRecord $record): bool
     {
-        return $user->user_type === 'super_admin';
+        return in_array($user->user_type, ['admin', 'accountant'], true);
     }
 }

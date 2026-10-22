@@ -3116,3 +3116,92 @@ html.hk-dark .lav-toast-close:hover{color:#fff}
 .qs-book-thumb{align-items:center;background:#eef4ff;border-radius:6px;color:#3478f6;display:flex;flex:0 0 auto;font-size:18px;height:52px;justify-content:center;width:40px}
 .qs-book-cell strong{color:#172536}
 .dashboard-status.status-danger{background:#fdecec;color:#d64545}
+
+/* ============================================================
+   Loop 63 — Professional printing pass (Workstream CL).
+   Hardens the shared print-document pattern (Loop 31's
+   .print-doc-head / .print-doc-foot, now carried by the
+   students list, fee collection report, student payments
+   and monthly attendance report): a document head or foot
+   must never split across pages, and its rule lines, logo
+   and shaded parts must survive browsers that strip
+   colours/backgrounds when printing. Print-only: nothing
+   here can change screen rendering.
+   ============================================================ */
+@media print {
+  .print-doc-head, .print-doc-foot { break-inside: avoid; page-break-inside: avoid; }
+  .print-doc-head *, .print-doc-foot * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+   Loop 64 — Mobile responsiveness (Workstream CN, owner:
+   "mobile responsive is the most important thing").
+   Baseline: a 66-page x 2-width (375/768) crawl of the real
+   authenticated app found NO page-level horizontal scroll
+   anywhere — but four document/table surfaces were CLIPPED by
+   an ancestor at 375px (content cut, not scrollable): the
+   report-card sheets (term + annual) and their grading /
+   comments tables. Everything below is SCREEN ONLY (print
+   rendering is untouched — see the print guard) and applies
+   at <=991px, so desktop rendering is unchanged. The matching
+   blade change is minimal: exams list + marks-entry grids
+   gained the app's own .table-responsive wrapper.
+   ============================================================ */
+@media screen and (max-width: 991px) {
+    /* The report card is a dense print document (10+ columns).
+       On a phone the sheet scrolls inside itself instead of
+       being cut off at the card edge; every column stays
+       reachable with a swipe. .rc-scroll wraps the grading-key,
+       counts and comments tables that sit beside the sheet. */
+    .report-card { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .rc-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+}
+@media screen and (max-width: 575px) {
+    /* Slightly tighter document type at phone width, so most
+       sheets fit (nearly) whole before the scroll engages. */
+    .report-card .rc-marks th, .report-card .rc-marks td { padding: 3px 2px; font-size: 11px; }
+    .report-card .rc-school { font-size: 20px; }
+    .report-card .rc-sign-cell { padding: 0 10px 0 4px; }
+}
+@media print {
+    /* The screen scrollers must never clip paper. */
+    .rc-scroll { overflow: visible !important; }
+}
+   Loop 66 — My Account final fit (Workstream CR, 2026-10-22).
+   Loops 52/53 got the page to ~7px of scroll with a fresh
+   sign-in history, but a FULL activity list (capped at
+   226px) inflates the rail band by ~85px, and a banner-stats
+   column pushes some roles' profile head ~29px taller:
+   measured on the real page at 1920x1080 — Super Admin
+   1172px document height (92px scroll), Teacher 1201px
+   (121px scroll). This pass is one honest tightening of
+   the page's own vertical rhythm — paddings, gaps, the
+   cover strip and the activity-list cap — all inside the
+   .acct- namespace, no markup, no layout restructure,
+   nothing hidden: the activity list still scrolls inside
+   its cap exactly as Loop 53 designed, it just caps
+   lower (~3 rows visible instead of ~5).
+   ============================================================ */
+.acct-subtitle{margin-bottom:8px}
+.acct-profile-head{margin-bottom:10px}
+@media (min-width:768px){
+  .acct-cover{height:44px}
+  .acct-profile-head .acct-avatar-wrap{margin-top:-24px}
+  .acct-profile-head .acct-avatar{font-size:1.25rem;height:64px;width:64px}
+}
+.acct-profile-body{padding-bottom:8px}
+.acct-banner-info{padding-top:2px}
+.acct-banner-stats{padding-top:2px}
+.acct-chips{margin-top:5px}
+.acct-stat{padding:5px 12px}
+.acct-grid{gap:10px}
+.acct-card{padding:13px 18px}
+.acct-card-head{margin-bottom:6px}
+.acct-tabs{margin-bottom:8px}
+.acct-tab{padding:6px 14px}
+.acct-panel>form,.acct-panel>.acct-toggle-list{margin-top:10px}
+.acct-form-grid{gap:10px 18px}
+.acct-input{padding-bottom:6px;padding-top:6px}
+.acct-form-actions{margin-top:8px}
+.acct-link-row{margin-bottom:6px;padding:7px 13px}
+.acct-toggle-row{padding:7px 13px}
+.acct-activity-row{padding:5px 2px}
+.acct-activity-list{max-height:150px}

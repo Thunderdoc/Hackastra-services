@@ -20,7 +20,13 @@ class UserController extends Controller
 
     public function __construct(UserRepo $user, LocationRepo $loc, MyClassRepo $my_class)
     {
-        $this->middleware('teamSA', ['only' => ['index', 'store', 'edit', 'update'] ]);
+        // Workstream CM: user management stays reachable by teamSA,
+        // but WHO may write WHOM is split by account level/target in
+        // the methods below (mayWriteUserTarget + the store() level
+        // check) — the constructor gate alone cannot express it.
+        // ('create' joins the gated list: it previously rendered the
+        // account form to any authenticated user who guessed the URL.)
+        $this->middleware('teamSA', ['only' => ['index', 'create', 'store', 'edit', 'update'] ]);
         $this->middleware('teamSA', ['only' => ['reset_pass','destroy'] ]);
 
         $this->user = $user;
@@ -31,7 +37,11 @@ class UserController extends Controller
     public function index()
     {
         $ut = $this->user->getAllTypes();
-        $ut2 = $ut->where('level', '>', 2);
+        // Workstream CM: the school Admin manages every school account
+        // incl. peer Admins (level >= 2); only super_admin (level 1)
+        // sits outside the school. store() enforces the same line
+        // server-side — the dropdown is no longer the only check.
+        $ut2 = $ut->where('level', '>=', 2);
 
         $d['user_types'] = Qs::userIsAdmin() ? $ut2 : $ut;
         $d['states'] = $this->loc->getStates();
@@ -55,6 +65,10 @@ class UserController extends Controller
     {
         $id = Qs::decodeHash($id);
         $d['user'] = $this->user->find($id);
+
+        if ($d['user'] && !$this->mayWriteUserTarget($d['user']->user_type)) {
+            return back()->with('flash_danger', __('msg.denied'));
+        }
         $d['states'] = $this->loc->getStates();
         $d['users'] = $this->user->getPTAUsers();
         $d['blood_groups'] = $this->user->getBloodGroups();
@@ -69,14 +83,53 @@ class UserController extends Controller
             return back()->with('flash_danger', __('msg.denied'));
         }
 
+        $target = $this->user->find($id);
+        if ($target && !$this->mayWriteUserTarget($target->user_type)) {
+            return back()->with('flash_danger', __('msg.denied'));
+        }
+
         $data['password'] = Hash::make('user');
         $this->user->update($id, $data);
         return back()->with('flash_success', __('msg.pu_reset'));
     }
 
+    /**
+     * Cross-boundary account protection (Workstream CM). School
+     * accounts and platform accounts are different domains:
+     *   - the Super Admin writes platform accounts (super_admin) and
+     *     the school's Admin accounts (provisioned at onboarding) —
+     *     never school staff accounts, which are school records;
+     *   - the school Admin writes every school account (admin and
+     *     below) — never a super_admin account.
+     * The head-SA rule (Qs::headSA) still applies on top of this.
+     */
+    protected function mayWriteUserTarget($targetType): bool
+    {
+        if (Qs::userIsSuperAdmin()) {
+            return in_array($targetType, ['super_admin', 'admin'], true);
+        }
+
+        if (Qs::userIsAdmin()) {
+            return $targetType !== 'super_admin';
+        }
+
+        return false;
+    }
+
     public function store(UserRequest $req)
     {
-        $user_type = $this->user->findType($req->user_type)->title;
+        /* Server-side level check (Workstream CM): the create form's
+           dropdown filter used to be the ONLY enforcement, so a
+           crafted POST could create an above-level account (e.g. an
+           Admin creating a super_admin). Nobody creates an account
+           type above their own level. */
+        $type = $this->user->findType($req->user_type);
+        $actorType = $this->user->getAllTypes()->firstWhere('title', Auth::user()->user_type);
+        if (!$type || !$actorType || (int) $type->level < (int) $actorType->level) {
+            return Qs::json(__('msg.denied'), FALSE);
+        }
+
+        $user_type = $type->title;
 
         $data = $req->except(Qs::getStaffRecord());
         $data['name'] = ucwords($req->name);
@@ -129,6 +182,10 @@ class UserController extends Controller
         }
 
         $user = $this->user->find($id);
+
+        if ($user && !$this->mayWriteUserTarget($user->user_type)) {
+            return Qs::json(__('msg.denied'), FALSE);
+        }
 
         $user_type = $user->user_type;
         $user_is_staff = in_array($user_type, Qs::getStaff());
@@ -191,6 +248,10 @@ class UserController extends Controller
 
         $user = $this->user->find($id);
 
+        if ($user && !$this->mayWriteUserTarget($user->user_type)) {
+            return back()->with('pop_error', __('msg.denied'));
+        }
+
         if($user->user_type == 'teacher' && $this->userTeachesSubject($user)) {
             return back()->with('pop_error', __('msg.del_teacher'));
         }
@@ -214,7 +275,7 @@ class UserController extends Controller
         // Batch 5A: the create form is its own page (users/create) —
         // it used to render the whole index page with every user table.
         $ut = $this->user->getAllTypes();
-        $ut2 = $ut->where('level', '>', 2);
+        $ut2 = $ut->where('level', '>=', 2);
 
         $d['user_types'] = Qs::userIsAdmin() ? $ut2 : $ut;
         $d['states'] = $this->loc->getStates();

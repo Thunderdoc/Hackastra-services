@@ -88,7 +88,7 @@
             @include('pages.support_team.marks.show.comments')
 
             {{-- SKILL RATING (staff entry forms; hidden from students/parents) --}}
-            @if($skills && Qs::userIsTeamSAT())
+            @if($skills && Qs::userIsTeamSATWrite())
                 @include('pages.support_team.marks.show.skills')
             @endif
 

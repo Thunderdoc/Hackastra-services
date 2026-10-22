@@ -20,6 +20,8 @@ class BookRequestController extends Controller
     public function __construct()
     {
         $this->middleware('teamLibrary');
+        // Workstream CM: loan writes (issue/return) — Admin + Librarian.
+        $this->middleware('teamLibraryWrite', ['only' => ['create', 'store', 'markReturned']]);
     }
 
     public function index(Request $request)

@@ -10,6 +10,26 @@ use App\Repositories\SettingRepo;
 
 class SettingController extends Controller
 {
+    /*
+     * Settings field ownership (Workstream CM — owner ruling on the
+     * SA/Admin boundary). The single settings endpoint is split by
+     * FIELD, not by page:
+     *   - SCHOOL_FIELDS: the school's own identity/operations — writable
+     *     by the school Admin; the Super Admin views them read-only.
+     *   - PLATFORM_FIELDS: platform-level keys — writable by the Super
+     *     Admin only. No platform keys exist in the form today; any
+     *     future platform key MUST be listed here, because an unlisted
+     *     key defaults to school-owned.
+     * A save that reaches across the boundary is refused whole.
+     */
+    public const SCHOOL_FIELDS = [
+        'system_name', 'system_title', 'current_session', 'address',
+        'phone', 'system_email', 'alt_email', 'term_begins', 'term_ends',
+        'lock_exam', 'principal_name', 'logo', 'school_stamp',
+    ];
+
+    public const PLATFORM_FIELDS = [];
+
     protected $setting, $my_class;
 
     public function __construct(SettingRepo $setting, MyClassRepo $my_class)
@@ -30,6 +50,24 @@ class SettingController extends Controller
 
     public function update(SettingUpdate $req)
     {
+        /* Field-ownership split (see the constants above): an Admin's
+           save may not carry platform keys; a Super Admin's save may
+           not carry school keys (SA reads school settings, the school
+           Admin writes them). */
+        $posted = array_keys($req->except('_token', '_method', 'school_stamp_remove'));
+        if ($req->hasFile('logo')) {
+            $posted[] = 'logo';
+        }
+        if ($req->hasFile('school_stamp') || $req->filled('school_stamp_remove')) {
+            $posted[] = 'school_stamp';
+        }
+        $platformPosted = array_intersect($posted, self::PLATFORM_FIELDS);
+        $schoolPosted = array_diff($posted, self::PLATFORM_FIELDS);
+
+        if ((Qs::userIsAdmin() && $platformPosted) || (Qs::userIsSuperAdmin() && $schoolPosted)) {
+            return back()->with('flash_danger', __('msg.denied'));
+        }
+
         $sets = $req->except('_token', '_method', 'logo', 'school_stamp', 'school_stamp_remove');
         $sets['lock_exam'] = $sets['lock_exam'] == 1 ? 1 : 0;
         $keys = array_keys($sets);

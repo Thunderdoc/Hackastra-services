@@ -6,12 +6,14 @@
             <span class="text-muted">{{ $months[$month] }} {{ $year }}</span>
             {!! Qs::getPanelOptions() !!}
             <div class="header-elements">
+                @if(Qs::userIsTeamAccountWrite())
                 <form method="POST" action="{{ route('payroll.generate') }}" class="pay-generate-form">
                     @csrf
                     <input type="hidden" name="year" value="{{ $year }}">
                     <input type="hidden" name="month" value="{{ $month }}">
                     <button type="submit" class="btn btn-primary btn-sm"><i class="icon-stack-plus mr-1"></i> Generate Missing</button>
                 </form>
+                @endif
             </div>
         </div>
         <div class="card-body">
@@ -111,15 +113,17 @@
                                 </td>
                                 <td class="text-right pay-actions">
                                     <a href="{{ route('payroll.payslip', $rec->id) }}" class="btn btn-light btn-sm"><i class="icon-file-text2 mr-1"></i> Payslip</a>
-                                    @if(!$rec->isPaid())
+                                    @if(!$rec->isPaid() && Qs::userIsTeamAccountWrite())
                                         <form method="POST" action="{{ route('payroll.pay', $rec->id) }}" class="d-inline" data-confirm="Mark salary as paid for {{ $member->name }}?" data-confirm-title="Mark Salary as Paid" data-confirm-action="Mark Paid">
                                             @csrf
                                             <button type="submit" class="btn btn-success btn-sm"><i class="icon-checkmark3 mr-1"></i> Mark Paid</button>
                                         </form>
                                     @endif
+                                    @if(Qs::userIsTeamAccountWrite())
                                     <button type="button" class="btn btn-primary btn-sm" data-toggle="collapse" data-target="#pay-form-{{ $member->id }}">
                                         <i class="icon-pencil7 mr-1"></i> Edit
                                     </button>
+                                    @endif
                                 </td>
                             @else
                                 <td class="text-right text-muted" colspan="4">—</td>
@@ -134,6 +138,7 @@
                         <tr class="pay-edit-row">
                             <td colspan="9" class="p-0">
                                 <div class="collapse" id="pay-form-{{ $member->id }}">
+                                    @if(Qs::userIsTeamAccountWrite())
                                     <form method="POST" action="{{ $rec ? route('payroll.update', $rec->id) : route('payroll.store') }}" class="pay-form">
                                         @csrf
                                         @if($rec) @method('PUT') @endif
@@ -168,6 +173,7 @@
                                             </div>
                                         </div>
                                     </form>
+                                    @endif
                                 </div>
                             </td>
                         </tr>

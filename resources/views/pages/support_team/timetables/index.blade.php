@@ -2,7 +2,7 @@
 @section('page_title', 'Manage TimeTables')
 @section('content')
 
-    @if(Qs::userIsTeamSA())
+    @if(Qs::userIsTeamSAWrite())
     {{-- Workstream BW: create form rebuilt on form_page (was a
          legacy row of col-md-* form-groups in its own card). Same
          .ajax-store POST to ttr.store, same fields/bindings; the
@@ -90,7 +90,7 @@
                                             <div class="ttx-actions">
                                                 <a href="{{ route('ttr.show', $ttr->id) }}" class="btn btn-light btn-sm"><i class="icon-eye mr-1"></i> View</a>
                                                 <a target="_blank" href="{{ route('ttr.print', $ttr->id) }}" class="btn btn-light btn-sm"><i class="icon-printer mr-1"></i> Print</a>
-                                                @if(Qs::userIsTeamSA())
+                                                @if(Qs::userIsTeamSAWrite())
                                                     <a href="{{ route('ttr.manage', $ttr->id) }}" class="btn btn-light btn-sm"><i class="icon-plus-circle2 mr-1"></i> Manage</a>
                                                     <a href="{{ route('ttr.edit', $ttr->id) }}" class="btn btn-light btn-sm"><i class="icon-pencil mr-1"></i> Edit</a>
                                                     <a id="{{ $ttr->id }}" onclick="confirmDelete(this.id)" href="#" class="btn btn-light btn-sm text-danger"><i class="icon-trash mr-1"></i> Delete</a>

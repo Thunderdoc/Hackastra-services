@@ -64,6 +64,9 @@ class StudentBulkController extends Controller
     public function __construct(LocationRepo $loc, MyClassRepo $my_class, UserRepo $user, StudentRepo $student)
     {
         $this->middleware('teamSA');
+        // Workstream CM: import + bulk delete are school writes —
+        // Admin only; SA keeps the page and the template download.
+        $this->middleware('teamSAWrite', ['only' => ['importStore', 'bulkDelete']]);
 
         $this->loc = $loc;
         $this->my_class = $my_class;

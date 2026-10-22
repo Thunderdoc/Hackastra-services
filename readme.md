@@ -1,136 +1,143 @@
-## **Hackstra School Management System**
+# Hackstra — School Management System
 
-**Hackstra** is a school-management platform for educational institutions. It is currently being modernized from its original Laravel 8 foundation.
+**Hackstra** is a complete school management system built to take a school fully digital — admissions, attendance, exams, fees, library and communication in one place, with nothing left on pen and paper. Every document a school prints today — marksheets, receipts, admit cards, ID cards, payslips — is generated, printed and exported from inside the app.
 
-**SCREENSHOTS** 
+Developed and maintained by **Ankit Kumar**.
 
-**Dashboard**
-<img src="https://i.ibb.co/D4T0z6T/dashboard.png" alt="dashboard" border="0">
+**Login** (`docs/screenshots/login.png`)
+*The split-screen sign-in page — each school's name, logo and session are configured in Settings.*
 
-**Login**
-<img src="https://i.ibb.co/Rh1Bfwk/login.png" alt="login" border="0">
+## Screenshots
 
-**Student Marksheet**
-<img src="https://i.ibb.co/GCgv5ZR/marksheet.png" alt="marksheet" border="0">
+*Screenshot files live in `docs/screenshots/` and are delivered with each release build. Add the PNG files to that folder and these entries display inline.*
 
-**System Settings**
-<img src="https://i.ibb.co/Kmrhw69/system-settings.png" alt="system-settings" border="0">
+**Platform Overview** (`docs/screenshots/platform-overview.png`)
+*Platform Overview — the Super Admin's cross-school command view: user accounts by role, audit activity and a configuration checklist.*
 
-**Print Marksheet**
-<div style="clear: both"> </div>
-<img src="https://i.ibb.co/5c1GHCj/capture-20210530-115521-crop.png" alt="print-marksheet">
+**School Dashboard** (`docs/screenshots/super-admin-dashboard.png`)
+*School Dashboard — enrolment, fee collection and today's attendance at a glance, with the school calendar.*
 
-**Print Tabulation Sheet & Marksheet**
-<img src="https://i.ibb.co/QmscPfn/capture-20210530-115802.png" alt="tabulation-sheet" border="0">
+**Admin Dashboard** (`docs/screenshots/admin-dashboard.png`)
+*Admin home — the school operator's daily board: totals, quick actions, enrolment trend, fee collection and attendance donut.*
 
-<hr />  
+**Teacher Dashboard** (`docs/screenshots/teacher-dashboard.png`)
+*Teacher home — my subjects, my classes, today's timetable and one-tap attendance.*
 
-There are 7 types of user accounts. They include:
- 
-Administrators (Super Admin & Admin)
-- Librarian
-- Accountant
-- Teacher
-- Student
-- Parent
+**Attendance Register** (`docs/screenshots/attendance-register.png`)
+*Period attendance register — tappable Present / Absent / Late controls, a topic-taught log and a locked, final submission.*
 
-**Requirements**
+**Payments** (`docs/screenshots/payments.png`)
+*Collect Fee — find any student by name, admission number or class and jump straight to their payment records.*
 
-- PHP 8.2 (development target while the staged Laravel upgrade runs — see `docs/MODERNIZATION.md`)
-- Composer 2, MySQL 8 (or MariaDB 10.6+), Node 20 for the legacy frontend build
-- PHP extensions: openssl, pdo_mysql, mbstring, fileinfo, tokenizer, xml, ctype, json, curl, zip
+**Student Marksheet** (`docs/screenshots/marksheet.png`)
+*Student marksheet — component-wise scores (Theory / Internal / Viva) under a configurable marking scheme, ready to print.*
 
-**Installation**
-- Install dependencies (`composer install`)
-- Copy `.env.example` to `.env`, set database credentials, and run `php artisan key:generate`
-- Migrate the database (`php artisan migrate`)
-- Seed the database (`php artisan db:seed`)
-- Optional demo data for the dashboard (students' fees, marks, school events): `php artisan db:seed --class=DashboardDemoDataSeeder`
+**My Account** (`docs/screenshots/my-account.png`)
+*My Account — one-screen profile, password, notifications and preferences, the same for every role.*
 
-> ⚠️ The seeded credentials below are **demo-only**. Rotate every one of them before any public deployment. Production must run with `APP_ENV=production` and `APP_DEBUG=false`.
+| Mobile | |
+| --- | --- |
+| **Admin dashboard on mobile** (`docs/screenshots/mobile-dashboard.png`) | **Attendance register on mobile** (`docs/screenshots/mobile-attendance.png`) |
+| *The Admin dashboard on a phone — fully responsive, no sideways scrolling.* | *Taking the register on a phone — big touch targets, same locked submission.* |
 
-**What's new in the modernization (see `docs/MODERNIZATION.md` for the full plan)**
-- Super Admin dashboard rebuilt to the current design: real fee totals in ₹, enrollment trend, school calendar, upcoming events, smart insights
-- Daily **Attendance** (sidebar) — one record per student per day, powering the dashboard panel
-- **School Events** management (sidebar) — powers the calendar and Upcoming Events
-- **Global search** in the top bar (`Ctrl + K`) across students, staff, classes and payments
-- Record-level policies for students and payments; CI on PHP 8.2
+## Features
 
-**Login Credentials**
-After seeding. Login details as follows:
+**Platform & roles**
+- Seven role portals — Super Admin, Admin, Teacher, Student, Parent, Accountant, Librarian — each with its own home, menu and permissions
+- Platform Overview for the Super Admin (platform owner) across schools, plus a per-school dashboard
+- Role-based data scoping enforced on the server: a teacher sees only their own classes, a parent only their own children
 
-| Account Type  | Username | Email | Password |
-| ------------- | -------- | ----- | -------- |
-| Super Admin | cj | cj@cj.com | cj |
-|  Admin | admin | admin@admin.com | cj |
-|  Teacher | teacher | teacher@teacher.com | cj |
-|  Parent | parent | parent@parent.com | cj |
-|  Accountant | accountant | accountant@accountant.com | cj |
-|  Student | student | student@student.com | cj |
+**Students**
+- Student records with photos, classes and sections; bulk CSV import with a downloadable template
+- Bulk actions, promotions, graduations and printable student ID cards
 
-#### **FUNCTIONS OF ACCOUNTS** 
+**Attendance**
+- Period-wise attendance register with Present / Absent / Late, topic-taught log and final locked submission
+- Attendance reports, CSV export and a low-attendance (below 75%) defaulter list
 
-**-- SUPER ADMIN**
-- Only Super Admin can delete any record
-- Create any user account
- 
-**-- Administrators (Super Admin & Admin)**
+**Exams & marks**
+- Exams with configurable marking schemes (components such as Theory, Internal Assessment and Viva that sum to 100)
+- Marks entry per subject, class tabulation sheets, and a publish switch that controls when results become visible to students and parents
+- Printable term marksheets and an Annual / Cumulative Report Card
+- Admit cards that students and parents can download and print
 
-- Manage students class/sections
-- View marksheet of students
-- Create, Edit and manage all user accounts & profiles
-- Create, Edit and manage Exams & Grades
-- Create, Edit and manage Subjects
-- Manage noticeboard of school
-- Notices are visible in calendar in dashboard
-- Edit system settings
-- Manage Payments & fees
+**Fees & payments**
+- Collect Fee: search by student name, admission number or anything, record full or part payment, print the receipt
+- Invoices, payment receipts with amount in words, a collection report and a Fee Defaulters report that prints on one page
+- CSV exports for payment records
 
-**-- ACCOUNTANT**
-- Manage Payments & fees
-- Print Payment Receipts
+**Library**
+- Book catalogue with covers, issue/return loans and student book requests
 
-**-- LIBRARIAN**
-- Manage Books in the Library
+**Communication**
+- Circulars with audience targeting (staff / parents / students) and priority levels, a notification bell with upcoming events, and staff messages
 
-**-- TEACHER**
-- Manage Own Class/Section
-- Manage Exam Records for own Subjects
-- Manage Timetable if Assigned as Class Teacher
-- Manage own profile
-- Upload Study Materials
+**Office & insight**
+- Timetables per class, staff payroll with status tracking and printable payslips
+- Audit log of security-relevant actions (logins, payments, deletions, mark changes)
+- Global search (Ctrl + K), dark mode, and professional print layouts with school header/footer on every document
 
-**-- STUDENT**
-- View teacher profile
-- View own class subjects
-- View own marks and class timetable
-- View Payments
-- View library and book status
-- View noticeboard and school events in calendar
-- Manage own profile
+## Tech stack
 
-**-- PARENT**
-- View teacher profile
-- View own child's marksheet (Download/Print PDF)
-- View own child's Timetable
-- View own child's payments
-- View noticeboard and school events in calendar
-- Manage own profile
+- Laravel 11 · PHP 8.4 · Blade · Bootstrap 4 (Limitless) + custom design system
+- MySQL / MariaDB in production; SQLite used for local development
+- Docker images for demo (bundled database) and production (external MySQL)
 
-### **Contributing**
+## Running it
 
-Your Contributions & suggestions are welcomed. Please use Pull Request
+### Demo (single container, Render-style)
 
-### **Security Vulnerabilities**
+```bash
+docker build -f Dockerfile.render -t hackstra-demo .
+docker run -p 8080:80 -e APP_KEY=<your-app-key> hackstra-demo
+```
 
-If you discover a security vulnerability within Hackstra, report it privately to the project owner before publicly disclosing it. Do not include passwords, tokens, or private student data in an issue.
+The demo image bundles its own MariaDB and re-seeds demo data on every start — data is intentionally ephemeral.
 
-***Please Note*** that some sections of this project are in the work-in-progress stage and would be updated soon. These include:
+### Production (Docker + external MySQL)
 
-- The Noticeboard/Calendar in the Dashboard Area
-- Librarian/Acountant user pages
-- Library Resources/Study Materials Upload for Students
+```bash
+docker build -t hackstra .
+docker run -p 8080:80 \
+  -e APP_KEY=<your-app-key> -e APP_ENV=production -e APP_DEBUG=false \
+  -e DB_HOST=<mysql-host> -e DB_DATABASE=<db> -e DB_USERNAME=<user> -e DB_PASSWORD=<pass> \
+  hackstra
+```
 
-### **Project identity**
-- Product name: Hackstra
-- School name and contact details should be configured in the application Settings page.
+Migrations run automatically on boot. Set `SEED_DEMO=true` **only** for demos — never on a real school deployment. See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for the full Railway/Render walkthrough.
+
+### Local development
+
+```bash
+composer install
+cp .env.example .env
+php artisan key:generate
+php artisan migrate --seed
+php artisan serve
+```
+
+## Demo logins
+
+Available after seeding (`php artisan db:seed`, or any `SEED_DEMO=true` deployment). **Demo-only — change or remove every one before real use.**
+
+| Role | Email | Password |
+| --- | --- | --- |
+| Super Admin | superadmin@hackstra.app | hackstra |
+| Admin | admin@hackstra.app | hackstra |
+| Teacher | teacher@hackstra.app | hackstra |
+| Parent | parent@hackstra.app | hackstra |
+| Accountant | accountant@hackstra.app | hackstra |
+| Librarian | librarian@hackstra.app | hackstra |
+| Student | student@hackstra.app | hackstra |
+
+The demo school is **Hackstra Academy**. Additional sample accounts are also seeded (extra teachers `teacher1–3@teacher.com`, password `teacher`; extra students, password `student`).
+
+## Security
+
+If you discover a security vulnerability in Hackstra, please report it privately to the project owner before publicly disclosing it. Do not include passwords, tokens, or private student data in a public issue. See [SECURITY.md](SECURITY.md).
+
+## License & ownership
+
+Hackstra is released under the MIT License — see [LICENSE](LICENSE).
+
+© Ankit Kumar. Developed and maintained by Ankit Kumar; originally based on an open-source school-management codebase, extensively rebuilt.

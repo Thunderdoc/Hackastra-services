@@ -19,7 +19,9 @@
             Grade bands used to convert marks into grades and remarks.
         @endslot
         @slot('action')
+            @if(Qs::userIsTeamSAWrite())
             <a href="#add-grade" class="btn btn-primary"><i class="icon-plus2 mr-2"></i> Add Grade</a>
+            @endif
         @endslot
 
         @if($grades->count())
@@ -44,7 +46,7 @@
                         <td>{{ $gr->mark_from.' - '.$gr->mark_to }}</td>
                         <td>{{ $gr->remark }}</td>
                         <td class="text-center">
-                            @if(Qs::userIsTeamSA())
+                            @if(Qs::userIsTeamSAWrite())
                                 <a href="{{ route('grades.edit', $gr->id) }}" class="btn btn-sm btn-primary"><i class="icon-pencil"></i> Edit</a>
                                 <button type="button" id="{{ $gr->id }}" onclick="confirmDelete(this.id)" class="btn btn-sm btn-danger"><i class="icon-trash"></i> Delete</button>
                                 <form method="post" id="item-delete-{{ $gr->id }}" action="{{ route('grades.destroy', $gr->id) }}" class="hidden">@csrf @method('delete')</form>
@@ -64,6 +66,7 @@
     @endcomponent
 
     <div id="add-grade">
+        @if(Qs::userIsTeamSAWrite())
         @component('partials.patterns.form_page', [
             'form_action' => route('grades.store'),
             'submit_label' => 'Submit form',
@@ -112,5 +115,6 @@
                 </div>
             </div>
         @endcomponent
+        @endif
     </div>
 @endsection

@@ -4,7 +4,8 @@
 
     <div class="card">
         <div class="card-header header-elements-inline">
-            <h6 class="card-title">Admit Cards</h6>
+            {{-- Workstream CO: card title removed — it repeated the
+                 page title verbatim (the common header owns titles). --}}
             {!! Qs::getPanelOptions() !!}
         </div>
 

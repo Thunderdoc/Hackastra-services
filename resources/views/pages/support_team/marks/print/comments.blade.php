@@ -1,4 +1,4 @@
-<div>
+<div class="rc-scroll">
     <table class="td-left" style="border-collapse:collapse;">
         <tbody>
         <tr>

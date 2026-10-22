@@ -15,8 +15,10 @@ class SectionController extends Controller
 
     public function __construct(MyClassRepo $my_class, UserRepo $user)
     {
-        $this->middleware('teamSA', ['except' => ['destroy',] ]);
-        $this->middleware('teamSA', ['only' => ['destroy',] ]);
+        // Workstream CM: reads (index/show) stay teamSA — SA keeps
+        // oversight; every write goes to the Admin write team.
+        $this->middleware('teamSA', ['only' => ['index', 'show']]);
+        $this->middleware('teamSAWrite', ['except' => ['index', 'show']]);
 
         $this->my_class = $my_class;
         $this->user = $user;

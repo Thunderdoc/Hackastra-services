@@ -1,4 +1,4 @@
-@if(Qs::userIsTeamSAT())
+@if(Qs::userIsTeamSATWrite())
     <div class="card">
         <div class="card-header header-elements-inline marks-section-header">
             <h6 class="card-title font-weight-bold">Exam Comments</h6>

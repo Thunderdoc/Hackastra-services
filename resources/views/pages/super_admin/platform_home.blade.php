@@ -127,8 +127,7 @@
                         </div>
                     </div>
                     <div class="platform-snap-foot">
-                        <p class="dashboard-muted mb-0">Day-to-day school operations live on the school dashboard.</p>
-                        <a href="{{ route('dashboard.school') }}" class="dashboard-view-all">Open School Dashboard <i class="icon-arrow-right7"></i></a>
+                        <p class="dashboard-muted mb-0">Day-to-day school operations live on the school dashboard — open it from the primary action above. (Zero-tolerance dedup: this panel no longer repeats that link.)</p>
                     </div>
                 </div>
             </section>
@@ -141,13 +140,16 @@
                     <div><h5 class="mb-1"><i class="icon-rocket text-blue mr-1"></i> Platform Actions</h5><p class="dashboard-muted mb-0">Platform-level administration.</p></div>
                 </div>
                 <div class="dashboard-action-grid l17-action-grid">
-                    <a href="{{ route('users.index') }}"><i class="icon-users4"></i><span>Manage Users</span></a>
+                    {{-- Zero-tolerance dedup: no "Manage Users" tile here — the
+                         Users panel footer below is that path; no "Audit Logs"
+                         tile either — the Activity panel footer is that path. --}}
                     <a href="{{ route('users.create') }}"><i class="icon-user-plus"></i><span>Create User</span></a>
                     <a href="{{ route('settings') }}"><i class="icon-cog5"></i><span>School Settings</span></a>
-                    <a href="{{ route('audit_logs.index') }}"><i class="icon-history"></i><span>Audit Logs</span></a>
                     <a href="{{ route('grades.index') }}"><i class="icon-book"></i><span>Grades Setup</span></a>
                     <a href="{{ route('sections.index') }}"><i class="icon-windows2"></i><span>Sections</span></a>
-                    <a href="{{ route('dashboard.school') }}"><i class="icon-stats-growth"></i><span>School Dashboard</span></a>
+                    {{-- Workstream CO + zero-tolerance dedup: no "School
+                         Dashboard" tile here — the hero "Open School
+                         Dashboard" primary action is the one path there. --}}
                 </div>
             </section>
 

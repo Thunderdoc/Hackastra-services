@@ -68,6 +68,10 @@ class Kernel extends HttpKernel
         'teamSAT' => \App\Http\Middleware\Custom\TeamSAT::class,
         'teamAccount' => \App\Http\Middleware\Custom\TeamAccount::class,
         'teamLibrary' => \App\Http\Middleware\Custom\TeamLibrary::class,
+        'teamSAWrite' => \App\Http\Middleware\Custom\TeamSAWrite::class,
+        'teamSATWrite' => \App\Http\Middleware\Custom\TeamSATWrite::class,
+        'teamAccountWrite' => \App\Http\Middleware\Custom\TeamAccountWrite::class,
+        'teamLibraryWrite' => \App\Http\Middleware\Custom\TeamLibraryWrite::class,
         'examIsLocked' => \App\Http\Middleware\Custom\ExamIsLocked::class,
         'my_parent' => \App\Http\Middleware\Custom\MyParent::class,
     ];

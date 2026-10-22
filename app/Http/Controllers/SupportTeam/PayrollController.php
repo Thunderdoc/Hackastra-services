@@ -32,6 +32,10 @@ class PayrollController extends Controller
     public function __construct()
     {
         $this->middleware('teamAccount')->except(['myIndex', 'myPayslip']);
+        // Workstream CM: payroll writes (create/edit/generate/mark
+        // paid) belong to Admin + Accountant; SA keeps the month view
+        // and payslip oversight.
+        $this->middleware('teamAccountWrite', ['only' => ['store', 'update', 'generate', 'pay']]);
     }
 
     /* ------------------------- Management ------------------------- */

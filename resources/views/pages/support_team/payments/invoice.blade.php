@@ -84,6 +84,7 @@
 
                             {{--Pay Now Form--}}
                             <td>
+                                @if(Qs::userIsTeamAccountWrite())
                                 <form id="{{ Qs::hash($uc->id) }}" method="post" class="ajax-pay" action="{{ route('payments.pay_now', Qs::hash($uc->id)) }}">
                                     @csrf
                              <div class="row">
@@ -95,6 +96,7 @@
                                  </div>
                              </div>
                                 </form>
+                                @endif
                             </td>
                             {{--Receipt No--}}
                             <td>{{ $uc->ref_no }}</td>
@@ -109,8 +111,10 @@
                                     <div class="dropdown-menu dropdown-menu-right">
 
                                             {{--Reset Payment--}}
+                                            @if(Qs::userIsTeamAccountWrite())
                                             <a id="{{ Qs::hash($uc->id) }}" onclick="confirmReset(this.id)" href="#" class="dropdown-item"><i class="icon-reset"></i> Reset Payment</a>
                                             <form method="post" id="item-reset-{{ Qs::hash($uc->id) }}" action="{{ route('payments.reset_record', Qs::hash($uc->id)) }}" class="hidden">@csrf @method('delete')</form>
+                                            @endif
 
                                             {{--Receipt--}}
                                                 <a target="_blank" href="{{ route('payments.receipts', Qs::hash($uc->id)) }}" class="dropdown-item"><i class="icon-printer"></i> Print Receipt</a>
@@ -183,8 +187,10 @@
                                     <div class="dropdown-menu dropdown-menu-right">
 
                                             {{--Reset Payment--}}
+                                            @if(Qs::userIsTeamAccountWrite())
                                             <a id="{{ Qs::hash($cl->id) }}" onclick="confirmReset(this.id)" href="#" class="dropdown-item"><i class="icon-reset"></i> Reset Payment</a>
                                             <form method="post" id="item-reset-{{ Qs::hash($cl->id) }}" action="{{ route('payments.reset_record', Qs::hash($cl->id)) }}" class="hidden">@csrf @method('delete')</form>
+                                            @endif
 
                                             {{--Receipt--}}
                                             <a target="_blank" href="{{ route('payments.receipts', Qs::hash($cl->id)) }}" class="dropdown-item"><i class="icon-printer"></i> Print Receipt</a>

@@ -5,7 +5,9 @@
         <div class="card-header header-elements-inline">
             <div>
                 <a href="{{ route('books.index') }}" class="btn btn-light btn-sm"><i class="icon-books mr-1"></i> Catalogue</a>
+                @if(Qs::userIsTeamLibraryWrite())
                 <a href="{{ route('book_requests.create') }}" class="btn btn-primary btn-sm"><i class="icon-plus2 mr-1"></i> Issue a Book</a>
+                @endif
             </div>
         </div>
         <div class="card-body">

@@ -34,7 +34,7 @@
         @slot('action')
             <button type="button" class="btn btn-light btn-sm" onclick="window.print()"><i class="icon-printer mr-1"></i> Print</button>
             <a href="{{ route('students.export', $selected_section ? [$my_class->id, $selected_section->id] : $my_class->id) }}" class="btn btn-primary btn-sm"><i class="icon-download mr-1"></i> Export{{ $selected_section ? ' Section' : '' }}</a>
-            @if(Qs::userIsTeamSA())
+            @if(Qs::userIsTeamSAWrite())
                 <a href="{{ route('students.import') }}" class="btn btn-success btn-sm"><i class="icon-upload mr-1"></i> Import CSV</a>
             @endif
         @endslot
@@ -62,7 +62,7 @@
             </form>
         @endslot
 
-        @if(Qs::userIsTeamSA())
+        @if(Qs::userIsTeamSAWrite())
             {{-- Bulk delete (Workstream AA). The form deliberately does
                  NOT wrap the table: every row already contains its own
                  (hidden) delete form, and nested forms are invalid HTML.
@@ -91,7 +91,7 @@
                 <table class="table">
                     <thead>
                     <tr>
-                        @if(Qs::userIsTeamSA())
+                        @if(Qs::userIsTeamSAWrite())
                             <th class="print-hide"><input type="checkbox" id="bulk-check-all" title="Select all"></th>
                         @endif
                         <th class="print-nowrap">S/N</th>
@@ -106,7 +106,7 @@
                     <tbody>
                     @foreach($listed as $s)
                         <tr>
-                            @if(Qs::userIsTeamSA())
+                            @if(Qs::userIsTeamSAWrite())
                                 <td class="print-hide"><input type="checkbox" class="bulk-check" value="{{ $s->id }}"></td>
                             @endif
                             <td class="print-nowrap">{{ $loop->iteration }}</td>
@@ -124,7 +124,7 @@
 
                                         <div class="dropdown-menu dropdown-menu-left">
                                             <a href="{{ route('students.show', Qs::hash($s->id)) }}" class="dropdown-item"><i class="icon-eye"></i> View Profile</a>
-                                            @if(Qs::userIsTeamSA())
+                                            @if(Qs::userIsTeamSAWrite())
                                                 <a href="{{ route('students.edit', Qs::hash($s->id)) }}" class="dropdown-item"><i class="icon-pencil"></i> Edit</a>
                                                 <form method="post" action="{{ route('st.reset_pass', Qs::hash($s->user->id)) }}" class="m-0" data-confirm="Reset this student's password to the default? They will need the default password to sign in again." data-confirm-title="Reset password" data-confirm-action="Reset password">@csrf<button type="submit" class="dropdown-item"><i class="icon-lock"></i> Reset password</button></form>
                                             @endif
@@ -137,7 +137,7 @@
                                             @endif
 
                                             {{--Delete--}}
-                                            @if(Qs::userIsTeamSA())
+                                            @if(Qs::userIsTeamSAWrite())
                                                 <a id="{{ Qs::hash($s->user->id) }}" onclick="confirmDelete(this.id)" href="#" class="dropdown-item"><i class="icon-trash"></i> Delete</a>
                                                 <form method="post" id="item-delete-{{ Qs::hash($s->user->id) }}" action="{{ route('students.destroy', Qs::hash($s->user->id)) }}" class="hidden">@csrf @method('delete')</form>
                                             @endif
@@ -162,7 +162,7 @@
 
 @endsection
 
-@if(Qs::userIsTeamSA())
+@if(Qs::userIsTeamSAWrite())
 @section('scripts')
 <script>
         (function () {

@@ -35,6 +35,10 @@ class PaymentController extends Controller
         $this->student = $student;
 
         $this->middleware('teamAccount');
+        // Workstream CM: fee writes (record payment, reset, fee CRUD)
+        // belong to the school's Admin + Accountant. SA keeps every
+        // read/document above (index, invoice, receipts, exports).
+        $this->middleware('teamAccountWrite', ['only' => ['create', 'store', 'edit', 'update', 'destroy', 'pay_now', 'reset_record']]);
     }
 
     public function index()

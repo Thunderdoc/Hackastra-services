@@ -11,7 +11,9 @@
          sentence. Pagination links unchanged. --}}
     @component('partials.patterns.list_page')
         @slot('action')
+            @if(Qs::userIsTeamSAWrite())
             <a href="{{ route('events.create') }}" class="btn btn-primary btn-sm"><i class="icon-plus2 mr-1"></i> New Event</a>
+            @endif
         @endslot
 
         @if(session('flash_success'))
@@ -22,7 +24,7 @@
             @include('partials.patterns.empty_state', [
                 'icon' => 'icon-calendar3',
                 'message' => 'No events yet. Create the first one — it will appear on the dashboard calendar and Upcoming Events.',
-                'action_url' => route('events.create'),
+                'action_url' => Qs::userIsTeamSAWrite() ? route('events.create') : null,
                 'action_label' => 'New Event',
             ])
         @else
@@ -36,8 +38,8 @@
                         <td><span class="badge badge-light">{{ $types[$event->type] ?? $event->type }}</span></td>
                         <td>{{ $event->all_day ? 'Yes' : 'No' }}</td>
                         <td>
+                            @if(Qs::userIsTeamSAWrite())
                             <a href="{{ route('events.edit', $event->id) }}" class="btn btn-light btn-sm">Edit</a>
-                            @if(Qs::userIsTeamSA())
                                 <form method="post" action="{{ route('events.destroy', $event->id) }}" style="display:inline" data-confirm="Delete this event? This cannot be undone." data-confirm-title="Delete Event" data-confirm-action="Delete" data-confirm-danger>@csrf @method('delete')<button class="btn btn-light btn-sm text-danger">Delete</button></form>
                             @endif
                         </td>

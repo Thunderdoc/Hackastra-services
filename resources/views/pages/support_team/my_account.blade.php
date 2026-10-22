@@ -340,17 +340,11 @@
                         </div>
                     </div>
 
-                    <form method="post" action="{{ route('my_account.preferences') }}" id="acct-rail-email-form">
-                        @csrf
-                        <input type="hidden" name="tab" value="notifications">
-                        <input type="hidden" name="notify_email_present" value="1">
-                        <div class="acct-toggle-row acct-toggle-row-flat">
-                            <span class="acct-toggle-icon acct-tint-blue"><i class="icon-bell2"></i></span>
-                            <span class="acct-toggle-text"><strong>Email Notifications</strong><small>Receive important updates via email.</small></span>
-                            <label class="acct-switch"><input type="checkbox" name="notify_email" value="1" id="acct-rail-email-toggle" {{ ($prefs['notify_email'] ?? '1') === '1' ? 'checked' : '' }}><span></span></label>
-                        </div>
-                    </form>
-
+                    {{-- Workstream CO: the rail card used to repeat the
+                         Notifications panel's Email Notifications toggle
+                         (same setting, same label, same page). Removed —
+                         the Notifications tab owns notification settings;
+                         this card now only navigates. --}}
                     <button type="button" class="acct-link-row" data-acct-goto="preferences">
                         <span class="acct-toggle-icon acct-tint-orange"><i class="icon-calendar"></i></span>
                         <span class="acct-toggle-text"><strong>Date &amp; Time Format</strong><small>{{ ($prefs['date_format'] ?? 'd M Y') }} &middot; {{ ($prefs['time_format'] ?? '12') === '24' ? '24-hour' : '12-hour' }}</small></span>
@@ -517,14 +511,6 @@
                 btn.querySelector('i').className = show ? 'icon-eye-blocked' : 'icon-eye';
             });
         });
-
-        // Right-rail email toggle saves immediately.
-        var railToggle = document.getElementById('acct-rail-email-toggle');
-        if (railToggle) {
-            railToggle.addEventListener('change', function () {
-                document.getElementById('acct-rail-email-form').submit();
-            });
-        }
     })();
 </script>
 @endsection

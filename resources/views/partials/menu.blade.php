@@ -259,7 +259,9 @@
                                 <a href="#" class="nav-link {{ in_array(Route::currentRouteName(), ['payments.index', 'payments.edit', 'payments.create', 'payments.manage', 'payments.show', 'payments.invoice', 'payments.defaulters', 'payments.collection', 'payroll.index', 'payroll.payslip']) ? 'active' : '' }}">Payments</a>
 
                                 <ul class="nav nav-group-sub">
+                                    @if(Qs::userIsTeamAccountWrite())
                                     <li class="nav-item"><a href="{{ route('payments.create') }}" class="nav-link {{ Route::is('payments.create') ? 'active' : '' }}">Create Payment</a></li>
+                                    @endif
                                     <li class="nav-item"><a href="{{ route('payments.index') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['payments.index', 'payments.edit', 'payments.show']) ? 'active' : '' }}">Manage Payments</a></li>
                                     <li class="nav-item"><a href="{{ route('payments.manage') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['payments.manage', 'payments.invoice', 'payments.receipts']) ? 'active' : '' }}">Student Payments</a></li>
                                     <li class="nav-item"><a href="{{ route('payments.defaulters') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['payments.defaulters']) ? 'active' : '' }}">Fee Defaulters</a></li>
@@ -282,7 +284,7 @@
 
                         <ul class="nav nav-group-sub" data-submenu-title="Manage Students">
                             {{--Admit Student--}}
-                            @if(Qs::userIsTeamSA())
+                            @if(Qs::userIsTeamSAWrite())
                                 <li class="nav-item">
                                     <a href="{{ route('students.create') }}"
                                        class="nav-link {{ (Route::is('students.create')) ? 'active' : '' }}">Admit Student</a>
@@ -368,7 +370,7 @@
                             </li>
                         @endif
 
-                        @if(Qs::userIsTeamSAT())
+                        @if(Qs::userIsTeamSATWrite())
                             {{--Marks Manage--}}
                             <li class="nav-item">
                                 <a href="{{ route('marks.index') }}"
@@ -385,9 +387,11 @@
 
                         @if(Qs::userIsTeamSAT())
                             {{--Marksheet--}}
+                            @if(Qs::userIsTeamSATWrite())
                             <li class="nav-item">
                                 <a href="{{ route('marks.bulk') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['marks.bulk', 'marks.show']) ? 'active' : '' }}">Marksheet</a>
                             </li>
+                            @endif
 
                             {{--Admit Cards--}}
                             <li class="nav-item">
@@ -403,9 +407,11 @@
                             </li>
 
                             {{--Marks Correction (labelled "Batch Fix" before Workstream BG)--}}
+                            @if(Qs::userIsTeamSAWrite())
                             <li class="nav-item">
                                 <a href="{{ route('marks.batch_fix') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['marks.batch_fix']) ? 'active' : '' }}">Marks Correction</a>
                             </li>
+                            @endif
                         @endif
 
                     </ul>

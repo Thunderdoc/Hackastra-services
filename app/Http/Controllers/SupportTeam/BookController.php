@@ -19,7 +19,9 @@ class BookController extends Controller
     public function __construct()
     {
         $this->middleware('teamLibrary');
-        $this->middleware('teamSA', ['only' => ['destroy']]);
+        // Workstream CM: book writes (incl. delete, previously
+        // teamSA) belong to the school — Admin + Librarian.
+        $this->middleware('teamLibraryWrite', ['only' => ['create', 'store', 'edit', 'update', 'destroy']]);
     }
 
     public function index(Request $request)

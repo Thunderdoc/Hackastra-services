@@ -7,7 +7,9 @@
     @endphp
     <div class="card">
         <div class="card-header header-elements-inline">
+            @if(Qs::userIsTeamSAWrite())
             <a href="{{ route('circulars.create') }}" class="btn btn-primary btn-sm"><i class="icon-plus2 mr-1"></i> New Circular</a>
+            @endif
         </div>
         <div class="card-body">
             @if(session('flash_success'))
@@ -32,9 +34,9 @@
                             <td><span class="badge {{ $statusBadges[$circular->statusLabel()] ?? 'badge-light' }}">{{ $circular->statusLabel() }}</span></td>
                             <td>{{ $circular->publisher->name ?? '—' }}</td>
                             <td style="white-space:nowrap">
+                                @if(Qs::userIsTeamSAWrite())
                                 <a href="{{ route('circulars.edit', $circular->id) }}" class="btn btn-light btn-sm">Edit</a>
                                 <form method="post" action="{{ route('circulars.toggle_publish', $circular->id) }}" style="display:inline">@csrf @method('patch')<button type="submit" class="btn btn-light btn-sm">{{ $circular->is_published ? 'Unpublish' : 'Publish' }}</button></form>
-                                @if(Qs::userIsTeamSA())
                                     <form method="post" action="{{ route('circulars.destroy', $circular->id) }}" style="display:inline">@csrf @method('delete')<button type="submit" class="btn btn-light btn-sm text-danger" data-confirm="Delete this circular?" data-confirm-title="Delete Circular" data-confirm-action="Delete" data-confirm-danger>Delete</button></form>
                                 @endif
                             </td>

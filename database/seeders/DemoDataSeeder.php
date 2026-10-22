@@ -64,13 +64,13 @@ class DemoDataSeeder extends Seeder
             ->get();
 
         // Demo parent linkage: the seeded demo parent account
-        // (parent@parent.com) ships with no children linked, which
+        // (parent@hackstra.app) ships with no children linked, which
         // makes every parent page (children, fees, attendance, admit
         // cards) render its empty state in the sales demo. Link the
         // first two demo students to it so the parent portal shows
         // real data. Deterministic and idempotent.
         $demoParentId = DB::table('users')
-            ->where('email', 'parent@parent.com')->value('id');
+            ->where('email', 'parent@hackstra.app')->value('id');
         if ($demoParentId) {
             $firstTwo = DB::table('student_records')
                 ->where('grad', 0)->orderBy('id')->limit(2)->pluck('id');
@@ -667,7 +667,7 @@ class DemoDataSeeder extends Seeder
             return;
         }
 
-        $publisher = DB::table('users')->where('email', 'cj@cj.com')->value('id')
+        $publisher = DB::table('users')->where('email', 'superadmin@hackstra.app')->value('id')
             ?: DB::table('users')->where('user_type', 'super_admin')->value('id');
 
         // title, body, audience, priority
@@ -870,16 +870,16 @@ class DemoDataSeeder extends Seeder
         if (!Schema::hasTable('users')) {
             return;
         }
-        if (DB::table('users')->where('email', 'librarian@librarian.com')->exists()) {
+        if (DB::table('users')->where('email', 'librarian@hackstra.app')->exists()) {
             return;
         }
         DB::table('users')->insert([
             'name' => 'Revathi Subramanian',
-            'email' => 'librarian@librarian.com',
+            'email' => 'librarian@hackstra.app',
             'username' => 'librarian',
-            'password' => bcrypt('cj'),
+            'password' => bcrypt('hackstra'),
             'user_type' => 'librarian',
-            'code' => 'LIB' . strtoupper(substr(md5('librarian@librarian.com'), 0, 6)),
+            'code' => 'LIB' . strtoupper(substr(md5('librarian@hackstra.app'), 0, 6)),
             'created_at' => now(),
             'updated_at' => now(),
         ]);

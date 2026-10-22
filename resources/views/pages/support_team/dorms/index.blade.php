@@ -19,7 +19,9 @@
             All dormitories in the school.
         @endslot
         @slot('action')
+            @if(Qs::userIsTeamSAWrite())
             <a href="#add-dorm" class="btn btn-primary"><i class="icon-plus2 mr-2"></i> Create New Dorm</a>
+            @endif
         @endslot
 
         @if($dorms->count())
@@ -40,7 +42,7 @@
                         <td>{{ $d->name }}</td>
                         <td>{{ $d->description}}</td>
                         <td class="text-center">
-                            @if(Qs::userIsTeamSA())
+                            @if(Qs::userIsTeamSAWrite())
                                 <a href="{{ route('dorms.edit', $d->id) }}" class="btn btn-sm btn-primary"><i class="icon-pencil"></i> Edit</a>
                                 <button type="button" id="{{ $d->id }}" onclick="confirmDelete(this.id)" class="btn btn-sm btn-danger"><i class="icon-trash"></i> Delete</button>
                                 <form method="post" id="item-delete-{{ $d->id }}" action="{{ route('dorms.destroy', $d->id) }}" class="hidden">@csrf @method('delete')</form>
@@ -60,6 +62,7 @@
     @endcomponent
 
     <div id="add-dorm">
+        @if(Qs::userIsTeamSAWrite())
         @component('partials.patterns.form_page', [
             'form_action' => route('dorms.store'),
             'form_class' => 'ajax-store',
@@ -82,5 +85,6 @@
                 </div>
             </div>
         @endcomponent
+        @endif
     </div>
 @endsection

@@ -36,7 +36,7 @@ Scope: books catalogue CRUD + book_requests issue/return + teamLibrary gating.
 - Remote master copies of the library files + `routes/web.php` are
   byte-identical to the audited local copies (checked file-by-file).
 
-## Live audit — https://hackastra.onrender.com (Super Admin cj@cj.com)
+## Live audit — https://hackastra.onrender.com (Super Admin superadmin@hackstra.app)
 
 | Check | Result |
 |---|---|

@@ -117,18 +117,18 @@ if [ -n "${BASE_URL:-}" ]; then
     local code; code="$(login "$2" "$3")"
     [ "$code" = "200" ] && good "$1 home = 200" || bad "$1 home = $code (want 200)"
   }
-  check_role "Super Admin" cj@cj.com cj
+  check_role "Super Admin" superadmin@hackstra.app hackstra
   grep -q 'l17-list-scroll' /tmp/qa_home.html \
     && good "platform home serves Loop 17 layout" \
     || bad "platform home missing Loop 17 markers"
-  check_role "Admin"       admin@admin.com cj
-  check_role "Teacher"     teacher@teacher.com cj
-  check_role "Parent"      parent@parent.com cj
-  check_role "Accountant"  accountant@accountant.com cj
+  check_role "Admin"       admin@hackstra.app hackstra
+  check_role "Teacher"     teacher@hackstra.app hackstra
+  check_role "Parent"      parent@hackstra.app hackstra
+  check_role "Accountant"  accountant@hackstra.app hackstra
   grep -q 'feeDefaulter\|Defaulter' /tmp/qa_home.html \
     && good "accountant home renders (no 500 regression)" \
     || say "note: accountant home defaulter marker not found (check manually)"
-  check_role "Librarian"   librarian@librarian.com cj
+  check_role "Librarian"   librarian@hackstra.app hackstra
   rm -f "$JAR"
 else
   say "skip: BASE_URL not set (live role checks skipped)"

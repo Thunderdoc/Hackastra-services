@@ -16,6 +16,9 @@ class PromotionController extends Controller
     public function __construct(MyClassRepo $my_class, StudentRepo $student)
     {
         $this->middleware('teamSA');
+        // Workstream CM: promote/reset are school writes — Admin only;
+        // SA keeps the promotion views (selector() only redirects).
+        $this->middleware('teamSAWrite', ['only' => ['promote', 'reset', 'reset_all']]);
 
         $this->my_class = $my_class;
         $this->student = $student;

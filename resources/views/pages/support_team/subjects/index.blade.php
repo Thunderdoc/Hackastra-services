@@ -21,7 +21,9 @@
             @endif
         @endslot
         @slot('action')
+            @if(Qs::userIsTeamSAWrite())
             <a href="#add-subject" class="btn btn-primary"><i class="icon-plus2 mr-2"></i> Add Subject</a>
+            @endif
         @endslot
 
         @slot('filters')
@@ -62,7 +64,7 @@
                         <td>{{ $s->my_class->name }}</td>
                         <td>{{ $s->teacher->name }}</td>
                         <td class="text-center">
-                            @if(Qs::userIsTeamSA())
+                            @if(Qs::userIsTeamSAWrite())
                                 <a href="{{ route('subjects.edit', $s->id) }}" class="btn btn-sm btn-primary"><i class="icon-pencil"></i> Edit</a>
                                 <button type="button" id="{{ $s->id }}" onclick="confirmDelete(this.id)" class="btn btn-sm btn-danger"><i class="icon-trash"></i> Delete</button>
                                 <form method="post" id="item-delete-{{ $s->id }}" action="{{ route('subjects.destroy', $s->id) }}" class="hidden">@csrf @method('delete')</form>
@@ -82,6 +84,7 @@
     @endcomponent
 
     <div id="add-subject">
+        @if(Qs::userIsTeamSAWrite())
         @component('partials.patterns.form_page', [
             'form_action' => route('subjects.store'),
             'form_class' => 'ajax-store',
@@ -122,5 +125,6 @@
                 </div>
             </div>
         @endcomponent
+        @endif
     </div>
 @endsection

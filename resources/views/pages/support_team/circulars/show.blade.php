@@ -25,7 +25,7 @@
         <div class="circ-doc-body">{!! nl2br(e($circular->body)) !!}</div>
         <div class="circ-doc-foot">
             <a href="{{ route('circulars.index') }}" class="btn btn-light"><i class="icon-arrow-left13 mr-1"></i> Back to Circulars</a>
-            @if(Qs::userIsTeamSA())
+            @if(Qs::userIsTeamSAWrite())
                 <a href="{{ route('circulars.edit', $circular->id) }}" class="btn btn-primary">Edit Circular</a>
             @endif
         </div>

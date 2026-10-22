@@ -55,10 +55,9 @@
         <table width="100%">
             <tr>
                 <td >
-                    <strong><span style="color: #1b0c80; font-size: 25px;">{{ strtoupper(config('app.name')) }}</span></strong><br/>
-                    {{-- <strong><span style="color: #1b0c80; font-size: 20px;">MINNA, NIGER STATE</span></strong><br/>--}}
+                    <strong><span style="color: #1b0c80; font-size: 25px;">{{ strtoupper(Qs::getSetting('system_name')) }}</span></strong><br/>
                     <strong><span style="color: #000; font-size: 15px;"><i>{{ ucwords($s['address']) }}</i></span></strong><br/>
-                    <strong><span style="color: #000; text-decoration: underline; font-size: 15px;"><i>{{ config('app.url') }}</i></span></strong>
+                    <strong><span style="color: #000; font-size: 15px;"><i>{{ !empty($s['phone']) ? 'Tel: '.$s['phone'] : '' }}{{ (!empty($s['phone']) && !empty($s['system_email'])) ? ' | ' : '' }}{{ !empty($s['system_email']) ? 'Email: '.$s['system_email'] : '' }}</i></span></strong>
                     <br /> <br />
                     <strong><span style="color: #000; font-size: 15px;"> TIMETABLE FOR {{ strtoupper($my_class->name. ' ('.$ttr->year.')' ) }}
                     </span></strong>
@@ -113,6 +112,9 @@
             @endforeach
             </tbody>
         </table>
+        <div style="text-align: center; color: #718096; font-size: 11px; border-top: 1px solid #ccd6e0; margin-top: 14px; padding-top: 8px;">
+            {{ Qs::getSystemName() }} &middot; Printed on {{ now()->format('d M Y') }}
+        </div>
     </div>
 </div>
 

@@ -61,9 +61,13 @@
                                     <div class="dropdown-menu dropdown-menu-left">
                                         {{--View Profile--}}
                                         <a href="{{ route('users.show', Qs::hash($u->id)) }}" class="dropdown-item"><i class="icon-eye"></i> View Profile</a>
-                                        {{--Edit--}}
+                                        {{--Edit — target-aware (Workstream CM): an account row
+                                             offers write actions only to an actor allowed to
+                                             write that account's domain. --}}
+                                        @if(((Qs::userIsSuperAdmin() && in_array($u->user_type, ['super_admin', 'admin'], true)) || (Qs::userIsAdmin() && $u->user_type !== 'super_admin')))
                                         <a href="{{ route('users.edit', Qs::hash($u->id)) }}" class="dropdown-item"><i class="icon-pencil"></i> Edit</a>
-                                    @if(Qs::userIsTeamSA())
+                                        @endif
+                                    @if(((Qs::userIsSuperAdmin() && in_array($u->user_type, ['super_admin', 'admin'], true)) || (Qs::userIsAdmin() && $u->user_type !== 'super_admin')))
 
                                             <form method="post" action="{{ route('users.reset_pass', Qs::hash($u->id)) }}" class="m-0" data-confirm="Reset this user's password to the default? They will need the default password to sign in again." data-confirm-title="Reset password" data-confirm-action="Reset password">@csrf<button type="submit" class="dropdown-item"><i class="icon-lock"></i> Reset password</button></form>
                                             {{--Delete--}}

@@ -13,8 +13,10 @@ class ExamController extends Controller
     protected $exam;
     public function __construct(ExamRepo $exam)
     {
-        $this->middleware('teamSA', ['except' => ['destroy',] ]);
-        $this->middleware('teamSA', ['only' => ['destroy',] ]);
+        // Workstream CM: reads (index/show) stay teamSA — SA keeps
+        // oversight; every write goes to the Admin write team.
+        $this->middleware('teamSA', ['only' => ['index', 'show']]);
+        $this->middleware('teamSAWrite', ['except' => ['index', 'show']]);
 
         $this->exam = $exam;
     }
@@ -29,6 +31,12 @@ class ExamController extends Controller
     {
         $data = $req->only(['name', 'term']);
         $data['year'] = Qs::getSetting('current_session');
+
+        // Integration fix: (term, year) is unique — a duplicate used to
+        // surface as an unhandled database exception. Refuse politely.
+        if ($this->exam->getExam(['term' => $data['term'], 'year' => $data['year']])->isNotEmpty()) {
+            return back()->with('flash_danger', 'An exam for this term already exists in the current session ('.$data['year'].'). Edit the existing exam instead.');
+        }
 
         $this->exam->create($data);
         return back()->with('flash_success', __('msg.store_ok'));

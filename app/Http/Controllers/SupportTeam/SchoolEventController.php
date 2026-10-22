@@ -14,8 +14,9 @@ class SchoolEventController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('teamSA');
-        $this->middleware('teamSA', ['only' => ['destroy']]);
+        // Workstream CM: reads stay teamSA; writes to the Admin write team.
+        $this->middleware('teamSA', ['only' => ['index', 'show']]);
+        $this->middleware('teamSAWrite', ['except' => ['index', 'show']]);
     }
 
     public function index()

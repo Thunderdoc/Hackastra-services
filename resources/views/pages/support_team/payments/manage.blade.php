@@ -11,6 +11,21 @@
          invoice link per year) on the labelled button standard.
          Workstream BT's compact-picker cure is preserved inside the
          filter row. --}}
+
+    {{-- Workstream CL: print-only document header/footer — the shared
+         print-doc-head/foot pattern (students list, Loop 31; Loop 63),
+         hidden on screen, shown by window.print() so the student
+         payments list prints as a professional school document. The
+         Photo and Payments (actions) columns carry the shared
+         print-hide utility, exactly as on the students list. --}}
+    <div class="print-doc-head">
+        <img src="{{ Qs::getLogo() }}" alt="">
+        <div>
+            <h1>{{ Qs::getSystemName() }}</h1>
+            <p>Student Payments &mdash; {{ $selected ? optional($my_classes->firstWhere('id', $my_class_id))->name : 'No class selected' }} &middot; Session: {{ Qs::getCurrentSession() }}</p>
+        </div>
+    </div>
+
     @component('partials.patterns.list_page')
         @slot('subtitle')
             Pick a class, then open a student&rsquo;s payment records to take a fee or print a receipt.
@@ -50,20 +65,20 @@
                     <thead>
                     <tr>
                         <th>S/N</th>
-                        <th>Photo</th>
+                        <th class="print-hide">Photo</th>
                         <th>Name</th>
                         <th>ADM_No</th>
-                        <th>Payments</th>
+                        <th class="print-hide">Payments</th>
                     </tr>
                     </thead>
                     <tbody>
                     @foreach($students as $s)
                         <tr>
                             <td>{{ $loop->iteration }}</td>
-                            <td><img class="rounded-circle" style="height: 40px; width: 40px;" src="{{ $s->user->photo }}" alt="photo"></td>
+                            <td class="print-hide"><img class="rounded-circle" style="height: 40px; width: 40px;" src="{{ $s->user->photo }}" alt="photo"></td>
                             <td>{{ $s->user->name }}</td>
                             <td>{{ $s->adm_no }}</td>
-                            <td>
+                            <td class="print-hide">
                                 <div class="dropdown">
                                     <button type="button" class="btn btn-sm btn-primary dropdown-toggle" data-toggle="dropdown">Manage Payments</button>
                                     <div class="dropdown-menu dropdown-menu-left">
@@ -88,4 +103,10 @@
             ])
         @endif
     @endcomponent
+
+    <div class="print-doc-foot">
+        <span>Printed on {{ now()->format('d M Y, g:i A') }} &middot; {{ Qs::getSystemName() }}</span>
+        <span>Student Payments</span>
+    </div>
+
 @endsection

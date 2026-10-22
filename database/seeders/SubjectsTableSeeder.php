@@ -32,9 +32,9 @@ class SubjectsTableSeeder extends Seeder
      * so subject scope and class-teacher scope can never drift apart.
      */
     protected static $teacherEmailByClass = [
-        'Nursery 1' => 'teacher@teacher.com',
-        'Nursery 2' => 'teacher@teacher.com',
-        'Primary 1' => 'teacher@teacher.com',
+        'Nursery 1' => 'teacher@hackstra.app',
+        'Nursery 2' => 'teacher@hackstra.app',
+        'Primary 1' => 'teacher@hackstra.app',
         'Nursery 3' => 'teacher1@teacher.com',
         'JSS 3' => 'teacher1@teacher.com',
         'SSS 3' => 'teacher1@teacher.com',

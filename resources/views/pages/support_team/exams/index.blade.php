@@ -12,6 +12,7 @@
 
             <div class="tab-content">
                     <div class="tab-pane fade show active" id="all-exams">
+                        <div class="table-responsive">
                         <table class="table">
                             <thead>
                             <tr>
@@ -49,7 +50,7 @@
                                             <div class="dropdown-menu dropdown-menu-right">
                                                     {{--Admit Cards--}}
                                                     <a href="{{ route('admit_cards.index', ['exam_id' => $ex->id]) }}" class="dropdown-item"><i class="icon-profile"></i> Admit Cards</a>
-                                                    @if(Qs::userIsTeamSA())
+                                                    @if(Qs::userIsTeamSAWrite())
                                                     {{--Marking Scheme--}}
                                                     <a href="{{ route('exams.scheme', $ex->id) }}" class="dropdown-item"><i class="icon-list"></i> Marking Scheme</a>
                                                     {{--Result Publish switch (Workstream BH)--}}
@@ -65,11 +66,11 @@
                                                     </form>
                                                     @endif
                                                     @endif
-                                                    @if(Qs::userIsTeamSA())
+                                                    @if(Qs::userIsTeamSAWrite())
                                                     {{--Edit--}}
                                                     <a href="{{ route('exams.edit', $ex->id) }}" class="dropdown-item"><i class="icon-pencil"></i> Edit</a>
                                                    @endif
-                                                    @if(Qs::userIsTeamSA())
+                                                    @if(Qs::userIsTeamSAWrite())
                                                     {{--Delete--}}
                                                     <a id="{{ $ex->id }}" onclick="confirmDelete(this.id)" href="#" class="dropdown-item"><i class="icon-trash"></i> Delete</a>
                                                     <form method="post" id="item-delete-{{ $ex->id }}" action="{{ route('exams.destroy', $ex->id) }}" class="hidden">@csrf @method('delete')</form>
@@ -82,6 +83,7 @@
                             @endforeach
                             </tbody>
                         </table>
+                        </div>
                     </div>
 
                 <div class="tab-pane fade" id="new-exam">

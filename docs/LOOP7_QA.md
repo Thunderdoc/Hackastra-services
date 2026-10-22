@@ -1,7 +1,7 @@
 # Loop 7 — Workstream C: Live QA Crawl & Defect Log
 
 Date: 2026-10-21 · Site: https://hackastra.onrender.com · Role: Super Admin
-(cj@cj.com, scripted session; login form field `identity`)
+(superadmin@hackstra.app, scripted session; login form field `identity`)
 Branch: `feature/loop7-qa`
 
 ## Crawl results (23 pages)

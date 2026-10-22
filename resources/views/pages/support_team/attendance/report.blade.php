@@ -9,6 +9,20 @@
          auto-submit), and the totals line rides at the top of the card
          so it still prints with the table, exactly as before. Rows,
          % bars and the counting footnote are unchanged. --}}
+
+    {{-- Workstream CL: print-only document header/footer — the shared
+         print-doc-head/foot pattern (students list, Loop 31; Loop 63),
+         hidden on screen, shown by window.print() so the attendance
+         report prints as a professional school document that names
+         its class and month on paper. --}}
+    <div class="print-doc-head">
+        <img src="{{ Qs::getLogo() }}" alt="">
+        <div>
+            <h1>{{ Qs::getSystemName() }}</h1>
+            <p>Monthly Attendance Report &mdash; {{ optional($selected_class)->name }} &middot; {{ $month->format('F Y') }}</p>
+        </div>
+    </div>
+
     @component('partials.patterns.list_page')
         @slot('action')
             <button type="button" class="btn btn-light btn-sm" onclick="window.print()"><i class="icon-printer mr-1"></i> Print</button>
@@ -80,4 +94,10 @@
             <p class="text-muted mb-0"><small>Counts are period registers: Attendance % = (present + late) / periods marked. Periods with no submitted register are excluded — never counted as absent.</small></p>
         @endif
     @endcomponent
+
+    <div class="print-doc-foot">
+        <span>Printed on {{ now()->format('d M Y, g:i A') }} &middot; {{ Qs::getSystemName() }}</span>
+        <span>Attendance Report &mdash; {{ optional($selected_class)->name }}</span>
+    </div>
+
 @endsection

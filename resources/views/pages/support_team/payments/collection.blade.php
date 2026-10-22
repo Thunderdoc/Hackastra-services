@@ -9,6 +9,19 @@
          Print is the toolbar action, and the receipts-count line
          rides as the toolbar subtitle. Routes, GET params (from/to)
          and every figure are unchanged. --}}
+
+    {{-- Workstream CL: print-only document header/footer — the shared
+         print-doc-head/foot pattern (students list, Loop 31; Loop 63),
+         hidden on screen, shown by window.print() so the collection
+         report prints as a professional school document. --}}
+    <div class="print-doc-head">
+        <img src="{{ Qs::getLogo() }}" alt="">
+        <div>
+            <h1>{{ Qs::getSystemName() }}</h1>
+            <p>Fee Collection Report &mdash; {{ $from->format('d M Y') }} to {{ $to->format('d M Y') }} &middot; {{ $receipts_count }} receipt(s)</p>
+        </div>
+    </div>
+
     @component('partials.patterns.list_page')
         @slot('subtitle')
             {{ $receipts_count }} receipt(s) between {{ $from->format('d M Y') }} and {{ $to->format('d M Y') }}
@@ -66,5 +79,10 @@
             <p class="text-muted mb-0 mt-2"><small>From the receipts ledger: one receipt is recorded per payment taken, dated the day the money was received.</small></p>
         @endif
     @endcomponent
+
+    <div class="print-doc-foot">
+        <span>Printed on {{ now()->format('d M Y, g:i A') }} &middot; {{ Qs::getSystemName() }}</span>
+        <span>Fee Collection Report</span>
+    </div>
 
 @endsection

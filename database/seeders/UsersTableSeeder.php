@@ -25,13 +25,13 @@ class UsersTableSeeder extends Seeder
 
     protected function createNewUsers()
     {
-        $password = Hash::make('cj'); // Default user password
+        $password = Hash::make('hackstra'); // Default user password
 
         $d = [
 
-            ['name' => 'Hackstra Super Admin',
-                'email' => 'cj@cj.com',
-                'username' => 'cj',
+            ['name' => 'Ankit Kumar',
+                'email' => 'superadmin@hackstra.app',
+                'username' => 'superadmin',
                 'password' => $password,
                 'user_type' => 'super_admin',
                 'code' => strtoupper(Str::random(10)),
@@ -39,7 +39,7 @@ class UsersTableSeeder extends Seeder
             ],
 
             ['name' => 'Kavita Rao',
-            'email' => 'admin@admin.com',
+            'email' => 'admin@hackstra.app',
             'password' => $password,
             'user_type' => 'admin',
             'username' => 'admin',
@@ -48,7 +48,7 @@ class UsersTableSeeder extends Seeder
             ],
 
             ['name' => 'Ananya Sharma',
-                'email' => 'teacher@teacher.com',
+                'email' => 'teacher@hackstra.app',
                 'user_type' => 'teacher',
                 'username' => 'teacher',
                 'password' => $password,
@@ -57,7 +57,7 @@ class UsersTableSeeder extends Seeder
             ],
 
             ['name' => 'Kabir Anand',
-                'email' => 'parent@parent.com',
+                'email' => 'parent@hackstra.app',
                 'user_type' => 'parent',
                 'username' => 'parent',
                 'password' => $password,
@@ -66,7 +66,7 @@ class UsersTableSeeder extends Seeder
             ],
 
             ['name' => 'Joseph Mathew',
-                'email' => 'accountant@accountant.com',
+                'email' => 'accountant@hackstra.app',
                 'user_type' => 'accountant',
                 'username' => 'accountant',
                 'password' => $password,

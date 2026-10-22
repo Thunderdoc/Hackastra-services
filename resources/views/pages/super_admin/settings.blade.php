@@ -7,6 +7,14 @@
          to settings.update, multipart for the logo, every field name/id,
          required flag, select logic and error hook byte-equivalent.
          The teal italic hints are now plain muted helper text. --}}
+    {{-- Workstream CM: school settings are written by the school
+         Admin. The Super Admin views them read-only — the fieldset
+         disables every input/select/button in the form, and
+         SettingController refuses SA saves server-side as well. --}}
+    @if(Qs::userIsSuperAdmin())
+    <div class="alert alert-info border-0">You are viewing the school's settings read-only. The school Admin manages these; platform administration lives on the Platform Overview.</div>
+    <fieldset disabled="disabled">
+    @endif
     @component('partials.patterns.form_page', [
         'form_action'  => route('settings.update'),
         'form_method'  => 'PUT',
@@ -164,6 +172,9 @@
         </div>
 
     @endcomponent
+    @if(Qs::userIsSuperAdmin())
+    </fieldset>
+    @endif
 
     {{--Settings Edit Ends--}}
 

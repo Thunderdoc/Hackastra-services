@@ -105,10 +105,38 @@ class Qs
         return ['admin', 'super_admin', 'librarian'];
     }
 
+    /*
+     * Write-team variants (Workstream CM — SA view-only boundary).
+     * The Super Admin (company/platform owner) may VIEW everything in a
+     * school but must never write school records; school writes belong
+     * to the school's Admin and its staff. The read teams above keep
+     * super_admin; the write teams below are the same teams minus
+     * super_admin, and gate every create/update/delete path.
+     */
+    public static function getTeamSAWrite()
+    {
+        return ['admin'];
+    }
+
+    public static function getTeamSATWrite()
+    {
+        return ['admin', 'teacher'];
+    }
+
+    public static function getTeamAccountWrite()
+    {
+        return ['admin', 'accountant'];
+    }
+
+    public static function getTeamLibraryWrite()
+    {
+        return ['admin', 'librarian'];
+    }
+
     public static function hash($id)
     {
-        $date = date('dMY').'HACKSTRA';
-        $hash = new Hashids($date, 14);
+        $salt = config('app.key').'HACKSTRA';
+        $hash = new Hashids($salt, 14);
         return $hash->encode($id);
     }
 
@@ -136,8 +164,8 @@ class Qs
 
     public static function decodeHash($str, $toString = true)
     {
-        $date = date('dMY').'HACKSTRA';
-        $hash = new Hashids($date, 14);
+        $salt = config('app.key').'HACKSTRA';
+        $hash = new Hashids($salt, 14);
         $decoded = $hash->decode($str);
         return $toString ? implode(',', $decoded) : $decoded;
     }
@@ -160,6 +188,26 @@ class Qs
     public static function userIsTeamLibrary()
     {
         return in_array(Auth::user()->user_type, self::getTeamLibrary());
+    }
+
+    public static function userIsTeamSAWrite()
+    {
+        return in_array(Auth::user()->user_type, self::getTeamSAWrite());
+    }
+
+    public static function userIsTeamSATWrite()
+    {
+        return in_array(Auth::user()->user_type, self::getTeamSATWrite());
+    }
+
+    public static function userIsTeamAccountWrite()
+    {
+        return in_array(Auth::user()->user_type, self::getTeamAccountWrite());
+    }
+
+    public static function userIsTeamLibraryWrite()
+    {
+        return in_array(Auth::user()->user_type, self::getTeamLibraryWrite());
     }
 
     public static function userIsAcademic()

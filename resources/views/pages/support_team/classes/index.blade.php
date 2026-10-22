@@ -19,7 +19,9 @@
             All classes in the school. When a class is created, a default section is created for it automatically.
         @endslot
         @slot('action')
+            @if(Qs::userIsTeamSAWrite())
             <a href="#add-class" class="btn btn-primary"><i class="icon-plus2 mr-2"></i> Create New Class</a>
+            @endif
         @endslot
 
         @if($my_classes->count())
@@ -40,7 +42,7 @@
                         <td>{{ $c->name }}</td>
                         <td>{{ $c->class_type->name }}</td>
                         <td class="text-center">
-                            @if(Qs::userIsTeamSA())
+                            @if(Qs::userIsTeamSAWrite())
                                 <a href="{{ route('classes.edit', $c->id) }}" class="btn btn-sm btn-primary"><i class="icon-pencil"></i> Edit</a>
                                 <button type="button" id="{{ $c->id }}" onclick="confirmDelete(this.id)" class="btn btn-sm btn-danger"><i class="icon-trash"></i> Delete</button>
                                 <form method="post" id="item-delete-{{ $c->id }}" action="{{ route('classes.destroy', $c->id) }}" class="hidden">@csrf @method('delete')</form>
@@ -60,6 +62,7 @@
     @endcomponent
 
     <div id="add-class">
+        @if(Qs::userIsTeamSAWrite())
         @component('partials.patterns.form_page', [
             'form_action' => route('classes.store'),
             'form_class' => 'ajax-store',
@@ -91,5 +94,6 @@
                 </div>
             </div>
         @endcomponent
+        @endif
     </div>
 @endsection
