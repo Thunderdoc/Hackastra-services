@@ -28,7 +28,7 @@
     {{-- Platform headline numbers — every value comes from a live query --}}
     <div class="row dashboard-stats">
         @foreach([
-            ['label' => 'Total Users', 'value' => number_format($total_users), 'sub' => 'Accounts across all roles · ' . number_format($signed_in_this_week) . ' signed in this week', 'icon' => 'icon-users4', 'tone' => 'blue', 'link' => route('users.index')],
+            ['label' => 'Total Users', 'value' => number_format($total_users), 'sub' => 'Accounts across all roles · ' . number_format($signed_in_this_week) . ' signed in this week' . (($suspended_users || $terminated_users) ? ' · ' . number_format($suspended_users) . ' suspended · ' . number_format($terminated_users) . ' terminated' : ''), 'icon' => 'icon-users4', 'tone' => 'blue', 'link' => route('users.index')],
             ['label' => 'Audit Entries Today', 'value' => number_format($audit_today), 'sub' => 'Recorded actions today', 'icon' => 'icon-shield-check', 'tone' => 'green', 'link' => route('audit_logs.index')],
             ['label' => 'Audit Entries This Week', 'value' => number_format($audit_week), 'sub' => 'Since ' . $audit_week_from->format('l, d M'), 'icon' => 'icon-stats-bars', 'tone' => 'orange', 'link' => route('audit_logs.index')],
             {{-- Workstream DD: the Configuration aggregate stays (it is

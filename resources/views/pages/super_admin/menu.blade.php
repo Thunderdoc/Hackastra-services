@@ -15,3 +15,21 @@
 <li class="nav-item">
     <a href="{{ route('audit_logs.index') }}" class="nav-link {{ (Route::is('audit_logs.index')) ? 'active' : '' }}"><i class="icon-history"></i> <span>Audit Log</span></a>
 </li>
+
+{{--School Feedback — forwarded reports only (Workstreams CW+DF placement)--}}
+<li class="nav-item">
+    <a href="{{ route('feedback.sa_index') }}" class="nav-link {{ (Route::is('feedback.sa_*')) ? 'active' : '' }}"><i class="icon-bubbles4"></i> <span>School Feedback</span>
+    @if(\Illuminate\Support\Facades\Schema::hasTable('feedback_items'))
+        @php($lavFbNew = \App\Models\FeedbackItem::forwarded()->where('sa_status', 'received')->count())
+        @if($lavFbNew) <span class="badge badge-danger ml-auto">{{ $lavFbNew }}</span> @endif
+    @endif
+    </a>
+</li>
+
+{{--Platform Mail (Workstream DF)--}}
+<li class="nav-item">
+    <a href="{{ route('platform_mail.create') }}" class="nav-link {{ (Route::is('platform_mail.create')) ? 'active' : '' }}"><i class="icon-envelop5"></i> <span>Send Mail</span></a>
+</li>
+<li class="nav-item">
+    <a href="{{ route('platform_mail.index') }}" class="nav-link {{ (Route::is('platform_mail.index')) ? 'active' : '' }}"><i class="icon-mail-read"></i> <span>Sent Mail</span></a>
+</li>

@@ -26,6 +26,13 @@
                     <a href="{{ route('users.index', ['user_type' => $ut->title]) }}" class="btn {{ $selected_user_type === $ut->title ? 'btn-primary' : 'btn-light' }}">{{ $ut->name }}s</a>
                 @endforeach
             </div>
+            {{-- Account lifecycle filter (Workstream DF) --}}
+            <div class="d-flex flex-wrap mt-2" style="gap:8px">
+                <a href="{{ route('users.index', array_filter(['user_type' => $selected_user_type])) }}" class="btn {{ $selected_status ? 'btn-light' : 'btn-primary' }}">Any status</a>
+                @foreach(['active' => 'Active', 'suspended' => 'Suspended', 'terminated' => 'Terminated'] as $sv => $sl)
+                    <a href="{{ route('users.index', array_filter(['user_type' => $selected_user_type, 'status' => $sv])) }}" class="btn {{ $selected_status === $sv ? 'btn-primary' : 'btn-light' }}">{{ $sl }}</a>
+                @endforeach
+            </div>
         @endslot
 
         @if($users->count())
@@ -39,6 +46,7 @@
                     <th>Username</th>
                     <th>Phone</th>
                     <th>Email</th>
+                    <th>Status</th>
                     <th>Action</th>
                 </tr>
                 </thead>
@@ -51,6 +59,16 @@
                         <td>{{ $u->username }}</td>
                         <td>{{ $u->phone }}</td>
                         <td>{{ $u->email }}</td>
+                        <td>
+                            @php($acct_status = $u->getAttribute('status') ?: 'active')
+                            @if($acct_status === 'suspended')
+                                <span class="badge badge-warning">Suspended</span>
+                            @elseif($acct_status === 'terminated')
+                                <span class="badge badge-danger">Terminated</span>
+                            @else
+                                <span class="badge badge-success">Active</span>
+                            @endif
+                        </td>
                         <td class="text-center">
                             <div class="list-icons">
                                 <div class="dropdown">
@@ -70,6 +88,19 @@
                                     @if(((Qs::userIsSuperAdmin() && in_array($u->user_type, ['super_admin', 'admin'], true)) || (Qs::userIsAdmin() && $u->user_type !== 'super_admin')))
 
                                             <form method="post" action="{{ route('users.reset_pass', Qs::hash($u->id)) }}" class="m-0" data-confirm="Reset this user's password to the default? They will need the default password to sign in again." data-confirm-title="Reset password" data-confirm-action="Reset password">@csrf<button type="submit" class="dropdown-item"><i class="icon-lock"></i> Reset password</button></form>
+                                            {{--Account lifecycle (Workstream DF) — state changes, records preserved.
+                                                 Never offered on the actor's own row or the head Super Admin's:
+                                                 the server refuses both, so the buttons would be dead. --}}
+                                            @if((int) $u->id !== (int) Auth::id() && !Qs::headSA((int) $u->id))
+                                            @if($acct_status === 'active')
+                                                <form method="post" action="{{ route('users.suspend', Qs::hash($u->id)) }}" class="m-0" data-confirm="Suspend this account? The user will not be able to sign in, and any open session ends. Their records are kept and the account can be reactivated." data-confirm-title="Suspend account" data-confirm-action="Suspend">@csrf<button type="submit" class="dropdown-item"><i class="icon-user-block"></i> Suspend</button></form>
+                                            @else
+                                                <form method="post" action="{{ route('users.activate', Qs::hash($u->id)) }}" class="m-0" data-confirm="Reactivate this account? The user will be able to sign in again." data-confirm-title="Reactivate account" data-confirm-action="Reactivate">@csrf<button type="submit" class="dropdown-item"><i class="icon-user-check"></i> Reactivate</button></form>
+                                            @endif
+                                            @if($acct_status !== 'terminated')
+                                                <form method="post" action="{{ route('users.terminate', Qs::hash($u->id)) }}" class="m-0" data-confirm="Terminate this account? Sign-in is permanently blocked (until reactivated by an administrator) but the person's records are preserved — nothing is deleted." data-confirm-title="Terminate account" data-confirm-action="Terminate">@csrf<button type="submit" class="dropdown-item text-danger"><i class="icon-user-cancel"></i> Terminate</button></form>
+                                            @endif
+                                            @endif
                                             {{--Delete--}}
                                             <button type="button" onclick="confirmDelete('{{ Qs::hash($u->id) }}')" class="dropdown-item"><i class="icon-trash"></i> Delete</button>
                                             <form method="post" id="item-delete-{{ Qs::hash($u->id) }}" action="{{ route('users.destroy', Qs::hash($u->id)) }}" class="hidden">@csrf @method('delete')</form>

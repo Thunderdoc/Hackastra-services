@@ -36,6 +36,13 @@ class PlatformOnly
         'users.edit', 'users.update', 'users.destroy', 'users.reset_pass',
         // Platform audit log.
         'audit_logs.index',
+        // School Feedback inbox — forwarded reports only (Workstream
+        // CW); the controller 404s anything not forwarded to the SA.
+        'feedback.sa_index', 'feedback.sa_show', 'feedback.sa_update',
+        // Platform Mail (Workstream DF): SA-to-users mail + sent log.
+        'platform_mail.create', 'platform_mail.send', 'platform_mail.index',
+        // User lifecycle actions (Workstream DF) — platform accounts.
+        'users.suspend', 'users.activate', 'users.terminate',
         // Own account pages.
         'my_account', 'my_account.update', 'my_account.change_pass',
         'my_account.preferences', 'my_account.theme', 'my_account.download',

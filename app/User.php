@@ -23,8 +23,25 @@ class User extends Authenticatable
      * @var array
      */
     protected $fillable = [
-        'name', 'username', 'email', 'phone', 'phone2', 'dob', 'gender', 'photo', 'address', 'bg_id', 'password', 'nal_id', 'state_id', 'lga_id', 'code', 'user_type', 'email_verified_at'
+        'name', 'username', 'email', 'phone', 'phone2', 'dob', 'gender', 'photo', 'address', 'bg_id', 'password', 'nal_id', 'state_id', 'lga_id', 'code', 'user_type', 'email_verified_at', 'status', 'status_at'
     ];
+
+    /* Account lifecycle (Workstream DF): active / suspended /
+       terminated. A missing value (database not yet migrated) reads
+       as active so an un-migrated install never locks anyone out. */
+    const STATUS_ACTIVE = 'active';
+    const STATUS_SUSPENDED = 'suspended';
+    const STATUS_TERMINATED = 'terminated';
+
+    public function accountStatus(): string
+    {
+        return $this->getAttribute('status') ?: self::STATUS_ACTIVE;
+    }
+
+    public function isActiveAccount(): bool
+    {
+        return $this->accountStatus() === self::STATUS_ACTIVE;
+    }
 
     /**
      * The attributes that should be hidden for arrays.

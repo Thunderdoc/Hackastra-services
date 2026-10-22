@@ -62,6 +62,12 @@ Route::group(['middleware' => 'auth'], function () {
         /*************** Users *****************/
         Route::group(['prefix' => 'users'], function(){
             Route::post('reset_pass/{id}', 'UserController@reset_pass')->name('users.reset_pass');
+            /* Account lifecycle (Workstream DF) — state changes, not
+               deletions; gates live in UserController (teamSA +
+               mayWriteUserTarget + self/head-SA/last-SA rails). */
+            Route::post('{id}/suspend', 'UserController@suspend')->name('users.suspend');
+            Route::post('{id}/activate', 'UserController@activate')->name('users.activate');
+            Route::post('{id}/terminate', 'UserController@terminate')->name('users.terminate');
         });
 
         /*************** TimeTables *****************/
@@ -284,6 +290,23 @@ Route::group(['middleware' => 'auth'], function () {
             Route::get('download/{material}', 'StudyMaterialController@download')->name('materials.download');
             Route::delete('{material}', 'StudyMaterialController@destroy')->name('materials.destroy');
         });
+        /*************** Feedback & Issues (Workstream CW) *****************/
+        /* Owner workflow: everyone reports to the school Admin; the
+           Admin dedupes (merge) and forwards the compiled items; the
+           Super Admin sees ONLY forwarded items and replies. Role gates
+           live in FeedbackController (admin / super_admin / owner). */
+        Route::get('feedback/create', 'FeedbackController@create')->name('feedback.create');
+        Route::post('feedback', 'FeedbackController@store')->name('feedback.store');
+        Route::get('feedback/mine', 'FeedbackController@mine')->name('feedback.mine');
+        Route::get('feedback/mine/{feedback}', 'FeedbackController@showMine')->name('feedback.mine.show');
+        Route::get('feedback/inbox', 'FeedbackController@index')->name('feedback.index');
+        Route::post('feedback/forward', 'FeedbackController@forward')->name('feedback.forward');
+        Route::get('feedback/school', 'FeedbackController@saIndex')->name('feedback.sa_index');
+        Route::get('feedback/school/{feedback}', 'FeedbackController@saShow')->name('feedback.sa_show');
+        Route::patch('feedback/school/{feedback}', 'FeedbackController@saUpdate')->name('feedback.sa_update');
+        Route::get('feedback/{feedback}', 'FeedbackController@show')->name('feedback.show');
+        Route::patch('feedback/{feedback}', 'FeedbackController@update')->name('feedback.update');
+        Route::post('feedback/{feedback}/duplicate', 'FeedbackController@markDuplicate')->name('feedback.duplicate');
 
         /*************** Library *****************/
         Route::resource('books', 'BookController')->except(['show']);
@@ -320,6 +343,17 @@ Route::group(['namespace' => 'SuperAdmin','middleware' => 'teamSA', 'prefix' => 
 Route::group(['namespace' => 'SuperAdmin','middleware' => 'teamSA', 'prefix' => 'super_admin'], function(){
 
     Route::get('/audit-logs', 'AuditLogController@index')->name('audit_logs.index');
+
+});
+
+/************************ PLATFORM MAIL (Workstream DF: Super Admin only) ****************************/
+/* The platform owner's mail composer + sent-mail log. A platform
+   tool — the school's own communication channel stays Circulars. */
+Route::group(['namespace' => 'SuperAdmin','middleware' => 'super_admin', 'prefix' => 'super_admin'], function(){
+
+    Route::get('/platform-mail', 'PlatformMailController@create')->name('platform_mail.create');
+    Route::post('/platform-mail', 'PlatformMailController@store')->name('platform_mail.send');
+    Route::get('/platform-mail/sent', 'PlatformMailController@index')->name('platform_mail.index');
 
 });
 

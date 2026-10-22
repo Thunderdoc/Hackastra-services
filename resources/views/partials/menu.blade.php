@@ -168,6 +168,19 @@
                         <i class="icon-coin-dollar"></i>
                         <span>My Payslips</span>
                     </a>
+                </li>
+                {{-- Feedback (Workstream CW): report to the school Admin + own list --}}
+                <li class="nav-item">
+                    <a href="{{ route('feedback.create') }}" class="nav-link {{ (Route::is('feedback.create')) ? 'active' : '' }}">
+                        <i class="icon-bubbles"></i>
+                        <span>Give Feedback</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('feedback.mine') }}" class="nav-link {{ (Route::is('feedback.mine') || Route::is('feedback.mine.show')) ? 'active' : '' }}">
+                        <i class="icon-stack"></i>
+                        <span>My Feedback</span>
+                    </a>
                 </li>@else
 
 
@@ -376,6 +389,19 @@
                     <li class="nav-item">
                         <a href="{{ route('subjects.index') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['subjects.index','subjects.edit',]) ? 'active' : '' }}"><i class="icon-pin"></i> <span>Subjects</span></a>
                     </li>
+
+                    {{--Feedback (Workstream CW): Admin triages the school
+                         inbox; the Super Admin sees forwarded items only--}}
+                    @if(Qs::userIsAdmin())
+                    <li class="nav-item">
+                        <a href="{{ route('feedback.index') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['feedback.index', 'feedback.show']) ? 'active' : '' }}"><i class="icon-bubbles"></i> <span>Feedback Inbox</span></a>
+                    </li>
+                    @endif
+                    @if(Qs::userIsSuperAdmin())
+                    <li class="nav-item">
+                        <a href="{{ route('feedback.sa_index') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['feedback.sa_index', 'feedback.sa_show']) ? 'active' : '' }}"><i class="icon-bubbles"></i> <span>School Feedback</span></a>
+                    </li>
+                    @endif
                 @endif
 
                 {{--Exam--}}
@@ -464,6 +490,14 @@
                     <a href="{{ route('my_payslips.index') }}" class="nav-link {{ (Route::is('my_payslips.*')) ? 'active' : '' }}"><i class="icon-coin-dollar"></i> <span>My Payslips</span></a>
                 </li>
                 @endif
+                {{-- Feedback (Workstream CW): every role can report to the
+                     school Admin and track its own reports --}}
+                <li class="nav-item">
+                    <a href="{{ route('feedback.create') }}" class="nav-link {{ (Route::is('feedback.create')) ? 'active' : '' }}"><i class="icon-bubbles"></i> <span>Give Feedback</span></a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('feedback.mine') }}" class="nav-link {{ (Route::is('feedback.mine') || Route::is('feedback.mine.show')) ? 'active' : '' }}"><i class="icon-stack"></i> <span>My Feedback</span></a>
+                </li>
 @endif
 
                 </ul>

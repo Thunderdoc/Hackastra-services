@@ -153,6 +153,20 @@
                 $lavNotifications = \App\Support\Notify::latestFor(Auth::id(), 5);
                 $lavBellBadge += $lavUnreadNotifs;
             }
+            // Workstream CW (feedback flow): same computed-count style —
+            // the school Admin's badge rises with NEW feedback waiting
+            // for triage, the Super Admin's with forwarded reports not
+            // yet picked up, and every reporter sees their own reports
+            // that changed since they last opened My Feedback.
+            if (\Illuminate\Support\Facades\Schema::hasTable('feedback_items')) {
+                if (Qs::userIsAdmin()) {
+                    $lavBellBadge += \App\Models\FeedbackItem::where('status', 'new')->count();
+                }
+                if (Qs::userIsSuperAdmin()) {
+                    $lavBellBadge += \App\Models\FeedbackItem::forwarded()->where('sa_status', 'received')->count();
+                }
+                $lavBellBadge += \App\Models\FeedbackItem::unseenUpdatesCountFor(Auth::id());
+            }
             $lavIsHome = request()->routeIs('home') || request()->routeIs('dashboard')
                 || request()->routeIs('dashboard.school') || request()->path() === 'home';
         @endphp

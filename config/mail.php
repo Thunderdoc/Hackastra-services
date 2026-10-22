@@ -16,7 +16,60 @@ return [
     |
     */
 
-    'driver' => env('MAIL_DRIVER', 'smtp'),
+    /* 'driver' => RETIRED (Workstream DF). While a 'driver' key
+       exists, Illuminate\Mail\MailManager::getConfig() treats the
+       WHOLE file as a Laravel <=6 single-driver config for every
+       mailer name — Mail::mailer('log') silently became SMTP.
+       The legacy flat keys below stay for compatibility; modern
+       resolution runs through 'default' + 'mailers' underneath. */
+
+    /*
+    |--------------------------------------------------------------------------
+    | Default Mailer + Mailers (Workstream DF)
+    |--------------------------------------------------------------------------
+    |
+    | The flat keys below are the app's original (Laravel 8-era)
+    | configuration and are kept for anything that reads them. Modern
+    | Laravel resolves mail through 'default' + 'mailers', which were
+    | never defined here — Mail::send() had no mailer to resolve.
+    | These definitions mirror the legacy values exactly, so the
+    | configured behaviour is unchanged; they simply make Laravel
+    | Mail functional. Set MAIL_HOST + MAIL_USERNAME + MAIL_PASSWORD
+    | in the environment to deliver real SMTP mail; without a host
+    | the platform mail tool degrades to the 'log' mailer and says
+    | so in its UI rather than pretending delivery happened.
+    |
+    */
+
+    'default' => env('MAIL_MAILER', env('MAIL_DRIVER', 'smtp')),
+
+    'mailers' => [
+
+        'smtp' => [
+            'transport' => 'smtp',
+            'host' => env('MAIL_HOST', 'smtp.mailgun.org'),
+            'port' => env('MAIL_PORT', 587),
+            'encryption' => env('MAIL_ENCRYPTION', 'tls'),
+            'username' => env('MAIL_USERNAME'),
+            'password' => env('MAIL_PASSWORD'),
+            'timeout' => null,
+        ],
+
+        'sendmail' => [
+            'transport' => 'sendmail',
+            'path' => env('MAIL_SENDMAIL_PATH', '/usr/sbin/sendmail -bs'),
+        ],
+
+        'log' => [
+            'transport' => 'log',
+            'channel' => env('MAIL_LOG_CHANNEL'),
+        ],
+
+        'array' => [
+            'transport' => 'array',
+        ],
+
+    ],
 
     /*
     |--------------------------------------------------------------------------

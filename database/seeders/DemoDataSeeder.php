@@ -106,6 +106,7 @@ class DemoDataSeeder extends Seeder
         // Workstream CS1: LMS demo content (assignments, submissions,
         // study materials) lives in its own seeder class.
         $this->step(function () { $this->call(LmsDemoSeeder::class); });
+        $this->step(function () { $this->seedFeedback(); });
     }
 
     /** Run one demo step in isolation; log the failure and continue. */
@@ -886,5 +887,137 @@ class DemoDataSeeder extends Seeder
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+    }
+
+    /**
+     * Demo feedback chain (Workstream CW) so the whole workflow is
+     * visible on first login: one canonical report already forwarded
+     * and answered by the Super Admin, its duplicate merged in by the
+     * Admin, one fresh report waiting in the Admin inbox, and one
+     * acknowledged report the Admin has NOT forwarded (the Super
+     * Admin must not see it).
+     */
+    protected function seedFeedback(): void
+    {
+        if (!Schema::hasTable('feedback_items') || DB::table('feedback_items')->count() > 0) {
+            return;
+        }
+
+        $byEmail = function ($email) {
+            return DB::table('users')->where('email', $email)->first();
+        };
+        $parent = $byEmail('parent@parent.com');
+        $teacher = $byEmail('teacher@teacher.com');
+        $admin = $byEmail('admin@admin.com');
+        $accountant = $byEmail('accountant@accountant.com');
+        $studentUserId = DB::table('student_records')->where('grad', 0)->orderBy('id')->value('user_id');
+        $student = $studentUserId ? DB::table('users')->where('id', $studentUserId)->first() : null;
+
+        if (!$parent || !$teacher || !$admin) {
+            return;
+        }
+
+        $androidUA = 'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36';
+        $windowsUA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36';
+
+        $canonicalId = DB::table('feedback_items')->insertGetId([
+            'reporter_id' => $parent->id,
+            'reporter_name' => $parent->name,
+            'reporter_role' => 'parent',
+            'type' => 'problem',
+            'category' => 'facility',
+            'priority' => 'high',
+            'title' => 'Drinking water cooler not working near Block B',
+            'description' => 'The drinking water cooler near Block B has not been cooling for three days. Children are carrying bottles from home; please repair or replace it at the earliest.',
+            'context' => 'Ground floor, Block B, near the library',
+            'page_url' => '/payments/manage',
+            'user_agent' => $androidUA,
+            'status' => 'in_progress',
+            'duplicate_of_id' => null,
+            'admin_note' => 'Plumber visit scheduled; cooler replacement approved by the office.',
+            'forwarded_at' => now()->subDays(1),
+            'forwarded_by' => $admin->id,
+            'sa_status' => 'fixed',
+            'sa_reply' => 'Fixed — the cooler was replaced and the water line flushed. Thank you for reporting it.',
+            'reporter_seen_at' => null,
+            'created_at' => now()->subDays(3),
+            'updated_at' => now()->subHours(5),
+        ]);
+
+        DB::table('feedback_items')->insert([
+            'reporter_id' => $teacher->id,
+            'reporter_name' => $teacher->name,
+            'reporter_role' => 'teacher',
+            'type' => 'problem',
+            'category' => 'facility',
+            'priority' => 'medium',
+            'title' => 'Water cooler in Block B is warm',
+            'description' => 'Students are complaining that the Block B water cooler only dispenses warm water since Monday.',
+            'context' => 'Block B, ground floor',
+            'page_url' => '/attendance/periods',
+            'user_agent' => $windowsUA,
+            'status' => 'duplicate',
+            'duplicate_of_id' => $canonicalId,
+            'admin_note' => null,
+            'forwarded_at' => null,
+            'forwarded_by' => null,
+            'sa_status' => null,
+            'sa_reply' => null,
+            'reporter_seen_at' => null,
+            'created_at' => now()->subDays(3)->addHours(2),
+            'updated_at' => now()->subDays(2),
+        ]);
+
+        if ($student) {
+            DB::table('feedback_items')->insert([
+                'reporter_id' => $student->id,
+                'reporter_name' => $student->name,
+                'reporter_role' => 'student',
+                'type' => 'problem',
+                'category' => 'facility',
+                'priority' => 'medium',
+                'title' => 'Projector in Room 12 flickers during class',
+                'description' => 'The projector in Room 12 flickers and goes blank for a few seconds every few minutes, which breaks the lesson flow.',
+                'context' => 'Room 12, first floor',
+                'page_url' => '/home',
+                'user_agent' => $androidUA,
+                'status' => 'new',
+                'duplicate_of_id' => null,
+                'admin_note' => null,
+                'forwarded_at' => null,
+                'forwarded_by' => null,
+                'sa_status' => null,
+                'sa_reply' => null,
+                'reporter_seen_at' => null,
+                'created_at' => now()->subHours(6),
+                'updated_at' => now()->subHours(6),
+            ]);
+        }
+
+        if ($accountant) {
+            DB::table('feedback_items')->insert([
+                'reporter_id' => $accountant->id,
+                'reporter_name' => $accountant->name,
+                'reporter_role' => 'accountant',
+                'type' => 'problem',
+                'category' => 'app_bug',
+                'priority' => 'medium',
+                'title' => 'Receipt print cuts off the school address',
+                'description' => 'When printing a fee receipt from the office printer, the school address line at the top is cut off on the right side.',
+                'context' => 'School office, accounts desk',
+                'page_url' => '/payments/manage',
+                'user_agent' => $windowsUA,
+                'status' => 'acknowledged',
+                'duplicate_of_id' => null,
+                'admin_note' => 'Reproduced at the office printer; checking the print layout before escalating.',
+                'forwarded_at' => null,
+                'forwarded_by' => null,
+                'sa_status' => null,
+                'sa_reply' => null,
+                'reporter_seen_at' => null,
+                'created_at' => now()->subDays(1)->subHours(3),
+                'updated_at' => now()->subDays(1),
+            ]);
+        }
     }
 }

@@ -248,6 +248,16 @@ class HomeController extends Controller
             ->groupBy('user_type')
             ->pluck('total', 'user_type');
 
+        /* Account lifecycle counts (Workstream DF) — real rows in a
+           non-active state; guarded so an un-migrated database (no
+           status column yet) still renders the overview. */
+        $suspended_users = 0;
+        $terminated_users = 0;
+        if (Schema::hasColumn('users', 'status')) {
+            $suspended_users = (int) DB::table('users')->where('status', 'suspended')->count();
+            $terminated_users = (int) DB::table('users')->where('status', 'terminated')->count();
+        }
+
         $role_counts = [];
         foreach ($role_labels as $type => $label) {
             $role_counts[] = ['type' => $type, 'label' => $label, 'total' => (int) ($counts[$type] ?? 0)];
@@ -337,6 +347,8 @@ class HomeController extends Controller
             'settings_total' => count($settings_checklist),
             'settings_missing' => collect($settings_checklist)->where('set', false)->pluck('label')->values(),
             'signed_in_this_week' => $signed_in_this_week,
+            'suspended_users' => $suspended_users,
+            'terminated_users' => $terminated_users,
             'failed_today' => $failed_today,
             'recent_failed' => $recent_failed,
             // Secondary "school snapshot": the deployment serves one

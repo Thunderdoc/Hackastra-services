@@ -42,6 +42,9 @@ class Kernel extends HttpKernel
             // (session available) and confines super_admin requests to
             // the platform allowlist. All other roles pass through.
             \App\Http\Middleware\Custom\PlatformOnly::class,
+            // Workstream DF: ends the session of an account that was
+            // suspended/terminated after it signed in.
+            \App\Http\Middleware\Custom\EnsureActiveAccount::class,
         ],
 
         'api' => [
@@ -78,6 +81,7 @@ class Kernel extends HttpKernel
         'teamAccountWrite' => \App\Http\Middleware\Custom\TeamAccountWrite::class,
         'teamLibraryWrite' => \App\Http\Middleware\Custom\TeamLibraryWrite::class,
         'examIsLocked' => \App\Http\Middleware\Custom\ExamIsLocked::class,
+        'active_account' => \App\Http\Middleware\Custom\EnsureActiveAccount::class,
         'my_parent' => \App\Http\Middleware\Custom\MyParent::class,
     ];
 }

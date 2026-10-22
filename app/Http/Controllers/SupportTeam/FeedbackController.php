@@ -1,0 +1,377 @@
+<?php
+
+namespace App\Http\Controllers\SupportTeam;
+
+use App\Helpers\Qs;
+use App\Http\Controllers\Controller;
+use App\Http\Requests\FeedbackSave;
+use App\Models\FeedbackItem;
+use App\Support\Audit;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
+
+/**
+ * Feedback & issue flow (Workstream CW, owner spec 2026-10-22):
+ *
+ *   everyone in the school ──reports──▶ school Admin inbox
+ *   Admin ──dedupes (merge duplicates) + compiles──▶ forwards
+ *   Super Admin ──sees ONLY forwarded items──▶ replies / fixes
+ *   reporter ──watches live status + the SA reply in My Feedback
+ *
+ * The Admin is the filter: the Super Admin never sees raw school
+ * feedback, only what the Admin forwarded. Access is enforced per
+ * action below (role checks in the controller, mirroring the way
+ * CircularController splits its audiences).
+ */
+class FeedbackController extends Controller
+{
+    /* ----------------------------------------------------------------
+     | Reporter side — every signed-in role
+     | ---------------------------------------------------------------- */
+
+    public function create()
+    {
+        $d['categories'] = FeedbackItem::categories();
+        $d['types'] = FeedbackItem::types();
+        $d['priorities'] = FeedbackItem::priorities();
+
+        return view('pages.support_team.feedback.create', $d);
+    }
+
+    public function store(FeedbackSave $request)
+    {
+        $data = $request->validated();
+        $user = Auth::user();
+
+        $item = new FeedbackItem();
+        $item->reporter_id = $user->id;
+        $item->reporter_name = $user->name;
+        $item->reporter_role = $user->user_type;
+        $item->type = $data['type'];
+        $item->category = $data['category'];
+        $item->priority = $data['priority'];
+        $item->title = $data['title'];
+        $item->description = $data['description'];
+        $item->context = $data['context'] ?? null;
+        $item->status = 'new';
+
+        // Auto-log (the reporter never types these): the page the
+        // report came from — the form's hidden field carries the
+        // ?from= deep-link target or the referring page; only its
+        // path+query is kept — plus the browser/device string.
+        $item->page_url = $this->cleanPageUrl($data['page_url'] ?? null);
+        $item->user_agent = Str::limit((string) $request->userAgent(), 500, '');
+
+        $item->save();
+
+        foreach ($request->file('attachments', []) as $file) {
+            if (!$file) {
+                continue;
+            }
+            $f = Qs::getFileMetaData($file);
+            $name = 'feedback_' . $item->id . '_' . Str::random(8) . '.' . $f['ext'];
+            $path = $file->storeAs(Qs::getPublicUploadPath() . 'feedback', $name);
+            $item->attachments()->create([
+                'path' => $path,
+                'original_name' => $file->getClientOriginalName(),
+                'mime' => $file->getMimeType(),
+            ]);
+        }
+
+        return redirect()->route('feedback.mine')
+            ->with('flash_success', 'Thank you — your feedback has been sent to the school Admin.');
+    }
+
+    /** Keep only path+query of the reported-from URL (no host tricks). */
+    protected function cleanPageUrl(?string $url): ?string
+    {
+        $url = trim((string) $url);
+        if ($url === '') {
+            return null;
+        }
+
+        $parts = parse_url($url);
+        if ($parts === false || empty($parts['path'])) {
+            return null;
+        }
+
+        $clean = $parts['path'] . (!empty($parts['query']) ? '?' . $parts['query'] : '');
+
+        return Str::limit($clean, 1024, '');
+    }
+
+    /** My Feedback: the reporter's own items, with live status. */
+    public function mine()
+    {
+        $user = Auth::user();
+
+        $d['items'] = FeedbackItem::with(['duplicateOf', 'attachments'])
+            ->where('reporter_id', $user->id)
+            ->latest()
+            ->paginate(15);
+
+        // Opening My Feedback marks everything as seen (bell hook).
+        FeedbackItem::where('reporter_id', $user->id)
+            ->update(['reporter_seen_at' => now()]);
+
+        $d['statuses'] = FeedbackItem::statuses();
+        $d['sa_statuses'] = FeedbackItem::saStatuses();
+
+        return view('pages.support_team.feedback.mine', $d);
+    }
+
+    public function showMine(FeedbackItem $feedback)
+    {
+        if ($feedback->reporter_id !== Auth::id()) {
+            abort(403);
+        }
+
+        $feedback->update(['reporter_seen_at' => now()]);
+
+        $d['item'] = $feedback->load(['reporter', 'duplicateOf', 'duplicates', 'attachments']);
+        $d['statuses'] = FeedbackItem::statuses();
+        $d['sa_statuses'] = FeedbackItem::saStatuses();
+
+        return view('pages.support_team.feedback.show_mine', $d);
+    }
+
+    /* ----------------------------------------------------------------
+     | School Admin inbox
+     | ---------------------------------------------------------------- */
+
+    public function index(Request $request)
+    {
+        $this->mustBeAdmin();
+
+        $query = FeedbackItem::with('reporter')->latest();
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->input('status'));
+        }
+        if ($request->filled('category')) {
+            $query->where('category', $request->input('category'));
+        }
+        if ($request->filled('type')) {
+            $query->where('type', $request->input('type'));
+        }
+        if ($request->filled('priority')) {
+            $query->where('priority', $request->input('priority'));
+        }
+
+        $d['items'] = $query->paginate(15)->appends($request->except('page'));
+        $d['categories'] = FeedbackItem::categories();
+        $d['types'] = FeedbackItem::types();
+        $d['priorities'] = FeedbackItem::priorities();
+        $d['statuses'] = FeedbackItem::statuses();
+        $d['counts'] = FeedbackItem::selectRaw('status, count(*) as c')
+            ->groupBy('status')->pluck('c', 'status');
+
+        return view('pages.support_team.feedback.index', $d);
+    }
+
+    public function show(FeedbackItem $feedback)
+    {
+        $this->mustBeAdmin();
+
+        $d['item'] = $feedback->load(['reporter', 'duplicateOf', 'duplicates.reporter', 'forwarder', 'attachments']);
+        $d['statuses'] = FeedbackItem::adminSettableStatuses();
+        // Merge candidates: canonical items (never duplicates themselves),
+        // same category first, excluding the item being merged.
+        $d['candidates'] = FeedbackItem::with('reporter')
+            ->whereNull('duplicate_of_id')
+            ->where('id', '<>', $feedback->id)
+            ->orderByRaw('case when category = ? then 0 else 1 end', [$feedback->category])
+            ->latest()
+            ->take(50)
+            ->get();
+        $d['sa_statuses'] = FeedbackItem::saStatuses();
+
+        return view('pages.support_team.feedback.show', $d);
+    }
+
+    /** Admin sets the school-side status and/or an internal note. */
+    public function update(Request $request, FeedbackItem $feedback)
+    {
+        $this->mustBeAdmin();
+
+        $data = $request->validate([
+            'status' => 'required|in:' . implode(',', array_keys(FeedbackItem::adminSettableStatuses())),
+            'admin_note' => 'nullable|string|max:2000',
+        ]);
+
+        $feedback->update($data);
+
+        return redirect()->route('feedback.show', $feedback->id)
+            ->with('flash_success', 'Feedback updated.');
+    }
+
+    /** Merge this report into a canonical one (Admin dedupe step). */
+    public function markDuplicate(Request $request, FeedbackItem $feedback)
+    {
+        $this->mustBeAdmin();
+
+        $data = $request->validate([
+            'duplicate_of_id' => 'required|integer|exists:feedback_items,id',
+        ]);
+
+        $canonical = FeedbackItem::findOrFail($data['duplicate_of_id']);
+
+        if ($canonical->id === $feedback->id || $canonical->isDuplicate() || $feedback->isForwarded()) {
+            return back()->with('pop_error', 'That item cannot be the canonical report for this merge.');
+        }
+
+        $feedback->update([
+            'status' => 'duplicate',
+            'duplicate_of_id' => $canonical->id,
+        ]);
+
+        Audit::log('feedback.merged_duplicate', $feedback,
+            'Merged feedback #' . $feedback->id . ' ("' . $feedback->title . '") as duplicate of #' . $canonical->id);
+
+        return redirect()->route('feedback.show', $canonical->id)
+            ->with('flash_success', 'Report merged as a duplicate of #' . $canonical->id . '.');
+    }
+
+    /**
+     * Compile & forward: Admin forwards canonical items to the Super
+     * Admin. Accepts ids[] (bulk select on the inbox) or a single id
+     * (the Forward button on the detail page). Duplicates and items
+     * already forwarded are skipped — dedupe happens BEFORE forward.
+     */
+    public function forward(Request $request)
+    {
+        $this->mustBeAdmin();
+
+        $ids = $request->input('ids', []);
+        if ($request->filled('id')) {
+            $ids[] = $request->input('id');
+        }
+
+        $ids = array_unique(array_map('intval', (array) $ids));
+        if (!$ids) {
+            return back()->with('pop_error', 'Select at least one report to forward.');
+        }
+
+        $items = FeedbackItem::whereIn('id', $ids)
+            ->whereNull('duplicate_of_id')
+            ->whereNull('forwarded_at')
+            ->get();
+
+        foreach ($items as $item) {
+            $item->update([
+                'forwarded_at' => now(),
+                'forwarded_by' => Auth::id(),
+                'sa_status' => 'received',
+            ]);
+
+            Audit::log('feedback.forwarded', $item,
+                'Forwarded feedback #' . $item->id . ' ("' . $item->title . '", ' . $item->categoryLabel() . ') to Super Admin');
+        }
+
+        $skipped = count($ids) - $items->count();
+        $msg = $items->count() . ' item' . ($items->count() === 1 ? '' : 's') . ' forwarded to the Super Admin.';
+        if ($skipped > 0) {
+            $msg .= ' ' . $skipped . ' skipped (duplicate or already forwarded).';
+        }
+
+        return back()->with('flash_success', $msg);
+    }
+
+    /* ----------------------------------------------------------------
+     | Super Admin inbox — forwarded items ONLY
+     | ---------------------------------------------------------------- */
+
+    public function saIndex(Request $request)
+    {
+        $this->mustBeSuperAdmin();
+
+        $query = FeedbackItem::with('reporter')->forwarded()->latest('forwarded_at');
+
+        if ($request->filled('sa_status')) {
+            $query->where('sa_status', $request->input('sa_status'));
+        }
+        if ($request->filled('category')) {
+            $query->where('category', $request->input('category'));
+        }
+        if ($request->filled('type')) {
+            $query->where('type', $request->input('type'));
+        }
+        if ($request->filled('priority')) {
+            $query->where('priority', $request->input('priority'));
+        }
+
+        $d['items'] = $query->paginate(15)->appends($request->except('page'));
+        $d['categories'] = FeedbackItem::categories();
+        $d['types'] = FeedbackItem::types();
+        $d['priorities'] = FeedbackItem::priorities();
+        $d['sa_statuses'] = FeedbackItem::saStatuses();
+        $d['summary'] = [
+            'total' => FeedbackItem::forwarded()->count(),
+            'by_status' => FeedbackItem::forwarded()
+                ->selectRaw('sa_status, count(*) as c')
+                ->groupBy('sa_status')->pluck('c', 'sa_status'),
+            'duplicates_merged' => FeedbackItem::where('status', 'duplicate')->count(),
+        ];
+
+        return view('pages.support_team.feedback.sa_index', $d);
+    }
+
+    public function saShow(FeedbackItem $feedback)
+    {
+        $this->mustBeSuperAdmin();
+        $this->mustBeForwarded($feedback);
+
+        $d['item'] = $feedback->load(['reporter', 'duplicates.reporter', 'forwarder', 'attachments']);
+        $d['sa_statuses'] = FeedbackItem::saStatuses();
+        $d['statuses'] = FeedbackItem::statuses();
+
+        return view('pages.support_team.feedback.sa_show', $d);
+    }
+
+    /** SA records the handling status + a reply the reporter will see. */
+    public function saUpdate(Request $request, FeedbackItem $feedback)
+    {
+        $this->mustBeSuperAdmin();
+        $this->mustBeForwarded($feedback);
+
+        $data = $request->validate([
+            'sa_status' => 'required|in:' . implode(',', array_keys(FeedbackItem::saStatuses())),
+            'sa_reply' => 'nullable|string|max:2000',
+        ]);
+
+        $feedback->update($data);
+
+        Audit::log('feedback.sa_updated', $feedback,
+            'Super Admin set feedback #' . $feedback->id . ' to "' . $feedback->saStatusLabel() . '"'
+            . ($data['sa_reply'] ? ' with a reply to the reporter' : ''));
+
+        return redirect()->route('feedback.sa_show', $feedback->id)
+            ->with('flash_success', 'Reply saved — the reporter can now see it in My Feedback.');
+    }
+
+    /* ----------------------------------------------------------------
+     | Guards
+     | ---------------------------------------------------------------- */
+
+    protected function mustBeAdmin(): void
+    {
+        if (!Qs::userIsAdmin()) {
+            abort(403);
+        }
+    }
+
+    protected function mustBeSuperAdmin(): void
+    {
+        if (!Qs::userIsSuperAdmin()) {
+            abort(403);
+        }
+    }
+
+    protected function mustBeForwarded(FeedbackItem $feedback): void
+    {
+        if (!$feedback->isForwarded()) {
+            abort(404);
+        }
+    }
+}

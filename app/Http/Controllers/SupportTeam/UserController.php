@@ -5,6 +5,8 @@ namespace App\Http\Controllers\SupportTeam;
 use App\Helpers\Qs;
 use App\Http\Requests\UserRequest;
 use App\Repositories\LocationRepo;
+use App\Support\Audit;
+use App\User;
 use App\Repositories\MyClassRepo;
 use App\Repositories\UserRepo;
 use App\Http\Controllers\Controller;
@@ -27,7 +29,7 @@ class UserController extends Controller
         // ('create' joins the gated list: it previously rendered the
         // account form to any authenticated user who guessed the URL.)
         $this->middleware('teamSA', ['only' => ['index', 'create', 'store', 'edit', 'update'] ]);
-        $this->middleware('teamSA', ['only' => ['reset_pass','destroy'] ]);
+        $this->middleware('teamSA', ['only' => ['reset_pass','destroy','suspend','activate','terminate'] ]);
 
         $this->user = $user;
         $this->loc = $loc;
@@ -56,6 +58,17 @@ class UserController extends Controller
         $d['selected_user_type'] = $d['user_types']->contains('title', $selected) ? $selected : null;
         if ($d['selected_user_type']) {
             $d['users'] = $d['users']->where('user_type', $d['selected_user_type']);
+        }
+
+        /* Account lifecycle filter (Workstream DF): ?status= narrows
+           the list to one lifecycle state; the states themselves are
+           managed by suspend()/activate()/terminate() below. */
+        $status = request('status');
+        $d['selected_status'] = in_array($status, ['active', 'suspended', 'terminated'], true) ? $status : null;
+        if ($d['selected_status']) {
+            $d['users'] = $d['users']->filter(function ($u) {
+                return ($u->getAttribute('status') ?: 'active') === request('status');
+            });
         }
 
         return view('pages.support_team.users.index', $d);
@@ -235,6 +248,87 @@ class UserController extends Controller
         }
 
         return view('pages.support_team.users.show', $data);
+    }
+
+    /* ---- Account lifecycle (Workstream DF) ----------------------
+       Suspend / activate / terminate are STATE changes, never
+       deletions: the person's records stay intact, sign-in is
+       blocked while the state is not active, and a live session
+       ends on its next request (EnsureActiveAccount middleware).
+       The same boundary rules as edit/destroy apply — head-SA is
+       untouchable, mayWriteUserTarget decides who may touch whom —
+       plus two rails of their own: nobody acts on their own
+       account, and the platform must always keep at least one
+       active Super Admin. Every change writes an Audit row. */
+
+    public function suspend($id)
+    {
+        return $this->changeAccountStatus($id, User::STATUS_SUSPENDED, 'user.suspended', 'suspended');
+    }
+
+    public function activate($id)
+    {
+        return $this->changeAccountStatus($id, User::STATUS_ACTIVE, 'user.activated', 'reactivated');
+    }
+
+    public function terminate($id)
+    {
+        return $this->changeAccountStatus($id, User::STATUS_TERMINATED, 'user.terminated', 'terminated');
+    }
+
+    protected function changeAccountStatus($id, string $newStatus, string $auditAction, string $verb)
+    {
+        /* $id arrives ALREADY decoded: these routes use the {id}
+           parameter, which RouteServiceProvider binds through
+           Qs::decodeHash (the same contract reset_pass relies on).
+           Decoding a second time here would reject every request. */
+        $id = (int) $id;
+        if (!$id) {
+            return back()->with('flash_danger', __('msg.denied'));
+        }
+
+        // Nobody suspends/terminates/reactivates their own account.
+        if ((int) $id === (int) Auth::user()->id) {
+            return back()->with('flash_danger', 'You cannot change the status of your own account.');
+        }
+
+        // The head Super Admin is untouchable (same rule as destroy).
+        if (Qs::headSA($id)) {
+            return back()->with('flash_danger', __('msg.denied'));
+        }
+
+        $user = $this->user->find($id);
+        if (!$user) {
+            return back()->with('flash_danger', __('msg.denied'));
+        }
+
+        // Cross-boundary rule (Workstream CM) — unchanged here.
+        if (!$this->mayWriteUserTarget($user->user_type)) {
+            return back()->with('flash_danger', __('msg.denied'));
+        }
+
+        // The platform must never be left without an active Super Admin.
+        if ($newStatus !== User::STATUS_ACTIVE && $user->user_type === 'super_admin') {
+            $otherActive = User::where('user_type', 'super_admin')
+                ->where('status', User::STATUS_ACTIVE)
+                ->where('id', '!=', $user->id)
+                ->count();
+            if ($otherActive === 0) {
+                return back()->with('flash_danger', 'This is the last active Super Admin account — it cannot be ' . $verb . '.');
+            }
+        }
+
+        $this->user->update($user->id, ['status' => $newStatus, 'status_at' => now()]);
+
+        Audit::log($auditAction, $user, 'Account ' . $verb . ': ' . $user->name . ' (' . $user->email . ')');
+
+        $messages = [
+            User::STATUS_ACTIVE => 'Account reactivated — ' . $user->name . ' can sign in again.',
+            User::STATUS_SUSPENDED => 'Account suspended — ' . $user->name . ' can no longer sign in.',
+            User::STATUS_TERMINATED => 'Account terminated — ' . $user->name . ' can no longer sign in. Their records are preserved.',
+        ];
+
+        return back()->with('flash_success', $messages[$newStatus]);
     }
 
     public function destroy($id)
