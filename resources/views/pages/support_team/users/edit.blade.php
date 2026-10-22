@@ -138,7 +138,7 @@
                     <label for="photo" class="d-block">Upload Passport Photo:</label>
                     <input value="{{ old('photo') }}" accept="image/*" type="file" name="photo" id="photo" class="form-input-styled @error('photo') is-invalid @enderror" data-fouc>
                     @include('partials.errors.field', ['field' => 'photo'])
-                    <span class="form-text text-muted">Accepted Images: jpeg, png. Max file size 2Mb</span>
+                    <span class="form-text text-muted">Accepted Images: jpeg, jpg, png, gif, webp. Max file size 2Mb</span>
                 </div>
             </div>
         </div>

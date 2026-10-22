@@ -2,7 +2,10 @@
 @section('page_title', 'Manage Payments')
 @section('content')
 
-    {{-- Batch 5C: per-student payment records on the list_page pattern.
+    {{-- Workstream CK: the row-action glyph toggles are now the labelled
+         Actions dropdown (the Exams-page standard); menu items, routes
+         and the styled confirms are unchanged.
+         Batch 5C: per-student payment records on the list_page pattern.
          The DataTables button bar (Copy/Excel/PDF/Visibility) is gone —
          the app's own Export (toolbar) is the single export control —
          and the tables are plain full-width tables again. Tab ids,
@@ -100,12 +103,10 @@
 
                             {{--Action--}}
                             <td class="text-center">
-                                <div class="list-icons">
-                                    <div class="dropdown">
-                                        <a href="#" class="list-icons-item" data-toggle="dropdown"><i class="icon-menu9"></i>
-                                        </a>
+                                <div class="dropdown">
+                                    <button type="button" class="btn btn-sm btn-primary dropdown-toggle" data-toggle="dropdown">Actions</button>
 
-                                        <div class="dropdown-menu dropdown-menu-left">
+                                    <div class="dropdown-menu dropdown-menu-right">
 
                                             {{--Reset Payment--}}
                                             <a id="{{ Qs::hash($uc->id) }}" onclick="confirmReset(this.id)" href="#" class="dropdown-item"><i class="icon-reset"></i> Reset Payment</a>
@@ -116,7 +117,6 @@
                                             {{--PDF Receipt (plain link on purpose: the .download-receipt JS handler swallows the file with an AJAX GET, so it must not be used here)--}}
                                                 <a href="{{ route('payments.pdf_receipts', Qs::hash($uc->id)) }}" class="dropdown-item"><i class="icon-download"></i> Download Receipt (PDF)</a>
 
-                                        </div>
                                     </div>
                                 </div>
                             </td>
@@ -177,12 +177,10 @@
 
                             {{--Action--}}
                             <td class="text-center">
-                                <div class="list-icons">
-                                    <div class="dropdown">
-                                        <a href="#" class="list-icons-item" data-toggle="dropdown"><i class="icon-menu9"></i>
-                                        </a>
+                                <div class="dropdown">
+                                    <button type="button" class="btn btn-sm btn-primary dropdown-toggle" data-toggle="dropdown">Actions</button>
 
-                                        <div class="dropdown-menu dropdown-menu-left">
+                                    <div class="dropdown-menu dropdown-menu-right">
 
                                             {{--Reset Payment--}}
                                             <a id="{{ Qs::hash($cl->id) }}" onclick="confirmReset(this.id)" href="#" class="dropdown-item"><i class="icon-reset"></i> Reset Payment</a>
@@ -194,7 +192,6 @@
                                             {{--PDF Receipt (plain link; see the note in the Incomplete tab about the .download-receipt handler)--}}
                                             <a href="{{ route('payments.pdf_receipts', Qs::hash($cl->id)) }}" class="dropdown-item"><i class="icon-download"></i> Download Receipt (PDF)</a>
 
-                                        </div>
                                     </div>
                                 </div>
                             </td>

@@ -37,7 +37,9 @@ class UserPreference extends Model
             'notify_exams' => '1',
             'date_format' => 'd M Y',
             'time_format' => '12',
-            'theme' => 'light',
+            // Owner directive 2026-10-22 ("dark mode for all"): accounts
+            // that never chose get dark; a stored 'light' choice wins.
+            'theme' => 'dark',
         ];
     }
 

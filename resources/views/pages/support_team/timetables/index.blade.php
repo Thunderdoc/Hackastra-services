@@ -3,52 +3,52 @@
 @section('content')
 
     @if(Qs::userIsTeamSA())
-    <div class="card">
+    {{-- Workstream BW: create form rebuilt on form_page (was a
+         legacy row of col-md-* form-groups in its own card). Same
+         .ajax-store POST to ttr.store, same fields/bindings; the
+         timetable list card below is unchanged. --}}
+    @component('partials.patterns.form_page', [
+        'form_action' => route('ttr.store'),
+        'form_class' => 'ajax-store',
+        'submit_label' => 'Create',
+    ])
+        @slot('title')
+            <i class="icon-table2 mr-2"></i> Create Timetable
+        @endslot
 
-        <div class="card-body">
-            <form class="ajax-store" method="post" action="{{ route('ttr.store') }}">
-                @csrf
-                <div class="row">
-                    <div class="col-md-4">
-                        <div class="form-group">
-                            <label class="font-weight-semibold">Name <span class="text-danger">*</span></label>
-                            <input name="name" value="{{ old('name') }}" required type="text" class="form-control" placeholder="Name of TimeTable">
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="form-group">
-                            <label for="my_class_id" class="font-weight-semibold">Class <span class="text-danger">*</span></label>
-                            <select required data-placeholder="Select Class" class="form-control select" name="my_class_id" id="my_class_id">
-                                @foreach($my_classes as $mc)
-                                    <option {{ old('my_class_id') == $mc->id ? 'selected' : '' }} value="{{ $mc->id }}">{{ $mc->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="form-group">
-                            <label for="exam_id" class="font-weight-semibold">Type (Class or Exam)</label>
-                            <select class="select form-control" name="exam_id" id="exam_id">
-                                <option value="">Class Timetable</option>
-                                @foreach($exams as $ex)
-                                    <option {{ old('exam_id') == $ex->id ? 'selected' : '' }} value="{{ $ex->id }}">{{ $ex->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                    </div>
-                    <div class="col-md-2">
-                        <div class="form-group">
-                            <label class="font-weight-semibold d-none d-md-block">&nbsp;</label>
-                            <button id="ajax-btn" type="submit" class="btn btn-primary btn-block">Create <i class="icon-paperplane ml-2"></i></button>
-                        </div>
-                    </div>
+        <div class="pat-form-section">
+            <div class="pat-fields">
+                <div class="pat-field">
+                    <label for="name">Name <span class="text-danger">*</span></label>
+                    <input id="name" name="name" value="{{ old('name') }}" required type="text" class="form-control" placeholder="Name of TimeTable">
                 </div>
-            </form>
+                <div class="pat-field">
+                    <label for="my_class_id">Class <span class="text-danger">*</span></label>
+                    <select required data-placeholder="Select Class" class="form-control select" name="my_class_id" id="my_class_id">
+                        @foreach($my_classes as $mc)
+                            <option {{ old('my_class_id') == $mc->id ? 'selected' : '' }} value="{{ $mc->id }}">{{ $mc->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="pat-field">
+                    <label for="exam_id">Type (Class or Exam)</label>
+                    <select class="select form-control" name="exam_id" id="exam_id">
+                        <option value="">Class Timetable</option>
+                        @foreach($exams as $ex)
+                            <option {{ old('exam_id') == $ex->id ? 'selected' : '' }} value="{{ $ex->id }}">{{ $ex->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
         </div>
-    </div>
+    @endcomponent
     @endif
 
     <div class="card">
+        <div class="card-header header-elements-inline">
+            <h6 class="card-title">Timetables</h6>
+            {!! Qs::getPanelOptions() !!}
+        </div>
 
         <div class="card-body">
             @php $has_records = $tt_records->count() > 0; @endphp

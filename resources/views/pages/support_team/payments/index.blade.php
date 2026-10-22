@@ -2,67 +2,72 @@
 @section('page_title', 'Manage Payments')
 @section('content')
 
-    {{-- Collect Fee (Workstream BJ): the counter workflow — a student
-         comes to pay, so find them by name, admission number or class
-         and jump straight to their payment records to take the fee.
-         Workstream BT: the card is compact now — the search sits at a
-         sensible width, left-aligned, helper attached (it used to float
-         centred in a near-empty card). The search contract (endpoint,
-         dropdown, invoice links) is BJ's and unchanged. --}}
-    <div class="card">
-        <div class="card-header header-elements-inline">
-            <h5 class="card-title"><i class="icon-cash2 mr-2"></i> Collect Fee</h5>
+    {{-- Workstream CK: rebuilt from scratch on the shared patterns
+         (Loop 28), the same chrome as Students / Attendance.
+         Section 1 is the Collect Fee counter (Workstream BJ): the
+         search card keeps BJ's exact contract — endpoint, results
+         dropdown, invoice links, the script below — and BT's compact
+         640px left-aligned width; only the legacy card-header shell
+         is gone. Section 2 is the list_page pattern: the year picker
+         is the filter row (same POST to payments.select_year), and
+         the tabbed payment tables share one partial
+         (payments/_table) whose row actions are now the labelled
+         Actions dropdown (Exams standard) — Edit / Delete items,
+         routes and the styled confirm are unchanged. --}}
+
+    {{-- Collect Fee (Workstream BJ) --}}
+    <div class="pat-list">
+        <div class="pat-toolbar">
+            <div class="pat-toolbar-text">
+                <div class="pat-toolbar-sub"><i class="icon-cash2 mr-1"></i> <strong>Collect Fee</strong> &mdash; a student comes to pay: find them here and jump straight to their payment records.</div>
+            </div>
+            <div class="pat-toolbar-actions">
+                <a href="{{ route('payments.create') }}" class="btn btn-primary"><i class="icon-plus3 mr-1"></i> Create Payment</a>
+            </div>
         </div>
 
-        <div class="card-body">
-            <div class="bt-find">
-                <div class="form-group mb-1" style="position: relative;">
-                    <label for="fee-student-search" class="col-form-label font-weight-bold">Find student</label>
-                    <input type="text" id="fee-student-search" class="form-control" autocomplete="off"
-                           placeholder="Type a student name, admission number or class&hellip;">
-                    <div id="fee-search-results" class="list-group" style="display: none; position: absolute; left: 0; right: 0; top: 100%; z-index: 1050; max-height: 340px; overflow-y: auto; box-shadow: 0 8px 24px rgba(0,0,0,.15);"></div>
+        <div class="card pat-card">
+            <div class="card-body">
+                <div class="bt-find">
+                    <div class="form-group mb-1" style="position: relative;">
+                        <label for="fee-student-search" class="col-form-label font-weight-bold">Find student</label>
+                        <input type="text" id="fee-student-search" class="form-control" autocomplete="off"
+                               placeholder="Type a student name, admission number or class&hellip;">
+                        <div id="fee-search-results" class="list-group" style="display: none; position: absolute; left: 0; right: 0; top: 100%; z-index: 1050; max-height: 340px; overflow-y: auto; box-shadow: 0 8px 24px rgba(0,0,0,.15);"></div>
+                    </div>
+                    <small class="form-text text-muted">Pick a student to open their payment records and collect the fee.</small>
                 </div>
-                <small class="form-text text-muted">Pick a student to open their payment records and collect the fee.</small>
             </div>
         </div>
     </div>
 
-    {{-- Select Year (Workstream BT): a compact inline picker row —
-         label, select and Submit together — replacing the legacy
-         centred column that floated in a near-empty card. --}}
-    <div class="card">
-        <div class="card-header header-elements-inline">
-            <h5 class="card-title"><i class="icon-cash2 mr-2"></i> Select year</h5>
-        </div>
-
-        <div class="card-body">
-            <form method="post" action="{{ route('payments.select_year') }}">
+    {{-- Session payments (Workstream BT picker, on the pattern) --}}
+    @component('partials.patterns.list_page')
+        @slot('subtitle')
+            @if($selected)
+                <strong>{{ $year }} Session</strong> &mdash; fee payments for every class. Use the Class Payments tab to see one class at a time.
+            @else
+                Select a session year to view and manage its fee payments.
+            @endif
+        @endslot
+        @slot('filters')
+            <form method="post" action="{{ route('payments.select_year') }}" class="pat-filter-form">
                 @csrf
-                <div class="bt-picker">
-                    <div class="bt-picker-field">
-                        <label for="year" class="col-form-label font-weight-bold">Select Year <span class="text-danger">*</span></label>
-                        <select data-placeholder="Select Year" required id="year" name="year" class="form-control select">
-                            @foreach($years as $yr)
-                                <option {{ ($selected && $year == $yr->year) ? 'selected' : '' }} value="{{ $yr->year }}">{{ $yr->year }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="bt-picker-btn">
-                        <button type="submit" class="btn btn-primary">Submit <i class="icon-paperplane ml-2"></i></button>
-                    </div>
+                <div class="pat-filter-field">
+                    <label for="year">Select Year <span class="text-danger">*</span></label>
+                    <select data-placeholder="Select Year" required id="year" name="year" class="form-control select">
+                        @foreach($years as $yr)
+                            <option {{ ($selected && $year == $yr->year) ? 'selected' : '' }} value="{{ $yr->year }}">{{ $yr->year }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="pat-filter-action">
+                    <button type="submit" class="btn btn-primary">Submit <i class="icon-paperplane ml-2"></i></button>
                 </div>
             </form>
-        </div>
-    </div>
+        @endslot
 
-@if($selected)
-    <div class="card">
-        <div class="card-header header-elements-inline">
-            <span class="text-muted">{{ $year }} Session</span>
-            {!! Qs::getPanelOptions() !!}
-        </div>
-
-        <div class="card-body">
+        @if($selected)
             <ul class="nav nav-tabs nav-tabs-highlight">
                 <li class="nav-item"><a href="#all-payments" class="nav-link active" data-toggle="tab">All Classes</a></li>
                 <li class="nav-item dropdown">
@@ -76,137 +81,34 @@
             </ul>
 
             <div class="tab-content">
-                    <div class="tab-pane fade show active" id="all-payments">
-                        @if($payments->count())
-                        <div class="table-responsive">
-                        <table class="table">
-                            <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Title</th>
-                                <th class="text-right">Amount</th>
-                                <th>Ref_No</th>
-                                <th>Class</th>
-                                <th>Method</th>
-                                <th>Info</th>
-                                <th>Action</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            @foreach($payments as $p)
-                                <tr>
-                                    <td>{{ $loop->iteration }}</td>
-                                    <td>{{ $p->title }}</td>
-                                    <td class="text-right font-weight-bold">{{ \App\Helpers\Money::inr($p->amount) }}</td>
-                                    <td>{{ $p->ref_no }}</td>
-                                    <td>{{ $p->my_class_id ? $p->my_class->name : '' }}</td>
-                                    <td>{{ ucwords($p->method) }}</td>
-                                    <td>{{ $p->description }}</td>
-                                    <td class="text-center">
-                                        <div class="list-icons">
-                                            <div class="dropdown">
-                                                <a href="#" class="list-icons-item" data-toggle="dropdown">
-                                                    <i class="icon-menu9"></i>
-                                                </a>
-
-                                                <div class="dropdown-menu dropdown-menu-left">
-                                                    {{--Edit--}}
-                                                <a href="{{ route('payments.edit', $p->id) }}" class="dropdown-item"><i class="icon-pencil"></i> Edit</a>
-                                                    {{--Delete--}}
-                                                    <a id="{{ $p->id }}" onclick="confirmDelete(this.id)" href="#" class="dropdown-item"><i class="icon-trash"></i> Delete</a>
-                                                    <form method="post" id="item-delete-{{ $p->id }}" action="{{ route('payments.destroy', $p->id) }}" class="hidden">@csrf @method('delete')</form>
-
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                </tr>
-                            @endforeach
-                            </tbody>
-                            <tfoot>
-                            <tr>
-                                <th colspan="2" class="text-right">Total ({{ $payments->count() }} payments)</th>
-                                <th class="text-right">{{ \App\Helpers\Money::inr($payments->sum('amount')) }}</th>
-                                <th colspan="5"></th>
-                            </tr>
-                            </tfoot>
-                        </table>
+                <div class="tab-pane fade show active" id="all-payments">
+                    @if($payments->count())
+                        @include('pages.support_team.payments._table', ['rows' => $payments, 'total_label' => 'Total (' . $payments->count() . ' payments)'])
+                    @else
+                        <div class="lav-empty">
+                            <p class="mb-0">No payments have been created for the {{ $year }} session yet. Use <strong>Create Payment</strong> to add the first fee.</p>
                         </div>
-                        @else
-                            <div class="lav-empty">
-                                <p class="mb-0">No payments have been created for the {{ $year }} session yet. Use <strong>Create Payment</strong> to add the first fee.</p>
-                            </div>
-                        @endif
-                    </div>
+                    @endif
+                </div>
 
                 @foreach($my_classes as $mc)
                     <div class="tab-pane fade" id="pc-{{ $mc->id }}">
                         @php $class_payments = $payments->where('my_class_id', $mc->id); @endphp
                         @if($class_payments->count())
-                        <div class="table-responsive">
-                        <table class="table">
-                            <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Title</th>
-                                <th class="text-right">Amount</th>
-                                <th>Ref_No</th>
-                                <th>Class</th>
-                                <th>Method</th>
-                                <th>Info</th>
-                                <th>Action</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            @foreach($class_payments as $p)
-                                <tr>
-                                    <td>{{ $loop->iteration }}</td>
-                                    <td>{{ $p->title }}</td>
-                                    <td class="text-right font-weight-bold">{{ \App\Helpers\Money::inr($p->amount) }}</td>
-                                    <td>{{ $p->ref_no }}</td>
-                                    <td>{{ $p->my_class_id ? $p->my_class->name : '' }}</td>
-                                    <td>{{ ucwords($p->method) }}</td>
-                                    <td>{{ $p->description }}</td>
-                                    <td class="text-center">
-                                        <div class="list-icons">
-                                            <div class="dropdown">
-                                                <a href="#" class="list-icons-item" data-toggle="dropdown">
-                                                    <i class="icon-menu9"></i>
-                                                </a>
-
-                                                <div class="dropdown-menu dropdown-menu-left">
-                                                    {{--Edit--}}
-                                                    <a href="{{ route('payments.edit', $p->id) }}" class="dropdown-item"><i class="icon-pencil"></i> Edit</a>
-                                                    {{--Delete--}}
-                                                    <a id="{{ $p->id }}" onclick="confirmDelete(this.id)" href="#" class="dropdown-item"><i class="icon-trash"></i> Delete</a>
-                                                    <form method="post" id="item-delete-{{ $p->id }}" action="{{ route('payments.destroy', $p->id) }}" class="hidden">@csrf @method('delete')</form>
-
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                </tr>
-                            @endforeach
-                            </tbody>
-                            <tfoot>
-                            <tr>
-                                <th colspan="2" class="text-right">Class-specific total — {{ $mc->name }}</th>
-                                <th class="text-right">{{ \App\Helpers\Money::inr($class_payments->sum('amount')) }}</th>
-                                <th colspan="5"></th>
-                            </tr>
-                            </tfoot>
-                        </table>
-                        </div>
+                            @include('pages.support_team.payments._table', ['rows' => $class_payments, 'total_label' => 'Class-specific total — ' . $mc->name])
                         @else
                             <p class="text-muted mb-0" style="padding: 18px 4px;">No class-specific payments for {{ $mc->name }} in {{ $year }}. General payments (All Classes) still apply to this class.</p>
                         @endif
-
                     </div>
-                    @endforeach
+                @endforeach
             </div>
-        </div>
-    </div>
-    @endif
+        @else
+            @include('partials.patterns.empty_state', [
+                'icon' => 'icon-cash2',
+                'message' => 'Select a session year above to view its payments.',
+            ])
+        @endif
+    @endcomponent
 
     {{--Payments List Ends--}}
 

@@ -14,18 +14,27 @@
                         : 'No student record is linked to your account yet. Please contact the school office.' }}
                 </p>
             @else
-                <form method="GET" action="{{ route('attendance.my') }}" class="form-inline mb-3">
+                {{-- Workstream BW: filter bar moved onto the shared
+                     pat-filter-form (was form-inline). Same GET
+                     fields and auto-submit onchange behaviour. --}}
+                <form method="GET" action="{{ route('attendance.my') }}" class="pat-filter-form mb-3">
                     @if($students->count() > 1)
-                        <label class="mr-2">Child</label>
-                        <select name="student_id" class="form-control mr-3" onchange="this.form.submit()">
-                            @foreach($students as $s)
-                                <option value="{{ $s->id }}" {{ $student->id === $s->id ? 'selected' : '' }}>{{ optional($s->user)->name }}</option>
-                            @endforeach
-                        </select>
+                        <div class="pat-filter-field">
+                            <label for="att_my_student">Child</label>
+                            <select id="att_my_student" name="student_id" class="form-control" onchange="this.form.submit()">
+                                @foreach($students as $s)
+                                    <option value="{{ $s->id }}" {{ $student->id === $s->id ? 'selected' : '' }}>{{ optional($s->user)->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
                     @endif
-                    <label class="mr-2">Month</label>
-                    <input type="month" name="month" class="form-control mr-3" value="{{ $month->format('Y-m') }}" onchange="this.form.submit()">
-                    <span class="text-muted">{{ optional($student->my_class)->name }}@if($student->section) &middot; {{ $student->section->name }}@endif</span>
+                    <div class="pat-filter-field">
+                        <label for="att_my_month">Month</label>
+                        <input id="att_my_month" type="month" name="month" class="form-control" value="{{ $month->format('Y-m') }}" onchange="this.form.submit()">
+                    </div>
+                    <div class="pat-filter-action">
+                        <span class="text-muted">{{ optional($student->my_class)->name }}@if($student->section) &middot; {{ $student->section->name }}@endif</span>
+                    </div>
                 </form>
 
                 <div class="d-flex flex-wrap align-items-center mb-3">

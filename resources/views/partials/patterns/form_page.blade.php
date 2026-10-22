@@ -13,6 +13,7 @@
             'form_method'  => 'PUT',                          // optional, default POST (GET also honoured)
             'form_enctype' => 'multipart/form-data',          // optional
             'form_class'   => 'ajax-store',                   // optional, extra class on the <form> (AJAX hooks)
+            'form_reload'  => '#page-header',                 // optional, emitted as data-reload (ajax-update forms)
             'back'         => route('things.index'),          // optional Cancel link
             'submit_label' => 'Save Changes',                 // optional
         ])
@@ -64,7 +65,8 @@
     $patHasActions  = isset($actions) && trim((string) $actions) !== '';
 @endphp
 <form method="{{ $patMethod === 'GET' ? 'GET' : 'POST' }}" action="{{ $form_action ?? '' }}" class="pat-form{{ !empty($form_class ?? null) ? ' '.$form_class : '' }}"
-      @if(!empty($form_enctype ?? null)) enctype="{{ $form_enctype }}" @endif>
+      @if(!empty($form_enctype ?? null)) enctype="{{ $form_enctype }}" @endif
+      @if(!empty($form_reload ?? null)) data-reload="{{ $form_reload }}" @endif>
     @if($patMethod !== 'GET')
         @csrf
     @endif

@@ -1,5 +1,6 @@
 @extends('layouts.master')
 @section('page_title', 'Dashboard')
+@section('hide_page_header', true)
 @section('content')
     {{-- Loop 13 (Workstream W): parent home rebuilt to the dashboard
          design language — hero, five real stat cards, richer child
@@ -22,7 +23,6 @@
                 <i class="icon-calendar3"></i>
                 <span>
                     <strong>{{ $today->format('l, d F Y') }}</strong>
-                    <small>Current Session: {{ $current_session ?: '—' }}</small>
                 </span>
             </div>
             <a href="{{ route('my_fees') }}" class="btn dashboard-primary-action">

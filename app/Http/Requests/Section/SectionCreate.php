@@ -39,7 +39,7 @@ class SectionCreate extends FormRequest
     {
         $input = $this->all();
 
-        $input['teacher_id'] = $input['teacher_id'] ? Qs::decodeHash($input['teacher_id']) : NULL;
+        $input['teacher_id'] = ($input['teacher_id'] ?? null) ? Qs::decodeHash($input['teacher_id']) : NULL;
 
         $this->getInputSource()->replace($input);
 

@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Helpers\Qs;
 use App\Models\Exam;
 use App\Models\StudentRecord;
+use App\Repositories\MarkRepo;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
 /**
@@ -124,5 +125,183 @@ class ReportCard
             'principal_name' => Qs::getSetting('principal_name'),
             'stamp' => Qs::getSetting('school_stamp'),
         ];
+    }
+
+    /**
+     * Batch M4 — the ANNUAL / cumulative assembly (design §3.6,
+     * owner decision D3). One pipeline feeds the annual card's two
+     * renderings (marks.annual on screen, marks.print_annual in
+     * print) through marks/partials/annual_report_card.
+     *
+     * DATA RULES — every number traces to stored data; nothing is
+     * recomputed from components and no new storage exists:
+     *  - A term cell is the mark row's tex{term} for that term's
+     *    exam — the exact value the term card prints. NULL (or no
+     *    mark row) is "no total for that term" and prints '–'.
+     *  - ANNUAL SCORE per subject = the MEAN of the term totals
+     *    that are present. A term with no total is EXCLUDED from
+     *    the mean — never counted as 0. Because the grade bands
+     *    are defined on the whole-mark 0–100 scale (and every term
+     *    total is a whole mark), the annual score is the mean
+     *    rounded to the nearest whole mark; the grade is read from
+     *    that score via MarkRepo::getGrade (class-type bands,
+     *    global fallback, total < 1 ⇒ no grade — the same rules
+     *    the term pipeline applies).
+     *  - SUBJECT POSITION (annual) = the pipeline's own ordinal
+     *    rule (MarkRepo::getSubPos: rank in the DESC-sorted peer
+     *    values, ties share the position) applied to the class's
+     *    annual scores for the subject — class-wide, exactly the
+     *    peer group getSubPos uses per term.
+     *  - FOOTER: total = Σ annual subject scores; overall annual
+     *    average = mean of the annual subject scores (1 decimal,
+     *    the exam_records.ave convention); class annual average =
+     *    the mean of the whole class's overall annual averages
+     *    (the getClassAvg peer group); annual position = the
+     *    ordinal rule over overall annual averages within the
+     *    student's class + section (the getPos peer group).
+     *
+     * @param  StudentRecord $sr         the student's record
+     * @param  string        $year       the session year
+     * @param  iterable      $exams      the year's exams (any order;
+     *                                   rendered in term order)
+     * @param  iterable      $subjects   subjects of the student's class
+     * @param  iterable      $marks      the student's mark rows (year)
+     * @param  iterable      $classMarks mark rows of the student's
+     *                                   whole class for the year
+     * @param  int           $classTypeId class type for grade bands
+     * @return array{columns: array, rows: array, footer: array,
+     *               class_teacher: ?string, principal_name: ?string,
+     *               stamp: ?string}
+     */
+    public static function buildAnnual(StudentRecord $sr, $year, $exams, $subjects, $marks, $classMarks, $classTypeId)
+    {
+        $markRepo = app(MarkRepo::class);
+
+        $exams = collect($exams)->sortBy('term')->values();
+        $termOfExam = [];
+        $columns = [];
+        foreach ($exams as $ex) {
+            $termOfExam[$ex->id] = (int) $ex->term;
+            $columns[] = [
+                'key' => 'T' . $ex->id,
+                'label' => strtoupper(self::ordinal($ex->term)) . ' TERM',
+                'exam' => $ex,
+            ];
+        }
+
+        // Annual subject score for ANY student of the class, from
+        // their mark rows: subject_id => annual score or NULL.
+        // A student's total in a term is the mark row's tex{term}.
+        $annualOf = function ($rows) use ($termOfExam) {
+            $totals = []; // subject_id => [term totals present]
+            foreach ($rows as $mk) {
+                if (!isset($termOfExam[$mk->exam_id])) {
+                    continue;
+                }
+                $tex = 'tex' . $termOfExam[$mk->exam_id];
+                $v = $mk->$tex;
+                if ($v !== null) {
+                    $totals[$mk->subject_id][] = (int) $v;
+                }
+            }
+            $annual = [];
+            foreach ($totals as $subjectId => $present) {
+                $annual[$subjectId] = (int) round(array_sum($present) / count($present));
+            }
+            return $annual;
+        };
+
+        // The student's own term cells, per subject.
+        $ownTerms = []; // subject_id => [column key => total|null]
+        foreach ($marks as $mk) {
+            if (!isset($termOfExam[$mk->exam_id])) {
+                continue;
+            }
+            $tex = 'tex' . $termOfExam[$mk->exam_id];
+            $v = $mk->$tex;
+            $ownTerms[$mk->subject_id]['T' . $mk->exam_id] = $v === null ? null : (int) $v;
+        }
+        $ownAnnual = $annualOf($marks);
+
+        // Peer annuals: class-wide per subject (positions), and
+        // overall annual averages per student (footer).
+        $peerAnnual = [];   // subject_id => [annual scores]
+        $peerOverall = [];  // student_id => overall annual average
+        $sectionOverall = []; // same, class + section only
+        foreach (collect($classMarks)->groupBy('student_id') as $studentId => $rows) {
+            $annual = $annualOf($rows);
+            foreach ($annual as $subjectId => $score) {
+                $peerAnnual[$subjectId][] = $score;
+            }
+            if (!empty($annual)) {
+                $overall = round(array_sum($annual) / count($annual), 1);
+                $peerOverall[$studentId] = $overall;
+                $first = $rows->first();
+                if ($first && (int) $first->section_id === (int) $sr->section_id) {
+                    $sectionOverall[$studentId] = $overall;
+                }
+            }
+        }
+        foreach ($peerAnnual as $subjectId => $scores) {
+            rsort($peerAnnual[$subjectId]);
+        }
+        $sectionRanked = array_values($sectionOverall);
+        rsort($sectionRanked);
+
+        $rows = [];
+        foreach ($subjects as $sub) {
+            $annual = $ownAnnual[$sub->id] ?? null;
+            $grade = $annual === null ? null : $markRepo->getGrade($annual, $classTypeId);
+
+            $pos = null;
+            if ($annual !== null && !empty($peerAnnual[$sub->id])) {
+                $found = array_search($annual, $peerAnnual[$sub->id]);
+                $pos = $found === false ? null : $found + 1;
+            }
+
+            $rows[] = [
+                'subject' => $sub,
+                'terms' => $ownTerms[$sub->id] ?? [],
+                'annual' => $annual,
+                'grade' => $grade ? $grade->name : null,
+                'remark' => $grade ? $grade->remark : null,
+                'pos' => $pos,
+            ];
+        }
+
+        $ownScores = array_values($ownAnnual);
+        $footer = [
+            'total' => empty($ownScores) ? null : array_sum($ownScores),
+            'overall' => empty($ownScores) ? null : round(array_sum($ownScores) / count($ownScores), 1),
+            'class_ave' => empty($peerOverall) ? null : round(array_sum($peerOverall) / count($peerOverall), 1),
+            'pos' => null,
+        ];
+        if ($footer['overall'] !== null && !empty($sectionRanked)) {
+            $found = array_search($footer['overall'], $sectionRanked);
+            $footer['pos'] = $found === false ? null : $found + 1;
+        }
+
+        // Class Teacher / Principal / Stamp: the same sources and
+        // the same never-invent rules as the term card (see build()).
+        $teacher = null;
+        if ($sr->section && $sr->section->teacher) {
+            $teacher = $sr->section->teacher->name;
+        }
+
+        return [
+            'columns' => $columns,
+            'rows' => $rows,
+            'footer' => $footer,
+            'class_teacher' => $teacher,
+            'principal_name' => Qs::getSetting('principal_name'),
+            'stamp' => Qs::getSetting('school_stamp'),
+        ];
+    }
+
+    /** Plain ordinal word for a term number (1 => FIRST). */
+    protected static function ordinal($n)
+    {
+        $words = [1 => 'First', 2 => 'Second', 3 => 'Third', 4 => 'Fourth', 5 => 'Fifth', 6 => 'Sixth'];
+        return $words[(int) $n] ?? ('Term ' . $n);
     }
 }

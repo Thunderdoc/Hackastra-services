@@ -37,6 +37,33 @@
         });
     </script>
     <div class="ml-auto d-flex align-items-center lav-topbar-right">
+        {{-- Loop 56 — live clock (Workstream CC, owner: "timer should
+             be in the header for all"). The server renders the initial
+             time so it is right on first paint; the script then ticks
+             it every second from the VIEWER's own clock. Quiet text in
+             the bar's typography — not another pill. The date sits
+             beside the time on wide screens only (Loop 56 CSS). --}}
+        <span class="lav-clock" id="lav-clock"><span class="lav-clock-time" id="lav-clock-time">{{ now()->format('h:i:s A') }}</span><span class="lav-clock-date" id="lav-clock-date">{{ now()->format('D, d M') }}</span></span>
+        <script>
+            (function () {
+                var timeEl = document.getElementById('lav-clock-time');
+                var dateEl = document.getElementById('lav-clock-date');
+                if (!timeEl) { return; }
+                var days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                function pad(n) { return (n < 10 ? '0' : '') + n; }
+                function tick() {
+                    var d = new Date();
+                    var h = d.getHours();
+                    var ap = h >= 12 ? 'PM' : 'AM';
+                    h = h % 12; if (h === 0) { h = 12; }
+                    timeEl.textContent = pad(h) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds()) + ' ' + ap;
+                    if (dateEl) { dateEl.textContent = days[d.getDay()] + ', ' + pad(d.getDate()) + ' ' + months[d.getMonth()]; }
+                }
+                tick();
+                setInterval(tick, 1000);
+            })();
+        </script>
         @if(Qs::userIsTeamSA())
             <a href="{{ route('settings') }}" class="session-chip lav-session-chip" title="Open settings to change the current session"><i class="icon-calendar3"></i><span class="lav-session-label">Current Session:&nbsp;</span><strong>{{ Qs::getSetting('current_session') }}</strong></a>
         @else
@@ -75,13 +102,49 @@
                 });
             })();
         </script>
+        @php
+            // Loop 56 (Workstream CC): bell events, badge and home
+            // toasts. School events are school-wide records — the same
+            // SchoolEvent source the dashboards and School Calendar
+            // use (HomeController::upcomingEvents / buildCalendar),
+            // with NO per-role scoping on the records themselves.
+            // Only teamSA may open the events manager, so other roles
+            // link through to their dashboard calendar instead.
+            $lavEventsUrl = Qs::userIsTeamSA() ? route('events.index') : route('dashboard');
+            $lavEventsLinkLabel = Qs::userIsTeamSA() ? 'View all events' : 'Open calendar';
+            $lavUpcomingEvents = collect();
+            $lavTodayEvents = collect();
+            $lavEventsToday = 0;
+            if (\Illuminate\Support\Facades\Schema::hasTable('school_events')) {
+                $lavUpcomingEvents = \App\Models\SchoolEvent::whereDate('starts_at', '>=', now()->toDateString())
+                    ->orderBy('starts_at')->take(5)->get();
+                $lavTodayEvents = $lavUpcomingEvents->filter(function ($lavEv) {
+                    return $lavEv->starts_at && $lavEv->starts_at->isToday();
+                })->take(3)->values();
+                $lavEventsToday = \App\Models\SchoolEvent::whereDate('starts_at', now()->toDateString())->count();
+            }
+            // BADGE RULE (server-side, correct on first render): the
+            // role's actionable notifications — for a teacher, the
+            // TeacherReminders actionable count; every other role's
+            // panel is a feed with no unread/actionable store, so 0 —
+            // PLUS the number of school events happening today.
+            $lavBellBadge = $lavEventsToday;
+            $lavToastReminder = null;
+            if (Qs::userIsTeacher()) {
+                $lavBellBadge += \App\Support\TeacherReminders::actionableCount(Auth::user());
+                $lavToastReminder = collect(\App\Support\TeacherReminders::forTeacher(Auth::user()))
+                    ->where('actionable', true)->first();
+            }
+            $lavIsHome = request()->routeIs('home') || request()->routeIs('dashboard')
+                || request()->routeIs('dashboard.school') || request()->path() === 'home';
+        @endphp
         @if(Qs::userIsTeamSAT() || Qs::userIsTeamAccount())
             @php
                 $lavRecentPayments = \App\Models\PaymentRecord::with('payment')->latest()->take(4)->get();
                 $lavRecentStudents = \App\Models\StudentRecord::with('user')->latest()->take(4)->get();
             @endphp
             <div class="nav-item dropdown">
-                <button type="button" class="lav-topbar-icon" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="Recent activity" title="Recent activity"><i class="icon-bell2"></i>@if(Qs::userIsTeacher() && ($lavReminderBadge = \App\Support\TeacherReminders::actionableCount(Auth::user())) > 0)<span class="lav-bell-badge">{{ $lavReminderBadge }}</span>@endif</button>
+                <button type="button" class="lav-topbar-icon" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="Recent activity" title="Recent activity"><i class="icon-bell2"></i>@if($lavBellBadge > 0)<span class="lav-bell-badge">{{ $lavBellBadge }}</span>@endif</button>
                 <div class="dropdown-menu dropdown-menu-right lav-notif-menu">
                     {{-- LOOP31-FIX10-REMINDERS-LIST (start): the teacher's
                          derived reminders, rendered distinctly with a
@@ -104,6 +167,21 @@
                         @endif
                     @endif
                     {{-- LOOP31-FIX10-REMINDERS-LIST (end) --}}
+                    {{-- Loop 56: Upcoming Events — real SchoolEvent
+                         records, soonest first, same source as the
+                         dashboards/School Calendar. --}}
+                    <div class="dropdown-header">Upcoming Events</div>
+                    @forelse($lavUpcomingEvents as $lavEvent)
+                        <a class="dropdown-item lav-notif-item" href="{{ $lavEventsUrl }}">
+                            <i class="icon-calendar3"></i>
+                            <span>{{ $lavEvent->title }}<small>{{ $lavEvent->starts_at->format('D, d M Y') }}@if($lavEvent->all_day) &middot; All Day @endif</small></span>
+                            @if($lavEvent->starts_at->isToday())<span class="lav-event-tag">Today</span>@else<span class="lav-event-tag">{{ \App\Models\SchoolEvent::types()[$lavEvent->type] ?? 'Event' }}</span>@endif
+                        </a>
+                    @empty
+                        <span class="dropdown-item text-muted">No upcoming events.</span>
+                    @endforelse
+                    <a class="dropdown-item" href="{{ $lavEventsUrl }}">{{ $lavEventsLinkLabel }}</a>
+                    <div class="dropdown-divider"></div>
                     <div class="dropdown-header">Recent activity</div>
                     @forelse($lavRecentPayments as $lavPay)
                         <a class="dropdown-item lav-notif-item" href="{{ route('payments.receipts', Qs::hash($lavPay->id)) }}">
@@ -126,10 +204,10 @@
             </div>
         @else
             @php
-                $lavCirculars = \App\Models\Circular::where('is_published', true)->latest()->take(4)->get();
+                $lavCirculars = \App\Models\Circular::published()->forAudience(Auth::user()->user_type)->latest()->take(4)->get();
             @endphp
             <div class="nav-item dropdown">
-                <button type="button" class="lav-topbar-icon" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="Circulars" title="Circulars"><i class="icon-bell2"></i></button>
+                <button type="button" class="lav-topbar-icon" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="Circulars" title="Circulars"><i class="icon-bell2"></i>@if($lavBellBadge > 0)<span class="lav-bell-badge">{{ $lavBellBadge }}</span>@endif</button>
                 <div class="dropdown-menu dropdown-menu-right lav-notif-menu">
                     <div class="dropdown-header">Latest circulars</div>
                     @forelse($lavCirculars as $lavCircular)
@@ -140,6 +218,20 @@
                     @empty
                         <span class="dropdown-item text-muted">No circulars yet.</span>
                     @endforelse
+                    <div class="dropdown-divider"></div>
+                    {{-- Loop 56: Upcoming Events — same real records
+                         and link rule as the staff bell. --}}
+                    <div class="dropdown-header">Upcoming Events</div>
+                    @forelse($lavUpcomingEvents as $lavEvent)
+                        <a class="dropdown-item lav-notif-item" href="{{ $lavEventsUrl }}">
+                            <i class="icon-calendar3"></i>
+                            <span>{{ $lavEvent->title }}<small>{{ $lavEvent->starts_at->format('D, d M Y') }}@if($lavEvent->all_day) &middot; All Day @endif</small></span>
+                            @if($lavEvent->starts_at->isToday())<span class="lav-event-tag">Today</span>@else<span class="lav-event-tag">{{ \App\Models\SchoolEvent::types()[$lavEvent->type] ?? 'Event' }}</span>@endif
+                        </a>
+                    @empty
+                        <span class="dropdown-item text-muted">No upcoming events.</span>
+                    @endforelse
+                    <a class="dropdown-item" href="{{ $lavEventsUrl }}">{{ $lavEventsLinkLabel }}</a>
                     <div class="dropdown-divider"></div>
                     <a class="dropdown-item" href="{{ route('circulars.index') }}">View all circulars</a>
                 </div>
@@ -166,3 +258,45 @@
         </div>
     </div>
 </div>
+@if($lavIsHome && ($lavTodayEvents->count() || $lavToastReminder))
+    {{-- Loop 56 — home popup toast(s) (owner: "for upcoming event or
+         any notification show popup here"): an event happening TODAY,
+         or the teacher's first actionable reminder. Each toast shows
+         at most once per browser session per item (sessionStorage),
+         is dismissible, and never blocks the page. Styled by Loop 56
+         CSS, including under html.hk-dark. --}}
+    <div class="lav-toast-stack" id="lav-toast-stack">
+        @foreach($lavTodayEvents as $lavTodayEvent)
+            <div class="lav-toast" data-toast-key="event-{{ $lavTodayEvent->id }}" role="status" hidden>
+                <i class="icon-calendar3"></i>
+                <span class="lav-toast-body"><strong>{{ $lavTodayEvent->title }}</strong><small>Happening today &middot; {{ $lavTodayEvent->starts_at->format('D, d M Y') }}</small></span>
+                <a class="lav-toast-link" href="{{ $lavEventsUrl }}">View</a>
+                <button type="button" class="lav-toast-close" aria-label="Dismiss notification">&times;</button>
+            </div>
+        @endforeach
+        @if($lavToastReminder)
+            <div class="lav-toast" data-toast-key="reminder-{{ md5($lavToastReminder['title'] . $lavToastReminder['date_label']) }}" role="status" hidden>
+                <i class="{{ $lavToastReminder['icon'] }}"></i>
+                <span class="lav-toast-body"><strong>{{ $lavToastReminder['title'] }}</strong><small>{{ $lavToastReminder['meta'] }} &middot; {{ $lavToastReminder['date_label'] }}</small></span>
+                <a class="lav-toast-link" href="{{ $lavToastReminder['link'] }}">Open</a>
+                <button type="button" class="lav-toast-close" aria-label="Dismiss notification">&times;</button>
+            </div>
+        @endif
+    </div>
+    <script>
+        (function () {
+            var stack = document.getElementById('lav-toast-stack');
+            if (!stack) { return; }
+            Array.prototype.forEach.call(stack.querySelectorAll('.lav-toast'), function (toast) {
+                var key = 'hk-toast-' + toast.getAttribute('data-toast-key');
+                var seen = false;
+                try { seen = sessionStorage.getItem(key) === '1'; } catch (e) {}
+                if (seen) { toast.remove(); return; }
+                toast.hidden = false;
+                try { sessionStorage.setItem(key, '1'); } catch (e) {}
+                toast.querySelector('.lav-toast-close').addEventListener('click', function () { toast.remove(); });
+            });
+            if (!stack.children.length) { stack.remove(); }
+        })();
+    </script>
+@endif

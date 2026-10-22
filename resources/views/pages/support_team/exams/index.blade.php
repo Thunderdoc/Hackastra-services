@@ -38,13 +38,15 @@
                                         @endif
                                     </td>
                                     <td class="text-center">
-                                        <div class="list-icons">
-                                            <div class="dropdown">
-                                                <a href="#" class="list-icons-item" data-toggle="dropdown">
-                                                <i class="icon-menu9"></i>
-                                                </a>
+                                        {{-- Workstream BW: the toggle was a bare
+                                             icon-menu9 glyph anchor (owner screenshot:
+                                             rendered as a stray "≡"). Now the app's
+                                             labelled Actions dropdown button; every
+                                             item inside is unchanged. --}}
+                                        <div class="dropdown">
+                                            <button type="button" class="btn btn-sm btn-primary dropdown-toggle" data-toggle="dropdown">Actions</button>
 
-                                                <div class="dropdown-menu dropdown-menu-left">
+                                            <div class="dropdown-menu dropdown-menu-right">
                                                     {{--Admit Cards--}}
                                                     <a href="{{ route('admit_cards.index', ['exam_id' => $ex->id]) }}" class="dropdown-item"><i class="icon-profile"></i> Admit Cards</a>
                                                     @if(Qs::userIsTeamSA())
@@ -73,7 +75,6 @@
                                                     <form method="post" id="item-delete-{{ $ex->id }}" action="{{ route('exams.destroy', $ex->id) }}" class="hidden">@csrf @method('delete')</form>
                                                         @endif
 
-                                                </div>
                                             </div>
                                         </div>
                                     </td>
@@ -93,34 +94,32 @@
                             </div>
                         </div>
                     </div>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <form method="post" action="{{ route('exams.store') }}">
-                                @csrf
-                                <div class="form-group row">
-                                    <label class="col-lg-3 col-form-label font-weight-semibold">Name <span class="text-danger">*</span></label>
-                                    <div class="col-lg-9">
-                                        <input name="name" value="{{ old('name') }}" required type="text" class="form-control" placeholder="Name of Exam">
-                                    </div>
-                                </div>
-
-                                <div class="form-group row">
-                                    <label for="term" class="col-lg-3 col-form-label font-weight-semibold">Term</label>
-                                    <div class="col-lg-9">
-                                        <select data-placeholder="Select Teacher" class="form-control select-search" name="term" id="term">
-                                            <option {{ old('term') == 1 ? 'selected' : '' }} value="1">First Term</option>
-                                            <option {{ old('term') == 2 ? 'selected' : '' }} value="2">Second Term</option>
-                                            <option {{ old('term') == 3 ? 'selected' : '' }} value="3">Third Term</option>
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <div class="text-right">
-                                    <button type="submit" class="btn btn-primary">Submit form <i class="icon-paperplane ml-2"></i></button>
-                                </div>
-                            </form>
+                    {{-- Workstream BW: fields moved onto the pattern grid
+                         (pat-fields/pat-field, full width). The tab shell,
+                         form action and fields are unchanged; the term
+                         select's data-placeholder said "Select Teacher"
+                         (copy-paste relic) and now says "Select Term". --}}
+                    <form method="post" action="{{ route('exams.store') }}">
+                        @csrf
+                        <div class="pat-fields">
+                            <div class="pat-field">
+                                <label for="name">Name <span class="text-danger">*</span></label>
+                                <input id="name" name="name" value="{{ old('name') }}" required type="text" class="form-control" placeholder="Name of Exam">
+                            </div>
+                            <div class="pat-field">
+                                <label for="term">Term</label>
+                                <select data-placeholder="Select Term" class="form-control select-search" name="term" id="term">
+                                    <option {{ old('term') == 1 ? 'selected' : '' }} value="1">First Term</option>
+                                    <option {{ old('term') == 2 ? 'selected' : '' }} value="2">Second Term</option>
+                                    <option {{ old('term') == 3 ? 'selected' : '' }} value="3">Third Term</option>
+                                </select>
+                            </div>
                         </div>
-                    </div>
+
+                        <div class="text-right mt-3">
+                            <button type="submit" class="btn btn-primary">Submit form <i class="icon-paperplane ml-2"></i></button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>

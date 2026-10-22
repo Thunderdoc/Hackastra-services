@@ -11,7 +11,7 @@
          render server-side, so honour this browser's mirror of the last
          signed-in choice (the topbar toggle keeps localStorage 'hk-theme'
          in sync with the account store). Runs pre-paint: no flash. --}}
-    <script>try{if(localStorage.getItem('hk-theme')==='dark'){document.documentElement.classList.add('hk-dark');}}catch(e){}</script>
+    <script>try{if(localStorage.getItem('hk-theme')!=='light'){document.documentElement.classList.add('hk-dark');}}catch(e){}</script>
 
     <title>{{ Qs::getSystemName() ?: 'School Management System' }}</title>
 

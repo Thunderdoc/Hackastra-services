@@ -1,10 +1,6 @@
 @extends('layouts.master')
 @section('page_title', 'Take Attendance')
 @section('content')
-    <style>
-        .period-grid th.period-status, .period-grid td.period-status { text-align: center; }
-        .period-grid .period-radio { margin: 0; }
-    </style>
     <div class="card">
         <div class="card-header header-elements-inline">
             <h6 class="card-title">
@@ -31,54 +27,53 @@
             @if($students->isEmpty())
                 <p class="text-muted mb-0">No active students in {{ $period['class']->name }} yet — there is no roster to mark.</p>
             @else
-                <form method="POST" action="{{ route('attendance.periods.store', $period['tt']->id) }}">
+                <form method="POST" action="{{ route('attendance.periods.store', $period['tt']->id) }}" id="period-register-form">
                     @csrf
                     <input type="hidden" name="date" value="{{ $date->format('Y-m-d') }}">
 
-                    <div class="form-group">
-                        <label for="pa_topic"><strong>Topic taught in this period</strong> <span class="text-danger">*</span></label>
-                        <input type="text" name="topic" id="pa_topic" class="form-control" maxlength="255" required
-                               placeholder="e.g. Quadratic Equations — solving by factorisation"
-                               value="{{ old('topic') }}">
-                        <span class="text-muted font-size-sm">This topic is saved on the register and appears in the subject-wise report's session log.</span>
+                    <div class="pat-fields reg-topic">
+                        <div class="pat-field pat-field-wide">
+                            <label for="pa_topic">Topic taught in this period <span class="text-danger">*</span></label>
+                            <input type="text" name="topic" id="pa_topic" class="form-control" maxlength="255" required
+                                   placeholder="e.g. Quadratic Equations — solving by factorisation"
+                                   value="{{ old('topic') }}">
+                            <span class="form-text">This topic is saved on the register and appears in the subject-wise report's session log.</span>
+                        </div>
                     </div>
 
-                    <div class="mb-2 text-right">
-                        <button type="button" id="mark-all-present" class="btn btn-light btn-sm"><i class="icon-checkmark3 mr-1"></i> Mark all present</button>
-                    </div>
-                    <div class="table-responsive">
-                        <table class="table period-grid">
-                            <thead>
-                            <tr>
-                                <th>Student</th>
-                                <th>Section</th>
-                                <th>Admission No</th>
-                                <th class="period-status">Present</th>
-                                <th class="period-status">Absent</th>
-                                <th class="period-status">Late</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            @foreach($students as $student)
-                                @php($current = old('statuses.' . $student->id, 'present'))
-                                <tr>
-                                    <td><strong>{{ optional($student->user)->name }}</strong></td>
-                                    <td>{{ optional($student->section)->name ?: '—' }}</td>
-                                    <td>{{ $student->adm_no ?: '—' }}</td>
-                                    @foreach(['present', 'absent', 'late'] as $value)
-                                        <td class="period-status">
-                                            <input type="radio" class="period-radio" name="statuses[{{ $student->id }}]" value="{{ $value }}" aria-label="{{ ucfirst($value) }} — {{ optional($student->user)->name }}" {{ $current === $value ? 'checked' : '' }}>
-                                        </td>
+                    <div class="reg-list">
+                        @foreach($students as $student)
+                            @php($current = old('statuses.' . $student->id, 'present'))
+                            <div class="reg-row" data-reg-row data-status="{{ $current }}">
+                                <div class="reg-id">
+                                    <span class="reg-name">{{ optional($student->user)->name }}</span>
+                                    <span class="reg-meta">{{ optional($student->section)->name ?: '—' }} · {{ $student->adm_no ?: '—' }}</span>
+                                </div>
+                                <div class="reg-seg" role="radiogroup" aria-label="Attendance — {{ optional($student->user)->name }}">
+                                    @foreach(['present' => 'Present', 'absent' => 'Absent', 'late' => 'Late'] as $value => $label)
+                                        <span class="reg-seg-item">
+                                            <input type="radio" class="reg-radio" id="st-{{ $student->id }}-{{ $value }}" name="statuses[{{ $student->id }}]" value="{{ $value }}" aria-label="{{ $label }} — {{ optional($student->user)->name }}" {{ $current === $value ? 'checked' : '' }}>
+                                            <label class="reg-seg-btn reg-seg-{{ $value }}" for="st-{{ $student->id }}-{{ $value }}">{{ $label }}</label>
+                                        </span>
                                     @endforeach
-                                </tr>
-                            @endforeach
-                            </tbody>
-                        </table>
+                                </div>
+                            </div>
+                        @endforeach
                     </div>
 
-                    <div class="mt-3">
-                        <button type="submit" class="btn btn-primary"><i class="icon-lock2 mr-1"></i> Submit Attendance (final)</button>
-                        <a href="{{ route('attendance.periods.index', ['date' => $date->format('Y-m-d')]) }}" class="btn btn-light ml-2">Back to my periods</a>
+                    <div class="reg-bar">
+                        <div class="reg-bar-summary" aria-live="polite">
+                            <span class="reg-count reg-count-present"><i></i>Present <strong data-reg-count="present">0</strong></span>
+                            <span class="reg-count reg-count-absent"><i></i>Absent <strong data-reg-count="absent">0</strong></span>
+                            <span class="reg-count reg-count-late"><i></i>Late <strong data-reg-count="late">0</strong></span>
+                            <span class="reg-count reg-count-unmarked"><i></i>Unmarked <strong data-reg-count="unmarked">0</strong></span>
+                            <span class="reg-bar-lock"><i class="icon-lock2"></i> Locks for {{ $period['subject']->name }} · {{ $date->format('d M Y') }} on submit</span>
+                        </div>
+                        <div class="reg-bar-actions">
+                            <button type="button" id="mark-all-present" class="btn btn-light"><i class="icon-checkmark3 mr-1"></i> Mark all present</button>
+                            <a href="{{ route('attendance.periods.index', ['date' => $date->format('Y-m-d')]) }}" class="btn btn-light">Back to my periods</a>
+                            <button type="submit" class="btn btn-primary"><i class="icon-lock2 mr-1"></i> Submit Attendance (final)</button>
+                        </div>
                     </div>
                 </form>
             @endif
@@ -88,15 +83,50 @@
 
 @section('scripts')
     <script>
-        // Same dependency-free "mark all present" convenience as the
-        // day-wise register; individual students can still be flipped.
+        // Register UX (Loop 61): the segmented buttons are labels for the
+        // real radios below them — this script only mirrors state: it
+        // counts the checked radios into the sticky bar's live summary
+        // and stamps each row's data-status so unmarked rows stand out.
+        // It never changes what the form submits.
         (function () {
-            var btn = document.getElementById('mark-all-present');
-            if (!btn) { return; }
-            btn.addEventListener('click', function () {
-                var radios = document.querySelectorAll('input.period-radio[value="present"]');
-                for (var i = 0; i < radios.length; i++) { radios[i].checked = true; }
+            var form = document.getElementById('period-register-form');
+            if (!form) { return; }
+
+            var counts = {
+                present: form.querySelector('[data-reg-count="present"]'),
+                absent: form.querySelector('[data-reg-count="absent"]'),
+                late: form.querySelector('[data-reg-count="late"]'),
+                unmarked: form.querySelector('[data-reg-count="unmarked"]')
+            };
+
+            function sync() {
+                var tally = { present: 0, absent: 0, late: 0, unmarked: 0 };
+                var rows = form.querySelectorAll('[data-reg-row]');
+                for (var i = 0; i < rows.length; i++) {
+                    var checked = rows[i].querySelector('input.reg-radio:checked');
+                    var status = checked ? checked.value : 'unmarked';
+                    rows[i].setAttribute('data-status', status);
+                    tally[status] = (tally[status] || 0) + 1;
+                }
+                for (var key in counts) {
+                    if (counts[key]) { counts[key].textContent = tally[key]; }
+                }
+            }
+
+            form.addEventListener('change', function (e) {
+                if (e.target && e.target.classList && e.target.classList.contains('reg-radio')) { sync(); }
             });
+
+            var btn = document.getElementById('mark-all-present');
+            if (btn) {
+                btn.addEventListener('click', function () {
+                    var radios = form.querySelectorAll('input.reg-radio[value="present"]');
+                    for (var i = 0; i < radios.length; i++) { radios[i].checked = true; }
+                    sync();
+                });
+            }
+
+            sync();
         })();
     </script>
 @endsection

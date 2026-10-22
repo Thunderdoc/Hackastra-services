@@ -24,7 +24,7 @@ class UserUpdate extends FormRequest
             'phone2' => 'sometimes|nullable|string|min:6|max:20',
             'email' => 'sometimes|nullable|email|max:100|unique:users,id',
             'username' => 'sometimes|nullable|alpha_dash|min:8|max:100|unique:users',
-            'photo' => 'sometimes|nullable|image|mimes:jpeg,gif,png,jpg|max:2048',
+            'photo' => 'sometimes|nullable|image|mimes:jpeg,gif,png,jpg,webp|max:2048',
             'address' => 'required|string|min:6|max:120'
         ];
     }

@@ -36,6 +36,11 @@
                     <div class="font-weight-bold">{{ $year }}</div>
                 </div>
             </div>
+            {{-- Batch M4: the annual / cumulative report for this
+                 session — one card over every term's totals. --}}
+            <div class="text-center mt-3">
+                <a href="{{ route('marks.annual', [Qs::hash($student_id), $year]) }}" class="btn btn-primary">Annual / Cumulative Report <i class="icon-calendar3 ml-2"></i></a>
+            </div>
         </div>
     </div>
 
@@ -61,10 +66,19 @@
                              App\Support\ReportCard assembly. --}}
                         @include('pages.support_team.marks.partials.report_card', ['card' => $cards[$ex->id]])
 
-                        {{--Print Button--}}
+                        {{--Print Button — rendered only for users the
+                             print gate admits (teamSA, the student, or
+                             their parent). Teachers were shown this
+                             button but print_view denies them, bouncing
+                             them to the dashboard with an ACCESS DENIED
+                             modal (owner report 2026-10-22). If the
+                             owner later allows teacher printing, widen
+                             the gate and this condition together. --}}
+                        @if(Qs::userIsTeamSA() || Auth::id() == $student_id || Qs::userIsMyChild($student_id, Auth::id()))
                         <div class="text-center mt-3">
                             <a target="_blank" href="{{ route('marks.print', [Qs::hash($student_id), $ex->id, $year]) }}" class="btn btn-secondary btn-lg">Print Marksheet <i class="icon-printer ml-2"></i></a>
                         </div>
+                        @endif
 
                     </div>
 

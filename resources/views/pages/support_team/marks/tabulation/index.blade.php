@@ -2,55 +2,51 @@
 @section('page_title', 'Tabulation Sheet')
 @section('content')
     <div class="card">
+        <div class="card-header header-elements-inline">
+            <h5 class="card-title"><i class="icon-books mr-2"></i> Tabulation Sheet</h5>
+            {!! Qs::getPanelOptions() !!}
+        </div>
 
         <div class="card-body">
+        {{-- Workstream BW: selector fields moved onto the pattern
+             grid (pat-fields/pat-field). Same POST to
+             marks.tabulation_select, same selects, bindings and
+             the getClassSections() cascade; the report card below
+             is unchanged. --}}
         <form method="post" action="{{ route('marks.tabulation_select') }}">
                     @csrf
-                    <div class="row">
-
-                                    <div class="col-md-4">
-                                        <div class="form-group">
-                                            <label for="exam_id" class="col-form-label font-weight-bold">Exam:</label>
-                                            <select required id="exam_id" name="exam_id" class="form-control select" data-placeholder="Select Exam">
-                                                @foreach($exams as $exm)
-                                                    <option {{ ($selected && $exam_id == $exm->id) ? 'selected' : '' }} value="{{ $exm->id }}">{{ $exm->name }}</option>
-                                                @endforeach
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    <div class="col-md-3">
-                                        <div class="form-group">
-                                            <label for="my_class_id" class="col-form-label font-weight-bold">Class:</label>
-                                            <select onchange="getClassSections(this.value)" required id="my_class_id" name="my_class_id" class="form-control select" data-placeholder="Select Class">
-                                                <option value=""></option>
-                                                @foreach($my_classes as $c)
-                                                    <option {{ ($selected && $my_class_id == $c->id) ? 'selected' : '' }} value="{{ $c->id }}">{{ $c->name }}</option>
-                                                @endforeach
-                                            </select>
-                                        </div>
-                                    </div>
-
-                        <div class="col-md-3">
-                            <div class="form-group">
-                                <label for="section_id" class="col-form-label font-weight-bold">Section:</label>
-                                <select required id="section_id" name="section_id" data-placeholder="Select Class First" class="form-control select">
-                                    @if($selected)
-                                        @foreach($sections->where('my_class_id', $my_class_id) as $s)
-                                            <option {{ $section_id == $s->id ? 'selected' : '' }} value="{{ $s->id }}">{{ $s->name }}</option>
-                                        @endforeach
-                                    @endif
-                                </select>
-                            </div>
+                    <div class="pat-fields">
+                        <div class="pat-field">
+                            <label for="exam_id">Exam:</label>
+                            <select required id="exam_id" name="exam_id" class="form-control select" data-placeholder="Select Exam">
+                                @foreach($exams as $exm)
+                                    <option {{ ($selected && $exam_id == $exm->id) ? 'selected' : '' }} value="{{ $exm->id }}">{{ $exm->name }}</option>
+                                @endforeach
+                            </select>
                         </div>
-
-
-                        <div class="col-md-2 mt-4">
-                            <div class="text-right mt-1">
-                                <button type="submit" class="btn btn-primary">View Sheet <i class="icon-paperplane ml-2"></i></button>
-                            </div>
+                        <div class="pat-field">
+                            <label for="my_class_id">Class:</label>
+                            <select onchange="getClassSections(this.value)" required id="my_class_id" name="my_class_id" class="form-control select" data-placeholder="Select Class">
+                                <option value=""></option>
+                                @foreach($my_classes as $c)
+                                    <option {{ ($selected && $my_class_id == $c->id) ? 'selected' : '' }} value="{{ $c->id }}">{{ $c->name }}</option>
+                                @endforeach
+                            </select>
                         </div>
+                        <div class="pat-field">
+                            <label for="section_id">Section:</label>
+                            <select required id="section_id" name="section_id" data-placeholder="Select Class First" class="form-control select">
+                                @if($selected)
+                                    @foreach($sections->where('my_class_id', $my_class_id) as $s)
+                                        <option {{ $section_id == $s->id ? 'selected' : '' }} value="{{ $s->id }}">{{ $s->name }}</option>
+                                    @endforeach
+                                @endif
+                            </select>
+                        </div>
+                    </div>
 
+                    <div class="text-right mt-3">
+                        <button type="submit" class="btn btn-primary">View Sheet <i class="icon-paperplane ml-2"></i></button>
                     </div>
 
                 </form>

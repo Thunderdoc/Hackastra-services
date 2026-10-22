@@ -204,6 +204,120 @@ class MarkController extends Controller
         return view('pages.support_team.marks.print.index', $d);
     }
 
+    /**
+     * Batch M4 — the annual / cumulative report card for a session:
+     * one card over every term's totals (ReportCard::buildAnnual).
+     * Gating mirrors show(): self / teamSAT / my-child, plus the
+     * Batch S teacher scope. BH publish gate (replacing BO's retired
+     * PIN gate): students and parents see only published exams'
+     * terms in the annual figures; staff are never filtered, and
+     * when nothing is published the not-published page renders.
+     */
+    public function show_annual($student_id, $year)
+    {
+        /* Prevent Other Students/Parents from viewing Result of others */
+        if(Auth::user()->id != $student_id && !Qs::userIsTeamSAT() && !Qs::userIsMyChild($student_id, Auth::user()->id)){
+            return redirect(route('dashboard'))->with('pop_error', __('msg.denied'));
+        }
+
+        /* Batch S: teamSAT membership is not enough for a teacher —
+           the student's class must be one of their assigned classes. */
+        if(Qs::userIsTeacher()){
+            $sr = $this->student->getRecord(['user_id' => $student_id])->first();
+            if(!$sr || !TeacherScope::canTeachClass(Auth::user(), $sr->my_class_id)){
+                return redirect(route('dashboard'))->with('pop_error', __('msg.denied'));
+            }
+        }
+
+        if(!$this->verifyStudentExamYear($student_id, $year)){
+            return $this->noStudentRecord();
+        }
+
+        $exams = $this->exam->getExam(['year' => $year]);
+        if(!Qs::userIsTeamSAT()){
+            $exams = $exams->filter(function($ex){ return $ex->results_published; });
+            if($exams->isEmpty()){
+                return view('pages.support_team.marks.not_published', [
+                    'sr' => $this->student->getRecord(['user_id' => $student_id])->first(),
+                    'year' => $year,
+                ]);
+            }
+        }
+
+        $d = $this->annualCardData($student_id, $year, $exams);
+
+        return view('pages.support_team.marks.show.annual', $d);
+    }
+
+    /**
+     * Batch M4 — the printed annual / cumulative report. Gating is
+     * print_view()'s (teamSA print permission), with the BH publish
+     * gate for non-teamSA viewers: only published terms count toward
+     * the printed annual figures, and with nothing published the
+     * not-published page renders instead.
+     */
+    public function print_annual($student_id, $year)
+    {
+        /* Prevent Other Students/Parents from viewing Result of others */
+        if(Auth::user()->id != $student_id && !Qs::userIsTeamSA() && !Qs::userIsMyChild($student_id, Auth::user()->id)){
+            return redirect(route('dashboard'))->with('pop_error', __('msg.denied'));
+        }
+
+        if(!$this->verifyStudentExamYear($student_id, $year)){
+            return $this->noStudentRecord();
+        }
+
+        $exams = $this->exam->getExam(['year' => $year]);
+        if(!Qs::userIsTeamSA()){
+            $exams = $exams->filter(function($ex){ return $ex->results_published; });
+            if($exams->isEmpty()){
+                return view('pages.support_team.marks.not_published', [
+                    'sr' => $this->student->getRecord(['user_id' => $student_id])->first(),
+                    'year' => $year,
+                ]);
+            }
+        }
+
+        $d = $this->annualCardData($student_id, $year, $exams);
+
+        return view('pages.support_team.marks.print.annual', $d);
+    }
+
+    /**
+     * Batch M4 — shared data assembly for the two annual surfaces:
+     * the student's year marks + the whole class's year marks (the
+     * peer group the assembler's positions rank against), fed to
+     * ReportCard::buildAnnual. When a publish-filtered $exams set is
+     * passed, marks are restricted to those exams so an unpublished
+     * term never leaks into the annual figures.
+     */
+    protected function annualCardData($student_id, $year, $exams = null)
+    {
+        $wh = ['student_id' => $student_id, 'year' => $year];
+        $d['marks'] = $this->exam->getMark($wh);
+        $d['exams'] = $exams ?: $this->exam->getExam(['year' => $year]);
+        $d['sr'] = $sr = $this->student->getRecord(['user_id' => $student_id])->first();
+        $d['my_class'] = $mc = $this->my_class->getMC(['id' => $sr->my_class_id])->first();
+        $d['class_type'] = $this->my_class->findTypeByClass($mc->id);
+        $d['subjects'] = $this->my_class->findSubjectByClass($mc->id);
+        $d['year'] = $year;
+        $d['student_id'] = $student_id;
+        $d['ct'] = $d['class_type']->code;
+        $d['s'] = Setting::all()->flatMap(function($s){
+            return [$s->type => $s->description];
+        });
+
+        $classMarks = $this->exam->getMark(['my_class_id' => $mc->id, 'year' => $year]);
+        if($exams){
+            $ids = $d['exams']->pluck('id');
+            $d['marks'] = $d['marks']->whereIn('exam_id', $ids);
+            $classMarks = $classMarks->whereIn('exam_id', $ids);
+        }
+        $d['card'] = ReportCard::buildAnnual($sr, $year, $d['exams'], $d['subjects'], $d['marks'], $classMarks, $d['class_type']->id);
+
+        return $d;
+    }
+
     public function selector(MarkSelector $req)
     {
         // Batch S: marks entry is scoped to a teacher's assigned classes.

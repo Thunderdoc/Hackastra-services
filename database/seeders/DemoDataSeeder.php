@@ -453,16 +453,9 @@ class DemoDataSeeder extends Seeder
             'name' => 'Term 1 Examination',
             'term' => 1,
             'year' => $session,
-            // Workstream BH: demo exams are published so students and
-            // parents can see the seeded results (the publish switch
-            // defaults new exams to unpublished in real use).
-            'results_published' => 1,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-        if ($exam) {
-            DB::table('exams')->where('id', $exam->id)->update(['results_published' => 1]);
-        }
 
         $subjectsByClass = DB::table('subjects')->orderBy('id')->get()->groupBy('my_class_id');
         $grades = DB::table('grades')->whereNull('class_type_id')->get();
@@ -562,6 +555,102 @@ class DemoDataSeeder extends Seeder
 
         foreach (array_chunk($recordRows, 200) as $chunk) {
             DB::table('exam_records')->insert($chunk);
+        }
+
+        $this->seedDemoMarkingScheme((int) $examId, $subjectsByClass);
+    }
+
+    /**
+     * Batch M4 — give the demo exam ONE configured marking scheme so
+     * the sales demo shows the M1–M3 feature end to end: every class's
+     * English Language subject is configured Theory 60 + Internal
+     * Assessment 30 + Viva 10, while Mathematics stays on the legacy
+     * CA scheme — the M3 card therefore renders a mixed-scheme class.
+     *
+     * The component scores are a deterministic split of each English
+     * mark's EXISTING total (tex1): Theory ≈ 60%, Internal ≈ 30%,
+     * Viva the remainder, clamped to each component's max — so the
+     * three components sum EXACTLY to the stored tex1 and every demo
+     * total, grade, average and position computed above is unchanged
+     * (the dual-write contract of design §3.1, applied in the
+     * seeder as design §5-M4 prescribes). The legacy t1/t2/tca/exm
+     * columns are left filled alongside, exactly as seeded.
+     *
+     * Guarded like the rest of this seeder: runs only when the demo
+     * exam has no components yet (its caller, seedExamAndMarks,
+     * itself no-ops once marks exist).
+     */
+    protected function seedDemoMarkingScheme(int $examId, $subjectsByClass): void
+    {
+        if (!Schema::hasTable('exam_subject_components') || !Schema::hasTable('mark_components')) {
+            return;
+        }
+        if (DB::table('exam_subject_components')->where('exam_id', $examId)->count() > 0) {
+            return;
+        }
+
+        // name, short_code, max_marks, sort — the preset of design §3.2.
+        $scheme = [
+            ['Theory', 'TH', 60, 1],
+            ['Internal Assessment', 'INT', 30, 2],
+            ['Viva', 'VIVA', 10, 3],
+        ];
+
+        foreach ($subjectsByClass as $classSubjects) {
+            $english = $classSubjects->firstWhere('name', 'English Language');
+            if (!$english) {
+                continue;
+            }
+
+            $componentIds = [];
+            foreach ($scheme as [$name, $code, $max, $sort]) {
+                $componentIds[$code] = DB::table('exam_subject_components')->insertGetId([
+                    'exam_id' => $examId,
+                    'subject_id' => $english->id,
+                    'name' => $name,
+                    'short_code' => $code,
+                    'max_marks' => $max,
+                    'sort' => $sort,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
+            $englishMarks = DB::table('marks')
+                ->where(['exam_id' => $examId, 'subject_id' => $english->id])
+                ->get(['id', 'tex1']);
+
+            $rows = [];
+            foreach ($englishMarks as $mk) {
+                $total = (int) $mk->tex1;
+                $theory = (int) round($total * 0.6);
+                $internal = (int) round($total * 0.3);
+                $viva = $total - $theory - $internal;
+                // Defensive clamps (unreachable for totals ≤ 100,
+                // which the demo generator guarantees): keep every
+                // component inside its max without changing the sum.
+                if ($viva > 10) {
+                    $theory += $viva - 10;
+                    $viva = 10;
+                } elseif ($viva < 0) {
+                    $internal += $viva;
+                    $viva = 0;
+                }
+
+                foreach (['TH' => $theory, 'INT' => $internal, 'VIVA' => $viva] as $code => $score) {
+                    $rows[] = [
+                        'mark_id' => $mk->id,
+                        'component_id' => $componentIds[$code],
+                        'score' => $score,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+                }
+            }
+
+            foreach (array_chunk($rows, 200) as $chunk) {
+                DB::table('mark_components')->insert($chunk);
+            }
         }
     }
 
@@ -785,7 +874,7 @@ class DemoDataSeeder extends Seeder
             return;
         }
         DB::table('users')->insert([
-            'name' => 'Demo Librarian',
+            'name' => 'Revathi Subramanian',
             'email' => 'librarian@librarian.com',
             'username' => 'librarian',
             'password' => bcrypt('cj'),

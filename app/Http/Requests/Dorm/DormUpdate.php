@@ -16,7 +16,10 @@ class DormUpdate extends FormRequest
     public function rules()
     {
         return [
-            'name' => 'required|string|unique:dorms,id,name',
+            // Was 'unique:dorms,id,name' — column and except-value were
+            // swapped, so uniqueness was never actually checked on
+            // update. Correct form: unique name, ignoring this dorm.
+            'name' => 'required|string|unique:dorms,name,' . $this->route('dorm'),
         ];
     }
 

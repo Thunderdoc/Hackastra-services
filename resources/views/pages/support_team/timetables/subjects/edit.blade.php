@@ -53,43 +53,49 @@
                         @csrf @method('PUT')
                         <input name="ttr_id" value="{{ $ttr->id }}" type="hidden">
                         <div class="modal-body">
-                            @if($ttr->exam_id)
-                                {{--EXAM DATE--}}
-                                <div class="form-group">
-                                    <label class="font-weight-semibold">Exam Date <span class="text-danger">*</span></label>
-                                    <input autocomplete="off" name="exam_date" required type="text" class="form-control date-pick" placeholder="Select Date...">
-                                </div>
-                            @else
-                                {{--DAY--}}
-                                <div class="form-group">
-                                    <label class="font-weight-semibold">Day <span class="text-danger">*</span></label>
-                                    <select name="day" required class="form-control">
-                                        @foreach(Qs::getDaysOfTheWeek() as $dw)
-                                            <option value="{{ $dw }}">{{ $dw }}</option>
+                            {{-- Workstream BW: modal fields moved onto the
+                                 pattern grid (pat-fields/pat-field). Field
+                                 names are unchanged — the manage page's
+                                 script still populates this form by name. --}}
+                            <div class="pat-fields">
+                                @if($ttr->exam_id)
+                                    {{--EXAM DATE--}}
+                                    <div class="pat-field pat-field-wide">
+                                        <label>Exam Date <span class="text-danger">*</span></label>
+                                        <input autocomplete="off" name="exam_date" required type="text" class="form-control date-pick" placeholder="Select Date...">
+                                    </div>
+                                @else
+                                    {{--DAY--}}
+                                    <div class="pat-field pat-field-wide">
+                                        <label>Day <span class="text-danger">*</span></label>
+                                        <select name="day" required class="form-control">
+                                            @foreach(Qs::getDaysOfTheWeek() as $dw)
+                                                <option value="{{ $dw }}">{{ $dw }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                @endif
+
+                                {{--SUBJECT--}}
+                                <div class="pat-field pat-field-wide">
+                                    <label>Subject <span class="text-danger">*</span></label>
+                                    <select required class="form-control" name="subject_id">
+                                        @foreach($subjects as $sub)
+                                            <option value="{{ $sub->id }}">{{ $sub->name }}</option>
                                         @endforeach
                                     </select>
                                 </div>
-                            @endif
 
-                            {{--SUBJECT--}}
-                            <div class="form-group">
-                                <label class="font-weight-semibold">Subject <span class="text-danger">*</span></label>
-                                <select required class="form-control" name="subject_id">
-                                    @foreach($subjects as $sub)
-                                        <option value="{{ $sub->id }}">{{ $sub->name }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-
-                            {{--TIME SLOT--}}
-                            <div class="form-group">
-                                <label class="font-weight-semibold">Time Slot <span class="text-danger">*</span></label>
-                                <select data-placeholder="Select Time..." required class="form-control" name="ts_id">
-                                    <option value=""></option>
-                                    @foreach($time_slots as $tms)
-                                        <option value="{{ $tms->id }}">{{ $tms->full }}</option>
-                                    @endforeach
-                                </select>
+                                {{--TIME SLOT--}}
+                                <div class="pat-field pat-field-wide">
+                                    <label>Time Slot <span class="text-danger">*</span></label>
+                                    <select data-placeholder="Select Time..." required class="form-control" name="ts_id">
+                                        <option value=""></option>
+                                        @foreach($time_slots as $tms)
+                                            <option value="{{ $tms->id }}">{{ $tms->full }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
                             </div>
                         </div>
                         <div class="modal-footer">

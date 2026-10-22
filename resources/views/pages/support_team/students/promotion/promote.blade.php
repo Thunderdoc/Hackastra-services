@@ -28,7 +28,10 @@
         @endforeach
         </tbody>
     </table>
-    <div class="text-center mt-3">
+    {{-- Workstream BW: submit moved from centred to bottom-right
+         (pattern action placement). Form, table and per-student
+         selects unchanged. --}}
+    <div class="text-right mt-3">
         <button class="btn btn-success"><i class="icon-stairs-up mr-2"></i> Promote Students</button>
     </div>
 </form>

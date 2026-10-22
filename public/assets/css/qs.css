@@ -2245,3 +2245,874 @@ html.hk-dark .login-a-forgot{color:#6ea8ff}
   html.hk-dark .table th,html.hk-dark .table td{background:transparent!important;border-color:#dee2e6!important;color:#172536!important}
   html.hk-dark a{color:#172536!important}
 }
+
+
+
+/* ============================================================
+   Loop 52 — My Account: full width + one-screen density
+   (Workstream BU; owner 2026-10-21 23:46 IST: "i want to get
+   it in one page, good ui ux and style, and all for common
+   all" — the BN redesign was live but the tabbed card still
+   rendered at ~70% of the content width and the page ran
+   long). WIDTH ROOT CAUSE: Loop 43 turned .acct-grid into a
+   flex COLUMN but never reset the Loop 20 base rule's
+   align-items:start — in a column flex that sizes every
+   child to its CONTENT instead of the column, so the tab
+   card shrank to its form (~70%), the activity card to its
+   rows (~40%), while the rail's wide content made it look
+   almost full. align-items:stretch below is the cure, and
+   the 1400px cap on .acct-page is lifted so the page always
+   spans the full content column. DENSITY: one honest
+   tightening pass over the page's own rhythm — nothing
+   hidden, nothing removed, no text shrunk below the app's
+   normal sizes. Every selector stays inside the .acct-
+   namespace, so no other page can change behaviour.
+   ============================================================ */
+.acct-page{max-width:none}
+.acct-grid{align-items:stretch;gap:14px}
+.acct-subtitle{margin-bottom:12px}
+.acct-profile-head{margin-bottom:14px}
+.acct-card{padding:18px}
+.acct-card-head{margin-bottom:8px}
+
+/* --- Profile header: same cover design, tighter build --- */
+@media (min-width:768px){
+  .acct-cover{height:60px}
+  .acct-profile-head .acct-avatar-wrap{margin-top:-32px}
+  .acct-profile-head .acct-avatar{font-size:1.4rem;height:76px;width:76px}
+}
+.acct-profile-body{padding:0 22px 14px}
+.acct-banner-info{padding-top:6px}
+.acct-banner-stats{padding-top:6px}
+.acct-chips{margin-top:8px}
+.acct-stat{padding:8px 14px}
+
+/* --- Tabs + panel heads: the panel's title and its
+   description share one line; the form/list follows. --- */
+.acct-tabs{margin-bottom:12px;padding:3px}
+.acct-tab{padding:7px 14px}
+.acct-panel-title{display:inline}
+.acct-panel>.acct-panel-sub{display:inline;margin:0 0 0 8px}
+.acct-panel>form,.acct-panel>.acct-toggle-list{margin-top:12px}
+
+/* --- Form density --- */
+.acct-form-grid{gap:12px 18px}
+.acct-field label{margin-bottom:4px}
+.acct-input{padding-bottom:7px;padding-top:7px}
+.acct-hint{margin-top:4px}
+.acct-textarea{height:54px}
+.acct-photo-row>div{align-items:center;display:flex;flex-wrap:wrap;gap:6px 10px}
+.acct-form-actions{margin-top:12px}
+
+/* --- Rail cards + activity strip --- */
+.acct-link-row{margin-bottom:8px;padding:9px 13px}
+.acct-toggle-row{padding:9px 13px}
+.acct-toggle-list{gap:8px}
+@media (min-width:1200px){
+  .acct-toggle-text small{display:inline;margin-left:6px}
+}
+.acct-activity-row{padding:7px 2px}
+.acct-activity-icon{height:30px;width:30px}
+.acct-empty{padding:8px 0 2px}
+.acct-empty i{font-size:1.1rem}
+.acct-empty p{display:inline;margin:0 0 0 6px}
+
+/* --- Loop 52 (contd.): wide-screen line sharing. On wide
+   screens the descriptive small print sits on the SAME line
+   as its label/title instead of forcing a second line:
+   field hints (which today stretch two whole form rows),
+   card-head subtitles, rail-row descriptions and activity
+   text. Nothing is hidden; below 1200px everything keeps
+   the stacked reading. --- */
+@media (min-width:1200px){
+  .acct-card-head>div{display:flex;align-items:baseline;gap:4px 8px;flex-wrap:wrap}
+  .acct-activity-text strong{display:inline}
+  .acct-activity-text small{display:inline;margin-left:6px}
+}
+@media (min-width:1500px){
+  .acct-field{position:relative}
+  .acct-field .acct-hint{position:absolute;top:1px;right:0;margin:0;text-align:right}
+}
+
+/* --- Loop 52 (contd.): profile grid row economy. In the
+   3-column flow the Role field ends a row alone and the
+   Address + Photo fields each take a full-width row. At
+   1400px+ the Address (8th field) spans 2 columns beside
+   Role, and the Photo field (9th) takes one normal cell —
+   one whole row saved, every field unchanged. Scoped to
+   the profile panel's grid by child position; below
+   1400px the original full-width rows stand. --- */
+@media (min-width:1400px){
+  #acct-panel-profile .acct-form-grid>:nth-child(8){grid-column:span 2}
+  #acct-panel-profile .acct-form-grid>:nth-child(9){grid-column:span 1}
+}
+
+/* ============================================================
+   Loop 53 — My Account activity band (Workstream BY).
+   The last one-screen gap (BU measured ~130-145px of it)
+   was structural: the page stacked profile head, tab card,
+   the 3-card info band and then Account Activity as a
+   SEPARATE full-width strip. The Activity card now sits
+   INSIDE the band as its fourth card (same markup, same
+   id, moved — every row and the empty state unchanged),
+   so the page is head, tab card, ONE band, end. The band
+   grid extends its Loop 43 steps: 4 equal cards on wide
+   screens, 2x2 on medium, 1 per row on small (the old
+   <=991px single-column rule is superseded between
+   768-991px by the later 2-column rule below).
+   Inside the card the rows live in .acct-activity-list,
+   capped at ~5 rows (5 x ~45px); a longer history scrolls
+   inside the list with the app's invisible-scrollbar
+   treatment (same as the tab strip), so the card matches
+   its band-mates in the common 0-2 sign-in cases. All
+   selectors stay inside the .acct- namespace.
+   ============================================================ */
+.acct-rail{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media (max-width:1199px){
+  .acct-rail{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:767px){
+  .acct-rail{grid-template-columns:minmax(0,1fr)}
+}
+.acct-rail .acct-activity{display:flex;flex-direction:column}
+.acct-activity-list{flex:1 1 auto;max-height:226px;min-height:0;overflow-y:auto;scrollbar-width:none;-ms-overflow-style:none}
+.acct-activity-list::-webkit-scrollbar{display:none;height:0;width:0}
+.acct-rail .acct-activity-row{flex-wrap:wrap;row-gap:3px}
+/* In the quarter-width card all four row elements cannot
+   share one line: icon + text + IP stay on line one and the
+   timestamp takes its own line under the text (indented to
+   the text column), instead of the text wrapping mid-phrase
+   around the chips as it did in the wide strip's geometry. */
+.acct-rail .acct-activity-when{flex:0 0 100%;padding-left:43px}
+
+/* ============================================================
+   Loop 54 — Sidebar tab system (Workstream BZ). Owner
+   screenshot rounds 2026-10-22 00:11–00:26 IST: the INSIDE of
+   the sidebar needed the design treatment as one system —
+   section labels, top-level tabs, open groups at depth 2 and
+   3, sibling boundaries and carets — in light mode, in dark
+   mode (html.hk-dark) and without touching the collapsed
+   rail's proven behaviour. BQ's Loop 45 proved its cure on a
+   two-level group in light mode; measured here (headless
+   Chromium over real SA markup; sidebar surface
+   rgb(16,38,59) in BOTH modes — Loop 50 does not re-rule the
+   sidebar, so one mode-agnostic cure covers both):
+   (1) CARETS: the theme rotates a parent's caret down only
+   under .nav-item-open. Top-level parents carry that class
+   in the Blade; nested parents (Student Information, Student
+   Promotion, Payments) carry only .nav-item-expanded — so a
+   server-expanded nested group showed a RIGHT chevron while
+   open (computed transform: none) beside the top level's
+   rotated one (matrix(0,1,-1,0,0,0)). The stray chevron the
+   owner kept screenshotting.
+   (2) ACTIVE TINT: inside groups, active rows painted the
+   theme's rgba(0,0,0,.15) — pixel (13,32,50) — because the
+   theme rule (specificity 0,5,0) outranks the Loop 24
+   brand-blue rule for group links (0,4,0). An active nested
+   parent stacked on its active child read as one dark band;
+   the current child under a blue-tinted open parent (Marks
+   under Exams, Payroll under Payments) read as a slate slab
+   glued to the group instead of the designed selected row.
+   (3) COMPOUNDING: every .nav-group-sub at any depth took
+   Loop 45's 18px indent and the base rule's border-left, so
+   a nested group added a SECOND inset (depth-3 children at
+   x=47 vs x=29 at depth 2) and a SECOND guide hairline.
+   (4) TINT GAP: the expanded-but-not-open parent tint
+   (rgba(255,255,255,.07)) is scoped to top-level children
+   only; a nested equivalent got no tint at all.
+   (5) SECTION LABELS: the .nav-item-header separators
+   rendered 44px tall at half-white — reading as muted
+   content rows rather than quiet separators.
+   THE CURE (expanded sidebar only — body:not(.sidebar-xs);
+   the collapsed rail and its flyouts are untouched): a
+   nested group loses the second inset and second guide (one
+   guide at the first-level indent; children align under
+   their parent's text, the first-level pattern); the caret
+   rotates for .nav-item-expanded at any depth; an active
+   LEAF inside a group takes the solid brand blue, and an
+   active nested PARENT takes the open-parent blue tint
+   (rgba(52,120,246,.25)) a top-level open parent wears, so
+   an open tab and its children read as one blue system; a
+   nested expanded parent gets the same faint tint as its
+   top-level counterpart; section labels become quiet
+   separators (tighter, dimmer, letter-spaced, air above /
+   tight below). No markup, label, order, href or gate
+   changes — presentation only.
+   ============================================================ */
+body:not(.sidebar-xs) .sidebar.sidebar-dark .nav-group-sub .nav-group-sub{margin:1px 0 3px;border-left:none}
+body:not(.sidebar-xs) .sidebar-main .nav-item-submenu.nav-item-expanded>.nav-link:after{-webkit-transform:rotate(90deg);transform:rotate(90deg)}
+body:not(.sidebar-xs) .sidebar.sidebar-dark .nav-group-sub .nav-item:not(.nav-item-submenu)>.nav-link.active{background-color:#3478f6;color:#fff}
+body:not(.sidebar-xs) .sidebar.sidebar-dark .nav-group-sub .nav-item-submenu>.nav-link.active{background-color:rgba(52,120,246,.25);color:#fff}
+body:not(.sidebar-xs) .sidebar-main .nav-group-sub .nav-item-expanded:not(.nav-item-open)>.nav-link:not(.active){background-color:rgba(255,255,255,.07);color:#fff}
+body:not(.sidebar-xs) .sidebar-main .nav-sidebar>.nav-item-header{padding:18px 20px 6px;margin-top:4px}
+body:not(.sidebar-xs) .sidebar-main .nav-sidebar>.nav-item-header>div{font-size:10px;font-weight:600;letter-spacing:.14em;color:rgba(255,255,255,.42)}
+
+/* ============================================================
+   Loop 60 — Circulars redesign (Workstream CI, owner exhibit
+   2026-10-22: the reader feed was a flat card-inside-a-card —
+   grey priority pill, no date or audience presence, dead
+   space). The feed is now ONE card holding divided notice
+   rows; the show page is a notice document in the same
+   language. Priority is carried by a CSS variable per item:
+   the accent bar, the chip and (for urgent) a tinted row all
+   read it, so the scale is honest at a glance — Normal quiet
+   slate, Important amber, Urgent solid red with an alarm
+   glyph. All classes are .circ-* scoped; dark values ride
+   html.hk-dark (Loop 50 tokens) at the end of this section.
+   ============================================================ */
+.circ-pri-normal{--circ-accent:#7d93a8;--circ-tint:transparent}
+.circ-pri-important{--circ-accent:#dd8f12;--circ-tint:rgba(221,143,18,.05)}
+.circ-pri-urgent{--circ-accent:#c0392b;--circ-tint:rgba(192,57,43,.05)}
+.circ-card{overflow:hidden}
+.circ-item{border-bottom:1px solid #e7edf3;border-left:4px solid var(--circ-accent);background:var(--circ-tint);padding:18px 22px 16px}
+.circ-item:last-of-type{border-bottom:0}
+.circ-item:hover{background:#f8fafc}
+.circ-pri-important:hover{background:rgba(221,143,18,.09)}
+.circ-pri-urgent:hover{background:rgba(192,57,43,.08)}
+.circ-item-top{align-items:flex-start;display:flex;gap:12px;justify-content:space-between}
+.circ-title{font-size:1.02rem;font-weight:700;line-height:1.35;margin:0}
+.circ-title a{color:#172536}
+.circ-title a:hover{color:#2867dc;text-decoration:none}
+.circ-pri-chip{border-radius:999px;flex:none;font-size:.68rem;font-weight:700;letter-spacing:.05em;margin-top:2px;padding:4px 10px;text-transform:uppercase}
+.circ-pri-chip i{font-size:.72rem;margin-right:3px}
+.circ-pri-chip-normal{background:#eef2f6;color:#5b7186}
+.circ-pri-chip-important{background:#fdf0da;color:#97590f}
+.circ-pri-chip-urgent{background:#c0392b;color:#fff}
+.circ-meta{align-items:center;color:#718096;display:flex;flex-wrap:wrap;font-size:.8rem;gap:6px 16px;margin-top:7px}
+.circ-meta-item{align-items:center;display:inline-flex;gap:6px}
+.circ-meta-item i{color:#9aa7b5;font-size:.85rem}
+.circ-meta-item strong{color:#43556c}
+.circ-valid{color:#43556c;font-weight:600}
+.circ-valid i{color:#7d93a8}
+.circ-aud{align-items:center;background:#f8faff;border:1px solid #e4eaf1;border-radius:999px;color:#43556c;display:inline-flex;font-weight:600;gap:6px;padding:2px 10px}
+.circ-aud i{color:#3478f6;font-size:.85rem}
+.circ-excerpt{color:#43556c;font-size:.9rem;line-height:1.55;margin:10px 0 8px;max-width:78ch}
+.circ-read{align-items:center;color:#3478f6;display:inline-flex;font-size:.83rem;font-weight:600;gap:6px}
+.circ-read i{font-size:.8rem;transition:transform .15s}
+.circ-read:hover{color:#2867dc;text-decoration:none}
+.circ-read:hover i{transform:translateX(2px)}
+.circ-pager{border-top:1px solid #e7edf3;padding:14px 22px 4px}
+.circ-pager .pagination{margin-bottom:10px}
+/* Show page: the circular as a notice document. The priority
+   accent moves to the top edge; the meta row becomes a proper
+   document header under the title. */
+.circ-doc{border-top:4px solid var(--circ-accent);overflow:hidden}
+.circ-doc-head{border-bottom:1px solid #e7edf3;padding:22px 26px 16px}
+.circ-doc-title{color:#172536;font-size:1.3rem;font-weight:700;line-height:1.3;margin:0}
+.circ-doc .circ-meta{margin-top:12px}
+.circ-doc-body{color:#2b3a4d;font-size:.98rem;line-height:1.75;max-width:76ch;padding:22px 26px 8px}
+.circ-doc-foot{border-top:1px solid #e7edf3;display:flex;flex-wrap:wrap;gap:10px;margin-top:14px;padding:16px 26px 20px}
+/* Dark mode (Loop 50 tokens): same surfaces, deepened. */
+html.hk-dark .circ-item{border-bottom-color:#1d3a55}
+html.hk-dark .circ-item:hover{background:#132c46}
+html.hk-dark .circ-pri-urgent{--circ-tint:rgba(192,57,43,.16)}
+html.hk-dark .circ-pri-important{--circ-tint:rgba(221,143,18,.1)}
+html.hk-dark .circ-pri-important:hover{background:rgba(221,143,18,.15)}
+html.hk-dark .circ-pri-urgent:hover{background:rgba(192,57,43,.22)}
+html.hk-dark .circ-title a{color:#eef4fb}
+html.hk-dark .circ-title a:hover{color:#6ea8ff}
+html.hk-dark .circ-pri-chip-normal{background:#17334d;color:#cfdfef}
+html.hk-dark .circ-pri-chip-important{background:#3a3016;color:#f0dfa8}
+html.hk-dark .circ-pri-chip-urgent{background:#c0392b;color:#fff}
+html.hk-dark .circ-meta{color:#93a9bf}
+html.hk-dark .circ-meta-item i{color:#68809a}
+html.hk-dark .circ-meta-item strong{color:#dce8f4}
+html.hk-dark .circ-valid{color:#c3d4e6}
+html.hk-dark .circ-aud{background:#132c46;border-color:#23425f;color:#cfdfef}
+html.hk-dark .circ-aud i{color:#6ea8ff}
+html.hk-dark .circ-excerpt{color:#c3d4e6}
+html.hk-dark .circ-read{color:#6ea8ff}
+html.hk-dark .circ-pager{border-top-color:#1d3a55}
+html.hk-dark .circ-doc-head{border-bottom-color:#1d3a55}
+html.hk-dark .circ-doc-title{color:#eef4fb}
+html.hk-dark .circ-doc-body{color:#dce8f4}
+html.hk-dark .circ-doc-foot{border-top-color:#1d3a55}
+@media (max-width:767px){
+  .circ-item{padding:16px 16px 14px}
+  .circ-doc-head,.circ-doc-body{padding-left:18px;padding-right:18px}
+  .circ-doc-foot{padding-left:18px;padding-right:18px}
+}
+@media print{
+  .circ-item,.circ-pri-urgent,.circ-pri-important{background:transparent!important}
+}
+
+/* ============================================================
+   Loop 61 — Attendance register UX (Workstream CJ, owner
+   directive 2026-10-22: "a much better UI/UX here is needed" on
+   the period register). The radio-dot table becomes a list of
+   student rows, each with a large tappable Present / Absent /
+   Late segmented control. The buttons are <label>s for the REAL
+   radio inputs (visually hidden, never display:none, so the
+   submitted form is byte-identical) and the chosen state is
+   driven purely by :checked. A sticky bar carries the live
+   summary (counted by a small inline script that also stamps
+   each row's data-status), Mark-all-present and the submit.
+   Shared by the period register (attendance_periods/take) and
+   the day register (attendance/index) — classes are reg-*.
+   Colours come from the Loop 30 tokens; the dark block reuses
+   Loop 50's alert palette so the states read the same way.
+   ============================================================ */
+.reg-topic{margin-bottom:6px}
+.reg-list{margin-top:6px}
+.reg-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:9px 10px;border-bottom:1px solid #edf1f5;border-left:3px solid transparent}
+.reg-row:last-child{border-bottom:0}
+.reg-row[data-status="present"]{border-left-color:var(--qs-success)}
+.reg-row[data-status="absent"]{border-left-color:var(--qs-danger);background:#fdf8f7}
+.reg-row[data-status="late"]{border-left-color:#d99a26;background:#fffdf6}
+.reg-row[data-status="unmarked"]{border-left:3px dashed #d99a26;background:var(--qs-warning-tint)}
+.reg-id{display:flex;flex-direction:column;min-width:0}
+.reg-name{font-weight:600;font-size:var(--qs-font-base);color:var(--qs-ink);line-height:1.3}
+.reg-meta{font-size:var(--qs-font-caption);color:var(--qs-meta);line-height:1.35;word-break:break-word}
+.reg-seg{display:inline-flex;flex:none;background:#edf1f5;border:1px solid #dde4ec;border-radius:10px;padding:3px;gap:3px}
+.reg-seg-item{display:inline-flex;margin:0}
+.reg-radio{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden}
+.reg-seg-btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:6px 18px;margin:0;border-radius:8px;font-weight:600;font-size:var(--qs-font-sm);color:var(--qs-muted);cursor:pointer;user-select:none;-webkit-user-select:none;transition:background .12s ease,color .12s ease}
+.reg-seg-btn::before{content:"";width:9px;height:9px;border-radius:50%;border:2px solid currentColor;margin-right:7px;flex:none}
+.reg-seg-btn:hover{background:#fff;color:var(--qs-ink)}
+.reg-radio:focus-visible + .reg-seg-btn{outline:2px solid var(--qs-primary);outline-offset:1px}
+.reg-radio:checked + .reg-seg-present{background:var(--qs-success);color:#fff}
+.reg-radio:checked + .reg-seg-absent{background:var(--qs-danger);color:#fff}
+.reg-radio:checked + .reg-seg-late{background:var(--qs-warning);color:#fff}
+.reg-radio:checked + .reg-seg-btn::before{background:currentColor}
+.reg-bar{position:sticky;bottom:12px;z-index:5;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:16px;padding:10px 14px;background:#fff;border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 10px 28px rgba(16,38,59,.14)}
+.reg-bar-summary{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.reg-count{display:inline-flex;align-items:center;font-size:var(--qs-font-sm);color:var(--qs-muted)}
+.reg-count i{width:9px;height:9px;border-radius:50%;margin-right:6px;flex:none}
+.reg-count strong{color:var(--qs-ink);margin-left:5px;font-size:var(--qs-font-base)}
+.reg-count-present i{background:var(--qs-success)}
+.reg-count-absent i{background:var(--qs-danger)}
+.reg-count-late i{background:#d99a26}
+.reg-count-unmarked i{background:#fff;border:2px solid #d99a26;width:7px;height:7px}
+.reg-count-unmarked strong{color:var(--qs-warning)}
+.reg-bar-lock{display:inline-flex;align-items:center;gap:5px;font-size:var(--qs-font-caption);color:var(--qs-meta)}
+.reg-bar-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-left:auto}
+.reg-bar-actions .btn{min-height:40px;display:inline-flex;align-items:center}
+@media (max-width:640px){
+  .reg-row{flex-direction:column;align-items:stretch;gap:8px;padding:10px 8px}
+  .reg-seg{display:flex;width:100%}
+  .reg-seg-item{flex:1}
+  .reg-seg-btn{flex:1;width:100%;min-height:48px;padding:6px 4px}
+  .reg-bar{bottom:8px;padding:10px}
+  .reg-bar-actions{width:100%;margin-left:0}
+  .reg-bar-actions .btn{flex:1;justify-content:center}
+}
+/* Dark mode (Loop 50 family): track and bar sit on the card
+   surface, unselected labels take the theme's soft text, and the
+   chosen states reuse the dark alert tints with bright text. */
+html.hk-dark .reg-row{border-bottom-color:#1d3a55}
+html.hk-dark .reg-row[data-status="absent"]{background:rgba(192,57,43,.07)}
+html.hk-dark .reg-row[data-status="late"]{background:rgba(217,154,38,.06)}
+html.hk-dark .reg-row[data-status="unmarked"]{background:#3a3016}
+html.hk-dark .reg-name{color:#eef4fb}
+html.hk-dark .reg-meta{color:#93a9bf}
+html.hk-dark .reg-seg{background:#0c2033;border-color:#1d3a55}
+html.hk-dark .reg-seg-btn{color:#a9bfd6}
+html.hk-dark .reg-seg-btn:hover{background:#17334d;color:#fff}
+html.hk-dark .reg-radio:checked + .reg-seg-present{background:#143327;color:#a9e5c3;box-shadow:inset 0 0 0 1px #1e4d38}
+html.hk-dark .reg-radio:checked + .reg-seg-absent{background:#3a1e26;color:#f2c1cb;box-shadow:inset 0 0 0 1px #5a2c38}
+html.hk-dark .reg-radio:checked + .reg-seg-late{background:#3a3016;color:#f0dfa8;box-shadow:inset 0 0 0 1px #5a4a1e}
+html.hk-dark .reg-bar{background:#11283f;border-color:#1d3a55;box-shadow:0 10px 28px rgba(0,0,0,.45)}
+html.hk-dark .reg-count{color:#93a9bf}
+html.hk-dark .reg-count strong{color:#eef4fb}
+html.hk-dark .reg-count-unmarked strong{color:#f0dfa8}
+html.hk-dark .reg-bar-lock{color:#93a9bf}
+
+/* ============================================================
+   Loop 62 — Payments redesign (Workstream CK). The payments
+   pages now sit on the shared list_page / form_page patterns,
+   whose standard surfaces need no new screen CSS. The one
+   scoped need: Fee Defaulters print. Loop 47's compact
+   one-page print metrics were keyed to the legacy .def-doc
+   card; the rebuilt page's pattern card (.pay-def scope)
+   gets the identical metrics here, and the pattern toolbar /
+   filter row stay off the paper — the print-doc header and
+   footer carry the report's title and totals instead.
+   ============================================================ */
+@media print{
+  .pay-def .pat-toolbar,.pay-def .pat-filters{display:none!important}
+  .pay-def .pat-card .card-body{padding:10px 14px!important}
+  .pay-def .table{font-size:11px!important}
+  .pay-def .table th,.pay-def .table td{padding:4px 8px!important;line-height:1.35!important}
+  .pay-def .def-note{font-size:10px!important;margin-top:8px!important}
+}
+
+/* ============================================================
+   Loop 58 — Dark coverage (Workstream CH, 2026-10-22).
+   Loop 50 themed the generic surfaces, but page/component-scoped
+   components kept their own hardcoded light palettes and stayed
+   light inside the dark theme (owner screenshot, 2026-10-22
+   00:20 IST: the Platform Overview stat tiles). This loop is the
+   coverage pass: every rule below was inventoried by crawling
+   all role homes, both dashboards, lists, forms, My Account,
+   settings, library, payroll, timetables, ID card and login in
+   dark mode and computing each surface's winning background.
+   Same palette as Loop 50 (page #0a1826 / card #11283f / raised
+   #132c46 / input #0c2033 / borders #1d3a55 + #23425f / text
+   #dce8f4 / headings #eef4fb / muted #93a9bf); pastel tone chips
+   become deep tints of the same hue. EVERY rule is scoped under
+   html.hk-dark AND wrapped in @media screen, so light mode is
+   untouched by construction and print (which forces light via
+   Loop 50's print block) can never see these rules.
+   Deliberate leaves: the ID-card face itself (.idc-card and its
+   children) is a print document and stays light — only the page
+   stage around it darkens; photos/avatars images; chart canvas
+   internals (JS-drawn colours); semantic accent dots.
+   ============================================================ */
+@media screen{
+
+/* --- Design tokens: pastel tints become deep tints --- */
+html.hk-dark{--qs-success-tint:#143327;--qs-warning-tint:#3a3016}
+
+/* --- Chrome leftovers --- */
+html.hk-dark .card-header{background:transparent}
+html.hk-dark .lav-topbar .lav-notif-menu .dropdown-header{color:#eef4fb}
+html.hk-dark code{background:#17334d;color:#f0a6c0}
+html.hk-dark .navbar-light{background:#0d2033;border-color:#1d3a55;color:#dce8f4}
+html.hk-dark .navbar-light .navbar-text{color:#93a9bf}
+html.hk-dark .navbar-light .navbar-nav .nav-link{color:#a9bfd6}
+html.hk-dark .datepicker table tr td.day:hover{background:#17334d}
+
+/* --- Dashboard family (both dashboards + every role home) --- */
+html.hk-dark .dashboard-eyebrow{color:#6ea8ff}
+html.hk-dark .dashboard-muted{color:#93a9bf}
+html.hk-dark .dashboard-hero-date{color:#93a9bf}
+html.hk-dark .dashboard-hero-date strong{color:#eef4fb}
+html.hk-dark .dashboard-stat-card{background:#11283f;border-color:#1d3a55}
+html.hk-dark .dashboard-stat-card:hover{box-shadow:0 10px 24px rgba(0,0,0,.35)}
+html.hk-dark .dashboard-stat-label{color:#93a9bf}
+html.hk-dark .dashboard-stat-copy strong{color:#eef4fb}
+html.hk-dark .dashboard-stat-copy small{color:#93a9bf}
+html.hk-dark .dashboard-stat-blue .dashboard-stat-icon{background:#16345a;color:#7fb0ff}
+html.hk-dark .dashboard-stat-green .dashboard-stat-icon{background:#123528;color:#4cc38a}
+html.hk-dark .dashboard-stat-orange .dashboard-stat-icon{background:#3a3016;color:#f0b95f}
+html.hk-dark .dashboard-stat-purple .dashboard-stat-icon{background:#2a2148;color:#a78bfa}
+html.hk-dark .dashboard-delta.delta-up{background:#123528;color:#4cc38a}
+html.hk-dark .dashboard-delta.delta-down{background:#3a1e26;color:#f28b9a}
+html.hk-dark .dashboard-delta.delta-flat{background:#17334d;color:#93a9bf}
+html.hk-dark .dashboard-panel{background:#11283f;border-color:#1d3a55}
+html.hk-dark .dashboard-period{background:#17334d;border-color:#23425f;color:#93a9bf}
+html.hk-dark .dashboard-period-select{background:#0c2033;border-color:#23425f;color:#e8f1f9}
+html.hk-dark .dashboard-table thead th{background:#17334d;border-bottom-color:#1d3a55;color:#93a9bf}
+html.hk-dark .dashboard-table td,html.hk-dark .dashboard-table th{border-top-color:#1d3a55}
+html.hk-dark .dashboard-table td strong{color:#eef4fb}
+html.hk-dark .dashboard-table td small{color:#93a9bf}
+html.hk-dark .dashboard-status.status-success{background:#123528;color:#4cc38a}
+html.hk-dark .dashboard-status.status-warning{background:#3a3016;color:#f0b95f}
+html.hk-dark .dashboard-empty{color:#68809a!important}
+html.hk-dark .dashboard-action-grid a{background:#132c46;border-color:#23425f;color:#6ea8ff}
+html.hk-dark .dashboard-action-grid a:hover{background:#1a3a58;color:#9cc2ff}
+html.hk-dark .dashboard-insight-grid>div{background:#132c46;border-color:#23425f}
+html.hk-dark .dashboard-insight-grid strong{color:#eef4fb}
+html.hk-dark .dashboard-insight-grid small{color:#93a9bf}
+html.hk-dark .dashboard-chart-value,html.hk-dark .dashboard-chart-column small{color:#93a9bf}
+html.hk-dark .dashboard-fee-ring{background:conic-gradient(#188b66 var(--fee-progress),#1d3a55 0)}
+html.hk-dark .dashboard-fee-ring:after{background:#11283f}
+html.hk-dark .dashboard-fee-ring strong{color:#eef4fb}
+html.hk-dark .dashboard-fee-ring small{color:#93a9bf}
+html.hk-dark .dashboard-fee-list dt{color:#93a9bf}
+html.hk-dark .dashboard-fee-list dd{color:#eef4fb}
+html.hk-dark .attendance-ring{background:#132c46;border-color:#23425f;border-right-color:#188b66}
+html.hk-dark .attendance-ring strong{color:#eef4fb}
+html.hk-dark .attendance-ring small{color:#93a9bf}
+html.hk-dark .attendance-empty p{color:#93a9bf}
+html.hk-dark .attendance-donut{background:conic-gradient(#188b66 var(--attendance-progress),#1d3a55 0)}
+html.hk-dark .attendance-donut:after{background:#11283f}
+html.hk-dark .attendance-donut strong{color:#eef4fb}
+html.hk-dark .attendance-donut small{color:#93a9bf}
+html.hk-dark .attendance-legend li span{color:#93a9bf}
+html.hk-dark .calendar-month{color:#eef4fb}
+html.hk-dark .calendar-grid span{color:#a9bfd6}
+html.hk-dark .calendar-weekdays span{color:#68809a}
+html.hk-dark .calendar-legend span{color:#93a9bf}
+html.hk-dark .chart-gridline{stroke:#1d3a55}
+html.hk-dark .chart-axis{fill:#68809a}
+html.hk-dark .chart-point{fill:#11283f}
+html.hk-dark .dashboard-event{border-top-color:#1d3a55}
+html.hk-dark .event-copy strong{color:#eef4fb}
+html.hk-dark .event-copy small{color:#93a9bf}
+html.hk-dark .event-examination,html.hk-dark .pill-examination{background:#3a1e26;color:#f28b9a}
+html.hk-dark .event-meeting,html.hk-dark .pill-meeting{background:#16345a;color:#7fb0ff}
+html.hk-dark .event-fee,html.hk-dark .pill-fee{background:#3a3016;color:#f0b95f}
+html.hk-dark .event-holiday,html.hk-dark .pill-holiday{background:#123528;color:#4cc38a}
+html.hk-dark .event-event,html.hk-dark .pill-event{background:#2a2148;color:#a78bfa}
+
+/* --- Teacher home (.t9-) --- */
+html.hk-dark .t9-back{background:#11283f;border-color:#23425f;color:#a9bfd6}
+html.hk-dark .t9-crumb{color:#a9bfd6}
+html.hk-dark .t9-datebox{background:#11283f;border-color:#1d3a55}
+html.hk-dark .t9-datebox strong{color:#eef4fb}
+html.hk-dark .t9-datebox small{color:#93a9bf}
+html.hk-dark .t9-greet-mark{background:#16345a}
+html.hk-dark .t9-greeting p{color:#93a9bf}
+html.hk-dark .t9-kpi-blue{background:#12293f}
+html.hk-dark .t9-kpi-green{background:#10261e}
+html.hk-dark .t9-kpi-orange{background:#2b2113}
+html.hk-dark .t9-kpi-lavender{background:#1e1a33}
+html.hk-dark .t9-kpi-icon{background:rgba(255,255,255,.12)}
+html.hk-dark .t9-kpi-blue .t9-kpi-icon,html.hk-dark .t9-kpi-blue .t9-kpi-label,html.hk-dark .t9-kpi-blue .t9-kpi-chev{color:#7fb0ff}
+html.hk-dark .t9-kpi-green .t9-kpi-icon,html.hk-dark .t9-kpi-green .t9-kpi-label,html.hk-dark .t9-kpi-green .t9-kpi-chev{color:#4cc38a}
+html.hk-dark .t9-kpi-orange .t9-kpi-icon,html.hk-dark .t9-kpi-orange .t9-kpi-label,html.hk-dark .t9-kpi-orange .t9-kpi-chev{color:#f0b95f}
+html.hk-dark .t9-kpi-lavender .t9-kpi-icon,html.hk-dark .t9-kpi-lavender .t9-kpi-label,html.hk-dark .t9-kpi-lavender .t9-kpi-chev{color:#a78bfa}
+html.hk-dark .t9-kpi-copy strong{color:#eef4fb}
+html.hk-dark .t9-kpi-copy small{color:#93a9bf}
+html.hk-dark .t9-panel{background:#11283f;border-color:#1d3a55}
+html.hk-dark .t9-tone-blue{background:#16345a;color:#7fb0ff}
+html.hk-dark .t9-tone-amber{background:#3a3016;color:#f0b95f}
+html.hk-dark .t9-tone-red{background:#3a1e26;color:#f28b9a}
+html.hk-dark .t9-panel-sub{color:#93a9bf}
+html.hk-dark .t9-table th{background:#17334d;border-bottom-color:#1d3a55;color:#93a9bf}
+html.hk-dark .t9-table td{border-bottom-color:#1d3a55;color:#c3d4e6}
+html.hk-dark .t9-table .t9-subject{color:#eef4fb}
+html.hk-dark .t9-time{color:#93a9bf}
+html.hk-dark .portal-teacher .t9-table .period-status-completed{color:#4cc38a}
+html.hk-dark .portal-teacher .t9-table .period-status-live{background:#16345a;color:#7fb0ff}
+html.hk-dark .portal-teacher .t9-table .period-status-upcoming{background:#17334d;color:#93a9bf}
+html.hk-dark .t9-view-link{background:#16345a;color:#7fb0ff}
+html.hk-dark .t9-view-link:hover{background:#1d4470;color:#9cc2ff}
+html.hk-dark .t9-tile-blue{background:#12293f}
+html.hk-dark .t9-tile-green{background:#10261e}
+html.hk-dark .t9-tile-lavender{background:#1e1a33}
+html.hk-dark .t9-tile-peach{background:#2b2113}
+html.hk-dark .t9-tile-icon{background:rgba(255,255,255,.12)}
+html.hk-dark .t9-tile-blue .t9-tile-icon,html.hk-dark .t9-tile-blue .t9-tile-title,html.hk-dark .t9-tile-blue .t9-tile-chev{color:#7fb0ff}
+html.hk-dark .t9-tile-green .t9-tile-icon,html.hk-dark .t9-tile-green .t9-tile-title,html.hk-dark .t9-tile-green .t9-tile-chev{color:#4cc38a}
+html.hk-dark .t9-tile-lavender .t9-tile-icon,html.hk-dark .t9-tile-lavender .t9-tile-title,html.hk-dark .t9-tile-lavender .t9-tile-chev{color:#a78bfa}
+html.hk-dark .t9-tile-peach .t9-tile-icon,html.hk-dark .t9-tile-peach .t9-tile-title,html.hk-dark .t9-tile-peach .t9-tile-chev{color:#f0b95f}
+html.hk-dark .t9-tile-sub{color:#93a9bf}
+html.hk-dark .t9-row{border-bottom-color:#1d3a55}
+html.hk-dark .t9-row-copy strong{color:#eef4fb}
+html.hk-dark .t9-row-copy small{color:#93a9bf}
+html.hk-dark .t9-badge-red{background:#3a1e26;color:#f28b9a}
+html.hk-dark .t9-badge-blue{background:#16345a;color:#7fb0ff}
+html.hk-dark .t9-badge-amber{background:#3a3016;color:#f0b95f}
+html.hk-dark .t9-row-date{color:#93a9bf}
+html.hk-dark .t9-caught-up{color:#93a9bf}
+html.hk-dark .t9-empty{color:#93a9bf}
+html.hk-dark .t9-empty i{color:#68809a}
+
+/* --- Student / parent / library / accountant home extras --- */
+html.hk-dark .stu-status-upcoming{background:#16345a;color:#7fb0ff}
+html.hk-dark .stu-prio-normal{background:#17334d;color:#93a9bf}
+html.hk-dark .stu-prio-important{background:#3a3016;color:#f0b95f}
+html.hk-dark .stu-reminder-chip{background:#132c46;border-color:#23425f}
+html.hk-dark .par-reminder-success{background:#123528;color:#4cc38a}
+html.hk-dark .par-reminder-info{background:#16345a;color:#7fb0ff}
+html.hk-dark .par-reminder-warning{background:#3a3016;color:#f0b95f}
+html.hk-dark .par-pill-normal{background:#16345a;color:#7fb0ff}
+html.hk-dark .par-pill-important{background:#3a3016;color:#f0b95f}
+html.hk-dark .par-fee-progress{background:#1d3a55}
+html.hk-dark .par-fees-total td{background:#17334d}
+html.hk-dark .par-action-grid a{background:#132c46;border-color:#23425f;color:#6ea8ff}
+html.hk-dark .par-action-grid a:hover{background:#1a3a58;color:#9cc2ff}
+html.hk-dark .lib-pill-normal{background:#17334d;color:#93a9bf}
+html.hk-dark .lib-pill-issued{background:#16345a;color:#7fb0ff}
+html.hk-dark .lib-reminder-warning{background:#3a3016;color:#f0b95f}
+html.hk-dark .lav-reminder-tag{background:#3a1e26;color:#f28b9a}
+html.hk-dark .acc-reminder{background:#132c46;border-color:#23425f}
+
+/* --- My Account (.acct-) --- */
+html.hk-dark .acct-title{color:#eef4fb}
+html.hk-dark .acct-subtitle{color:#93a9bf}
+html.hk-dark .acct-crumb,html.hk-dark .acct-crumb a{color:#93a9bf}
+html.hk-dark .acct-crumb-sep{color:#3d5a78}
+html.hk-dark .acct-crumb-current{color:#dce8f4}
+html.hk-dark .acct-session-chip{background:#132c46;border-color:#23425f;color:#a9bfd6}
+html.hk-dark .acct-session-chip strong{color:#eef4fb}
+html.hk-dark .acct-alert-success{background:#123528;border-color:#1e4d38;color:#a9e5c3}
+html.hk-dark .acct-alert-danger{background:#3a1e26;border-color:#5c2a35;color:#f2c1cb}
+html.hk-dark .acct-banner{background:linear-gradient(120deg,#10283f 0%,#132c46 55%,#10283f 100%);border-color:#23425f}
+html.hk-dark .acct-profile-head{background:#11283f;border-color:#1d3a55}
+html.hk-dark .acct-profile-head .acct-avatar{border-color:#11283f}
+html.hk-dark .acct-avatar{background:#24507c;color:#cfe3fb}
+html.hk-dark .acct-avatar-btn{border-color:#11283f}
+html.hk-dark .acct-banner-name{color:#eef4fb}
+html.hk-dark .acct-banner-meta{color:#93a9bf}
+html.hk-dark .acct-chip{background:#17334d;color:#a9bfd6}
+html.hk-dark .acct-chip-role{background:#3478f6;color:#fff}
+html.hk-dark .acct-stat{background:#132c46;border-color:#23425f}
+html.hk-dark .acct-stat-icon{background:#16345a;color:#7fb0ff}
+html.hk-dark .acct-stat-text small{color:#93a9bf}
+html.hk-dark .acct-stat-text strong{color:#eef4fb}
+html.hk-dark .acct-card{background:#11283f;border-color:#1d3a55}
+html.hk-dark .acct-card-title{color:#eef4fb}
+html.hk-dark .acct-tabs{background:#0c2033;border-color:#1d3a55}
+html.hk-dark .acct-tab{color:#93a9bf}
+html.hk-dark .acct-tab:hover{background:#17334d;color:#7fb0ff}
+html.hk-dark .acct-panel-title{color:#eef4fb}
+html.hk-dark .acct-panel-sub{color:#93a9bf}
+html.hk-dark .acct-field label{color:#c3d4e6}
+html.hk-dark .acct-input{background:#0c2033;border-color:#23425f;color:#e8f1f9}
+html.hk-dark .acct-input:disabled{background:#0a1a2c;color:#68809a}
+html.hk-dark .acct-hint{color:#7d94ad}
+html.hk-dark .acct-btn-ghost{background:#132c46;border-color:#23425f;color:#a9bfd6}
+html.hk-dark .acct-btn-ghost:hover{border-color:#3478f6;color:#7fb0ff}
+html.hk-dark .acct-upload-btn{background:#17334d;border-color:#2a4a6e;color:#7fb0ff}
+html.hk-dark .acct-upload-btn:hover{background:#1d4470}
+html.hk-dark .acct-toggle-row{background:#132c46;border-color:#1d3a55}
+html.hk-dark .acct-tint-blue{background:#16345a;color:#7fb0ff}
+html.hk-dark .acct-tint-green{background:#123528;color:#4cc38a}
+html.hk-dark .acct-tint-orange{background:#3a3016;color:#f0b95f}
+html.hk-dark .acct-tint-purple{background:#2a2148;color:#a78bfa}
+html.hk-dark .acct-toggle-text strong{color:#eef4fb}
+html.hk-dark .acct-toggle-text small{color:#93a9bf}
+html.hk-dark .acct-switch span{background:#23425f}
+html.hk-dark .acct-link-row{background:#132c46;border-color:#1d3a55}
+html.hk-dark .acct-link-row:hover{border-color:#2a4a6e}
+html.hk-dark .acct-row-chev{color:#68809a}
+html.hk-dark .acct-signout{background:#2b1a22;border-color:#4d2733}
+html.hk-dark .acct-signout:hover{border-color:#6e3547}
+html.hk-dark .acct-activity-row{border-top-color:#1d3a55}
+html.hk-dark .acct-activity-icon{background:#123528;color:#4cc38a}
+html.hk-dark .acct-activity-text strong{color:#eef4fb}
+html.hk-dark .acct-activity-text small{color:#93a9bf}
+html.hk-dark .acct-ip{background:#17334d;color:#a9bfd6}
+html.hk-dark .acct-activity-when{color:#93a9bf}
+html.hk-dark .acct-empty{color:#7d94ad}
+
+/* --- Page patterns (.pat-) + payroll (.pay-) --- */
+html.hk-dark .pat-toolbar-title{color:#eef4fb}
+html.hk-dark .pat-toolbar-sub{color:#93a9bf}
+html.hk-dark .pat-filters{background:#11283f;border-color:#1d3a55}
+html.hk-dark .pat-form-title{color:#eef4fb}
+html.hk-dark .pat-form-sub{color:#93a9bf}
+html.hk-dark .pat-form-section{border-bottom-color:#1d3a55}
+html.hk-dark .pat-form-section-title{color:#eef4fb}
+html.hk-dark .pat-form-section-sub{color:#93a9bf}
+html.hk-dark .pat-field .form-text{color:#93a9bf}
+html.hk-dark .pat-actionbar{background:#11283f;border-top-color:#1d3a55}
+html.hk-dark .pat-empty-icon{background:#17334d}
+html.hk-dark .pat-empty-msg{color:#a9bfd6}
+html.hk-dark .pay-stat{background:#132c46;border-color:#1d3a55}
+html.hk-dark .pay-stat-paid{background:#123528;border-color:#1e4d38}
+html.hk-dark .pay-stat-pending{background:#3a3016;border-color:#57471f}
+html.hk-dark .pay-stat-label{color:#93a9bf}
+html.hk-dark .pay-stat-value{color:#eef4fb}
+html.hk-dark .pay-stat-sub{color:#93a9bf}
+html.hk-dark .pay-edit-row>td{background:#132c46}
+
+/* --- Timetable sticky day column (.ttx-) --- */
+html.hk-dark .ttx-grid .ttx-day-col{background:#11283f}
+html.hk-dark .ttx-grid thead .ttx-day-col{background:#17334d}
+html.hk-dark .ttx-grid.table-striped tbody tr:nth-of-type(odd) .ttx-day-col{background:#132c46}
+html.hk-dark .ttx-cell-title{color:#eef4fb}
+html.hk-dark .ttx-cell-sub{color:#93a9bf}
+html.hk-dark .ttx-empty{color:#68809a}
+html.hk-dark .ttx-lead{color:#a9bfd6}
+html.hk-dark .ttx-meta-item small{color:#93a9bf}
+
+/* --- ID card: stage only (the card face is a print document) --- */
+html.hk-dark .idc-stage{background:#0d2033}
+
+/* --- Login leftovers + styled-confirm modal (.hxc-) --- */
+html.hk-dark .login-a-wordmark{color:#eef4fb}
+html.hk-dark .login-a-sub{color:#93a9bf}
+html.hk-dark .login-a-remember .form-check-label{color:#a9bfd6}
+html.hk-dark .login-a-alert{background:#3a1e26;border-color:#5c2a35;color:#f2c1cb}
+html.hk-dark .hxc-icon{background:#17334d;color:#6ea8ff}
+html.hk-dark .hxc-modal.hxc-danger .hxc-icon{background:#3a1e26;color:#f28b9a}
+html.hk-dark .hxc-title{color:#eef4fb}
+html.hk-dark .hxc-message{color:#93a9bf}
+html.hk-dark .hxc-close{color:#93a9bf}
+html.hk-dark .hxc-close:hover{color:#eef4fb}
+
+/* --- Headings (Workstream CJ measurement, 2026-10-22): Loop 50's
+   generic html.hk-dark h1-h6 rule (specificity 0,1,2) loses to
+   two-class base rules — .content .card-title is (0,2,0) — so card
+   titles kept the light theme's #172536 ink on the dark card
+   (#11283f), effectively invisible (measured on the attendance
+   take page, reproduced in this crawl on h5/h6.card-title).
+   Restate heading ink at content strength. Page-header titles are
+   only covered by Loop 50's ID rule when #page-header is present,
+   so cover the class form too. The ID-card face contains no
+   heading tags (verified), so the blanket rule cannot leak into
+   the print-document leave. --- */
+html.hk-dark .content h1,html.hk-dark .content h2,html.hk-dark .content h3,html.hk-dark .content h4,html.hk-dark .content h5,html.hk-dark .content h6{color:#eef4fb}
+html.hk-dark .page-header .page-title h4,html.hk-dark .page-header .page-title h5,html.hk-dark .page-header .page-title h6{color:#eef4fb}
+
+/* --- Text on the surfaces fixed above (round 2 of the crawl:
+   once the chips/panels/rows went dark, their #172536 copy went
+   dark-on-dark with them; lift copy to the theme text scale and
+   finish the remaining tone chips, row hovers and hairlines) --- */
+html.hk-dark .dashboard-heading-icon{background:#17334d;color:#6ea8ff}
+html.hk-dark .stu-subject-row{border-top-color:#1d3a55}
+html.hk-dark .stu-subject-name strong{color:#eef4fb}
+html.hk-dark .stu-subject-teacher{color:#93a9bf}
+html.hk-dark .stu-attendance-percent{color:#eef4fb}
+html.hk-dark .stu-attendance-rows span{color:#a9bfd6}
+html.hk-dark .stu-attendance-rows strong{color:#eef4fb}
+html.hk-dark .stu-circular-row{border-top-color:#1d3a55}
+html.hk-dark .stu-circular-row:hover{background:#16304a}
+html.hk-dark .stu-circular-copy strong{color:#eef4fb}
+html.hk-dark .stu-circular-copy small{color:#93a9bf}
+html.hk-dark .stu-reminder-chip{color:#a9bfd6}
+html.hk-dark .stu-reminder-chip strong{color:#eef4fb}
+html.hk-dark .stu-reminder-chip small{color:#93a9bf}
+html.hk-dark a.stu-reminder-chip:hover{background:#1a3a58}
+html.hk-dark .stu-reminder-overdue{background:#2b1a22;border-color:#4d2733}
+html.hk-dark .stu-status-in-progress{background:#123528;color:#4cc38a}
+html.hk-dark .stu-status-completed{background:#17334d;color:#93a9bf}
+html.hk-dark .stu-status-scheduled{background:#2a2148;color:#a78bfa}
+html.hk-dark .stu-prio-urgent{background:#3a1e26;color:#f28b9a}
+html.hk-dark .par-circular{border-top-color:#1d3a55}
+html.hk-dark .par-circular:hover{background:#16304a}
+html.hk-dark .par-circular-copy strong{color:#eef4fb}
+html.hk-dark .par-circular-copy small{color:#93a9bf}
+html.hk-dark .par-pill-urgent{background:#3a1e26;color:#f28b9a}
+html.hk-dark .par-reminder{border-color:#23425f;color:#a9bfd6}
+html.hk-dark .par-reminder-success{border-color:#1e4d38;color:#4cc38a}
+html.hk-dark .par-reminder-warning{border-color:#57471f;color:#f0b95f}
+html.hk-dark .par-reminder-info{border-color:#2a4a6e;color:#7fb0ff}
+html.hk-dark a.par-reminder-warning:hover{background:#463a1a}
+html.hk-dark a.par-reminder-info:hover{background:#1d4470}
+html.hk-dark .lib-circular{border-top-color:#1d3a55}
+html.hk-dark .lib-circular:hover{background:#16304a}
+html.hk-dark .lib-circular-copy strong{color:#eef4fb}
+html.hk-dark .lib-circular-copy small{color:#93a9bf}
+html.hk-dark .lib-pill-overdue{background:#3a1e26;color:#f28b9a}
+html.hk-dark .acc-defaulter{border-top-color:#1d3a55}
+html.hk-dark .acc-defaulter-copy strong{color:#eef4fb}
+html.hk-dark .acc-defaulter-copy small{color:#93a9bf}
+html.hk-dark .acc-defaulter-amount{color:#eef4fb}
+html.hk-dark .acc-circular{border-top-color:#1d3a55}
+html.hk-dark .acc-circular:hover{background:#16304a}
+html.hk-dark .acc-circular-copy strong{color:#eef4fb}
+html.hk-dark .acc-reminder-copy strong{color:#eef4fb}
+html.hk-dark .acc-chip-audience{background:#17334d;color:#a9bfd6}
+html.hk-dark .acc-chip-priority-normal{background:#16345a;color:#7fb0ff}
+html.hk-dark .acc-chip-priority-important{color:#f0b95f}
+html.hk-dark .acc-chip-priority-urgent{background:#3a1e26;color:#f28b9a}
+html.hk-dark .pay-form-net .pay-net-preview{color:#eef4fb}
+html.hk-dark .profile-name{color:#eef4fb}
+html.hk-dark .profile-contact li{border-top-color:#1d3a55;color:#a9bfd6}
+html.hk-dark .profile-label{background:#17334d;color:#93a9bf}
+html.hk-dark a.session-chip:hover{background:#17334d;color:#a9bfd6}
+
+/* --- Live-audit round (parent, browser-verified on the live
+   site, 2026-10-22): three surface classes a static crawl cannot
+   see — JS-rendered widgets and interactive states.
+   (a) Table row hover/selected: qs.css paints .content table row
+   hovers #f8faff and DataTables paints selected rows #e8f5e9;
+   Loop 50 only covered .table-hover. A hovered or selected row
+   flashed light with washed-out text.
+   (b) Select2: every .select/.select-search control is replaced
+   by a Select2 widget in the browser (form_select2.js) whose
+   default theme is white — e.g. the 'Select Class' field on
+   Payments. Theme the widget: box, dropdown, search, options.
+   (c) Bare form controls: a <select>/<input> without .form-control
+   (or a future rebuild's plain controls) falls back to the UA's
+   white. Catch-all at element specificity — every classed theme
+   rule still wins — so no native control can stay white. --- */
+html.hk-dark .table tbody tr:hover{background:#16304a}
+html.hk-dark .content .table tbody tr:hover{background:#16304a}
+html.hk-dark .dataTable tbody>tr.selected,html.hk-dark .dataTable tbody>tr>.selected{background:#16304a}
+html.hk-dark .select2-container--default .select2-selection--single,html.hk-dark .select2-container--default .select2-selection--multiple{background:#0c2033;border-color:#23425f;color:#e8f1f9}
+html.hk-dark .select2-container--default .select2-selection--single .select2-selection__rendered{color:#e8f1f9}
+html.hk-dark .select2-container--default .select2-selection--single .select2-selection__placeholder{color:#68809a}
+html.hk-dark .select2-container--default .select2-selection--single .select2-selection__arrow b{border-color:#93a9bf transparent transparent transparent}
+html.hk-dark .select2-dropdown{background:#132c46;border-color:#23425f;color:#dce8f4}
+html.hk-dark .select2-container--default .select2-search--dropdown .select2-search__field{background:#0c2033;border-color:#23425f;color:#e8f1f9}
+html.hk-dark .select2-container--default .select2-results__option[aria-selected=true]{background:#1a3a58}
+html.hk-dark .select2-container--default .select2-results__option--highlighted[aria-selected]{background:#2867dc;color:#fff}
+html.hk-dark .select2-container--default .select2-selection--multiple .select2-selection__choice{background:#17334d;border-color:#23425f;color:#dce8f4}
+html.hk-dark select{background-color:#0c2033;color:#e8f1f9}
+html.hk-dark textarea,html.hk-dark input[type=text],html.hk-dark input[type=search],html.hk-dark input[type=email],html.hk-dark input[type=number],html.hk-dark input[type=password],html.hk-dark input[type=tel],html.hk-dark input[type=url],html.hk-dark input[type=date],html.hk-dark input[type=time]{background-color:#0c2033;color:#e8f1f9}
+html.hk-dark .pat-filter-field label{color:#c3d4e6}
+html.hk-dark .pat-field label{color:#c3d4e6}
+
+}
+
+/* ============================================================
+   Loop 55 — Platform overview layout (Workstream CA). The
+   Super Admin platform home stacked five panels in the right
+   rail while the main column held only the role table and the
+   audit feed, so the column read as a void. The School
+   Snapshot moved into the main column as a stat band and the
+   audit feed's empty state became the shared empty-state
+   pattern with real presence. All rules are scoped to the
+   page's own .platform-overview row.
+   ============================================================ */
+.platform-overview .platform-audit-empty{align-items:center;display:flex;justify-content:center;min-height:196px}
+.platform-overview .platform-snap-body{padding:2px 22px 20px}
+.platform-overview .platform-snap-grid{display:grid;gap:14px;grid-template-columns:1fr 1fr}
+.platform-overview .platform-snap-tile{align-items:center;background:#f8fafc;border:1px solid #e4eaf1;border-radius:10px;display:flex;gap:14px;padding:16px 18px}
+.platform-overview .platform-snap-icon{align-items:center;border-radius:50%;display:flex;flex:none;font-size:21px;height:48px;justify-content:center;width:48px}
+.platform-overview .platform-snap-icon.snap-blue{background:#e9f1ff;color:#3478f6}
+.platform-overview .platform-snap-icon.snap-green{background:#e7f7f0;color:#188b66}
+.platform-overview .platform-snap-copy{display:flex;flex-direction:column}
+.platform-overview .platform-snap-copy small{color:#718096;font-size:.76rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.platform-overview .platform-snap-copy strong{color:#172536;font-size:1.6rem;line-height:1.35}
+.platform-overview .platform-snap-foot{align-items:center;display:flex;gap:16px;justify-content:space-between;margin-top:16px}
+@media (max-width:575px){
+.platform-overview .platform-snap-grid{grid-template-columns:1fr}
+.platform-overview .platform-snap-foot{align-items:flex-start;flex-direction:column}
+}
+/* Loop 55 (contd.): on this page the audit feed is a main-column
+   feature, so its scroll window is taller than the rail lists'
+   shared cap — a full feed then ends level with the rail. */
+.platform-overview .platform-audit-panel .l17-list-scroll{max-height:452px}
+
+/* ============================================================
+   Loop 56 — Bell events + topbar clock (Workstream CC). Owner
+   asks 2026-10-22: (1) "for upcoming event or any notification
+   show popup here" — the bell panel gains an Upcoming Events
+   section for every role, the badge counts the role's actionable
+   notifications plus today's events, and a dismissible toast
+   pops on home pages for a today-event / actionable reminder;
+   (2) "timer should be in the header for all" — a live clock in
+   the topbar for every account. Everything is scoped to the
+   topbar's own classes (.lav-clock, .lav-event-tag, .lav-toast*)
+   so no other surface moves, and BX's 38px rhythm is untouched.
+   ============================================================ */
+/* The clock: quiet text in the bar's typography, tabular numbers
+   so the ticking seconds never jitter the layout. */
+.lav-topbar .lav-clock{align-items:baseline;color:#718096;display:inline-flex;font-size:.82rem;gap:8px;line-height:1;margin-right:2px;white-space:nowrap}
+.lav-topbar .lav-clock-time{color:#172536;font-size:.88rem;font-variant-numeric:tabular-nums;font-weight:700;letter-spacing:.01em}
+.lav-topbar .lav-clock-date{font-weight:500}
+html.hk-dark .lav-topbar .lav-clock{color:#68809a}
+html.hk-dark .lav-topbar .lav-clock-time{color:#e8f1f9}
+@media (max-width:1199px){
+  /* Wide screens get time + date; below that, time only. */
+  .lav-topbar .lav-clock-date{display:none}
+}
+@media (max-width:767px){
+  /* The clock is the first thing to leave the bar — the fit
+     rule is absolute, nothing else is ever pushed off. */
+  .lav-topbar .lav-clock{display:none}
+}
+/* Event type / Today tag inside bell items — the reminder tag's
+   sibling, in the brand tint instead of the alert tint. */
+.lav-topbar .lav-event-tag{align-self:center;background:#eef3fb;border-radius:99px;color:#3478f6;font-size:10px;font-weight:700;margin-left:auto;padding:2px 8px;white-space:nowrap}
+html.hk-dark .lav-topbar .lav-event-tag{background:#17334d;color:#7db3f8}
+/* Home popup toasts: bottom-right stack of small cards. They
+   render hidden and are unhidden by the topbar script at most
+   once per browser session per item; always dismissible. */
+.lav-toast-stack{bottom:18px;display:flex;flex-direction:column;gap:10px;max-width:min(360px,92vw);position:fixed;right:18px;z-index:1080}
+.lav-toast{align-items:center;background:#fff;border:1px solid #e4eaf1;border-left:4px solid #3478f6;border-radius:12px;box-shadow:0 14px 34px rgba(23,37,54,.16);color:#172536;display:flex;gap:11px;padding:12px 14px}
+.lav-toast > i{align-items:center;background:#eef3fb;border-radius:50%;color:#3478f6;display:inline-flex;flex:none;font-size:15px;height:34px;justify-content:center;width:34px}
+.lav-toast-body{flex:1;line-height:1.35;min-width:0}
+.lav-toast-body strong{display:block;font-size:.86rem;font-weight:600}
+.lav-toast-body small{color:#718096;display:block;font-size:.74rem;margin-top:1px}
+.lav-toast-link{color:#3478f6;flex:none;font-size:.8rem;font-weight:700}
+.lav-toast-link:hover{color:#1f5fd6;text-decoration:none}
+.lav-toast-close{background:transparent;border:0;color:#718096;flex:none;font-size:18px;line-height:1;padding:2px 4px}
+.lav-toast-close:hover{color:#172536}
+html.hk-dark .lav-toast{background:#11283f;border-color:#1d3a55;border-left-color:#3478f6;box-shadow:0 14px 34px rgba(0,0,0,.45);color:#e8f1f9}
+html.hk-dark .lav-toast > i{background:#17334d;color:#7db3f8}
+html.hk-dark .lav-toast-body small{color:#8fb0cc}
+html.hk-dark .lav-toast-close{color:#8fb0cc}
+html.hk-dark .lav-toast-close:hover{color:#fff}
+@media print{
+  .lav-toast-stack{display:none!important}
+}
+
+/* ============================================================
+   Loop 59 — Library Books rebuild support (Workstream BI).
+   The books index rides the shared list_page pattern + KPI stat
+   cards (already themed); these are its only page-specific rules:
+   the book cell/thumbnail in each row and the table caption.
+   ============================================================ */
+.qs-table-caption{caption-side:top;color:#718096;font-size:.85rem;padding:.25rem 0 .75rem;text-align:left}
+.qs-book-cell{display:flex;gap:12px;align-items:flex-start}
+.qs-book-thumb{align-items:center;background:#eef4ff;border-radius:6px;color:#3478f6;display:flex;flex:0 0 auto;font-size:18px;height:52px;justify-content:center;width:40px}
+.qs-book-cell strong{color:#172536}
+.dashboard-status.status-danger{background:#fdecec;color:#d64545}

@@ -159,7 +159,7 @@
                                         <div>
                                             <label for="acct-photo" class="acct-upload-btn"><i class="icon-upload"></i> Upload Photo</label>
                                             <input id="acct-photo" name="photo" type="file" accept="image/*" class="acct-file-input">
-                                            <div class="acct-hint">JPG, PNG or GIF. Max size 2MB.</div>
+                                            <div class="acct-hint">JPG, PNG, GIF or WebP. Max size 2MB.</div>
                                             <div class="acct-file-name" id="acct-photo-name"></div>
                                             @error('photo')<small class="acct-error">{{ $message }}</small>@enderror
                                         </div>
@@ -382,33 +382,35 @@
                         </button>
                     </form>
                 </div>
+
+                {{-- Account activity — fourth card of the info band (Loop 48, Workstream BY;
+                    was a full-width strip under the band until the one-screen pass) --}}
+                <div class="acct-card acct-side-card acct-activity" id="acct-activity">
+                    <div class="acct-card-head">
+                    <span class="acct-toggle-icon acct-tint-blue"><i class="icon-history"></i></span>
+                    <div>
+                        <h3 class="acct-card-title">Account Activity</h3>
+                        <p class="acct-panel-sub">Your recent sign-ins on this account.</p>
+                    </div>
+                    </div>
+
+                    <div class="acct-activity-list">
+                    @forelse($activity as $row)
+                    <div class="acct-activity-row">
+                        <span class="acct-activity-icon"><i class="icon-user-check"></i></span>
+                        <span class="acct-activity-text"><strong>Signed in</strong><small>{{ $row->description ?: 'Successful sign-in' }}</small></span>
+                        @if($row->ip_address)<span class="acct-ip">{{ $row->ip_address }}</span>@endif
+                        <span class="acct-activity-when">{{ $row->created_at->format($date_fmt . ', ' . $time_fmt) }}</span>
+                    </div>
+                    @empty
+                    <div class="acct-empty">
+                        <i class="icon-history"></i>
+                        <p>No sign-in activity recorded yet.</p>
+                    </div>
+                    @endforelse
+                    </div>
+                </div>
             </aside>
-
-            {{-- Account activity — full-width row under the columns (Loop 31, Fix 6b) --}}
-            <div class="acct-card acct-activity" id="acct-activity">
-                <div class="acct-card-head">
-                <span class="acct-toggle-icon acct-tint-blue"><i class="icon-history"></i></span>
-                <div>
-                    <h3 class="acct-card-title">Account Activity</h3>
-                    <p class="acct-panel-sub">Your recent sign-ins on this account.</p>
-                </div>
-                </div>
-
-                @forelse($activity as $row)
-                <div class="acct-activity-row">
-                    <span class="acct-activity-icon"><i class="icon-user-check"></i></span>
-                    <span class="acct-activity-text"><strong>Signed in</strong><small>{{ $row->description ?: 'Successful sign-in' }}</small></span>
-                    @if($row->ip_address)<span class="acct-ip">{{ $row->ip_address }}</span>@endif
-                    <span class="acct-activity-when">{{ $row->created_at->format($date_fmt . ', ' . $time_fmt) }}</span>
-                </div>
-                @empty
-                <div class="acct-empty">
-                    <i class="icon-history"></i>
-                    <p>No sign-in activity recorded yet.</p>
-                </div>
-                @endforelse
-            </div>
-
         </div>
     </div>
 

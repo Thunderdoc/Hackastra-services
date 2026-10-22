@@ -1,37 +1,31 @@
 @extends('layouts.master')
 @section('page_title', 'Edit Dorm - '.$dorm->name)
 @section('content')
-
-    <div class="card">
-
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-6">
-                    <form class="ajax-update" data-reload="#page-header" method="post" action="{{ route('dorms.update', $dorm->id) }}">
-                        @csrf @method('PUT')
-                        <div class="form-group row">
-                            <label class="col-lg-3 col-form-label font-weight-semibold">Name <span class="text-danger">*</span></label>
-                            <div class="col-lg-9">
-                                <input name="name" value="{{ $dorm->name }}" required type="text" class="form-control" placeholder="Name of Dormitory">
-                            </div>
-                        </div>
-
-                        <div class="form-group row">
-                            <label class="col-lg-3 col-form-label font-weight-semibold">Description</label>
-                            <div class="col-lg-9">
-                                <input name="description" value="{{ $dorm->description }}"  type="text" class="form-control" placeholder="Description of Dormitory">
-                            </div>
-                        </div>
-
-                        <div class="text-right">
-                            <button type="submit" class="btn btn-primary">Submit form <i class="icon-paperplane ml-2"></i></button>
-                        </div>
-                    </form>
+    {{-- Workstream BW: rebuilt on the shared form_page pattern
+         (Loop 28/39 grid, full width). Was the legacy narrow
+         label-column card with the title repeated in the card
+         header — dropped, the common header carries it. Shell
+         only: same PUT to dorms.update via .ajax-update with its
+         data-reload="#page-header", same fields and bindings. --}}
+    @component('partials.patterns.form_page', [
+        'form_action' => route('dorms.update', $dorm->id),
+        'form_method' => 'PUT',
+        'form_class' => 'ajax-update',
+        'form_reload' => '#page-header',
+        'back' => route('dorms.index'),
+        'submit_label' => 'Submit form',
+    ])
+        <div class="pat-form-section">
+            <div class="pat-fields">
+                <div class="pat-field">
+                    <label for="name">Name <span class="text-danger">*</span></label>
+                    <input id="name" name="name" value="{{ $dorm->name }}" required type="text" class="form-control" placeholder="Name of Dormitory">
+                </div>
+                <div class="pat-field">
+                    <label for="description">Description</label>
+                    <input id="description" name="description" value="{{ $dorm->description }}" type="text" class="form-control" placeholder="Description of Dormitory">
                 </div>
             </div>
         </div>
-    </div>
-
-    {{--Class Edit Ends--}}
-
+    @endcomponent
 @endsection

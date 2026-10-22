@@ -1,5 +1,6 @@
 @extends('layouts.master')
 @section('page_title', 'Dashboard')
+@section('hide_page_header', true)
 @section('content')
     {{-- Workstream Y: librarian home — catalogue, loans and due dates from the real library tables. --}}
     <div class="dashboard-hero mb-4">
@@ -12,7 +13,6 @@
                 <i class="icon-calendar3"></i>
                 <span>
                     <strong>{{ $today->format('l, d F Y') }}</strong>
-                    <small>Current Session: {{ $current_session ?: '—' }}</small>
                 </span>
             </div>
             <a href="{{ route('book_requests.index') }}" class="btn dashboard-primary-action">

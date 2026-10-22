@@ -1,5 +1,6 @@
 @extends('layouts.master')
 @section('page_title', 'Dashboard')
+@section('hide_page_header', true)
 @section('content')
 @if(Qs::userIsTeamSAT())
     {{-- Header: greeting | date + session | primary action (target screenshot) --}}
@@ -13,7 +14,6 @@
                 <i class="icon-calendar3"></i>
                 <span>
                     <strong>{{ $today->format('l, d F Y') }}</strong>
-                    <small>Current Session: {{ $current_session ?: '—' }}</small>
                 </span>
             </div>
             <a href="{{ route('students.create') }}" class="btn dashboard-primary-action">

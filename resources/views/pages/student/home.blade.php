@@ -1,5 +1,6 @@
 @extends('layouts.master')
 @section('page_title', 'Dashboard')
+@section('hide_page_header', true)
 @section('content')
     {{-- Loop 12 (Workstream V): student home — rebuilt to the premium
          dashboard standard. Every number and row is the signed-in
@@ -21,7 +22,6 @@
                 <i class="icon-calendar3"></i>
                 <span>
                     <strong>{{ $today->format('l, d F Y') }}</strong>
-                    <small>Current Session: {{ $current_session ?: '—' }}</small>
                 </span>
             </div>
             <a href="{{ route('tt.index') }}" class="btn dashboard-primary-action">

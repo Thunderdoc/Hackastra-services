@@ -44,6 +44,7 @@
     $patHasSubtitle = isset($subtitle) && trim((string) $subtitle) !== '';
     $patHasAction   = isset($action)   && trim((string) $action) !== '';
     $patHasFilters  = isset($filters)  && trim((string) $filters) !== '';
+    $patHasStats    = isset($stats)    && trim((string) $stats) !== '';
 @endphp
 <div class="pat-list">
     {{-- Loop 46 (Workstream BS): no title heading here — the common
@@ -61,6 +62,10 @@
             <div class="pat-toolbar-actions">{!! $action !!}</div>
         @endif
     </div>
+    @endif
+
+    @if($patHasStats)
+        <div class="pat-stats">{!! $stats !!}</div>
     @endif
 
     @if($patHasFilters)

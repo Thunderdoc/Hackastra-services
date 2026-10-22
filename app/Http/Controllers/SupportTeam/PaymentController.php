@@ -336,17 +336,25 @@ class PaymentController extends Controller
 
     /**
      * One CSV row for a payment record, shared by both payment exports.
-     * Balance mirrors the invoice page: an untouched record owes the
-     * full payment amount.
+     * Balance is the record's true remaining balance — fee minus amount
+     * paid, the same derivation pay_now() stores when a payment lands.
+     * The stored balance column cannot be read with ?: here: a fully
+     * paid record stores 0 (which ?: misreads as "no balance" and
+     * printed the full fee), while a reset record also stores 0 yet
+     * owes the full fee again, as the invoice page shows. Fee minus
+     * amount paid matches the invoice page in every state: untouched
+     * record = full fee, partial = stored balance, fully paid = 0.
      */
     protected function exportRow($pr, $studentName)
     {
+        $fee = optional($pr->payment)->amount ?: 0;
+
         return [
             $pr->ref_no,
             $studentName,
             optional($pr->payment)->title,
             $pr->amt_paid ?: 0,
-            $pr->balance ?: optional($pr->payment)->amount,
+            $fee - ($pr->amt_paid ?: 0),
             optional($pr->updated_at)->format('d M Y'),
         ];
     }

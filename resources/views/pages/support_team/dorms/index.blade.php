@@ -1,93 +1,86 @@
 @extends('layouts.master')
 @section('page_title', 'Manage Dorms')
 @section('content')
+    {{-- Workstream BW: rebuilt on the shared patterns (Loop 28),
+         following the Batch 4 academics template (sections/classes/
+         subjects). Was: ONE tabbed legacy card (Manage/Create tabs)
+         with the create form in a narrow half-column tab pane and
+         the page title repeated as the card heading. Now: list_page
+         table + form_page create card below. Create contract
+         unchanged — POST dorms.store via .ajax-store, same fields;
+         row actions are the same Edit page + confirmDelete flow,
+         rendered as buttons instead of a href="#" dropdown. --}}
 
-    <div class="card">
+    @component('partials.patterns.list_page')
+        @slot('title')
+            <i class="icon-home9 mr-2"></i> Manage Dorms
+        @endslot
+        @slot('subtitle')
+            All dormitories in the school.
+        @endslot
+        @slot('action')
+            <a href="#add-dorm" class="btn btn-primary"><i class="icon-plus2 mr-2"></i> Create New Dorm</a>
+        @endslot
 
-        <div class="card-body">
-            <ul class="nav nav-tabs nav-tabs-highlight">
-                <li class="nav-item"><a href="#all-dorms" class="nav-link active" data-toggle="tab">Manage Dorms</a></li>
-                <li class="nav-item"><a href="#new-dorm" class="nav-link" data-toggle="tab"><i class="icon-plus2"></i> Create New Dorm</a></li>
-            </ul>
+        @if($dorms->count())
+            <div class="table-responsive">
+            <table class="table">
+                <thead>
+                <tr>
+                    <th>S/N</th>
+                    <th>Name</th>
+                    <th>Description</th>
+                    <th>Action</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach($dorms as $d)
+                    <tr>
+                        <td>{{ $loop->iteration }}</td>
+                        <td>{{ $d->name }}</td>
+                        <td>{{ $d->description}}</td>
+                        <td class="text-center">
+                            @if(Qs::userIsTeamSA())
+                                <a href="{{ route('dorms.edit', $d->id) }}" class="btn btn-sm btn-primary"><i class="icon-pencil"></i> Edit</a>
+                                <button type="button" id="{{ $d->id }}" onclick="confirmDelete(this.id)" class="btn btn-sm btn-danger"><i class="icon-trash"></i> Delete</button>
+                                <form method="post" id="item-delete-{{ $d->id }}" action="{{ route('dorms.destroy', $d->id) }}" class="hidden">@csrf @method('delete')</form>
+                            @endif
+                        </td>
+                    </tr>
+                @endforeach
+                </tbody>
+            </table>
+            </div>
+        @else
+            @include('partials.patterns.empty_state', [
+                'icon' => 'icon-home9',
+                'message' => 'No dormitories found yet. Create the first dormitory using the form below.',
+            ])
+        @endif
+    @endcomponent
 
-            <div class="tab-content">
-                    <div class="tab-pane fade show active" id="all-dorms">
-                        <table class="table datatable-button-html5-columns">
-                            <thead>
-                            <tr>
-                                <th>S/N</th>
-                                <th>Name</th>
-                                <th>Description</th>
-                                <th>Action</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            @forelse($dorms as $d)
-                                <tr>
-                                    <td>{{ $loop->iteration }}</td>
-                                    <td>{{ $d->name }}</td>
-                                    <td>{{ $d->description}}</td>
-                                    <td class="text-center">
-                                        <div class="list-icons">
-                                            <div class="dropdown">
-                                                <a href="#" class="list-icons-item" data-toggle="dropdown">
-                                                    <i class="icon-menu9"></i>
-                                                </a>
+    <div id="add-dorm">
+        @component('partials.patterns.form_page', [
+            'form_action' => route('dorms.store'),
+            'form_class' => 'ajax-store',
+            'submit_label' => 'Submit form',
+        ])
+            @slot('title')
+                <i class="icon-plus2 mr-2"></i> Create New Dorm
+            @endslot
 
-                                                <div class="dropdown-menu dropdown-menu-left">
-                                                    @if(Qs::userIsTeamSA())
-                                                    {{--Edit--}}
-                                                    <a href="{{ route('dorms.edit', $d->id) }}" class="dropdown-item"><i class="icon-pencil"></i> Edit</a>
-                                                   @endif
-                                                        @if(Qs::userIsTeamSA())
-                                                    {{--Delete--}}
-                                                    <a id="{{ $d->id }}" onclick="confirmDelete(this.id)" href="#" class="dropdown-item"><i class="icon-trash"></i> Delete</a>
-                                                    <form method="post" id="item-delete-{{ $d->id }}" action="{{ route('dorms.destroy', $d->id) }}" class="hidden">@csrf @method('delete')</form>
-                                                        @endif
-
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                </tr>
-                            @empty
-                                <tr><td colspan="4" class="text-center text-muted" style="padding:22px 12px"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#3478f6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:.55;display:block;margin:0 auto 6px" aria-hidden="true"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>No dormitories found yet. Create the first dormitory using the form above.</td></tr>
-                            @endforelse
-                            </tbody>
-                        </table>
+            <div class="pat-form-section">
+                <div class="pat-fields">
+                    <div class="pat-field">
+                        <label for="name">Name <span class="text-danger">*</span></label>
+                        <input id="name" name="name" value="{{ old('name') }}" required type="text" class="form-control" placeholder="Name of Dormitory">
                     </div>
-
-                <div class="tab-pane fade" id="new-dorm">
-
-                    <div class="row">
-                        <div class="col-md-6">
-                            <form class="ajax-store" method="post" action="{{ route('dorms.store') }}">
-                                @csrf
-                                <div class="form-group row">
-                                    <label class="col-lg-3 col-form-label font-weight-semibold">Name <span class="text-danger">*</span></label>
-                                    <div class="col-lg-9">
-                                        <input name="name" value="{{ old('name') }}" required type="text" class="form-control" placeholder="Name of Dormitory">
-                                    </div>
-                                </div>
-
-                                <div class="form-group row">
-                                    <label class="col-lg-3 col-form-label font-weight-semibold">Description</label>
-                                    <div class="col-lg-9">
-                                        <input name="description" value="{{ old('description') }}"  type="text" class="form-control" placeholder="Description of Dormitory">
-                                    </div>
-                                </div>
-
-                                <div class="text-right">
-                                    <button id="ajax-btn" type="submit" class="btn btn-primary">Submit form <i class="icon-paperplane ml-2"></i></button>
-                                </div>
-                            </form>
-                        </div>
+                    <div class="pat-field">
+                        <label for="description">Description</label>
+                        <input id="description" name="description" value="{{ old('description') }}" type="text" class="form-control" placeholder="Description of Dormitory">
                     </div>
                 </div>
             </div>
-        </div>
+        @endcomponent
     </div>
-
-    {{--Dorm List Ends--}}
-
 @endsection

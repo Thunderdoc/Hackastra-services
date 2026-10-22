@@ -1,5 +1,6 @@
 @extends('layouts.master')
 @section('page_title', 'Platform Overview')
+@section('hide_page_header', true)
 @section('content')
     {{-- Workstream R: Platform Super Admin home — platform oversight
          (users & roles, audit & security, configuration), deliberately
@@ -15,7 +16,6 @@
                 <i class="icon-calendar3"></i>
                 <span>
                     <strong>{{ $today->format('l, d F Y') }}</strong>
-                    <small>Current Session: {{ $current_session ?: '—' }}</small>
                 </span>
             </div>
             <a href="{{ route('dashboard.school') }}" class="btn dashboard-primary-action">
@@ -47,7 +47,7 @@
         @endforeach
     </div>
 
-    <div class="row">
+    <div class="row platform-overview">
         <div class="col-xl-8">
             {{-- Users by role — grouped counts from the users table --}}
             <section class="dashboard-panel mb-4">
@@ -72,27 +72,64 @@
             </section>
 
             {{-- Recent audit activity — the same records the audit viewer lists --}}
-            <section class="dashboard-panel mb-4">
+            <section class="dashboard-panel platform-audit-panel mb-4">
                 <div class="dashboard-panel-heading">
                     <div><h5 class="mb-1"><i class="icon-history text-blue mr-1"></i> Recent Audit Activity</h5><p class="dashboard-muted mb-0">Who did what, and when — latest first</p></div>
                     <a href="{{ route('audit_logs.index') }}" class="dashboard-view-all">View All <i class="icon-arrow-right7"></i></a>
                 </div>
+                @if($recent_audit->isNotEmpty())
                 <div class="table-responsive l17-list-scroll">
                     <table class="table dashboard-table mb-0">
                         <thead><tr><th>When</th><th>User</th><th>Action</th><th>Subject</th></tr></thead>
                         <tbody>
-                        @forelse($recent_audit as $log)
+                        @foreach($recent_audit as $log)
                             <tr>
                                 <td>{{ $log->created_at->format('d M Y, h:i A') }}</td>
                                 <td><strong>{{ optional($log->user)->name ?: '—' }}</strong></td>
                                 <td><code>{{ $log->action }}</code></td>
                                 <td>{{ $log->subject_type ? class_basename($log->subject_type) . ($log->subject_id ? ' #' . $log->subject_id : '') : '—' }}</td>
                             </tr>
-                        @empty
-                            <tr><td colspan="4" class="dashboard-empty">No audit entries yet. Sign-ins, payments, mark updates and deletions will appear here.</td></tr>
-                        @endforelse
+                        @endforeach
                         </tbody>
                     </table>
+                </div>
+                @else
+                {{-- Empty feed gets the shared empty-state pattern
+                     (Workstream CA) instead of a lone table row. --}}
+                <div class="platform-audit-empty">
+                    @include('partials.patterns.empty_state', [
+                        'icon' => 'icon-history',
+                        'message' => 'No audit entries yet. Sign-ins, payments, mark updates and deletions will appear here.',
+                    ])
+                </div>
+                @endif
+            </section>
+
+            {{-- School snapshot — secondary, clearly labelled: this
+                 deployment serves a single school, so these are that
+                 school's headline sizes, not tenant metrics. Moved from
+                 the rail into the main column as a stat band
+                 (Workstream CA) so the main column carries the
+                 content-rich material. --}}
+            <section class="dashboard-panel mb-4">
+                <div class="dashboard-panel-heading">
+                    <div><h5 class="mb-1"><i class="icon-windows2 text-blue mr-1"></i> School Snapshot</h5><p class="dashboard-muted mb-0">{{ $school_name ?: 'This school' }} at a glance</p></div>
+                </div>
+                <div class="platform-snap-body">
+                    <div class="platform-snap-grid">
+                        <div class="platform-snap-tile">
+                            <span class="platform-snap-icon snap-blue"><i class="icon-graduation2"></i></span>
+                            <span class="platform-snap-copy"><small>Active students</small><strong>{{ number_format($snapshot_student_count) }}</strong></span>
+                        </div>
+                        <div class="platform-snap-tile">
+                            <span class="platform-snap-icon snap-green"><i class="icon-users4"></i></span>
+                            <span class="platform-snap-copy"><small>Teachers</small><strong>{{ number_format($snapshot_teacher_count) }}</strong></span>
+                        </div>
+                    </div>
+                    <div class="platform-snap-foot">
+                        <p class="dashboard-muted mb-0">Day-to-day school operations live on the school dashboard.</p>
+                        <a href="{{ route('dashboard.school') }}" class="dashboard-view-all">Open School Dashboard <i class="icon-arrow-right7"></i></a>
+                    </div>
                 </div>
             </section>
         </div>
@@ -174,24 +211,6 @@
                 @endforelse
             </section>
 
-            {{-- School snapshot — secondary, clearly labelled: this
-                 deployment serves a single school, so these are that
-                 school's headline sizes, not tenant metrics. --}}
-            <section class="dashboard-panel mb-4">
-                <div class="dashboard-panel-heading">
-                    <div><h5 class="mb-1"><i class="icon-windows2 text-blue mr-1"></i> School Snapshot</h5><p class="dashboard-muted mb-0">{{ $school_name ?: 'This school' }} at a glance</p></div>
-                </div>
-                <div class="dashboard-event">
-                    <span class="event-copy"><strong>Active students</strong></span>
-                    <strong>{{ number_format($snapshot_student_count) }}</strong>
-                </div>
-                <div class="dashboard-event">
-                    <span class="event-copy"><strong>Teachers</strong></span>
-                    <strong>{{ number_format($snapshot_teacher_count) }}</strong>
-                </div>
-                <p class="dashboard-muted mb-0 mt-2">Day-to-day school operations live on the school dashboard.</p>
-                <a href="{{ route('dashboard.school') }}" class="dashboard-view-all">Open School Dashboard <i class="icon-arrow-right7"></i></a>
-            </section>
         </div>
     </div>
 @endsection

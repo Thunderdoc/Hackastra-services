@@ -37,15 +37,22 @@
                 </div>
             @endif
 
-            <form method="GET" action="{{ route('attendance.index') }}" class="form-inline mb-3">
-                <label for="att_class_id" class="mr-2">Class</label>
-                <select name="class_id" id="att_class_id" class="form-control mr-3" onchange="this.form.submit()">
-                    @foreach($classes as $class)
-                        <option value="{{ $class->id }}" {{ $selected_class && $selected_class->id === $class->id ? 'selected' : '' }}>{{ $class->name }}</option>
-                    @endforeach
-                </select>
-                <label for="att_date" class="mr-2">Date</label>
-                <input type="date" name="date" id="att_date" class="form-control mr-3" value="{{ $date->format('Y-m-d') }}" onchange="this.form.submit()">
+            {{-- Workstream BW: filter bar moved onto the shared
+                 pat-filter-form (was form-inline). Same GET fields
+                 and auto-submit onchange behaviour. --}}
+            <form method="GET" action="{{ route('attendance.index') }}" class="pat-filter-form mb-3">
+                <div class="pat-filter-field">
+                    <label for="att_class_id">Class</label>
+                    <select name="class_id" id="att_class_id" class="form-control" onchange="this.form.submit()">
+                        @foreach($classes as $class)
+                            <option value="{{ $class->id }}" {{ $selected_class && $selected_class->id === $class->id ? 'selected' : '' }}>{{ $class->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="pat-filter-field">
+                    <label for="att_date">Date</label>
+                    <input type="date" name="date" id="att_date" class="form-control" value="{{ $date->format('Y-m-d') }}" onchange="this.form.submit()">
+                </div>
             </form>
 
             @if($students->isEmpty())
@@ -87,7 +94,9 @@
                             </tbody>
                         </table>
                     </div>
-                    <button type="submit" class="btn btn-primary mt-2">Save Attendance</button>
+                    <div class="text-right">
+                        <button type="submit" class="btn btn-primary mt-2">Save Attendance</button>
+                    </div>
                 </form>
             @endif
         </div>

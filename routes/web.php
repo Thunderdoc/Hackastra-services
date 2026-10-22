@@ -29,7 +29,7 @@ Route::group(['middleware' => 'auth'], function () {
 
         /*************** Students *****************/
         Route::group(['prefix' => 'students'], function(){
-            Route::get('reset_pass/{st_id}', 'StudentRecordController@reset_pass')->name('st.reset_pass');
+            Route::post('reset_pass/{st_id}', 'StudentRecordController@reset_pass')->name('st.reset_pass');
             Route::get('graduated', 'StudentRecordController@graduated')->name('students.graduated');
             Route::put('not_graduated/{id}', 'StudentRecordController@not_graduated')->name('st.not_graduated');
             Route::get('id_card/{sr_id}', 'IdCardController@show')->name('students.id_card')->middleware('teamSA');
@@ -57,7 +57,7 @@ Route::group(['middleware' => 'auth'], function () {
 
         /*************** Users *****************/
         Route::group(['prefix' => 'users'], function(){
-            Route::get('reset_pass/{id}', 'UserController@reset_pass')->name('users.reset_pass');
+            Route::post('reset_pass/{id}', 'UserController@reset_pass')->name('users.reset_pass');
         });
 
         /*************** TimeTables *****************/
@@ -170,6 +170,8 @@ Route::group(['middleware' => 'auth'], function () {
             Route::post('select_year/{id}', 'MarkController@year_selected')->name('marks.year_select');
             Route::get('show/{id}/{year}', 'MarkController@show')->name('marks.show');
             Route::get('print/{id}/{exam_id}/{year}', 'MarkController@print_view')->name('marks.print');
+            Route::get('annual/{id}/{year}', 'MarkController@show_annual')->name('marks.annual');
+            Route::get('print_annual/{id}/{year}', 'MarkController@print_annual')->name('marks.print_annual');
 
         });
 

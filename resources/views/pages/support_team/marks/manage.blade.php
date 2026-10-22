@@ -2,15 +2,12 @@
 @section('page_title', 'Manage Marks')
 @section('content')
 
-    <div class="card">
-        <div class="card-header header-elements-inline">
-            <h6 class="card-title font-weight-bold">Fill The Form To Manage Marks</h6>
-            {!! Qs::getPanelOptions() !!}
-        </div>
-
-        <div class="card-body">
-            @include('pages.support_team.marks.selector')
-        </div>
+    {{-- Workstream BW: the picker now sits in a pat-form-card like
+         marks/index (its legacy "Fill The Form To Manage Marks"
+         header card is dropped). The marks grid card below is
+         unchanged. --}}
+    <div class="card pat-form-card">
+        @include('pages.support_team.marks.selector')
     </div>
 
     <div class="card">

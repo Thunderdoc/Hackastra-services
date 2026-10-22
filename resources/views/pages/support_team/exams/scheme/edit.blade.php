@@ -24,17 +24,27 @@
             @endif
 
             @if($other_exams->count() > 0)
-                <form method="post" action="{{ route('exams.scheme.copy', [$ex->id, $my_class->id]) }}" class="form-inline mb-3">
+                {{-- Workstream BW: copy bar moved onto the shared
+                     pat-filter-form (was form-inline). Same POST,
+                     field and note. The scheme editor forms below
+                     are unchanged. --}}
+                <form method="post" action="{{ route('exams.scheme.copy', [$ex->id, $my_class->id]) }}" class="pat-filter-form mb-3">
                     @csrf
-                    <label class="mr-2 font-weight-semibold">Copy schemes for this class from:</label>
-                    <select name="source_exam_id" class="form-control mr-2" required>
-                        <option value="">Select Exam</option>
-                        @foreach($other_exams as $oe)
-                            <option value="{{ $oe->id }}">{{ $oe->name }} (Term {{ $oe->term }}, {{ $oe->year }})</option>
-                        @endforeach
-                    </select>
-                    <button type="submit" class="btn btn-light">Copy <i class="icon-copy3 ml-1"></i></button>
-                    <span class="ml-2 text-muted">Subjects that already have a scheme or marks in this exam are skipped.</span>
+                    <div class="pat-filter-field">
+                        <label for="source_exam_id">Copy schemes for this class from:</label>
+                        <select id="source_exam_id" name="source_exam_id" class="form-control" required>
+                            <option value="">Select Exam</option>
+                            @foreach($other_exams as $oe)
+                                <option value="{{ $oe->id }}">{{ $oe->name }} (Term {{ $oe->term }}, {{ $oe->year }})</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="pat-filter-action">
+                        <button type="submit" class="btn btn-light">Copy <i class="icon-copy3 ml-1"></i></button>
+                    </div>
+                    <div class="pat-filter-action">
+                        <span class="text-muted">Subjects that already have a scheme or marks in this exam are skipped.</span>
+                    </div>
                 </form>
                 <hr>
             @endif

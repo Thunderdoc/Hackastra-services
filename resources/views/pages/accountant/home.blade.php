@@ -1,5 +1,6 @@
 @extends('layouts.master')
 @section('page_title', 'Dashboard')
+@section('hide_page_header', true)
 @section('content')
     {{-- Loop 14 (Workstream X): accountant home — the fee office at a
          glance. Every figure comes from HomeController@accountantHomeData:
@@ -15,7 +16,6 @@
                 <i class="icon-calendar3"></i>
                 <span>
                     <strong>{{ $today->format('l, d F Y') }}</strong>
-                    <small>Current Session: {{ $current_session ?: '—' }}</small>
                 </span>
             </div>
             <a href="{{ route('payments.create') }}" class="btn dashboard-primary-action">

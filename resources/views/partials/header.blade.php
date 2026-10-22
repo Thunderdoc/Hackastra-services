@@ -4,13 +4,6 @@
         <span class="t9-crumb">Dashboard</span>
     </div>
     <div class="t9-subheader-right">
-        <div class="t9-datebox">
-            <i class="icon-calendar3"></i>
-            <span>
-                <strong>{{ $today->format('l, d F Y') }}</strong>
-                <small>Current Session: {{ $current_session ?: '—' }}</small>
-            </span>
-        </div>
         <a href="{{ route('attendance.periods.index') }}" class="btn t9-take-btn">
             <i class="icon-calendar52"></i> Take Attendance
         </a>

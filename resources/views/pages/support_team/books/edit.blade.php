@@ -1,18 +1,22 @@
 @extends('layouts.master')
 @section('page_title', 'Edit Book')
 @section('content')
-    <div class="card">
-        <div class="card-body">
+    {{-- Workstream BW: rebuilt on the shared form_page pattern.
+         Was a plain card whose header repeated the page title.
+         Same PUT to books.update; error summary kept (top-of-form,
+         as this module's controllers return errors); fields live
+         in books/_form (pattern grid). --}}
+    @component('partials.patterns.form_page', [
+        'form_action' => route('books.update', $book->id),
+        'form_method' => 'PUT',
+        'back' => route('books.index'),
+        'submit_label' => 'Update Book',
+    ])
+        <div class="pat-form-section">
             @if($errors->any())
                 <div class="alert alert-danger border-0">@foreach($errors->all() as $error)<div>{{ $error }}</div>@endforeach</div>
             @endif
-            <form method="POST" action="{{ route('books.update', $book->id) }}">
-                @csrf
-                @method('put')
-                @include('pages.support_team.books._form')
-                <button type="submit" class="btn btn-primary">Update Book</button>
-                <a href="{{ route('books.index') }}" class="btn btn-light">Cancel</a>
-            </form>
+            @include('pages.support_team.books._form')
         </div>
-    </div>
+    @endcomponent
 @endsection

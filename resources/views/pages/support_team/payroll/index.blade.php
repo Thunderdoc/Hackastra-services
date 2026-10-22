@@ -15,20 +15,32 @@
             </div>
         </div>
         <div class="card-body">
-            <form method="GET" action="{{ route('payroll.index') }}" class="form-inline mb-3">
-                <label class="mr-2">Month</label>
-                <select name="month" class="form-control mr-3">
-                    @foreach($months as $num => $name)
-                        <option value="{{ $num }}" {{ $num === $month ? 'selected' : '' }}>{{ $name }}</option>
-                    @endforeach
-                </select>
-                <label class="mr-2">Year</label>
-                <select name="year" class="form-control mr-3">
-                    @foreach($years as $y)
-                        <option value="{{ $y }}" {{ $y === $year ? 'selected' : '' }}>{{ $y }}</option>
-                    @endforeach
-                </select>
-                <button type="submit" class="btn btn-light btn-sm">View</button>
+            {{-- Workstream BW: period filter moved onto the shared
+                 pat-filter-form bar (was a one-off form-inline row).
+                 Same GET, fields and options. The per-staff generate/
+                 edit forms keep the module's own pay-form grid
+                 pattern (Batch 13 design) — inline row editors, not
+                 legacy layout. --}}
+            <form method="GET" action="{{ route('payroll.index') }}" class="pat-filter-form mb-3">
+                <div class="pat-filter-field">
+                    <label for="pay-month">Month</label>
+                    <select id="pay-month" name="month" class="form-control">
+                        @foreach($months as $num => $name)
+                            <option value="{{ $num }}" {{ $num === $month ? 'selected' : '' }}>{{ $name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="pat-filter-field">
+                    <label for="pay-year">Year</label>
+                    <select id="pay-year" name="year" class="form-control">
+                        @foreach($years as $y)
+                            <option value="{{ $y }}" {{ $y === $year ? 'selected' : '' }}>{{ $y }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="pat-filter-action">
+                    <button type="submit" class="btn btn-light">View</button>
+                </div>
             </form>
 
             <div class="pay-summary">

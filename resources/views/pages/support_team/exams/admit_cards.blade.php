@@ -3,53 +3,49 @@
 @section('content')
 
     <div class="card">
+        <div class="card-header header-elements-inline">
+            <h6 class="card-title">Admit Cards</h6>
+            {!! Qs::getPanelOptions() !!}
+        </div>
 
         <div class="card-body">
-            <form method="get" action="{{ route('admit_cards.index') }}">
-                <div class="row">
-                    <div class="col-md-4">
-                        <div class="form-group">
-                            <label for="exam_id">Exam <span class="text-danger">*</span></label>
-                            <select id="exam_id" name="exam_id" class="form-control" required>
-                                <option value="">Select Exam</option>
-                                @foreach($exams as $ex)
-                                    <option value="{{ $ex->id }}" {{ (int) $exam_id === $ex->id ? 'selected' : '' }}>
-                                        {{ $ex->name }} (Term {{ $ex->term }}, {{ $ex->year }})
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="form-group">
-                            <label for="class_id">Class <span class="text-danger">*</span></label>
-                            <select id="class_id" name="class_id" class="form-control" required>
-                                <option value="">Select Class</option>
-                                @foreach($my_classes as $mc)
-                                    <option value="{{ $mc->id }}" {{ (int) $class_id === $mc->id ? 'selected' : '' }}>{{ $mc->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="form-group">
-                            <label for="section_id">Section</label>
-                            <select id="section_id" name="section_id" class="form-control">
-                                <option value="">All Sections</option>
-                                @foreach($sections as $sec)
-                                    <option value="{{ $sec->id }}" {{ (int) $section_id === $sec->id ? 'selected' : '' }}>
-                                        {{ $sec->my_class->name ?? '' }} — {{ $sec->name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-                    </div>
-                    <div class="col-md-2">
-                        <div class="form-group">
-                            <label>&nbsp;</label>
-                            <button type="submit" class="btn btn-primary btn-block">Show Students</button>
-                        </div>
-                    </div>
+            {{-- Workstream BW: selector moved onto the shared
+                 pat-filter-form bar (was col-md-* form-groups).
+                 Same GET fields, ids and required flags. --}}
+            <form method="get" action="{{ route('admit_cards.index') }}" class="pat-filter-form">
+                <div class="pat-filter-field">
+                    <label for="exam_id">Exam <span class="text-danger">*</span></label>
+                    <select id="exam_id" name="exam_id" class="form-control" required>
+                        <option value="">Select Exam</option>
+                        @foreach($exams as $ex)
+                            <option value="{{ $ex->id }}" {{ (int) $exam_id === $ex->id ? 'selected' : '' }}>
+                                {{ $ex->name }} (Term {{ $ex->term }}, {{ $ex->year }})
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="pat-filter-field">
+                    <label for="class_id">Class <span class="text-danger">*</span></label>
+                    <select id="class_id" name="class_id" class="form-control" required>
+                        <option value="">Select Class</option>
+                        @foreach($my_classes as $mc)
+                            <option value="{{ $mc->id }}" {{ (int) $class_id === $mc->id ? 'selected' : '' }}>{{ $mc->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="pat-filter-field">
+                    <label for="section_id">Section</label>
+                    <select id="section_id" name="section_id" class="form-control">
+                        <option value="">All Sections</option>
+                        @foreach($sections as $sec)
+                            <option value="{{ $sec->id }}" {{ (int) $section_id === $sec->id ? 'selected' : '' }}>
+                                {{ $sec->my_class->name ?? '' }} — {{ $sec->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="pat-filter-action">
+                    <button type="submit" class="btn btn-primary">Show Students</button>
                 </div>
             </form>
 

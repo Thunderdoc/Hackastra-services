@@ -72,6 +72,7 @@
                     </div>
                     <input name="logo" id="logo" accept="image/*" type="file" class="file-input @error('logo') is-invalid @enderror" data-show-caption="false" data-show-upload="false" data-fouc>
                     @include('partials.errors.field', ['field' => 'logo'])
+                    <small class="form-text text-muted">Accepted Images: jpeg, jpg, png, gif, webp. Max file size 2Mb</small>
                     @if($s['logo'])
                         <small class="form-text text-muted">This logo appears across the sidebar, login page and printed documents.</small>
                     @else
@@ -157,7 +158,7 @@
                     @endif
                     <input name="school_stamp" id="school_stamp" accept="image/*" type="file" class="file-input @error('school_stamp') is-invalid @enderror" data-show-caption="false" data-show-upload="false" data-fouc>
                     @include('partials.errors.field', ['field' => 'school_stamp'])
-                    <small class="form-text text-muted">A transparent PNG of the school seal works best.</small>
+                    <small class="form-text text-muted">A transparent PNG or WebP of the school seal works best. Accepted Images: jpeg, jpg, png, gif, webp. Max file size 2Mb</small>
                 </div>
             </div>
         </div>
