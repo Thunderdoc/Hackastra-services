@@ -45,6 +45,16 @@ class SettingController extends Controller
          $d['s'] = $s->flatMap(function($s){
             return [$s->type => $s->description];
         });
+
+        /* Workstream DH: the Knowledge Base card (AI Assistant +
+           policy documents + index state) renders below the school
+           settings form on this same page. */
+        $d['rag_policies'] = \App\Models\RagDocument::policies()->withCount('chunks')->latest()->get();
+        $d['rag_stats'] = [
+            'documents' => \App\Models\RagDocument::count(),
+            'chunks' => \App\Models\RagChunk::count(),
+        ];
+
         return view('pages.super_admin.settings', $d);
     }
 
@@ -79,6 +89,21 @@ class SettingController extends Controller
             if (array_key_exists($secret_key, $sets) && trim((string) $sets[$secret_key]) === '') {
                 unset($sets[$secret_key]);
             }
+        }
+
+        /* Workstream CX: the AI API key is write-only. The form renders
+           the field empty (with a "key saved" hint), so a blank
+           submission means "keep the stored key" — only a non-empty
+           value replaces it. The key is never sent back to any blade. */
+        if (array_key_exists('ai_api_key', $sets)) {
+            if ($sets['ai_api_key'] === null || trim((string) $sets['ai_api_key']) === '') {
+                unset($sets['ai_api_key']);
+            } else {
+                $sets['ai_api_key'] = trim((string) $sets['ai_api_key']);
+            }
+        }
+        if (isset($sets['ai_enabled'])) {
+            $sets['ai_enabled'] = $sets['ai_enabled'] == 1 ? 1 : 0;
         }
         $keys = array_keys($sets);
         $values = array_values($sets);

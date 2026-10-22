@@ -2,6 +2,74 @@
      (Loop 28 .pat-* grid) — full-width rows instead of the legacy
      label-rail + col-lg-9 squeeze. Every field name, id, option value,
      default and validation hook is unchanged from the legacy form. --}}
+@if(!isset($circular) && \App\Services\AiAssist::enabled())
+    {{-- Workstream CX (Assist 1): AI draft panel — create form only.
+         The draft fills the Title/Message fields below; nothing is
+         saved until the user reviews and submits the form normally. --}}
+    <div class="pat-form-section">
+        <div class="pat-form-section-title">Draft with AI</div>
+        <div class="pat-form-section-sub">Type a few words about the announcement, pick a tone and language, and AI will draft the title and message for you to review and edit.</div>
+        <div class="pat-fields">
+            <div class="pat-field pat-field-wide">
+                <label for="ai_brief">What is this circular about?</label>
+                <input id="ai_brief" type="text" class="form-control" placeholder="Eg. PTM Saturday 10am, bring report cards">
+            </div>
+            <div class="pat-field">
+                <label for="ai_tone">Tone</label>
+                <select id="ai_tone" class="form-control select">
+                    <option value="Formal">Formal</option>
+                    <option value="Friendly">Friendly</option>
+                </select>
+            </div>
+            <div class="pat-field">
+                <label for="ai_language">Language</label>
+                <select id="ai_language" class="form-control select">
+                    <option value="English">English</option>
+                    <option value="Hindi">Hindi</option>
+                    <option value="Tamil">Tamil</option>
+                </select>
+            </div>
+            <div class="pat-field pat-field-wide">
+                <button type="button" id="ai_draft_btn" class="btn btn-info">Draft with AI <i class="icon-magic-wand ml-2"></i></button>
+                <span id="ai_draft_status" class="ml-2 text-muted"></span>
+            </div>
+        </div>
+    </div>
+    <script>
+        (function () {
+            var btn = document.getElementById('ai_draft_btn');
+            if (!btn) return;
+            btn.addEventListener('click', function () {
+                var brief = document.getElementById('ai_brief').value.trim();
+                var status = document.getElementById('ai_draft_status');
+                if (!brief) { status.textContent = 'Type a few words first.'; return; }
+                var meta = document.querySelector('meta[name="csrf-token"]');
+                var body = 'brief=' + encodeURIComponent(brief)
+                    + '&tone=' + encodeURIComponent(document.getElementById('ai_tone').value)
+                    + '&language=' + encodeURIComponent(document.getElementById('ai_language').value);
+                btn.disabled = true;
+                status.textContent = 'Drafting…';
+                fetch('{{ route('ai.circular_draft') }}', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-TOKEN': meta ? meta.getAttribute('content') : '', 'Accept': 'application/json' },
+                    body: body
+                }).then(function (r) {
+                    return r.json().then(function (data) { return { ok: r.ok, data: data }; });
+                }).then(function (res) {
+                    btn.disabled = false;
+                    if (!res.ok) { status.textContent = res.data.message || 'AI is unavailable right now.'; return; }
+                    document.getElementById('title').value = res.data.title;
+                    document.getElementById('body').value = res.data.body;
+                    status.textContent = 'Draft ready — review it below, edit anything, then Save.';
+                }).catch(function () {
+                    btn.disabled = false;
+                    status.textContent = 'AI is unavailable right now. Please try again later.';
+                });
+            });
+        })();
+    </script>
+@endif
 <div class="pat-form-section">
     <div class="pat-form-section-title">Circular Details</div>
     <div class="pat-fields">

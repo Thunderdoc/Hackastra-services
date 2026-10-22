@@ -35,6 +35,10 @@ class SettingUpdate extends FormRequest
             'razorpay_key_secret' => 'sometimes|nullable|string|max:200',
             'razorpay_webhook_secret' => 'sometimes|nullable|string|max:200',
             'school_stamp' => 'sometimes|nullable|image|mimes:jpeg,gif,png,jpg,webp|max:2048',
+            'ai_enabled' => 'sometimes|nullable|in:0,1',
+            'ai_provider' => 'sometimes|nullable|string|in:gemini',
+            'ai_model' => 'sometimes|nullable|string|max:100',
+            'ai_api_key' => 'sometimes|nullable|string|max:255',
 
         ];
     }

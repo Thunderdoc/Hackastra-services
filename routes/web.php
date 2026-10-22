@@ -307,6 +307,20 @@ Route::group(['middleware' => 'auth'], function () {
         Route::get('feedback/{feedback}', 'FeedbackController@show')->name('feedback.show');
         Route::patch('feedback/{feedback}', 'FeedbackController@update')->name('feedback.update');
         Route::post('feedback/{feedback}/duplicate', 'FeedbackController@markDuplicate')->name('feedback.duplicate');
+        /*************** AI Assist (Workstream CX) *****************/
+        /* Draft-only endpoints: they return text for the human to
+           review in the form; saving happens through the normal
+           circular / marks-comment paths. Gates live in the controller
+           (teamSA for circulars, teamSAT for report comments). */
+        Route::post('ai/circular-draft', 'AiAssistController@circularDraft')->name('ai.circular_draft');
+        Route::post('ai/report-comment', 'AiAssistController@reportComment')->name('ai.report_comment');
+        /*************** Ask Hackstra — RAG chat (Workstream DH) *****************/
+        /* Answers come only from the permission-filtered corpus
+           (circulars + Knowledge Base policies); the service enforces
+           the audience filter before ranking and refuses honestly
+           when nothing permitted covers the question. */
+        Route::get('ask', 'AskController@index')->name('ask.index');
+        Route::post('ask', 'AskController@ask')->name('ask.ask');
 
         /*************** Library *****************/
         Route::resource('books', 'BookController')->except(['show']);
@@ -333,6 +347,16 @@ Route::group(['namespace' => 'SuperAdmin','middleware' => 'teamSA', 'prefix' => 
 
     Route::get('/settings', 'SettingController@index')->name('settings');
     Route::put('/settings', 'SettingController@update')->name('settings.update');
+
+    /*************** AI Assistant + Knowledge Base (Workstream DH) *****************/
+    /* The ai_* keys are platform configuration: AiSettingsController
+       restricts writes to the Super Admin (the school Admin sees the
+       card read-only). Knowledge Base policies and index rebuilds are
+       teamSA, like the rest of this settings surface. */
+    Route::put('/settings/ai', 'AiSettingsController@update')->name('settings.ai_update');
+    Route::post('/settings/knowledge', 'RagKnowledgeController@store')->name('settings.knowledge.store');
+    Route::delete('/settings/knowledge/{document}', 'RagKnowledgeController@destroy')->name('settings.knowledge.destroy');
+    Route::post('/settings/knowledge/rebuild', 'RagKnowledgeController@rebuild')->name('settings.knowledge.rebuild');
 
 });
 

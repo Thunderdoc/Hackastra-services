@@ -172,6 +172,46 @@
                     <input name="razorpay_webhook_secret" id="razorpay_webhook_secret" value="" type="password" class="form-control @error('razorpay_webhook_secret') is-invalid @enderror" placeholder="{{ !empty($s['razorpay_webhook_secret']) ? '•••••••••• (saved — leave blank to keep)' : 'Not saved yet' }}" autocomplete="new-password">
                     @include('partials.errors.field', ['field' => 'razorpay_webhook_secret'])
                     <small class="form-text text-muted">The secret you set on the Razorpay webhook. Used to verify every webhook call. Write-only, like the key secret.</small>
+        {{-- ======================= AI Assistant ======================= --}}
+        {{-- Workstream CX: AI Assist v1. The API key is write-only — the
+             field always renders empty; a saved key shows only a status
+             hint, never any part of the key itself. --}}
+        <div class="pat-form-section">
+            <div class="pat-form-section-title">AI Assistant</div>
+            <div class="pat-form-section-sub">Optional AI drafting help for circulars and report-card comments. AI only suggests text — a person always reviews and saves. The product works fully with this off.</div>
+            <div class="pat-fields">
+                <div class="pat-field">
+                    <label for="ai_enabled">AI Assist</label>
+                    <select class="form-control select @error('ai_enabled') is-invalid @enderror" name="ai_enabled" id="ai_enabled">
+                        <option {{ ($s['ai_enabled'] ?? 0) ? 'selected' : '' }} value="1">On</option>
+                        <option {{ ($s['ai_enabled'] ?? 0) ?: 'selected' }} value="0">Off</option>
+                    </select>
+                    @include('partials.errors.field', ['field' => 'ai_enabled'])
+                </div>
+                <div class="pat-field">
+                    <label for="ai_provider">Provider</label>
+                    <select class="form-control select @error('ai_provider') is-invalid @enderror" name="ai_provider" id="ai_provider">
+                        <option value="gemini" {{ ($s['ai_provider'] ?? 'gemini') == 'gemini' ? 'selected' : '' }}>Google Gemini (free tier)</option>
+                    </select>
+                    @include('partials.errors.field', ['field' => 'ai_provider'])
+                </div>
+                <div class="pat-field">
+                    <label for="ai_model">Model</label>
+                    <input name="ai_model" id="ai_model" value="{{ $s['ai_model'] ?? 'gemini-2.5-flash' }}" type="text" class="form-control @error('ai_model') is-invalid @enderror" placeholder="gemini-2.5-flash">
+                    @include('partials.errors.field', ['field' => 'ai_model'])
+                    <small class="form-text text-muted">The Gemini model used for drafting. Change it here when a newer free-tier model arrives — no code change needed.</small>
+                </div>
+                <div class="pat-field">
+                    <label for="ai_api_key">Gemini API Key</label>
+                    <input name="ai_api_key" id="ai_api_key" value="" type="password" autocomplete="new-password" class="form-control @error('ai_api_key') is-invalid @enderror" placeholder="{{ !empty($s['ai_api_key']) ? 'Key saved — paste a new key only to replace it' : 'Paste your free Gemini API key' }}">
+                    @include('partials.errors.field', ['field' => 'ai_api_key'])
+                    <small class="form-text text-muted">
+                        @if(!empty($s['ai_api_key']))
+                            A key is saved. It is never shown here — leave this blank to keep it, or paste a new key to replace it.
+                        @else
+                            No key saved yet. Get a free key from Google AI Studio and paste it here. Until then, AI Assist runs in preview (sample draft) mode.
+                        @endif
+                    </small>
                 </div>
             </div>
         </div>
@@ -212,5 +252,120 @@
     @endif
 
     {{--Settings Edit Ends--}}
+
+    {{-- ======================= AI Assistant (Workstream DH) ======================= --}}
+    {{-- The ai_* keys are platform configuration with their own endpoint:
+         the Super Admin writes them (AiSettingsController), the school
+         Admin sees this card read-only. The API key is write-only — the
+         field always renders empty; a saved key shows only a hint. --}}
+    <div class="card">
+        <div class="card-header">
+            <h5 class="card-title">AI Assistant</h5>
+        </div>
+        <div class="card-body">
+            <p class="text-muted">Ask Hackstra answers school questions from the school's own documents — published circulars and the Knowledge Base below — with sources cited. It never reads student, marks or fee records. The product works fully with this off.</p>
+            @if(!Qs::userIsSuperAdmin())
+                <div class="alert alert-info border-0">AI configuration is managed by the platform (Super Admin). You can manage the Knowledge Base below and rebuild the index.</div>
+            @endif
+            <form method="POST" action="{{ route('settings.ai_update') }}">
+                @csrf
+                @method('PUT')
+                <fieldset {{ Qs::userIsSuperAdmin() ? '' : 'disabled="disabled"' }}>
+                    <div class="row">
+                        <div class="form-group col-md-3">
+                            <label for="ai_enabled">AI Features</label>
+                            <select class="form-control" name="ai_enabled" id="ai_enabled">
+                                <option {{ ($s['ai_enabled'] ?? 0) ? 'selected' : '' }} value="1">On</option>
+                                <option {{ ($s['ai_enabled'] ?? 0) ?: 'selected' }} value="0">Off</option>
+                            </select>
+                        </div>
+                        <div class="form-group col-md-3">
+                            <label for="ai_provider">Provider</label>
+                            <select class="form-control" name="ai_provider" id="ai_provider">
+                                <option value="gemini" {{ ($s['ai_provider'] ?? 'gemini') == 'gemini' ? 'selected' : '' }}>Google Gemini (free tier)</option>
+                            </select>
+                        </div>
+                        <div class="form-group col-md-3">
+                            <label for="ai_model">Answer Model</label>
+                            <input name="ai_model" id="ai_model" value="{{ $s['ai_model'] ?? 'gemini-2.5-flash' }}" type="text" class="form-control" placeholder="gemini-2.5-flash">
+                        </div>
+                        <div class="form-group col-md-3">
+                            <label for="ai_embedding_model">Embedding Model</label>
+                            <input name="ai_embedding_model" id="ai_embedding_model" value="{{ $s['ai_embedding_model'] ?? 'text-embedding-004' }}" type="text" class="form-control" placeholder="text-embedding-004">
+                            <small class="form-text text-muted">Changing this re-embeds the whole index on the next rebuild.</small>
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label for="ai_api_key">Gemini API Key</label>
+                            <input name="ai_api_key" id="ai_api_key" value="" type="password" autocomplete="new-password" class="form-control" placeholder="{{ !empty($s['ai_api_key']) ? 'Key saved — paste a new key only to replace it' : 'Paste your free Gemini API key' }}">
+                            <small class="form-text text-muted">
+                                @if(!empty($s['ai_api_key']))
+                                    A key is saved. It is never shown here — leave this blank to keep it, or paste a new key to replace it.
+                                @else
+                                    No key saved yet. Get a free key from Google AI Studio and paste it here. Until then, AI runs in preview (deterministic sample) mode.
+                                @endif
+                            </small>
+                        </div>
+                    </div>
+                    @if(Qs::userIsSuperAdmin())
+                        <button type="submit" class="btn btn-primary">Save AI Settings</button>
+                    @endif
+                </fieldset>
+            </form>
+        </div>
+    </div>
+
+    {{-- ======================= Knowledge Base (Workstream DH) ======================= --}}
+    <div class="card">
+        <div class="card-header header-elements-inline">
+            <h5 class="card-title">Knowledge Base — what Ask Hackstra can answer from</h5>
+            <div class="header-elements">
+                <form method="POST" action="{{ route('settings.knowledge.rebuild') }}" style="display:inline">
+                    @csrf
+                    <button type="submit" class="btn btn-primary btn-sm"><i class="icon-database-refresh mr-1"></i> Rebuild Knowledge Index</button>
+                </form>
+            </div>
+        </div>
+        <div class="card-body">
+            <p class="text-muted mb-3">The index currently holds <strong>{{ $rag_stats['documents'] ?? 0 }}</strong> documents in <strong>{{ $rag_stats['chunks'] ?? 0 }}</strong> searchable pieces. Published circulars are indexed automatically on rebuild, keeping each circular's audience — a parents-only circular is never shown to anyone else, and staff-only material never reaches parents or students. Rebuilding is safe to repeat: unchanged documents are not re-processed.</p>
+
+            <h6 class="font-weight-semibold">Add a school policy document</h6>
+            <form method="POST" action="{{ route('settings.knowledge.store') }}" class="mb-4">
+                @csrf
+                <div class="form-group">
+                    <label for="kb_title">Title</label>
+                    <input name="title" id="kb_title" type="text" required maxlength="200" class="form-control" placeholder="e.g. Uniform Policy">
+                </div>
+                <div class="form-group">
+                    <label for="kb_body">Policy text</label>
+                    <textarea name="body" id="kb_body" required rows="5" class="form-control" placeholder="Paste the policy text here — Ask Hackstra will answer from exactly this text."></textarea>
+                </div>
+                <div class="form-check mb-2">
+                    <label class="form-check-label">
+                        <input type="checkbox" name="is_public" value="1" class="form-check-input">
+                        Visible to parents and students too (default: staff only)
+                    </label>
+                </div>
+                <button type="submit" class="btn btn-success btn-sm"><i class="icon-plus2 mr-1"></i> Add &amp; Index</button>
+            </form>
+
+            <h6 class="font-weight-semibold">Policy documents</h6>
+            @forelse($rag_policies ?? [] as $doc)
+                <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+                    <div>
+                        <strong>{{ $doc->title }}</strong>
+                        <span class="badge {{ $doc->is_public ? 'badge-success' : 'badge-light' }} ml-1">{{ $doc->is_public ? 'Everyone' : 'Staff only' }}</span>
+                        <div class="text-muted">{{ $doc->chunks_count }} indexed piece(s) · updated {{ $doc->updated_at ? $doc->updated_at->format('d M Y') : '' }}</div>
+                    </div>
+                    <form method="POST" action="{{ route('settings.knowledge.destroy', $doc->id) }}" style="display:inline">
+                        @csrf
+                        @method('delete')
+                        <button type="submit" class="btn btn-light btn-sm text-danger" data-confirm="Delete this policy document? It will stop being answerable immediately." data-confirm-title="Delete Policy" data-confirm-action="Delete" data-confirm-danger>Delete</button>
+                    </form>
+                </div>
+            @empty
+                <p class="text-muted mb-0">No policy documents yet. Add the first one above — admission rules, uniform policy, leave policy — whatever parents and staff ask the office about.</p>
+            @endforelse
+        </div>
+    </div>
 
 @endsection

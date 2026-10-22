@@ -164,6 +164,12 @@
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a href="{{ route('ask.index') }}" class="nav-link {{ (Route::is('ask.*')) ? 'active' : '' }}">
+                        <i class="icon-bubbles4"></i>
+                        <span>Ask Hackstra</span>
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a href="{{ route('my_payslips.index') }}" class="nav-link {{ (Route::is('my_payslips.*')) ? 'active' : '' }}">
                         <i class="icon-coin-dollar"></i>
                         <span>My Payslips</span>
@@ -484,6 +490,9 @@
                 <li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Account</div><i class="icon-menu" title="Account"></i></li>
                 <li class="nav-item">
                     <a href="{{ route('my_account') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['my_account']) ? 'active' : '' }}"><i class="icon-user"></i> <span>My Account</span></a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('ask.index') }}" class="nav-link {{ (Route::is('ask.*')) ? 'active' : '' }}"><i class="icon-bubbles4"></i> <span>Ask Hackstra</span></a>
                 </li>
                 @if(in_array(Auth::user()->user_type, Qs::getStaff(['super_admin'])))
                 <li class="nav-item">
