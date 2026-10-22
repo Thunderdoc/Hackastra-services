@@ -3,9 +3,11 @@
 @section('content')
 
     <div class="card">
+        {{-- Workstream DB: legacy panel-options chrome removed, in line
+             with the redesigned pages; the record identity stays as
+             the card title. --}}
         <div class="card-header header-elements-inline">
             <h6 class="card-title font-weight-bold">{{ $ttr->name.' ('.$my_class->name.')'.' '.$ttr->year }}</h6>
-            {!! Qs::getPanelOptions() !!}
         </div>
 
         <div class="card-body">

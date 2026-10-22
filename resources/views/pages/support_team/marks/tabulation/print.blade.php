@@ -4,77 +4,137 @@
     <link rel="stylesheet" type="text/css" href="{{ asset('assets/css/print_tabulation.css') }}" />
 </head>
 <body>
-<div class="container">
-    <div id="print" xmlns:margin-top="http://www.w3.org/1999/xhtml">
-        {{--    Logo N School Details--}}
-        <table width="100%">
-            <tr>
-                <td>@if(!empty($s['logo']))<img src="{{ $s['logo'] }}" style="max-height : 100px;">@endif</td>
+{{-- Document Design v2 (Workstream DA, applying Workstream CY's
+     system — docs/DOCUMENT_DESIGN_RESEARCH.md): navy #10263b /
+     hairline #b9c6d4 / shaded heads #eef2f7 tokens, a settings
+     logo header (monogram tile when no logo is uploaded), the
+     logo/monogram watermark behind the table, a class/exam
+     context strip, a summary strip aggregated from the printed
+     columns, signature lines and the generated-by footer.
+     Presentation only — every figure below is the same value
+     the legacy document printed. --}}
+@php
+    $tabS = $s;
+    $tabLogo = $tabS['logo'] ?? null;
+    $tabCode = strtoupper((string) Qs::getAppCode());
+    $tabInitials = '';
+    foreach (preg_split('/\s+/', trim((string) Qs::getSetting('system_name'))) as $tabWord) {
+        if ($tabWord !== '') {
+            $tabInitials .= strtoupper(substr($tabWord, 0, 1));
+            if (strlen($tabInitials) >= 2) { break; }
+        }
+    }
+    if ($tabInitials === '') { $tabInitials = 'S'; }
+    // Summary aggregates over the students actually printed.
+    $tabAveSum = 0.0; $tabAveCount = 0; $tabHigh = null; $tabLow = null;
+    foreach ($students as $tabSt) {
+        $tabRec = $exr->where('student_id', $tabSt->user_id)->first();
+        if (!$tabRec) { continue; }
+        if ($tabRec->ave !== null && $tabRec->ave !== '') { $tabAveSum += (float) $tabRec->ave; $tabAveCount++; }
+        if ($tabRec->total !== null && $tabRec->total !== '') {
+            if ($tabHigh === null || (float) $tabRec->total > (float) $tabHigh) { $tabHigh = $tabRec->total; }
+            if ($tabLow === null || (float) $tabRec->total < (float) $tabLow) { $tabLow = $tabRec->total; }
+        }
+    }
+@endphp
+<div class="tab-doc">
 
-                <td style="text-align: center;">
-                    <strong><span style="color: #1b0c80; font-size: 25px;">{{ strtoupper(Qs::getSetting('system_name')) }}</span></strong><br/>
-                    {{-- <strong><span style="color: #1b0c80; font-size: 20px;">MINNA, NIGER STATE</span></strong><br/>--}}
-                    <strong><span
-                                style="color: #000; font-size: 15px;"><i>{{ ucwords($s['address']) }}</i></span></strong><br/>
-                    <strong><span style="color: #000; font-size: 15px;"> TABULATION SHEET FOR {{ strtoupper($my_class->name.' '.$section->name.' - '.$ex->name.' ('.$year.')' ) }}
-                    </span></strong>
+    {{-- Watermark: uploaded logo, else the app-code monogram --}}
+    @if($tabLogo)
+        <img class="tab-watermark" src="{{ $tabLogo }}" alt="">
+    @else
+        <div class="tab-watermark-mono" style="font-size:{{ strlen($tabCode) > 5 ? 104 : 168 }}px;" aria-hidden="true">{{ $tabCode }}</div>
+    @endif
+
+    <div class="tab-body">
+
+        {{-- Header band: logo/monogram tile + school identity --}}
+        <table class="tab-head">
+            <tr>
+                <td style="width:110px; text-align:left;">
+                    @if($tabLogo)
+                        <img class="tab-head-logo" src="{{ $tabLogo }}" alt="">
+                    @else
+                        <span class="tab-logo-tile" aria-hidden="true">{{ $tabInitials }}</span>
+                    @endif
                 </td>
+                <td style="text-align:center;">
+                    <span class="tab-school">{{ Qs::getSetting('system_name') }}</span><br/>
+                    <span class="tab-addr">{{ ucwords($tabS['address'] ?? '') }}</span><br/>
+                    @if(!empty($tabS['phone']) || !empty($tabS['system_email']))
+                        <span class="tab-contact">{{ !empty($tabS['phone']) ? 'Tel: '.$tabS['phone'] : '' }}{{ (!empty($tabS['phone']) && !empty($tabS['system_email'])) ? ' | ' : '' }}{{ !empty($tabS['system_email']) ? 'Email: '.$tabS['system_email'] : '' }}</span>
+                    @endif
+                </td>
+                <td style="width:110px;"></td>
             </tr>
         </table>
-        <br/>
 
-        {{--Background Logo--}}
-        <div style="position: relative;  text-align: center; ">
-            <img src="{{ $s['logo'] }}"
-                 style="max-width: 500px; max-height:600px; margin-top: 60px; position:absolute ; opacity: 0.2; margin-left: auto;margin-right: auto; left: 0; right: 0;" />
+        {{-- Title band --}}
+        <div class="tab-titleband">
+            <div class="tab-title">Tabulation Sheet</div>
+            <div class="tab-subtitle">{{ $my_class->name.' '.$section->name }} &middot; {{ $ex->name }} &middot; {{ $year }}</div>
         </div>
 
-        {{-- Tabulation Begins --}}
-        <table style="width:100%; border-collapse:collapse; border: 1px solid #000; margin: 10px auto;" border="1">
+        {{-- Context strip --}}
+        <table class="tab-context">
+            <tr>
+                <td><span class="tab-ctx-label">Class</span><span class="tab-ctx-value">{{ $my_class->name }}</span></td>
+                <td><span class="tab-ctx-label">Section</span><span class="tab-ctx-value">{{ $section->name }}</span></td>
+                <td><span class="tab-ctx-label">Examination</span><span class="tab-ctx-value">{{ $ex->name }}</span></td>
+                <td><span class="tab-ctx-label">Session</span><span class="tab-ctx-value">{{ $year }}</span></td>
+            </tr>
+        </table>
+
+        {{-- Tabulation table --}}
+        <table class="tab-marks">
             <thead>
             <tr>
-                <th>#</th>
+                <th class="tab-sn">#</th>
                 <th style="text-align: left;">NAMES OF STUDENTS IN CLASS</th>
                 @foreach($subjects as $sub)
                     <th>{{ strtoupper($sub->slug ?: $sub->name) }}</th>
                 @endforeach
-             {{--   @if($ex->term == 3)
-                    <th>1ST TERM TOTAL</th>
-                    <th>2ND TERM TOTAL</th>
-                    <th>3RD TERM TOTAL</th>
-                    <th style="color: darkred">CUM Total</th>
-                    <th style="color: darkblue">CUM Average</th>
-                @endif--}}
-                <th style="color: darkred">Total</th>
-                <th style="color: darkblue">Average</th>
-                <th style="color: darkgreen">Position</th>
+                <th class="tab-total-h">Total</th>
+                <th>Average</th>
+                <th>Position</th>
             </tr>
             </thead>
             <tbody>
             @foreach($students as $s)
                 <tr>
-                    <td>{{ $loop->iteration }}</td>
-                    <td style="text-align: left;">{{ $s->user->name }}</td>
+                    <td class="tab-sn">{{ $loop->iteration }}</td>
+                    <td class="tab-name">{{ $s->user->name }}</td>
                     @foreach($subjects as $sub)
                         <td>{{ $marks->where('student_id', $s->user_id)->where('subject_id', $sub->id)->first()->$tex ?? '-' ?: '-' }}</td>
                     @endforeach
-
-                    {{--@if($ex->term == 3)
-                        --}}{{--1st term Total--}}{{--
-                        <td>{{ Mk::getTermTotal($s->user_id, 1, $year) ?: '-' }}</td>
-                        --}}{{--2nd Term Total--}}{{--
-                        <td>{{ Mk::getTermTotal($s->user_id, 2, $year) ?: '-' }}</td>
-                        --}}{{--3rd Term total--}}{{--
-                        <td>{{ Mk::getTermTotal($s->user_id, 3, $year) ?: '-' }}</td>
-                    @endif--}}
-
-                    <td style="color: darkred; font-weight: bold;">{{ $exr->where('student_id', $s->user_id)->first()->total ?: '-' }}</td>
-                    <td style="color: darkblue; font-weight: bold;">{{ $exr->where('student_id', $s->user_id)->first()->ave ?: '-' }}</td>
-                    <td style="color: darkgreen; font-weight: bold;">{!! Mk::getSuffix($exr->where('student_id', $s->user_id)->first()->pos) ?: '-' !!}</td>
+                    <td class="tab-total">{{ $exr->where('student_id', $s->user_id)->first()->total ?: '-' }}</td>
+                    <td class="tab-ave">{{ $exr->where('student_id', $s->user_id)->first()->ave ?: '-' }}</td>
+                    <td class="tab-pos">{!! Mk::getSuffix($exr->where('student_id', $s->user_id)->first()->pos) ?: '-' !!}</td>
                 </tr>
             @endforeach
             </tbody>
         </table>
+
+        {{-- Summary strip: aggregates of the printed columns --}}
+        <table class="tab-summary">
+            <tr>
+                <td><span class="tab-sum-label">Students</span><span class="tab-sum-value">{{ $students->count() }}</span></td>
+                <td><span class="tab-sum-label">Class Average</span><span class="tab-sum-value">{{ $tabAveCount ? number_format($tabAveSum / $tabAveCount, 2) : '-' }}</span></td>
+                <td><span class="tab-sum-label">Highest Total</span><span class="tab-sum-value">{{ $tabHigh !== null ? $tabHigh : '-' }}</span></td>
+                <td><span class="tab-sum-label">Lowest Total</span><span class="tab-sum-value">{{ $tabLow !== null ? $tabLow : '-' }}</span></td>
+            </tr>
+        </table>
+
+        {{-- Signatures --}}
+        <table class="tab-sign">
+            <tr>
+                <td><div class="tab-sign-line"></div><div class="tab-sign-role">EXAMINATION OFFICER</div></td>
+                <td><div class="tab-sign-line"></div><div class="tab-sign-role">PRINCIPAL</div></td>
+            </tr>
+        </table>
+
+        <div class="tab-genline">Generated by Hackstra</div>
+
     </div>
 </div>
 

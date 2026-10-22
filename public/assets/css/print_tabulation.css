@@ -1,31 +1,98 @@
+/* ============================================================
+   Tabulation sheet print document — Document Design v2
+   (Workstream DA; token family from Workstream CY / Loop 68,
+   docs/DOCUMENT_DESIGN_RESEARCH.md): accent navy #10263b,
+   hairline #b9c6d4, shaded heads #eef2f7, label grey #718096,
+   print-color-adjust exact on every surface. The watermark is
+   ALWAYS on: the school's uploaded logo where one exists,
+   otherwise a large acronym monogram from the settings app
+   code at ~5% opacity, rotated -18 degrees, centred behind
+   the table (position:fixed so it repeats on every page of a
+   long sheet). All identity strings come from Settings.
+   ============================================================ */
+
+@page {
+    size: landscape;
+    margin: 10mm;
+}
+
+html { background: #fff; }
+
+body {
+    margin: 0;
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: #000;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+
+.tab-doc { position: relative; }
+
+/* --- Watermark (behind everything) --- */
+.tab-watermark {
+    position: fixed; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 430px; max-height: 560px; object-fit: contain;
+    opacity: .10; z-index: 0; pointer-events: none;
+}
+.tab-watermark-mono {
+    position: fixed; top: 50%; left: 50%;
+    transform: translate(-50%, -50%) rotate(-18deg);
+    font-weight: 800; letter-spacing: .05em; line-height: 1;
+    color: #10263b; opacity: .055; z-index: 0;
+    pointer-events: none; white-space: nowrap;
+}
+
+.tab-body { position: relative; z-index: 1; }
+
+/* --- Header band: logo/monogram tile + school identity --- */
+.tab-head { width: 100%; border-collapse: collapse; border-bottom: 2.5px solid #10263b; padding-bottom: 6px; }
+.tab-school { color: #10263b; font-size: 25px; font-weight: bold; text-transform: uppercase; letter-spacing: .2px; }
+.tab-addr { color: #000; font-size: 14px; font-style: italic; }
+.tab-contact { color: #000; font-size: 12px; }
+.tab-logo-tile {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 64px; height: 64px; background: #10263b; color: #fff;
+    font-size: 20px; font-weight: 800; letter-spacing: .03em; border-radius: 8px;
+}
+.tab-head-logo { max-height: 100px; }
+
+/* --- Title band --- */
+.tab-titleband { background: #10263b; color: #fff; text-align: center; padding: 6px 8px 7px; margin: 10px 0; }
+.tab-title { color: #fff; font-size: 15px; font-weight: bold; text-transform: uppercase; letter-spacing: .6px; }
+.tab-subtitle { color: #dbe7fb; font-size: 12.5px; font-weight: bold; text-transform: uppercase; letter-spacing: .4px; margin-top: 1px; }
+
+/* --- Context strip: class / section / exam / session --- */
+.tab-context { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 8px; }
+.tab-context td { text-align: left; padding: 4px 6px; border: 1px solid #b9c6d4; font-size: 12.5px; }
+.tab-context .tab-ctx-label { color: #718096; font-size: 10.5px; font-weight: bold; letter-spacing: .08em; text-transform: uppercase; display: block; }
+.tab-context .tab-ctx-value { color: #10263b; font-weight: bold; }
+
+/* --- Marks table --- */
+.tab-marks { width: 100%; border-collapse: collapse; border: 1.5px solid #10263b; margin: 8px auto; }
+.tab-marks th, .tab-marks td { border: 1px solid #7d8fa6; padding: 3px 4px; text-align: center; font-size: 12px; }
+.tab-marks thead th { background: #eef2f7; color: #10263b; text-transform: uppercase; letter-spacing: .03em; }
+.tab-marks th.tab-sn, .tab-marks td.tab-sn { width: 32px; color: #44546a; }
+.tab-marks td.tab-name { text-align: left; padding-left: 6px; }
+.tab-marks thead th.tab-total-h { background: #e2ebf7; }
+.tab-marks td.tab-total { background: #eef2f7; font-weight: bold; color: #10263b; }
+.tab-marks td.tab-ave { font-weight: bold; }
+.tab-marks td.tab-pos { font-weight: bold; color: #10263b; }
+
+/* --- Summary strip (aggregates of the columns above) --- */
+.tab-summary { width: 100%; border-collapse: collapse; margin-top: 4px; border: 1px solid #b9c6d4; background: #f7fafc; }
+.tab-summary td { text-align: left; padding: 5px 6px; font-size: 12.5px; width: 25%; border-right: 1px solid #d7e0ec; }
+.tab-summary td:last-child { border-right: 0; }
+.tab-summary .tab-sum-label { color: #718096; font-size: 10.5px; font-weight: bold; letter-spacing: .08em; text-transform: uppercase; display: block; }
+.tab-summary .tab-sum-value { color: #10263b; font-weight: bold; font-size: 13.5px; }
+
+/* --- Signatures + generated-by footer --- */
+.tab-sign { width: 100%; border-collapse: collapse; margin-top: 26px; }
+.tab-sign td { width: 50%; padding: 0 30px 0 4px; vertical-align: top; }
+.tab-sign-line { border-bottom: 1px solid #000; height: 38px; }
+.tab-sign-role { font-weight: bold; margin-top: 6px; font-size: 12px; letter-spacing: .4px; color: #10263b; }
+.tab-genline { text-align: center; color: #718096; font-size: 9.5px; letter-spacing: .16em; text-transform: uppercase; margin-top: 16px; }
+
 @media print {
-
-    td, th {
-        padding: 2px;
-        text-align: center;
-        font-size: 12px;
-    }
-
-    @page {
-        size: landscape;   /* auto is the initial value */
-        margin: 0;  /* this affects the margin in the printer settings */
-    }
-
-    html {
-        background-color: #FFFFFF;
-        margin: 10px; /* this affects the margin on the html before sending to printer */
-    }
-
-    body {
-        margin: 0 10mm; /* margin you want for the content */
-    }
-}
-
-td {
-    text-align: center;
-}
-
-table.td-left td{
-    text-align: left!important;
-    padding: 5px;
+    .tab-marks th, .tab-marks td { padding: 2px 3px; font-size: 12px; }
 }

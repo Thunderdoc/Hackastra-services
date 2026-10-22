@@ -1,12 +1,20 @@
 @extends('layouts.master')
 @section('page_title', 'View TimeTable')
+{{-- Workstream DB: rebuilt on the common header pattern (Loop 46) —
+     breadcrumb + the Print Timetable action in the page header as the
+     standard print action. The legacy card header with panel options
+     and the floating centred print button are gone; the meta strip
+     and the shared aligned grid (modernised in Loop 71) carry the
+     page. Routes, data and the grid contract are unchanged. --}}
+@section('page_breadcrumb')
+    <a href="{{ route('tt.index') }}">Timetables</a> &middot; {{ $my_class->name }}
+@endsection
+@section('page_actions')
+    <a target="_blank" href="{{ route('ttr.print', $ttr->id) }}" class="btn btn-light btn-sm"><i class="icon-printer mr-1"></i> Print Timetable</a>
+@endsection
 @section('content')
 
     <div class="card">
-        <div class="card-header header-elements-inline">
-            <h6 class="card-title">{{ $ttr->name }}</h6>
-            {!! Qs::getPanelOptions() !!}
-        </div>
         <div class="card-body">
             <div class="ttx-meta">
                 <span class="ttx-meta-item"><small>Timetable</small><strong>{{ $ttr->name }}</strong></span>
@@ -33,11 +41,6 @@
             @endphp
 
             @include('pages.support_team.timetables.partials.grid')
-
-            {{--Print Button--}}
-            <div class="text-center mt-4">
-                <a target="_blank" href="{{ route('ttr.print', $ttr->id) }}" class="btn btn-primary"><i class="icon-printer mr-2"></i> Print Timetable</a>
-            </div>
         </div>
     </div>
 

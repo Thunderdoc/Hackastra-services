@@ -3354,3 +3354,167 @@ html.hk-dark .t9-kpi-purple .t9-kpi-icon,html.hk-dark .t9-kpi-purple .t9-kpi-lab
 }
 a.dashboard-stat-card{color:inherit;text-decoration:none}
 a.dashboard-stat-card:hover{box-shadow:0 6px 16px rgba(23,37,54,.08)}
+/* ============================================================
+   Loop 68 — Document design v2 (Workstream CY). One design-token
+   family for the printed/portal documents (research:
+   docs/DOCUMENT_DESIGN_RESEARCH.md): accent navy #10263b,
+   hairline #b9c6d4 / #d7e0ec, shaded heads #eef2f7, label grey
+   #718096. Every document carries a WATERMARK behind its content:
+   the school's uploaded logo where one exists, otherwise a large
+   acronym monogram from the settings app code — premium either
+   way, settings-driven, nothing hardcoded. The report cards carry
+   the same tokens in their partial style blocks (their print
+   pages are standalone and do not load this file); the layout-
+   hosted documents (admit cards, ID card) are governed here.
+   Documents are light by design; dark mode does not touch them.
+   ============================================================ */
+
+/* --- Admit card: watermark + generated-by line + print guard --- */
+.admit-card{position:relative}
+.admit-card>*:not(.admit-watermark):not(.admit-watermark-mono){position:relative;z-index:1}
+.admit-watermark{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:290px;max-height:80%;object-fit:contain;opacity:.08;z-index:0;pointer-events:none}
+.admit-watermark-mono{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-16deg);font-size:118px;font-weight:800;letter-spacing:.04em;line-height:1;color:#10263b;opacity:.05;z-index:0;pointer-events:none;white-space:nowrap}
+.admit-genline{text-align:center;color:#9aa7b5;font-size:.6rem;letter-spacing:.16em;text-transform:uppercase;margin-top:12px}
+@media print{
+  .admit-card{height:auto!important;overflow:visible!important;break-inside:avoid;page-break-inside:avoid}
+}
+
+/* --- ID card v2: premium face, portal and print identical ---
+   Refines Loop 27 (+ the stray later block): gradient navy head
+   band, monogram watermark behind the body, navy validity band. */
+.idc-card{position:relative}
+.idc-head{background:linear-gradient(100deg,#10263b 55%,#1e4468)}
+.idc-watermark{position:absolute;top:58%;left:60%;transform:translate(-50%,-50%) rotate(-14deg);font-size:84px;font-weight:800;letter-spacing:.02em;line-height:1;color:#10263b;opacity:.065;z-index:0;pointer-events:none}
+.idc-body{position:relative;z-index:1}
+.idc-foot{background:#10263b;border-top:0;color:#dbe7fb}
+.idc-foot strong{color:#fff}
+@media print{
+  .idc-watermark{font-size:19mm}
+/* ============================================================
+   Loop 70 — Tabulation sheet redesign (Workstream DA, owner
+   exhibit 2026-10-22: the tabulation screen still wore the
+   legacy look — raw red/blue/green column colours and an
+   oversized red print block — after the rest of the app was
+   redesigned). Screen only, every rule scoped under .qs-tab
+   so no other page can change: the results table gets the
+   app's modern table treatment (quiet shaded header, hairline
+   rows, tabular numerics), TOTAL is emphasised by weight and
+   a token-tinted column instead of red text, AVERAGE returns
+   to the standard text hierarchy, and POSITION becomes rank
+   chips (gold / silver / bronze tints from the app's chip
+   palette, neutral beyond 3rd). Dark values ride html.hk-dark
+   with the Loop 50/58 tokens. The printed tabulation document
+   is a standalone page and carries the Document Design v2
+   tokens in print_tabulation.css — nothing here prints.
+   ============================================================ */
+.qs-tab .qs-tab-context{color:#172536;font-size:1rem;font-weight:700}
+.qs-tab .qs-tab-print{flex:none}
+.qs-tab-table{border-collapse:collapse;margin-bottom:0;width:100%}
+.qs-tab-table thead th{background:#f4f7fb;border-bottom:2px solid #dfe8f2;border-top:0;color:#43556c;font-size:.72rem;font-weight:700;letter-spacing:.05em;padding:.7rem .75rem;text-transform:uppercase;vertical-align:middle}
+.qs-tab-table tbody td{border-top:1px solid #e7edf3;color:#2b3a4d;font-size:.9rem;padding:.62rem .75rem;vertical-align:middle}
+.qs-tab-table tbody tr:hover td{background:#f8fafc}
+.qs-tab-table .qs-tab-sn{color:#718096;text-align:center;width:44px}
+.qs-tab-table .qs-tab-name{color:#172536;font-weight:600}
+.qs-tab-table .qs-tab-mark{font-variant-numeric:tabular-nums;text-align:center}
+.qs-tab-table thead th.qs-tab-total-h{background:#e9f1fb;color:#10263b}
+.qs-tab-table .qs-tab-total{background:rgba(52,120,246,.06);color:#172536;font-size:.95rem;font-variant-numeric:tabular-nums;font-weight:700;text-align:center}
+.qs-tab-table .qs-tab-ave{color:#2b3a4d;font-variant-numeric:tabular-nums;font-weight:600;text-align:center}
+.qs-tab-table .qs-tab-pos{text-align:center}
+.qs-tab-pos-chip{border-radius:999px;display:inline-block;font-size:.78rem;font-weight:700;font-variant-numeric:tabular-nums;line-height:1;padding:4px 11px}
+.qs-tab-pos-chip sup{font-size:.68em}
+.qs-tab-pos-1{background:#fdf0da;color:#97590f}
+.qs-tab-pos-2{background:#eef2f6;color:#5b7186}
+.qs-tab-pos-3{background:#f7e8da;color:#8a5420}
+.qs-tab-pos-n{background:#f4f7fb;color:#718096}
+/* Dark mode (Loop 50 tokens): same table, deepened surfaces. */
+html.hk-dark .qs-tab .qs-tab-context{color:#eef4fb}
+html.hk-dark .qs-tab-table thead th{background:#17334d;border-bottom-color:#23425f;color:#93a9bf}
+html.hk-dark .qs-tab-table tbody td{border-top-color:#1d3a55;color:#c3d4e6}
+html.hk-dark .qs-tab-table tbody tr:hover td{background:#132c46}
+html.hk-dark .qs-tab-table .qs-tab-sn{color:#93a9bf}
+html.hk-dark .qs-tab-table .qs-tab-name{color:#eef4fb}
+html.hk-dark .qs-tab-table thead th.qs-tab-total-h{background:#16345a;color:#dce8f4}
+html.hk-dark .qs-tab-table .qs-tab-total{background:rgba(110,168,255,.1);color:#eef4fb}
+html.hk-dark .qs-tab-table .qs-tab-ave{color:#dce8f4}
+html.hk-dark .qs-tab-pos-1{background:#3a3016;color:#f0dfa8}
+html.hk-dark .qs-tab-pos-2{background:#17334d;color:#cfdfef}
+html.hk-dark .qs-tab-pos-3{background:#3a2a16;color:#eec39a}
+html.hk-dark .qs-tab-pos-n{background:#132c46;color:#93a9bf}
+@media print{
+  .qs-tab .qs-tab-print{display:none!important}
+}
+@media (max-width:575px){
+  /* Phone: the context title takes the full row and the print
+     action drops beneath it instead of squeezing both. */
+  .qs-tab .card-header.header-elements-inline{flex-wrap:wrap}
+  .qs-tab .qs-tab-context{flex:1 1 100%}
+  .qs-tab .qs-tab-print{margin-top:8px}
+/* ============================================================
+   Loop 71 — Premium print v2 for the remaining documents
+   (Workstream DB) + timetable screens. Extends the Loop 68
+   document family (accent navy #10263b, hairline #b9c6d4,
+   shaded heads #eef2f7, label grey #718096) to the documents
+   CY did not cover: the payslip and the layout-hosted print
+   documents (students list, fee collection, fee defaulters),
+   whose print-doc head/foot pattern is Loop 31's. Every
+   printed document now carries the watermark behind its
+   content: the school's uploaded logo where one exists,
+   otherwise a large acronym monogram from the settings app
+   code. The fee receipt and the timetable print are
+   standalone blades and carry the same tokens in their own
+   style blocks. Documents stay light on paper by design.
+   ============================================================ */
+
+/* --- Print-doc head: monogram tile when no logo is uploaded.
+   CY doctrine: the theme's light fallback logo (Qs::getLogo)
+   never belongs on paper; with no uploaded logo the head
+   carries a navy monogram tile built from the school name. */
+.print-doc-mono{display:none}
+.print-doc-watermark,.print-doc-watermark-mono{display:none}
+@media print{
+  .print-doc-mono{display:inline-flex!important;align-items:center;justify-content:center;width:44px;height:44px;flex:0 0 auto;background:#10263b;color:#fff;font-size:16px;font-weight:800;letter-spacing:.03em;border-radius:8px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  /* Watermark: fixed to the page, so multi-page lists carry
+     it on every sheet; content wrappers sit above it and the
+     (white-on-paper) pattern cards let it show through. */
+  .print-doc-watermark,.print-doc-watermark-mono{display:block!important;position:fixed;top:50%;left:50%;z-index:0;pointer-events:none}
+  .print-doc-watermark{transform:translate(-50%,-50%);width:430px;max-height:560px;object-fit:contain;opacity:.10}
+  .print-doc-watermark-mono{transform:translate(-50%,-50%) rotate(-18deg);font-size:170px;font-weight:800;letter-spacing:.05em;line-height:1;color:#10263b;opacity:.055;white-space:nowrap}
+  .pat-list{position:relative;z-index:1}
+  /* Specificity must clear the dark-mode print rescue
+     (html.hk-dark .card{background:#fff!important}) — hence the
+     doubled class; with the card face transparent the watermark
+     shows through the document instead of stopping at its edge. */
+  .pat-list .pat-card.card{background:transparent!important;box-shadow:none!important}
+  .pat-list .pat-card .card-header,.pat-list .pat-card .card-footer{background:transparent!important}
+}
+
+/* --- Payslip v2 (document face, screen + print): watermark
+   behind the slip, monogram/logo tile in the head, generated-
+   by line under the foot. --- */
+.pay-slip{position:relative}
+.pay-watermark{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:340px;max-height:440px;object-fit:contain;opacity:.10;z-index:0;pointer-events:none}
+.pay-watermark-mono{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-18deg);font-size:118px;font-weight:800;letter-spacing:.04em;line-height:1;color:#10263b;opacity:.055;z-index:0;pointer-events:none;white-space:nowrap}
+.pay-slip .card-body{position:relative;z-index:1}
+.pay-slip-mono{display:inline-flex;align-items:center;justify-content:center;width:48px;height:48px;flex:0 0 auto;background:#10263b;color:#fff;font-size:17px;font-weight:800;letter-spacing:.03em;border-radius:8px}
+.pay-slip-logo{max-height:48px;width:auto;flex:0 0 auto}
+.pay-slip-table th{background:#eef2f7;color:#10263b}
+.pay-slip-net{background:#eef2f7;border-color:#b9c6d4}
+.pay-genline{text-align:center;color:#718096;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;margin-top:14px}
+
+/* --- Timetable screens: the shared grid as a modern table —
+   shaded navy period heads, the day column as a true row
+   head, calm cell rhythm. Dark variants ride the Loop 58
+   palette so the grid stays correct under hk-dark. --- */
+.ttx-grid thead th{background:#eef2f7;color:#10263b;font-size:.72rem;letter-spacing:.05em;text-transform:uppercase;border-bottom:2px solid #10263b}
+.ttx-grid thead .ttx-day-col{background:#eef2f7;color:#10263b}
+.ttx-grid tbody td{padding:10px 8px;vertical-align:middle}
+.ttx-grid .ttx-day-col{color:#10263b;background:#f7fafc;border-right:1px solid #d7e0ec}
+.ttx-grid.table-striped tbody tr:nth-of-type(odd) .ttx-day-col{background:#eef2f7}
+html.hk-dark .ttx-grid thead th{background:#17334d;color:#dbe7fb;border-bottom-color:#3478f6}
+html.hk-dark .ttx-grid thead .ttx-day-col{background:#17334d;color:#dbe7fb}
+html.hk-dark .ttx-grid .ttx-day-col{background:#11283f;color:#eef4fb;border-right-color:#1d3a55}
+html.hk-dark .ttx-grid.table-striped tbody tr:nth-of-type(odd) .ttx-day-col{background:#132c46}
+/* The meta strip's values had no dark variant (only its labels
+   did) — near-black on the dark card; the strip now carries the
+   redesigned view page, so its values take the dark ink. */
+html.hk-dark .ttx-meta-item strong{color:#e8eef5}

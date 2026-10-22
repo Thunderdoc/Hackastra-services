@@ -10,24 +10,37 @@
     <style>
         * { box-sizing: border-box; }
         body { font-family: 'DejaVu Sans', Arial, Helvetica, sans-serif; color: #172536; margin: 0; padding: 24px; font-size: 13px; }
-        .receipt { max-width: 760px; margin: 0 auto; border: 1px solid #dce3ec; }
-        .header { background: #10263b; color: #fff; padding: 18px 22px; }
+        .receipt { position: relative; max-width: 760px; margin: 0 auto; border: 1px solid #b9c6d4; overflow: hidden; }
+        /* Document design v2 (Workstream DB): watermark behind the
+           content — the uploaded logo, else a large app-code
+           monogram — plus the monogram/logo tile in the header
+           band and the generated-by line. Same Loop 68 tokens:
+           navy #10263b, hairline #b9c6d4, shaded heads #eef2f7. */
+        .wm { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 340px; max-height: 420px; opacity: .10; z-index: 0; }
+        .wm-mono { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-18deg); font-size: 128px; font-weight: 800; letter-spacing: .04em; line-height: 1; color: #10263b; opacity: .055; z-index: 0; white-space: nowrap; }
+        .receipt > *:not(.wm):not(.wm-mono) { position: relative; z-index: 1; }
+        .header { background: #10263b; color: #fff; padding: 18px 22px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        .header table { width: 100%; border-collapse: collapse; }
+        .header .tile-cell { width: 64px; vertical-align: middle; }
+        .header .tile { display: block; width: 52px; height: 52px; background: #fff; color: #10263b; font-size: 19px; font-weight: 800; text-align: center; line-height: 52px; border-radius: 8px; }
+        .header .logo { max-height: 56px; max-width: 120px; }
         .header .school { font-size: 22px; font-weight: bold; letter-spacing: .02em; }
         .header .meta { color: #c7d6e8; font-size: 11px; margin-top: 4px; line-height: 1.5; }
+        .genline { text-align: center; color: #718096; font-size: 9.5px; letter-spacing: .16em; text-transform: uppercase; margin: 2px 22px 16px; }
         .titlebar { width: 100%; border-collapse: collapse; border-bottom: 2px solid #10263b; }
         .titlebar td { padding: 12px 22px; vertical-align: top; }
         .titlebar .doc-title { font-size: 19px; font-weight: bold; color: #10263b; letter-spacing: .04em; }
         .refbox { text-align: right; font-size: 12px; line-height: 1.7; }
-        .refbox .ref-no { font-size: 16px; font-weight: bold; color: #3478f6; }
+        .refbox .ref-no { font-size: 16px; font-weight: bold; color: #10263b; }
         .section { padding: 14px 22px 4px; }
-        .section h3 { margin: 0 0 8px; font-size: 12px; letter-spacing: .08em; color: #3478f6; text-transform: uppercase; }
+        .section h3 { margin: 0 0 8px; font-size: 12px; letter-spacing: .08em; color: #10263b; text-transform: uppercase; }
         table.info, table.items { width: 100%; border-collapse: collapse; }
         table.info td { padding: 5px 8px; font-size: 13px; vertical-align: top; }
         table.info td.k { color: #718096; width: 110px; font-weight: bold; }
-        table.items th { background: #f4f7fb; border: 1px solid #dce3ec; padding: 8px; font-size: 12px; text-align: left; color: #44546a; }
-        table.items td { border: 1px solid #dce3ec; padding: 8px; font-size: 13px; }
+        table.items th { background: #eef2f7; border: 1px solid #b9c6d4; padding: 8px; font-size: 12px; text-align: left; color: #10263b; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        table.items td { border: 1px solid #b9c6d4; padding: 8px; font-size: 13px; }
         table.items td.num, table.items th.num { text-align: right; }
-        table.items tfoot td { background: #f4f7fb; font-weight: bold; }
+        table.items tfoot td { background: #eef2f7; font-weight: bold; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         .summary { width: 300px; margin-left: auto; border-collapse: collapse; }
         .summary td { padding: 6px 8px; font-size: 13px; border-bottom: 1px solid #edf1f5; }
         .summary td.num { text-align: right; font-weight: bold; }
@@ -46,14 +59,45 @@
 </head>
 <body>
 <div class="receipt">
+    {{-- Watermark (v2): uploaded logo, else the app-code monogram --}}
+    @php $rLogo = $s['logo'] ?? Qs::getSetting('logo'); @endphp
+    @if($rLogo)
+        <img class="wm" src="{{ $rLogo }}" alt="">
+    @else
+        <div class="wm-mono" aria-hidden="true">{{ strtoupper((string) Qs::getAppCode()) }}</div>
+    @endif
+
     {{-- School header (from Settings) --}}
     <div class="header">
-        <div class="school">{{ strtoupper($s['system_name'] ?? Qs::getSetting('system_name')) }}</div>
-        <div class="meta">
-            {{ $s['address'] ?? '' }}<br>
-            @if(!empty($s['phone'])) Tel: {{ $s['phone'] }} @endif
-            @if(!empty($s['system_email'])) &nbsp;|&nbsp; Email: {{ $s['system_email'] }} @endif
-        </div>
+        <table>
+            <tr>
+                <td class="tile-cell">
+                    @if($rLogo)
+                        <img class="logo" src="{{ $rLogo }}" alt="">
+                    @else
+                        @php
+                            $rInitials = '';
+                            foreach (preg_split('/\s+/', trim((string) ($s['system_name'] ?? Qs::getSetting('system_name')))) as $rWord) {
+                                if ($rWord !== '') {
+                                    $rInitials .= strtoupper(substr($rWord, 0, 1));
+                                    if (strlen($rInitials) >= 2) { break; }
+                                }
+                            }
+                            if ($rInitials === '') { $rInitials = 'S'; }
+                        @endphp
+                        <span class="tile" aria-hidden="true">{{ $rInitials }}</span>
+                    @endif
+                </td>
+                <td>
+                    <div class="school">{{ strtoupper($s['system_name'] ?? Qs::getSetting('system_name')) }}</div>
+                    <div class="meta">
+                        {{ $s['address'] ?? '' }}<br>
+                        @if(!empty($s['phone'])) Tel: {{ $s['phone'] }} @endif
+                        @if(!empty($s['system_email'])) &nbsp;|&nbsp; Email: {{ $s['system_email'] }} @endif
+                    </div>
+                </td>
+            </tr>
+        </table>
     </div>
 
     {{-- Title + receipt reference --}}
@@ -166,6 +210,7 @@
             <td class="sign"><span class="line">Authorised Signatory</span></td>
         </tr>
     </table>
+    <div class="genline">Generated by Hackstra</div>
 </div>
 <script>
 window.print();

@@ -45,9 +45,10 @@
     @endif
 
     <div class="card">
+        {{-- Workstream DB: legacy panel-options chrome removed, in line
+             with the redesigned pages. --}}
         <div class="card-header header-elements-inline">
             <h6 class="card-title">Timetables</h6>
-            {!! Qs::getPanelOptions() !!}
         </div>
 
         <div class="card-body">

@@ -1,6 +1,10 @@
 @extends('layouts.master')
 @section('page_title', 'Tabulation Sheet')
+@section('page_breadcrumb')
+    Marks <span class="crumb-sep">&rsaquo;</span> Tabulation Sheet
+@endsection
 @section('content')
+  <div class="qs-tab">
     <div class="card">
         <div class="card-header header-elements-inline">
             {{-- Workstream CO: card title removed — it repeated the
@@ -58,62 +62,52 @@
 
     @if($selected)
         <div class="card">
-            <div class="card-header">
-                <h6 class="card-title font-weight-bold">Tabulation Sheet for {{ $my_class->name.' '.$section->name.' - '.$ex->name.' ('.$year.')' }}</h6>
+            {{-- Workstream DA: results header — the class/exam context
+                 stays (it is data, not a title echo), and the print
+                 action moves up here as the app's standard small
+                 light button (same route, same target as the old
+                 oversized red block, which is retired). --}}
+            <div class="card-header header-elements-inline">
+                <h6 class="qs-tab-context mb-0">Tabulation Sheet for {{ $my_class->name.' '.$section->name.' - '.$ex->name.' ('.$year.')' }}</h6>
+                <div class="header-elements">
+                    <a target="_blank" href="{{ route('marks.print_tabulation', [$exam_id, $my_class_id, $section_id]) }}" class="btn btn-light btn-sm qs-tab-print"><i class="icon-printer mr-1"></i> Print Tabulation Sheet</a>
+                </div>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
-                <table class="table table-striped">
+                <table class="table qs-tab-table">
                     <thead>
                     <tr>
-                        <th class="text-center">#</th>
+                        <th class="qs-tab-sn">#</th>
                         <th>NAMES OF STUDENTS IN CLASS</th>
                        @foreach($subjects as $sub)
-                       <th class="text-center" title="{{ $sub->name }}">{{ strtoupper($sub->slug ?: $sub->name) }}</th>
+                       <th class="qs-tab-mark" title="{{ $sub->name }}">{{ strtoupper($sub->slug ?: $sub->name) }}</th>
                        @endforeach
-                        {{--@if($ex->term == 3)
-                        <th>1ST TERM TOTAL</th>
-                        <th>2ND TERM TOTAL</th>
-                        <th>3RD TERM TOTAL</th>
-                        <th style="color: darkred">CUM Total</th>
-                        <th style="color: darkblue">CUM Average</th>
-                        @endif--}}
-                        <th class="text-center text-danger">Total</th>
-                        <th class="text-center text-primary">Average</th>
-                        <th class="text-center text-success">Position</th>
+                        <th class="qs-tab-total qs-tab-total-h">Total</th>
+                        <th class="qs-tab-ave">Average</th>
+                        <th class="qs-tab-pos">Position</th>
                     </tr>
                     </thead>
                     <tbody>
                     @foreach($students as $s)
+                        @php $tabRec = $exr->where('student_id', $s->user_id)->first(); $tabPos = $tabRec->pos ?? null; @endphp
                         <tr>
-                            <td class="text-center">{{ $loop->iteration }}</td>
-                            <td>{{ $s->user->name }}</td>
+                            <td class="qs-tab-sn">{{ $loop->iteration }}</td>
+                            <td class="qs-tab-name">{{ $s->user->name }}</td>
                             @foreach($subjects as $sub)
-                            <td class="text-center">{{ $marks->where('student_id', $s->user_id)->where('subject_id', $sub->id)->first()->$tex ?? '-' ?: '-' }}</td>
+                            <td class="qs-tab-mark">{{ $marks->where('student_id', $s->user_id)->where('subject_id', $sub->id)->first()->$tex ?? '-' ?: '-' }}</td>
                             @endforeach
 
-                            {{--@if($ex->term == 3)
-                                --}}{{--1st term Total--}}{{--
-                            <td>{{ Mk::getTermTotal($s->user_id, 1, $year) ?? '-' }}</td>
-                            --}}{{--2nd Term Total--}}{{--
-                            <td>{{ Mk::getTermTotal($s->user_id, 2, $year) ?? '-' }}</td>
-                            --}}{{--3rd Term total--}}{{--
-                            <td>{{ Mk::getTermTotal($s->user_id, 3, $year) ?? '-' }}</td>
-                            @endif--}}
-
-                            <td class="text-center font-weight-bold text-danger">{{ $exr->where('student_id', $s->user_id)->first()->total ?: '-' }}</td>
-                            <td class="text-center font-weight-bold text-primary">{{ $exr->where('student_id', $s->user_id)->first()->ave ?: '-' }}</td>
-                            <td class="text-center font-weight-bold text-success">{!! Mk::getSuffix($exr->where('student_id', $s->user_id)->first()->pos) ?: '-' !!}</td>
+                            <td class="qs-tab-total">{{ $tabRec->total ?: '-' }}</td>
+                            <td class="qs-tab-ave">{{ $tabRec->ave ?: '-' }}</td>
+                            <td class="qs-tab-pos">@if($tabPos)<span class="qs-tab-pos-chip qs-tab-pos-{{ $tabPos <= 3 ? $tabPos : 'n' }}">{!! Mk::getSuffix($tabPos) !!}</span>@else - @endif</td>
                         </tr>
                     @endforeach
                     </tbody>
                 </table>
                 </div>
-                {{--Print Button--}}
-                <div class="text-center mt-4">
-                    <a target="_blank" href="{{  route('marks.print_tabulation', [$exam_id, $my_class_id, $section_id]) }}" class="btn btn-danger btn-lg"><i class="icon-printer mr-2"></i> Print Tabulation Sheet</a>
-                </div>
             </div>
         </div>
     @endif
+  </div>
 @endsection

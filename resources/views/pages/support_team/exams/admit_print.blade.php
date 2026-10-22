@@ -4,7 +4,7 @@
 
     <style>
         .admit-toolbar { margin-bottom: 16px; }
-        .admit-card { background: #fff; border: 2px solid #10263b; border-radius: 10px; padding: 18px 22px; margin-bottom: 22px; color: #172536; }
+        .admit-card { position: relative; background: #fff; border: 2px solid #10263b; border-radius: 10px; padding: 18px 22px; margin-bottom: 22px; color: #172536; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         .admit-head { width: 100%; border-collapse: collapse; }
         .admit-head-main h3 { margin: 0 0 2px; font-size: 1.35rem; font-weight: 700; letter-spacing: .01em; text-transform: uppercase; }
         .admit-head-main p { margin: 0; font-size: .78rem; color: #44546a; }
@@ -32,9 +32,13 @@
         .admit-seal { display: inline-flex; align-items: center; justify-content: center; width: 104px; height: 64px; border: 1.5px dashed #9aa7b5; border-radius: 6px; color: #9aa7b5; font-size: .64rem; font-weight: 700; letter-spacing: .12em; }
         @media print {
             @page { size: A4; margin: 10mm; }
-            .admit-card { height: 128mm; overflow: hidden; margin-bottom: 7mm; border-radius: 0; }
-            .admit-sheet .admit-card:nth-of-type(2n) { page-break-after: always; }
-            .admit-card:last-child { page-break-after: auto; }
+            /* Document design v2 (Workstream CY): cards size to their
+               content and are NEVER clipped — the old fixed 128mm
+               height + overflow:hidden sliced the instructions and
+               signature row off taller cards. break-inside keeps each
+               card whole; two cards share a page when they fit. */
+            .admit-card { height: auto; overflow: visible; margin-bottom: 7mm; border-radius: 0; break-inside: avoid; page-break-inside: avoid; }
+            .admit-card:last-child { margin-bottom: 0; }
         }
     </style>
 

@@ -31,6 +31,10 @@
     if ($idcMonogram === '') { $idcMonogram = 'S'; }
 @endphp
 <div class="idc-card">
+    {{-- Watermark (Document design v2): the school monogram, faint,
+         behind the card body — the background-artwork touch real PVC
+         cards carry. Styles in qs.css Loop 68. --}}
+    <span class="idc-watermark" aria-hidden="true">{{ $idcMonogram }}</span>
     <div class="idc-head">
         @if($idcLogo)
             <img src="{{ $idcLogo }}" alt="" class="idc-logo">
