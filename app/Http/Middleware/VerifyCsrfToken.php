@@ -19,6 +19,9 @@ class VerifyCsrfToken extends Middleware
      * @var array
      */
     protected $except = [
-        //
+        // Razorpay webhook (Workstream CU): Razorpay's servers cannot
+        // carry a CSRF token; authenticity comes from the webhook
+        // signature verified in GatewayWebhookController.
+        'webhooks/razorpay',
     ];
 }

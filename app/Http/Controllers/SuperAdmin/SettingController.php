@@ -70,6 +70,16 @@ class SettingController extends Controller
 
         $sets = $req->except('_token', '_method', 'logo', 'school_stamp', 'school_stamp_remove');
         $sets['lock_exam'] = $sets['lock_exam'] == 1 ? 1 : 0;
+        /* Workstream CU: gateway secrets are write-only in the form
+           (the stored value is never rendered back), so a blank field
+           means "keep what is saved", never "wipe it". Same for the
+           key id — an accidental empty submit must not break a live
+           gateway configuration. */
+        foreach (['razorpay_key_secret', 'razorpay_webhook_secret', 'razorpay_key_id'] as $secret_key) {
+            if (array_key_exists($secret_key, $sets) && trim((string) $sets[$secret_key]) === '') {
+                unset($sets[$secret_key]);
+            }
+        }
         $keys = array_keys($sets);
         $values = array_values($sets);
         for($i=0; $i<count($sets); $i++){

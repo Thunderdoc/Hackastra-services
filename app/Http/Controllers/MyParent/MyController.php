@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Setting;
 use App\Repositories\PaymentRepo;
 use App\Repositories\StudentRepo;
+use App\Support\RazorpayGateway;
 use Illuminate\Support\Facades\Auth;
 
 class MyController extends Controller
@@ -41,6 +42,7 @@ class MyController extends Controller
             ->with(['my_class', 'section'])->get();
 
         $d['year'] = $year;
+        $d['gateway_enabled'] = RazorpayGateway::enabled();
         $d['children'] = $children->map(function ($sr) use ($year) {
             $records = $this->pay->getAllMyPR($sr->user_id, $year)->get();
             $records->load('receipt');
@@ -90,6 +92,7 @@ class MyController extends Controller
 
         $d['sr'] = $sr;
         $d['year'] = $year;
+        $d['gateway_enabled'] = RazorpayGateway::enabled();
         $d['uncleared'] = $records->where('paid', 0)->map($present)->values();
         $d['cleared'] = $records->where('paid', 1)->map($present)->values();
         $d['total_due'] = $records->where('paid', 0)->sum(function ($r) {

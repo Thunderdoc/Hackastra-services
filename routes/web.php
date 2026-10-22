@@ -118,6 +118,9 @@ Route::group(['middleware' => 'auth'], function () {
             Route::delete('reset_record/{id}', 'PaymentController@reset_record')->name('payments.reset_record');
             Route::post('pay_now/{id}', 'PaymentController@pay_now')->name('payments.pay_now');
 
+            /* Online payments (Workstream CU) — staff transaction log */
+            Route::get('gateway-transactions', 'PaymentController@gateway_transactions')->name('payments.gateway_transactions');
+
             /* Fee reports (Loop 9, Workstream O) */
             Route::get('reports/defaulters', 'FeeReportController@defaulters')->name('payments.defaulters');
             Route::get('reports/defaulters/export', 'FeeReportController@defaultersExport')->name('payments.defaulters.export');
@@ -329,7 +332,15 @@ Route::group(['namespace' => 'MyParent','middleware' => 'my_parent',], function(
        purpose: {id} is bound through Qs::decodeHash app-wide, while these
        carry raw ids and are protected by ownership checks + policies. */
     Route::get('/my_fees/receipt/{pr_id}', 'MyController@feesReceipt')->name('my_fees.receipt');
+    /* Online payment (Workstream CU) — order + verified callback */
+    Route::post('/my_fees/pay/{pr_id}', 'OnlinePaymentController@checkout')->name('my_fees.pay');
+    Route::post('/my_fees/pay_callback', 'OnlinePaymentController@callback')->name('my_fees.pay_callback');
     Route::get('/my_fees', 'MyController@fees')->name('my_fees');
     Route::get('/my_fees/{student_id}', 'MyController@feesShow')->name('my_fees.show');
 
 });
+
+/************************ PAYMENT GATEWAY WEBHOOK (Workstream CU) ****************************/
+/* Public endpoint called by Razorpay's servers. CSRF-exempt (see
+   VerifyCsrfToken) — the webhook signature is the credential. */
+Route::post('/webhooks/razorpay', 'GatewayWebhookController@razorpay')->name('webhooks.razorpay');

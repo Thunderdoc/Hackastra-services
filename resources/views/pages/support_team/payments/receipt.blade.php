@@ -170,6 +170,14 @@
                     <td class="num">{{ \App\Helpers\Money::inr($r->amt_paid) }}</td>
                     <td class="num">{{ \App\Helpers\Money::inr($r->balance) }}</td>
                 </tr>
+                @if(($r->method ?? null) === 'online_razorpay')
+                    {{-- Workstream CU: gateway installments name their
+                         channel + transaction id on the printed receipt. --}}
+                    <tr>
+                        <td></td>
+                        <td colspan="3" style="color:#4a5568; font-size:12px;">Method: <strong>Online (Razorpay)</strong> &middot; Payment ID: {{ $r->gateway_ref }}</td>
+                    </tr>
+                @endif
             @empty
                 <tr><td colspan="4" style="text-align:center; color:#718096;">No payment has been recorded against this fee yet.</td></tr>
             @endforelse

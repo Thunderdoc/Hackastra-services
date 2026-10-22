@@ -27,7 +27,12 @@
                                 @if($sr->adm_no) &middot; Adm No: {{ $sr->adm_no }} @endif
                             </small>
                         </h6>
-                        <a href="{{ route('my_fees.show', $sr->user_id) }}" class="btn btn-light btn-sm"><i class="icon-eye mr-1"></i> View Details</a>
+                        <span>
+                            @if(!empty($gateway_enabled) && $child['due'] > 0)
+                                <a href="{{ route('my_fees.show', $sr->user_id) }}" class="btn btn-primary btn-sm"><i class="icon-credit-card mr-1"></i> Pay Online</a>
+                            @endif
+                            <a href="{{ route('my_fees.show', $sr->user_id) }}" class="btn btn-light btn-sm"><i class="icon-eye mr-1"></i> View Details</a>
+                        </span>
                     </div>
 
                     @if($child['rows']->isEmpty())

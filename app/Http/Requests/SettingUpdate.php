@@ -27,6 +27,13 @@ class SettingUpdate extends FormRequest
             'lock_exam' => 'required',
             'logo' => 'sometimes|nullable|image|mimes:jpeg,gif,png,jpg,webp|max:2048',
             'principal_name' => 'sometimes|nullable|string|max:120',
+            /* Online fee payments (Workstream CU) — secrets are
+               sometimes|nullable so leaving the field blank keeps the
+               stored value (SettingController drops blanks). */
+            'gateway_enabled' => 'sometimes|nullable|in:0,1',
+            'razorpay_key_id' => 'sometimes|nullable|string|max:100',
+            'razorpay_key_secret' => 'sometimes|nullable|string|max:200',
+            'razorpay_webhook_secret' => 'sometimes|nullable|string|max:200',
             'school_stamp' => 'sometimes|nullable|image|mimes:jpeg,gif,png,jpg,webp|max:2048',
 
         ];

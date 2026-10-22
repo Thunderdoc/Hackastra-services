@@ -11,6 +11,7 @@ use App\Http\Requests\Payment\PaymentCreate;
 use App\Http\Requests\Payment\PaymentUpdate;
 use App\Http\Requests\Payment\PayNowRequest;
 use App\Http\Requests\Payment\SelectClassRequest;
+use App\Models\GatewayTransaction;
 use App\Models\PaymentRecord;
 use App\Models\Setting;
 use App\Models\StudentRecord;
@@ -419,6 +420,19 @@ class PaymentController extends Controller
         if ($payment) { $payment->delete(); Audit::log('payment.deleted', $payment, 'Payment definition deleted'); }
 
         return Qs::deleteOk('payments.index');
+    }
+
+    /**
+     * Workstream CU — online (Razorpay) transactions for staff: every
+     * gateway attempt, captured or not, with a link to the receipt a
+     * captured payment generated. Read-only; recording happens only
+     * through the verified callback/webhook path.
+     */
+    public function gateway_transactions()
+    {
+        $d['txns'] = GatewayTransaction::with('student')->latest()->get();
+
+        return view('pages.support_team.payments.gateway_transactions', $d);
     }
 
     public function reset_record($id)

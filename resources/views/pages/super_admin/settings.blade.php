@@ -141,6 +141,41 @@
             </div>
         </div>
 
+        {{-- ======================= Online Fee Payments (Workstream CU) ======================= --}}
+        <div class="pat-form-section">
+            <div class="pat-form-section-title">Online Fee Payments (Razorpay)</div>
+            <div class="pat-form-section-sub">Let parents pay fees online from their fees page. Money lands in the school's Razorpay account; the payment, receipt and balances are recorded here automatically. Keys come from your Razorpay dashboard (Settings → API Keys) and the webhook secret from your Razorpay webhook settings. Point the Razorpay webhook to <code>{{ url('/webhooks/razorpay') }}</code> for the <code>payment.captured</code> and <code>payment.failed</code> events.</div>
+            <div class="pat-fields">
+                <div class="pat-field">
+                    <label for="gateway_enabled">Online Payments</label>
+                    <select class="form-control select @error('gateway_enabled') is-invalid @enderror" name="gateway_enabled" id="gateway_enabled">
+                        <option {{ ($s['gateway_enabled'] ?? '0') == '1' ? 'selected' : '' }} value="1">Enabled</option>
+                        <option {{ ($s['gateway_enabled'] ?? '0') == '1' ? '' : 'selected' }} value="0">Disabled</option>
+                    </select>
+                    @include('partials.errors.field', ['field' => 'gateway_enabled'])
+                    <small class="form-text text-muted">When disabled (or no keys are saved), parents see no Pay Online option anywhere.</small>
+                </div>
+                <div class="pat-field">
+                    <label for="razorpay_key_id">Razorpay Key ID</label>
+                    <input name="razorpay_key_id" id="razorpay_key_id" value="{{ $s['razorpay_key_id'] ?? '' }}" type="text" class="form-control @error('razorpay_key_id') is-invalid @enderror" placeholder="rzp_live_… or rzp_test_…" autocomplete="off">
+                    @include('partials.errors.field', ['field' => 'razorpay_key_id'])
+                    <small class="form-text text-muted">Test keys (rzp_test_…) run in simulation mode — no real money moves. Leave blank to keep the saved value.</small>
+                </div>
+                <div class="pat-field">
+                    <label for="razorpay_key_secret">Razorpay Key Secret</label>
+                    <input name="razorpay_key_secret" id="razorpay_key_secret" value="" type="password" class="form-control @error('razorpay_key_secret') is-invalid @enderror" placeholder="{{ !empty($s['razorpay_key_secret']) ? '•••••••••• (saved — leave blank to keep)' : 'Not saved yet' }}" autocomplete="new-password">
+                    @include('partials.errors.field', ['field' => 'razorpay_key_secret'])
+                    <small class="form-text text-muted">Write-only: the saved secret is never shown. Type a new one only to replace it.</small>
+                </div>
+                <div class="pat-field">
+                    <label for="razorpay_webhook_secret">Webhook Secret</label>
+                    <input name="razorpay_webhook_secret" id="razorpay_webhook_secret" value="" type="password" class="form-control @error('razorpay_webhook_secret') is-invalid @enderror" placeholder="{{ !empty($s['razorpay_webhook_secret']) ? '•••••••••• (saved — leave blank to keep)' : 'Not saved yet' }}" autocomplete="new-password">
+                    @include('partials.errors.field', ['field' => 'razorpay_webhook_secret'])
+                    <small class="form-text text-muted">The secret you set on the Razorpay webhook. Used to verify every webhook call. Write-only, like the key secret.</small>
+                </div>
+            </div>
+        </div>
+
         {{-- ======================= Report Card ======================= --}}
         <div class="pat-form-section">
             <div class="pat-form-section-title">Report Card</div>

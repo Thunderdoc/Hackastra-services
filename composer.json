@@ -17,6 +17,7 @@
         "laravel/framework": "^11.0",
         "laravel/tinker": "^2.9",
         "laravel/ui": "^4.0",
+        "razorpay/razorpay": "^2.9",
         "symfony/css-selector": "^7.0"
     },
     "require-dev": {

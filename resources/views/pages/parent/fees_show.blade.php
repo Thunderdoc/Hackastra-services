@@ -37,6 +37,7 @@
                         <th class="text-right">Balance</th>
                         <th>Status</th>
                         <th>Receipt</th>
+                        @if(!empty($gateway_enabled))<th>Pay</th>@endif
                     </tr>
                     </thead>
                     <tbody>
@@ -55,6 +56,14 @@
                                     <span class="text-muted">—</span>
                                 @endif
                             </td>
+                            @if(!empty($gateway_enabled))
+                                <td>
+                                    <form method="POST" action="{{ route('my_fees.pay', $row['record']->id) }}" class="d-inline">
+                                        @csrf
+                                        <button type="submit" class="btn btn-primary btn-sm"><i class="icon-credit-card mr-1"></i> Pay Online {{ \App\Helpers\Money::inr($row['balance']) }}</button>
+                                    </form>
+                                </td>
+                            @endif
                         </tr>
                     @endforeach
                     </tbody>
@@ -65,6 +74,7 @@
                         <th class="text-right">{{ \App\Helpers\Money::inr($uncleared->sum('paid')) }}</th>
                         <th class="text-right">{{ \App\Helpers\Money::inr($uncleared->sum('balance')) }}</th>
                         <th colspan="2"></th>
+                        @if(!empty($gateway_enabled))<th></th>@endif
                     </tr>
                     </tfoot>
                 </table>
