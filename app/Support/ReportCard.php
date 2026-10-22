@@ -124,6 +124,7 @@ class ReportCard
             'class_teacher' => $teacher,
             'principal_name' => Qs::getSetting('principal_name'),
             'stamp' => Qs::getSetting('school_stamp'),
+            'principal_signature' => Qs::getSetting('principal_signature'),
         ];
     }
 
@@ -295,6 +296,7 @@ class ReportCard
             'class_teacher' => $teacher,
             'principal_name' => Qs::getSetting('principal_name'),
             'stamp' => Qs::getSetting('school_stamp'),
+            'principal_signature' => Qs::getSetting('principal_signature'),
         ];
     }
 

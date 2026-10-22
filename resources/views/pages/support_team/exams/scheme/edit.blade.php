@@ -50,6 +50,7 @@
             @endif
 
             @foreach($subjects as $sub)
+              <section class="l76-scheme-block">
                 <h6 class="font-weight-bold mt-3">
                     {{ $sub->name }}
                     @if($sub->scheme_configured)
@@ -68,9 +69,9 @@
                 @else
                     <form method="post" action="{{ route('exams.scheme.update', [$ex->id, $my_class->id, $sub->id]) }}" class="scheme-form">
                         @csrf
-                        <div class="form-group row">
-                            <label class="col-lg-2 col-form-label font-weight-semibold">Start from a preset</label>
-                            <div class="col-lg-5">
+                        <div class="l76-scheme-preset">
+                            <div>
+                                <label>Start from a preset</label>
                                 <select class="form-control scheme-preset">
                                     <option value="">— Choose a preset to fill the rows —</option>
                                     @foreach($presets as $key => $preset)
@@ -79,16 +80,16 @@
                                     <option value="custom">Custom (start blank)</option>
                                 </select>
                             </div>
-                            <div class="col-lg-5">
+                            <div class="l76-scheme-sumline">
                                 <span class="scheme-sum badge {{ $sub->scheme_configured ? 'badge-success' : 'badge-secondary' }}">
                                     {{ $sub->scheme_configured ? 'Total: 100 / 100' : 'Legacy scheme in use' }}
                                 </span>
-                                <span class="text-muted ml-2">Component max marks must add up to <strong>exactly 100</strong>.</span>
+                                <span class="text-muted">Component max marks must add up to <strong>exactly 100</strong>.</span>
                             </div>
                         </div>
 
                         <div class="table-responsive">
-                            <table class="table table-sm scheme-table">
+                            <table class="table table-sm scheme-table l76-scheme-table">
                                 <thead>
                                 <tr>
                                     <th style="width:40%">Component Name</th>
@@ -119,7 +120,7 @@
                             </table>
                         </div>
 
-                        <div class="mt-2">
+                        <div class="l76-scheme-actions">
                             <button type="button" class="btn btn-light btn-sm comp-add"><i class="icon-plus2"></i> Add Component</button>
                             <button type="submit" class="btn btn-primary btn-sm ml-2">Save Scheme <i class="icon-paperplane ml-1"></i></button>
                             <button type="submit" name="apply_all" value="1" class="btn btn-info btn-sm ml-2">Save + Apply to All Subjects in {{ $my_class->name }}</button>
@@ -129,7 +130,7 @@
                         </div>
                     </form>
                 @endif
-                <hr>
+              </section>
             @endforeach
 
             <a href="{{ route('exams.scheme', $ex->id) }}" class="btn btn-light"><i class="icon-arrow-left5 mr-1"></i> Back to Classes</a>

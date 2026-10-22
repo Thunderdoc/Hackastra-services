@@ -6,7 +6,7 @@
             <span class="text-muted">{{ $months[$month] }} {{ $year }}</span>
             {!! Qs::getPanelOptions() !!}
             <div class="header-elements">
-                @if(Qs::userIsTeamAccountWrite())
+                @if(Qs::userIsTeamSAWrite())
                 <form method="POST" action="{{ route('payroll.generate') }}" class="pay-generate-form">
                     @csrf
                     <input type="hidden" name="year" value="{{ $year }}">
@@ -113,13 +113,13 @@
                                 </td>
                                 <td class="text-right pay-actions">
                                     <a href="{{ route('payroll.payslip', $rec->id) }}" class="btn btn-light btn-sm"><i class="icon-file-text2 mr-1"></i> Payslip</a>
-                                    @if(!$rec->isPaid() && Qs::userIsTeamAccountWrite())
+                                    @if(!$rec->isPaid() && Qs::userIsTeamSAWrite())
                                         <form method="POST" action="{{ route('payroll.pay', $rec->id) }}" class="d-inline" data-confirm="Mark salary as paid for {{ $member->name }}?" data-confirm-title="Mark Salary as Paid" data-confirm-action="Mark Paid">
                                             @csrf
                                             <button type="submit" class="btn btn-success btn-sm"><i class="icon-checkmark3 mr-1"></i> Mark Paid</button>
                                         </form>
                                     @endif
-                                    @if(Qs::userIsTeamAccountWrite())
+                                    @if(Qs::userIsTeamSAWrite())
                                     <button type="button" class="btn btn-primary btn-sm" data-toggle="collapse" data-target="#pay-form-{{ $member->id }}">
                                         <i class="icon-pencil7 mr-1"></i> Edit
                                     </button>
@@ -130,11 +130,11 @@
                                 <td><span class="badge pay-badge-none">Not generated</span></td>
                                 <td class="text-right pay-actions">
                                     {{-- Workstream DD: the generate/edit form below is
-                                         teamAccountWrite-gated, but this toggle button
+                                         teamSAWrite-gated, but this toggle button
                                          was not — the view-only Super Admin got a live
                                          "Generate" button opening an empty panel.
                                          Same gate as the Edit button above. --}}
-                                    @if(Qs::userIsTeamAccountWrite())
+                                    @if(Qs::userIsTeamSAWrite())
                                     <button type="button" class="btn btn-primary btn-sm" data-toggle="collapse" data-target="#pay-form-{{ $member->id }}">
                                         <i class="icon-plus3 mr-1"></i> Generate
                                     </button>
@@ -145,7 +145,7 @@
                         <tr class="pay-edit-row">
                             <td colspan="9" class="p-0">
                                 <div class="collapse" id="pay-form-{{ $member->id }}">
-                                    @if(Qs::userIsTeamAccountWrite())
+                                    @if(Qs::userIsTeamSAWrite())
                                     <form method="POST" action="{{ $rec ? route('payroll.update', $rec->id) : route('payroll.store') }}" class="pay-form">
                                         @csrf
                                         @if($rec) @method('PUT') @endif

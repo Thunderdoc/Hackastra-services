@@ -2,31 +2,30 @@
 @section('page_title', 'Attendance Report')
 @section('content')
 
-    {{-- Workstream CD: rebuilt on the shared list_page pattern (Loop 28),
-         the same chrome as Students / Payments. Print / Export are the
-         toolbar actions (same window.print() + export route), Class /
-         Month are the pattern filter row (same GET params, same
-         auto-submit), and the totals line rides at the top of the card
-         so it still prints with the table, exactly as before. Rows,
-         % bars and the counting footnote are unchanged. --}}
-
-    {{-- Workstream CL: print-only document header/footer — the shared
-         print-doc-head/foot pattern (students list, Loop 31; Loop 63),
-         hidden on screen, shown by window.print() so the attendance
-         report prints as a professional school document that names
-         its class and month on paper. --}}
-    <div class="print-doc-head">
-        <img src="{{ Qs::getLogo() }}" alt="">
-        <div>
-            <h1>{{ Qs::getSystemName() }}</h1>
-            <p>Monthly Attendance Report &mdash; {{ optional($selected_class)->name }} &middot; {{ $month->format('F Y') }}</p>
-        </div>
-    </div>
+    {{-- Monthly Attendance Report — screen. Workstream CD rebuilt it
+         on the shared list_page pattern (Loop 28); this redesign
+         (Loop 80) gives it the document's summary chips, status
+         pills and class summary, all from the same
+         AttendanceController::monthlyReportData assembly the print
+         preview and the PDF render — screen, paper and download can
+         never disagree. The old in-page print-doc-head/foot retired:
+         the printed document now lives on its own preview page
+         (attendance.report.print) with a real downloadable PDF
+         beside it (attendance.report.pdf). Filters keep the exact
+         existing contract: class_id + month, GET, auto-submit. --}}
+    @php
+        $marxPalette = ['#e8effc', '#e6f6ec', '#fdf3e0', '#efe9fd', '#fdecec', '#e0f2f1'];
+        $marxParams = ['class_id' => $selected_class ? $selected_class->id : '', 'month' => $month->format('Y-m')];
+    @endphp
 
     @component('partials.patterns.list_page')
         @slot('action')
-            <button type="button" class="btn btn-light btn-sm" onclick="window.print()"><i class="icon-printer mr-1"></i> Print</button>
-            <a href="{{ route('attendance.export', ['class_id' => $selected_class ? $selected_class->id : '', 'month' => $month->format('Y-m')]) }}" class="btn btn-primary btn-sm"><i class="icon-download mr-1"></i> Export</a>
+            @if($selected_class)
+                <a href="{{ route('attendance.report.print', $marxParams) }}" target="_blank" class="btn btn-light btn-sm"><i class="icon-eye mr-1"></i> Preview</a>
+                <a href="{{ route('attendance.report.print', $marxParams + ['autoprint' => 1]) }}" target="_blank" class="btn btn-light btn-sm"><i class="icon-printer mr-1"></i> Print</a>
+                <a href="{{ route('attendance.report.pdf', $marxParams) }}" class="btn btn-light btn-sm"><i class="icon-file-pdf mr-1"></i> PDF</a>
+            @endif
+            <a href="{{ route('attendance.export', $marxParams) }}" class="btn btn-primary btn-sm"><i class="icon-download mr-1"></i> Export</a>
         @endslot
         @slot('filters')
             <form method="GET" action="{{ route('attendance.report') }}" class="pat-filter-form">
@@ -48,7 +47,37 @@
             </form>
         @endslot
 
-        <p class="text-muted">Present: {{ $totals['present'] }} &middot; Absent: {{ $totals['absent'] }} &middot; Late: {{ $totals['late'] }} &middot; Periods marked: {{ $totals['marked'] }} &middot; Registers submitted: {{ $sessions_held }}</p>
+        @if($selected_class)
+            {{-- Summary chips — entries vs registers kept distinct,
+                 exactly as the document labels them. --}}
+            <div class="marx-stats">
+                <div class="marx-stat marx-stat-present">
+                    <div class="marx-stat-num">{{ $totals['present'] }}</div>
+                    <div class="marx-stat-label">Total Present</div>
+                    <div class="marx-stat-cap">{{ number_format($shares['present'], 1) }}% of all marked entries</div>
+                </div>
+                <div class="marx-stat marx-stat-absent">
+                    <div class="marx-stat-num">{{ $totals['absent'] }}</div>
+                    <div class="marx-stat-label">Total Absent</div>
+                    <div class="marx-stat-cap">{{ number_format($shares['absent'], 1) }}% of all marked entries</div>
+                </div>
+                <div class="marx-stat marx-stat-late">
+                    <div class="marx-stat-num">{{ $totals['late'] }}</div>
+                    <div class="marx-stat-label">Total Late</div>
+                    <div class="marx-stat-cap">{{ number_format($shares['late'], 1) }}% of all marked entries</div>
+                </div>
+                <div class="marx-stat marx-stat-periods">
+                    <div class="marx-stat-num">{{ $totals['marked'] }}</div>
+                    <div class="marx-stat-label">Total Periods Marked</div>
+                    <div class="marx-stat-cap">Student-period entries this month</div>
+                </div>
+                <div class="marx-stat marx-stat-registers">
+                    <div class="marx-stat-num">{{ $sessions_held }}</div>
+                    <div class="marx-stat-label">Registers Submitted</div>
+                    <div class="marx-stat-cap">Period registers submitted this month</div>
+                </div>
+            </div>
+        @endif
 
         @if($rows->isEmpty())
             @include('partials.patterns.empty_state', [
@@ -59,45 +88,63 @@
             <table class="table">
                 <thead>
                 <tr>
+                    <th style="width:36px">#</th>
                     <th>Student</th>
                     <th>Section</th>
                     <th>Present</th>
                     <th>Absent</th>
                     <th>Late</th>
                     <th>Periods</th>
-                    <th style="min-width:180px">Attendance %</th>
+                    <th style="min-width:170px">Attendance %</th>
+                    <th>Status</th>
                 </tr>
                 </thead>
                 <tbody>
                 @foreach($rows as $row)
+                    @php
+                        $marxName = optional($row['student']->user)->name;
+                        $marxInitials = '';
+                        foreach (preg_split('/\s+/', trim((string) $marxName)) as $w) {
+                            if ($w !== '') {
+                                $marxInitials .= strtoupper(substr($w, 0, 1));
+                                if (strlen($marxInitials) >= 2) { break; }
+                            }
+                        }
+                    @endphp
                     <tr>
-                        <td>{{ optional($row['student']->user)->name }}</td>
-                        <td>{{ optional($row['student']->section)->name }}</td>
+                        <td>{{ $loop->iteration }}</td>
+                        <td><span class="marx-ava" style="background:{{ $marxPalette[$loop->index % count($marxPalette)] }}" aria-hidden="true">{{ $marxInitials ?: '?' }}</span>{{ $marxName }}</td>
+                        <td>{{ optional($row['student']->section)->name ?: '—' }}</td>
                         <td>{{ $row['present'] }}</td>
-                        <td>{{ $row['absent'] }}</td>
-                        <td>{{ $row['late'] }}</td>
+                        <td>@if($row['absent'] > 0)<span class="marx-num-bad">{{ $row['absent'] }}</span>@else{{ $row['absent'] }}@endif</td>
+                        <td>@if($row['late'] > 0)<span class="marx-num-late">{{ $row['late'] }}</span>@else{{ $row['late'] }}@endif</td>
                         <td>{{ $row['marked'] }}</td>
                         <td>
                             @if($row['percent'] === null)
-                                <span class="text-muted">No records</span>
+                                <span class="text-muted">—</span>
                             @else
-                                <div class="progress" style="height:8px">
-                                    <div class="progress-bar {{ $row['percent'] >= 75 ? 'bg-success' : ($row['percent'] >= 50 ? 'bg-warning' : 'bg-danger') }}" role="progressbar" style="width: {{ $row['percent'] }}%" aria-valuenow="{{ $row['percent'] }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                <div class="marx-bar">
+                                    <div class="marx-bar-fill marx-fill-{{ $row['status_band'] }}" role="progressbar" style="width: {{ $row['percent'] }}%" aria-valuenow="{{ $row['percent'] }}" aria-valuemin="0" aria-valuemax="100"></div>
                                 </div>
                                 <small>{{ $row['percent'] }}%</small>
                             @endif
                         </td>
+                        <td><span class="marx-pill marx-pill-{{ $row['status_band'] }}">{{ $row['status_label'] }}</span></td>
                     </tr>
                 @endforeach
                 </tbody>
             </table>
-            <p class="text-muted mb-0"><small>Counts are period registers: Attendance % = (present + late) / periods marked. Periods with no submitted register are excluded — never counted as absent.</small></p>
+
+            <div class="marx-classline">
+                <span><strong>{{ $class_summary['students'] }}</strong> Total Students</span>
+                <span><strong>{{ $class_summary['with_100'] }}</strong> With 100%</span>
+                <span><strong>{{ $class_summary['below_80'] }}</strong> Below 80%</span>
+                <span><strong>{{ $class_summary['registers'] }}</strong> Registers Submitted</span>
+            </div>
+
+            <p class="text-muted mb-0 mt-2"><small>Counts are period registers: Attendance % = (present + late) / periods marked. Periods with no submitted register are excluded — never counted as absent.<br>
+            Status policy: <strong>Excellent</strong> 90% and above &middot; <strong>Good</strong> 80&ndash;89% &middot; <strong>Needs Attention</strong> 60&ndash;79% &middot; <strong>Critical</strong> below 60%.</small></p>
         @endif
     @endcomponent
-
-    <div class="print-doc-foot">
-        <span>Printed on {{ now()->format('d M Y, g:i A') }} &middot; {{ Qs::getSystemName() }}</span>
-        <span>Attendance Report &mdash; {{ optional($selected_class)->name }}</span>
-    </div>
 
 @endsection

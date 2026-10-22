@@ -5,10 +5,7 @@
          report is read-only — the SA cannot edit the reporter's text.
          The SA records the handling status and a reply, which the
          reporter reads in My Feedback. --}}
-    @if(session('flash_success'))
-        <div class="alert alert-success border-0">{{ session('flash_success') }}</div>
-    @endif
-
+  <div class="l75-fb-detail">
     <div class="card">
         <div class="card-header header-elements-inline">
             <h6 class="card-title">#{{ $item->id }} — {{ $item->title }}</h6>
@@ -20,7 +17,7 @@
                 <span class="text-muted ml-2">{{ $item->typeLabel() }}</span>
             </div>
 
-            <p style="white-space:pre-wrap">{{ $item->description }}</p>
+            <p class="fb-desc">{{ $item->description }}</p>
 
             @if($item->context)
                 <p class="text-muted"><i class="icon-pushpin mr-1"></i> Where: {{ $item->context }}</p>
@@ -79,4 +76,5 @@
             </form>
         </div>
     </div>
+  </div>
 @endsection

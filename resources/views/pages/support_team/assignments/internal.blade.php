@@ -24,13 +24,7 @@
         $selectedExamId = $exam_id ?? request('exam_id');
         $selectedExam = $selectedExamId ? $exams->firstWhere('id', (int) $selectedExamId) : null;
     @endphp
-
-    @if(session('flash_success'))
-        <div class="alert alert-success border-0">{{ session('flash_success') }}</div>
-    @endif
-    @if(session('flash_danger'))
-        <div class="alert alert-danger border-0">{{ session('flash_danger') }}</div>
-    @endif
+    {{-- Loop 82: duplicate inline flash alerts removed — the app-wide banner renders each message exactly once. --}}
 
     <div class="card">
         <div class="card-body">

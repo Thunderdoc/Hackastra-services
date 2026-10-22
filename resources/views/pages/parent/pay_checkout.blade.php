@@ -14,21 +14,28 @@
             <a href="{{ route('my_fees.show', $pr->student_id) }}" class="btn btn-light btn-sm"><i class="icon-arrow-left7 mr-1"></i> Back to Fees</a>
         @endslot
 
-        <div class="text-center py-4">
-            <i class="icon-credit-card text-blue" style="font-size: 3rem;"></i>
-            <h5 class="font-weight-bold mt-2">Pay {{ \App\Helpers\Money::inr($amount) }}</h5>
+        {{-- Loop 75: premium summary panel — same amounts, forms
+             and Razorpay flow; only the presentation changed. --}}
+        <div class="l75-pay-panel">
+            <span class="l75-pay-medal"><i class="icon-credit-card"></i></span>
+            <div class="l75-pay-amount">Pay {{ \App\Helpers\Money::inr($amount) }}</div>
+            <div class="l75-pay-title">{{ $pr->payment->title }}</div>
+            <div class="l75-pay-rows">
+                <div class="l75-pay-row"><span>Invoice Ref</span><strong>{{ $pr->ref_no }}</strong></div>
+                <div class="l75-pay-row"><span>Order</span><strong>{{ $txn->order_id }}</strong></div>
+                <div class="l75-pay-row"><span>Paying to</span><strong>{{ $school }}</strong></div>
+            </div>
             <p class="text-muted">
-                Invoice Ref: {{ $pr->ref_no }} &middot; Order: {{ $txn->order_id }}<br>
                 You will complete this payment securely with Razorpay (UPI, cards, netbanking, wallets).
             </p>
 
             @if($mock)
-                <div class="alert alert-warning d-inline-block text-left">
+                <div class="l75-pay-testmode">
                     <strong>Test mode:</strong> this gateway is running with test keys / mock mode, so the
                     checkout below is simulated locally. No real money moves — but the callback you
                     send back is signed and verified exactly like a real Razorpay payment.
                 </div>
-                <div class="mt-3">
+                <div class="l75-pay-actions">
                     <form method="POST" action="{{ route('my_fees.pay_callback') }}" class="d-inline">
                         @csrf
                         <input type="hidden" name="razorpay_order_id" value="{{ $txn->order_id }}">
@@ -44,6 +51,7 @@
                     </form>
                 </div>
             @else
+                <div class="l75-pay-actions">
                 <button id="rzp-pay-btn" type="button" class="btn btn-primary btn-lg"><i class="icon-lock mr-1"></i> Pay {{ \App\Helpers\Money::inr($amount) }} Securely</button>
                 <form id="rzp-callback-form" method="POST" action="{{ route('my_fees.pay_callback') }}" class="d-none">
                     @csrf
@@ -78,9 +86,10 @@
                         document.getElementById('rzp-pay-btn').addEventListener('click', function () { rzp.open(); });
                     })();
                 </script>
+                </div>
             @endif
 
-            <p class="text-muted mt-3"><small>Nothing is recorded in your fee account until the payment is verified. If a payment fails or is cancelled, no charge is recorded.</small></p>
+            <p class="l75-pay-secure"><i class="icon-lock"></i> Nothing is recorded in your fee account until the payment is verified. If a payment fails or is cancelled, no charge is recorded.</p>
         </div>
     @endcomponent
 @endsection

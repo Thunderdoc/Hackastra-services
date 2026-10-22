@@ -1,6 +1,44 @@
 @extends('layouts.master')
 @section('page_title', 'Admit Student')
+{{-- Owner flag 2026-10-22: admitting students one by one is a pain —
+     the CSV bulk import already exists (Students → Student Information
+     → Import CSV) but this page never hinted at it. Surface it here in
+     the page header; the importer itself is unchanged. --}}
+@section('page_actions')
+    <a href="{{ route('students.import') }}" class="btn btn-success"><i class="icon-upload mr-2"></i>Import Students (CSV)</a>
+@endsection
 @section('content')
+    {{-- Quick Admit (Loop 102 · 2026-10-22): mode switch — Quick Admit
+         (essentials only, students.quick_store) vs the Full Admission
+         Form below (students.store, byte-identical). The default tab is
+         Quick; a validation bounce reopens the tab whose fields failed
+         (quick fields are q_-prefixed, so the two never collide). --}}
+    @php
+        $qaHasQuickErrors = collect($errors->keys())->contains(function ($k) { return strpos($k, 'q_') === 0; });
+        $qaQuickActive = !$errors->any() || $qaHasQuickErrors;
+    @endphp
+
+    @if(session('quick_admitted'))
+        @php $qaDone = session('quick_admitted'); @endphp
+        <div class="qa102-success">
+            <div class="qa102-success-main">
+                <div class="qa102-success-title"><i class="icon-checkmark-circle2 mr-1"></i> {{ $qaDone['name'] }} admitted</div>
+                <div class="qa102-success-sub">Admission Number: <strong>{{ $qaDone['adm_no'] }}</strong> &middot; Default login password: <strong>student</strong> &middot; The profile is still incomplete — finish the remaining details anytime.</div>
+            </div>
+            <a href="{{ route('students.edit', Qs::hash($qaDone['sr_id'])) }}" class="btn btn-primary">Complete Student Details</a>
+        </div>
+    @endif
+
+    <div class="qa102-tabs" role="tablist">
+        <button type="button" class="qa102-tab{{ $qaQuickActive ? ' is-active' : '' }}" data-qa102-tab="quick" role="tab">Quick Admit</button>
+        <button type="button" class="qa102-tab{{ $qaQuickActive ? '' : ' is-active' }}" data-qa102-tab="full" role="tab">Full Admission Form</button>
+    </div>
+
+    <div id="qa102-pane-quick" class="qa102-pane"{{ $qaQuickActive ? '' : ' hidden' }}>
+        @include('pages.support_team.students.partials.quick_admit')
+    </div>
+
+    <div id="qa102-pane-full" class="qa102-pane"{{ $qaQuickActive ? ' hidden' : '' }}>
     {{-- Batch 3: sectioned rebuild on the shared form_page pattern (Loop 28).
          Shell change only: every field keeps its original name, id, classes,
          data attributes, onchange AJAX hooks (getLGA / getClassSections),
@@ -206,4 +244,22 @@
             </div>
         </div>
     @endcomponent
+    </div>
+@endsection
+
+@section('scripts')
+    <script>
+        (function () {
+            var tabs = document.querySelectorAll('[data-qa102-tab]');
+            function activate(which) {
+                tabs.forEach(function (t) { t.classList.toggle('is-active', t.getAttribute('data-qa102-tab') === which); });
+                document.getElementById('qa102-pane-quick').hidden = which !== 'quick';
+                document.getElementById('qa102-pane-full').hidden = which !== 'full';
+                window.dispatchEvent(new Event('resize'));
+            }
+            tabs.forEach(function (t) {
+                t.addEventListener('click', function () { activate(t.getAttribute('data-qa102-tab')); });
+            });
+        })();
+    </script>
 @endsection

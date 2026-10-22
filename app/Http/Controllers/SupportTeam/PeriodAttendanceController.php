@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AttendanceSession;
 use App\Models\AttendanceSessionEntry;
 use App\Models\MyClass;
+use App\Models\Setting;
 use App\Models\StudentRecord;
 use App\Models\Subject;
 use App\Models\TimeTable;
@@ -67,7 +68,112 @@ class PeriodAttendanceController extends Controller
                 : collect();
         }
 
+        $d['periods'] = $this->attachStudentCounts($d['periods']);
+        $d['stats'] = $this->indexStats($d['periods']);
+
         return view('pages.support_team.attendance_periods.index', $d);
+    }
+
+    /**
+     * Presentation aggregates for the index summary cards (Loop 77
+     * redesign). Read-only: total / taken / pending count the very
+     * rows the page lists, and the present percentage reuses the
+     * report's rule — (present + late) over marked entries — across
+     * the submitted sessions in view, from one grouped query.
+     */
+    protected function indexStats($periods): array
+    {
+        $total = $periods->count();
+        $takenRows = $periods->filter(function ($row) {
+            return !empty($row['session']);
+        });
+        $taken = $takenRows->count();
+
+        $stats = [
+            'total' => $total,
+            'taken' => $taken,
+            'pending' => $total - $taken,
+            'taken_pct' => $total > 0 ? (int) round($taken / $total * 100) : 0,
+            'pending_pct' => $total > 0 ? (int) round(($total - $taken) / $total * 100) : 0,
+            'present_pct' => null,
+            'present_count' => 0,
+            'marked_count' => 0,
+            // Teacher-flavour cards (Loop 77 addendum): how many
+            // distinct subjects / classes the listed periods span.
+            'subjects_today' => $periods->map(function ($row) {
+                return optional($row['subject'])->id;
+            })->filter()->unique()->count(),
+            'classes_today' => $periods->map(function ($row) {
+                return optional($row['class'])->id;
+            })->filter()->unique()->count(),
+        ];
+
+        $sessionIds = $takenRows->map(function ($row) {
+            return $row['session']->id;
+        })->all();
+
+        if ($sessionIds) {
+            $counts = AttendanceSessionEntry::whereIn('session_id', $sessionIds)
+                ->selectRaw('status, COUNT(*) as c')
+                ->groupBy('status')
+                ->pluck('c', 'status');
+
+            $present = (int) ($counts[AttendanceSessionEntry::STATUS_PRESENT] ?? 0);
+            $late = (int) ($counts[AttendanceSessionEntry::STATUS_LATE] ?? 0);
+            $absent = (int) ($counts[AttendanceSessionEntry::STATUS_ABSENT] ?? 0);
+            $marked = $present + $late + $absent;
+
+            $stats['marked_count'] = $marked;
+            $stats['present_count'] = $present + $late;
+            if ($marked > 0) {
+                $stats['present_pct'] = (int) round(($present + $late) / $marked * 100);
+            }
+        }
+
+        return $stats;
+    }
+
+    /**
+     * Per-row student figures for the schedule's Students column
+     * (Loop 77): the class roster size for every row, and the marked
+     * count (saved entries) for rows whose register was submitted.
+     * Two grouped queries regardless of row count; read-only.
+     */
+    protected function attachStudentCounts($periods)
+    {
+        $classIds = $periods->map(function ($row) {
+            return optional($row['class'])->id;
+        })->filter()->unique()->all();
+
+        $rosterCounts = $classIds
+            ? StudentRecord::whereIn('my_class_id', $classIds)
+                ->where('grad', 0)
+                ->selectRaw('my_class_id, COUNT(*) as c')
+                ->groupBy('my_class_id')
+                ->pluck('c', 'my_class_id')
+            : collect();
+
+        $sessionIds = $periods->filter(function ($row) {
+            return !empty($row['session']);
+        })->map(function ($row) {
+            return $row['session']->id;
+        })->all();
+
+        $entryCounts = $sessionIds
+            ? AttendanceSessionEntry::whereIn('session_id', $sessionIds)
+                ->selectRaw('session_id, COUNT(*) as c')
+                ->groupBy('session_id')
+                ->pluck('c', 'session_id')
+            : collect();
+
+        return $periods->map(function ($row) use ($rosterCounts, $entryCounts) {
+            $row['students_total'] = (int) ($rosterCounts[optional($row['class'])->id] ?? 0);
+            $row['students_marked'] = $row['session']
+                ? (int) ($entryCounts[$row['session']->id] ?? 0)
+                : null;
+
+            return $row;
+        });
     }
 
     /**
@@ -194,6 +300,72 @@ class PeriodAttendanceController extends Controller
     /** A submitted session, read-only. The lock made visible. */
     public function show(Request $request, $session_id)
     {
+        return view('pages.support_team.attendance_periods.show', $this->registerData($request, $session_id));
+    }
+
+    /**
+     * The register as a printable v2 document (browser print view).
+     * Same data and scoping as show(); the PDF below renders this
+     * exact blade through dompdf, so screen print and PDF agree.
+     */
+    public function printRegister(Request $request, $session_id)
+    {
+        $d = $this->registerData($request, $session_id);
+        $d['s'] = Setting::all()->flatMap(function ($s) {
+            return [$s->type => $s->description];
+        });
+
+        return view('pages.support_team.attendance_periods.print', $d);
+    }
+
+    /** The register document as a PDF download (dompdf). */
+    public function pdfRegister(Request $request, $session_id)
+    {
+        $d = $this->registerData($request, $session_id);
+        $d['s'] = Setting::all()->flatMap(function ($s) {
+            return [$s->type => $s->description];
+        });
+
+        $session = $d['session'];
+        $pdf_name = 'Attendance_Register_'
+            . Str::slug(optional($session->subject)->name ?: 'period') . '_'
+            . $session->date->format('Y-m-d') . '.pdf';
+
+        return \Barryvdh\DomPDF\Facade\Pdf::loadView('pages.support_team.attendance_periods.print', $d)
+            ->download($pdf_name);
+    }
+
+    /** The register's rows as CSV — same pattern as the report export. */
+    public function exportRegister(Request $request, $session_id)
+    {
+        $d = $this->registerData($request, $session_id);
+        $session = $d['session'];
+
+        $rows = $d['entries']->map(function ($entry) {
+            return [
+                optional(optional($entry->student_record)->user)->name,
+                optional(optional($entry->student_record)->section)->name,
+                optional($entry->student_record)->adm_no,
+                ucfirst($entry->status),
+            ];
+        })->all();
+
+        $filename = 'attendance-register-'
+            . Str::slug(optional($session->my_class)->name ?: 'class') . '-'
+            . Str::slug(optional($session->subject)->name ?: 'period') . '-'
+            . $session->date->format('Y-m-d') . '.csv';
+
+        return CsvExport::download($filename, ['Student', 'Section', 'Admission No', 'Status'], $rows);
+    }
+
+    /**
+     * Shared data + scoping behind every submitted-register output
+     * (page, print, PDF, CSV). A teacher opens only registers they
+     * submitted — the same rule show() has always enforced; an
+     * unknown id is a 404 via findOrFail.
+     */
+    protected function registerData(Request $request, $session_id): array
+    {
         $session = AttendanceSession::with([
             'subject', 'my_class', 'section', 'teacher',
             'time_table.time_slot',
@@ -217,7 +389,7 @@ class PeriodAttendanceController extends Controller
         $slot = optional($session->time_table)->time_slot;
         $d['time_label'] = optional($slot)->full ?: '—';
 
-        return view('pages.support_team.attendance_periods.show', $d);
+        return $d;
     }
 
     /**

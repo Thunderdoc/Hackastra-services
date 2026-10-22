@@ -45,7 +45,7 @@ class AssignmentController extends Controller
      * READ SIDE
      ****************************************************************/
 
-    public function index()
+    public function index(Request $req)
     {
         $user = Auth::user();
 
@@ -60,11 +60,82 @@ class AssignmentController extends Controller
         if (Qs::userIsTeacher() || Qs::userIsTeamSA()) {
             // Teacher sees own; Admin + Super Admin read everything
             // (SA read-only). CS2 view: assignments.index.
+            // Loop 82: summary cards + server-side filters ride the
+            // SAME scoped query — cards always describe the viewer's
+            // whole scope; filters only narrow the listing.
+            $scope = function () use ($user) {
+                $q = Assignment::query();
+                if (Qs::userIsTeacher()) {
+                    $q->where('teacher_id', $user->id);
+                }
+                return $q;
+            };
+            // "Open" follows the model's actual submission rule
+            // (submit()): the window is open while the due moment has
+            // not passed, or late submissions are allowed.
+            $openScope = function ($q) {
+                $q->where(function ($w) {
+                    $w->whereNull('due_at')
+                        ->orWhere('due_at', '>', now())
+                        ->orWhere('allow_late', true);
+                });
+            };
+            $d['card_total'] = $scope()->count();
+            $d['card_open'] = $scope()->tap($openScope)->count();
+            $d['card_closed'] = $d['card_total'] - $d['card_open'];
+            $d['card_classes'] = $scope()->distinct()->count('my_class_id');
+            $d['filter_classes'] = \App\Models\MyClass::whereIn('id', $scope()->distinct()->pluck('my_class_id'))
+                ->orderBy('name')->get();
+            $d['filter_subjects'] = Subject::whereIn('id', $scope()->distinct()->pluck('subject_id'))
+                ->orderBy('name')->get();
+            $d['filters_active'] = $req->filled('q') || $req->filled('class_id')
+                || $req->filled('subject_id') || $req->filled('status');
+
             $query = $base();
             if (Qs::userIsTeacher()) {
                 $query->where('teacher_id', $user->id);
             }
-            $d['assignments'] = $query->paginate(15);
+            if ($req->filled('q')) {
+                $term = '%' . trim((string) $req->query('q')) . '%';
+                $query->where(function ($q) use ($term) {
+                    $q->where('title', 'like', $term)
+                        ->orWhereHas('subject', function ($s) use ($term) {
+                            $s->where('name', 'like', $term);
+                        })
+                        ->orWhereHas('my_class', function ($c) use ($term) {
+                            $c->where('name', 'like', $term);
+                        });
+                });
+            }
+            if ($req->filled('class_id')) {
+                $query->where('my_class_id', (int) $req->query('class_id'));
+            }
+            if ($req->filled('subject_id')) {
+                $query->where('subject_id', (int) $req->query('subject_id'));
+            }
+            if ($req->query('status') === 'open') {
+                $query->tap($openScope);
+            } elseif ($req->query('status') === 'closed') {
+                $query->whereNotNull('due_at')
+                    ->where('due_at', '<=', now())
+                    ->where('allow_late', false);
+            }
+            switch ($req->query('sort')) {
+                case 'due_asc':
+                    $query->reorder('due_at', 'asc');
+                    break;
+                case 'newest':
+                    $query->reorder('created_at', 'desc')->orderBy('id', 'desc');
+                    break;
+                case 'title':
+                    $query->reorder('title', 'asc');
+                    break;
+                default:
+                    // default stays latest('due_at') from $base()
+                    break;
+            }
+            $d['assignments'] = $query->paginate(15)
+                ->appends($req->only(['q', 'class_id', 'subject_id', 'status', 'sort', 'view']));
             $this->attachStudentsCount($d['assignments']);
 
             return view('pages.support_team.assignments.index', $d);
@@ -78,15 +149,29 @@ class AssignmentController extends Controller
             if (!$sr) {
                 return $this->deny();
             }
-            $d['assignments'] = $base()
+            $studentQuery = $base()
                 ->where('my_class_id', $sr->my_class_id)
                 ->where(function ($q) use ($sr) {
                     $q->whereNull('section_id')->orWhere('section_id', $sr->section_id);
-                })
+                });
+            if ($req->filled('q')) {
+                $term = '%' . trim((string) $req->query('q')) . '%';
+                $studentQuery->where(function ($q) use ($term) {
+                    $q->where('title', 'like', $term)
+                        ->orWhereHas('subject', function ($s) use ($term) {
+                            $s->where('name', 'like', $term);
+                        })
+                        ->orWhereHas('teacher', function ($t) use ($term) {
+                            $t->where('name', 'like', $term);
+                        });
+                });
+            }
+            $d['assignments'] = $studentQuery
                 ->with(['submissions' => function ($q) use ($user) {
                     $q->where('student_id', $user->id);
                 }])
-                ->paginate(15);
+                ->paginate(15)
+                ->appends($req->only(['q']));
             foreach ($d['assignments'] as $assignment) {
                 $assignment->setRelation('my_submission', $assignment->submissions->first());
             }

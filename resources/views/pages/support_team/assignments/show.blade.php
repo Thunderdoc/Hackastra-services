@@ -1,7 +1,7 @@
 @extends('layouts.master')
 @section('page_title', 'Assignment')
 @section('page_breadcrumb')
-    <a href="{{ route('dashboard') }}">Home</a> &nbsp;/&nbsp; <a href="{{ route('assignments.index') }}">Assignments</a> &nbsp;/&nbsp; {{ \Illuminate\Support\Str::limit($assignment->title, 40) }}
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Learning &nbsp;/&nbsp; <a href="{{ route('assignments.index') }}">Assignments</a> &nbsp;/&nbsp; {{ \Illuminate\Support\Str::limit($assignment->title, 40) }}
 @endsection
 @section('content')
     {{-- Workstream CS2 (LMS): teacher/admin view of one assignment —
@@ -11,17 +11,15 @@
          (assignments.internal_preview). --}}
     @php
         $due = $assignment->due_at ? \Carbon\Carbon::parse($assignment->due_at) : null;
-        $isOpen = $due ? $due->isFuture() : true;
+        // Loop 82: status follows the model's actual submission rule
+        // — open while not past due, or late submissions are allowed.
+        $isOpen = !$due || $due->isFuture() || $assignment->allow_late;
         $submittedCount = $submissions ? $submissions->count() : 0;
         $gradedCount = $submissions ? $submissions->filter(function ($s) { return $s->marks_awarded !== null; })->count() : 0;
+        $waitingCount = max(0, $submittedCount - $gradedCount);
     @endphp
-
-    @if(session('flash_success'))
-        <div class="alert alert-success border-0">{{ session('flash_success') }}</div>
-    @endif
-    @if(session('flash_danger'))
-        <div class="alert alert-danger border-0">{{ session('flash_danger') }}</div>
-    @endif
+    {{-- Loop 82: duplicate inline flash alerts removed — the
+         app-wide banner renders each message exactly once. --}}
 
     <div class="card">
         <div class="card-body">
@@ -50,8 +48,10 @@
                     @if($assignment->attachment_path)
                         <a href="{{ route('assignments.download', $assignment->id) }}" class="btn btn-light"><i class="icon-download mr-1"></i> Question File</a>
                     @endif
-                    <a href="{{ route('assignments.edit', $assignment->id) }}" class="btn btn-light"><i class="icon-pencil7 mr-1"></i> Edit</a>
-                    <a href="{{ route('assignments.internal_preview', $assignment->id) }}" class="btn btn-primary"><i class="icon-stats-bars2 mr-1"></i> Use for Internal Marks</a>
+                    @if(Qs::userIsTeacher() && $assignment->teacher_id == auth()->id())
+                        <a href="{{ route('assignments.edit', $assignment->id) }}" class="btn btn-light"><i class="icon-pencil7 mr-1"></i> Edit</a>
+                        <a href="{{ route('assignments.internal_preview', $assignment->id) }}" class="btn btn-primary"><i class="icon-stats-bars2 mr-1"></i> Use for Internal Marks</a>
+                    @endif
                 </div>
             </div>
 
@@ -64,7 +64,14 @@
 
     <div class="card">
         <div class="card-header header-elements-inline">
-            <h6 class="card-title">Submissions — {{ $submittedCount }} received · {{ $gradedCount }} graded</h6>
+            <h6 class="card-title">
+                Submissions
+                <span class="lms-chip lms-chip-submitted ml-2">{{ $submittedCount }} received</span>
+                <span class="lms-chip lms-chip-graded">{{ $gradedCount }} graded</span>
+                @if($waitingCount > 0)
+                    <span class="lms-chip lms-chip-pending">{{ $waitingCount }} waiting</span>
+                @endif
+            </h6>
             <a href="{{ route('assignments.index') }}" class="btn btn-light btn-sm"><i class="icon-arrow-left13 mr-1"></i> All Assignments</a>
         </div>
         <div class="card-body">
@@ -116,17 +123,30 @@
                                 @endif
                             </td>
                             <td>
-                                <form method="post" action="{{ route('assignments.grade', $submission->id) }}" class="lms-grade-form">
-                                    @csrf
-                                    <div class="lms-grade-fields">
-                                        <span class="lms-grade-marks">
-                                            <input type="number" name="marks_awarded" class="form-control" min="0" max="{{ $assignment->max_marks }}" step="0.5" value="{{ $submission->marks_awarded }}" placeholder="Marks" aria-label="Marks awarded">
-                                            <span class="text-muted">/ {{ $assignment->max_marks }}</span>
-                                        </span>
-                                        <input type="text" name="feedback" class="form-control lms-grade-feedback" value="{{ $submission->feedback }}" placeholder="Feedback for the student" aria-label="Feedback">
-                                        <button type="submit" class="btn {{ $isGraded ? 'btn-light' : 'btn-primary' }} btn-sm">{{ $isGraded ? 'Update' : 'Save' }}</button>
-                                    </div>
-                                </form>
+                                @if(Qs::userIsTeacher() && $assignment->teacher_id == auth()->id())
+                                    <form method="post" action="{{ route('assignments.grade', $submission->id) }}" class="lms-grade-form">
+                                        @csrf
+                                        <div class="lms-grade-fields">
+                                            <span class="lms-grade-marks">
+                                                <input type="number" name="marks_awarded" class="form-control" min="0" max="{{ $assignment->max_marks }}" step="0.5" value="{{ $submission->marks_awarded }}" placeholder="Marks" aria-label="Marks awarded">
+                                                <span class="text-muted">/ {{ $assignment->max_marks }}</span>
+                                            </span>
+                                            <input type="text" name="feedback" class="form-control lms-grade-feedback" value="{{ $submission->feedback }}" placeholder="Feedback for the student" aria-label="Feedback">
+                                            <button type="submit" class="btn {{ $isGraded ? 'btn-light' : 'btn-primary' }} btn-sm">{{ $isGraded ? 'Update' : 'Save' }}</button>
+                                        </div>
+                                    </form>
+                                @elseif($isGraded)
+                                    {{-- Loop 82: read-only roles (parent, admin,
+                                         Super Admin) see the result, never the
+                                         grading form — grade() refuses them
+                                         server-side anyway. --}}
+                                    <strong>{{ $submission->marks_awarded }} / {{ $assignment->max_marks }}</strong>
+                                    @if($submission->feedback)
+                                        <div class="text-muted">{{ $submission->feedback }}</div>
+                                    @endif
+                                @else
+                                    <span class="text-muted">Not graded yet</span>
+                                @endif
                             </td>
                         </tr>
                     @empty

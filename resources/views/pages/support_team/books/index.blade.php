@@ -11,13 +11,6 @@
          images exist either (books.url is an online-copy link, kept
          under the author), so every row uses the same placeholder tile. --}}
 
-    @if(session('flash_success'))
-        <div class="alert alert-success border-0">{{ session('flash_success') }}</div>
-    @endif
-    @if(session('flash_danger'))
-        <div class="alert alert-danger border-0">{{ session('flash_danger') }}</div>
-    @endif
-
     @component('partials.patterns.list_page')
         @slot('title')
             <i class="icon-books mr-2"></i> Library Books

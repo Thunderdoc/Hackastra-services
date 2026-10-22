@@ -40,7 +40,7 @@
                         <option value="">All Sections</option>
                         @foreach($sections as $sec)
                             <option value="{{ $sec->id }}" {{ (int) $section_id === $sec->id ? 'selected' : '' }}>
-                                {{ $sec->my_class->name ?? '' }} — {{ $sec->name }}
+                                {{ $class_id ? $sec->name : (($sec->my_class->name ?? '') . ' — ' . $sec->name) }}
                             </option>
                         @endforeach
                     </select>
@@ -112,4 +112,35 @@
         </div>
     </div>
 
+@endsection
+
+@section('scripts')
+    <script>
+        /* Section cascade: changing the class immediately re-offers
+           only that class's sections (same get_class_sections endpoint
+           the rest of the app uses), keeping this page's "All Sections"
+           choice. The server scopes the list again on submit, so a
+           stale cross-class section can never survive either way. */
+        (function () {
+            var classSel = document.getElementById('class_id');
+            var sectionSel = document.getElementById('section_id');
+            if (!classSel || !sectionSel) { return; }
+            classSel.addEventListener('change', function () {
+                var url = '{{ route('get_class_sections', [':id']) }}'.replace(':id', classSel.value || '0');
+                sectionSel.innerHTML = '<option value="">All Sections</option>';
+                if (!classSel.value) { return; }
+                fetch(url, {headers: {'X-Requested-With': 'XMLHttpRequest'}})
+                    .then(function (r) { return r.json(); })
+                    .then(function (resp) {
+                        resp.forEach(function (s) {
+                            var opt = document.createElement('option');
+                            opt.value = s.id;
+                            opt.textContent = s.name;
+                            sectionSel.appendChild(opt);
+                        });
+                    })
+                    .catch(function () { /* server-side scoping on submit still applies */ });
+            });
+        })();
+    </script>
 @endsection

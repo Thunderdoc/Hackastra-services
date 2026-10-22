@@ -8,6 +8,13 @@
                 <img style="width: 90%; height:90%" src="{{ $sr->user->photo }}" alt="photo" class="rounded-circle">
                 <br>
                 <h3 class="mt-3">{{ $sr->user->name }}</h3>
+                {{-- Loop 102: honest incompleteness marker — the fields the
+                     full admission form requires (address, nationality,
+                     state, LGA) are still blank, e.g. after a Quick
+                     Admit. Computed from the real blanks; no flag column. --}}
+                @if(empty($sr->user->address) || empty($sr->user->nal_id) || empty($sr->user->state_id) || empty($sr->user->lga_id))
+                    <div><span class="badge badge-warning qa102-pill">Incomplete profile</span></div>
+                @endif
                 @if(Qs::userIsTeamSA())
                     <a href="{{ route('students.id_card', Qs::hash($sr->id)) }}" class="btn btn-primary mt-2"><i class="icon-vcard mr-1"></i> ID Card</a>
                 @endif

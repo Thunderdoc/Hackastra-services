@@ -88,11 +88,40 @@
         </ol>
     </div>
 
+    {{-- Digital signature + seal (owner ruling 2026-10-22): the card
+         comes out signed when the school has configured it — the
+         class teacher's real name prints on their line (from the
+         student's section teacher), the principal's uploaded
+         signature sits above the Principal line, and the uploaded
+         school stamp fills the seal box. Anything not configured
+         keeps the blank line / empty box exactly as before; nothing
+         is ever fabricated. --}}
     <table class="admit-sign">
         <tr>
-            <td><span class="sign-line"></span>Class Teacher's Signature</td>
-            <td><span class="sign-line"></span>Principal's Signature</td>
-            <td class="admit-seal-cell"><span class="admit-seal">SCHOOL SEAL</span></td>
+            <td>
+                @if(!empty($sr->section->teacher->name))
+                    <span class="admit-sign-name">{{ $sr->section->teacher->name }}</span><span class="sign-line sign-line-filled"></span>Class Teacher's Signature
+                @else
+                    <span class="sign-line"></span>Class Teacher's Signature
+                @endif
+            </td>
+            <td>
+                @if(!empty($school['principal_signature']))
+                    <img class="admit-sign-img" src="{{ $school['principal_signature'] }}" alt="Principal's signature"><span class="sign-line sign-line-filled"></span>Principal's Signature
+                @else
+                    <span class="sign-line"></span>Principal's Signature
+                @endif
+                @if(!empty($school['principal_name']))
+                    <span class="admit-sign-sub">{{ $school['principal_name'] }}</span>
+                @endif
+            </td>
+            <td class="admit-seal-cell">
+                @if(!empty($school['stamp']))
+                    <img class="admit-seal-img" src="{{ $school['stamp'] }}" alt="School seal">
+                @else
+                    <span class="admit-seal">SCHOOL SEAL</span>
+                @endif
+            </td>
         </tr>
     </table>
 

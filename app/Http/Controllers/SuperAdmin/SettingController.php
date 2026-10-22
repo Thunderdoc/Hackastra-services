@@ -26,6 +26,7 @@ class SettingController extends Controller
         'system_name', 'system_title', 'current_session', 'address',
         'phone', 'system_email', 'alt_email', 'term_begins', 'term_ends',
         'lock_exam', 'principal_name', 'logo', 'school_stamp',
+        'principal_signature',
     ];
 
     public const PLATFORM_FIELDS = [
@@ -69,12 +70,15 @@ class SettingController extends Controller
            save may not carry platform keys; a Super Admin's save may
            not carry school keys (SA reads school settings, the school
            Admin writes them). */
-        $posted = array_keys($req->except('_token', '_method', 'school_stamp_remove'));
+        $posted = array_keys($req->except('_token', '_method', 'school_stamp_remove', 'principal_signature_remove'));
         if ($req->hasFile('logo')) {
             $posted[] = 'logo';
         }
         if ($req->hasFile('school_stamp') || $req->filled('school_stamp_remove')) {
             $posted[] = 'school_stamp';
+        }
+        if ($req->hasFile('principal_signature') || $req->filled('principal_signature_remove')) {
+            $posted[] = 'principal_signature';
         }
         $platformPosted = array_intersect($posted, self::PLATFORM_FIELDS);
         $schoolPosted = array_diff($posted, self::PLATFORM_FIELDS);
@@ -83,7 +87,7 @@ class SettingController extends Controller
             return back()->with('flash_danger', __('msg.denied'));
         }
 
-        $sets = $req->except('_token', '_method', 'logo', 'school_stamp', 'school_stamp_remove');
+        $sets = $req->except('_token', '_method', 'logo', 'school_stamp', 'school_stamp_remove', 'principal_signature', 'principal_signature_remove');
         // Only touch lock_exam when it was actually posted: a platform-only
         // save (Super Admin, PLATFORM_FIELDS) must not rewrite school keys
         // it never carried. (Workstream DG — previously this line added
@@ -147,6 +151,25 @@ class SettingController extends Controller
         }
         elseif($req->filled('school_stamp_remove')) {
             $this->setting->update('school_stamp', '');
+        }
+
+        /* Digital signature (owner ruling 2026-10-22): the principal's
+           signature image follows the exact school_stamp path — sniffed
+           upload (Qs::getFileMetaData) -> public uploads -> settings row
+           holding the asset URL. Report cards and admit cards render it
+           above the Principal's signature line only while the setting
+           is non-empty; the remove checkbox (or a fresh upload) is the
+           only way it changes. */
+        if($req->hasFile('principal_signature')) {
+            $signature = $req->file('principal_signature');
+            $f = Qs::getFileMetaData($signature);
+            $f['name'] = 'principal_signature.' . $f['ext'];
+            $f['path'] = $signature->storeAs(Qs::getPublicUploadPath(), $f['name']);
+            $signature_path = asset('storage/' . $f['path']);
+            $this->setting->update('principal_signature', $signature_path);
+        }
+        elseif($req->filled('principal_signature_remove')) {
+            $this->setting->update('principal_signature', '');
         }
 
         return back()->with('flash_success', __('msg.update_ok'));

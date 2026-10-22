@@ -4,10 +4,7 @@
     {{-- School Feedback (Workstream CW): the Super Admin sees ONLY
          what school Admins compiled and forwarded — never the raw
          school inbox. The Admin is the filter, per the workflow. --}}
-    @if(session('flash_success'))
-        <div class="alert alert-success border-0">{{ session('flash_success') }}</div>
-    @endif
-
+  <div class="l75-fb">
     @component('partials.patterns.list_page')
         @slot('subtitle')
             Reports forwarded by the school Admin after de-duplication. Open one to record the fix or decision — the reporter sees your reply.
@@ -88,7 +85,7 @@
             @forelse($items as $item)
                 <tr>
                     <td>
-                        <a href="{{ route('feedback.sa_show', $item->id) }}"><strong>#{{ $item->id }} {{ $item->title }}</strong></a>
+                        <a class="fb-report-title" href="{{ route('feedback.sa_show', $item->id) }}">#{{ $item->id }} {{ $item->title }}</a>
                         <span class="text-muted">· {{ $item->typeLabel() }}</span>
                         <div class="text-muted">{{ \Illuminate\Support\Str::limit($item->description, 80) }}</div>
                         @if($item->admin_note)
@@ -101,10 +98,11 @@
                     <td><a href="{{ route('feedback.sa_show', $item->id) }}" class="btn btn-light btn-sm">Open</a></td>
                 </tr>
             @empty
-                <tr><td colspan="5" class="text-center text-muted">Nothing forwarded yet. School Admins forward compiled, de-duplicated reports here.</td></tr>
+                <tr><td colspan="5" class="fb-empty text-muted">Nothing forwarded yet. School Admins forward compiled, de-duplicated reports here.</td></tr>
             @endforelse
             </tbody>
         </table>
         {{ $items->links() }}
     @endcomponent
+  </div>
 @endsection

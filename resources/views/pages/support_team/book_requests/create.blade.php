@@ -13,9 +13,6 @@
         'submit_label' => 'Issue Book',
     ])
         <div class="pat-form-section">
-            @if(session('flash_danger'))
-                <div class="alert alert-danger border-0">{{ session('flash_danger') }}</div>
-            @endif
             @if($errors->any())
                 <div class="alert alert-danger border-0">@foreach($errors->all() as $error)<div>{{ $error }}</div>@endforeach</div>
             @endif

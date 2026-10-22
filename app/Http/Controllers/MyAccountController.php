@@ -41,6 +41,12 @@ class MyAccountController extends Controller
         $d['prefs'] = UserPreference::allFor($me->id);
         $d['banner_stats'] = $this->bannerStats($me);
         $d['banner_chips'] = $this->bannerChips($me);
+        // My Account v3: the parent hero strip links straight to each
+        // child's record — real linked children only, same scoping the
+        // parent portal itself uses (my_parent_id = the signed-in user).
+        $d['children'] = $me->user_type === 'parent'
+            ? Qs::findMyChildren($me->id)->load('section')
+            : collect();
         $d['activity'] = Schema::hasTable('audit_logs')
             ? AuditLog::where('user_id', $me->id)
                 ->where('action', 'auth.login')
@@ -107,7 +113,7 @@ class MyAccountController extends Controller
             'time_format' => 'sometimes|in:12,24',
         ]);
 
-        foreach (['notify_email', 'notify_announcements', 'notify_attendance', 'notify_exams'] as $key) {
+        foreach (['notify_email', 'notify_announcements', 'notify_attendance', 'notify_exams', 'notify_lms'] as $key) {
             if ($req->has($key) || $req->has($key . '_present')) {
                 UserPreference::set($user->id, $key, $req->boolean($key) ? '1' : '0');
             }
@@ -189,6 +195,32 @@ class MyAccountController extends Controller
             'preferences' => UserPreference::allFor($user->id),
             'recent_sign_ins' => $signIns,
         ];
+
+        // My Account v3: role section — still ONLY the signed-in
+        // user's own data. Parents get their linked children (the
+        // same my_parent_id scoping as the portal); students get
+        // their own school record summary.
+        if ($user->user_type === 'parent') {
+            $data['children'] = Qs::findMyChildren($user->id)->load('section')
+                ->map(function ($child) {
+                    return [
+                        'name' => optional($child->user)->name,
+                        'admission_no' => $child->adm_no,
+                        'class' => optional($child->my_class)->name,
+                        'section' => optional($child->section)->name,
+                    ];
+                })->all();
+        }
+
+        if ($user->user_type === 'student' && $user->student_record) {
+            $sr = $user->student_record;
+            $data['school_record'] = [
+                'admission_no' => $sr->adm_no,
+                'class' => optional($sr->my_class)->name,
+                'section' => optional($sr->section)->name,
+                'session' => $sr->session,
+            ];
+        }
 
         Audit::log('account.data_downloaded', $user, 'User downloaded their account data');
 

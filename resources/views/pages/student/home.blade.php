@@ -2,10 +2,16 @@
 @section('page_title', 'Dashboard')
 @section('hide_page_header', true)
 @section('content')
-    {{-- Loop 12 (Workstream V): student home — rebuilt to the premium
-         dashboard standard. Every number and row is the signed-in
-         student's own record; no marks/scores are shown here (results
-         stay behind the marksheet flow). --}}
+    {{-- Loop 99: student home — premium dashboard pass, same standard
+         as the teacher (Loop 79), accountant (Loop 92) and parent
+         (Loop 96) homes. Every number and row is the signed-in
+         student's OWN data: attendance reuses HomeController's
+         attendanceSummary (the attendance report's computation), fees
+         reuse PaymentRepo::getAllMyPR for the current session (the
+         fees portal's assembly), assignments reuse the student
+         assignment scoping + open rule from AssignmentController.
+         No marks/scores here — results stay behind the marksheet
+         flow and its publish gate. --}}
     <div class="dashboard-hero mb-4">
         <div>
             <h2 class="mb-1">{{ $greeting }}, {{ Auth::user()->name }} <span aria-hidden="true">👋</span></h2>
@@ -24,22 +30,14 @@
                     <strong>{{ $today->format('l, d F Y') }}</strong>
                 </span>
             </div>
-            <a href="{{ route('tt.index') }}" class="btn dashboard-primary-action">
-                <i class="icon-calendar3 mr-2"></i> View Timetable
+            <a href="{{ route('tt.mine') }}" class="btn dashboard-primary-action">
+                <i class="icon-calendar3 mr-2"></i> My Timetable
             </a>
         </div>
     </div>
 
-    {{-- Own summary cards --}}
-    <div class="stu-stats-row mb-4">
-        <div class="dashboard-stat-card dashboard-stat-blue">
-            <span class="dashboard-stat-top"><span class="dashboard-stat-icon"><i class="icon-book"></i></span></span>
-            <span class="dashboard-stat-copy">
-                <span class="dashboard-stat-label">Subjects in My Class</span>
-                <strong>{{ $subjects->count() }}</strong>
-                <small>{{ $student_record ? 'Subjects taught in ' . (optional($student_record->my_class)->name ?: 'your class') : 'No class assigned yet' }}</small>
-            </span>
-        </div>
+    {{-- KPI strip — own figures only --}}
+    <div class="stu99-kpis mb-4">
         <div class="dashboard-stat-card dashboard-stat-green">
             <span class="dashboard-stat-top"><span class="dashboard-stat-icon"><i class="icon-calendar52"></i></span></span>
             <span class="dashboard-stat-copy">
@@ -48,70 +46,105 @@
                 <small>{{ $attendance['total'] > 0 ? 'Present or late, of ' . $attendance['total'] . ' marked days' : 'No attendance recorded yet' }}</small>
             </span>
         </div>
-        <div class="dashboard-stat-card dashboard-stat-orange">
-            <span class="dashboard-stat-top"><span class="dashboard-stat-icon"><i class="icon-watch"></i></span></span>
-            <span class="dashboard-stat-copy">
-                <span class="dashboard-stat-label">Today&rsquo;s Periods</span>
-                <strong>{{ $today_periods->count() }}</strong>
-                <small>{{ $today_name }} &middot; from your class timetable</small>
-            </span>
-        </div>
-        <div class="dashboard-stat-card dashboard-stat-purple">
-            <span class="dashboard-stat-top"><span class="dashboard-stat-icon"><i class="icon-books"></i></span></span>
-            <span class="dashboard-stat-copy">
-                <span class="dashboard-stat-label">Books Issued to Me</span>
-                <strong>{{ $books_issued }}</strong>
-                <small>{{ $books_issued > 0 ? 'Currently out from the library' : 'No books out right now' }}</small>
-            </span>
-        </div>
         <div class="dashboard-stat-card dashboard-stat-blue">
-            <span class="dashboard-stat-top"><span class="dashboard-stat-icon"><i class="icon-file-text2"></i></span></span>
+            <span class="dashboard-stat-top"><span class="dashboard-stat-icon"><i class="icon-book"></i></span></span>
             <span class="dashboard-stat-copy">
-                <span class="dashboard-stat-label">Upcoming Exams</span>
-                <strong>{{ $upcoming_exam_count }}</strong>
-                <small>{{ $next_exam ? 'Next: ' . $next_exam['name'] . ' · ' . \Illuminate\Support\Carbon::parse($next_exam['date'])->format('d M Y') : 'No exam dates scheduled yet' }}</small>
+                <span class="dashboard-stat-label">Subjects in My Class</span>
+                <strong>{{ $subjects->count() }}</strong>
+                <small>{{ $student_record ? 'Subjects taught in ' . (optional($student_record->my_class)->name ?: 'your class') : 'No class assigned yet' }}</small>
             </span>
         </div>
-        {{-- Workstream CZ (LMS): work due in the next 7 days that this
-             student has not submitted yet — the whole card links to
-             the student's assignment list. --}}
-        <a href="{{ route('assignments.index') }}" class="dashboard-stat-card dashboard-stat-green">
+        <a href="{{ route('assignments.index') }}" class="dashboard-stat-card dashboard-stat-orange">
             <span class="dashboard-stat-top"><span class="dashboard-stat-icon"><i class="icon-clipboard3"></i></span></span>
             <span class="dashboard-stat-copy">
-                <span class="dashboard-stat-label">Assignments Due This Week</span>
-                <strong>{{ $lms_due_week ?? 0 }}</strong>
-                <small>{{ ($lms_due_week ?? 0) > 0 ? 'Due in the next 7 days, not yet submitted' : 'Nothing due in the next 7 days' }}</small>
+                <span class="dashboard-stat-label">Open Assignments</span>
+                <strong>{{ $open_assignments_count }}</strong>
+                <small>{{ $open_assignments_count > 0 ? 'Still to submit' : ($open_assignments_submitted > 0 ? 'All caught up — ' . $open_assignments_submitted . ' open, already submitted' : 'Nothing open right now') }}</small>
             </span>
         </a>
+        <div class="dashboard-stat-card {{ $fees['has_records'] && $fees['due'] > 0 ? 'dashboard-stat-orange' : 'dashboard-stat-purple' }}">
+            <span class="dashboard-stat-top"><span class="dashboard-stat-icon"><i class="icon-coin-dollar"></i></span></span>
+            <span class="dashboard-stat-copy">
+                <span class="dashboard-stat-label">Fee Status</span>
+                @if(!$fees['has_records'])
+                    <strong>No fees yet</strong>
+                    <small>No fee records for this session</small>
+                @elseif($fees['due'] > 0)
+                    <strong>{{ \App\Helpers\Money::inr($fees['due']) }} due</strong>
+                    <small>{{ \App\Helpers\Money::inr($fees['paid']) }} paid of {{ \App\Helpers\Money::inr($fees['total']) }} &middot; {{ $fees['pending_records'] }} record{{ $fees['pending_records'] > 1 ? 's' : '' }} pending</small>
+                @else
+                    <strong>Paid in full</strong>
+                    <small>{{ \App\Helpers\Money::inr($fees['total']) }} paid &middot; nothing outstanding</small>
+                @endif
+            </span>
+        </div>
     </div>
 
     <div class="row">
         <div class="col-xl-8">
-            {{-- Today's periods for my class --}}
+            {{-- Today's classes for my class --}}
             <section class="dashboard-panel mb-4">
                 <div class="dashboard-panel-heading">
                     <div>
-                        <h5 class="mb-1"><i class="icon-calendar3 text-blue mr-1"></i> Today&rsquo;s Periods</h5>
+                        <h5 class="mb-1"><i class="icon-calendar3 text-blue mr-1"></i> Today&rsquo;s Classes</h5>
                         <p class="dashboard-muted mb-0">{{ $today_name }} &middot; your class timetable for today</p>
                     </div>
-                    <a href="{{ route('tt.index') }}" class="dashboard-view-all">Full Timetable <i class="icon-arrow-right7"></i></a>
+                    <a href="{{ route('tt.mine') }}" class="dashboard-view-all">Full Timetable <i class="icon-arrow-right7"></i></a>
                 </div>
                 <div class="table-responsive">
                     <table class="table dashboard-table mb-0">
-                        <thead><tr><th>Time</th><th>Subject</th><th>Status</th></tr></thead>
+                        <thead><tr><th>Time</th><th>Subject</th><th>Teacher</th><th>Status</th></tr></thead>
                         <tbody>
                         @forelse($today_periods as $period)
                             <tr>
                                 <td>{{ $period['time'] }}</td>
                                 <td><strong>{{ $period['subject'] }}</strong></td>
+                                <td>{{ $period['teacher'] }}</td>
                                 <td><span class="dashboard-status stu-status-{{ \Illuminate\Support\Str::slug($period['status']) }}">{{ $period['status'] }}</span></td>
                             </tr>
                         @empty
-                            <tr><td colspan="3" class="dashboard-empty">No periods are scheduled for your class today.</td></tr>
+                            <tr><td colspan="4" class="dashboard-empty">No classes are scheduled for your class today.</td></tr>
                         @endforelse
                         </tbody>
                     </table>
                 </div>
+            </section>
+
+            {{-- Assignments due — open work for my class, nearest due first --}}
+            <section class="dashboard-panel mb-4">
+                <div class="dashboard-panel-heading">
+                    <div>
+                        <h5 class="mb-1"><i class="icon-clipboard3 text-blue mr-1"></i> Assignments Due</h5>
+                        <p class="dashboard-muted mb-0">Open assignments for your class, nearest due first</p>
+                    </div>
+                    <a href="{{ route('assignments.index') }}" class="dashboard-view-all">All Assignments <i class="icon-arrow-right7"></i></a>
+                </div>
+                @forelse($open_assignments as $assignment)
+                    @php
+                        $submitted = $assignment->submissions->isNotEmpty();
+                        $due = $assignment->due_at;
+                    @endphp
+                    <a href="{{ route('assignments.show', $assignment) }}" class="stu99-asg-row">
+                        <span class="stu99-asg-copy">
+                            <strong>{{ $assignment->title }}</strong>
+                            <small>{{ optional($assignment->subject)->name ?: 'Subject —' }}@if(optional($assignment->teacher)->name) &middot; {{ $assignment->teacher->name }}@endif</small>
+                        </span>
+                        <span class="stu99-asg-side">
+                            @if(!$due)
+                                <span class="stu99-due-chip">No due date</span>
+                            @elseif($due->isPast())
+                                <span class="stu99-due-chip stu99-due-overdue">Overdue &middot; {{ $due->format('d M') }}</span>
+                            @elseif($due->isToday())
+                                <span class="stu99-due-chip stu99-due-soon">Due today</span>
+                            @else
+                                <span class="stu99-due-chip">Due {{ $due->format('d M') }} &middot; in {{ now()->startOfDay()->diffInDays($due->copy()->startOfDay()) }} day{{ now()->startOfDay()->diffInDays($due->copy()->startOfDay()) > 1 ? 's' : '' }}</span>
+                            @endif
+                            <span class="dashboard-status {{ $submitted ? 'stu99-badge-done' : 'stu99-badge-todo' }}">{{ $submitted ? 'Submitted' : 'To do' }}</span>
+                        </span>
+                    </a>
+                @empty
+                    <div class="dashboard-empty">No open assignments for your class right now — you&rsquo;re all caught up.</div>
+                @endforelse
             </section>
 
             {{-- My subjects and their teachers --}}
@@ -157,18 +190,18 @@
                 @endif
             </section>
 
-            {{-- Quick actions --}}
+            {{-- Quick actions — real student routes only --}}
             <section class="dashboard-panel dashboard-quick-actions mb-4">
                 <div class="dashboard-panel-heading">
                     <div><h5 class="mb-1"><i class="icon-rocket text-blue mr-1"></i> Quick Actions</h5><p class="dashboard-muted mb-0">Jump to your pages.</p></div>
                 </div>
                 <div class="dashboard-action-grid stu-action-grid">
-                    {{-- Zero-tolerance dedup: no "My Attendance" tile here — the
-                         Attendance Summary panel above carries that link. --}}
-                    <a href="{{ route('admit_cards.my') }}"><i class="icon-file-text2"></i><span>My Admit Card</span></a>
-                    <a href="{{ route('tt.index') }}"><i class="icon-calendar3"></i><span>Timetable</span></a>
-                    <a href="{{ route('circulars.index') }}"><i class="icon-megaphone"></i><span>Circulars</span></a>
-                    <a href="{{ route('my_account') }}"><i class="icon-user-tie"></i><span>My Profile</span></a>
+                    <a href="{{ route('tt.mine') }}"><i class="icon-table2"></i><span>My Timetable</span></a>
+                    <a href="{{ route('assignments.index') }}"><i class="icon-file-text2"></i><span>Assignments</span></a>
+                    <a href="{{ route('materials.index') }}"><i class="icon-book"></i><span>Study Materials</span></a>
+                    <a href="{{ route('marks.year_selector', Qs::hash(Auth::user()->id)) }}"><i class="icon-book2"></i><span>Marksheet</span></a>
+                    <a href="{{ route('admit_cards.my') }}"><i class="icon-profile"></i><span>Admit Card</span></a>
+                    <a href="{{ route('attendance.my') }}"><i class="icon-calendar3"></i><span>My Attendance</span></a>
                 </div>
             </section>
 
@@ -209,7 +242,7 @@
             </div>
             <div class="stu-reminder-chips">
                 @if($next_exam)
-                    <a href="{{ route('tt.index') }}" class="stu-reminder-chip">
+                    <a href="{{ route('tt.mine') }}" class="stu-reminder-chip">
                         <i class="icon-file-text2"></i>
                         <span><strong>{{ $next_exam['name'] }}</strong><small>Exam on {{ \Illuminate\Support\Carbon::parse($next_exam['date'])->format('d M Y') }}</small></span>
                     </a>

@@ -11,13 +11,6 @@
             </div>
         </div>
         <div class="card-body">
-            @if(session('flash_success'))
-                <div class="alert alert-success border-0">{{ session('flash_success') }}</div>
-            @endif
-            @if(session('flash_danger'))
-                <div class="alert alert-danger border-0">{{ session('flash_danger') }}</div>
-            @endif
-
             <div class="btn-group mb-3" role="group" aria-label="Filter loans by status">
                 <a href="{{ route('book_requests.index') }}" class="btn btn-sm {{ !$status ? 'btn-primary' : 'btn-light' }}">All</a>
                 <a href="{{ route('book_requests.index', ['status' => 'issued']) }}" class="btn btn-sm {{ $status === 'issued' ? 'btn-primary' : 'btn-light' }}">Issued</a>

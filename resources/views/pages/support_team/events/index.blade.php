@@ -16,10 +16,6 @@
             @endif
         @endslot
 
-        @if(session('flash_success'))
-            <div class="alert alert-success border-0">{{ session('flash_success') }}</div>
-        @endif
-
         @if($events->count() === 0)
             @include('partials.patterns.empty_state', [
                 'icon' => 'icon-calendar3',

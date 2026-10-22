@@ -1,6 +1,7 @@
 @extends('layouts.master')
 @section('page_title', 'Sent Mail')
 @section('content')
+  <div class="l75-gw">
     <div class="card">
         <div class="card-header header-elements-inline">
             <span class="text-muted">Every platform mail send, with its real outcome</span>
@@ -52,4 +53,5 @@
             @endif
         </div>
     </div>
+  </div>
 @endsection

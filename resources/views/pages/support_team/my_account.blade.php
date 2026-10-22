@@ -22,12 +22,6 @@
         <h1 class="acct-title">My Account</h1>
         <p class="acct-subtitle">Manage your profile, security settings and preferences.</p>
 
-        @if(session('flash_success'))
-            <div class="acct-alert acct-alert-success"><i class="icon-checkmark2"></i> {{ session('flash_success') }}</div>
-        @endif
-        @if(session('flash_danger'))
-            <div class="acct-alert acct-alert-danger"><i class="icon-info3"></i> {{ session('flash_danger') }}</div>
-        @endif
         @if(session('pop_error'))
             <div class="acct-alert acct-alert-danger"><i class="icon-info3"></i> {{ session('pop_error') }}</div>
         @endif
@@ -50,7 +44,22 @@
                         @if($my->phone)<span><i class="icon-phone"></i> {{ $my->phone }}</span>@endif
                         @if($my->created_at)<span><i class="icon-calendar"></i> Member since {{ $my->created_at->format($date_fmt) }}</span>@endif
                     </div>
-                    @if(count($banner_chips))
+                    @if($my->user_type === 'parent' && $children->count())
+                        {{-- My Account v3: linked-children strip — real
+                             children only, each card opens the same
+                             child record page the My Children screen
+                             links to (hashed record id). --}}
+                        <div class="acct-children" aria-label="My children">
+                            @foreach($children as $child)
+                                @php $cu = $child->user; @endphp
+                                <a class="acct-child" href="{{ route('students.show', \App\Helpers\Qs::hash($child->id)) }}">
+                                    <span class="acct-avatar acct-avatar-sm" aria-hidden="true">{{ $cu ? strtoupper(substr($cu->name, 0, 1)) : '' }}@if($cu && \App\Helpers\Qs::hasRealPhoto($cu->photo))<img src="{{ $cu->photo }}" alt="" onerror="this.remove()">@endif</span>
+                                    <span class="acct-child-text"><strong>{{ $cu->name ?? 'Student' }}</strong><small>{{ optional($child->my_class)->name }}@if($child->section) &middot; {{ $child->section->name }}@endif</small></span>
+                                    <i class="icon-chevron-right acct-child-chev"></i>
+                                </a>
+                            @endforeach
+                        </div>
+                    @elseif(count($banner_chips))
                         <div class="acct-chips">
                             @foreach($banner_chips as $chip)
                                 <span class="acct-chip">{{ $chip }}</span>
@@ -93,7 +102,7 @@
                                 <div class="acct-field">
                                     <label for="acct-name">Full Name <span class="acct-req">*</span></label>
                                     <input id="acct-name" type="text" class="acct-input" value="{{ $my->name }}" disabled>
-                                    <small class="acct-hint">Your name is managed by the school office.</small>
+                                    <small class="acct-hint">Assigned by your school — contact the Admin to change it.</small>
                                 </div>
 
                                 <div class="acct-field">
@@ -118,6 +127,7 @@
                                     <div class="acct-field">
                                         <label for="acct-username">Username</label>
                                         <input id="acct-username" type="text" class="acct-input" value="{{ $my->username }}" disabled>
+                                        <small class="acct-hint">Fixed once set — contact the Admin if it must change.</small>
                                     </div>
                                 @else
                                     <div class="acct-field">
@@ -131,19 +141,29 @@
                                     <div class="acct-field">
                                         <label for="acct-gender">Gender</label>
                                         <input id="acct-gender" type="text" class="acct-input" value="{{ ucfirst($my->gender) }}" disabled>
+                                        <small class="acct-hint">Recorded by your school — contact the Admin to correct it.</small>
                                     </div>
                                 @endif
 
                                 <div class="acct-field">
                                     <label for="acct-code">Staff / Student Code</label>
                                     <input id="acct-code" type="text" class="acct-input" value="{{ $my->code }}" disabled>
-                                    <small class="acct-hint">Issued by the school office; cannot be changed here.</small>
+                                    <small class="acct-hint">Assigned by your school — contact the Admin to change it.</small>
                                 </div>
 
                                 <div class="acct-field">
                                     <label for="acct-role">Role</label>
                                     <input id="acct-role" type="text" class="acct-input" value="{{ $role_label }}" disabled>
+                                    <small class="acct-hint">Assigned by your school — contact the Admin to change it.</small>
                                 </div>
+
+                                @if($my->user_type === 'student' && $my->student_record)
+                                    <div class="acct-field">
+                                        <label for="acct-adm">Admission No</label>
+                                        <input id="acct-adm" type="text" class="acct-input" value="{{ $my->student_record->adm_no }}" disabled>
+                                        <small class="acct-hint">Assigned by your school — contact the Admin to change it.</small>
+                                    </div>
+                                @endif
 
                                 <div class="acct-field acct-field-wide">
                                     <label for="acct-address">Address <span class="acct-req">*</span></label>
@@ -199,6 +219,10 @@
                                         <i class="icon-key"></i>
                                         <input id="acct-new-password" name="password" type="password" class="acct-input" required autocomplete="new-password">
                                         <button type="button" class="acct-eye" data-acct-eye="acct-new-password" aria-label="Show or hide password"><i class="icon-eye"></i></button>
+                                    </div>
+                                    <div class="acct-pw-meter" id="acct-pw-meter" hidden>
+                                        <span class="acct-pw-track"><span class="acct-pw-fill" id="acct-pw-fill"></span></span>
+                                        <small class="acct-pw-label" id="acct-pw-label"></small>
                                     </div>
                                     <small class="acct-hint">Minimum 8 characters, letters and numbers.</small>
                                     @error('password')<small class="acct-error">{{ $message }}</small>@enderror
@@ -260,6 +284,18 @@
                                         <span class="acct-toggle-text"><strong>Exam &amp; Marks Reminders</strong><small>Exam schedules and marks-entry deadlines.</small></span>
                                         <input type="hidden" name="notify_exams_present" value="1">
                                         <label class="acct-switch"><input type="checkbox" name="notify_exams" value="1" {{ ($prefs['notify_exams'] ?? '1') === '1' ? 'checked' : '' }}><span></span></label>
+                                    </div>
+                                @endif
+
+                                @if(in_array($my->user_type, ['student', 'parent'], true))
+                                    {{-- My Account v3: real switch — App\Support\Notify
+                                         checks this preference before writing each
+                                         LMS bell alert for this user. --}}
+                                    <div class="acct-toggle-row">
+                                        <span class="acct-toggle-icon acct-tint-blue"><i class="icon-bell2"></i></span>
+                                        <span class="acct-toggle-text"><strong>Assignment &amp; Internal Marks Alerts</strong><small>Bell alerts when an assignment is graded or internal marks are published.</small></span>
+                                        <input type="hidden" name="notify_lms_present" value="1">
+                                        <label class="acct-switch"><input type="checkbox" name="notify_lms" value="1" {{ ($prefs['notify_lms'] ?? '1') === '1' ? 'checked' : '' }}><span></span></label>
                                     </div>
                                 @endif
                             </div>
@@ -511,6 +547,73 @@
                 btn.querySelector('i').className = show ? 'icon-eye-blocked' : 'icon-eye';
             });
         });
+
+        // My Account v3: password strength meter. Honest, explainable
+        // rules only: length, then character classes. Advisory — the
+        // server-side rules are unchanged and still decide.
+        var pwInput = document.getElementById('acct-new-password');
+        var pwMeter = document.getElementById('acct-pw-meter');
+        var pwFill = document.getElementById('acct-pw-fill');
+        var pwLabel = document.getElementById('acct-pw-label');
+        if (pwInput && pwMeter && pwFill && pwLabel) {
+            var pwWords = ['Weak', 'Weak', 'Fair', 'Good', 'Strong'];
+            pwInput.addEventListener('input', function () {
+                var v = pwInput.value;
+                if (!v) { pwMeter.hidden = true; return; }
+                var score = 0;
+                if (v.length >= 8) { score++; }
+                if (v.length >= 12) { score++; }
+                if (/[a-z]/.test(v) && /[A-Z]/.test(v)) { score++; }
+                if (/\d/.test(v)) { score++; }
+                if (/[^A-Za-z0-9]/.test(v)) { score++; }
+                if (score > 4) { score = 4; }
+                pwMeter.hidden = false;
+                pwFill.style.width = ((score + 1) * 20) + '%';
+                pwFill.setAttribute('data-level', score);
+                pwLabel.textContent = 'Strength: ' + pwWords[score];
+            });
+        }
+
+        // My Account v3: unsaved-changes warning on the profile form.
+        // Snapshot the rendered values; leaving the page (link, reload,
+        // close) with different values — or a photo picked but not yet
+        // saved — asks the browser's native confirm. Submitting or
+        // cancelling clears the guard.
+        var acctForm = document.getElementById('acct-profile-form');
+        if (acctForm) {
+            var acctSnapshot = null;
+            var acctSubmitting = false;
+            var captureAcct = function () {
+                var data = {};
+                new FormData(acctForm).forEach(function (value, key) {
+                    if (typeof value === 'string') { data[key] = value; }
+                });
+                return data;
+            };
+            var acctDirty = function () {
+                if (!acctSnapshot) { return false; }
+                var now = captureAcct();
+                for (var key in now) {
+                    if (now[key] !== acctSnapshot[key]) { return true; }
+                }
+                var file = document.getElementById('acct-photo');
+                return !!(file && file.files && file.files.length);
+            };
+            acctSnapshot = captureAcct();
+            acctForm.addEventListener('submit', function () { acctSubmitting = true; });
+            var acctCancel = document.getElementById('acct-profile-cancel');
+            if (acctCancel) {
+                acctCancel.addEventListener('click', function () {
+                    setTimeout(function () { acctSnapshot = captureAcct(); }, 0);
+                });
+            }
+            window.addEventListener('beforeunload', function (e) {
+                if (!acctSubmitting && acctDirty()) {
+                    e.preventDefault();
+                    e.returnValue = '';
+                }
+            });
+        }
     })();
 </script>
 @endsection

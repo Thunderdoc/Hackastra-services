@@ -114,12 +114,67 @@
         });
     }
 
+    /* Loop 75 — calm inline confirmations (owner directive
+       2026-10-22: the floating PNotify corner popups are gone).
+       flash() keeps its exact call contract ({msg, type}); only
+       the presentation changed: ONE slim banner docked at the top
+       of the content wrapper, directly under the topbar. A new
+       message replaces the current one — nothing ever stacks.
+       success/info fade away after ~4s; warning/danger stay until
+       the user closes them. */
+    var l75FlashTimer = null;
     function flash(data){
-        new PNotify({
-            text: data.msg,
-            type: data.type,
-            hide : data.type !== "danger"
+        var type = data.type || 'info';
+        if (type === 'error') { type = 'danger'; }
+        if (['success', 'info', 'warning', 'danger'].indexOf(type) === -1) { type = 'info'; }
+        var icons = {
+            success: 'icon-checkmark2',
+            info: 'icon-info22',
+            warning: 'icon-warning2',
+            danger: 'icon-info3'
+        };
+        var dock = document.getElementById('l75-flash-dock');
+        if (!dock) {
+            dock = document.createElement('div');
+            dock.id = 'l75-flash-dock';
+            var wrap = document.querySelector('.content-wrapper');
+            if (wrap) { wrap.insertBefore(dock, wrap.firstChild); }
+            else { document.body.appendChild(dock); }
+        }
+        if (l75FlashTimer) { clearTimeout(l75FlashTimer); l75FlashTimer = null; }
+        dock.className = 'l75-flash-dock l75-flash-' + type;
+        dock.setAttribute('role', 'status');
+        dock.innerHTML = '';
+        var icon = document.createElement('i');
+        icon.className = icons[type];
+        icon.setAttribute('aria-hidden', 'true');
+        var msg = document.createElement('span');
+        msg.className = 'l75-flash-msg';
+        msg.textContent = data.msg;
+        var close = document.createElement('button');
+        close.type = 'button';
+        close.className = 'l75-flash-close';
+        close.setAttribute('aria-label', 'Dismiss');
+        close.innerHTML = '&times;';
+        close.addEventListener('click', function () { l75FlashHide(dock); });
+        dock.appendChild(icon);
+        dock.appendChild(msg);
+        dock.appendChild(close);
+        dock.hidden = false;
+        // Next frame: ensure the entrance is a gentle fade-in.
+        dock.classList.add('is-out');
+        requestAnimationFrame(function () {
+            requestAnimationFrame(function () { dock.classList.remove('is-out'); });
         });
+        if (type === 'success' || type === 'info') {
+            l75FlashTimer = setTimeout(function () { l75FlashHide(dock); }, 4000);
+        }
+    }
+
+    function l75FlashHide(dock){
+        if (l75FlashTimer) { clearTimeout(l75FlashTimer); l75FlashTimer = null; }
+        dock.classList.add('is-out');
+        setTimeout(function () { dock.hidden = true; }, 360);
     }
 
     function confirmDelete(id) {

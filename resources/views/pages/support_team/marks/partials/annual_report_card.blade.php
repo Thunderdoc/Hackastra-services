@@ -36,6 +36,7 @@
     .report-card .rc-contact{color:#000;font-size:12px;}
     .report-card .rc-logo-tile{display:inline-flex;align-items:center;justify-content:center;width:64px;height:64px;background:#10263b;color:#fff;font-size:20px;font-weight:800;letter-spacing:.03em;border-radius:8px;}
     .report-card .rc-photo{width:100px;height:100px;object-fit:cover;border:1px solid #b9c6d4;}
+    .report-card .rc-photo-tile{display:inline-flex;align-items:center;justify-content:center;width:100px;height:100px;background:#eef2f7;color:#10263b;font-size:30px;font-weight:800;letter-spacing:.03em;border:1px solid #b9c6d4;}
     .report-card .rc-titleband{background:#10263b;color:#fff;text-align:center;padding:6px 8px 7px;margin:10px 0;}
     .report-card .rc-title{color:#fff;font-size:15px;font-weight:bold;text-transform:uppercase;letter-spacing:.6px;}
     .report-card .rc-subtitle{color:#dbe7fb;font-size:12.5px;font-weight:bold;text-transform:uppercase;letter-spacing:.4px;margin-top:1px;}
@@ -64,8 +65,13 @@
     .report-card .rc-legend td.rc-legend-label{background:#eef2f7;color:#10263b;font-weight:bold;text-align:left;letter-spacing:.3px;width:126px;}
     .report-card .rc-signatures{position:relative;margin-top:26px;padding-right:10px;}
     .report-card .rc-sign-table{width:100%;border-collapse:collapse;}
-    .report-card .rc-sign-cell{width:50%;padding:0 30px 0 4px;vertical-align:top;}
+    .report-card .rc-sign-cell{width:33.33%;padding:0 30px 0 4px;vertical-align:top;}
+    .report-card .rc-issue{width:100%;border-collapse:collapse;margin-top:16px;}
+    .report-card .rc-issue td{font-size:11px;color:#44546a;padding:0;}
+    .report-card .rc-issue td.rc-issue-right{text-align:right;color:#718096;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;}
     .report-card .rc-sign-line{border-bottom:1px solid #000;height:38px;}
+    .report-card .rc-sign-line-filled{height:4px;}
+    .report-card .rc-sign-img{display:block;height:34px;max-width:170px;object-fit:contain;margin-left:6px;}
     .report-card .rc-sign-role{font-weight:bold;margin-top:6px;font-size:12px;letter-spacing:.4px;}
     .report-card .rc-sign-name{font-size:13px;margin-top:2px;min-height:16px;}
     .report-card .rc-stamp{position:absolute;right:56px;bottom:2px;width:110px;height:110px;object-fit:contain;transform:rotate(-10deg);opacity:.95;z-index:2;}
@@ -110,7 +116,23 @@
                 @endif
             </td>
             <td style="width:100px; text-align:right;">
-                <img class="rc-photo" src="{{ $sr->user->photo }}" alt="">
+                {{-- Photo rule (Workstream BR): a real uploaded photo,
+                     else an initials tile — never the stock silhouette
+                     the users-table default points at. --}}
+                @if(Qs::hasRealPhoto($sr->user->photo))
+                    <img class="rc-photo" src="{{ $sr->user->photo }}" alt="">
+                @else
+                    @php
+                        $rcStuInitials = '';
+                        foreach (preg_split('/\s+/', trim((string) $sr->user->name)) as $rcWord) {
+                            if ($rcWord !== '') {
+                                $rcStuInitials .= strtoupper(substr($rcWord, 0, 1));
+                                if (strlen($rcStuInitials) >= 2) { break; }
+                            }
+                        }
+                    @endphp
+                    <span class="rc-photo-tile" aria-hidden="true">{{ $rcStuInitials ?: 'S' }}</span>
+                @endif
             </td>
         </tr>
     </table>
@@ -174,7 +196,7 @@
                         <td>{{ $cell === null ? '–' : $cell }}</td>
                     @endforeach
                     <td>{{ $row['annual'] === null ? '–' : $row['annual'] }}</td>
-                    <td>{{ $row['grade'] ?: '–' }}</td>
+                    <td class="rc-grade">{{ $row['grade'] ?: '–' }}</td>
                     <td>{!! $row['pos'] ? Mk::getSuffix($row['pos']) : '–' !!}</td>
                     <td class="rc-remark">{{ $row['remark'] ?: '–' }}</td>
                 </tr>
@@ -225,6 +247,16 @@
                     </td>
                     <td class="rc-sign-cell">
                         <div class="rc-sign-line"></div>
+                        <div class="rc-sign-role">CHECKED BY</div>
+                        <div class="rc-sign-name"></div>
+                    </td>
+                    <td class="rc-sign-cell">
+                        @if(!empty($card['principal_signature']))
+                            <img class="rc-sign-img" src="{{ $card['principal_signature'] }}" alt="Principal's signature">
+                            <div class="rc-sign-line rc-sign-line-filled"></div>
+                        @else
+                            <div class="rc-sign-line"></div>
+                        @endif
                         <div class="rc-sign-role">PRINCIPAL</div>
                         <div class="rc-sign-name">{{ $card['principal_name'] ?: '' }}</div>
                     </td>
@@ -232,6 +264,17 @@
             </table>
         </div>
 
-        <div class="rc-genline">Generated by Hackstra</div>
+        {{-- Issue line (Loop 85): the real generation date on the
+             left, the system attribution on the right. Signature
+             imagery follows the owner's digital-signature ruling
+             (2026-10-22): the principal's uploaded signature renders
+             above the Principal line only while one is configured in
+             Settings — never a fabricated signature. --}}
+        <table class="rc-issue">
+            <tr>
+                <td><strong>Date of Issue:</strong> {{ date('d M Y') }}</td>
+                <td class="rc-issue-right">Generated by Hackstra School Management System</td>
+            </tr>
+        </table>
     </div>
 </div>

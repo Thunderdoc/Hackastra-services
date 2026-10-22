@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\StudentRecord;
 use App\Models\UserNotification;
+use App\Models\UserPreference;
 use Illuminate\Support\Facades\Schema;
 
 /**
@@ -43,7 +44,13 @@ class Notify
      */
     public static function toStudentAndParents($studentUserId, string $type, string $title, $body = null, $link = null): void
     {
-        static::toUser($studentUserId, $type, $title, $body, $link);
+        // My Account v3: both writers through here are LMS events
+        // (assignment graded, internal marks pushed), so each
+        // recipient's own 'notify_lms' preference gates their copy.
+        // Default is on; a missing preferences table degrades to on.
+        if (static::lmsAlertsEnabled($studentUserId)) {
+            static::toUser($studentUserId, $type, $title, $body, $link);
+        }
 
         $parentIds = StudentRecord::where('user_id', $studentUserId)
             ->whereNotNull('my_parent_id')
@@ -51,8 +58,19 @@ class Notify
             ->unique();
 
         foreach ($parentIds as $parentId) {
-            static::toUser($parentId, $type, $title, $body, $link);
+            if (static::lmsAlertsEnabled($parentId)) {
+                static::toUser($parentId, $type, $title, $body, $link);
+            }
         }
+    }
+
+    protected static function lmsAlertsEnabled($userId): bool
+    {
+        if (!$userId || !Schema::hasTable('user_preferences')) {
+            return true;
+        }
+
+        return UserPreference::enabled((int) $userId, 'notify_lms');
     }
 
     public static function unreadCount($userId): int

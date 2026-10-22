@@ -36,7 +36,10 @@ Route::group(['middleware' => 'auth'], function () {
             Route::get('graduated', 'StudentRecordController@graduated')->name('students.graduated');
             Route::put('not_graduated/{id}', 'StudentRecordController@not_graduated')->name('st.not_graduated');
             Route::get('id_card/{sr_id}', 'IdCardController@show')->name('students.id_card')->middleware('teamSA');
-            Route::get('list/{class_id}', 'StudentRecordController@listByClass')->name('students.list')->middleware('teamSAT');
+            /* Owner ruling 2026-10-22: {class_id} is optional — with no
+               class this URL is the Student Information landing
+               (class/section picker in listByClass). */
+            Route::get('list/{class_id?}', 'StudentRecordController@listByClass')->name('students.list')->middleware('teamSAT');
             Route::get('export/{class_id}/{section_id?}', 'StudentRecordController@export')->name('students.export')->middleware('teamSAT');
 
             /* Bulk operations — CSV import + bulk delete (Workstream AA).
@@ -47,6 +50,11 @@ Route::group(['middleware' => 'auth'], function () {
             Route::get('import/template', 'StudentBulkController@importTemplate')->name('students.import.template');
             Route::post('import', 'StudentBulkController@importStore')->name('students.import.store');
             Route::post('bulk_delete', 'StudentBulkController@bulkDelete')->name('students.bulk_delete');
+
+            /* Quick Admit (2026-10-22): essentials-only admission.
+               Gated teamSAWrite in StudentRecordController's
+               constructor, same as store. */
+            Route::post('quick_store', 'StudentRecordController@quickStore')->name('students.quick_store');
 
             /* Promotions */
             Route::post('promote_selector', 'PromotionController@selector')->name('students.promote_selector');
@@ -73,6 +81,9 @@ Route::group(['middleware' => 'auth'], function () {
         Route::group(['prefix' => 'timetables'], function(){
             Route::get('/', 'TimeTableController@index')->name('tt.index');
             Route::get('mine', 'TimeTableController@mine')->name('tt.mine');
+            /* Loop 81: teacher's own weekly timetable — print + PDF */
+            Route::get('mine/print', 'TimeTableController@mine_print')->name('tt.mine_print');
+            Route::get('mine/pdf', 'TimeTableController@mine_pdf')->name('tt.mine_pdf');
 
             // Workstream CM: timetable writes are school writes — Admin only.
             Route::group(['middleware' => 'teamSAWrite'], function() {
@@ -130,6 +141,9 @@ Route::group(['middleware' => 'auth'], function () {
             Route::get('reports/defaulters', 'FeeReportController@defaulters')->name('payments.defaulters');
             Route::get('reports/defaulters/export', 'FeeReportController@defaultersExport')->name('payments.defaulters.export');
             Route::get('reports/collection', 'FeeReportController@collection')->name('payments.collection');
+            Route::get('reports/collection/export', 'FeeReportController@collectionExport')->name('payments.collection.export');
+            Route::get('reports/collection/pdf', 'FeeReportController@collectionPdf')->name('payments.collection.pdf');
+            Route::get('reports/collection/day', 'FeeReportController@collectionDay')->name('payments.collection.day');
         });
 
         /*************** Payroll (Workstream AI) *****************/
@@ -145,7 +159,9 @@ Route::group(['middleware' => 'auth'], function () {
         /* Staff self-service payslips: own records only, enforced in the controller. */
         Route::group(['prefix' => 'my-payslips'], function(){
             Route::get('/', 'PayrollController@myIndex')->name('my_payslips.index');
+            Route::get('download-all', 'PayrollController@myPayslipsPdfAll')->name('my_payslips.pdf_all');
             Route::get('{payroll}', 'PayrollController@myPayslip')->name('my_payslips.payslip');
+            Route::get('{payroll}/pdf', 'PayrollController@myPayslipPdf')->name('my_payslips.pdf');
         });
 
         /*************** Pins — REMOVED (Workstream BH) *****************/
@@ -165,6 +181,14 @@ Route::group(['middleware' => 'auth'], function () {
                 Route::get('tabulation/{exam?}/{class?}/{sec_id?}', 'MarkController@tabulation')->name('marks.tabulation');
                 Route::post('tabulation', 'MarkController@tabulation_select')->name('marks.tabulation_select');
                 Route::get('tabulation/print/{exam}/{class}/{sec_id}', 'MarkController@print_tabulation')->name('marks.print_tabulation');
+
+                /* Marksheet (bulk class sheet) — owner ruling
+                   2026-10-22: marksheets belong to the school office
+                   and the student, never the teacher. Moved here from
+                   the teamSATWrite group so the teacher role is refused
+                   at the route gate; Admin keeps generation. */
+                Route::get('bulk/{class?}/{section?}', 'MarkController@bulk')->name('marks.bulk');
+                Route::post('bulk', 'MarkController@bulk_select')->name('marks.bulk_select');
             });
 
             // Marks Correction (batch fix) is a WRITE — Admin only.
@@ -183,8 +207,6 @@ Route::group(['middleware' => 'auth'], function () {
                 Route::put('comment_update/{exr_id}', 'MarkController@comment_update')->name('marks.comment_update');
                 Route::put('skills_update/{skill}/{exr_id}', 'MarkController@skills_update')->name('marks.skills_update');
                 Route::post('selector', 'MarkController@selector')->name('marks.selector');
-                Route::get('bulk/{class?}/{section?}', 'MarkController@bulk')->name('marks.bulk');
-                Route::post('bulk', 'MarkController@bulk_select')->name('marks.bulk_select');
             });
 
             Route::get('select_year/{id}', 'MarkController@year_selector')->name('marks.year_selector');
@@ -193,6 +215,7 @@ Route::group(['middleware' => 'auth'], function () {
             Route::get('print/{id}/{exam_id}/{year}', 'MarkController@print_view')->name('marks.print');
             Route::get('annual/{id}/{year}', 'MarkController@show_annual')->name('marks.annual');
             Route::get('print_annual/{id}/{year}', 'MarkController@print_annual')->name('marks.print_annual');
+            Route::get('pdf_annual/{id}/{year}', 'MarkController@pdf_annual')->name('marks.pdf_annual');
 
         });
 
@@ -230,7 +253,10 @@ Route::group(['middleware' => 'auth'], function () {
         Route::post('attendance', 'AttendanceController@store')->name('attendance.store');
         Route::get('attendance/report', 'AttendanceController@report')->name('attendance.report');
         Route::get('attendance/report/export', 'AttendanceController@export')->name('attendance.export');
+        Route::get('attendance/report/print', 'AttendanceController@reportPrint')->name('attendance.report.print');
+        Route::get('attendance/report/pdf', 'AttendanceController@reportPdf')->name('attendance.report.pdf');
         Route::get('attendance/defaulters', 'AttendanceController@defaulters')->name('attendance.defaulters');
+        Route::get('attendance/defaulters/export', 'AttendanceController@defaultersExport')->name('attendance.defaulters.export');
         Route::get('attendance/my', 'AttendanceController@my')->name('attendance.my');
 
         /*************** Student ID Card (Workstream AJ) *****************/
@@ -245,6 +271,13 @@ Route::group(['middleware' => 'auth'], function () {
         Route::get('attendance/periods/report', 'PeriodAttendanceController@report')->name('attendance.periods.report');
         Route::get('attendance/periods/export', 'PeriodAttendanceController@export')->name('attendance.periods.export');
         Route::get('attendance/periods/session/{session_id}', 'PeriodAttendanceController@show')->name('attendance.periods.show');
+        /* Read-only outputs of a submitted register (Loop 77): the
+           print view + PDF share one v2 document blade, the CSV
+           follows the report export pattern. All three reuse the
+           show action's scoping — a teacher opens only own registers. */
+        Route::get('attendance/periods/session/{session_id}/print', 'PeriodAttendanceController@printRegister')->name('attendance.periods.print');
+        Route::get('attendance/periods/session/{session_id}/pdf', 'PeriodAttendanceController@pdfRegister')->name('attendance.periods.pdf');
+        Route::get('attendance/periods/session/{session_id}/export', 'PeriodAttendanceController@exportRegister')->name('attendance.periods.export_register');
         Route::get('attendance/periods/{tt_id}/take', 'PeriodAttendanceController@take')->name('attendance.periods.take');
         Route::post('attendance/periods/{tt_id}', 'PeriodAttendanceController@store')->name('attendance.periods.store');
 
@@ -253,6 +286,8 @@ Route::group(['middleware' => 'auth'], function () {
 
         /*************** Circulars *****************/
         Route::patch('circulars/{circular}/toggle-publish', 'CircularController@togglePublish')->name('circulars.toggle_publish');
+        Route::get('circulars/{circular}/print', 'CircularController@print')->name('circulars.print');
+        Route::get('circulars/{circular}/pdf', 'CircularController@pdf')->name('circulars.pdf');
         Route::resource('circulars', 'CircularController');
 
         /*************** LMS — Assignments (Workstream CS1 + CS2 alignment) *****************/

@@ -10,9 +10,9 @@
                 <form class="ajax-update" method="post" action="{{ route('marks.skills_update', ['AF', $exr->id]) }}">
                     @csrf @method('PUT')
                     @foreach($skills->where('skill_type', 'AF') as $af)
-                        <div class="form-group row">
-                            <label for="af" class="col-lg-6 col-form-label font-weight-semibold">{{ $af->name }}</label>
-                            <div class="col-lg-6">
+                        <div class="l76-skill-row">
+                            <label for="af">{{ $af->name }}</label>
+                            <div>
                                 <select data-placeholder="Select" name="af[]" id="af" class="form-control select">
                                     <option value=""></option>
                                     @for($i=1; $i<=5; $i++)
@@ -45,9 +45,9 @@
                 <form class="ajax-update" method="post" action="{{ route('marks.skills_update', ['PS', $exr->id]) }}">
                     @csrf @method('PUT')
                     @foreach($skills->where('skill_type', 'PS') as $ps)
-                        <div class="form-group row">
-                            <label for="ps" class="col-lg-6 col-form-label font-weight-semibold">{{ $ps->name }}</label>
-                            <div class="col-lg-6">
+                        <div class="l76-skill-row">
+                            <label for="ps">{{ $ps->name }}</label>
+                            <div>
                                 <select data-placeholder="Select" name="ps[]" id="ps" class="form-control select">
                                     <option value=""></option>
                                     @for($i=1; $i<=5; $i++)

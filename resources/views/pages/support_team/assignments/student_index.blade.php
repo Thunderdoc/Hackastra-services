@@ -1,7 +1,7 @@
 @extends('layouts.master')
 @section('page_title', 'My Assignments')
 @section('page_breadcrumb')
-    <a href="{{ route('dashboard') }}">Home</a> &nbsp;/&nbsp; My Assignments
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Learning &nbsp;/&nbsp; My Assignments
 @endsection
 @section('content')
     {{-- Workstream CS2 (LMS): student "My Assignments" — one card per
@@ -9,20 +9,27 @@
          status (Pending / Submitted / Late / Graded + marks). The
          student's own submission is resolved defensively:
          $assignment->my_submission when CS1 attaches it, else the
-         first item of an eager-loaded $assignment->submissions. --}}
-    @if(session('flash_success'))
-        <div class="alert alert-success border-0">{{ session('flash_success') }}</div>
-    @endif
-    @if(session('flash_danger'))
-        <div class="alert alert-danger border-0">{{ session('flash_danger') }}</div>
-    @endif
-
+         first item of an eager-loaded $assignment->submissions.
+         Loop 82: same design language as the teacher list + a
+         server-side search; duplicate inline flash alerts removed
+         (the app-wide banner shows each message once). --}}
     <div class="pat-list">
         <div class="pat-toolbar">
             <div class="pat-toolbar-text">
                 <div class="pat-toolbar-sub">Assignments from your teachers — submit online before the deadline, and see your marks here once graded.</div>
             </div>
         </div>
+
+        <form method="get" action="{{ route('assignments.index') }}" class="lms82-student-search">
+            <div class="lms82-search-wrap">
+                <i class="icon-search4"></i>
+                <input type="text" name="q" value="{{ request('q') }}" class="form-control" placeholder="Search your assignments by title, subject or teacher...">
+            </div>
+            <button type="submit" class="btn btn-primary"><i class="icon-filter3 mr-1"></i> Search</button>
+            @if(request()->filled('q'))
+                <a href="{{ route('assignments.index') }}" class="btn btn-light"><i class="icon-reset mr-1"></i> Reset</a>
+            @endif
+        </form>
 
         <div class="lms-card-list">
             @forelse($assignments as $assignment)
@@ -70,6 +77,9 @@
                             @endif
                         </div>
                         <a href="{{ route('assignments.show', $assignment->id) }}" class="lms-card-title">{{ $assignment->title }}</a>
+                        @if($assignment->description)
+                            <div class="text-muted lms82-clamp2">{{ \Illuminate\Support\Str::limit($assignment->description, 130) }}</div>
+                        @endif
                         <div class="text-muted mt-1">
                             <i class="icon-user mr-1"></i>{{ optional($assignment->teacher)->name ?? 'Teacher' }}
                             @if($assignment->attachment_path)
@@ -86,10 +96,19 @@
             @empty
                 <div class="card pat-card">
                     <div class="card-body">
-                        @include('partials.patterns.empty_state', [
-                            'icon' => 'icon-file-text2',
-                            'message' => 'No assignments yet. When a teacher publishes one for your class, it will appear here.',
-                        ])
+                        @if(request()->filled('q'))
+                            @include('partials.patterns.empty_state', [
+                                'icon' => 'icon-search4',
+                                'message' => 'No assignments match your search. Try a different title, subject or teacher name.',
+                                'action_url' => route('assignments.index'),
+                                'action_label' => 'Clear Search',
+                            ])
+                        @else
+                            @include('partials.patterns.empty_state', [
+                                'icon' => 'icon-file-text2',
+                                'message' => 'No assignments yet. When a teacher publishes one for your class, it will appear here.',
+                            ])
+                        @endif
                     </div>
                 </div>
             @endforelse

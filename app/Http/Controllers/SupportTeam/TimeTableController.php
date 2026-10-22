@@ -13,6 +13,7 @@ use App\Models\TimeTableRecord;
 use App\Repositories\ExamRepo;
 use App\Repositories\MyClassRepo;
 use App\Repositories\TimeTableRepo;
+use App\Support\TeacherScope;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -29,11 +30,124 @@ class TimeTableController extends Controller
         $this->year = Qs::getCurrentSession();
     }
 
-    public function index()
+    /**
+     * Timetable domain scope (owner doctrine, 2026-10-22: every role
+     * sees only its own domain, server-side, direct URLs included —
+     * a student was seeing every class's timetable on tt.index).
+     *
+     * Returns the class ids the signed-in user may see timetables
+     * for, or:
+     *   null  — unrestricted (teamSA: Admin runs the school; the
+     *           Super Admin never reaches these actions — PlatformOnly
+     *           redirects it to the platform overview first);
+     *   false — no timetable domain at all (accountant, librarian,
+     *           any other role): index redirects away, record URLs 403.
+     *
+     * Student = their own class (student record); Parent = their
+     * children's classes; Teacher = TeacherScope (subjects.teacher_id
+     * ∪ sections.teacher_id — the canonical helper).
+     *
+     * @return int[]|null|false
+     */
+    protected function timetableScopeClassIds()
     {
+        $user = Auth::user();
+
+        if (Qs::userIsTeamSA()) {
+            return null;
+        }
+
+        if (Qs::userIsStudent()) {
+            $sr = Qs::findStudentRecord($user->id);
+
+            return $sr ? [(int) $sr->my_class_id] : [];
+        }
+
+        if (Qs::userIsParent()) {
+            return Qs::findMyChildren($user->id)
+                ->pluck('my_class_id')
+                ->map(function ($id) { return (int) $id; })
+                ->unique()->values()->all();
+        }
+
+        if (Qs::userIsTeacher()) {
+            return TeacherScope::classIds($user);
+        }
+
+        return false;
+    }
+
+    /** Record-level guard for show/print: foreign class => 403. */
+    protected function guardRecordScope($ttr)
+    {
+        $scope = $this->timetableScopeClassIds();
+
+        if ($scope === null) {
+            return;
+        }
+
+        if ($scope === false || !in_array((int) $ttr->my_class_id, $scope, true)) {
+            abort(403, __('msg.denied'));
+        }
+    }
+
+    public function index(Request $req)
+    {
+        $scope = $this->timetableScopeClassIds();
+
+        if ($scope === false) {
+            return redirect()->route('dashboard')->with('pop_error', __('msg.denied'));
+        }
+
         $d['exams'] = $this->exam->getExam(['year' => $this->year]);
         $d['my_classes'] = $this->my_class->all();
-        $d['tt_records'] = $this->tt->getAllRecords();
+        $all = $this->tt->getAllRecords();
+
+        /* Scoped roles: the records, the summary cards, the year list
+           and the class filter options all derive from the scoped set
+           only, so no other class's name or counts can leak. */
+        if ($scope !== null) {
+            $all = $all->whereIn('my_class_id', $scope)->values();
+            $d['my_classes'] = $d['my_classes']->whereIn('id', $scope)->values();
+        }
+
+        $d['tt_records_all'] = $all;
+
+        /* Loop 81: summary cards — module totals over every record
+           (unfiltered; the filters below narrow the list only). There
+           is no status column on time_table_records, so "Active" is
+           derived honestly: the record's year IS the current session. */
+        $d['stats'] = [
+            'total'   => $all->count(),
+            'active'  => $all->where('year', $this->year)->count(),
+            'classes' => $all->pluck('my_class_id')->unique()->count(),
+            'session' => $this->year,
+        ];
+        $d['years'] = $all->pluck('year')->unique()->sortDesc()->values();
+
+        /* Loop 81: server-side filters (search / class / year) that
+           combine; the view groups whatever survives by class. */
+        $d['f_q'] = trim((string) $req->query('q', ''));
+        $d['f_class'] = $req->query('class_id');
+        $d['f_year'] = $req->query('year');
+
+        $d['tt_records'] = $all->filter(function ($ttr) use ($d) {
+            if ($d['f_q'] !== '') {
+                $q = mb_strtolower($d['f_q']);
+                $inName = mb_strpos(mb_strtolower((string) $ttr->name), $q) !== false;
+                $inClass = $ttr->my_class && mb_strpos(mb_strtolower((string) $ttr->my_class->name), $q) !== false;
+                if (!$inName && !$inClass) {
+                    return false;
+                }
+            }
+            if ($d['f_class'] !== null && $d['f_class'] !== '' && (int) $ttr->my_class_id !== (int) $d['f_class']) {
+                return false;
+            }
+            if ($d['f_year'] !== null && $d['f_year'] !== '' && (string) $ttr->year !== (string) $d['f_year']) {
+                return false;
+            }
+            return true;
+        })->values();
 
         return view('pages.support_team.timetables.index', $d);
     }
@@ -58,34 +172,7 @@ class TimeTableController extends Controller
         $d = ['mode' => null, 'days' => collect(), 'slots' => collect(), 'map' => [], 'ttr' => null];
 
         if (Qs::userIsTeacher()) {
-            $periods = TimeTable::with(['subject.my_class', 'time_slot', 'tt_record.my_class'])
-                ->whereNotNull('day')
-                ->whereHas('subject', function ($q) use ($user) {
-                    $q->where('teacher_id', $user->id);
-                })
-                ->get();
-
-            $d['mode'] = 'teacher';
-            $d['slots'] = $periods->pluck('time_slot')->filter()->unique('id')
-                ->sortBy(function ($slot) { return (int) $slot->timestamp_from; })->values();
-            $d['period_count'] = $periods->count();
-
-            foreach ($periods as $p) {
-                if (!$p->time_slot) {
-                    continue;
-                }
-                $class = optional($p->tt_record)->my_class ?: optional($p->subject)->my_class;
-                $d['map'][$p->day][$p->time_slot->full] = [
-                    'title' => optional($p->subject)->name ?: '—',
-                    'sub'   => $class ? $class->name : '',
-                ];
-            }
-
-            $present = $periods->pluck('day')->unique()->all();
-            $d['days'] = collect(Qs::getDaysOfTheWeek())->filter(function ($day) use ($present) {
-                return in_array($day, ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'])
-                    || in_array($day, $present);
-            })->values();
+            $d = array_merge($d, $this->teacherWeekData($user));
 
             return view('pages.support_team.timetables.mine', $d);
         }
@@ -125,6 +212,130 @@ class TimeTableController extends Controller
         }
 
         return redirect()->route('tt.index');
+    }
+
+    /**
+     * Loop 81: the signed-in teacher's week dataset — single source for
+     * the My Timetable screen, its print view and its PDF, so all three
+     * always agree. Derivation is the teacher dashboard's: TimeTable
+     * rows whose subject.teacher_id is the teacher. Sections and rooms
+     * are not stored for a teacher's periods, so neither is produced.
+     */
+    protected function teacherWeekData($user)
+    {
+        $periods = TimeTable::with(['subject.my_class', 'time_slot', 'tt_record.my_class'])
+            ->whereNotNull('day')
+            ->whereHas('subject', function ($q) use ($user) {
+                $q->where('teacher_id', $user->id);
+            })
+            ->get();
+
+        $d = ['mode' => 'teacher', 'map' => []];
+        $d['slots'] = $periods->pluck('time_slot')->filter()->unique('id')
+            ->sortBy(function ($slot) { return (int) $slot->timestamp_from; })->values();
+        $d['period_count'] = $periods->count();
+
+        foreach ($periods as $p) {
+            if (!$p->time_slot) {
+                continue;
+            }
+            $class = optional($p->tt_record)->my_class ?: optional($p->subject)->my_class;
+            $d['map'][$p->day][$p->time_slot->full] = [
+                'title' => optional($p->subject)->name ?: '—',
+                'sub'   => $class ? $class->name : '',
+            ];
+        }
+
+        $dayOrder = array_flip(Qs::getDaysOfTheWeek());
+        $entries = $periods->filter(function ($p) { return $p->time_slot; })
+            ->map(function ($p) {
+                $class = optional($p->tt_record)->my_class ?: optional($p->subject)->my_class;
+                return [
+                    'day'     => $p->day,
+                    'slot'    => $p->time_slot->full,
+                    'from'    => (int) $p->time_slot->timestamp_from,
+                    'subject' => optional($p->subject)->name ?: '—',
+                    'class'   => $class ? $class->name : '',
+                ];
+            })
+            ->sortBy(function ($e) use ($dayOrder) {
+                return (($dayOrder[$e['day']] ?? 99) * 10000000000) + $e['from'];
+            })->values();
+        $d['entries'] = $entries;
+
+        $perDay = $entries->groupBy('day')->map->count();
+        $workDays = collect(Qs::getDaysOfTheWeek())->filter(function ($day) use ($perDay) {
+            return $perDay->has($day);
+        })->values();
+        $durations = $d['slots']->map(function ($slot) {
+            return ((int) $slot->timestamp_to - (int) $slot->timestamp_from) / 60;
+        })->filter(function ($m) { return $m > 0; })->unique()->values();
+        $perDayCounts = $perDay->values()->unique();
+
+        $d['stats'] = [
+            'periods'   => $periods->count(),
+            'work_days' => $workDays->count(),
+            'days_range' => $workDays->count()
+                ? substr($workDays->first(), 0, 3) . ' – ' . substr($workDays->last(), 0, 3)
+                : '',
+            'per_day'   => $perDayCounts->count() === 1 ? $perDay->first() : null,
+            'duration'  => $durations->count() === 1 ? (int) $durations->first() : null,
+            'classes'   => $entries->pluck('class')->filter()->unique()->values(),
+        ];
+
+        $present = $periods->pluck('day')->unique()->all();
+        $d['days'] = collect(Qs::getDaysOfTheWeek())->filter(function ($day) use ($present) {
+            return in_array($day, ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'])
+                || in_array($day, $present);
+        })->values();
+
+        return $d;
+    }
+
+    /**
+     * Loop 81: print view of the teacher's own weekly timetable
+     * (v2 document design). Teachers only — everyone else keeps the
+     * records UI, exactly like mine().
+     */
+    public function mine_print()
+    {
+        if (!Qs::userIsTeacher()) {
+            return redirect()->route('tt.index');
+        }
+
+        $d = $this->teacherWeekData(Auth::user());
+        $d['teacher'] = Auth::user();
+        $d['year'] = $this->year;
+        $d['s'] = Setting::all()->flatMap(function ($s) {
+            return [$s->type => $s->description];
+        });
+
+        return view('pages.support_team.timetables.mine_print', $d);
+    }
+
+    /**
+     * Loop 81: the same teacher weekly timetable as a downloadable PDF.
+     * barryvdh/laravel-dompdf is already in the tree (composer.lock),
+     * so this is a real download of the print template, not a mock.
+     */
+    public function mine_pdf()
+    {
+        if (!Qs::userIsTeacher()) {
+            return redirect()->route('tt.index');
+        }
+
+        $d = $this->teacherWeekData(Auth::user());
+        $d['teacher'] = Auth::user();
+        $d['year'] = $this->year;
+        $d['s'] = Setting::all()->flatMap(function ($s) {
+            return [$s->type => $s->description];
+        });
+        $d['for_pdf'] = true;
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pages.support_team.timetables.mine_print', $d)
+            ->setPaper('a4', 'landscape');
+
+        return $pdf->download('my-timetable-' . \Illuminate\Support\Str::slug(Auth::user()->name) . '-' . $this->year . '.pdf');
     }
 
     /**
@@ -289,6 +500,7 @@ class TimeTableController extends Controller
     {
         $d_time = [];
         $d['ttr'] = $ttr = $this->tt->findRecord($ttr_id);
+        $this->guardRecordScope($ttr);
         $d['ttr_id'] = $ttr_id;
         $d['my_class'] = $this->my_class->find($ttr->my_class_id);
 
@@ -321,6 +533,7 @@ class TimeTableController extends Controller
     {
         $d_time = [];
         $d['ttr'] = $ttr = $this->tt->findRecord($ttr_id);
+        $this->guardRecordScope($ttr);
         $d['ttr_id'] = $ttr_id;
         $d['my_class'] = $this->my_class->find($ttr->my_class_id);
 

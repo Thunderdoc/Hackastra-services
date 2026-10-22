@@ -72,6 +72,8 @@
     .report-card .rc-sign-table{width:100%;border-collapse:collapse;}
     .report-card .rc-sign-cell{width:50%;padding:0 30px 0 4px;vertical-align:top;}
     .report-card .rc-sign-line{border-bottom:1px solid #000;height:38px;}
+    .report-card .rc-sign-line-filled{height:4px;}
+    .report-card .rc-sign-img{display:block;height:34px;max-width:170px;object-fit:contain;margin-left:6px;}
     .report-card .rc-sign-role{font-weight:bold;margin-top:6px;font-size:12px;letter-spacing:.4px;}
     .report-card .rc-sign-name{font-size:13px;margin-top:2px;min-height:16px;}
     .report-card .rc-stamp{position:absolute;right:56px;bottom:2px;width:110px;height:110px;object-fit:contain;transform:rotate(-10deg);opacity:.95;z-index:2;}
@@ -214,7 +216,11 @@
 
         {{-- Signatures + school stamp. The stamp renders ONLY when a
              stamp image has been uploaded in Settings — no placeholder
-             seal is ever drawn (owner decision D4). --}}
+             seal is ever drawn (owner decision D4). The principal's
+             digital signature (owner ruling 2026-10-22) follows the
+             same rule: the uploaded image sits above the Principal
+             line while one is configured in Settings, otherwise the
+             blank line prints exactly as before. --}}
         <div class="rc-signatures">
             @if(!empty($card['stamp']))
                 <img class="rc-stamp" src="{{ $card['stamp'] }}" alt="School stamp">
@@ -227,7 +233,12 @@
                         <div class="rc-sign-name">{{ $card['class_teacher'] ?: '' }}</div>
                     </td>
                     <td class="rc-sign-cell">
-                        <div class="rc-sign-line"></div>
+                        @if(!empty($card['principal_signature']))
+                            <img class="rc-sign-img" src="{{ $card['principal_signature'] }}" alt="Principal's signature">
+                            <div class="rc-sign-line rc-sign-line-filled"></div>
+                        @else
+                            <div class="rc-sign-line"></div>
+                        @endif
                         <div class="rc-sign-role">PRINCIPAL</div>
                         <div class="rc-sign-name">{{ $card['principal_name'] ?: '' }}</div>
                     </td>

@@ -195,3 +195,148 @@
         });
     });
 })();
+
+/*
+ * 3) Sidebar scroll persistence (Loop 91).
+ *
+ * ROOT CAUSE of the "sidebar jumps to the top" bug: the app uses
+ * full-page Laravel navigations, so the whole sidebar DOM — including
+ * its one scroll container, `.sidebar .card-sidebar-mobile` (the only
+ * overflow-y:auto element in the rail; Loop 35 DOM-measured it) — is
+ * recreated by the server on every page load, and a fresh element's
+ * scrollTop is 0. Nothing was resetting it; it was simply never
+ * carried across the navigation.
+ *
+ * FIX: carry it explicitly. The position is stored in sessionStorage
+ * (per-tab, dies with the tab) under one key and restored by an
+ * inline stub at the end of partials/menu.blade.php the moment the
+ * sidebar markup has been parsed — before the content area paints —
+ * and re-asserted here once the layout settles, so the user never
+ * sees the rail at the top and then jumping.
+ *
+ * Guards that keep this honest:
+ *  - A saved value is only ever written from a REAL position of the
+ *    live scroller (link click, debounced user scroll, beforeunload)
+ *    — initialisation never writes, so a stored deep position can
+ *    never be overwritten with 0 by a page that has not restored yet.
+ *  - Re-assertion stops the moment the user actually scrolls (a
+ *    wheel / touch / pointer / key interaction followed by a scroll
+ *    that disagrees with the restored value marks the position as
+ *    user-owned).
+ *  - When nothing is stored (first visit, fresh tab), the only
+ *    adjustment is keeping the ACTIVE item visible
+ *    (scrollIntoView block:'nearest', and only if it is outside the
+ *    visible box) — the exception the design calls for.
+ *  - The collapsed rail uses the same scroller element; nothing
+ *    about the container changes between states.
+ */
+(function () {
+    'use strict';
+
+    var KEY = 'hackstra-sidebar-scroll';
+
+    function scroller() {
+        return document.querySelector('.sidebar .card-sidebar-mobile') ||
+               document.querySelector('.sidebar .sidebar-content');
+    }
+
+    function read() {
+        try {
+            var v = sessionStorage.getItem(KEY);
+            if (v === null) { return null; }
+            var n = parseInt(v, 10);
+            return isNaN(n) ? null : n;
+        } catch (e) { return null; }
+    }
+
+    function save() {
+        var el = scroller();
+        if (!el) { return; }
+        try { sessionStorage.setItem(KEY, String(el.scrollTop)); } catch (e) {}
+    }
+
+    var el = scroller();
+    if (!el) { return; }
+
+    var saved = read();
+    var restored = null;      // value we are holding the rail at
+    var userTouched = false;  // real scroll intent seen on the scroller
+    var userOwns = false;     // user has taken over the position
+
+    if (saved !== null && saved > 0) {
+        // The inline stub in partials/menu normally restored this
+        // already; re-apply in case anything re laid out since.
+        if (el.scrollTop !== saved) { el.scrollTop = saved; }
+        restored = saved;
+    }
+
+    function reassert() {
+        if (restored === null || userOwns) { return; }
+        var cur = scroller();
+        if (cur && Math.abs(cur.scrollTop - restored) > 1) {
+            cur.scrollTop = restored;
+        }
+    }
+
+    ['wheel', 'touchstart', 'pointerdown', 'keydown'].forEach(function (evt) {
+        el.addEventListener(evt, function () { userTouched = true; }, { passive: true });
+    });
+    el.addEventListener('scroll', function () {
+        if (restored !== null && userTouched &&
+            Math.abs(el.scrollTop - restored) > 2) {
+            userOwns = true;
+        }
+    }, { passive: true });
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', reassert);
+    } else {
+        reassert();
+    }
+
+    window.addEventListener('load', function () {
+        reassert();
+        // Layout has settled: from here the stored value simply tracks
+        // the user's own scrolling (debounced), so exits that are not
+        // sidebar clicks (topbar links, refresh, address bar) keep it.
+        var timer = null;
+        el.addEventListener('scroll', function () {
+            if (timer) { return; }
+            timer = setTimeout(function () { timer = null; save(); }, 150);
+        }, { passive: true });
+    });
+
+    // Save on the way out: a click on any sidebar link (capture phase,
+    // before the browser leaves) …
+    var nav = document.querySelector('.sidebar .nav-sidebar');
+    if (nav) {
+        nav.addEventListener('click', function (e) {
+            if (e.target && e.target.closest && e.target.closest('a.nav-link')) {
+                save();
+            }
+        }, true);
+    }
+    // … and any other navigation away from the page.
+    window.addEventListener('beforeunload', save);
+
+    // First visit (nothing stored): default position, except that the
+    // active item must be visible.
+    if (saved === null) {
+        var reveal = function () {
+            var box = scroller();
+            if (!box) { return; }
+            var active = box.querySelector('.nav-link.active');
+            if (!active) { return; }
+            var ar = active.getBoundingClientRect();
+            var cr = box.getBoundingClientRect();
+            if (ar.top < cr.top || ar.bottom > cr.bottom) {
+                active.scrollIntoView({ block: 'nearest' });
+            }
+        };
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', reveal);
+        } else {
+            reveal();
+        }
+    }
+})();

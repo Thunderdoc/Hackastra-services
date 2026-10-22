@@ -55,9 +55,9 @@
 .lav-topbar-toggle{color:#718096;font-size:16px;margin-right:22px}.lav-topbar-toggle:hover{color:#3478f6}
 .lav-topbar-mobile{display:none}.lav-search{align-items:center;background:#f5f7fb;border:1px solid #e4eaf1;border-radius:6px;color:#718096;display:flex;max-width:370px;padding:5px 10px;width:42%}.lav-search i{font-size:13px;margin-right:8px}.lav-search input{background:transparent;border:0;color:#172536;font-size:10px;outline:0;width:100%}.lav-search kbd{background:#fff;border:1px solid #dce3ec;border-radius:3px;color:#9aa7b5;font-size:8px;padding:2px 5px;white-space:nowrap}
 .lav-topbar-icon{background:transparent;border:0;border-left:1px solid #e4eaf1;color:#718096;font-size:15px;height:34px;margin-left:12px;padding:0 14px;position:relative}.lav-topbar-icon span{background:#d64545;border:2px solid #fff;border-radius:50%;color:#fff;font-size:7px;line-height:13px;position:absolute;right:8px;top:1px;width:15px}.lav-profile{border-left:1px solid #e4eaf1;margin-left:4px;padding-left:12px}.lav-profile .nav-link{align-items:center;display:flex;gap:8px;padding:3px 0}.lav-profile img{height:31px;width:31px}.lav-profile strong,.lav-profile small{display:block;line-height:1.2}.lav-profile strong{color:#172536;font-size:10px}.lav-profile small{color:#718096;font-size:8px;margin-top:3px}.lav-profile .dropdown-toggle:after{margin-left:9px}
-.dashboard-action-grid{display:grid;gap:10px;grid-template-columns:repeat(7,1fr);padding:0 22px 22px}.dashboard-action-grid a{align-items:center;background:#f8faff;border:1px solid #e4eaf1;border-radius:7px;color:#3478f6;display:flex;flex-direction:column;font-size:10px;gap:8px;justify-content:center;min-height:68px;padding:8px;text-align:center}.dashboard-action-grid a:hover{background:#edf4ff;color:#2867dc;text-decoration:none}.dashboard-action-grid i{font-size:16px}.dashboard-attendance .dashboard-panel-heading,.dashboard-upcoming .dashboard-panel-heading{padding-bottom:13px}.attendance-empty{align-items:center;display:flex;flex-direction:column;padding:10px 20px 25px;text-align:center}.attendance-ring{align-items:center;background:#f1f4f7;border:8px solid #dfe7ef;border-right-color:#188b66;border-radius:50%;display:flex;flex-direction:column;height:116px;justify-content:center;width:116px}.attendance-ring strong{color:#172536;font-size:22px}.attendance-ring small{color:#718096;font-size:10px}.attendance-empty p{color:#9aa7b5;font-size:10px;line-height:1.5;margin:14px 0 0}.dashboard-event-empty{font-size:10px;line-height:1.5;padding:25px 20px 35px}.dashboard-insight-grid{display:grid;gap:10px;grid-template-columns:repeat(4,1fr);padding:0 22px 22px}.dashboard-insight-grid>div{align-items:center;background:#f8faff;border:1px solid #e4eaf1;border-radius:7px;display:flex;gap:10px;padding:12px}.dashboard-insight-grid i{font-size:17px}.dashboard-insight-grid strong,.dashboard-insight-grid small{display:block}.dashboard-insight-grid strong{color:#172536;font-size:10px}.dashboard-insight-grid small{color:#718096;font-size:8px;margin-top:4px}.text-blue{color:#3478f6}.text-green{color:#188b66}.text-orange{color:#b7791f}
-@media (max-width:1199px){.dashboard-action-grid{grid-template-columns:repeat(4,1fr)}.dashboard-insight-grid{grid-template-columns:repeat(2,1fr)}}
-@media (max-width:767px){.lav-topbar{padding:0 10px}.lav-topbar-toggle{display:none}.lav-topbar-mobile{display:block}.lav-search{margin-left:8px;width:auto}.lav-search input{min-width:0}.lav-search kbd{display:none}.lav-profile span{display:none}.lav-topbar-icon{margin-left:4px;padding:0 7px}.dashboard-action-grid{grid-template-columns:repeat(2,1fr);padding-left:16px;padding-right:16px}.dashboard-insight-grid{grid-template-columns:1fr;padding-left:16px;padding-right:16px}}
+.dashboard-action-grid{display:grid;gap:10px;grid-template-columns:repeat(7,1fr);padding:0 22px 22px}.dashboard-action-grid a{align-items:center;background:#f8faff;border:1px solid #e4eaf1;border-radius:7px;color:#3478f6;display:flex;flex-direction:column;font-size:10px;gap:8px;justify-content:center;min-height:68px;padding:8px;text-align:center}.dashboard-action-grid a:hover{background:#edf4ff;color:#2867dc;text-decoration:none}.dashboard-action-grid i{font-size:16px}.dashboard-attendance .dashboard-panel-heading,.dashboard-upcoming .dashboard-panel-heading{padding-bottom:13px}.attendance-empty{align-items:center;display:flex;flex-direction:column;padding:10px 20px 25px;text-align:center}.attendance-ring{align-items:center;background:#f1f4f7;border:8px solid #dfe7ef;border-right-color:#188b66;border-radius:50%;display:flex;flex-direction:column;height:116px;justify-content:center;width:116px}.attendance-ring strong{color:#172536;font-size:22px}.attendance-ring small{color:#718096;font-size:10px}.attendance-empty p{color:#9aa7b5;font-size:10px;line-height:1.5;margin:14px 0 0}.dashboard-event-empty{font-size:10px;line-height:1.5;padding:25px 20px 35px}.dashboard-insight-grid{display:grid;gap:10px;grid-template-columns:repeat(4,minmax(0,1fr));padding:0 22px 22px}.dashboard-insight-grid>div{align-items:center;background:#f8faff;border:1px solid #e4eaf1;border-radius:7px;display:flex;gap:10px;padding:12px}.dashboard-insight-grid i{font-size:17px}.dashboard-insight-grid strong,.dashboard-insight-grid small{display:block}.dashboard-insight-grid strong{color:#172536;font-size:10px}.dashboard-insight-grid small{color:#718096;font-size:8px;margin-top:4px}.text-blue{color:#3478f6}.text-green{color:#188b66}.text-orange{color:#b7791f}
+@media (max-width:1199px){.dashboard-action-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.dashboard-insight-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:767px){.lav-topbar{padding:0 10px}.lav-topbar-toggle{display:none}.lav-topbar-mobile{display:block}.lav-search{margin-left:8px;width:auto}.lav-search input{min-width:0}.lav-search kbd{display:none}.lav-profile span{display:none}.lav-topbar-icon{margin-left:4px;padding:0 7px}.dashboard-action-grid{grid-template-columns:repeat(2,minmax(0,1fr));padding-left:16px;padding-right:16px}.dashboard-insight-grid{grid-template-columns:1fr;padding-left:16px;padding-right:16px}}
 
 /* Dashboard v2 — target screenshot layout (docs/reference/dashboard-target-super-admin.png) */
 .dashboard-hero-side{align-items:center;display:flex;gap:18px}
@@ -115,9 +115,9 @@
 .event-copy small{color:#9aa7b5;font-size:.65rem;margin-top:2px}
 .event-pill{font-size:.58rem;padding:3px 7px}
 .pill-examination{background:#fdecec;color:#c0392b}.pill-meeting{background:#e9f1ff;color:#3478f6}.pill-fee{background:#fff3df;color:#b7791f}.pill-holiday{background:#e7f7f0;color:#188b66}.pill-event{background:#f1edff;color:#6845d8}
-.dashboard-insight-scroll{grid-template-columns:repeat(4,1fr)}
+.dashboard-insight-scroll{grid-template-columns:repeat(4,minmax(0,1fr))}
 .insight-chevron{color:#9aa7b5;font-size:.65rem!important;margin-left:auto}
-@media (max-width:1199px){.dashboard-insight-scroll{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:1199px){.dashboard-insight-scroll{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:767px){.dashboard-hero-side{align-items:stretch;flex-direction:column;width:100%}.dashboard-insight-scroll{grid-template-columns:1fr}}
 
 /* ===== Inner pages v2 — one system for every screen (audit §10) =====
@@ -418,7 +418,7 @@ a.session-chip:hover{background:#e2ebfa;text-decoration:none;color:#43556c}
 .stu-stats-row{display:grid;gap:16px;grid-template-columns:repeat(5,1fr)}
 .stu-stats-row .dashboard-stat-card{flex-direction:column;gap:10px;margin-bottom:0;width:100%}
 @media (max-width:1199px){.stu-stats-row{grid-template-columns:repeat(3,1fr)}}
-@media (max-width:767px){.stu-stats-row{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:767px){.stu-stats-row{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:479px){.stu-stats-row{grid-template-columns:1fr}}
 .stu-status-upcoming{background:#e9f1ff;color:#2867dc}
 .stu-status-in-progress{background:#e7f7f0;color:#188b66}
@@ -440,7 +440,7 @@ a.session-chip:hover{background:#e2ebfa;text-decoration:none;color:#43556c}
 .stu-dot{border-radius:50%;display:inline-block;height:9px;width:9px}
 .stu-dot-present{background:#188b66}.stu-dot-late{background:#e8a13a}.stu-dot-absent{background:#d9534f}
 .stu-action-grid{grid-template-columns:repeat(3,1fr)}
-@media (max-width:479px){.stu-action-grid{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:479px){.stu-action-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .stu-circular-row{align-items:center;border-top:1px solid #edf1f5;display:flex;gap:12px;justify-content:space-between;padding:12px 22px}
 .stu-circular-row:first-of-type{border-top:0}
 .stu-circular-row:hover{background:#f8faff;text-decoration:none}
@@ -464,7 +464,7 @@ a.stu-reminder-chip:hover{background:#edf4ff;text-decoration:none}
 .par-action-grid a:hover{background:#edf4ff;color:#2867dc;text-decoration:none}
 .par-action-grid i{font-size:16px}
 @media (max-width:1199px){.par-action-grid{grid-template-columns:repeat(3,1fr)}}
-@media (max-width:575px){.par-action-grid{grid-template-columns:repeat(2,1fr);padding-left:16px;padding-right:16px}}
+@media (max-width:575px){.par-action-grid{grid-template-columns:repeat(2,minmax(0,1fr));padding-left:16px;padding-right:16px}}
 .par-fee-progress-wrap{padding:14px 22px 2px}
 .par-fee-progress{background:#eef1f5;border-radius:999px;height:8px;overflow:hidden}
 .par-fee-progress span{background:#188b66;border-radius:999px;display:block;height:100%}
@@ -522,13 +522,13 @@ a.par-reminder-info:hover{background:#e2ebfa}
 .teacher-stat-grid{display:grid;gap:16px;grid-template-columns:repeat(5,1fr)}
 .teacher-stat-grid .dashboard-stat-card{height:100%;width:100%}
 @media (max-width:1399px){.teacher-stat-grid{grid-template-columns:repeat(3,1fr)}}
-@media (max-width:767px){.teacher-stat-grid{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:767px){.teacher-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:480px){.teacher-stat-grid{grid-template-columns:1fr}}
 .dashboard-stat-red .dashboard-stat-icon{background:#fdecec;color:var(--qs-danger)}
 .period-status-upcoming{background:#e9f1ff;color:var(--qs-primary-action)}
 .period-status-live{background:var(--qs-success-tint);color:var(--qs-success)}
 .period-status-completed{background:#eef1f5;color:var(--qs-meta)}
-.teacher-action-grid{grid-template-columns:repeat(2,1fr)}
+.teacher-action-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 @media (max-width:480px){.teacher-action-grid{grid-template-columns:1fr}}
 .teacher-donut-wrap{align-items:center;display:flex;gap:20px;padding:4px 22px 24px}
 .teacher-donut{flex:0 0 150px;height:150px;position:relative;width:150px}
@@ -568,9 +568,9 @@ a.par-reminder-info:hover{background:#e2ebfa}
 .acc-stat-grid{display:grid;gap:16px;grid-template-columns:repeat(5,1fr)}
 .acc-stat-grid .dashboard-stat-card{height:100%;width:100%}
 @media (max-width:1399px){.acc-stat-grid{grid-template-columns:repeat(3,1fr)}}
-@media (max-width:767px){.acc-stat-grid{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:767px){.acc-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:480px){.acc-stat-grid{grid-template-columns:1fr}}
-.acc-action-grid{grid-template-columns:repeat(2,1fr)}
+.acc-action-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 @media (max-width:480px){.acc-action-grid{grid-template-columns:1fr}}
 .acc-chart-wrap{padding:2px 22px 20px}
 .acc-defaulter{align-items:center;border-top:1px solid #edf1f5;display:flex;gap:12px;justify-content:space-between;padding:12px 22px}
@@ -705,7 +705,7 @@ a.par-reminder-info:hover{background:#e2ebfa}
       equal-height row look. Long platform lists scroll inside their
       panel (.l17-list-scroll) and the action grids in the two owned
       dashboards use auto-fit so a tile can never clip (.l17-action-grid).
-   L2 Smart Insights: repeat(4,1fr) tracks are minmax(auto,1fr) — they
+   L2 Smart Insights: repeat(4,minmax(0,1fr)) tracks are minmax(auto,1fr) — they
       cannot shrink below a card's max-content, so the 4th card was
       clipped by the panel's overflow:hidden. Tracks are now
       minmax(0,1fr) and the cards may shrink.
@@ -3132,6 +3132,7 @@ html.hk-dark .lav-toast-close:hover{color:#fff}
   .print-doc-head, .print-doc-foot { break-inside: avoid; page-break-inside: avoid; }
   .print-doc-head *, .print-doc-foot * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
+/* ============================================================
    Loop 64 — Mobile responsiveness (Workstream CN, owner:
    "mobile responsive is the most important thing").
    Baseline: a 66-page x 2-width (375/768) crawl of the real
@@ -3165,6 +3166,7 @@ html.hk-dark .lav-toast-close:hover{color:#fff}
     /* The screen scrollers must never clip paper. */
     .rc-scroll { overflow: visible !important; }
 }
+/* ============================================================
    Loop 66 — My Account final fit (Workstream CR, 2026-10-22).
    Loops 52/53 got the page to ~7px of scroll with a fresh
    sign-in history, but a FULL activity list (capped at
@@ -3390,6 +3392,7 @@ a.dashboard-stat-card:hover{box-shadow:0 6px 16px rgba(23,37,54,.08)}
 .idc-foot strong{color:#fff}
 @media print{
   .idc-watermark{font-size:19mm}
+} /* Loop 91 repair: this @media block was never closed; every later loop nested inside it and never applied on screen. */
 /* ============================================================
    Loop 70 — Tabulation sheet redesign (Workstream DA, owner
    exhibit 2026-10-22: the tabulation screen still wore the
@@ -3449,6 +3452,7 @@ html.hk-dark .qs-tab-pos-n{background:#132c46;color:#93a9bf}
   .qs-tab .card-header.header-elements-inline{flex-wrap:wrap}
   .qs-tab .qs-tab-context{flex:1 1 100%}
   .qs-tab .qs-tab-print{margin-top:8px}
+} /* Loop 91 repair: this @media block was never closed; every later loop nested inside it and never applied on screen. */
 /* ============================================================
    Loop 71 — Premium print v2 for the remaining documents
    (Workstream DB) + timetable screens. Extends the Loop 68
@@ -3647,3 +3651,2413 @@ html.hk-dark .ad-pct-warning { background: rgba(151,89,15,.28); color: #f3cd8d; 
    them to the standard button size. Screen only; the print
    documents themselves are untouched. */
 .de-marks-show .btn-lg { border-radius: 8px; font-size: 14px; padding: 8px 18px; }
+
+/* ============================================================
+   Loop 74 — My Account v3 (2026-10-22). Two additions to the
+   account page, both inside the hero/panels Loop 43 built:
+   (1) the parent linked-children strip — compact cards reusing
+   the .acct-avatar pattern, one per real child, linking to the
+   child's record page; (2) the password strength meter under
+   the new-password field. Colours follow the account palette
+   (navy #172536, accent #3478f6) with hk-dark variants.
+   ============================================================ */
+.acct-avatar-sm{font-size:.8rem;height:36px;width:36px}
+.acct-children{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
+.acct-child{align-items:center;background:#eef3fa;border:1px solid #dbe5f2;border-radius:10px;color:#172536;display:inline-flex;gap:10px;padding:6px 12px 6px 7px;text-decoration:none;transition:border-color .15s ease, box-shadow .15s ease}
+.acct-child:hover{border-color:#3478f6;box-shadow:0 3px 10px rgba(23,37,54,.10);color:#172536;text-decoration:none}
+.acct-child-text{display:flex;flex-direction:column;line-height:1.25;text-align:left}
+.acct-child-text strong{font-size:.85rem;font-weight:600}
+.acct-child-text small{color:#5b6b7f;font-size:.72rem}
+.acct-child-chev{color:#8fa3bb;font-size:.7rem}
+html.hk-dark .acct-child{background:#132c46;border-color:#22405f;color:#e8eef5}
+html.hk-dark .acct-child:hover{border-color:#3478f6;color:#e8eef5}
+html.hk-dark .acct-child-text small{color:#93a7bd}
+html.hk-dark .acct-child-chev{color:#5f7a99}
+.acct-pw-meter{align-items:center;display:flex;gap:10px;margin-top:8px}
+.acct-pw-track{background:#e4eaf1;border-radius:99px;display:block;height:6px;overflow:hidden;width:132px}
+.acct-pw-fill{background:#d64545;display:block;height:100%;transition:width .25s ease;width:0}
+.acct-pw-fill[data-level="2"]{background:#e8a13a}
+.acct-pw-fill[data-level="3"]{background:#7ab648}
+.acct-pw-fill[data-level="4"]{background:#2f9e44}
+.acct-pw-label{color:#46586c;font-size:.75rem;font-weight:600}
+html.hk-dark .acct-pw-track{background:#22344c}
+html.hk-dark .acct-pw-label{color:#a9bfd6}
+
+/* ============================================================
+   Loop 75 — New-pages design pass (2026-10-22, owner exhibits:
+   Give Feedback + Create Circular still wore the plain stacked
+   look after their functional waves). One finish system for the
+   pages the redesign sweeps had not reached:
+   (A) pattern-form finish — every form_page form (feedback,
+       circulars, assignments, materials, platform mail) gets
+       the top-standard chrome: icon-chip section titles, label
+       weight, input radius/focus ring on the Loop 73 tokens,
+       an elevated sticky action bar;
+   (B) a styled upload zone (.l75-upload) replacing the raw
+       native file input visually — the real input stays on top,
+       unchanged (name/accept/multiple), with a file-name preview;
+   (C) feedback lists + detail (.l75-fb / .l75-fb-detail):
+       pill chips, row finish, document-style detail;
+   (D) parent gateway checkout (.l75-pay): premium summary panel;
+   (E) Ask Hackstra (.l75-ask): chat bubbles + composer + citation
+       chips;
+   (F) gateway transactions + sent mail (.l75-gw): pill statuses,
+       quiet mono ids.
+   All rules are scoped (pattern classes or .l75-* wrappers) and
+   carry html.hk-dark variants on the Loop 50 tokens.
+   ============================================================ */
+
+/* --- (A) Pattern-form finish ------------------------------- */
+.pat-form-section-title{align-items:center;display:flex;font-size:.98rem;gap:10px}
+.pat-sec-icon{align-items:center;background:#eef4ff;border:1px solid #d7e5fb;border-radius:8px;color:#3478f6;display:inline-flex;flex:0 0 auto;font-size:.95rem;height:30px;justify-content:center;width:30px}
+html.hk-dark .pat-sec-icon{background:#132c46;border-color:#22405f;color:#6ea8ff}
+.pat-field label{color:#43556c;font-weight:600}
+html.hk-dark .pat-field label{color:#a9bfd6}
+.pat-form .form-control{border-color:#d3dde8;border-radius:8px}
+.pat-form .form-control:focus{border-color:#3478f6;box-shadow:0 0 0 3px rgba(52,120,246,.16)}
+.pat-form .form-control::placeholder{color:#9aa7b5}
+html.hk-dark .pat-form .form-control{border-color:#2a435f}
+html.hk-dark .pat-form .form-control:focus{border-color:#3478f6;box-shadow:0 0 0 3px rgba(52,120,246,.25)}
+.pat-form .pat-actionbar{box-shadow:0 -8px 20px rgba(23,37,54,.06)}
+.pat-form .pat-actionbar .btn-primary{min-width:150px}
+@media (max-width:767px){.pat-form .pat-actionbar .btn-primary{min-width:0}}
+
+/* --- (B) Upload zone ----------------------------------------
+   The real <input type=file> remains, stretched over the zone
+   (opacity 0) so clicks, keyboard focus and validation behave
+   exactly as before; the zone body is pure presentation and the
+   preview list is filled by a change listener. */
+.l75-upload{background:#f8fbff;border:1.5px dashed #b9cfe8;border-radius:10px;padding:16px 18px;position:relative;transition:border-color .15s ease,background .15s ease}
+.l75-upload:hover{border-color:#3478f6}
+.l75-upload:focus-within{border-color:#3478f6;box-shadow:0 0 0 3px rgba(52,120,246,.16)}
+.l75-upload.is-dragover{background:#eef4ff;border-color:#3478f6}
+.l75-upload input[type="file"]{cursor:pointer;height:100%;inset:0;opacity:0;position:absolute;width:100%}
+.l75-upload-body{align-items:center;display:flex;gap:14px;pointer-events:none}
+.l75-upload-icon{align-items:center;background:#eef4ff;border:1px solid #d7e5fb;border-radius:10px;color:#3478f6;display:inline-flex;flex:0 0 auto;font-size:1.25rem;height:46px;justify-content:center;width:46px}
+.l75-upload-main{color:#172536;font-weight:600}
+.l75-upload-main span{color:#718096;font-weight:400}
+.l75-upload-hint{color:#718096;font-size:.78rem;margin-top:2px}
+.l75-upload-files{display:flex;flex-wrap:wrap;gap:8px;list-style:none;margin:12px 0 0;padding:0}
+.l75-upload-files:empty{margin:0}
+.l75-upload-files li{background:#eef4ff;border:1px solid #d7e5fb;border-radius:999px;color:#2867dc;font-size:.78rem;font-weight:600;padding:4px 11px}
+.l75-upload-files li i{margin-right:5px}
+html.hk-dark .l75-upload{background:#0f2438;border-color:#2a435f}
+html.hk-dark .l75-upload:hover,html.hk-dark .l75-upload:focus-within{border-color:#3478f6}
+html.hk-dark .l75-upload.is-dragover{background:#132c46}
+html.hk-dark .l75-upload-icon{background:#132c46;border-color:#22405f;color:#6ea8ff}
+html.hk-dark .l75-upload-main{color:#e8f1f9}
+html.hk-dark .l75-upload-main span,html.hk-dark .l75-upload-hint{color:#93a9bf}
+html.hk-dark .l75-upload-files li{background:#132c46;border-color:#22405f;color:#a9c8fa}
+
+/* --- (C) Feedback lists + detail ---------------------------- */
+.l75-fb .table td{vertical-align:middle}
+.l75-fb .table tbody tr{transition:background .12s ease}
+.l75-fb .table tbody tr:hover{background:#f8fafc}
+html.hk-dark .l75-fb .table tbody tr:hover{background:#132c46}
+.l75-fb .badge{border-radius:999px;font-size:.72rem;font-weight:600;padding:4px 10px}
+.l75-fb .fb-report-title{color:#172536;font-weight:600}
+.l75-fb .fb-report-title:hover{color:#2867dc;text-decoration:none}
+html.hk-dark .l75-fb .fb-report-title{color:#e8f1f9}
+html.hk-dark .l75-fb .badge-light{background:#1d3a55;color:#c3d4e6}
+.l75-fb .fb-forward-bar{align-items:center;background:#f5f8fc;border:1px solid #e4eaf1;border-radius:10px;display:flex;flex-wrap:wrap;gap:10px 14px;justify-content:space-between;margin-top:14px;padding:12px 16px}
+html.hk-dark .l75-fb .fb-forward-bar{background:#11283f;border-color:#1d3a55}
+.l75-fb .fb-empty{padding:38px 20px;text-align:center}
+.l75-fb-detail .fb-desc{color:#2b3a4d;font-size:.96rem;line-height:1.7;max-width:78ch;white-space:pre-wrap}
+html.hk-dark .l75-fb-detail .fb-desc{color:#dce8f4}
+.l75-fb-detail .fb-autolog{background:#f5f8fc;border:1px dashed #dbe4ee;border-radius:8px;color:#718096;font-size:.85rem;margin-top:14px;padding:10px 14px}
+html.hk-dark .l75-fb-detail .fb-autolog{background:#11283f;border-color:#22405f;color:#93a9bf}
+.l75-fb-detail .fb-attach-img{border:1px solid #dbe4ee;border-radius:8px;height:82px;object-fit:cover;width:110px}
+html.hk-dark .l75-fb-detail .fb-attach-img{border-color:#22405f}
+.l75-fb-detail .badge{border-radius:999px;font-size:.72rem;font-weight:600;padding:4px 10px}
+html.hk-dark .l75-fb-detail .badge-light{background:#1d3a55;color:#c3d4e6}
+
+/* --- (D) Gateway checkout panel ----------------------------- */
+.l75-pay-panel{background:#fff;border:1px solid #e4eaf1;border-radius:14px;box-shadow:0 10px 30px rgba(23,37,54,.07);margin:6px auto 4px;max-width:580px;padding:30px 34px 26px;text-align:center}
+html.hk-dark .l75-pay-panel{background:#0f2438;border-color:#1d3a55;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.l75-pay-medal{align-items:center;background:#eef4ff;border:1px solid #d7e5fb;border-radius:50%;color:#3478f6;display:inline-flex;font-size:1.7rem;height:72px;justify-content:center;width:72px}
+html.hk-dark .l75-pay-medal{background:#132c46;border-color:#22405f;color:#6ea8ff}
+.l75-pay-amount{color:#172536;font-size:2.05rem;font-weight:800;letter-spacing:-.01em;line-height:1.15;margin:14px 0 2px}
+html.hk-dark .l75-pay-amount{color:#e8f1f9}
+.l75-pay-title{color:#43556c;font-weight:600}
+html.hk-dark .l75-pay-title{color:#a9bfd6}
+.l75-pay-rows{border-top:1px solid #edf1f5;margin:20px 0 6px;padding-top:14px;text-align:left}
+html.hk-dark .l75-pay-rows{border-top-color:#1d3a55}
+.l75-pay-row{display:flex;font-size:.88rem;gap:12px;justify-content:space-between;padding:4px 0}
+.l75-pay-row span{color:#718096}
+.l75-pay-row strong{color:#2b3a4d;font-weight:600;text-align:right;word-break:break-all}
+html.hk-dark .l75-pay-row span{color:#93a9bf}
+html.hk-dark .l75-pay-row strong{color:#dce8f4}
+.l75-pay-testmode{background:#fff8e8;border:1px solid #f0dfa8;border-radius:10px;color:#7a5b12;font-size:.86rem;margin:16px 0 4px;padding:12px 16px;text-align:left}
+html.hk-dark .l75-pay-testmode{background:#3a3016;border-color:#5c4d1e;color:#f0dfa8}
+.l75-pay-actions{margin-top:20px}
+.l75-pay-actions .btn{min-width:230px}
+.l75-pay-secure{align-items:center;color:#718096;display:flex;font-size:.8rem;gap:7px;justify-content:center;margin-top:18px}
+.l75-pay-secure i{color:#2f9e44}
+@media (max-width:575px){.l75-pay-panel{padding:24px 18px 20px}.l75-pay-actions .btn{min-width:0;width:100%}}
+
+/* --- (E) Ask Hackstra chat ---------------------------------- */
+.l75-ask .ask-lead{color:#5c6f84;font-size:.92rem;line-height:1.6;max-width:72ch}
+html.hk-dark .l75-ask .ask-lead{color:#93a9bf}
+.l75-ask .ask-composer{background:#f8fafc;border:1px solid #e4eaf1;border-radius:12px;padding:14px}
+html.hk-dark .l75-ask .ask-composer{background:#11283f;border-color:#1d3a55}
+.l75-ask .ask-composer textarea{border-radius:8px;resize:vertical}
+.l75-ask .ask-composer-bar{align-items:center;display:flex;gap:10px;justify-content:space-between;margin-top:10px}
+.l75-ask .ask-hint{color:#9aa7b5;font-size:.78rem}
+.l75-ask .ask-thread{margin-top:22px}
+.l75-ask .ask-row{display:flex;margin-bottom:14px}
+.l75-ask .ask-row-user{justify-content:flex-end}
+.l75-ask .ask-bubble{border-radius:14px;font-size:.94rem;line-height:1.65;max-width:82%;padding:13px 17px}
+.l75-ask .ask-bubble-user{background:#3478f6;border-bottom-right-radius:4px;color:#fff}
+.l75-ask .ask-bubble-bot{background:#f5f8fc;border:1px solid #e4eaf1;border-bottom-left-radius:4px;color:#2b3a4d}
+html.hk-dark .l75-ask .ask-bubble-bot{background:#11283f;border-color:#1d3a55;color:#dce8f4}
+.l75-ask .ask-bubble-refused{background:#fff8e8;border-color:#f0dfa8;color:#7a5b12}
+html.hk-dark .l75-ask .ask-bubble-refused{background:#3a3016;border-color:#5c4d1e;color:#f0dfa8}
+.l75-ask .ask-sources{margin-top:12px}
+.l75-ask .ask-sources-label{color:#718096;display:block;font-size:.75rem;font-weight:700;letter-spacing:.05em;margin-bottom:7px;text-transform:uppercase}
+.l75-ask .ask-cite{background:#eef4ff;border:1px solid #d7e5fb;border-radius:999px;color:#2867dc;display:inline-block;font-size:.78rem;font-weight:600;margin:0 6px 6px 0;padding:4px 11px}
+.l75-ask .ask-cite i{margin-right:5px}
+.l75-ask .ask-cite .ask-cite-date{color:#718096;font-weight:400}
+html.hk-dark .l75-ask .ask-cite{background:#132c46;border-color:#22405f;color:#a9c8fa}
+html.hk-dark .l75-ask .ask-cite .ask-cite-date{color:#93a9bf}
+@media (max-width:575px){.l75-ask .ask-bubble{max-width:94%}}
+
+/* --- (F) Gateway transactions / sent mail -------------------- */
+.l75-gw .table td{vertical-align:middle}
+.l75-gw .badge{border-radius:999px;font-size:.72rem;font-weight:600;padding:4px 10px}
+.l75-gw .gw-id{color:#718096;font-size:.8rem}
+html.hk-dark .l75-gw .gw-id{color:#93a9bf}
+.l75-gw .gw-amount{color:#172536;font-weight:700;white-space:nowrap}
+html.hk-dark .l75-gw .gw-amount{color:#e8f1f9}
+
+/* --- (H) Calm inline confirmations (owner directive 2026-10-22:
+   "this popup everywhere, I am not liking") -------------------
+   The floating corner stack is GONE. flash() now renders ONE
+   slim banner docked at the top of the content wrapper, directly
+   under the topbar, spanning the content width; a new message
+   replaces the old (never stacks). success/info fade out after
+   ~4s; warning/danger stay until closed. The home event/teacher
+   reminder strip (.lav-toast-stack, Loop 56) is folded into the
+   same treatment: de-floated into a slim full-width notice bar
+   under the topbar instead of a corner card stack. */
+/* De-float the Loop 56 home notices into a docked strip. */
+.lav-toast-stack{bottom:auto;gap:0;max-width:none;position:static;right:auto;z-index:auto}
+.lav-toast{background:#eef4ff;border:0;border-bottom:1px solid #d7e5fb;border-left:0;border-radius:0;box-shadow:none;color:#2b3a4d;gap:10px;padding:9px 22px}
+.lav-toast > i{background:rgba(52,120,246,.12);font-size:14px;height:28px;width:28px}
+.lav-toast-body{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 10px}
+.lav-toast-body strong{font-size:.85rem}
+.lav-toast-body small{font-size:.76rem;margin-top:0}
+.lav-toast-close{font-size:16px}
+html.hk-dark .lav-toast{background:#11283f;border-bottom-color:#1d3a55;box-shadow:none;color:#dce8f4}
+html.hk-dark .lav-toast > i{background:#17334d}
+/* The flash dock itself (element created by flash() in
+   partials/js/custom_js as the first child of .content-wrapper). */
+.l75-flash-dock{align-items:center;border-bottom:1px solid transparent;display:flex;font-size:.9rem;gap:11px;line-height:1.45;opacity:1;padding:10px 22px;transition:opacity .35s ease}
+.l75-flash-dock[hidden]{display:none}
+.l75-flash-dock.is-out{opacity:0}
+.l75-flash-dock > i{flex:none;font-size:1.02rem}
+.l75-flash-dock .l75-flash-msg{flex:1;min-width:0}
+.l75-flash-dock .l75-flash-close{background:transparent;border:0;color:inherit;flex:none;font-size:17px;line-height:1;opacity:.65;padding:2px 4px}
+.l75-flash-dock .l75-flash-close:hover{opacity:1}
+.l75-flash-success{background:#e9f8ef;border-bottom-color:#bfe6cd;color:#14532d}
+.l75-flash-success > i{color:#2f9e44}
+.l75-flash-info{background:#eef4ff;border-bottom-color:#d7e5fb;color:#1e3a5f}
+.l75-flash-info > i{color:#3478f6}
+.l75-flash-warning{background:#fff8e8;border-bottom-color:#f0dfa8;color:#7a5b12}
+.l75-flash-warning > i{color:#dd8f12}
+.l75-flash-danger{background:#fdecec;border-bottom-color:#f3c2c2;color:#7c1d12}
+.l75-flash-danger > i{color:#d64545}
+html.hk-dark .l75-flash-success{background:#123324;border-bottom-color:#1d4d33;color:#b9e8cc}
+html.hk-dark .l75-flash-info{background:#11283f;border-bottom-color:#1d3a55;color:#c3d9f5}
+html.hk-dark .l75-flash-warning{background:#3a3016;border-bottom-color:#5c4d1e;color:#f0dfa8}
+html.hk-dark .l75-flash-danger{background:#3d1a16;border-bottom-color:#5f2822;color:#f3c2c2}
+@media print{
+  .l75-flash-dock{display:none!important}
+}
+
+/* --- (G) Circulars composer (owner steering 2026-10-22) -----
+   Two-column composer: the form (numbered sections) on the
+   left, a LIVE PREVIEW panel on the right mirroring the feed
+   item (Loop 60 .circ-* classes) from the real form values.
+   The message field stores plain text, so the toolbar inserts
+   plain-text constructs (bullets, numbering, a divider) that
+   render exactly as typed in the feed — no fake rich text.
+   Section 3 (attachments) is a future feature workstream; the
+   numbered sections leave it natural room below section 2. */
+.l75-circ-layout{display:grid;gap:20px;grid-template-columns:minmax(0,1fr)}
+.l75-circ-side{min-width:0}
+@media (min-width:1200px){
+  .l75-circ-layout{grid-template-columns:minmax(0,1fr) 380px}
+  .l75-circ-side{position:sticky;top:76px}
+}
+.pat-sec-num{align-items:center;background:#3478f6;border-radius:50%;color:#fff;display:inline-flex;flex:0 0 auto;font-size:.82rem;font-weight:700;height:26px;justify-content:center;width:26px}
+.l75-count{color:#9aa7b5;float:right;font-size:.74rem;font-weight:400}
+.l75-toolbar{align-items:center;background:#f5f8fc;border:1px solid #e4eaf1;border-bottom:0;border-radius:8px 8px 0 0;display:flex;gap:6px;padding:6px 8px}
+.l75-tbtn{background:#fff;border:1px solid #dbe4ee;border-radius:6px;color:#43556c;font-size:.78rem;font-weight:600;padding:4px 11px}
+.l75-tbtn:hover{border-color:#3478f6;color:#2867dc}
+.l75-toolbar-count{color:#9aa7b5;font-size:.76rem;margin-left:auto}
+.l75-toolbar + textarea{border-radius:0 0 8px 8px!important}
+html.hk-dark .l75-toolbar{background:#11283f;border-color:#1d3a55}
+html.hk-dark .l75-tbtn{background:#0f2438;border-color:#22405f;color:#a9bfd6}
+html.hk-dark .l75-tbtn:hover{border-color:#3478f6;color:#6ea8ff}
+.l75-circ-panel{overflow:hidden}
+.l75-circ-panel-head{align-items:center;border-bottom:1px solid #e7edf3;display:flex;gap:10px;justify-content:space-between;padding:13px 18px}
+.l75-circ-school{color:#172536;font-weight:700}
+html.hk-dark .l75-circ-school{color:#eef4fb}
+html.hk-dark .l75-circ-panel-head{border-bottom-color:#1d3a55}
+.l75-live-tag{align-items:center;background:#e7f7ee;border-radius:999px;color:#14714f;display:inline-flex;font-size:.7rem;font-weight:700;gap:5px;letter-spacing:.05em;padding:3px 10px;text-transform:uppercase}
+html.hk-dark .l75-live-tag{background:rgba(20,113,79,.25);color:#8fd8ba}
+.l75-circ-panel .circ-item{border-bottom:0}
+.l75-circ-panel-foot{border-top:1px solid #e7edf3;color:#718096;font-size:.78rem;padding:11px 18px}
+html.hk-dark .l75-circ-panel-foot{border-top-color:#1d3a55;color:#93a9bf}
+.l75-pv-placeholder{color:#9aa7b5!important;font-style:italic}
+@media print{
+  .l75-circ-side,.l75-toolbar{display:none!important}
+}
+
+/* --- (I) Circulars list (owner addendum 2026-10-22) --------
+   Cards reuse the Loop 60 .circ-item accent system (priority
+   border + tint via --circ-accent); this section adds the icon
+   tile, the status pills, the kebab menu and the 2-line clamp. */
+.l75-circ-card{display:flex;gap:15px}
+.l75-circ-tile{align-items:center;background:#eef4ff;border:1px solid #d7e5fb;border-radius:12px;color:var(--circ-accent,#3478f6);display:inline-flex;flex:0 0 auto;font-size:1.2rem;height:46px;justify-content:center;width:46px}
+html.hk-dark .l75-circ-tile{background:#11283f;border-color:#1d3a55}
+.l75-circ-main{flex:1;min-width:0}
+.l75-circ-card .circ-item-top{align-items:center;display:flex;flex-wrap:wrap;gap:9px}
+.l75-circ-card .circ-title{flex:1 1 auto;margin:0;min-width:140px}
+.l75-pill{border-radius:999px;display:inline-block;font-size:.7rem;font-weight:700;letter-spacing:.03em;padding:3px 10px;text-transform:uppercase}
+.l75-pill-active{background:#e7f7ee;color:#14714f}
+.l75-pill-scheduled{background:#e3ecfd;color:#2867dc}
+.l75-pill-muted{background:#eef1f4;color:#5f7185}
+html.hk-dark .l75-pill-active{background:rgba(20,113,79,.28);color:#8fd8ba}
+html.hk-dark .l75-pill-scheduled{background:rgba(40,103,220,.28);color:#9dbcf5}
+html.hk-dark .l75-pill-muted{background:#1a3049;color:#9db2c6}
+.l75-circ-excerpt{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.l75-kebab{flex:0 0 auto;margin-left:auto}
+.l75-kebab-btn{background:transparent;border:1px solid #dbe4ee;border-radius:8px;color:#5f7185;height:30px;line-height:1;padding:0;width:32px}
+.l75-kebab-btn:hover{border-color:#3478f6;color:#2867dc}
+html.hk-dark .l75-kebab-btn{border-color:#22405f;color:#a9bfd6}
+.l75-kebab .dropdown-item{align-items:center;display:flex;gap:8px}
+.l75-kebab form .dropdown-item{background:none;border:0;text-align:left;width:100%}
+@media print{
+  .l75-kebab{display:none!important}
+}
+
+/* --- (J) Circular detail (owner addendum 2026-10-22) -------
+   Hero card + message card on the left, Quick Information and
+   Audience cards in the right rail. Meta grid and info rows are
+   plain label/value pairs over the Loop 60/73 tokens. */
+.l75-cd-toolbar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.l75-cd-toolbar .spacer{flex:1}
+.l75-cd-hero{display:flex;gap:16px}
+.l75-cd-hero .l75-circ-tile{height:54px;width:54px;font-size:1.45rem}
+.l75-cd-title{font-size:1.32rem;font-weight:700;line-height:1.3;margin:0 0 8px}
+.l75-cd-pills{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.l75-cd-meta{display:grid;gap:12px 18px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.l75-cd-meta-item{min-width:0}
+.l75-cd-meta-item .lbl{color:#718096;display:block;font-size:.72rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
+.l75-cd-meta-item .val{color:#172536;font-weight:600}
+.l75-cd-meta-item .val i{color:#3478f6;margin-right:5px}
+html.hk-dark .l75-cd-meta-item .val{color:#e8f1f9}
+html.hk-dark .l75-cd-meta-item .lbl{color:#8fb0cc}
+.l75-cd-body{font-size:1rem;line-height:1.7;max-width:78ch}
+.l75-qi-row{border-bottom:1px solid #eef2f6;display:flex;gap:12px;justify-content:space-between;padding:9px 0}
+.l75-qi-row:last-child{border-bottom:0}
+.l75-qi-row .k{color:#718096;font-size:.85rem}
+.l75-qi-row .v{color:#172536;font-weight:600;text-align:right}
+html.hk-dark .l75-qi-row{border-bottom-color:#1d3a55}
+html.hk-dark .l75-qi-row .v{color:#e8f1f9}
+html.hk-dark .l75-qi-row .k{color:#8fb0cc}
+.l75-cd-note{background:#eef4ff;border:1px solid #d7e5fb;border-radius:10px;color:#2b3a4d;font-size:.88rem;padding:12px 14px}
+html.hk-dark .l75-cd-note{background:#11283f;border-color:#1d3a55;color:#c3d9f5}
+@media print{
+  .l75-cd-toolbar{display:none!important}
+}
+/* ============================================================
+   Loop 76 — Legacy forms redesign (second design squad,
+   2026-10-22). The last plain-look form surfaces in the people
+   & academics modules, brought to the Loop 28/39 standard
+   without touching a single field, name or submit contract:
+     (1) Marks entry grid (marks/edit + marks/manage shell):
+         the grid inputs were bare browser number boxes; they
+         now carry the shared input chrome in a compact variant
+         (.l76-mark-input) inside a tightened table, with the
+         pattern's sticky action bar under the grid.
+     (2) Marking scheme editor (exams/scheme/edit): each
+         subject's editor becomes a section block; the legacy
+         label rail preset row becomes a pattern field grid;
+         the loose button row becomes an action row. All JS
+         hooks (.scheme-form/.scheme-table/.comp-*/.scheme-sum/
+         .scheme-preset) are unchanged.
+     (3) Marksheet skills forms (marks/show/skills): the
+         label-rail rows become compact label/select rows.
+     (4) Students CSV import rides the existing .pat-* shells
+         (blade-only, no new CSS).
+   Colours reuse the app tokens (navy #172536, muted #718096,
+   hairlines #e4eaf1/#edf1f5, accent #3478f6) with hk-dark
+   variants in the Loop 50 dark family.
+   ============================================================ */
+/* (1) Marks entry grid — compact variant of the pattern */
+.l76-marks-table td{vertical-align:middle;padding:6px 10px}
+.l76-marks-table thead th{border-bottom:2px solid #e4eaf1;color:#44546a;font-size:.76rem;letter-spacing:.03em;text-transform:uppercase;white-space:nowrap}
+.l76-marks-table td:first-child,.l76-marks-table td:nth-child(3){color:#5b6b7f;font-size:.85rem;white-space:nowrap}
+.l76-mark-input.form-control{border-radius:6px;font-size:.88rem;height:34px;margin:0 auto;max-width:120px;padding:4px 8px;text-align:center}
+.l76-mark-input.form-control:focus{border-color:#3478f6;box-shadow:0 0 0 3px rgba(52,120,246,.18)}
+.l76-actionbar{position:sticky;bottom:0;z-index:5;display:flex;justify-content:flex-end;gap:10px;background:#fff;border-top:1px solid #edf1f5;margin:14px -20px -20px;padding:12px 20px}
+.l76-grid-card>.card-header{border-bottom:1px solid #edf1f5;padding-top:14px;padding-bottom:12px}
+.l76-grid-card .card-title{font-size:.92rem;margin:0}
+html.hk-dark .l76-marks-table thead th{border-color:#1d3a55;color:#93a9bf}
+html.hk-dark .l76-actionbar{background:#11283f;border-color:#1d3a55}
+html.hk-dark .l76-grid-card>.card-header{border-color:#1d3a55}
+/* (2) Marking scheme editor — section blocks */
+.l76-scheme-block{background:#fff;border:1px solid #e4eaf1;border-radius:10px;margin-top:16px;padding:16px 18px 18px}
+.l76-scheme-block>h6{margin-top:0!important}
+.l76-scheme-preset{align-items:end;display:grid;gap:6px 18px;grid-template-columns:minmax(0,1fr) minmax(0,1fr);margin-bottom:12px}
+.l76-scheme-preset label{display:block;font-size:.82rem;margin-bottom:5px}
+.l76-scheme-sumline{align-items:center;display:flex;flex-wrap:wrap;gap:8px;padding-bottom:2px}
+.l76-scheme-table td{vertical-align:middle}
+.l76-scheme-table thead th{border-bottom:2px solid #e4eaf1;color:#44546a;font-size:.76rem;letter-spacing:.03em;text-transform:uppercase}
+.l76-scheme-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.l76-scheme-actions .btn{margin-left:0!important}
+@media (max-width:767px){
+  .l76-scheme-preset{grid-template-columns:minmax(0,1fr)}
+  .l76-scheme-block{padding:14px}
+}
+html.hk-dark .l76-scheme-block{background:#11283f;border-color:#1d3a55}
+html.hk-dark .l76-scheme-table thead th{border-color:#1d3a55;color:#93a9bf}
+/* (3) Marksheet skills — compact label/select rows */
+.l76-skill-row{align-items:center;display:grid;gap:12px;grid-template-columns:minmax(0,1fr) 132px;padding:6px 0}
+.l76-skill-row+.l76-skill-row{border-top:1px solid #f0f3f7}
+.l76-skill-row label{font-size:.88rem;font-weight:600;margin:0}
+html.hk-dark .l76-skill-row+.l76-skill-row{border-color:#1d3a55}
+/* ============================================================
+   Loop 79 — Teacher dashboard redesign (2026-10-22). Welcome
+   strip + quote card, five KPI cards, timetable beside a right
+   rail (Quick Actions / Today's Tasks / Notifications), and the
+   month attendance charts. Every rule is scoped to .t10-*
+   components, which render ONLY on the teacher home; other
+   roles' homes are untouched. Period status is register-based
+   (Loop 79 controller): Completed = a submitted session exists.
+   ============================================================ */
+
+/* --- Welcome strip --- */
+.t10-welcome{display:flex;gap:20px;align-items:stretch;margin-bottom:20px}
+.t10-welcome-main{flex:1 1 auto;min-width:0;padding:6px 0 2px}
+.t10-welcome-main h2{display:flex;align-items:center;gap:10px;font-size:24px;font-weight:700;color:#172536;margin:0 0 4px}
+.t10-welcome-main p{color:#718096;font-size:13.5px;margin:0 0 14px}
+.t10-take-btn{display:inline-flex;align-items:center;gap:8px;background:var(--qs-primary-action);color:#fff;font-weight:600;font-size:13.5px;border-radius:9px;padding:9px 18px;text-decoration:none}
+.t10-take-btn:hover,.t10-take-btn:focus{color:#fff;filter:brightness(1.07)}
+.t10-take-btn i{font-size:15px}
+.t10-quote{flex:0 0 300px;display:flex;flex-direction:column;justify-content:center;gap:8px;background:linear-gradient(120deg,#eef4ff 0%,#f4f8ff 60%,#e9f1ff 100%);border:1px solid #dbe7fa;border-radius:12px;padding:16px 20px}
+.t10-quote>i{font-size:18px;color:#2867dc}
+.t10-quote blockquote{margin:0;font-size:13.5px;font-style:italic;line-height:1.55;color:#34507c}
+
+/* --- KPI cards --- */
+.t10-kpi-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:16px;margin-bottom:20px}
+.t10-kpi{display:flex;align-items:center;gap:13px;border-radius:12px;padding:16px;border:1px solid rgba(23,37,54,.04);text-decoration:none;min-width:0}
+a.t10-kpi:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(23,37,54,.08)}
+.t10-kpi-icon{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.7);font-size:19px;flex:0 0 auto}
+.t10-kpi-copy{min-width:0}
+.t10-kpi-label{display:block;font-size:12.5px;font-weight:600;line-height:1.2}
+.t10-kpi-copy strong{display:block;font-size:25px;font-weight:700;color:#172536;line-height:1.15}
+.t10-kpi-copy small{display:block;font-size:11.5px;color:#7a8797;line-height:1.3}
+.t10-kpi-chev{margin-left:auto;font-size:14px;flex:0 0 auto}
+.t10-kpi-blue{background:#eef4fe}.t10-kpi-blue .t10-kpi-icon,.t10-kpi-blue .t10-kpi-label,.t10-kpi-blue .t10-kpi-chev{color:#2867dc}
+.t10-kpi-green{background:#e9f7f0}.t10-kpi-green .t10-kpi-icon,.t10-kpi-green .t10-kpi-label,.t10-kpi-green .t10-kpi-chev{color:#188b66}
+.t10-kpi-orange{background:#fdf1e7}.t10-kpi-orange .t10-kpi-icon,.t10-kpi-orange .t10-kpi-label,.t10-kpi-orange .t10-kpi-chev{color:#d97a1f}
+.t10-kpi-lavender{background:#f1edfd}.t10-kpi-lavender .t10-kpi-icon,.t10-kpi-lavender .t10-kpi-label,.t10-kpi-lavender .t10-kpi-chev{color:#6845d8}
+.t10-kpi-pink{background:#fdeef4}.t10-kpi-pink .t10-kpi-icon,.t10-kpi-pink .t10-kpi-label,.t10-kpi-pink .t10-kpi-chev{color:#c2437c}
+
+/* --- Layout: timetable + right rail, charts row --- */
+.t10-main{display:grid;grid-template-columns:minmax(0,1.9fr) minmax(0,1fr);gap:20px;margin-bottom:20px;align-items:start}
+.t10-rail{display:flex;flex-direction:column;gap:20px;min-width:0}
+.t10-charts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.t10-panel{background:#fff;border:1px solid #e4eaf1;border-radius:12px;padding:18px 20px;min-width:0}
+.t10-panel-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
+.t10-panel-title{display:flex;align-items:center;gap:11px;min-width:0}
+.t10-panel-icon{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:9px;font-size:16px;flex:0 0 auto}
+.t10-panel h5{font-size:16.5px;font-weight:700;color:#172536;margin:0;line-height:1.25}
+.t10-head-note{font-size:12.5px;font-weight:600;color:#8494a7}
+.t10-panel-sub{font-size:12.5px;color:#8494a7;margin:2px 0 0}
+.t10-view-all{font-size:13px;font-weight:600;color:var(--qs-primary-action);white-space:nowrap;text-decoration:none}
+.t10-view-all i{font-size:11px}
+.t10-tone-blue{background:#e8f1fe;color:#2867dc}
+.t10-tone-green{background:#e7f6ee;color:#188b66}
+.t10-tone-amber{background:#fdf3e0;color:#b97a0c}
+.t10-tone-red{background:#fdecec;color:#d64545}
+.t10-tone-purple{background:#f1edfd;color:#6845d8}
+.t10-tone-lavender{background:#f1edfd;color:#6845d8}
+
+/* --- Timetable table --- */
+.t10-table-wrap{overflow-x:auto}
+.t10-table{width:100%;border-collapse:collapse}
+.t10-table th{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#8494a7;font-weight:600;text-align:left;padding:8px 10px;background:#f7fafc;border-bottom:1px solid #e8edf3;white-space:nowrap}
+.t10-table td{font-size:13.5px;color:#33475e;padding:11px 10px;border-bottom:1px solid #eef2f6;vertical-align:middle}
+.t10-table tbody tr:last-child td{border-bottom:0}
+.t10-subject{font-weight:600;color:#22344a}
+.t10-time{color:#5b6b7f;white-space:nowrap}
+.t10-status{display:inline-block;font-size:11.5px;font-weight:700;padding:3px 11px;border-radius:999px;white-space:nowrap}
+.t10-status-completed{background:var(--qs-success-tint);color:var(--qs-success)}
+.t10-status-pending{background:#fdf3e0;color:#b97a0c}
+.t10-status-upcoming{background:#eef1f5;color:#5b6b7f}
+.t10-btn{display:inline-block;padding:5px 16px;border-radius:999px;font-size:12.5px;font-weight:600;text-decoration:none;white-space:nowrap}
+.t10-btn-take{background:var(--qs-primary-action);color:#fff}
+.t10-btn-take:hover{background:#2867dc;color:#fff}
+.t10-btn-view{background:#e8f1fe;color:#2867dc}
+.t10-btn-view:hover{background:#d8e8fd;color:#2867dc}
+.t10-empty{padding:22px 10px;text-align:center;color:#8494a7;font-size:13.5px}
+.t10-empty i{display:block;font-size:26px;margin-bottom:7px;color:#b7c3d1}
+.t10-empty a{font-weight:600}
+
+/* --- Quick action tiles --- */
+.t10-tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.t10-tile{display:block;border-radius:12px;padding:16px;text-decoration:none}
+a.t10-tile:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(23,37,54,.08)}
+.t10-tile-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px}
+.t10-tile-icon{display:inline-flex;align-items:center;justify-content:center;width:37px;height:37px;border-radius:50%;background:rgba(255,255,255,.75);font-size:17px}
+.t10-tile-chev{font-size:13px;margin-top:2px}
+.t10-tile-title{display:block;font-size:15px;font-weight:700;line-height:1.25}
+.t10-tile-sub{display:block;font-size:12.5px;color:#7a8797;margin-top:2px;line-height:1.35}
+.t10-tile-blue{background:#eef4fe}.t10-tile-blue .t10-tile-icon,.t10-tile-blue .t10-tile-title,.t10-tile-blue .t10-tile-chev{color:#2867dc}
+.t10-tile-green{background:#e9f7f0}.t10-tile-green .t10-tile-icon,.t10-tile-green .t10-tile-title,.t10-tile-green .t10-tile-chev{color:#188b66}
+.t10-tile-lavender{background:#f1edfd}.t10-tile-lavender .t10-tile-icon,.t10-tile-lavender .t10-tile-title,.t10-tile-lavender .t10-tile-chev{color:#6845d8}
+.t10-tile-peach{background:#fdf1e7}.t10-tile-peach .t10-tile-icon,.t10-tile-peach .t10-tile-title,.t10-tile-peach .t10-tile-chev{color:#d97a1f}
+
+/* --- Task / notification rows --- */
+.t10-row{display:flex;align-items:center;gap:12px;padding:11px 2px;border-bottom:1px solid #eef2f6;text-decoration:none}
+.t10-row:last-child{border-bottom:0}
+a.t10-row:hover .t10-row-copy strong{color:var(--qs-primary-action)}
+.t10-row-icon{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:9px;font-size:15px;flex:0 0 auto}
+.t10-row-copy{min-width:0;flex:1 1 auto}
+.t10-row-copy strong{display:block;font-size:13.5px;font-weight:600;color:#22344a;line-height:1.3}
+.t10-row-copy small{display:block;font-size:12px;color:#8494a7;line-height:1.3}
+.t10-badge{flex:0 0 auto;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;white-space:nowrap}
+.t10-badge-red{background:#fdecec;color:#d64545}
+.t10-badge-blue{background:#e8f1fe;color:#2867dc}
+.t10-badge-amber{background:#fdf3e0;color:#b97a0c}
+.t10-badge-purple{background:#f1edfd;color:#6845d8}
+.t10-row-date{flex:0 0 auto;font-size:12px;color:#8494a7;white-space:nowrap;text-align:right}
+.t10-caught-up{padding:16px 6px 8px;text-align:center;color:#718096;font-size:13.5px}
+.t10-caught-up i{display:block;font-size:26px;color:var(--qs-success);margin-bottom:6px}
+
+/* --- Charts --- */
+.t10-note{font-size:12px;color:#8494a7;margin:8px 0 0;line-height:1.45}
+.t10-donut-wrap{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.t10-donut{flex:0 0 auto}
+.t10-donut-track{stroke:#e8edf3}
+.t10-donut-num{font-size:26px;font-weight:700;fill:#172536}
+.t10-donut-cap{font-size:10.5px;fill:#8494a7}
+.t10-legend{list-style:none;margin:0;padding:0;flex:1 1 170px;min-width:170px}
+.t10-legend li{display:flex;align-items:center;gap:9px;padding:6px 0;border-bottom:1px solid #eef2f6;font-size:13px;color:#33475e}
+.t10-legend li:last-child{border-bottom:0}
+.t10-legend-dot{width:11px;height:11px;border-radius:3px;flex:0 0 auto}
+.t10-legend-label{flex:1 1 auto}
+.t10-legend strong{font-size:13.5px;color:#172536}
+
+/* --- Dark mode (html.hk-dark) --- */
+html.hk-dark .t10-welcome-main h2{color:#eef4fb}
+html.hk-dark .t10-welcome-main p{color:#93a9bf}
+html.hk-dark .t10-quote{background:#12293f;border-color:#22405f}
+html.hk-dark .t10-quote>i{color:#7fb0ff}
+html.hk-dark .t10-quote blockquote{color:#a9bfd6}
+html.hk-dark .t10-kpi-blue{background:#12293f}
+html.hk-dark .t10-kpi-green{background:#10261e}
+html.hk-dark .t10-kpi-orange{background:#2b2113}
+html.hk-dark .t10-kpi-lavender{background:#1e1a33}
+html.hk-dark .t10-kpi-pink{background:#2e1622}
+html.hk-dark .t10-kpi-icon{background:rgba(255,255,255,.12)}
+html.hk-dark .t10-kpi-blue .t10-kpi-icon,html.hk-dark .t10-kpi-blue .t10-kpi-label,html.hk-dark .t10-kpi-blue .t10-kpi-chev{color:#7fb0ff}
+html.hk-dark .t10-kpi-green .t10-kpi-icon,html.hk-dark .t10-kpi-green .t10-kpi-label,html.hk-dark .t10-kpi-green .t10-kpi-chev{color:#4cc38a}
+html.hk-dark .t10-kpi-orange .t10-kpi-icon,html.hk-dark .t10-kpi-orange .t10-kpi-label,html.hk-dark .t10-kpi-orange .t10-kpi-chev{color:#f0b95f}
+html.hk-dark .t10-kpi-lavender .t10-kpi-icon,html.hk-dark .t10-kpi-lavender .t10-kpi-label,html.hk-dark .t10-kpi-lavender .t10-kpi-chev{color:#a78bfa}
+html.hk-dark .t10-kpi-pink .t10-kpi-icon,html.hk-dark .t10-kpi-pink .t10-kpi-label,html.hk-dark .t10-kpi-pink .t10-kpi-chev{color:#f28bb4}
+html.hk-dark .t10-kpi-copy strong{color:#eef4fb}
+html.hk-dark .t10-kpi-copy small{color:#93a9bf}
+html.hk-dark .t10-panel{background:#11283f;border-color:#1d3a55}
+html.hk-dark .t10-panel h5{color:#eef4fb}
+html.hk-dark .t10-head-note{color:#93a9bf}
+html.hk-dark .t10-panel-sub{color:#93a9bf}
+html.hk-dark .t10-tone-blue{background:#16345a;color:#7fb0ff}
+html.hk-dark .t10-tone-green{background:#123528;color:#4cc38a}
+html.hk-dark .t10-tone-amber{background:#3a3016;color:#f0b95f}
+html.hk-dark .t10-tone-red{background:#3a1e26;color:#f28b9a}
+html.hk-dark .t10-tone-purple,html.hk-dark .t10-tone-lavender{background:#241d42;color:#a78bfa}
+html.hk-dark .t10-table th{background:#17334d;border-bottom-color:#1d3a55;color:#93a9bf}
+html.hk-dark .t10-table td{border-bottom-color:#1d3a55;color:#c3d4e6}
+html.hk-dark .t10-subject{color:#eef4fb}
+html.hk-dark .t10-time{color:#93a9bf}
+html.hk-dark .t10-status-completed{background:#123528;color:#4cc38a}
+html.hk-dark .t10-status-pending{background:#3a3016;color:#f0b95f}
+html.hk-dark .t10-status-upcoming{background:#17334d;color:#93a9bf}
+html.hk-dark .t10-btn-view{background:#16345a;color:#7fb0ff}
+html.hk-dark .t10-btn-view:hover{background:#1d4470;color:#9cc2ff}
+html.hk-dark .t10-empty{color:#93a9bf}
+html.hk-dark .t10-empty i{color:#68809a}
+html.hk-dark .t10-tile-blue{background:#12293f}
+html.hk-dark .t10-tile-green{background:#10261e}
+html.hk-dark .t10-tile-lavender{background:#1e1a33}
+html.hk-dark .t10-tile-peach{background:#2b2113}
+html.hk-dark .t10-tile-icon{background:rgba(255,255,255,.12)}
+html.hk-dark .t10-tile-blue .t10-tile-icon,html.hk-dark .t10-tile-blue .t10-tile-title,html.hk-dark .t10-tile-blue .t10-tile-chev{color:#7fb0ff}
+html.hk-dark .t10-tile-green .t10-tile-icon,html.hk-dark .t10-tile-green .t10-tile-title,html.hk-dark .t10-tile-green .t10-tile-chev{color:#4cc38a}
+html.hk-dark .t10-tile-lavender .t10-tile-icon,html.hk-dark .t10-tile-lavender .t10-tile-title,html.hk-dark .t10-tile-lavender .t10-tile-chev{color:#a78bfa}
+html.hk-dark .t10-tile-peach .t10-tile-icon,html.hk-dark .t10-tile-peach .t10-tile-title,html.hk-dark .t10-tile-peach .t10-tile-chev{color:#f0b95f}
+html.hk-dark .t10-tile-sub{color:#93a9bf}
+html.hk-dark .t10-row{border-bottom-color:#1d3a55}
+html.hk-dark .t10-row-copy strong{color:#eef4fb}
+html.hk-dark .t10-row-copy small{color:#93a9bf}
+html.hk-dark .t10-badge-red{background:#3a1e26;color:#f28b9a}
+html.hk-dark .t10-badge-blue{background:#16345a;color:#7fb0ff}
+html.hk-dark .t10-badge-amber{background:#3a3016;color:#f0b95f}
+html.hk-dark .t10-badge-purple{background:#241d42;color:#a78bfa}
+html.hk-dark .t10-row-date{color:#93a9bf}
+html.hk-dark .t10-caught-up{color:#93a9bf}
+html.hk-dark .t10-note{color:#93a9bf}
+html.hk-dark .t10-donut-track{stroke:#1d3a55}
+html.hk-dark .t10-donut-num{fill:#eef4fb}
+html.hk-dark .t10-donut-cap{fill:#93a9bf}
+html.hk-dark .t10-legend li{border-bottom-color:#1d3a55;color:#c3d4e6}
+html.hk-dark .t10-legend strong{color:#eef4fb}
+
+/* --- Responsive --- */
+@media (max-width:1399px){
+  .t10-kpi-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media (max-width:1199px){
+  .t10-main{grid-template-columns:minmax(0,1fr)}
+  .t10-charts{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:767px){
+  .t10-welcome{flex-direction:column}
+  .t10-quote{flex:1 1 auto}
+  .t10-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:575px){
+  .t10-kpi-grid,.t10-tiles{grid-template-columns:minmax(0,1fr)}
+  .t10-row-date{display:none}
+}
+/* ================================================================
+   Loop 80 — Monthly Attendance Report screen (2026-10-22). The web
+   report gets the document's summary chips, status pills and class
+   summary strip (marx-* — the document partial owns mar-*). All
+   figures come from AttendanceController::monthlyReportData, the
+   same assembly the printed document and PDF render. Dark-mode
+   variants ride html.hk-dark like every other loop.
+   ================================================================ */
+.marx-stats{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px}
+.marx-stat{flex:1 1 150px;border-radius:10px;padding:12px 14px;background:#eef2f7}
+.marx-stat-present{background:#e6f6ec}
+.marx-stat-absent{background:#fdecec}
+.marx-stat-late{background:#fdf3e0}
+.marx-stat-periods{background:#e8effc}
+.marx-stat-registers{background:#efe9fd}
+.marx-stat-num{font-size:22px;font-weight:800;color:#10263b;line-height:1.1}
+.marx-stat-label{font-size:11.5px;font-weight:700;color:#172536;margin-top:1px}
+.marx-stat-cap{font-size:10.5px;color:#718096;margin-top:1px}
+.marx-ava{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;font-size:10.5px;font-weight:800;color:#33475c;margin-right:8px;vertical-align:middle}
+.marx-pill{display:inline-block;padding:2.5px 10px;border-radius:99px;font-size:10.5px;font-weight:700;white-space:nowrap}
+.marx-pill-excellent{background:#e6f6ec;color:#157347}
+.marx-pill-good{background:#e8effc;color:#2563eb}
+.marx-pill-attention{background:#fdf3e0;color:#b7791f}
+.marx-pill-critical{background:#fdecec;color:#c53030}
+.marx-pill-none{background:#eef2f7;color:#718096}
+.marx-bar{height:8px;border-radius:99px;background:#e2e8f0;overflow:hidden}
+.marx-bar-fill{display:block;height:100%;border-radius:99px}
+.marx-fill-excellent{background:#22a35a}
+.marx-fill-good{background:#3478f6}
+.marx-fill-attention{background:#e8a13a}
+.marx-fill-critical{background:#e05252}
+.marx-num-bad{color:#c53030;font-weight:800}
+.marx-num-late{color:#b7791f;font-weight:800}
+.marx-classline{display:flex;flex-wrap:wrap;gap:6px 26px;border-top:1px solid #e2e8f0;padding-top:10px;margin-top:6px;font-size:12.5px;color:#44546a}
+.marx-classline strong{color:#10263b;font-size:14px;margin-right:4px}
+html.hk-dark .marx-stat{background:#22344c}
+html.hk-dark .marx-stat-present{background:rgba(34,163,90,.18)}
+html.hk-dark .marx-stat-absent{background:rgba(224,82,82,.18)}
+html.hk-dark .marx-stat-late{background:rgba(232,161,58,.18)}
+html.hk-dark .marx-stat-periods{background:rgba(52,120,246,.20)}
+html.hk-dark .marx-stat-registers{background:rgba(124,93,250,.22)}
+html.hk-dark .marx-stat-num{color:#e8eef6}
+html.hk-dark .marx-stat-label{color:#dbe4ef}
+html.hk-dark .marx-stat-cap{color:#93a7bd}
+html.hk-dark .marx-ava{color:#dbe7fb}
+html.hk-dark .marx-pill-excellent{background:rgba(34,163,90,.20);color:#7bd79b}
+html.hk-dark .marx-pill-good{background:rgba(52,120,246,.22);color:#9dbcf7}
+html.hk-dark .marx-pill-attention{background:rgba(232,161,58,.20);color:#f2c063}
+html.hk-dark .marx-pill-critical{background:rgba(224,82,82,.20);color:#f09a9a}
+html.hk-dark .marx-pill-none{background:#22344c;color:#93a7bd}
+html.hk-dark .marx-bar{background:#22344c}
+html.hk-dark .marx-num-bad{color:#f09a9a}
+html.hk-dark .marx-num-late{color:#f2c063}
+html.hk-dark .marx-classline{border-top-color:#22344c;color:#a9bfd6}
+html.hk-dark .marx-classline strong{color:#e8eef6}
+/* ============================================================
+   Loop 81 — Timetables redesign (2026-10-22): Manage Timetables
+   group cards + derived status pills, and the My Timetable
+   teacher view (summary-driven grid with subject tints, Free
+   cells, legend, Week/List toggle, note strip). Tokens follow
+   the app palette (navy #172536, accent #3478f6, hairline
+   #e4eaf1) with html.hk-dark variants throughout.
+   ============================================================ */
+
+/* — Manage Timetables: class group cards — */
+.l81-group{margin-bottom:16px}
+.l81-group-head{align-items:center;display:flex;gap:8px;padding-right:10px}
+.l81-group-toggle{align-items:center;background:transparent;border:0;color:#172536;cursor:pointer;display:flex;flex:1 1 auto;gap:10px;min-width:0;padding:13px 6px 13px 16px;text-align:left}
+.l81-group-toggle:focus{outline:none}
+.l81-group-toggle:focus-visible{outline:2px solid #3478f6;outline-offset:-2px}
+.l81-group-tile{align-items:center;background:#eef3fa;border-radius:9px;color:#3478f6;display:inline-flex;flex:none;font-size:17px;height:38px;justify-content:center;width:38px}
+.l81-group-name{font-size:.95rem;font-weight:700;white-space:nowrap}
+.l81-chev{color:#8fa3bb;font-size:.8rem;margin-left:auto;transition:transform .2s ease}
+.l81-group-toggle[aria-expanded="false"] .l81-chev{transform:rotate(-90deg)}
+.l81-group-menu{flex:none}
+.l81-group .collapse,.l81-group .collapsing{border-top:1px solid #e4eaf1}
+.l81-group .l7-table-scroll{padding:4px 16px 14px}
+.l81-actions{flex-wrap:nowrap}
+.l81-filter-note{font-size:.82rem;margin:-4px 0 14px}
+html.hk-dark .l81-group-toggle{color:#e8eef5}
+html.hk-dark .l81-group-tile{background:#132c46;color:#7db1f8}
+html.hk-dark .l81-group .collapse,html.hk-dark .l81-group .collapsing{border-top-color:#1d3a55}
+
+/* — Manage Timetables: derived status pill (year vs session) — */
+.l81-status{align-items:center;border-radius:99px;display:inline-flex;font-size:.76rem;font-weight:600;gap:6px;padding:3px 10px;white-space:nowrap}
+.l81-dot{border-radius:50%;display:inline-block;height:7px;width:7px}
+.l81-status-active{background:#e6f6ec;color:#1e7a34}
+.l81-status-active .l81-dot{background:#2f9e44}
+.l81-status-past{background:#eef1f5;color:#5b6b7f}
+.l81-status-past .l81-dot{background:#98a6b5}
+html.hk-dark .l81-status-active{background:rgba(47,158,68,.20);color:#8fe3a8}
+html.hk-dark .l81-status-past{background:#1d3a55;color:#a9bfd6}
+
+/* — My Timetable: toolbar + grid + list — */
+.l81-mine-toolbar{align-items:center;display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;margin-bottom:14px}
+.l81-slot-time{display:block;font-weight:600}
+.l81-slot-period{color:#718096;display:block;font-size:.68rem;font-weight:600;letter-spacing:.08em;margin-top:2px;text-transform:uppercase}
+.l81-cell{vertical-align:middle}
+.l81-tint-0{background:#e8f1fe}
+.l81-tint-1{background:#e6f6ec}
+.l81-tint-2{background:#f3eafd}
+.l81-tint-3{background:#fff3df}
+.l81-tint-4{background:#fdecec}
+.l81-tint-5{background:#e0f5f2}
+.l81-free{background:#f7fafc}
+.l81-free-label{color:#98a6b5;font-size:.78rem;font-style:italic}
+.l81-legend{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:12px}
+.l81-legend-item{align-items:center;color:#46586c;display:inline-flex;font-size:.8rem;gap:7px}
+.l81-swatch{border:1px solid rgba(23,37,54,.14);border-radius:4px;display:inline-block;height:13px;width:13px}
+.l81-subj-chip{border-radius:6px;display:inline-block;font-weight:600;padding:2px 9px}
+.l81-note{align-items:flex-start;background:#eef3fa;border:1px solid #dbe5f2;border-radius:10px;color:#33475e;display:flex;font-size:.85rem;gap:9px;margin-top:16px;padding:11px 14px}
+.l81-note i{color:#3478f6;font-size:15px;margin-top:1px}
+html.hk-dark .l81-slot-period{color:#93a7bd}
+html.hk-dark .l81-tint-0{background:#173a5e}
+html.hk-dark .l81-tint-1{background:#17402a}
+html.hk-dark .l81-tint-2{background:#33204d}
+html.hk-dark .l81-tint-3{background:#4d360f}
+html.hk-dark .l81-tint-4{background:#4d2020}
+html.hk-dark .l81-tint-5{background:#14423c}
+html.hk-dark .l81-free{background:#0e2237}
+html.hk-dark .l81-free-label{color:#5f7a99}
+html.hk-dark .l81-legend-item{color:#a9bfd6}
+html.hk-dark .l81-swatch{border-color:rgba(232,238,245,.25)}
+html.hk-dark .l81-note{background:#132c46;border-color:#22405f;color:#c9d8ea}
+
+@media (max-width:575px){
+  .l81-group-toggle{padding-left:12px}
+  .l81-year-badge{display:none}
+  .l81-mine-toolbar{align-items:flex-start;flex-direction:column}
+} /* Loop 91 repair: this @media block was never closed; every later loop nested inside it and never applied on screen. */
+/* ============================================================
+   Loop 77 — Mark Attendance premium redesign (owner reference,
+   first-priority pass, 2026-10-22). One page: the period
+   attendance index. Filter panel + day pager, four summary
+   cards, the period schedule table (numbered period discs,
+   subject code chips, teacher avatar/initials, status pills)
+   and the Important Information panel. Colours follow the app
+   tokens (navy #172536, accent #3478f6, tints as in the toast
+   and dashboard-stat families) with hk-dark variants for every
+   surface. All classes are .ma-* — nothing else is touched.
+   ============================================================ */
+.ma-intro{color:#5b6b7f;font-size:.92rem;margin:2px 0 16px}
+.ma-toprow{display:flex;gap:16px;margin-bottom:16px}
+.ma-filter-card{flex:1 1 auto;margin-bottom:0}
+.ma-filter-card .card-body{padding:16px 18px}
+.ma-filter-form{align-items:flex-end;display:flex;gap:14px}
+.ma-filter-field label{color:#172536;display:block;font-size:.82rem;font-weight:600;margin-bottom:6px}
+.ma-filter-grow{flex:1 1 0;min-width:0}
+.ma-filter-action{flex:none}
+.ma-pager-card{flex:none;margin-bottom:0}
+.ma-pager-card .card-body{height:100%;padding:12px 14px}
+.ma-pager{align-items:center;display:flex;gap:12px}
+.ma-pager-btn{border-radius:9px;line-height:1;padding:9px 11px}
+.ma-pager-date{align-items:center;color:#172536;display:flex;font-weight:600;gap:9px;white-space:nowrap}
+.ma-pager-date i{color:#3478f6;font-size:17px}
+.ma-stats{display:grid;gap:16px;grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:16px}
+.ma-stat{align-items:center;background:#fff;border:1px solid #e4eaf1;border-radius:12px;display:flex;gap:14px;padding:16px 18px}
+.ma-stat-icon{align-items:center;border-radius:12px;display:inline-flex;flex:none;font-size:19px;height:46px;justify-content:center;width:46px}
+.ma-stat-blue .ma-stat-icon{background:#eef3fb;color:#3478f6}
+.ma-stat-green .ma-stat-icon{background:#e7f6ec;color:#2f9e44}
+.ma-stat-amber .ma-stat-icon{background:#fdf1e0;color:#dd7a03}
+.ma-stat-violet .ma-stat-icon{background:#f0eafa;color:#7c5cd6}
+.ma-stat-copy{display:flex;flex-direction:column;line-height:1.25;min-width:0}
+.ma-stat-value{color:#172536;font-size:1.45rem;font-weight:700}
+.ma-stat-label{color:#172536;font-size:.9rem;font-weight:600}
+.ma-stat-caption{color:#7a8794;font-size:.78rem}
+.ma-stat-green .ma-stat-caption{color:#2f9e44}
+.ma-stat-amber .ma-stat-caption{color:#dd7a03}
+.ma-schedule-card{margin-bottom:16px}
+.ma-schedule-head{align-items:center;display:flex;justify-content:space-between;margin-bottom:6px}
+.ma-schedule-title{color:#172536;font-size:1rem;font-weight:600;margin:0}
+.ma-schedule-title i{color:#3478f6}
+.ma-table{margin-bottom:0}
+.ma-table thead th{border-bottom:1px solid #e4eaf1;border-top:0;color:#7a8794;font-size:.72rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
+.ma-table tbody td{padding-bottom:13px;padding-top:13px;vertical-align:middle}
+.ma-period-num{align-items:center;border-radius:50%;display:inline-flex;font-size:.85rem;font-weight:700;height:34px;justify-content:center;width:34px}
+.ma-period-done{background:#e7f6ec;color:#2f9e44}
+.ma-period-pending{background:#fdf1e0;color:#dd7a03}
+.ma-time{color:#172536;font-weight:600;white-space:nowrap}
+.ma-subject{color:#172536;font-weight:600}
+.ma-code-chip{background:#eef3fb;border-radius:6px;color:#3478f6;display:inline-block;font-size:.68rem;font-weight:700;letter-spacing:.04em;margin-top:3px;padding:1px 7px;text-transform:uppercase}
+.ma-teacher{align-items:center;display:flex;gap:10px}
+.ma-avatar{align-items:center;background:#dbe7fa;border-radius:50%;color:#2456a6;display:inline-flex;flex:none;font-size:.85rem;font-weight:700;height:36px;justify-content:center;overflow:hidden;position:relative;width:36px}
+.ma-avatar img{height:100%;inset:0;object-fit:cover;position:absolute;width:100%}
+.ma-teacher-copy{display:flex;flex-direction:column;line-height:1.25}
+.ma-teacher-name{color:#172536;font-weight:600}
+.ma-teacher-role{color:#7a8794;font-size:.76rem}
+.ma-topic{color:#3d4f63;max-width:260px}
+.ma-pill{border-radius:999px;display:inline-flex;align-items:center;font-size:.78rem;font-weight:600;gap:6px;padding:4px 11px}
+.ma-pill-done{background:#e7f6ec;color:#20713a}
+.ma-pill-pending{background:#fdf1e0;color:#b25f02}
+.ma-status-sub{color:#7a8794;font-size:.74rem;margin-top:3px}
+.ma-action{white-space:nowrap}
+.ma-info{background:#eef4fd;border:1px solid #d7e5fa;border-radius:12px;padding:16px 18px}
+.ma-info-head{align-items:center;display:flex;gap:9px;margin-bottom:8px}
+.ma-info-icon{align-items:center;background:#3478f6;border-radius:50%;color:#fff;display:inline-flex;flex:none;font-size:12px;height:22px;justify-content:center;width:22px}
+.ma-info-title{color:#1c4f9c;font-size:.95rem;font-weight:700;margin:0}
+.ma-info-list{color:#33506e;font-size:.86rem;margin:0;padding-left:18px}
+.ma-info-list li{margin:2px 0}
+@media (max-width:1199px){
+    .ma-toprow{flex-wrap:wrap}
+    .ma-pager-card{flex:1 1 auto}
+    .ma-pager{justify-content:space-between}
+}
+@media (max-width:991px){
+    .ma-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:575px){
+    .ma-stats{grid-template-columns:1fr}
+    .ma-filter-form{flex-direction:column;align-items:stretch}
+    .ma-filter-action .btn{width:100%}
+    .ma-topic{max-width:170px}
+}
+html.hk-dark .ma-intro{color:#a9bfd6}
+html.hk-dark .ma-filter-field label,html.hk-dark .ma-pager-date,html.hk-dark .ma-stat-value,html.hk-dark .ma-stat-label,html.hk-dark .ma-schedule-title,html.hk-dark .ma-time,html.hk-dark .ma-subject,html.hk-dark .ma-teacher-name{color:#e8eefc}
+html.hk-dark .ma-stat{background:#1b2a42;border-color:#2c405f}
+html.hk-dark .ma-stat-blue .ma-stat-icon{background:#22344c;color:#7db1ff}
+html.hk-dark .ma-stat-green .ma-stat-icon{background:#1d3a2a;color:#5fd68a}
+html.hk-dark .ma-stat-amber .ma-stat-icon{background:#3d2f16;color:#ffb84d}
+html.hk-dark .ma-stat-violet .ma-stat-icon{background:#322a52;color:#b39dff}
+html.hk-dark .ma-stat-caption{color:#8fa5c0}
+html.hk-dark .ma-stat-green .ma-stat-caption{color:#5fd68a}
+html.hk-dark .ma-stat-amber .ma-stat-caption{color:#ffb84d}
+html.hk-dark .ma-table thead th{border-bottom-color:#2c405f;color:#8fa5c0}
+html.hk-dark .ma-period-done{background:#1d3a2a;color:#5fd68a}
+html.hk-dark .ma-period-pending{background:#3d2f16;color:#ffb84d}
+html.hk-dark .ma-code-chip{background:#22344c;color:#7db1ff}
+html.hk-dark .ma-avatar{background:#2c405f;color:#bcd4f7}
+html.hk-dark .ma-teacher-role,html.hk-dark .ma-status-sub{color:#8fa5c0}
+html.hk-dark .ma-topic{color:#c3d2e8}
+html.hk-dark .ma-pill-done{background:#1d3a2a;color:#5fd68a}
+html.hk-dark .ma-pill-pending{background:#3d2f16;color:#ffb84d}
+html.hk-dark .ma-info{background:#1d2c47;border-color:#2c4a73}
+html.hk-dark .ma-info-title{color:#a9c6f5}
+html.hk-dark .ma-info-list{color:#c3d2e8}
+
+/* ============================================================
+   LOOP 77 (continued) — teacher-view additions + the Submitted
+   Register page (.rg-*). Same tokens, same loop: schedule legend,
+   date-summary pager line, and the register info card / stat
+   chips / status pills / action panel.
+   ------------------------------------------------------------ */
+.ma-pager-counts{color:#5b6b7f;font-size:.8rem;margin-top:.15rem}
+.ma-pager-counts strong{color:#12212f}
+.ma-schedule-side{display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
+.ma-legend{display:inline-flex;align-items:center;gap:.4rem;color:#5b6b7f;font-size:.8rem;font-weight:600}
+.ma-dot{width:.55rem;height:.55rem;border-radius:50%;flex:0 0 auto}
+.ma-dot-done{background:#0e9f6e}
+.ma-dot-pending{background:#d97706}
+.ma-students{font-weight:600;white-space:nowrap}
+.rg-info-card{margin-bottom:1rem}
+.rg-info-top{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap;margin-bottom:1.1rem}
+.rg-subject-name{font-size:1.45rem;font-weight:700;color:#12212f;line-height:1.2}
+.rg-subject-meta{display:flex;align-items:center;color:#5b6b7f;font-size:.88rem;margin-top:.3rem}
+.rg-lock{text-align:right}
+.rg-lock-pill{font-size:.8rem;padding:.4rem .75rem}
+.rg-lock-copy{color:#5b6b7f;font-size:.8rem;margin-top:.4rem}
+.rg-blocks{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.8rem}
+.rg-block{display:flex;align-items:center;gap:.65rem;background:#f7fafc;border:1px solid #e3ebf2;border-radius:.75rem;padding:.7rem .8rem;min-width:0}
+.rg-block-wide{grid-column:span 2}
+.rg-block-icon{display:inline-flex;align-items:center;justify-content:center;width:2.3rem;height:2.3rem;border-radius:.6rem;background:#eaf1ff;color:#2563eb;font-size:1rem;flex:0 0 auto}
+.rg-block-copy{display:flex;flex-direction:column;min-width:0}
+.rg-block-label{color:#5b6b7f;font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+.rg-block-value{color:#12212f;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rg-chips{display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) minmax(0,1.6fr);gap:.8rem;margin-bottom:1rem}
+.rg-chip{display:flex;flex-direction:column;justify-content:center;background:#fff;border:1px solid #e3ebf2;border-radius:.9rem;padding:.8rem 1rem}
+.rg-chip-value{font-size:1.5rem;font-weight:700;color:#12212f;line-height:1.1}
+.rg-chip-label{color:#5b6b7f;font-size:.78rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-top:.2rem}
+.rg-chip-present .rg-chip-value{color:#0e9f6e}
+.rg-chip-absent .rg-chip-value{color:#dc2626}
+.rg-chip-late .rg-chip-value{color:#d97706}
+.rg-chip-note{flex-direction:row;align-items:center;gap:.6rem;color:#5b6b7f;font-size:.85rem}
+.rg-chip-note i{color:#0e9f6e;font-size:1.05rem}
+.rg-table-head{display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:.9rem}
+.rg-table-head .ma-schedule-title{margin-bottom:0}
+.rg-search{position:relative;min-width:240px}
+.rg-search i{position:absolute;left:.7rem;top:50%;transform:translateY(-50%);color:#8ba0b5}
+.rg-search .form-control{padding-left:2.1rem}
+.rg-pill{display:inline-flex;align-items:center;border-radius:999px;padding:.28rem .7rem;font-size:.78rem;font-weight:600;line-height:1;white-space:nowrap}
+.rg-pill-present{background:#e5f8ef;color:#0b7a55}
+.rg-pill-absent{background:#fdeeee;color:#b42323}
+.rg-pill-late{background:#fdf3e3;color:#9a6206}
+.rg-actions{display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap}
+.rg-actions-btns{display:flex;gap:.5rem;flex-wrap:wrap}
+.rg-readonly-note{color:#5b6b7f;font-size:.85rem;margin:0;max-width:520px}
+html.hk-dark .ma-pager-counts{color:#93a5bb}
+html.hk-dark .ma-pager-counts strong{color:#e8eef5}
+html.hk-dark .ma-legend{color:#93a5bb}
+html.hk-dark .rg-subject-name{color:#e8eef5}
+html.hk-dark .rg-subject-meta, html.hk-dark .rg-lock-copy{color:#93a5bb}
+html.hk-dark .rg-block{background:#131e2b;border-color:#223349}
+html.hk-dark .rg-block-icon{background:#16283f;color:#7aa7ff}
+html.hk-dark .rg-block-label{color:#93a5bb}
+html.hk-dark .rg-block-value{color:#e8eef5}
+html.hk-dark .rg-chip{background:#101a28;border-color:#223349}
+html.hk-dark .rg-chip-value{color:#e8eef5}
+html.hk-dark .rg-chip-label{color:#93a5bb}
+html.hk-dark .rg-chip-note{color:#93a5bb}
+html.hk-dark .rg-pill-present{background:#0d2b21;color:#4ade9e}
+html.hk-dark .rg-pill-absent{background:#33161a;color:#f28b8b}
+html.hk-dark .rg-pill-late{background:#33260f;color:#f2c169}
+html.hk-dark .rg-readonly-note{color:#93a5bb}
+@media (max-width: 1199.98px){
+  .rg-blocks{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .rg-chips{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .rg-chip-note{grid-column:span 2}
+}
+@media (max-width: 575.98px){
+  .rg-blocks{grid-template-columns:1fr}
+  .rg-block-wide{grid-column:span 1}
+  .rg-chips{grid-template-columns:1fr 1fr}
+  .rg-chip-note{grid-column:span 2}
+  .rg-lock{text-align:left}
+  .rg-search{min-width:0;width:100%}
+  .ma-schedule-side{gap:.6rem}
+} /* Loop 91 repair: this @media block was never closed; every later loop nested inside it and never applied on screen. */
+/* ============================================================
+   Loop 83 — Student Information redesign (2026-10-22). The
+   per-class student list gains: a pink tone for the shared
+   dashboard stat cards (Girls card), gender pills, section
+   chips, an ellipsis-safe email cell, the sort/view toolbar,
+   grid-view student cards, and a pagination footer. Print:
+   the page's screen chrome (toolbar, filters, stat cards,
+   pagination) stays off the paper document — head, table and
+   foot only. Colours follow the app palette (navy #172536,
+   accent #3478f6) with hk-dark variants throughout.
+   ============================================================ */
+.dashboard-stat-pink .dashboard-stat-icon{background:#fdeef5;color:#c2438a}
+.l83-pill{border-radius:20px;display:inline-block;font-size:.68rem;font-weight:700;line-height:1;padding:4px 10px;white-space:nowrap}
+.l83-pill-male{background:#e9f1ff;color:#2f66d0}
+.l83-pill-female{background:#fdeef5;color:#c2438a}
+.l83-chip{background:#fff4e0;border-radius:6px;color:#96660f;display:inline-block;font-size:.72rem;font-weight:600;line-height:1.35;padding:3px 8px;white-space:nowrap}
+.l83-email{max-width:230px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.l83-toolbar{align-items:center;display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;margin-bottom:14px}
+.l83-toolbar-title{color:#172536;font-size:.95rem;font-weight:700}
+.l83-toolbar-controls{align-items:center;display:flex;flex-wrap:wrap;gap:10px}
+.l83-checkall{color:#46586c;font-size:.78rem;font-weight:600;margin:0}
+.l83-checkall input{margin-right:5px;vertical-align:-2px}
+.l83-view-form{align-items:center;display:inline-flex;gap:8px;margin:0}
+.l83-view-form label{color:#718096;font-size:.76rem;font-weight:600;margin:0}
+.l83-view-form select.form-control{height:33px;width:auto}
+.l83-view-toggle .btn.active{background:#3478f6;border-color:#3478f6;color:#fff}
+.l83-avatar-lg{font-size:1rem;height:52px;width:52px}
+.l83-grid{margin-bottom:4px}
+.l83-card{background:#fff;border:1px solid #e4eaf1;border-radius:12px;margin-bottom:16px;padding:20px 16px 16px;position:relative;text-align:center;transition:box-shadow .2s,transform .2s}
+.l83-card:hover{box-shadow:0 10px 24px rgba(23,50,77,.08);transform:translateY(-2px)}
+.l83-card-check{color:#718096;font-size:.72rem;font-weight:600;left:12px;margin:0;position:absolute;top:10px}
+.l83-card-check input{margin-right:4px;vertical-align:-2px}
+.l83-card-name{color:#172536;display:block;font-size:.92rem;font-weight:700;margin-top:10px}
+.l83-card-name:hover{color:#3478f6;text-decoration:none}
+.l83-card-adm{color:#718096;font-size:.74rem;margin-top:2px}
+.l83-card-chips{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:10px}
+.l83-card-email{color:#46586c;font-size:.76rem;margin-top:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.l83-card-actions{align-items:center;border-top:1px solid #edf1f5;display:flex;gap:8px;justify-content:center;margin-top:12px;padding-top:12px}
+.l83-pagination{align-items:center;border-top:1px solid #edf1f5;display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;margin-top:6px;padding-top:14px}
+.l83-pagination-info{color:#718096;font-size:.78rem}
+html.hk-dark .dashboard-stat-pink .dashboard-stat-icon{background:#3a2333;color:#ef9ec7}
+html.hk-dark .l83-pill-male{background:#1d3355;color:#9dc0ff}
+html.hk-dark .l83-pill-female{background:#3a2333;color:#ef9ec7}
+html.hk-dark .l83-chip{background:#3a2f16;color:#f2cd7e}
+html.hk-dark .l83-toolbar-title{color:#eef4fb}
+html.hk-dark .l83-checkall{color:#a9bfd6}
+html.hk-dark .l83-view-form label{color:#93a9bf}
+html.hk-dark .l83-card{background:#11283f;border-color:#1d3a55}
+html.hk-dark .l83-card-name{color:#eef4fb}
+html.hk-dark .l83-card-adm{color:#93a9bf}
+html.hk-dark .l83-card-email{color:#a9bfd6}
+html.hk-dark .l83-card-actions{border-top-color:#1d3a55}
+html.hk-dark .l83-pagination{border-top-color:#1d3a55}
+html.hk-dark .l83-pagination-info{color:#93a9bf}
+@media print{
+  .l83-wrap .pat-toolbar,.l83-wrap .pat-filters,.l83-wrap .dashboard-stats,.l83-toolbar,.l83-pagination{display:none!important}
+} /* Loop 91 repair: this @media block was never closed; every later loop nested inside it and never applied on screen. */
+/* ============================================================
+   Loop 78 — Low Attendance premium uplift (2026-10-22). The
+   page stays on the shared list_page pattern; this loop adds
+   only what the pattern does not carry: (1) the student cell —
+   photo or initials tile + name with the admission no. beneath;
+   (2) the honest status tiers (Critical below 50%, At Risk from
+   50% up to the chosen threshold) as badges with the same tints
+   as Loop 73's % pills; (3) print: the screen card, toolbar,
+   filters and summary cards stay off the paper (the Loop 31/71
+   print-doc head carries the figures) and a print-only table
+   with the FULL filtered set takes their place, in the same
+   compact metrics as Fee Defaulters (Loop 62). Everything is
+   scoped to .att-low; dark variants ride alongside each rule.
+   ============================================================ */
+.att-low-student{align-items:center;display:flex;gap:10px;min-width:170px}
+.att-low-avatar{border-radius:50%;flex:0 0 auto;height:38px;object-fit:cover;width:38px}
+.att-low-initials{align-items:center;background:#dbe7f5;border-radius:50%;color:#10263b;display:inline-flex;flex:0 0 auto;font-size:13px;font-weight:700;height:38px;justify-content:center;letter-spacing:.02em;width:38px}
+.att-low-student-text{display:flex;flex-direction:column;line-height:1.3;min-width:0}
+.att-low-student-text strong{color:#172536;font-size:13.5px;font-weight:600}
+.att-low-student-text small{color:#71859c;font-size:11.5px}
+html.hk-dark .att-low-initials{background:#17334d;color:#bcd6f5}
+html.hk-dark .att-low-student-text strong{color:#eef4fb}
+html.hk-dark .att-low-student-text small{color:#93a9bf}
+.att-low-badge{border-radius:999px;display:inline-block;font-size:11.5px;font-weight:700;letter-spacing:.02em;padding:3px 10px;white-space:nowrap}
+.att-low-badge-critical{background:#fdecec;color:#c0392b}
+.att-low-badge-risk{background:#fff3df;color:#97590f}
+html.hk-dark .att-low-badge-critical{background:rgba(192,57,43,.22);color:#f0a49c}
+html.hk-dark .att-low-badge-risk{background:rgba(151,89,15,.28);color:#f3cd8d}
+.att-low .pagination{margin-bottom:0}
+.att-low-print-wrap{display:none}
+@media print{
+  .att-low .pat-toolbar,.att-low .pat-filters,.att-low .pat-stats{display:none!important}
+  .att-low .pat-card{display:none!important}
+  .att-low-print-wrap{display:block!important}
+  .att-low-print-table{font-size:11px!important}
+  .att-low-print-table th,.att-low-print-table td{line-height:1.35!important;padding:4px 8px!important}
+  .att-low-print-note{color:#44546a;font-size:10px!important;margin-top:8px}
+} /* Loop 91 repair: this @media block was never closed; every later loop nested inside it and never applied on screen. */
+/* ============================================================
+   Loop 82 — Assignments + Study Materials redesign (LMS pass,
+   2026-10-22). Summary stat cards, the list/grid toggle + grid
+   cards for the teacher assignment list, collapsible subject
+   groups for study materials, description clamps and the student
+   search bar. Rides the Loop 28 --qs-* tokens and the Loop 67
+   .lms-* family; dark variants sit on html.hk-dark like every
+   other Loop. The blades' duplicate inline flash alerts were
+   removed in this pass — the app-wide banner shows each
+   message exactly once.
+   ============================================================ */
+/* Summary stat cards (both LMS index pages) */
+.lms82-stats{display:grid;gap:14px;grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:16px}
+.lms82-stat{align-items:center;background:#fff;border:1px solid #e4eaf1;border-radius:12px;display:flex;gap:13px;padding:15px 16px}
+.lms82-stat-icon{align-items:center;border-radius:10px;display:inline-flex;flex:none;font-size:19px;height:46px;justify-content:center;width:46px}
+.lms82-tone-blue{background:#eef3fb;color:#2867dc}
+.lms82-tone-green{background:var(--qs-success-tint);color:var(--qs-success)}
+.lms82-tone-grey{background:#edf1f5;color:#66788c}
+.lms82-tone-amber{background:var(--qs-warning-tint);color:var(--qs-warning)}
+.lms82-tone-violet{background:#f0eafd;color:#6d4fc2}
+.lms82-stat-copy{display:flex;flex-direction:column;line-height:1.2;min-width:0}
+.lms82-stat-copy strong{color:#172536;font-size:1.45rem;font-weight:800;line-height:1.05}
+.lms82-stat-copy span{color:#172536;font-size:.83rem;font-weight:600;margin-top:3px}
+.lms82-stat-copy small{color:var(--qs-meta);font-size:.72rem;margin-top:1px}
+/* Filter form: search field grows wider than the selects */
+.lms82-filter-search{flex:2 1 260px}
+/* List/grid view bar + toggle */
+.lms82-viewbar{align-items:center;display:flex;justify-content:space-between;margin-bottom:12px}
+.lms82-viewbar-count{color:#172536;font-size:.95rem;font-weight:700}
+.lms82-toggle .btn{padding-left:10px;padding-right:10px}
+/* Grid rendering of the assignment list */
+.lms82-grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(320px,1fr))}
+.lms82-gcard{background:#fff;border:1px solid #e4eaf1;border-radius:12px;display:flex;flex-direction:column;gap:8px;padding:16px}
+.lms82-gcard-top{align-items:center;display:flex;justify-content:space-between}
+.lms82-gcard-title{color:#172536;font-size:1rem;font-weight:700;line-height:1.3}
+.lms82-gcard-title:hover{color:#2867dc;text-decoration:none}
+.lms82-gcard-meta{color:var(--qs-ink);display:flex;flex-direction:column;font-size:.82rem;gap:5px;margin-top:2px}
+.lms82-gcard-actions{border-top:1px solid #eef2f6;margin-top:auto;padding-top:11px}
+/* Two-line description clamp (all LMS lists) */
+.lms82-clamp2{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+/* Student assignment search bar */
+.lms82-student-search{align-items:center;display:flex;gap:10px;margin-bottom:14px}
+.lms82-search-wrap{flex:1;position:relative}
+.lms82-search-wrap i{color:#8fa3bb;left:12px;position:absolute;top:50%;transform:translateY(-50%)}
+.lms82-search-wrap input{padding-left:36px}
+/* Study materials: collapsible subject groups */
+.lms82-group{padding:2px 0 8px}
+.lms82-group + .lms82-group{border-top:1px solid #e4eaf1}
+.lms82-group-head{align-items:center;background:none;border:0;color:#172536;cursor:pointer;display:flex;gap:10px;padding:12px 2px 8px;text-align:left;width:100%}
+.lms82-group-head:focus{outline:2px solid var(--qs-primary);outline-offset:2px}
+.lms82-group-icon{align-items:center;background:#eef3fb;border-radius:9px;color:#3478f6;display:inline-flex;flex:none;font-size:16px;height:38px;justify-content:center;width:38px}
+.lms82-group-name{font-size:1rem;font-weight:700}
+.lms82-group-chev{color:#8fa3bb;font-size:.8rem;margin-left:auto;transition:transform .18s ease}
+.lms82-group-closed .lms82-group-chev{transform:rotate(-90deg)}
+.lms82-group-body{padding-bottom:6px}
+.lms82-group-empty{border:1px dashed #d5dee9;border-radius:10px;color:var(--qs-muted);font-size:.86rem;margin:4px 0 10px;padding:14px 16px}
+.lms82-mat-row{align-items:flex-start;display:flex;gap:12px;padding:11px 0}
+.lms82-mat-row + .lms82-mat-row{border-top:1px dashed #e4eaf1}
+.lms82-mat-title{color:#172536;font-weight:700}
+.lms82-mat-title:hover{color:#2867dc;text-decoration:none}
+.lms82-mat-meta{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+/* Dark mode (Loop 50 family tokens) */
+html.hk-dark .lms82-stat{background:#0d2036;border-color:#1d3a55}
+html.hk-dark .lms82-stat-copy strong{color:#e8f1f9}
+html.hk-dark .lms82-stat-copy span{color:#c7d8e8}
+html.hk-dark .lms82-stat-copy small{color:#8fb0cc}
+html.hk-dark .lms82-tone-blue{background:#17334d;color:#7db3f8}
+html.hk-dark .lms82-tone-green{background:#123527;color:#4ade80}
+html.hk-dark .lms82-tone-grey{background:#1d3a55;color:#8fb0cc}
+html.hk-dark .lms82-tone-amber{background:#3a2c10;color:#f5b942}
+html.hk-dark .lms82-tone-violet{background:#2b2145;color:#b79df5}
+html.hk-dark .lms82-viewbar-count{color:#e8f1f9}
+html.hk-dark .lms82-gcard{background:#0d2036;border-color:#1d3a55}
+html.hk-dark .lms82-gcard-title{color:#e8f1f9}
+html.hk-dark .lms82-gcard-title:hover{color:#7db3f8}
+html.hk-dark .lms82-gcard-meta{color:#c7d8e8}
+html.hk-dark .lms82-gcard-actions{border-top-color:#1d3a55}
+html.hk-dark .lms82-group + .lms82-group{border-top-color:#1d3a55}
+html.hk-dark .lms82-group-head{color:#e8f1f9}
+html.hk-dark .lms82-group-icon{background:#17334d;color:#7db3f8}
+html.hk-dark .lms82-group-chev{color:#5f7a99}
+html.hk-dark .lms82-group-empty{border-color:#22405f;color:#8fb0cc}
+html.hk-dark .lms82-mat-row + .lms82-mat-row{border-top-color:#1d3a55}
+html.hk-dark .lms82-mat-title{color:#e8f1f9}
+html.hk-dark .lms82-mat-title:hover{color:#7db3f8}
+/* Responsive: cards 4 -> 2 -> 1; grid and rows stack cleanly,
+   nothing pushes the page sideways (FIT rule). */
+@media (max-width:991px){
+  .lms82-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:575px){
+  .lms82-stats{grid-template-columns:minmax(0,1fr)}
+  .lms82-grid{grid-template-columns:minmax(0,1fr)}
+  .lms82-student-search{flex-wrap:wrap}
+  .lms82-mat-row{flex-wrap:wrap}
+  .lms82-mat-row .lms-mat-actions{padding-left:50px}
+}
+/* ============================================================
+   Loop 85 — Annual / Cumulative Report screen (2026-10-22).
+   The on-screen annual marksheet (marks.annual) gets the premium
+   report chrome: a student identity card (real photo or initials
+   tile — never the stock silhouette), a paper panel that frames
+   the official document, and screen-only polish scoped under
+   .ar85-screen so the printed/PDF document (which never loads
+   this stylesheet) is byte-identical to before. Palette follows
+   the app tokens (navy #10263b / #172536, accent #3478f6) with
+   hk-dark variants; the document panel itself stays paper-white
+   in both themes, exactly as it prints.
+   ============================================================ */
+.ar85-subtitle{color:#5b6b7f;font-size:.86rem;margin:-2px 0 14px}
+.ar85-id-card{margin-bottom:16px}
+.ar85-id-head{display:flex;align-items:center;gap:16px}
+.ar85-avatar{width:76px;height:76px;border-radius:50%;object-fit:cover;flex:none}
+.ar85-avatar-tile{display:inline-flex;align-items:center;justify-content:center;background:#e8eefb;color:#2867dc;font-size:1.55rem;font-weight:800;letter-spacing:.02em}
+.ar85-id-name h5{font-size:1.28rem;font-weight:700;color:#172536;margin:0 0 3px}
+.ar85-id-class{color:#5b6b7f;font-size:.9rem;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ar85-status{font-size:.68rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:3px 10px;border-radius:999px}
+.ar85-status-active{background:#e2f4e5;color:#1e7a34}
+.ar85-status-grad{background:#e8ecf1;color:#5b6b7f}
+.ar85-meta{display:flex;flex-wrap:wrap;gap:14px 34px;margin-top:18px;padding-top:16px;border-top:1px solid #e4eaf1}
+.ar85-meta-item{display:flex;align-items:center;gap:10px;min-width:150px}
+.ar85-meta-item i{width:36px;height:36px;flex:none;display:inline-flex;align-items:center;justify-content:center;border-radius:9px;background:#eef3fb;color:#3478f6;font-size:1rem}
+.ar85-meta-item small{display:block;color:#8595a9;font-size:.68rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase}
+.ar85-meta-item strong{display:block;color:#172536;font-size:.92rem;font-weight:600;line-height:1.25}
+.ar85-nomarks{margin-bottom:16px}
+.ar85-paper{background:#fff;border:1px solid #dbe3ec;box-shadow:0 10px 34px rgba(23,37,54,.10);margin-bottom:20px}
+.ar85-paper .card-body{padding:22px 26px;background:#fff;border-radius:inherit}
+.ar85-screen .report-card{padding:0}
+.ar85-screen .report-card .rc-marks td.rc-grade{font-weight:800;color:#10263b}
+.ar85-screen .report-card .rc-summary{border-collapse:separate;border-spacing:0;background:#f7fafc}
+.ar85-screen .report-card .rc-marks tbody tr:hover{background:#f5f8fc}
+@media (max-width:767px){
+  .ar85-id-head{gap:12px}
+  .ar85-avatar{width:58px;height:58px}
+  .ar85-avatar-tile{font-size:1.15rem}
+  .ar85-id-name h5{font-size:1.08rem}
+  .ar85-meta{gap:12px 18px}
+  .ar85-meta-item{min-width:128px}
+  .ar85-paper .card-body{padding:12px 10px}
+  .ar85-screen{overflow-x:auto}
+}
+html.hk-dark .ar85-subtitle{color:#93a7bf}
+html.hk-dark .ar85-id-name h5{color:#e7eefb}
+html.hk-dark .ar85-id-class{color:#93a7bf}
+html.hk-dark .ar85-status-active{background:#173d24;color:#58c472}
+html.hk-dark .ar85-status-grad{background:#263449;color:#a9bfd6}
+html.hk-dark .ar85-meta{border-top-color:#263449}
+html.hk-dark .ar85-meta-item i{background:#1b2c44;color:#6ea8ff}
+html.hk-dark .ar85-meta-item small{color:#7288a0}
+html.hk-dark .ar85-meta-item strong{color:#dbe7fb}
+html.hk-dark .ar85-paper{background:#fff;border-color:#33475c;box-shadow:0 10px 34px rgba(0,0,0,.45)}
+html.hk-dark .ar85-paper .card-body{background:#fff}
+/* ============================================================
+   Loop 84 — Manage Exam Marks selector redesign (2026-10-22).
+   Chrome around the shared marks picker on marks/index only:
+   a slim info banner, a four-step progress indicator whose
+   states are set from the form's real selections (JS in the
+   page), the "Select Exam Details" card head, the helper line,
+   required-field asterisks, and three info cards. The manage
+   page's picker (same partial, no full-chrome flag) is
+   untouched. Colours follow the app palette (navy #172536,
+   accent #3478f6) with hk-dark variants.
+   ============================================================ */
+.l84-banner{align-items:center;background:#fff;border:1px solid #e4eaf1;border-radius:12px;display:flex;gap:16px;margin-bottom:16px;padding:14px 20px}
+.l84-banner-icon{align-items:center;background:#eef3fb;border-radius:10px;color:#3478f6;display:inline-flex;flex:none;font-size:20px;height:44px;justify-content:center;width:44px}
+.l84-banner-text{flex:1;min-width:0}
+.l84-banner-text h5{color:#172536;font-size:1rem;font-weight:700;margin:0 0 2px}
+.l84-banner-text p{color:#5b6b7f;font-size:.83rem;margin:0}
+.l84-banner-points{display:flex;flex:none;flex-direction:column;gap:3px;list-style:none;margin:0;padding:0}
+.l84-banner-points li{color:#46586c;font-size:.8rem;font-weight:600;white-space:nowrap}
+.l84-banner-points li i{color:#2f9e44;margin-right:6px}
+html.hk-dark .l84-banner{background:#0f2237;border-color:#22405f}
+html.hk-dark .l84-banner-icon{background:#132c46;color:#7fb0ff}
+html.hk-dark .l84-banner-text h5{color:#e8eef5}
+html.hk-dark .l84-banner-text p{color:#93a7bd}
+html.hk-dark .l84-banner-points li{color:#a9bfd6}
+
+.l84-steps{display:flex;list-style:none;margin:0 0 16px;padding:0}
+.l84-step{align-items:center;display:flex;flex:1;gap:10px;min-width:0;position:relative}
+.l84-step:not(:last-child)::after{background:#dbe5f2;content:"";height:2px;left:52px;position:absolute;right:10px;top:17px}
+.l84-step.is-done:not(:last-child)::after{background:#2f9e44}
+.l84-step-dot{align-items:center;background:#eef3fb;border:2px solid #dbe5f2;border-radius:50%;color:#718096;display:inline-flex;flex:none;font-size:.85rem;font-weight:700;height:36px;justify-content:center;position:relative;width:36px;z-index:1}
+.l84-step-check{display:none;font-size:.8rem}
+.l84-step.is-done .l84-step-dot{background:#e6f6ec;border-color:#2f9e44;color:#2f9e44}
+.l84-step.is-done .l84-step-num{display:none}
+.l84-step.is-done .l84-step-check{display:block}
+.l84-step.is-current .l84-step-dot{background:#3478f6;border-color:#3478f6;color:#fff}
+.l84-step-text{display:flex;flex-direction:column;line-height:1.25;min-width:0}
+.l84-step-text strong{color:#9fb0c3;font-size:.86rem;font-weight:600;white-space:nowrap}
+.l84-step-text small{color:#9fb0c3;font-size:.74rem;white-space:nowrap}
+.l84-step.is-done .l84-step-text strong,.l84-step.is-current .l84-step-text strong{color:#172536}
+.l84-step.is-done .l84-step-text small,.l84-step.is-current .l84-step-text small{color:#5b6b7f}
+html.hk-dark .l84-step:not(:last-child)::after{background:#22405f}
+html.hk-dark .l84-step.is-done:not(:last-child)::after{background:#2f9e44}
+html.hk-dark .l84-step-dot{background:#132c46;border-color:#22405f;color:#7d94ad}
+html.hk-dark .l84-step.is-done .l84-step-dot{background:rgba(47,158,68,.18);border-color:#2f9e44;color:#5fce7f}
+html.hk-dark .l84-step.is-current .l84-step-dot{background:#3478f6;border-color:#3478f6;color:#fff}
+html.hk-dark .l84-step-text strong,html.hk-dark .l84-step-text small{color:#5f7a99}
+html.hk-dark .l84-step.is-done .l84-step-text strong,html.hk-dark .l84-step.is-current .l84-step-text strong{color:#e8eef5}
+html.hk-dark .l84-step.is-done .l84-step-text small,html.hk-dark .l84-step.is-current .l84-step-text small{color:#93a7bd}
+
+.l84-card-head{align-items:flex-start;display:flex;gap:12px;justify-content:space-between}
+.l84-req-note{color:#718096;font-size:.78rem;padding-top:4px;white-space:nowrap}
+.l84-req{color:#d64545;font-weight:700}
+.l84-flabel-icon{color:#3478f6;margin-right:2px}
+.l84-info-line{align-items:flex-start;background:#eef4fd;border-radius:8px;color:#33506e;display:flex;font-size:.83rem;gap:9px;line-height:1.45;margin:14px 22px 16px;padding:10px 14px}
+.l84-info-line i{color:#3478f6;flex:none;margin-top:2px}
+html.hk-dark .l84-req-note{color:#93a7bd}
+html.hk-dark .l84-info-line{background:rgba(52,120,246,.14);color:#a9bfd6}
+.l84-reset-btn{border:1px solid #dbe5f2}
+html.hk-dark .l84-reset-btn{background:#132c46;border-color:#22405f;color:#e8eef5}
+#l84-manage-btn.l84-loading{opacity:.75;pointer-events:none}
+#l84-manage-btn.l84-loading::after{animation:l84spin .7s linear infinite;border:2px solid rgba(255,255,255,.4);border-radius:50%;border-top-color:#fff;content:"";display:inline-block;height:13px;margin-left:9px;vertical-align:-2px;width:13px}
+@keyframes l84spin{to{transform:rotate(360deg)}}
+
+.l84-info-cards{display:grid;gap:16px;grid-template-columns:repeat(3,minmax(0,1fr));margin-top:16px}
+.l84-info-card{align-items:flex-start;background:#fff;border:1px solid #e4eaf1;border-radius:12px;display:flex;gap:13px;padding:16px 18px}
+.l84-info-icon{align-items:center;border-radius:10px;display:inline-flex;flex:none;font-size:17px;height:40px;justify-content:center;width:40px}
+.l84-tone-blue{background:#eef3fb;color:#3478f6}
+.l84-tone-violet{background:#f1eefb;color:#7a5af8}
+.l84-tone-amber{background:#fdf3e3;color:#e8a13a}
+.l84-info-card h6{color:#172536;font-size:.9rem;font-weight:700;margin:1px 0 3px}
+.l84-info-card p{color:#5b6b7f;font-size:.8rem;line-height:1.45;margin:0}
+html.hk-dark .l84-info-card{background:#0f2237;border-color:#22405f}
+html.hk-dark .l84-tone-blue{background:#132c46;color:#7fb0ff}
+html.hk-dark .l84-tone-violet{background:rgba(122,90,248,.16);color:#b7a6ff}
+html.hk-dark .l84-tone-amber{background:rgba(232,161,58,.16);color:#f3cd8d}
+html.hk-dark .l84-info-card h6{color:#e8eef5}
+html.hk-dark .l84-info-card p{color:#93a7bd}
+
+@media (max-width:991px){
+  .l84-banner{flex-wrap:wrap}
+  .l84-banner-points{flex-direction:row;flex-wrap:wrap;gap:4px 16px}
+  .l84-info-cards{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:767px){
+  .l84-banner{padding:13px 15px}
+  .l84-steps{flex-direction:column;gap:12px}
+  .l84-step:not(:last-child)::after{display:none}
+  .l84-step{display:none}
+  .l84-step.is-done,.l84-step.is-current{display:flex}
+  .l84-info-line{margin:12px 16px 14px}
+  .l84-req-note{display:none}
+} /* Loop 91 repair: this @media block was never closed; every later loop nested inside it and never applied on screen. */
+
+/* ============================================================
+   Loop 87 — My Feedback + Give Feedback uplift (2026-10-22,
+   owner master prompt + reference design). Builds ON the Loop 75
+   feedback finish (same tokens); adds only what the reference
+   still lacked:
+   (A) status tabs with counts + search/sort bar (.l87-tabs)
+       over the reporter's own list, filtered server-side;
+   (B) the polished empty state (.l87-empty) — an icon
+       composition (document + speech bubble) from the existing
+       icon set, no external illustration asset;
+   (C) the Admin Response column state (.l87-resp-yes) and the
+       detail page's meta strip + separated response panels
+       (.l87-meta / .l87-response);
+   (D) Give Feedback two-column context rail (.l87-rail*) and
+       the 4-step VISUAL GUIDE strip (.l87-steps) over the
+       single-page form, plus field character counters
+       (.l87-counter) for the two max-validated fields.
+   All rules are scoped to .l87-* and carry html.hk-dark
+   variants on the Loop 50 tokens.
+   ============================================================ */
+
+/* (A) status tabs */
+.l87-tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.l87-tab{align-items:center;background:#f2f6fb;border:1px solid #e0e8f2;border-radius:999px;color:#40536b;display:inline-flex;font-size:.86rem;font-weight:600;padding:7px 13px;text-decoration:none;transition:background .15s,border-color .15s,color .15s}
+.l87-tab:hover{background:#e8eff8;color:#172b45;text-decoration:none}
+.l87-tab.is-active{background:#2563eb;border-color:#2563eb;color:#fff}
+.l87-tab-count{background:rgba(23,43,69,.1);border-radius:999px;font-size:.76rem;font-weight:700;margin-left:7px;padding:1px 8px}
+.l87-tab.is-active .l87-tab-count{background:rgba(255,255,255,.22)}
+html.hk-dark .l87-tab{background:#11283f;border-color:#1d3a55;color:#a9c3dd}
+html.hk-dark .l87-tab:hover{background:#16324f;color:#e8f1f9}
+html.hk-dark .l87-tab.is-active{background:#2563eb;border-color:#2563eb;color:#fff}
+html.hk-dark .l87-tab-count{background:rgba(255,255,255,.12)}
+.l87-search-form{margin-top:2px}
+.l87-search-field{flex:1 1 260px;min-width:0}
+
+/* (B) empty state */
+.l87-empty{padding:44px 24px 48px;text-align:center}
+.l87-empty-art{display:inline-block;height:86px;margin-bottom:14px;position:relative;width:96px}
+.l87-empty-doc{align-items:center;background:#eef4ff;border:1px solid #d7e5fb;border-radius:16px;color:#2563eb;display:flex;font-size:34px;height:72px;justify-content:center;left:4px;position:absolute;top:8px;width:64px}
+.l87-empty-bubble{align-items:center;background:#2563eb;border-radius:50%;bottom:0;color:#fff;display:flex;font-size:17px;height:38px;justify-content:center;position:absolute;right:2px;width:38px}
+html.hk-dark .l87-empty-doc{background:#11283f;border-color:#1d3a55;color:#7aa8e8}
+.l87-empty-title{font-size:1.08rem;font-weight:700;margin:0 0 6px}
+.l87-empty-text{color:#64748b;margin:0 auto 18px;max-width:460px}
+html.hk-dark .l87-empty-text{color:#8fb0cc}
+
+/* (C) response state + detail */
+.l87-resp-yes{color:#1e7e46;font-weight:600;white-space:nowrap}
+html.hk-dark .l87-resp-yes{color:#5fce8f}
+.l87-meta{display:flex;flex-wrap:wrap;gap:6px 22px;font-size:.88rem}
+.l87-response{background:#f4f9f4;border:1px solid #dcefe0;border-left:4px solid #28a745;border-radius:10px;margin-bottom:10px;padding:11px 14px}
+.l87-response-by{font-size:.8rem;font-weight:700;letter-spacing:.02em;margin-bottom:4px;text-transform:uppercase}
+html.hk-dark .l87-response{background:#12291a;border-color:#1e4630;border-left-color:#28a745}
+
+/* (D) create: guide steps, counters, rail */
+.l87-steps{display:flex;gap:0;margin:4px 0 18px;overflow-x:auto;padding-bottom:2px}
+.l87-step{align-items:center;display:flex;flex:1 1 0;min-width:max-content;position:relative}
+.l87-step:not(:last-child)::after{background:#dbe4f0;content:"";flex:1 1 auto;height:2px;margin:0 10px;min-width:14px}
+.l87-step.is-active:not(:last-child)::after{background:#9db9e8}
+html.hk-dark .l87-step:not(:last-child)::after{background:#1d3a55}
+.l87-step-dot{align-items:center;background:#eef2f7;border:1px solid #d3dee9;border-radius:50%;color:#64748b;display:inline-flex;flex:none;font-size:.8rem;font-weight:700;height:26px;justify-content:center;margin-right:8px;width:26px}
+.l87-step.is-active .l87-step-dot{background:#2563eb;border-color:#2563eb;color:#fff}
+.l87-step-label{color:#64748b;font-size:.85rem;font-weight:600;white-space:nowrap}
+.l87-step.is-active .l87-step-label{color:#172b45}
+html.hk-dark .l87-step-dot{background:#11283f;border-color:#1d3a55;color:#8fb0cc}
+html.hk-dark .l87-step-label{color:#8fb0cc}
+html.hk-dark .l87-step.is-active .l87-step-label{color:#e8f1f9}
+.l87-counter{color:#8a99ad;font-size:.76rem;margin-top:4px;text-align:right}
+html.hk-dark .l87-counter{color:#5f7d99}
+.l87-rail{display:flex;flex-direction:column;gap:16px}
+.l87-rail-card{margin-bottom:0}
+.l87-rail-head{align-items:center;display:flex;gap:10px;margin-bottom:8px}
+.l87-rail-icon{align-items:center;background:#eef4ff;border-radius:10px;color:#2563eb;display:inline-flex;flex:none;font-size:16px;height:36px;justify-content:center;width:36px}
+html.hk-dark .l87-rail-icon{background:#11283f;color:#7aa8e8}
+.l87-rail-title{font-size:.95rem;font-weight:700;margin:0}
+.l87-examples{list-style:none;margin:0;padding:0}
+.l87-examples li{align-items:flex-start;color:#40536b;display:flex;font-size:.9rem;gap:8px;padding:4px 0}
+.l87-examples li i{color:#28a745;flex:none;margin-top:2px}
+html.hk-dark .l87-examples li{color:#a9c3dd}
+@media (max-width:991.98px){
+  .l87-rail{margin-top:16px}
+}
+@media (max-width:575.98px){
+  .l87-step-label{display:none}
+  .l87-step.is-active .l87-step-label{display:inline}
+  .l87-empty{padding:32px 14px 36px}
+}
+
+/* =====================================================================
+   Loop 88 — Ask Hackstra design completion (2026-10-22). The page
+   renders its own header (breadcrumb + icon tile + title + subtitle +
+   a status pill that mirrors the real ai_enabled setting) and the
+   DISABLED state becomes a full workspace: hero panel with an
+   icon-composition visual, three explainer cards, and a "Need help
+   in the meantime?" strip whose tiles are real destinations only
+   (Give Feedback route, the school email from Settings as mailto —
+   there is no help/docs page in the app, so no tile for one). The
+   Settings action renders only for the school Admin, the one role
+   that can actually open the school Settings page. Enabled state
+   keeps the Loop 75 chat; Loop 88 adds suggested-prompt chips
+   (.l88-suggest/.l88-chip) that fill the composer.
+   ===================================================================== */
+.l88-ask{max-width:1180px}
+.l88-head{align-items:flex-start;display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;margin-bottom:18px}
+.l88-crumb{color:#718096;font-size:.82rem;margin-bottom:8px}
+.l88-crumb a{color:#2867dc;font-weight:600}
+.l88-crumb-sep{margin:0 4px;color:#b3c0cf}
+.l88-crumb-here{color:#2b3a4d;font-weight:600}
+html.hk-dark .l88-crumb{color:#8fb0cc}
+html.hk-dark .l88-crumb a{color:#9dbcf5}
+html.hk-dark .l88-crumb-here{color:#e8f1f9}
+.l88-title-row{align-items:center;display:flex;gap:14px}
+.l88-title-tile{align-items:center;background:#eef4ff;border:1px solid #d7e5fb;border-radius:12px;color:#3478f6;display:inline-flex;flex:0 0 auto;font-size:1.35rem;height:52px;justify-content:center;width:52px}
+html.hk-dark .l88-title-tile{background:#11283f;border-color:#1d3a55}
+.l88-title{color:#172536;font-size:1.55rem;font-weight:700;line-height:1.2;margin:0}
+html.hk-dark .l88-title{color:#e8f1f9}
+.l88-subtitle{color:#5c6f84;font-size:.92rem;margin:3px 0 0}
+html.hk-dark .l88-subtitle{color:#93a9bf}
+.l88-head-actions{align-items:center;display:flex;gap:10px;padding-top:22px}
+.l88-status{align-items:center;background:#eef1f4;border:1px solid #dde5ec;border-radius:999px;color:#5f7185;display:inline-flex;font-size:.8rem;font-weight:600;gap:7px;padding:6px 13px;white-space:nowrap}
+.l88-status .l88-dot{border-radius:50%;flex:0 0 auto;height:8px;width:8px}
+.l88-status-off .l88-dot{background:#93a5b8}
+.l88-status-on{background:#e7f7ee;border-color:#bfe8d2;color:#14714f}
+.l88-status-on .l88-dot{background:#1da465}
+html.hk-dark .l88-status{background:#1a3049;border-color:#22405f;color:#9db2c6}
+html.hk-dark .l88-status-on{background:rgba(20,113,79,.28);border-color:#1d5c40;color:#8fd8ba}
+.l88-head-btn{white-space:nowrap}
+/* Hero (disabled state) */
+.l88-hero{border:1px solid #e4eaf1;border-radius:14px;margin-bottom:18px}
+.l88-hero-inner{align-items:center;display:flex;gap:30px}
+.l88-hero-visual{flex:0 0 190px;height:150px;position:relative}
+.l88-hero-tile{align-items:center;background:#eef4ff;border:1px solid #d7e5fb;border-radius:22px;color:#3478f6;display:flex;font-size:3rem;height:104px;justify-content:center;left:50%;position:absolute;top:50%;transform:translate(-50%,-50%);width:104px}
+html.hk-dark .l88-hero-tile{background:#11283f;border-color:#1d3a55}
+.l88-hero-badge{align-items:center;background:#fff;border:1px solid #e4eaf1;border-radius:50%;box-shadow:0 4px 14px rgba(23,37,54,.10);color:#7c8fa5;display:flex;font-size:1rem;height:38px;justify-content:center;position:absolute;right:26px;top:14px;width:38px}
+html.hk-dark .l88-hero-badge{background:#132c46;border-color:#22405f;color:#9db2c6;box-shadow:none}
+.l88-hero-chip{align-items:center;background:#fff;border:1px solid #e4eaf1;border-radius:999px;box-shadow:0 3px 10px rgba(23,37,54,.07);color:#2b3a4d;display:inline-flex;font-size:.74rem;font-weight:600;gap:5px;padding:4px 11px;position:absolute;white-space:nowrap}
+.l88-hero-chip i{color:#3478f6}
+html.hk-dark .l88-hero-chip{background:#132c46;border-color:#22405f;color:#dce8f4;box-shadow:none}
+.l88-chip-a{left:0;top:16px}
+.l88-chip-b{bottom:12px;right:2px}
+.l88-hero-main{flex:1 1 auto;min-width:260px}
+.l88-hero-title{color:#172536;font-size:1.35rem;font-weight:700;margin:0 0 10px}
+html.hk-dark .l88-hero-title{color:#e8f1f9}
+.l88-hero-text{color:#5c6f84;font-size:.95rem;line-height:1.65;margin:0 0 10px;max-width:68ch}
+html.hk-dark .l88-hero-text{color:#a9bfd4}
+.l88-hero-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+/* Explainer cards */
+.l88-cards{margin-bottom:2px}
+.l88-info-card{border:1px solid #e4eaf1;border-radius:14px;height:100%;margin-bottom:18px}
+.l88-info-icon{align-items:center;border-radius:11px;display:inline-flex;font-size:1.1rem;height:42px;justify-content:center;margin-bottom:12px;width:42px}
+.l88-tone-blue{background:#eef4ff;color:#2867dc}
+.l88-tone-green{background:#e7f7ee;color:#14714f}
+.l88-tone-violet{background:#f0eafd;color:#6a4fd0}
+.l88-tone-amber{background:#fdf3e0;color:#9a6a12}
+html.hk-dark .l88-tone-blue{background:#132c46;color:#9dbcf5}
+html.hk-dark .l88-tone-green{background:rgba(20,113,79,.28);color:#8fd8ba}
+html.hk-dark .l88-tone-violet{background:#2a2145;color:#c3b3f5}
+html.hk-dark .l88-tone-amber{background:#3a3016;color:#f0dfa8}
+.l88-info-title{color:#172536;font-size:1rem;font-weight:700;margin:0 0 7px}
+html.hk-dark .l88-info-title{color:#e8f1f9}
+.l88-info-text{color:#5c6f84;font-size:.9rem;line-height:1.65;margin:0}
+html.hk-dark .l88-info-text{color:#a9bfd4}
+/* Help strip */
+.l88-help{border:1px solid #e4eaf1;border-radius:14px}
+.l88-help-head{align-items:center;display:flex;gap:14px;margin-bottom:16px}
+.l88-help-head .l88-info-icon{margin-bottom:0}
+.l88-help-title{color:#172536;font-size:1.05rem;font-weight:700;margin:0}
+html.hk-dark .l88-help-title{color:#e8f1f9}
+.l88-help-sub{color:#5c6f84;font-size:.9rem;margin:2px 0 0}
+html.hk-dark .l88-help-sub{color:#93a9bf}
+.l88-help-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}
+.l88-help-tile{align-items:center;background:#f8fafc;border:1px solid #e4eaf1;border-radius:12px;color:inherit;display:flex;gap:13px;padding:14px 16px;text-decoration:none;transition:border-color .15s ease,background .15s ease}
+.l88-help-tile:hover{background:#eef4ff;border-color:#c9dcfa;color:inherit;text-decoration:none}
+html.hk-dark .l88-help-tile{background:#0e2237;border-color:#1d3a55}
+html.hk-dark .l88-help-tile:hover{background:#132c46;border-color:#2a4f74}
+.l88-help-tile-icon{align-items:center;border-radius:10px;display:inline-flex;flex:0 0 auto;font-size:1.05rem;height:40px;justify-content:center;width:40px}
+.l88-help-tile-main{flex:1 1 auto;min-width:0}
+.l88-help-tile-title{color:#172536;display:block;font-weight:700}
+html.hk-dark .l88-help-tile-title{color:#e8f1f9}
+.l88-help-tile-sub{color:#718096;display:block;font-size:.83rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+html.hk-dark .l88-help-tile-sub{color:#93a9bf}
+.l88-help-tile-arrow{color:#9aa7b5;flex:0 0 auto}
+/* Suggestion chips (enabled state) */
+.l88-suggest{align-items:center;display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.l88-suggest-label{color:#718096;font-size:.8rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+html.hk-dark .l88-suggest-label{color:#8fb0cc}
+.l88-chip{background:#fff;border:1px solid #d7e5fb;border-radius:999px;color:#2867dc;cursor:pointer;font-size:.83rem;font-weight:600;padding:6px 14px;transition:background .15s ease,border-color .15s ease}
+.l88-chip:hover,.l88-chip:focus{background:#eef4ff;border-color:#3478f6;outline:none}
+html.hk-dark .l88-chip{background:#132c46;border-color:#22405f;color:#a9c8fa}
+html.hk-dark .l88-chip:hover,html.hk-dark .l88-chip:focus{background:#1a3a5c;border-color:#3478f6}
+@media (max-width:767px){
+  .l88-head-actions{padding-top:0}
+  .l88-hero-inner{flex-direction:column;gap:6px}
+  .l88-hero-visual{flex-basis:140px;height:140px;width:190px}
+}
+
+/* =====================================================================
+   Loop 89 — My Payslips redesign (2026-10-22). Self-service payslip
+   list: summary cards ride the shared dashboard-stat pattern; this
+   loop adds only the history card head, the month cell, net-pay
+   emphasis, the pager, the empty states and the About panel.
+   Figures all come from PayrollController@myIndex (Payroll model).
+   ===================================================================== */
+.mp89-history-head{display:flex;align-items:center;gap:12px;padding-bottom:12px;border-bottom:1px solid #edf1f5;margin-bottom:8px}
+.mp89-history-icon{width:40px;height:40px;flex:0 0 auto;border-radius:10px;background:#e8effe;color:#2b5ce6;display:flex;align-items:center;justify-content:center;font-size:18px}
+.mp89-history-text h5{margin:0;font-weight:700;color:#172536}
+.mp89-history-text p{margin:2px 0 0;color:#718096;font-size:.8rem}
+.mp89-table td{vertical-align:middle}
+.mp89-month{display:flex;align-items:center;gap:10px;min-width:0}
+.mp89-month-icon{width:34px;height:34px;flex:0 0 auto;border-radius:8px;background:#f2f6fc;color:#5b7ba5;display:flex;align-items:center;justify-content:center;font-size:15px}
+.mp89-month-text strong{display:block;color:#172536;white-space:nowrap}
+.mp89-month-text small{color:#9aa7b5;white-space:nowrap}
+.mp89-net{font-weight:700;color:#2563eb;white-space:nowrap}
+.mp89-actions{white-space:nowrap}
+.mp89-pager{display:flex;justify-content:space-between;align-items:center;gap:12px;padding-top:12px;flex-wrap:wrap}
+.mp89-pager-info{color:#718096;font-size:.8rem}
+.mp89-pager-links{display:flex;gap:6px}
+.mp89-pager-link{min-width:32px;height:32px;padding:0 8px;display:inline-flex;align-items:center;justify-content:center;border:1px solid #dfe7ef;border-radius:8px;color:#44546a;background:#fff;font-size:.82rem}
+.mp89-pager-link:hover{border-color:#b9c6d4;color:#172536;text-decoration:none}
+.mp89-pager-active{background:#2563eb;border-color:#2563eb;color:#fff;font-weight:700}
+.mp89-pager-active:hover{color:#fff}
+.mp89-pager-disabled{opacity:.45;pointer-events:none}
+.mp89-empty{text-align:center;padding:34px 16px}
+.mp89-empty-icon{width:56px;height:56px;margin:0 auto 12px;border-radius:50%;background:#eef4ff;color:#2b5ce6;display:flex;align-items:center;justify-content:center;font-size:22px}
+.mp89-empty h6{margin:0 0 6px;font-weight:700;color:#172536}
+.mp89-empty p{color:#718096;margin:0 auto 12px;max-width:440px}
+.mp89-about{display:flex;gap:14px;background:#f2f7ff;border:1px solid #dbe7fb;border-radius:12px;padding:16px 18px;margin-top:16px}
+.mp89-about-icon{width:38px;height:38px;flex:0 0 auto;border-radius:50%;background:#e8effe;color:#2b5ce6;display:flex;align-items:center;justify-content:center;font-size:17px}
+.mp89-about-text h6{margin:2px 0 6px;font-weight:700;color:#172536}
+.mp89-about-text ul{margin:0;padding-left:18px;color:#44546a;font-size:.85rem}
+.mp89-about-text li{margin:2px 0}
+html.hk-dark .mp89-history-head{border-bottom-color:#1d3a55}
+html.hk-dark .mp89-history-text h5{color:#e6eef7}
+html.hk-dark .mp89-history-text p{color:#93a9bf}
+html.hk-dark .mp89-history-icon{background:#16324f;color:#7fb0ff}
+html.hk-dark .mp89-month-icon{background:#16324f;color:#9db9d9}
+html.hk-dark .mp89-month-text strong{color:#e6eef7}
+html.hk-dark .mp89-month-text small{color:#7e97b1}
+html.hk-dark .mp89-net{color:#7fb0ff}
+html.hk-dark .mp89-pager-info{color:#93a9bf}
+html.hk-dark .mp89-pager-link{background:#12283f;border-color:#1d3a55;color:#c7d6e6}
+html.hk-dark .mp89-pager-active{background:#2563eb;border-color:#2563eb;color:#fff}
+html.hk-dark .mp89-empty-icon{background:#16324f;color:#7fb0ff}
+html.hk-dark .mp89-empty h6{color:#e6eef7}
+html.hk-dark .mp89-empty p{color:#93a9bf}
+html.hk-dark .mp89-about{background:#12283f;border-color:#1d3a55}
+html.hk-dark .mp89-about-icon{background:#16324f;color:#7fb0ff}
+html.hk-dark .mp89-about-text h6{color:#e6eef7}
+html.hk-dark .mp89-about-text ul{color:#c7d6e6}
+
+/* =====================================================================
+   Loop 90 — Payslip screen preview chrome (2026-10-22). The payslip
+   DOCUMENT (partials/payslip_document) carries its own styles so the
+   dompdf shell renders it identically; this loop styles only the
+   in-app preview around it: a centred A4-ratio paper on a neutral
+   backdrop. The paper itself stays white in both themes — paper is
+   paper; only the backdrop follows dark mode.
+   ===================================================================== */
+.pslip-screen{background:#e8edf3;padding:26px 16px 34px;border-radius:8px}
+.pslip-paper{background:#fff;max-width:820px;margin:0 auto;padding:30px 34px;box-shadow:0 6px 28px rgba(16,38,59,.16);border:1px solid #d7e0ec}
+html.hk-dark .pslip-screen{background:#141a22}
+html.hk-dark .pslip-paper{background:#fff;border-color:#33475c;box-shadow:0 10px 34px rgba(0,0,0,.45)}
+@media (max-width:575px){.pslip-screen{padding:14px 6px 20px}.pslip-paper{padding:18px 14px}}
+@media print{
+  .pslip-screen{background:#fff!important;padding:0!important}
+  .pslip-paper{box-shadow:none!important;border:none!important;max-width:none!important;padding:0!important}
+}
+
+/* ============================================================
+   Loop 93 — Collect Fee / Create Payment premium redesign
+   (2026-10-22, owner master prompt + reference design).
+   The counter flow is Workstream BJ's, unchanged: search a
+   student by name / admission no / class (payments.index),
+   open their invoice, record against a fee record with the
+   per-record Pay Now POST (payments.pay_now), print the
+   receipt. Loop 93 is presentation only:
+   (A) the 4-step VISUAL GUIDE strip (.l93-steps) over the
+       two-page flow — not a wizard;
+   (B) the premium search panel + result rows (.l93-search-*)
+       on the payments landing card (BJ's endpoint, input id,
+       results id and JSON contract byte-identical);
+   (C) the invoice page rebuilt as the collect-fee workspace:
+       selected-student panel with real totals + progress
+       (.l93-student/.l93-stat), fee-dues card, and the sticky
+       Payment Summary rail (.l93-rail) whose Record Payment
+       button submits the ACTIVE row's real .ajax-pay form —
+       it posts nothing itself. Live figures in the rail are
+       computed from the rows' own data-amount cells.
+   The record stores no payment method for counter payments
+   and PayNowRequest takes only amt_paid, so there is NO
+   method selector and NO date/remark input — the summary
+   states the receipt date rule instead of faking fields.
+   All rules scoped .l93-* with html.hk-dark variants.
+   ============================================================ */
+
+/* (A) step guide */
+.l93-steps{display:flex;gap:0;list-style:none;margin:2px 0 18px;overflow-x:auto;padding:0 0 2px}
+.l93-step{align-items:center;display:flex;flex:1 1 0;min-width:max-content;position:relative}
+.l93-step:not(:last-child)::after{background:#dbe4f0;content:"";flex:1 1 auto;height:2px;margin:0 10px;min-width:14px}
+.l93-step.is-done:not(:last-child)::after{background:#9db9e8}
+html.hk-dark .l93-step:not(:last-child)::after{background:#1d3a55}
+html.hk-dark .l93-step.is-done:not(:last-child)::after{background:#2c5aa0}
+.l93-step-dot{align-items:center;background:#eef2f7;border:1px solid #d3dee9;border-radius:50%;color:#64748b;display:inline-flex;flex:none;font-size:.78rem;font-weight:700;height:26px;justify-content:center;margin-right:8px;width:26px}
+.l93-step.is-active .l93-step-dot{background:#2563eb;border-color:#2563eb;color:#fff}
+.l93-step.is-done .l93-step-dot{background:#e3f4ea;border-color:#bfe6cd;color:#1e7d46}
+html.hk-dark .l93-step-dot{background:#11283f;border-color:#1d3a55;color:#a9c3dd}
+html.hk-dark .l93-step.is-active .l93-step-dot{background:#2563eb;border-color:#2563eb;color:#fff}
+html.hk-dark .l93-step.is-done .l93-step-dot{background:#14342a;border-color:#1f5c3d;color:#5fd68f}
+.l93-step-text{display:flex;flex-direction:column;line-height:1.2}
+.l93-step-text strong{color:#40536b;font-size:.86rem;font-weight:600}
+.l93-step-text small{color:#8496ab;font-size:.74rem}
+.l93-step.is-active .l93-step-text strong{color:#172b45}
+html.hk-dark .l93-step-text strong{color:#a9c3dd}
+html.hk-dark .l93-step-text small{color:#6f8dab}
+html.hk-dark .l93-step.is-active .l93-step-text strong{color:#e8f1f9}
+
+/* (B) search panel (payments.index) */
+.l93-search-head{align-items:flex-start;display:flex;gap:12px;margin-bottom:14px}
+.l93-search-icon{align-items:center;background:#e8f0fe;border-radius:10px;color:#2563eb;display:inline-flex;flex:none;font-size:1.15rem;height:42px;justify-content:center;width:42px}
+html.hk-dark .l93-search-icon{background:#16324f;color:#7db1f8}
+.l93-search-head h5{color:#172b45;font-size:1.06rem;font-weight:700;margin:0 0 2px}
+.l93-search-head p{color:#64748b;font-size:.86rem;margin:0}
+html.hk-dark .l93-search-head h5{color:#e8f1f9}
+html.hk-dark .l93-search-head p{color:#a9c3dd}
+.l93-search-tools{margin-left:auto;flex:none}
+.l93-search-box{position:relative}
+.l93-search-box .form-control{height:46px;padding-left:40px}
+.l93-search-box>i{color:#8496ab;font-size:1rem;left:14px;position:absolute;top:50%;transform:translateY(-50%);z-index:5}
+.l93-results{border-radius:10px;overflow:hidden}
+.l93-result{align-items:center;display:flex;gap:10px;padding:10px 14px}
+.l93-avatar-sm{align-items:center;background:#e8f0fe;border-radius:50%;color:#1a56db;display:inline-flex;flex:none;font-size:.8rem;font-weight:700;height:38px;justify-content:center;width:38px}
+html.hk-dark .l93-avatar-sm{background:#16324f;color:#7db1f8}
+.l93-result-main{flex:1 1 auto;min-width:0}
+.l93-result-main strong{color:#172b45;display:block;font-size:.92rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.l93-result-main small{color:#8496ab}
+html.hk-dark .l93-result-main strong{color:#e8f1f9}
+.l93-due-pill{background:#fdecec;border-radius:999px;color:#b3261e;flex:none;font-size:.78rem;font-weight:700;padding:3px 10px}
+.l93-nodue-pill{background:#e3f4ea;border-radius:999px;color:#1e7d46;flex:none;font-size:.78rem;font-weight:700;padding:3px 10px}
+html.hk-dark .l93-due-pill{background:#3d1d23;color:#ff9d94}
+html.hk-dark .l93-nodue-pill{background:#14342a;color:#5fd68f}
+
+/* (C) invoice workspace */
+.l93-layout{display:grid;gap:16px;grid-template-columns:minmax(0,1fr) 340px;align-items:start}
+@media (max-width:991px){.l93-layout{grid-template-columns:minmax(0,1fr)}}
+.l93-student{align-items:flex-start;display:flex;gap:16px;flex-wrap:wrap}
+.l93-avatar{align-items:center;background:#e8f0fe;border-radius:50%;color:#1a56db;display:inline-flex;flex:none;font-size:1.3rem;font-weight:700;height:64px;justify-content:center;overflow:hidden;width:64px}
+.l93-avatar img{height:100%;object-fit:cover;width:100%}
+html.hk-dark .l93-avatar{background:#16324f;color:#7db1f8}
+.l93-student-main{flex:1 1 220px;min-width:0}
+.l93-student-main h5{color:#172b45;font-size:1.15rem;font-weight:700;margin:0 0 3px}
+.l93-student-main p{color:#64748b;font-size:.86rem;margin:0}
+html.hk-dark .l93-student-main h5{color:#e8f1f9}
+html.hk-dark .l93-student-main p{color:#a9c3dd}
+.l93-status-pill{background:#e3f4ea;border-radius:999px;color:#1e7d46;font-size:.76rem;font-weight:700;padding:3px 10px;vertical-align:2px}
+.l93-status-pill.is-grad{background:#eef2f7;color:#64748b}
+html.hk-dark .l93-status-pill{background:#14342a;color:#5fd68f}
+html.hk-dark .l93-status-pill.is-grad{background:#11283f;color:#a9c3dd}
+.l93-stats{display:grid;gap:12px;grid-template-columns:repeat(4,minmax(0,1fr));margin-top:16px}
+@media (max-width:767px){.l93-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.l93-stat{background:#f7fafd;border:1px solid #e0e8f2;border-radius:10px;padding:12px 14px}
+html.hk-dark .l93-stat{background:#0e2237;border-color:#1d3a55}
+.l93-stat span{color:#8496ab;display:block;font-size:.74rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+.l93-stat strong{color:#172b45;display:block;font-size:1.12rem;font-weight:700;margin-top:3px}
+.l93-stat.is-due strong{color:#b3261e}
+.l93-stat.is-paid strong{color:#1e7d46}
+html.hk-dark .l93-stat strong{color:#e8f1f9}
+html.hk-dark .l93-stat.is-due strong{color:#ff9d94}
+html.hk-dark .l93-stat.is-paid strong{color:#5fd68f}
+.l93-progress{background:#e8eef5;border-radius:999px;height:8px;margin-top:6px;overflow:hidden}
+.l93-progress-bar{background:#2563eb;border-radius:999px;height:100%;transition:width .3s}
+html.hk-dark .l93-progress{background:#1d3a55}
+.l93-card-head{align-items:flex-start;display:flex;gap:12px;margin-bottom:6px}
+.l93-card-head h5{color:#172b45;font-size:1.02rem;font-weight:700;margin:0 0 2px}
+.l93-card-head p{color:#64748b;font-size:.85rem;margin:0}
+html.hk-dark .l93-card-head h5{color:#e8f1f9}
+html.hk-dark .l93-card-head p{color:#a9c3dd}
+.l93-table td,.l93-table th{vertical-align:middle}
+.l93-fee-title{color:#172b45;font-weight:600}
+html.hk-dark .l93-fee-title{color:#e8f1f9}
+.l93-fee-sub{color:#8496ab;font-size:.76rem}
+.l93-pay-input{min-width:110px}
+.l93-rail{position:sticky;top:76px}
+@media (max-width:991px){.l93-rail{position:static}}
+.l93-sum-row{display:flex;font-size:.9rem;justify-content:space-between;padding:7px 0;border-bottom:1px dashed #e0e8f2}
+.l93-sum-row:last-of-type{border-bottom:0}
+.l93-sum-row span{color:#64748b}
+.l93-sum-row strong{color:#172b45;font-weight:700}
+.l93-sum-row.is-due strong{color:#b3261e}
+html.hk-dark .l93-sum-row{border-color:#1d3a55}
+html.hk-dark .l93-sum-row span{color:#a9c3dd}
+html.hk-dark .l93-sum-row strong{color:#e8f1f9}
+html.hk-dark .l93-sum-row.is-due strong{color:#ff9d94}
+.l93-cur{background:#f7fafd;border:1px solid #e0e8f2;border-radius:10px;margin:12px 0;padding:12px 14px}
+html.hk-dark .l93-cur{background:#0e2237;border-color:#1d3a55}
+.l93-cur-title{color:#40536b;font-size:.78rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;margin-bottom:8px}
+html.hk-dark .l93-cur-title{color:#a9c3dd}
+.l93-cur .l93-sum-row{padding:5px 0}
+.l93-paybtn{font-weight:700;margin-top:12px;padding:11px 16px;width:100%}
+.l93-rail-note{color:#8496ab;font-size:.78rem;margin:10px 0 0;text-align:center}
+html.hk-dark .l93-rail-note{color:#6f8dab}
+.l93-cur-warn{color:#b3261e;display:none;font-size:.8rem;font-weight:600;margin-top:8px}
+html.hk-dark .l93-cur-warn{color:#ff9d94}
+@media print{.l93-steps,.l93-rail{display:none!important}}
+
+
+/* =====================================================================
+   Loop 92 — Accountant dashboard premium pass (2026-10-22). Finance
+   home only: KPI delta pills, ledger-month trend bars, quick-action
+   tile tones, payment-method donut, outstanding strip, receipt refs.
+   All figures are server-computed from the receipts ledger; these
+   rules only present them. Grid tracks use minmax(0,1fr) (FIT rule).
+   ===================================================================== */
+.l92-delta{border-radius:20px;display:inline-block;font-weight:700;padding:2px 8px}
+.l92-delta-up{background:#e7f7f0;color:#188b66}
+.l92-delta-down{background:#fdecec;color:#c0392b}
+.l92-trend{align-items:flex-end;display:flex;gap:14px;min-height:190px;padding:6px 22px 20px}
+.l92-trend-col{align-items:center;display:flex;flex:1 1 0;flex-direction:column;height:170px;justify-content:flex-end;min-width:0}
+.l92-trend-value{color:#22314a;font-size:.72rem;font-weight:700;margin-bottom:6px;white-space:nowrap}
+.l92-trend-bar{background:linear-gradient(180deg,#3478f6,#8bb6ff);border-radius:5px 5px 2px 2px;display:block;max-width:52px;min-height:6px;width:100%}
+.l92-trend-col small{color:#8a94a6;font-size:.7rem;margin-top:8px;white-space:nowrap}
+.l92-ref{color:#22314a;font-size:.74rem;font-weight:600;white-space:nowrap}
+.l92-row-action{color:#3478f6;font-size:15px}
+.l92-row-action:hover{color:#2867dc}
+.l92-tile{border-radius:9px!important;min-height:76px!important}
+.l92-tile i{font-size:19px!important}
+.l92-tile-blue{background:#eaf1fe!important;color:#2563eb!important;border-color:#d3e0fb!important}
+.l92-tile-violet{background:#f0edfe!important;color:#6845d8!important;border-color:#ddd2fb!important}
+.l92-tile-rose{background:#fdeeee!important;color:#d64550!important;border-color:#f8d2d4!important}
+.l92-tile-green{background:#e7f7f0!important;color:#188b66!important;border-color:#cdeede!important}
+.l92-tile-amber{background:#fdf3e0!important;color:#b7791f!important;border-color:#f5e2b8!important}
+.l92-tile-slate{background:#eef2f6!important;color:#4a5a6a!important;border-color:#dde5ec!important}
+.l92-tile:hover{filter:brightness(.985);text-decoration:none}
+.l92-donut-wrap{align-items:center;display:flex;flex-wrap:wrap;gap:18px;padding:2px 22px 22px}
+.l92-donut{flex:0 0 auto}
+.l92-donut-track{stroke:#e8edf3}
+.l92-donut-num{fill:#172536;font-size:14.5px;font-weight:700}
+.l92-donut-cap{fill:#8494a7;font-size:10.5px}
+.l92-donut-legend{flex:1 1 170px;min-width:0}
+.l92-legend-row{align-items:center;display:flex;gap:9px;padding:7px 0}
+.l92-legend-row + .l92-legend-row{border-top:1px solid #edf1f5}
+.l92-legend-dot{border-radius:50%;flex:0 0 auto;height:10px;width:10px}
+.l92-legend-label{color:#4a5a6a;font-size:.78rem}
+.l92-legend-fig{margin-left:auto;text-align:right}
+.l92-legend-fig strong{color:#172536;display:block;font-size:.82rem}
+.l92-legend-fig small{color:#8a94a6;font-size:.68rem}
+.l92-legend-total{border-top:1px solid #e4eaf1;display:flex;justify-content:space-between;margin-top:8px;padding-top:10px}
+.l92-legend-total span{color:#718096;font-size:.76rem}
+.l92-legend-total strong{color:#172536;font-size:.85rem}
+.l92-outstanding{align-items:center;background:#fff7ea;border:1px solid #f5e2b8;border-radius:10px;color:inherit;display:flex;gap:14px;padding:16px 18px}
+.l92-outstanding:hover{box-shadow:0 8px 20px rgba(23,50,77,.07);color:inherit;text-decoration:none}
+.l92-outstanding-icon{align-items:center;background:#fbeed3;border-radius:50%;color:#b7791f;display:flex;flex:0 0 auto;font-size:19px;height:44px;justify-content:center;width:44px}
+.l92-outstanding-copy{display:flex;flex:1;flex-direction:column;min-width:0}
+.l92-outstanding-copy small{color:#b7791f;font-size:.68rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
+.l92-outstanding-copy strong{color:#172536;font-size:1.3rem;line-height:1.35}
+.l92-outstanding-copy span{color:#718096;font-size:.74rem}
+.l92-outstanding-arrow{color:#b7791f}
+@media (max-width:575px){
+  .l92-trend{gap:8px;padding-left:14px;padding-right:14px}
+  .l92-trend-value{font-size:.62rem}
+  .l92-donut-wrap{justify-content:center}
+}
+html.hk-dark .l92-delta-up{background:#123528;color:#4ade9e}
+html.hk-dark .l92-delta-down{background:#3d1d22;color:#ff9d94}
+html.hk-dark .l92-trend-value{color:#dbe7f5}
+html.hk-dark .l92-ref{color:#dbe7f5}
+html.hk-dark .l92-row-action{color:#7fb0ff}
+html.hk-dark .l92-donut-track{stroke:#1d3a55}
+html.hk-dark .l92-donut-num{fill:#eef4fb}
+html.hk-dark .l92-legend-row + .l92-legend-row{border-color:#1d3a55}
+html.hk-dark .l92-legend-label{color:#a9bfd6}
+html.hk-dark .l92-legend-fig strong{color:#eef4fb}
+html.hk-dark .l92-legend-total{border-color:#1d3a55}
+html.hk-dark .l92-legend-total strong{color:#eef4fb}
+html.hk-dark .l92-tile-blue{background:#16324f!important;color:#7fb0ff!important;border-color:#1d3a55!important}
+html.hk-dark .l92-tile-violet{background:#241d4d!important;color:#b7a6ff!important;border-color:#322a63!important}
+html.hk-dark .l92-tile-rose{background:#3d1d22!important;color:#ff9d94!important;border-color:#55262b!important}
+html.hk-dark .l92-tile-green{background:#123528!important;color:#4ade9e!important;border-color:#1c4a37!important}
+html.hk-dark .l92-tile-amber{background:#3a2c10!important;color:#f2c063!important;border-color:#57431a!important}
+html.hk-dark .l92-tile-slate{background:#16283c!important;color:#a9bfd6!important;border-color:#1d3a55!important}
+html.hk-dark .l92-outstanding{background:#2c2110;border-color:#57431a}
+html.hk-dark .l92-outstanding-icon{background:#3a2c10;color:#f2c063}
+html.hk-dark .l92-outstanding-copy small{color:#f2c063}
+html.hk-dark .l92-outstanding-copy strong{color:#eef4fb}
+html.hk-dark .l92-outstanding-copy span{color:#a9bfd6}
+html.hk-dark .l92-outstanding-arrow{color:#f2c063}
+
+/* =====================================================================
+   Loop 95 — Fee Defaulters screen redesign (2026-10-22). The screen
+   side of payments/defaulters is rebuilt: summary cards ride the
+   shared dashboard-stat pattern (Loop 28/83), the filter row gains
+   section/status/search over the same defaulter assembly, and the
+   table is a paginated screen table (student avatar, session totals,
+   balance due, paid-status pill, View → the student's invoice).
+   The printed document is NOT touched: its table keeps the exact
+   Wave 3 markup, lives in .def95-print-only (hidden on screen), and
+   Loop 62's .pay-def print metrics compact it onto one A4 page as
+   they always have — everything Loop 95 adds is print-hidden.
+   ===================================================================== */
+.def95-print-only{display:none}
+@media print{
+  .def95-print-only{display:block!important}
+}
+.def95-student{align-items:center;display:inline-flex;gap:10px}
+.def95-due{color:#c92a2a;font-weight:700;white-space:nowrap}
+.def95-table td,.def95-table th{vertical-align:middle}
+.def95-table .text-right{white-space:nowrap}
+.def95-pill{border-radius:999px;display:inline-block;font-size:.72rem;font-weight:600;line-height:1.5;padding:2px 10px;white-space:nowrap}
+.def95-pill-unpaid{background:#fdecec;color:#b42318}
+.def95-pill-partial{background:#fdf3e3;color:#9a6700}
+.def95-pagination{align-items:center;border-top:1px solid #edf1f5;display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;margin-top:6px;padding-top:14px}
+.def95-pagination-info{color:#718096;font-size:.78rem}
+html.hk-dark .def95-due{color:#ff8787}
+html.hk-dark .def95-pill-unpaid{background:#3d1f1e;color:#ffa8a8}
+html.hk-dark .def95-pill-partial{background:#3a2f16;color:#ffd43b}
+html.hk-dark .def95-pagination{border-top-color:#1d3a55}
+html.hk-dark .def95-pagination-info{color:#8fa3b8}
+@media (max-width:575px){
+  .def95-student{gap:8px}
+  .def95-pill{font-size:.68rem;padding:2px 8px}
+}
+
+
+/* =====================================================================
+   Loop 94 — Manage Payments redesign (2026-10-22). The page keeps the
+   BT/CK contracts (BJ student search, session picker POST, tabbed
+   fee-definition tables) and gains: four session stat cards (shared
+   .dashboard-stat-card chrome — no new card styles here), a labelled
+   session filter row, and the Payment Records table (receipts for
+   the selected session) with status pills, real receipt actions and
+   app-pattern pagination. All classes are .mp94-*; every rule has a
+   dark variant where the light one would not read on hk-dark.
+   ===================================================================== */
+.mp94-find{max-width:640px}
+.mp94-records{margin-bottom:8px}
+.mp94-records-head{align-items:flex-start;display:flex;flex-wrap:wrap;gap:8px 16px;justify-content:space-between;margin-bottom:12px}
+.mp94-block-title{font-size:.95rem;font-weight:700;margin:0}
+.mp94-block-sub{color:#718096;font-size:.8rem;margin:2px 0 0}
+.mp94-showing{color:#718096;font-size:.78rem;padding-top:4px}
+.mp94-ref{font-weight:600;letter-spacing:.01em;white-space:nowrap}
+.mp94-table td,.mp94-table th{vertical-align:middle}
+.mp94-pill{border-radius:999px;display:inline-block;font-size:.72rem;font-weight:700;line-height:1;padding:5px 10px;white-space:nowrap}
+.mp94-pill-paid{background:#e3f4e8;color:#1e7a3c}
+.mp94-pill-partial{background:#fdf0dc;color:#9a6206}
+.mp94-fees{border-top:1px solid #edf1f5;margin-top:26px;padding-top:20px}
+.mp94-pagination{align-items:center;border-top:1px solid #edf1f5;display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;margin-top:6px;padding-top:14px}
+.mp94-pagination-info{color:#718096;font-size:.78rem}
+.mp94-pages{display:flex;flex-wrap:wrap;gap:4px}
+.mp94-page{border:1px solid #dbe3ec;border-radius:6px;color:#2d3748;display:inline-block;font-size:.8rem;line-height:1;min-width:30px;padding:7px 9px;text-align:center}
+a.mp94-page:hover{background:#edf2f9;text-decoration:none}
+.mp94-page.is-current{background:#2563eb;border-color:#2563eb;color:#fff;font-weight:700}
+.mp94-page.is-disabled{color:#a0aec0;cursor:default}
+html.hk-dark .mp94-block-sub,html.hk-dark .mp94-showing,html.hk-dark .mp94-pagination-info{color:#8fa6bd}
+html.hk-dark .mp94-pill-paid{background:#123527;color:#5fd08a}
+html.hk-dark .mp94-pill-partial{background:#3d2c07;color:#f2b544}
+html.hk-dark .mp94-fees{border-top-color:#1d3a55}
+html.hk-dark .mp94-pagination{border-top-color:#1d3a55}
+html.hk-dark .mp94-page{border-color:#274a6b;color:#c7d6e6}
+html.hk-dark a.mp94-page:hover{background:#16324d}
+html.hk-dark .mp94-page.is-current{background:#2563eb;border-color:#2563eb;color:#fff}
+html.hk-dark .mp94-page.is-disabled{color:#54708e}
+@media (max-width:575px){
+  .mp94-records-head{flex-direction:column}
+  .mp94-pagination{flex-direction:column;align-items:flex-start}
+}
+
+
+/* ============================================================
+   Loop 97 — Fee Collection Report screen (2026-10-22). The
+   report's own chrome: trend chart (CSS bars over the real
+   daily buckets), the summary panel, the daily-table header
+   row and pagination. KPI cards reuse the shared
+   dashboard-stat-card pattern; figures all come from the one
+   controller assembly, so this loop is presentation only.
+   ============================================================ */
+.cr97-panels{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:16px;margin-bottom:18px}
+.cr97-chart-panel,.cr97-summary-panel{border:1px solid #dde5ee;border-radius:12px;padding:16px 18px;background:#fff}
+.cr97-panel-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:8px}
+.cr97-chart-panel h5,.cr97-summary-panel h5,.cr97-table-head h5{font-weight:700;color:#172536;margin:0 0 2px;font-size:1rem}
+.cr97-chart-panel p,.cr97-table-head p{color:#718096;font-size:.85rem;margin:0}
+.cr97-chart{display:flex;align-items:flex-end;gap:10px;min-height:190px;padding-top:10px;overflow-x:auto}
+.cr97-bar-col{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:74px;flex:1}
+.cr97-bar-value{font-size:.78rem;font-weight:700;color:#172536;white-space:nowrap}
+.cr97-bar-track{height:120px;width:100%;max-width:64px;display:flex;align-items:flex-end;background:#eef3f9;border-radius:6px 6px 0 0}
+.cr97-bar{width:100%;background:#2f6fd0;border-radius:6px 6px 0 0;min-height:3px}
+.cr97-bar-col:last-child .cr97-bar{background:#2563eb}
+.cr97-bar-label{font-size:.72rem;color:#44546a;white-space:nowrap}
+.cr97-bar-count{font-size:.7rem;color:#93a9bf;white-space:nowrap}
+.cr97-chart-empty{border:1px dashed #c9d6e3;border-radius:10px;color:#718096;padding:26px 16px;text-align:center;font-size:.9rem}
+.cr97-summary-list{list-style:none;margin:10px 0 0;padding:0}
+.cr97-summary-list li{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:8px 0;border-bottom:1px solid #eef2f6}
+.cr97-summary-list li:last-child{border-bottom:none}
+.cr97-summary-list span{color:#5b6b7f;font-size:.88rem}
+.cr97-summary-list strong{color:#172536;font-size:.95rem;white-space:nowrap}
+.cr97-summary-list small{display:block;text-align:right;color:#93a9bf;font-size:.75rem}
+.cr97-summary-note{color:#93a9bf;font-size:.78rem;margin:10px 0 0}
+.cr97-table-head{display:flex;justify-content:space-between;align-items:flex-end;margin:4px 0 10px}
+.cr97-pagination{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid #eef2f6}
+.cr97-pagination-info{color:#5b6b7f;font-size:.85rem}
+.cr97-print-summary{display:none}
+@media (max-width:991px){
+  .cr97-panels{grid-template-columns:minmax(0,1fr)}
+}
+@media print{
+  .cr97-print-summary{display:block!important;border:1px solid #ccd6e0;border-radius:6px;padding:8px 12px;margin-bottom:12px;font-size:12px;color:#243b53}
+  .cr97-table-head h5{font-size:13px}
+  .cr97-table-head p{display:none}
+}
+/* Dark mode */
+html.hk-dark .cr97-chart-panel,html.hk-dark .cr97-summary-panel{background:#12283f;border-color:#1d3a55}
+html.hk-dark .cr97-chart-panel h5,html.hk-dark .cr97-summary-panel h5,html.hk-dark .cr97-table-head h5{color:#e6eef7}
+html.hk-dark .cr97-chart-panel p,html.hk-dark .cr97-table-head p{color:#93a9bf}
+html.hk-dark .cr97-bar-track{background:#1d3a55}
+html.hk-dark .cr97-bar-value{color:#e6eef7}
+html.hk-dark .cr97-bar-label{color:#b7c9dc}
+html.hk-dark .cr97-chart-empty{border-color:#1d3a55;color:#93a9bf}
+html.hk-dark .cr97-summary-list li{border-bottom-color:#1d3a55}
+html.hk-dark .cr97-summary-list span{color:#93a9bf}
+html.hk-dark .cr97-summary-list strong{color:#e6eef7}
+html.hk-dark .cr97-pagination{border-top-color:#1d3a55}
+html.hk-dark .cr97-pagination-info{color:#93a9bf}
+
+/* =====================================================================
+   Loop 99 — Student dashboard premium pass (2026-10-22). Brings the
+   student home to the teacher (79) / accountant (92) / parent (96)
+   standard: a four-card KPI strip (attendance, subjects, open
+   assignments, own fee status), today's classes with teacher names,
+   and an assignments-due list. All data is the student's own — the
+   controller assemblies are unchanged in scope, only extended.
+   ===================================================================== */
+.stu99-kpis{display:grid;gap:16px;grid-template-columns:repeat(4,minmax(0,1fr))}
+.stu99-kpis .dashboard-stat-card{flex-direction:column;gap:10px;margin-bottom:0;width:100%}
+@media (max-width:1199px){.stu99-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:479px){.stu99-kpis{grid-template-columns:1fr}}
+.stu99-asg-row{align-items:center;border-top:1px solid #edf1f5;color:inherit;display:flex;gap:14px;justify-content:space-between;padding:13px 22px}
+.stu99-asg-row:first-of-type{border-top:0}
+.stu99-asg-row:hover{background:#f8faff;text-decoration:none}
+.stu99-asg-copy{min-width:0}
+.stu99-asg-copy strong{color:#172536;display:block;font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stu99-asg-copy small{color:#66788c;font-size:.74rem}
+.stu99-asg-side{align-items:center;display:flex;flex:none;gap:8px}
+.stu99-due-chip{background:#eef1f5;border-radius:999px;color:#43556c;font-size:.72rem;font-weight:600;padding:4px 10px;white-space:nowrap}
+.stu99-due-soon{background:#fff3df;color:#97590f}
+.stu99-due-overdue{background:#fdecec;color:#c0392b}
+.stu99-badge-todo{background:#e9f1ff;color:#2867dc}
+.stu99-badge-done{background:#e7f7f0;color:#188b66}
+html.hk-dark .stu99-asg-row{border-top-color:#22344a}
+html.hk-dark .stu99-asg-row:hover{background:#12283f}
+html.hk-dark .stu99-asg-copy strong{color:#e6eef7}
+html.hk-dark .stu99-asg-copy small{color:#93a9bf}
+html.hk-dark .stu99-due-chip{background:#1d3a55;color:#c7d6e6}
+html.hk-dark .stu99-due-soon{background:#4a3512;color:#f2c069}
+html.hk-dark .stu99-due-overdue{background:#4a1f1f;color:#f19a9a}
+html.hk-dark .stu99-badge-todo{background:#16324f;color:#7fb0ff}
+html.hk-dark .stu99-badge-done{background:#123527;color:#6fd3a7}
+@media (max-width:575px){.stu99-asg-row{align-items:flex-start;flex-direction:column;gap:8px}.stu99-asg-copy strong{white-space:normal}}
+   Loop 96 — Parent dashboard premium pass (2026-10-22). The
+   parent home joins the Loop 79 / Loop 92 standard: greeting
+   header, five KPI cards, per-child cards (photo-or-initials
+   avatar, session attendance, fee position + progress), a
+   combined Fees Due panel whose Pay Fees buttons land on the
+   child's real fees page, factual low-attendance notes (the
+   Low Attendance page's <75% rule) and the parent-visible
+   circulars strip. Every rule is scoped to .p96-* components,
+   which render ONLY on the parent home. Grid tracks use
+   minmax(0,1fr) (FIT rule).
+   ============================================================ */
+
+/* --- Welcome strip --- */
+.p96-welcome{display:flex;gap:20px;align-items:center;justify-content:space-between;margin-bottom:20px}
+.p96-welcome-main{min-width:0}
+.p96-welcome-main h2{font-size:24px;font-weight:700;color:#172536;margin:0 0 4px}
+.p96-welcome-main p{color:#718096;font-size:13.5px;margin:0}
+.p96-welcome-side{display:flex;align-items:center;gap:16px;flex:0 0 auto}
+.p96-welcome-date{display:flex;align-items:center;gap:8px;color:#5b6b7f;font-size:13.5px}
+.p96-welcome-date i{font-size:16px;color:#8494a7}
+.p96-take-btn{display:inline-flex;align-items:center;gap:8px;background:var(--qs-primary-action);color:#fff;font-weight:600;font-size:13.5px;border-radius:9px;padding:9px 18px;text-decoration:none;white-space:nowrap}
+.p96-take-btn:hover,.p96-take-btn:focus{color:#fff;filter:brightness(1.07)}
+.p96-take-btn i{font-size:15px}
+
+/* --- KPI cards --- */
+.p96-kpi-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:16px;margin-bottom:20px}
+.p96-kpi{display:flex;align-items:center;gap:13px;border-radius:12px;padding:16px;border:1px solid rgba(23,37,54,.04);text-decoration:none;min-width:0}
+a.p96-kpi:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(23,37,54,.08)}
+.p96-kpi-icon{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.7);font-size:19px;flex:0 0 auto}
+.p96-kpi-copy{min-width:0}
+.p96-kpi-label{display:block;font-size:12.5px;font-weight:600;line-height:1.2}
+.p96-kpi-copy strong{display:block;font-size:23px;font-weight:700;color:#172536;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.p96-kpi-copy small{display:block;font-size:11.5px;color:#7a8797;line-height:1.3}
+.p96-kpi-chev{margin-left:auto;font-size:14px;flex:0 0 auto}
+.p96-kpi-blue{background:#eef4fe}.p96-kpi-blue .p96-kpi-icon,.p96-kpi-blue .p96-kpi-label,.p96-kpi-blue .p96-kpi-chev{color:#2867dc}
+.p96-kpi-green{background:#e9f7f0}.p96-kpi-green .p96-kpi-icon,.p96-kpi-green .p96-kpi-label,.p96-kpi-green .p96-kpi-chev{color:#188b66}
+.p96-kpi-orange{background:#fdf1e7}.p96-kpi-orange .p96-kpi-icon,.p96-kpi-orange .p96-kpi-label,.p96-kpi-orange .p96-kpi-chev{color:#d97a1f}
+.p96-kpi-lavender{background:#f1edfd}.p96-kpi-lavender .p96-kpi-icon,.p96-kpi-lavender .p96-kpi-label,.p96-kpi-lavender .p96-kpi-chev{color:#6845d8}
+.p96-kpi-pink{background:#fdeef4}.p96-kpi-pink .p96-kpi-icon,.p96-kpi-pink .p96-kpi-label,.p96-kpi-pink .p96-kpi-chev{color:#c2437c}
+
+/* --- Panels --- */
+.p96-panel{background:#fff;border:1px solid #e4eaf1;border-radius:12px;padding:18px 20px;min-width:0}
+.p96-panel-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
+.p96-panel-title{display:flex;align-items:center;gap:11px;min-width:0}
+.p96-panel-icon{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:9px;font-size:16px;flex:0 0 auto}
+.p96-panel h5{font-size:16.5px;font-weight:700;color:#172536;margin:0;line-height:1.25}
+.p96-panel-sub{font-size:12.5px;color:#8494a7;margin:2px 0 0}
+.p96-head-note{font-size:12.5px;font-weight:600;color:#8494a7;margin:0 0 6px}
+.p96-view-all{font-size:13px;font-weight:600;color:var(--qs-primary-action);white-space:nowrap;text-decoration:none}
+.p96-view-all i{font-size:11px}
+.p96-tone-blue{background:#e8f1fe;color:#2867dc}
+.p96-tone-green{background:#e7f6ee;color:#188b66}
+.p96-tone-amber{background:#fdf3e0;color:#b97a0c}
+.p96-empty{padding:22px 10px;text-align:center;color:#8494a7;font-size:13.5px}
+.p96-empty i{display:block;font-size:26px;margin-bottom:7px;color:#b7c3d1}
+.p96-empty h5{font-size:15.5px;font-weight:700;color:#172536;margin:0 0 6px}
+.p96-empty p{margin:0 auto;max-width:560px;line-height:1.55}
+
+/* --- Pills --- */
+.p96-pill{flex:0 0 auto;font-size:11.5px;font-weight:700;padding:3px 11px;border-radius:999px;white-space:nowrap}
+.p96-pill-amber{background:#fdf3e0;color:#b97a0c}
+.p96-pill-green{background:var(--qs-success-tint);color:var(--qs-success)}
+.p96-pill-grey{background:#eef1f5;color:#5b6b7f}
+.p96-pill-pri-normal{background:#eef1f5;color:#5b6b7f}
+.p96-pill-pri-important{background:#fdf3e0;color:#b97a0c}
+.p96-pill-pri-urgent{background:#fdecec;color:#d64545}
+.p96-pill-event-examination{background:#fdecec;color:#c0392b}
+.p96-pill-event-meeting{background:#e8f1fe;color:#2867dc}
+.p96-pill-event-fee{background:#fdf3e0;color:#b97a0c}
+.p96-pill-event-holiday{background:#e7f6ee;color:#188b66}
+.p96-pill-event-event{background:#f1edfd;color:#6845d8}
+
+/* --- Fees Due panel + all-clear strip --- */
+.p96-dues{background:#fffaf1;border:1px solid #f5e2b8;border-radius:12px;padding:18px 20px}
+.p96-dues-total{text-align:right;flex:0 0 auto}
+.p96-dues-total small{display:block;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#b97a0c}
+.p96-dues-total strong{display:block;font-size:22px;font-weight:700;color:#172536;line-height:1.2}
+.p96-dues-row{display:flex;align-items:center;gap:13px;padding:12px 2px;border-top:1px solid #f5e8cd}
+.p96-dues-copy{min-width:0;flex:1 1 auto}
+.p96-dues-copy strong{display:block;font-size:14.5px;font-weight:600;color:#22344a;line-height:1.3}
+.p96-dues-copy small{display:block;font-size:12px;color:#8494a7;line-height:1.35}
+.p96-dues-amount{font-size:16px;font-weight:700;color:#172536;white-space:nowrap}
+.p96-pay-btn{display:inline-flex;align-items:center;gap:7px;background:var(--qs-primary-action);color:#fff;font-weight:600;font-size:13px;border-radius:9px;padding:8px 16px;text-decoration:none;white-space:nowrap;flex:0 0 auto}
+.p96-pay-btn:hover,.p96-pay-btn:focus{color:#fff;filter:brightness(1.07)}
+.p96-clear{display:flex;align-items:center;gap:12px;background:#e9f7f0;border:1px solid #cdeede;border-radius:12px;padding:14px 18px;font-size:13.5px;color:#22344a}
+.p96-clear-icon{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.75);color:#188b66;font-size:16px;flex:0 0 auto}
+.p96-clear .p96-view-all{margin-left:auto}
+
+/* --- Child cards --- */
+.p96-children{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;margin-bottom:20px;align-items:start}
+.p96-child-head{display:flex;align-items:center;gap:13px;margin-bottom:14px}
+.p96-avatar{position:relative;display:inline-flex;align-items:center;justify-content:center;width:52px;height:52px;border-radius:50%;background:#e8f1fe;color:#2867dc;font-size:17px;font-weight:700;flex:0 0 auto;overflow:hidden}
+.p96-avatar img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.p96-avatar-sm{width:40px;height:40px;font-size:13.5px;background:#fbeed3;color:#b7791f}
+.p96-child-id{min-width:0;flex:1 1 auto}
+.p96-child-id h5{font-size:16.5px;font-weight:700;color:#172536;margin:0 0 2px;line-height:1.25}
+.p96-child-id p{font-size:12.5px;color:#8494a7;margin:0}
+.p96-child-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-bottom:12px}
+.p96-child-stat{background:#f7fafc;border:1px solid #eef2f6;border-radius:10px;padding:12px 14px;min-width:0}
+.p96-child-stat small{display:block;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#8494a7;margin-bottom:4px}
+.p96-child-stat strong{display:block;font-size:20px;font-weight:700;color:#172536;line-height:1.2}
+.p96-child-stat span{display:block;font-size:12px;color:#7a8797;line-height:1.35}
+.p96-progress-wrap{margin-bottom:12px}
+.p96-progress{height:7px;border-radius:99px;background:#e8edf3;overflow:hidden}
+.p96-progress span{display:block;height:100%;border-radius:99px;background:var(--qs-success)}
+.p96-progress-wrap small{display:block;font-size:12px;color:#8494a7;margin-top:5px}
+.p96-note{display:flex;gap:10px;align-items:flex-start;background:#fdf3e0;border:1px solid #f5e2b8;border-radius:10px;padding:11px 13px;font-size:13px;color:#5f4a12;line-height:1.45;margin-bottom:12px}
+.p96-note i{color:#b97a0c;font-size:15px;margin-top:1px;flex:0 0 auto}
+.p96-note a{font-weight:600;white-space:nowrap}
+.p96-child-links{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.p96-child-links a{display:flex;flex-direction:column;align-items:center;gap:6px;padding:11px 6px;border:1px solid #e8edf3;border-radius:10px;color:#33475e;font-size:12.5px;font-weight:600;text-decoration:none;text-align:center}
+.p96-child-links a i{font-size:16px;color:#2867dc}
+.p96-child-links a:hover{border-color:#c9dcfa;background:#f4f8ff}
+
+/* --- Bottom row: circulars + events --- */
+.p96-bottom{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;margin-bottom:20px;align-items:start}
+.p96-row{display:flex;align-items:center;gap:12px;padding:11px 2px;border-bottom:1px solid #eef2f6;text-decoration:none}
+.p96-row:last-child{border-bottom:0}
+a.p96-row:hover .p96-row-copy strong{color:var(--qs-primary-action)}
+.p96-row-icon{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:9px;font-size:15px;flex:0 0 auto}
+.p96-row-copy{min-width:0;flex:1 1 auto}
+.p96-row-copy strong{display:block;font-size:13.5px;font-weight:600;color:#22344a;line-height:1.3}
+.p96-row-copy small{display:block;font-size:12px;color:#8494a7;line-height:1.3}
+.p96-event-date{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:44px;padding:5px 4px;border-radius:9px;background:#e7f6ee;color:#188b66;line-height:1.15;flex:0 0 auto}
+.p96-event-date small{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.p96-event-date strong{font-size:16px;font-weight:700}
+
+/* --- Dark mode (html.hk-dark) --- */
+html.hk-dark .p96-welcome-main h2{color:#eef4fb}
+html.hk-dark .p96-welcome-main p{color:#93a9bf}
+html.hk-dark .p96-welcome-date{color:#a9bfd6}
+html.hk-dark .p96-welcome-date i{color:#68809a}
+html.hk-dark .p96-kpi-blue{background:#12293f}
+html.hk-dark .p96-kpi-green{background:#10261e}
+html.hk-dark .p96-kpi-orange{background:#2b2113}
+html.hk-dark .p96-kpi-lavender{background:#1e1a33}
+html.hk-dark .p96-kpi-pink{background:#2e1622}
+html.hk-dark .p96-kpi-icon{background:rgba(255,255,255,.12)}
+html.hk-dark .p96-kpi-blue .p96-kpi-icon,html.hk-dark .p96-kpi-blue .p96-kpi-label,html.hk-dark .p96-kpi-blue .p96-kpi-chev{color:#7fb0ff}
+html.hk-dark .p96-kpi-green .p96-kpi-icon,html.hk-dark .p96-kpi-green .p96-kpi-label,html.hk-dark .p96-kpi-green .p96-kpi-chev{color:#4cc38a}
+html.hk-dark .p96-kpi-orange .p96-kpi-icon,html.hk-dark .p96-kpi-orange .p96-kpi-label,html.hk-dark .p96-kpi-orange .p96-kpi-chev{color:#f0b95f}
+html.hk-dark .p96-kpi-lavender .p96-kpi-icon,html.hk-dark .p96-kpi-lavender .p96-kpi-label,html.hk-dark .p96-kpi-lavender .p96-kpi-chev{color:#a78bfa}
+html.hk-dark .p96-kpi-pink .p96-kpi-icon,html.hk-dark .p96-kpi-pink .p96-kpi-label,html.hk-dark .p96-kpi-pink .p96-kpi-chev{color:#f28bb4}
+html.hk-dark .p96-kpi-copy strong{color:#eef4fb}
+html.hk-dark .p96-kpi-copy small{color:#93a9bf}
+html.hk-dark .p96-panel{background:#11283f;border-color:#1d3a55}
+html.hk-dark .p96-panel h5{color:#eef4fb}
+html.hk-dark .p96-panel-sub{color:#93a9bf}
+html.hk-dark .p96-head-note{color:#93a9bf}
+html.hk-dark .p96-tone-blue{background:#16345a;color:#7fb0ff}
+html.hk-dark .p96-tone-green{background:#123528;color:#4cc38a}
+html.hk-dark .p96-tone-amber{background:#3a3016;color:#f0b95f}
+html.hk-dark .p96-empty{color:#93a9bf}
+html.hk-dark .p96-empty i{color:#68809a}
+html.hk-dark .p96-empty h5{color:#eef4fb}
+html.hk-dark .p96-pill-amber{background:#3a3016;color:#f0b95f}
+html.hk-dark .p96-pill-green{background:#123528;color:#4cc38a}
+html.hk-dark .p96-pill-grey{background:#17334d;color:#93a9bf}
+html.hk-dark .p96-pill-pri-normal{background:#17334d;color:#93a9bf}
+html.hk-dark .p96-pill-pri-important{background:#3a3016;color:#f0b95f}
+html.hk-dark .p96-pill-pri-urgent{background:#3a1e26;color:#f28b9a}
+html.hk-dark .p96-pill-event-examination{background:#3a1e26;color:#f28b9a}
+html.hk-dark .p96-pill-event-meeting{background:#16345a;color:#7fb0ff}
+html.hk-dark .p96-pill-event-fee{background:#3a3016;color:#f0b95f}
+html.hk-dark .p96-pill-event-holiday{background:#123528;color:#4cc38a}
+html.hk-dark .p96-pill-event-event{background:#241d42;color:#a78bfa}
+html.hk-dark .p96-dues{background:#2c2110;border-color:#57431a}
+html.hk-dark .p96-dues-total small{color:#f0b95f}
+html.hk-dark .p96-dues-total strong{color:#eef4fb}
+html.hk-dark .p96-dues-row{border-top-color:#57431a}
+html.hk-dark .p96-dues-copy strong{color:#eef4fb}
+html.hk-dark .p96-dues-copy small{color:#a9bfd6}
+html.hk-dark .p96-dues-amount{color:#eef4fb}
+html.hk-dark .p96-avatar-sm{background:#3a2c10;color:#f2c063}
+html.hk-dark .p96-clear{background:#10261e;border-color:#1c4a37;color:#c3d4e6}
+html.hk-dark .p96-clear-icon{background:#123528;color:#4cc38a}
+html.hk-dark .p96-avatar{background:#16345a;color:#7fb0ff}
+html.hk-dark .p96-child-id h5{color:#eef4fb}
+html.hk-dark .p96-child-id p{color:#93a9bf}
+html.hk-dark .p96-child-stat{background:#0d2136;border-color:#1d3a55}
+html.hk-dark .p96-child-stat small{color:#93a9bf}
+html.hk-dark .p96-child-stat strong{color:#eef4fb}
+html.hk-dark .p96-child-stat span{color:#93a9bf}
+html.hk-dark .p96-progress{background:#1d3a55}
+html.hk-dark .p96-progress-wrap small{color:#93a9bf}
+html.hk-dark .p96-note{background:#3a3016;border-color:#57431a;color:#f5dfae}
+html.hk-dark .p96-note i{color:#f0b95f}
+html.hk-dark .p96-note a{color:#9cc2ff}
+html.hk-dark .p96-child-links a{border-color:#1d3a55;color:#c3d4e6}
+html.hk-dark .p96-child-links a i{color:#7fb0ff}
+html.hk-dark .p96-child-links a:hover{border-color:#2c5a8f;background:#12293f}
+html.hk-dark .p96-row{border-bottom-color:#1d3a55}
+html.hk-dark .p96-row-copy strong{color:#eef4fb}
+html.hk-dark .p96-row-copy small{color:#93a9bf}
+html.hk-dark .p96-event-date{background:#123528;color:#4cc38a}
+
+/* --- Responsive --- */
+@media (max-width:1399px){
+  .p96-kpi-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media (max-width:1199px){
+  .p96-children,.p96-bottom{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:767px){
+  .p96-welcome{flex-direction:column;align-items:flex-start}
+  .p96-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .p96-child-links{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:575px){
+  .p96-kpi-grid,.p96-child-stats{grid-template-columns:minmax(0,1fr)}
+  .p96-welcome-side{flex-wrap:wrap}
+  .p96-dues-row{flex-wrap:wrap}
+  .p96-dues-amount{margin-left:auto}
+  .p96-child-head{flex-wrap:wrap}
+}
+
+/* ============================================================
+   Loop 91 — Sidebar premium finish + scroll persistence
+   (Workstream: global sidebar redesign, owner reference +
+   master prompt 2026-10-22 21:58 IST).
+
+   PRESENTATION ONLY. No menu item, label, order, href or
+   per-role visibility changes anywhere in this loop — the
+   menus render exactly as before; only the finish changes:
+
+   (1) SURFACE — the rail deepens to the reference navy
+   #102A43 (was #10263B).
+   (2) ROWS — top-level rows get the reference's comfortable
+   measure (42px min-height, 10px radius, 13px type, 17px
+   icons); hover is a translucent brand-blue wash, never on
+   the active row.
+   (3) ACTIVE — vivid #2563EB replaces #3478F6 for the ONE
+   active leaf (top-level or submenu), with the reference's
+   soft blue shadow. Loop 72's forensic settlement stands:
+   solid blue belongs to the single active leaf only, so
+   open parents / ancestor submenu parents keep a NEUTRAL
+   role — here a translucent blue TRAIL tint (.16), visibly
+   weaker than the leaf's solid fill, never a second pill.
+   (4) SECTION LABELS — muted blue-grey caps with the
+   reference's trailing hairline divider (flex row + ::after
+   rule). Scoped to the expanded sidebar; the collapsed
+   rail keeps Loop 44's hairline-only headers untouched.
+   (5) TIMELINE — an open depth-1 group carries the
+   reference's connector: a hairline dropping from the
+   parent row's icon centre (rail pad 10 + link pad 12 +
+   icon half 8 = x≈29-30) with a dot per child row, the
+   active child's dot filled #2563EB with a soft ring. The
+   line is a ::before on the group (the group box itself
+   stays flush per Loops 45/72: no fill, no border, no
+   inset margin) and dots are ::before on the child links,
+   so nothing about the group geometry changes. Depth-2
+   groups carry the same timeline anchored under the
+   depth-1 parent's label (see (5b) below).
+   (6) BRAND — spacing refined to the reference for both
+   brand variants; the teacher academy block becomes the
+   reference's filled chip (soft fill + hairline border +
+   10px radius). Text content is NOT touched (teacher:
+   "Hackstra / School Management System" + academy name;
+   others: the school system name) — colour/spacing only.
+   (7) FOCUS — visible focus ring on rail links for
+   keyboard users; transitions calm under reduced motion.
+
+   The scroll-position fix itself is JS (partials/menu
+   early-restore stub + hackstra-ux.js Loop 91 section);
+   this loop contains no scroll behaviour. Loop 44's
+   FULLY HIDDEN scrollbar and Loop 35's shell are untouched.
+   ============================================================ */
+/* (1) surface */
+.sidebar.sidebar-main{background:#102a43!important}
+/* (2) top-level rows */
+.sidebar.sidebar-main .nav-sidebar>.nav-item{margin:3px 0}
+.sidebar.sidebar-main .nav-sidebar>.nav-item>.nav-link{border-radius:10px;font-size:13px;min-height:42px;padding:10px 12px}
+.sidebar.sidebar-main .nav-sidebar>.nav-item>.nav-link i{font-size:17px;margin-right:12px;min-width:17px}
+.sidebar.sidebar-main .nav-sidebar>.nav-item>.nav-link:not(.active):hover{background:rgba(37,99,235,.14);color:#fff}
+/* (3) the one active leaf: vivid blue pill + soft shadow */
+.sidebar.sidebar-main .nav-sidebar>.nav-item>.nav-link.active{background:#2563eb;box-shadow:0 6px 16px rgba(37,99,235,.38);color:#fff;font-weight:600}
+body:not(.sidebar-xs) .sidebar.sidebar-main.sidebar-dark .nav-sidebar .nav-group-sub>.nav-item:not(.nav-item-submenu)>.nav-link.active{background-color:#2563eb;box-shadow:0 6px 16px rgba(37,99,235,.38);color:#fff}
+/* (3b) ancestors: translucent trail, never a second selection */
+body:not(.sidebar-xs) .sidebar.sidebar-main .nav-sidebar .nav-item-open>.nav-link:not(.disabled){background-color:rgba(37,99,235,.16);color:#fff}
+body:not(.sidebar-xs) .sidebar.sidebar-main.sidebar-dark .nav-sidebar .nav-group-sub .nav-item-submenu>.nav-link.active{background-color:rgba(37,99,235,.16);color:#fff;font-weight:600}
+/* (2b) submenu rows: type up to the reference's readable size */
+body:not(.sidebar-xs) .sidebar.sidebar-main .nav-group-sub .nav-link{font-size:12.5px}
+body:not(.sidebar-xs) .sidebar.sidebar-main .nav-group-sub .nav-link:not(.active):hover{background:rgba(37,99,235,.14)}
+/* chevrons: quieter at rest, white on the open parent */
+.sidebar.sidebar-main .nav-item-submenu>.nav-link:after{color:rgba(255,255,255,.5)}
+.sidebar.sidebar-main .nav-item-open>.nav-link:after{color:#fff}
+/* (4) section labels with trailing hairline (expanded rail only) */
+body:not(.sidebar-xs) .sidebar.sidebar-main .nav-item-header{align-items:center;display:flex;gap:12px;padding:.85rem .35rem .45rem}
+body:not(.sidebar-xs) .sidebar.sidebar-main .nav-item-header>div{color:rgba(191,219,255,.52);flex:0 0 auto;font-size:10.5px;font-weight:700;letter-spacing:.13em}
+body:not(.sidebar-xs) .sidebar.sidebar-main .nav-item-header::after{background:rgba(255,255,255,.10);content:"";flex:1 1 auto;height:1px}
+/* (5) timeline for the open depth-1 group */
+body:not(.sidebar-xs) .sidebar.sidebar-main .nav-sidebar>.nav-item>.nav-group-sub{position:relative}
+body:not(.sidebar-xs) .sidebar.sidebar-main .nav-sidebar>.nav-item>.nav-group-sub::before{background:rgba(148,180,220,.22);bottom:10px;content:"";left:19px;position:absolute;top:5px;width:1px}
+body:not(.sidebar-xs) .sidebar.sidebar-main .nav-sidebar>.nav-item>.nav-group-sub>li>.nav-link{position:relative}
+body:not(.sidebar-xs) .sidebar.sidebar-main .nav-sidebar>.nav-item>.nav-group-sub>li>.nav-link::before{background:rgba(148,180,220,.55);border-radius:50%;content:"";height:7px;left:16px;position:absolute;top:50%;transform:translateY(-50%);width:7px;z-index:1}
+body:not(.sidebar-xs) .sidebar.sidebar-main .nav-sidebar>.nav-item>.nav-group-sub>li>.nav-link.active::before{background:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.30)}
+/* (5b) depth-2 groups carry the same timeline, anchored under the
+   depth-1 parent's label (rail pad 10 + parent text at 34 = x≈44):
+   line at the depth-2 group's 34px, dots centred on it. */
+body:not(.sidebar-xs) .sidebar.sidebar-main .nav-group-sub .nav-group-sub{position:relative}
+body:not(.sidebar-xs) .sidebar.sidebar-main .nav-group-sub .nav-group-sub::before{background:rgba(148,180,220,.22);bottom:10px;content:"";left:34px;position:absolute;top:5px;width:1px}
+body:not(.sidebar-xs) .sidebar.sidebar-main .nav-group-sub .nav-group-sub>li>.nav-link{position:relative}
+body:not(.sidebar-xs) .sidebar.sidebar-main .nav-group-sub .nav-group-sub>li>.nav-link::before{background:rgba(148,180,220,.55);border-radius:50%;content:"";height:7px;left:31px;position:absolute;top:50%;transform:translateY(-50%);width:7px;z-index:1}
+body:not(.sidebar-xs) .sidebar.sidebar-main .nav-group-sub .nav-group-sub>li>.nav-link.active::before{background:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.30)}
+/* (6) brand spacing + teacher academy chip */
+.sidebar.sidebar-main .lav-sidebar-brand{margin:0 14px;padding:18px 2px 14px}
+.sidebar.sidebar-main .lav-sidebar-brand-link strong{font-size:15px}
+.sidebar.sidebar-main .t9-brand{padding:18px 16px 6px}
+.sidebar.sidebar-main .t9-academy{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:10px;margin:12px 12px 6px;padding:11px 12px}
+/* (7) focus + reduced motion */
+.sidebar.sidebar-main .nav-link:focus-visible{outline:2px solid #7db3f8;outline-offset:-2px}
+@media (prefers-reduced-motion:reduce){
+  .sidebar.sidebar-main .nav-link{transition:none}
+}
+
+/* ============================================================
+   Loop 86 — Marks entry page (2026-10-22, Batch 114 Part B).
+   The entry grid (marks/manage + marks/edit) rebuilt around the
+   Loop 76 input chrome, which is untouched: a context chips row
+   under the selector (subject + its real scheme maxima, class +
+   student count, exam + session), a "results published" notice
+   (publish is a visibility gate, not an edit lock — Part A), the
+   Student Marks Entry header with live search, per-row live
+   TOTAL / PERCENTAGE / GRADE columns mirroring the server's own
+   computation, a row kebab (View Marksheet — the grid's one real
+   per-student action), a live summary strip, and the sticky
+   action bar extended with Reset + an unsaved-changes hint.
+   Colours reuse the app tokens (navy #172536, muted #718096,
+   hairlines #e4eaf1/#edf1f5, accent #3478f6) with hk-dark
+   variants in the Loop 50 dark family.
+   ============================================================ */
+/* Context chips */
+.l86-chips{display:grid;gap:14px;grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:14px}
+.l86-chip{align-items:center;background:#fff;border:1px solid #e4eaf1;border-radius:12px;display:flex;gap:12px;padding:14px 16px}
+.l86-chip-ic{align-items:center;border-radius:10px;display:flex;flex:0 0 44px;font-size:1.15rem;height:44px;justify-content:center;width:44px}
+.l86-chip-ic-subject{background:#eef3fb;color:#3478f6}
+.l86-chip-ic-class{background:#e9f9f0;color:#1d9d61}
+.l86-chip-ic-exam{background:#f2eafd;color:#7a4fd0}
+.l86-chip-body{min-width:0}
+.l86-chip-body strong{color:#172536;display:block;font-size:.93rem;line-height:1.25}
+.l86-chip-body span{color:#718096;display:block;font-size:.8rem;line-height:1.35;margin-top:2px}
+@media (max-width:767px){
+  .l86-chips{grid-template-columns:minmax(0,1fr)}
+}
+/* Published-results notice */
+.l86-pub-banner{align-items:flex-start;background:#fff8e6;border:1px solid #f3dfae;border-radius:10px;color:#7a5a12;display:flex;font-size:.88rem;gap:10px;line-height:1.45;margin-bottom:14px;padding:11px 14px}
+.l86-pub-banner i{font-size:1.05rem;margin-top:2px}
+/* Entry card header + search */
+.l86-entry-head{align-items:center;display:flex;flex-wrap:wrap;gap:10px 16px;justify-content:space-between}
+.l86-entry-title .card-title{align-items:center;display:flex}
+.l86-entry-title>span{color:#718096;display:block;font-size:.8rem;margin-top:2px}
+.l86-search{flex:0 1 280px;min-width:200px}
+.l86-search .form-control{border-radius:8px}
+/* Live computed columns */
+.l86-total{color:#172536;font-weight:700;white-space:nowrap}
+.l86-pct{color:#44546a;font-weight:600;white-space:nowrap}
+.l86-grade-pill{border-radius:999px;display:inline-block;font-size:.78rem;font-weight:700;line-height:1;padding:4px 11px}
+.l86-grade-pill[data-grade="A"]{background:#e9f9f0;color:#1d9d61}
+.l86-grade-pill[data-grade="B"]{background:#eef3fb;color:#3478f6}
+.l86-grade-pill[data-grade="C"]{background:#fdf3e0;color:#b97f10}
+.l86-grade-pill[data-grade="D"],.l86-grade-pill[data-grade="E"]{background:#fdeee0;color:#c2610a}
+.l86-grade-pill[data-grade="F"]{background:#fdeaea;color:#d64545}
+/* Row kebab */
+.l86-kebab-btn{align-items:center;background:transparent;border:0;border-radius:8px;color:#718096;display:inline-flex;font-size:1rem;height:30px;justify-content:center;width:30px}
+.l86-kebab-btn:hover,.l86-kebab-btn:focus{background:#eef3fb;color:#3478f6;outline:none}
+/* Dirty cells + unsaved hint */
+.l76-mark-input.l86-dirty{background:#fffdf2;border-color:#e8b93e}
+.l86-dirty-hint{align-self:center;color:#b97f10;font-size:.85rem;font-weight:600;margin-right:auto}
+/* Summary strip */
+.l86-summary{display:flex;flex-wrap:wrap;gap:12px;margin-top:14px}
+.l86-stat{align-items:center;background:#f7fafd;border:1px solid #edf1f5;border-radius:10px;display:flex;flex:1 1 160px;gap:11px;padding:10px 14px}
+.l86-stat-ic{align-items:center;border-radius:9px;display:flex;flex:0 0 36px;font-size:1rem;height:36px;justify-content:center;width:36px}
+.l86-stat-ic-users{background:#eef3fb;color:#3478f6}
+.l86-stat-ic-avg{background:#f2eafd;color:#7a4fd0}
+.l86-stat-ic-high{background:#e9f9f0;color:#1d9d61}
+.l86-stat-ic-low{background:#fdeaea;color:#d64545}
+.l86-stat strong{color:#172536;display:block;font-size:1.12rem;line-height:1.15}
+.l86-stat span{color:#718096;display:block;font-size:.76rem}
+.l86-nomatch{color:#718096;font-size:.9rem;padding:14px 4px 2px;text-align:center}
+/* Dark mode (hk-dark, Loop 50 family) */
+html.hk-dark .l86-chip{background:#11283f;border-color:#1d3a55}
+html.hk-dark .l86-chip-body strong{color:#e8f1f9}
+html.hk-dark .l86-chip-body span{color:#8fb0cc}
+html.hk-dark .l86-chip-ic-subject{background:#1d3a55;color:#7db1f8}
+html.hk-dark .l86-chip-ic-class{background:#14382a;color:#4cc98a}
+html.hk-dark .l86-chip-ic-exam{background:#2c2150;color:#b79bf0}
+html.hk-dark .l86-pub-banner{background:#3a2f14;border-color:#5c4a1e;color:#f0d492}
+html.hk-dark .l86-entry-title>span{color:#8fb0cc}
+html.hk-dark .l86-total{color:#e8f1f9}
+html.hk-dark .l86-pct{color:#b9cfe4}
+html.hk-dark .l86-grade-pill[data-grade="A"]{background:#14382a;color:#4cc98a}
+html.hk-dark .l86-grade-pill[data-grade="B"]{background:#1d3a55;color:#7db1f8}
+html.hk-dark .l86-grade-pill[data-grade="C"]{background:#3d2f10;color:#eec25e}
+html.hk-dark .l86-grade-pill[data-grade="D"],html.hk-dark .l86-grade-pill[data-grade="E"]{background:#3d2410;color:#f0a35e}
+html.hk-dark .l86-grade-pill[data-grade="F"]{background:#3d1a1a;color:#f28b8b}
+html.hk-dark .l86-kebab-btn{color:#8fb0cc}
+html.hk-dark .l86-kebab-btn:hover,html.hk-dark .l86-kebab-btn:focus{background:#1d3a55;color:#7db1f8}
+html.hk-dark .l76-mark-input.l86-dirty{background:#2c2a18;border-color:#8a6d1f}
+html.hk-dark .l86-dirty-hint{color:#eec25e}
+html.hk-dark .l86-stat{background:#0e2237;border-color:#1d3a55}
+html.hk-dark .l86-stat strong{color:#e8f1f9}
+html.hk-dark .l86-stat span{color:#8fb0cc}
+html.hk-dark .l86-stat-ic-users{background:#1d3a55;color:#7db1f8}
+html.hk-dark .l86-stat-ic-avg{background:#2c2150;color:#b79bf0}
+html.hk-dark .l86-stat-ic-high{background:#14382a;color:#4cc98a}
+html.hk-dark .l86-stat-ic-low{background:#3d1a1a;color:#f28b8b}
+html.hk-dark .l86-nomatch{color:#8fb0cc}
+
+/* =====================================================================
+   Loop 102 — Quick Admit (2026-10-22). Admit Student gains a mode
+   switch: [Quick Admit | Full Admission Form] tabs above the forms,
+   a success panel after a quick admission (adm no + Complete Details
+   action), and the "Incomplete profile" pill on the student profile.
+   All classes are .qa102-*; dark variants under html.hk-dark.
+   ===================================================================== */
+.qa102-tabs{display:flex;flex-wrap:wrap;gap:4px;border-bottom:2px solid #dbe3ec;margin-bottom:16px}
+.qa102-tab{appearance:none;background:transparent;border:0;border-bottom:3px solid transparent;color:#4a5568;cursor:pointer;font-size:.9rem;font-weight:600;margin-bottom:-2px;padding:10px 18px}
+.qa102-tab:hover{color:#2563eb}
+.qa102-tab.is-active{border-bottom-color:#2563eb;color:#2563eb}
+.qa102-pane[hidden]{display:none!important}
+.qa102-success{align-items:center;background:#e3f4e8;border:1px solid #bfe6cc;border-radius:8px;display:flex;flex-wrap:wrap;gap:10px 18px;justify-content:space-between;margin-bottom:16px;padding:14px 18px}
+.qa102-success-title{color:#1e7a3c;font-size:1rem;font-weight:700}
+.qa102-success-sub{color:#2d3748;font-size:.85rem;margin-top:2px}
+.qa102-pill{font-size:.72rem;font-weight:700;letter-spacing:.02em;margin-top:8px;padding:5px 10px;text-transform:uppercase}
+html.hk-dark .qa102-tabs{border-bottom-color:#1d3a55}
+html.hk-dark .qa102-tab{color:#8fa6bd}
+html.hk-dark .qa102-tab:hover{color:#7aa5f8}
+html.hk-dark .qa102-tab.is-active{border-bottom-color:#2563eb;color:#7aa5f8}
+html.hk-dark .qa102-success{background:#123527;border-color:#1e5c40}
+html.hk-dark .qa102-success-title{color:#5fd08a}
+html.hk-dark .qa102-success-sub{color:#c7d6e6}
+@media (max-width:575px){
+  .qa102-success{flex-direction:column;align-items:flex-start}
+  .qa102-tab{padding:10px 12px}
+}
+
+/* =====================================================================
+   Loop 100 — Librarian dashboard premium pass (2026-10-22). Library
+   home only: linked KPI cards, book-type donut, needs-attention rows,
+   quick-action tile tones. All figures are server-computed in
+   HomeController::librarianHomeData from the books catalogue and the
+   book_requests ledger; these rules only present them. Grid tracks
+   use minmax(0,1fr) (FIT rule). Sidebar markup/CSS is NOT touched.
+   ===================================================================== */
+.l100-stat-link{display:block;color:inherit}
+.l100-stat-link:hover{color:inherit;text-decoration:none}
+.l100-stat-link:hover .dashboard-stat-card{box-shadow:0 10px 24px rgba(23,50,77,.10);transform:translateY(-1px)}
+.l100-stat-link .dashboard-stat-card{transition:box-shadow .15s ease,transform .15s ease}
+.l100-stat-arrow{color:#b6c2d2;font-size:13px;margin-left:auto}
+.l100-stat-link:hover .l100-stat-arrow{color:#3478f6}
+.l100-actions{grid-template-columns:repeat(3,minmax(0,1fr))}
+.l100-tile{border-radius:9px!important;min-height:76px!important}
+.l100-tile i{font-size:19px!important}
+.l100-tile-blue{background:#eaf1fe!important;color:#2563eb!important;border-color:#d3e0fb!important}
+.l100-tile-violet{background:#f0edfe!important;color:#6845d8!important;border-color:#ddd2fb!important}
+.l100-tile-rose{background:#fdeeee!important;color:#d64550!important;border-color:#f8d2d4!important}
+.l100-tile-green{background:#e7f7f0!important;color:#188b66!important;border-color:#cdeede!important}
+.l100-tile-amber{background:#fdf3e0!important;color:#b7791f!important;border-color:#f5e2b8!important}
+.l100-tile-slate{background:#eef2f6!important;color:#4a5a6a!important;border-color:#dde5ec!important}
+.l100-tile:hover{filter:brightness(.985);text-decoration:none}
+.l100-donut-wrap{align-items:center;display:flex;flex-wrap:wrap;gap:18px;padding:2px 22px 22px}
+.l100-donut{flex:0 0 auto}
+.l100-donut-track{stroke:#e8edf3}
+.l100-donut-num{fill:#172536;font-size:14.5px;font-weight:700}
+.l100-donut-cap{fill:#8494a7;font-size:10.5px}
+.l100-donut-legend{flex:1 1 150px;min-width:0}
+.l100-legend-row{align-items:center;display:flex;gap:9px;padding:7px 0}
+.l100-legend-row + .l100-legend-row{border-top:1px solid #edf1f5}
+.l100-legend-dot{border-radius:50%;flex:0 0 auto;height:10px;width:10px}
+.l100-legend-label{color:#4a5a6a;font-size:.78rem}
+.l100-legend-fig{margin-left:auto;text-align:right}
+.l100-legend-fig strong{color:#172536;display:block;font-size:.82rem}
+.l100-legend-fig small{color:#8a94a6;font-size:.68rem}
+.l100-legend-total{border-top:1px solid #e4eaf1;display:flex;justify-content:space-between;margin-top:8px;padding-top:10px}
+.l100-legend-total span{color:#718096;font-size:.76rem}
+.l100-legend-total strong{color:#172536;font-size:.85rem}
+.l100-attn{padding:2px 14px 14px}
+.l100-attn-row{align-items:center;color:inherit;display:flex;gap:12px;padding:10px 8px;border-radius:9px}
+.l100-attn-row + .l100-attn-row{border-top:1px solid #edf1f5}
+.l100-attn-row:hover{background:#f6f9fc;color:inherit;text-decoration:none}
+.l100-attn-icon{align-items:center;border-radius:9px;display:flex;flex:0 0 auto;font-size:16px;height:38px;justify-content:center;width:38px}
+.l100-attn-danger{background:#fdeeee;color:#d64550}
+.l100-attn-warning{background:#fdf3e0;color:#b7791f}
+.l100-attn-info{background:#eaf1fe;color:#2563eb}
+.l100-attn-copy{display:flex;flex:1;flex-direction:column;min-width:0}
+.l100-attn-copy strong{color:#172536;font-size:.84rem}
+.l100-attn-copy small{color:#8a94a6;font-size:.7rem}
+.l100-attn-count{color:#172536;font-size:1rem}
+.l100-attn-arrow{color:#b6c2d2;font-size:12px}
+@media (max-width:575px){
+  .l100-donut-wrap{justify-content:center}
+  .l100-actions{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+html.hk-dark .l100-stat-arrow{color:#33506e}
+html.hk-dark .l100-stat-link:hover .l100-stat-arrow{color:#7fb0ff}
+html.hk-dark .l100-donut-track{stroke:#1d3a55}
+html.hk-dark .l100-donut-num{fill:#eef4fb}
+html.hk-dark .l100-donut-cap{fill:#8494a7}
+html.hk-dark .l100-legend-row + .l100-legend-row{border-color:#1d3a55}
+html.hk-dark .l100-legend-label{color:#a9bfd6}
+html.hk-dark .l100-legend-fig strong{color:#eef4fb}
+html.hk-dark .l100-legend-total{border-color:#1d3a55}
+html.hk-dark .l100-legend-total strong{color:#eef4fb}
+html.hk-dark .l100-tile-blue{background:#16324f!important;color:#7fb0ff!important;border-color:#1d3a55!important}
+html.hk-dark .l100-tile-violet{background:#241d4d!important;color:#b7a6ff!important;border-color:#322a63!important}
+html.hk-dark .l100-tile-rose{background:#3d1d22!important;color:#ff9d94!important;border-color:#55262b!important}
+html.hk-dark .l100-tile-green{background:#123528!important;color:#4ade9e!important;border-color:#1c4a37!important}
+html.hk-dark .l100-tile-amber{background:#3a2c10!important;color:#f2c063!important;border-color:#57431a!important}
+html.hk-dark .l100-tile-slate{background:#16283c!important;color:#a9bfd6!important;border-color:#1d3a55!important}
+html.hk-dark .l100-attn-row + .l100-attn-row{border-color:#1d3a55}
+html.hk-dark .l100-attn-row:hover{background:#16283c}
+html.hk-dark .l100-attn-copy strong{color:#eef4fb}
+html.hk-dark .l100-attn-count{color:#eef4fb}
+html.hk-dark .l100-attn-danger{background:#3d1d22;color:#ff9d94}
+html.hk-dark .l100-attn-warning{background:#3a2c10;color:#f2c063}
+html.hk-dark .l100-attn-info{background:#16324f;color:#7fb0ff}

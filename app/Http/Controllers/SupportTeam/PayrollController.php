@@ -14,8 +14,15 @@ use Illuminate\Support\Facades\Auth;
  * Payroll (Workstream AI) — staff salary management + payslips.
  *
  * Management (index/store/update/generate/pay/payslip) is gated to
- * the accounts team (super admin, admin, accountant) with the same
- * teamAccount middleware PaymentController uses. Self-service
+ * the Admin team (teamSA reads, teamSAWrite writes): payroll
+ * ADMINISTRATION — creating/editing/generating/marking-paid salary
+ * records and viewing other staff members' salary details — belongs
+ * to the school Admin who runs the school. The accountant's domain
+ * is FEES (PaymentController), not salaries; an accountant reaches
+ * only their OWN record through self-service. (Owner role ruling,
+ * fix/accountant-scope — previously teamAccount let the accountant
+ * read and write every staff member's salary.)
+ * Self-service
  * (myIndex/myPayslip) derives everything from Auth::id() — there is
  * deliberately no user_id input anywhere in those two actions, and
  * myPayslip enforces record ownership server-side.
@@ -31,11 +38,13 @@ class PayrollController extends Controller
 
     public function __construct()
     {
-        $this->middleware('teamAccount')->except(['myIndex', 'myPayslip']);
-        // Workstream CM: payroll writes (create/edit/generate/mark
-        // paid) belong to Admin + Accountant; SA keeps the month view
-        // and payslip oversight.
-        $this->middleware('teamAccountWrite', ['only' => ['store', 'update', 'generate', 'pay']]);
+        $this->middleware('teamSA')->except(['myIndex', 'myPayslip', 'myPayslipPdf', 'myPayslipsPdfAll']);
+        // Payroll administration belongs to the Admin team alone:
+        // reads (month view + any staff payslip) are teamSA, writes
+        // (create/edit/generate/mark paid) are teamSAWrite — the same
+        // semantics as the other school-administration modules. SA's
+        // platform-only redirect still applies on top, unchanged.
+        $this->middleware('teamSAWrite', ['only' => ['store', 'update', 'generate', 'pay']]);
     }
 
     /* ------------------------- Management ------------------------- */
@@ -174,14 +183,61 @@ class PayrollController extends Controller
 
     /* ------------------------ Self-service ------------------------ */
 
-    public function myIndex()
+    public function myIndex(Request $request)
     {
         abort_unless(in_array(Auth::user()->user_type, Qs::getStaff()), 403);
 
-        $d['records'] = Payroll::where('user_id', Auth::id())
+        $all = Payroll::where('user_id', Auth::id())
             ->orderByDesc('year')->orderByDesc('month')
             ->get();
-        $d['total_received'] = (float) $d['records']->where('status', 'paid')->sum('net_pay');
+
+        // Year options come from the user's OWN records only; the
+        // default scope is their latest recorded year (payroll years
+        // need not match the calendar year).
+        $years = $all->pluck('year')->unique()->sortDesc()->values();
+        $year = (int) $request->input('year', $years->first() ?? now()->year);
+        if (!$years->contains($year)) {
+            $year = (int) ($years->first() ?? now()->year);
+        }
+        $month = (int) $request->input('month', 0);
+        if ($month < 0 || $month > 12) {
+            $month = 0;
+        }
+
+        // Summary cards describe the selected YEAR (Loop 89): money
+        // received counts PAID records only — pending amounts are
+        // never reported as received.
+        $inYear = $all->where('year', $year)->values();
+        $paid = $inYear->where('status', 'paid')->values();
+        $paidTotal = (float) $paid->sum('net_pay');
+        $latestPaid = $paid->sortByDesc(function ($p) {
+            return $p->paid_at ? $p->paid_at->timestamp : 0;
+        })->first();
+
+        $d['summary'] = [
+            'year' => $year,
+            'total_received' => $paidTotal,
+            'count' => $inYear->count(),
+            'paid_count' => $paid->count(),
+            'average' => $paid->count() ? round($paidTotal / $paid->count(), 2) : null,
+            'latest_paid' => $latestPaid,
+        ];
+        $d['years'] = $years;
+        $d['months'] = $this->monthOptions();
+        $d['selected_year'] = $year;
+        $d['selected_month'] = $month;
+        $d['has_records'] = $all->isNotEmpty();
+
+        $filtered = $month ? $inYear->where('month', $month)->values() : $inYear;
+        $perPage = 12;
+        $page = max(1, (int) $request->input('page', 1));
+        $d['records'] = new \Illuminate\Pagination\LengthAwarePaginator(
+            $filtered->forPage($page, $perPage)->values(),
+            $filtered->count(),
+            $perPage,
+            $page,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
 
         return view('pages.support_team.payroll.my_index', $d);
     }
@@ -193,7 +249,60 @@ class PayrollController extends Controller
         return $this->renderPayslip($payroll, route('my_payslips.index'));
     }
 
+    /** Own-payslip PDF (Loop 89): same document as the print view. */
+    public function myPayslipPdf(Payroll $payroll)
+    {
+        abort_unless($payroll->user_id === Auth::id(), 403);
+
+        $d = $this->payslipDocData($payroll);
+
+        return \Barryvdh\DomPDF\Facade\Pdf::loadView('pages.support_team.payroll.payslip_pdf', $d)
+            ->download('Payslip_' . $payroll->monthName() . '_' . $payroll->year . '.pdf');
+    }
+
+    /** Combined PDF of the user's own payslips for one year (Loop 89). */
+    public function myPayslipsPdfAll(Request $request)
+    {
+        abort_unless(in_array(Auth::user()->user_type, Qs::getStaff()), 403);
+
+        $years = Payroll::where('user_id', Auth::id())->distinct()->pluck('year');
+        $year = (int) $request->input('year', $years->max() ?? now()->year);
+
+        $records = Payroll::where('user_id', Auth::id())
+            ->where('year', $year)
+            ->orderBy('month')
+            ->with('user')
+            ->get();
+
+        if ($records->isEmpty()) {
+            return back()->with('flash_info', 'You have no payslips to download for ' . $year . '.');
+        }
+
+        $d['records'] = $records;
+        $d['year'] = $year;
+        $d['school_name'] = Qs::getSystemName();
+        $d['school_address'] = Qs::getSetting('address');
+        $d['current_session'] = Qs::getSetting('current_session');
+
+        return \Barryvdh\DomPDF\Facade\Pdf::loadView('pages.support_team.payroll.payslips_pdf_all', $d)
+            ->download('Payslips_' . $year . '.pdf');
+    }
+
     /* --------------------------- Helpers --------------------------- */
+
+    /** Data shared by the payslip document's PDF renderings (Loop 89). */
+    protected function payslipDocData(Payroll $payroll): array
+    {
+        $payroll->loadMissing('user');
+
+        return [
+            'payroll' => $payroll,
+            'school_name' => Qs::getSystemName(),
+            'school_address' => Qs::getSetting('address'),
+            'current_session' => Qs::getSetting('current_session'),
+            'net_words' => \App\Support\NumberToWords::convert((int) round((float) $payroll->net_pay)),
+        ];
+    }
 
     protected function renderPayslip(Payroll $payroll, string $backUrl)
     {

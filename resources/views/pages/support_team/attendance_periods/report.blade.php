@@ -48,10 +48,6 @@
             </form>
         @endslot
 
-        @if(session('flash_danger'))
-            <div class="alert alert-danger border-0">{{ session('flash_danger') }}</div>
-        @endif
-
         @if(!$selected_class || !$selected_subject)
             @include('partials.patterns.empty_state', [
                 'icon' => 'icon-stats-bars2',

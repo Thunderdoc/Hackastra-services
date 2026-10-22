@@ -219,13 +219,29 @@
         {{-- ======================= Report Card ======================= --}}
         <div class="pat-form-section">
             <div class="pat-form-section-title">Report Card</div>
-            <div class="pat-form-section-sub">The principal's name and the school stamp printed on every report card.</div>
+            <div class="pat-form-section-sub">The principal's name, digital signature and the school stamp printed on report cards and admit cards.</div>
             <div class="pat-fields">
                 <div class="pat-field">
                     <label for="principal_name">Principal Name</label>
                     <input name="principal_name" id="principal_name" value="{{ $s['principal_name'] ?? '' }}" type="text" class="form-control @error('principal_name') is-invalid @enderror" placeholder="Name printed under the Principal's signature">
                     @include('partials.errors.field', ['field' => 'principal_name'])
                     <small class="form-text text-muted">Printed under the Principal's signature line on every report card. Leave blank to print the line only.</small>
+                </div>
+                <div class="pat-field">
+                    <label for="principal_signature">Principal Signature (Digital)</label>
+                    @if(!empty($s['principal_signature']))
+                        <div class="mb-2">
+                            <img style="max-height: 44px; max-width: 180px" src="{{ $s['principal_signature'] }}" alt="Principal signature">
+                        </div>
+                        <label class="d-block font-weight-normal">
+                            <input type="checkbox" name="principal_signature_remove" value="1"> Remove this signature
+                        </label>
+                    @else
+                        <div class="text-muted mb-2">No signature uploaded — documents print with a blank Principal signature line.</div>
+                    @endif
+                    <input name="principal_signature" id="principal_signature" accept="image/*" type="file" class="file-input @error('principal_signature') is-invalid @enderror" data-show-caption="false" data-show-upload="false" data-fouc>
+                    @include('partials.errors.field', ['field' => 'principal_signature'])
+                    <small class="form-text text-muted">Printed above the Principal's signature line on report cards and admit cards, so generated documents come out digitally signed. A transparent PNG works best. Accepted Images: jpeg, jpg, png, gif, webp. Max file size 2Mb</small>
                 </div>
                 <div class="pat-field">
                     <label for="school_stamp">School Stamp</label>

@@ -125,35 +125,29 @@
                 <li class="nav-item nav-item-submenu {{ in_array(Route::currentRouteName(), ['students.create', 'students.list', 'students.edit', 'students.show', 'students.promotion', 'students.promotion_manage', 'students.graduated']) ? 'nav-item-expanded nav-item-open' : '' }} ">
                     <a href="#" class="nav-link"><i class="icon-users"></i> <span> Students</span></a>
                     <ul class="nav nav-group-sub" data-submenu-title="Manage Students">
-                        <li class="nav-item nav-item-submenu {{ in_array(Route::currentRouteName(), ['students.list', 'students.edit', 'students.show']) ? 'nav-item-expanded' : '' }}">
-                            <a href="#" class="nav-link {{ in_array(Route::currentRouteName(), ['students.list', 'students.edit', 'students.show']) ? 'active' : '' }}">Student Information</a>
-                            <ul class="nav nav-group-sub">
-                                {{-- Batch 1B (Batch S follow-up): a teacher's Students
-                                     submenu lists ONLY their assigned classes
-                                     (App\Support\TeacherScope — subjects.teacher_id
-                                     + sections.teacher_id). This block renders only
-                                     for teachers; SA/admin use the full list in
-                                     the generic branch below. --}}
-                                @foreach(App\Models\MyClass::orderBy('name')->get()->whereIn('id', App\Support\TeacherScope::classIds(Auth::user())) as $c)
-                                    <li class="nav-item"><a href="{{ route('students.list', $c->id) }}" class="nav-link ">{{ $c->name }}</a></li>
-                                @endforeach
-                            </ul>
+                        {{-- Owner ruling 2026-10-22: Student Information is
+                             ONE link — it lands on the class/section
+                             picker (students.list with no class) instead
+                             of expanding into one item per class. A
+                             teacher's picker lists only their assigned
+                             classes (App\Support\TeacherScope), exactly
+                             as this per-class submenu used to (Batch 1B). --}}
+                        <li class="nav-item">
+                            <a href="{{ route('students.list') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['students.list', 'students.edit', 'students.show']) ? 'active' : '' }}">Student Information</a>
                         </li>
                     </ul>
                 </li>
                 <li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Examinations</div><i class="icon-menu" title="Examinations"></i></li>
-                <li class="nav-item nav-item-submenu {{ in_array(Route::currentRouteName(), ['exams.index', 'exams.edit', 'grades.index', 'grades.edit', 'marks.index', 'marks.manage', 'marks.bulk', 'marks.tabulation', 'marks.show', 'marks.batch_fix', 'admit_cards.index', 'admit_cards.print',]) ? 'nav-item-expanded nav-item-open' : '' }} ">
+                <li class="nav-item nav-item-submenu {{ in_array(Route::currentRouteName(), ['marks.index', 'marks.manage']) ? 'nav-item-expanded nav-item-open' : '' }} ">
                     <a href="#" class="nav-link"><i class="icon-books"></i> <span> Exams</span></a>
                     <ul class="nav nav-group-sub" data-submenu-title="Manage Exams">
                         <li class="nav-item">
                             <a href="{{ route('marks.index') }}" class="nav-link {{ (Route::is('marks.index')) ? 'active' : '' }}">Marks</a>
                         </li>
-                        <li class="nav-item">
-                            <a href="{{ route('marks.bulk') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['marks.bulk', 'marks.show']) ? 'active' : '' }}">Marksheet</a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="{{ route('admit_cards.index') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['admit_cards.index', 'admit_cards.print']) ? 'active' : '' }}">Admit Cards</a>
-                        </li>
+                        {{-- Owner ruling 2026-10-22: Marksheet + Admit Cards
+                             removed from the teacher menu — both are
+                             student/office documents, and their routes
+                             now refuse the teacher role server-side too. --}}
                     </ul>
                 </li>
                 <li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Account</div><i class="icon-menu" title="Account"></i></li>
@@ -307,7 +301,9 @@
                                     <li class="nav-item"><a href="{{ route('payments.manage') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['payments.manage', 'payments.invoice', 'payments.receipts']) ? 'active' : '' }}">Student Payments</a></li>
                                     <li class="nav-item"><a href="{{ route('payments.defaulters') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['payments.defaulters']) ? 'active' : '' }}">Fee Defaulters</a></li>
                                     <li class="nav-item"><a href="{{ route('payments.collection') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['payments.collection']) ? 'active' : '' }}">Collection Report</a></li>
+                                    @if(Qs::userIsTeamSA())
                                     <li class="nav-item"><a href="{{ route('payroll.index') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['payroll.index', 'payroll.payslip']) ? 'active' : '' }}">Payroll</a></li>
+                                    @endif
 
                                 </ul>
 
@@ -333,13 +329,11 @@
                             @endif
 
                             {{--Student Information--}}
-                            <li class="nav-item nav-item-submenu {{ in_array(Route::currentRouteName(), ['students.list', 'students.edit', 'students.show']) ? 'nav-item-expanded' : '' }}">
-                                <a href="#" class="nav-link {{ in_array(Route::currentRouteName(), ['students.list', 'students.edit', 'students.show']) ? 'active' : '' }}">Student Information</a>
-                                <ul class="nav nav-group-sub">
-                                    @foreach(App\Models\MyClass::orderBy('name')->get() as $c)
-                                        <li class="nav-item"><a href="{{ route('students.list', $c->id) }}" class="nav-link ">{{ $c->name }}</a></li>
-                                    @endforeach
-                                </ul>
+                            {{-- Owner ruling 2026-10-22: ONE link to the
+                                 Student Information landing (class/section
+                                 picker) — the per-class expansion is gone. --}}
+                            <li class="nav-item">
+                                <a href="{{ route('students.list') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['students.list', 'students.edit', 'students.show']) ? 'active' : '' }}">Student Information</a>
                             </li>
 
                             @if(Qs::userIsTeamSA())
@@ -520,3 +514,14 @@
      bottom of the sidebar under the pinned brand. --}}
 
 </div>
+
+{{-- Loop 91 — sidebar scroll restore (early stub). The scroll fix's
+     save/re-assert logic lives in hackstra-ux.js (Loop 91 section);
+     this stub runs the moment the sidebar markup above has been
+     parsed — before the content area is painted — and restores the
+     position saved by the previous page, so the rail never flashes
+     at the top and then jumps. It reads only; it never writes, so a
+     stored position can never be clobbered with 0 here. --}}
+<script>
+(function(){try{var v=sessionStorage.getItem('hackstra-sidebar-scroll');if(v!==null){var n=parseInt(v,10);if(n>0){var el=document.querySelector('.sidebar .card-sidebar-mobile')||document.querySelector('.sidebar .sidebar-content');if(el){el.scrollTop=n;}}}}catch(e){}})();
+</script>

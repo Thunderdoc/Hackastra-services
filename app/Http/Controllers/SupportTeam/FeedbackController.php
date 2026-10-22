@@ -102,14 +102,42 @@ class FeedbackController extends Controller
     }
 
     /** My Feedback: the reporter's own items, with live status. */
-    public function mine()
+    public function mine(Request $request)
     {
         $user = Auth::user();
 
-        $d['items'] = FeedbackItem::with(['duplicateOf', 'attachments'])
-            ->where('reporter_id', $user->id)
-            ->latest()
-            ->paginate(15);
+        // Per-status counts over ALL of the reporter's own items —
+        // they drive the summary cards and the status tabs, whatever
+        // filter is currently applied to the list below.
+        $d['counts'] = FeedbackItem::where('reporter_id', $user->id)
+            ->selectRaw('status, count(*) as c')
+            ->groupBy('status')->pluck('c', 'status');
+        $d['total'] = (int) $d['counts']->sum();
+
+        $query = FeedbackItem::with(['duplicateOf', 'attachments'])
+            ->where('reporter_id', $user->id);
+
+        // Status tab — only a real workflow status may filter.
+        $d['active_status'] = '';
+        if ($request->filled('status') && array_key_exists($request->input('status'), FeedbackItem::statuses())) {
+            $d['active_status'] = $request->input('status');
+            $query->where('status', $d['active_status']);
+        }
+
+        // Search over the reporter's own titles/descriptions only.
+        $d['q'] = trim((string) $request->input('q', ''));
+        if ($d['q'] !== '') {
+            $q = $d['q'];
+            $query->where(function ($w) use ($q) {
+                $w->where('title', 'like', '%' . $q . '%')
+                    ->orWhere('description', 'like', '%' . $q . '%');
+            });
+        }
+
+        $d['sort'] = $request->input('sort') === 'oldest' ? 'oldest' : 'newest';
+        $query = $d['sort'] === 'oldest' ? $query->oldest() : $query->latest();
+
+        $d['items'] = $query->paginate(15)->appends($request->except('page'));
 
         // Opening My Feedback marks everything as seen (bell hook).
         FeedbackItem::where('reporter_id', $user->id)

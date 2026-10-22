@@ -607,18 +607,22 @@ class HomeController extends Controller
                         $end = Carbon::parse($now->toDateString() . ' ' . $slot->time_to);
                     }
 
-                    if ($start === null) {
-                        $status = 'upcoming';
-                        $status_label = 'Upcoming';
-                    } elseif ($now->lt($start)) {
-                        $status = 'upcoming';
-                        $status_label = 'Upcoming';
-                    } elseif ($now->gt($end)) {
+                    // Loop 79: status comes from the REGISTER, never
+                    // inferred from the clock — a period is Completed
+                    // only when a submitted attendance session exists
+                    // for it today. The clock merely separates "not
+                    // yet due" (Upcoming) from "due and still
+                    // unsubmitted" (Attendance Pending).
+                    $session_id = $session_by_period[$period->id] ?? null;
+                    if ($session_id) {
                         $status = 'completed';
                         $status_label = 'Completed';
+                    } elseif ($start !== null && $now->gte($start)) {
+                        $status = 'pending';
+                        $status_label = 'Attendance Pending';
                     } else {
-                        $status = 'live';
-                        $status_label = 'In progress';
+                        $status = 'upcoming';
+                        $status_label = 'Upcoming';
                     }
 
                     $class = optional($period->tt_record)->my_class ?: optional($period->subject)->my_class;
@@ -634,7 +638,7 @@ class HomeController extends Controller
                         'sort' => $start ? $start->format('H:i') : (optional($slot)->timestamp_from ?? '99:99'),
                         'ttr_id' => $period->ttr_id,
                         'tt_id' => $period->id,
-                        'session_id' => $session_by_period[$period->id] ?? null,
+                        'session_id' => $session_id,
                     ];
                 })
                 ->sortBy('sort')
@@ -759,6 +763,220 @@ class HomeController extends Controller
                 ->count();
         }
 
+        /* ---------------------------------------------------------------
+           Loop 79 — Teacher dashboard redesign data. Scope classes =
+           the classes this teacher is attached to: subject classes
+           plus the classes of sections they lead (either attachment
+           alone is a real assignment). Every figure below is an
+           aggregate over real records for THIS teacher only.
+           --------------------------------------------------------------- */
+        $scope_class_ids = $class_ids->merge($sections_led->pluck('my_class_id'))
+            ->filter()->unique()->values();
+
+        $my_student_count = $scope_class_ids->isEmpty()
+            ? 0
+            : (int) StudentRecord::where('grad', 0)
+                ->whereIn('my_class_id', $scope_class_ids)
+                ->distinct()
+                ->count('user_id');
+
+        // "My Classes" KPI definition (stated on the card): distinct
+        // class+section assignments — one per section the teacher
+        // leads, plus one per subject class where they lead no
+        // section (there the assignment is the class as a whole).
+        $assignment_keys = $sections_led->map(function ($section) {
+            return 'sec:' . $section->id;
+        });
+        $led_class_ids = $sections_led->pluck('my_class_id')->unique();
+        foreach ($class_ids as $cid) {
+            if (!$led_class_ids->contains($cid)) {
+                $assignment_keys->push('class:' . $cid);
+            }
+        }
+        $my_assignment_count = $assignment_keys->unique()->count();
+
+        // This month's period attendance, from submitted registers
+        // only. Percentages follow the school rule — (present + late)
+        // / marked — the same rule the attendance report uses, so
+        // the dashboard can never disagree with the report.
+        $month_label = $now->format('F Y');
+        $attendance_overview = collect();
+        $attendance_distribution = [
+            'buckets' => [
+                ['key' => 'above90', 'label' => 'Above 90%', 'count' => 0, 'color' => '#2f9e44'],
+                ['key' => 'b75_90', 'label' => '75% – 90%', 'count' => 0, 'color' => '#3478f6'],
+                ['key' => 'b60_75', 'label' => '60% – 75%', 'count' => 0, 'color' => '#e8a13a'],
+                ['key' => 'below60', 'label' => 'Below 60%', 'count' => 0, 'color' => '#d64545'],
+            ],
+            'with_records' => 0,
+            'total_students' => $my_student_count,
+            'low_count' => 0,
+        ];
+        if ($scope_class_ids->isNotEmpty() && Schema::hasTable('attendance_session_entries')) {
+            $month_from = $now->copy()->startOfMonth()->toDateString();
+            $month_to = $now->copy()->endOfMonth()->toDateString();
+
+            $by_class = DB::table('attendance_session_entries as e')
+                ->join('attendance_sessions as s', 's.id', '=', 'e.session_id')
+                ->whereBetween('s.date', [$month_from, $month_to])
+                ->whereIn('s.my_class_id', $scope_class_ids)
+                ->select('s.my_class_id',
+                    DB::raw("sum(case when e.status in ('present','late') then 1 else 0 end) as ok"),
+                    DB::raw('count(*) as total'))
+                ->groupBy('s.my_class_id')
+                ->get()
+                ->keyBy('my_class_id');
+
+            $class_names = \App\Models\MyClass::whereIn('id', $scope_class_ids)->pluck('name', 'id');
+            $attendance_overview = $scope_class_ids->map(function ($cid) use ($by_class, $class_names) {
+                $row = $by_class[$cid] ?? null;
+                $total = $row ? (int) $row->total : 0;
+
+                return [
+                    'class_name' => $class_names[$cid] ?? 'Class',
+                    'marked' => $total,
+                    'pct' => $total > 0 ? (int) round(((int) $row->ok / $total) * 100) : null,
+                ];
+            })->sortBy('class_name')->values();
+
+            // One row per student record, bucketed by their overall
+            // month percentage; students with no marked periods this
+            // month are excluded (never treated as 0%).
+            $by_student = DB::table('attendance_session_entries as e')
+                ->join('attendance_sessions as s', 's.id', '=', 'e.session_id')
+                ->whereBetween('s.date', [$month_from, $month_to])
+                ->whereIn('s.my_class_id', $scope_class_ids)
+                ->select('e.student_record_id',
+                    DB::raw("sum(case when e.status in ('present','late') then 1 else 0 end) as ok"),
+                    DB::raw('count(*) as total'))
+                ->groupBy('e.student_record_id')
+                ->get();
+            $bucket_counts = ['above90' => 0, 'b75_90' => 0, 'b60_75' => 0, 'below60' => 0];
+            foreach ($by_student as $row) {
+                if ((int) $row->total === 0) {
+                    continue;
+                }
+                $pct = ((int) $row->ok / (int) $row->total) * 100;
+                if ($pct > 90) {
+                    $bucket_counts['above90']++;
+                } elseif ($pct >= 75) {
+                    $bucket_counts['b75_90']++;
+                } elseif ($pct >= 60) {
+                    $bucket_counts['b60_75']++;
+                } else {
+                    $bucket_counts['below60']++;
+                }
+            }
+            foreach ($attendance_distribution['buckets'] as $i => $bucket) {
+                $attendance_distribution['buckets'][$i]['count'] = $bucket_counts[$bucket['key']];
+            }
+            $attendance_distribution['with_records'] = array_sum($bucket_counts);
+            $attendance_distribution['low_count'] = $bucket_counts['b60_75'] + $bucket_counts['below60'];
+        }
+
+        // Today's Tasks — derived pending work only. Nothing is
+        // stored and there is no completion state: a row exists only
+        // while the underlying work is genuinely outstanding, and
+        // every row links to the screen where the work happens.
+        $today_tasks = [];
+        foreach ($today_periods as $row) {
+            if (!empty($row['session_id'])) {
+                continue;
+            }
+            $today_tasks[] = [
+                'icon' => 'icon-calendar52',
+                'tone' => $row['status'] === 'pending' ? 'red' : 'blue',
+                'title' => 'Take attendance — ' . $row['subject_name'],
+                'meta' => $row['class_name'] . ' · ' . $row['time_label'],
+                'badge' => $row['status'] === 'pending' ? 'Pending' : 'Today',
+                'badge_tone' => $row['status'] === 'pending' ? 'red' : 'blue',
+                'link' => route('attendance.periods.take', $row['tt_id']),
+            ];
+        }
+        if ($lms_to_grade > 0) {
+            $today_tasks[] = [
+                'icon' => 'icon-file-text2', 'tone' => 'purple',
+                'title' => 'Grade assignment submissions',
+                'meta' => $lms_to_grade . ' ' . ($lms_to_grade === 1 ? 'submission' : 'submissions') . ' awaiting marks',
+                'badge' => (string) $lms_to_grade, 'badge_tone' => 'purple',
+                'link' => route('assignments.index'),
+            ];
+        }
+        // Marks still missing for this session's exams, counted per
+        // (subject × enrolled student) with no mark row yet. An exam
+        // whose marks are complete produces no row — a count of real
+        // gaps, never a schedule guess. (TeacherReminders omits this
+        // for the bell because an exam cannot be called "upcoming"
+        // without dates; pending ENTRY is a different, countable
+        // fact, so the dashboard derives it here.)
+        if (Schema::hasTable('exams') && Schema::hasTable('marks')) {
+            foreach (Exam::where('year', Qs::getCurrentSession())->get() as $exam) {
+                $missing = 0;
+                foreach ($subjects as $subject) {
+                    $expected = StudentRecord::where('grad', 0)
+                        ->where('my_class_id', $subject->my_class_id)
+                        ->count();
+                    $entered = Mark::where('exam_id', $exam->id)
+                        ->where('subject_id', $subject->id)
+                        ->where('my_class_id', $subject->my_class_id)
+                        ->count();
+                    $missing += max(0, $expected - $entered);
+                }
+                if ($missing > 0) {
+                    $today_tasks[] = [
+                        'icon' => 'icon-pencil7', 'tone' => 'amber',
+                        'title' => 'Enter marks — ' . $exam->name,
+                        'meta' => 'Marks missing for ' . $missing . ' student entries across your subjects',
+                        'badge' => 'Pending', 'badge_tone' => 'amber',
+                        'link' => route('marks.index'),
+                    ];
+                }
+            }
+        }
+        $today_tasks = array_slice($today_tasks, 0, 6);
+
+        // Notifications panel — real items only. user_notifications
+        // rows are written only for students/parents in this app, so
+        // a teacher's feed is composed from live sources: the
+        // low-attendance position of their own students, the grading
+        // queue, and circulars addressed to teachers/everyone.
+        $teacher_notifications = [];
+        if ($attendance_distribution['low_count'] > 0) {
+            $low = $attendance_distribution['low_count'];
+            $teacher_notifications[] = [
+                'icon' => 'icon-alarm', 'tone' => 'red',
+                'title' => $low . ' ' . ($low === 1 ? 'student' : 'students') . ' below 75% attendance',
+                'meta' => 'Across your classes · ' . $month_label,
+                'time_label' => 'This month',
+                'link' => route('attendance.defaulters'),
+            ];
+        }
+        if ($lms_to_grade > 0) {
+            $latest_ungraded = \App\Models\AssignmentSubmission::whereNull('marks_awarded')
+                ->whereHas('assignment', function ($q) use ($teacher_id) {
+                    $q->where('teacher_id', $teacher_id);
+                })
+                ->max('submitted_at');
+            $teacher_notifications[] = [
+                'icon' => 'icon-file-text2', 'tone' => 'purple',
+                'title' => $lms_to_grade . ' assignment ' . ($lms_to_grade === 1 ? 'submission' : 'submissions') . ' to grade',
+                'meta' => 'Ungraded submissions on your assignments',
+                'time_label' => $latest_ungraded ? Carbon::parse($latest_ungraded)->diffForHumans() : '',
+                'link' => route('assignments.index'),
+            ];
+        }
+        foreach ($recent_circulars as $circular) {
+            $teacher_notifications[] = [
+                'icon' => 'icon-megaphone',
+                'tone' => $circular->priority === 'urgent' ? 'red' : ($circular->priority === 'important' ? 'amber' : 'blue'),
+                'title' => $circular->title,
+                'meta' => (\App\Models\Circular::audiences()[$circular->audience] ?? ucfirst($circular->audience)) . ' · by ' . (optional($circular->publisher)->name ?: 'School Office'),
+                'time_label' => $circular->created_at ? $circular->created_at->diffForHumans() : '',
+                'link' => route('circulars.show', $circular->id),
+            ];
+        }
+        $teacher_notifications = array_slice($teacher_notifications, 0, 5);
+
         return [
             'lms_to_grade' => $lms_to_grade,
             'my_subjects' => $subjects,
@@ -766,9 +984,18 @@ class HomeController extends Controller
             'first_class_id' => $class_ids->first(),
             't9_tasks' => $t9_tasks,
             'sections_led' => $sections_led,
-            'my_student_count' => $class_ids->isEmpty()
-                ? 0
-                : StudentRecord::where('grad', 0)->whereIn('my_class_id', $class_ids)->count(),
+            'my_student_count' => $my_student_count,
+            // Loop 79 additions.
+            'my_assignment_count' => $my_assignment_count,
+            'scope_class_count' => $scope_class_ids->count(),
+            'month_label' => $month_label,
+            'attendance_overview' => $attendance_overview,
+            'attendance_distribution' => $attendance_distribution,
+            'today_tasks' => $today_tasks,
+            'teacher_notifications' => $teacher_notifications,
+            'today_submitted' => $today_periods->filter(function ($row) {
+                return !empty($row['session_id']);
+            })->count(),
             'today_periods' => $today_periods,
             'today_name' => $now->format('l'),
             'upcoming_events' => $upcoming_events,
@@ -812,7 +1039,7 @@ class HomeController extends Controller
         // excludes them).
         $today_periods = collect();
         if ($class_id && Schema::hasTable('time_tables')) {
-            $today_periods = TimeTable::with(['subject', 'time_slot', 'tt_record'])
+            $today_periods = TimeTable::with(['subject.teacher', 'time_slot', 'tt_record'])
                 ->where('day', $now->format('l'))
                 ->whereHas('tt_record', function ($q) use ($class_id) {
                     $q->where('my_class_id', $class_id);
@@ -836,6 +1063,7 @@ class HomeController extends Controller
                     return [
                         'time' => optional($period->time_slot)->full ?: '—',
                         'subject' => optional($period->subject)->name ?: '—',
+                        'teacher' => optional(optional($period->subject)->teacher)->name ?: '—',
                         'status' => $status,
                     ];
                 })
@@ -914,8 +1142,74 @@ class HomeController extends Controller
                 ->count();
         }
 
+        // Loop 99 — Own fee position for the current session, from the
+        // SAME PaymentRepo assembly the parent home and the fees
+        // portal use (getAllMyPR scoped to the current session), so
+        // the dashboard can never disagree with the invoice figures.
+        $fees = ['total' => 0, 'paid' => 0, 'due' => 0, 'pending_records' => 0, 'has_records' => false];
+        $fee_records = app(PaymentRepo::class)->getAllMyPR($user_id, Qs::getCurrentSession())->get();
+        $fees = [
+            'total' => (int) $fee_records->sum(function ($r) {
+                return $r->payment->amount;
+            }),
+            'paid' => (int) $fee_records->sum('amt_paid'),
+            'due' => (int) $fee_records->where('paid', 0)->sum(function ($r) {
+                return $r->balance ?: $r->payment->amount;
+            }),
+            'pending_records' => (int) $fee_records->where('paid', 0)->count(),
+            'has_records' => $fee_records->isNotEmpty(),
+        ];
+
+        // Loop 99 — Open assignments for this student's own class
+        // (+ section), using the student assignment scoping and the
+        // "open" rule from AssignmentController@index / submit():
+        // the window is open while the due moment has not passed, or
+        // late submissions are allowed. Own submission state rides
+        // the same submissions scope the student list uses. Panel
+        // order: still-to-submit first, then nearest due (no due
+        // date last).
+        $open_assignments = collect();
+        $open_assignments_count = 0;
+        $open_assignments_submitted = 0;
+        if ($record && Schema::hasTable('assignments')) {
+            $open = \App\Models\Assignment::with(['subject', 'teacher'])
+                ->with(['submissions' => function ($q) use ($user_id) {
+                    $q->where('student_id', $user_id);
+                }])
+                ->where('my_class_id', $record->my_class_id)
+                ->where(function ($q) use ($record) {
+                    $q->whereNull('section_id')->orWhere('section_id', $record->section_id);
+                })
+                ->where(function ($q) use ($now) {
+                    $q->whereNull('due_at')
+                        ->orWhere('due_at', '>', $now)
+                        ->orWhere('allow_late', true);
+                })
+                ->get();
+
+            $open_assignments_count = $open->filter(function ($a) {
+                return $a->submissions->isEmpty();
+            })->count();
+            $open_assignments_submitted = $open->count() - $open_assignments_count;
+
+            $open_assignments = $open
+                ->sortBy(function ($a) {
+                    return [
+                        $a->submissions->isEmpty() ? 0 : 1,
+                        $a->due_at ? 0 : 1,
+                        $a->due_at ? $a->due_at->timestamp : PHP_INT_MAX,
+                    ];
+                })
+                ->take(5)
+                ->values();
+        }
+
         return [
             'lms_due_week' => $lms_due_week,
+            'fees' => $fees,
+            'open_assignments' => $open_assignments,
+            'open_assignments_count' => $open_assignments_count,
+            'open_assignments_submitted' => $open_assignments_submitted,
             'student_record' => $record,
             'attendance' => $record ? $this->attendanceSummary($record->id) : $this->attendanceSummary(0),
             'subjects' => $subjects,
@@ -1107,24 +1401,79 @@ class HomeController extends Controller
         $collected_session = (int) Receipt::where('year', $year)
             ->sum('amt_paid');
 
-        // Collection trend: receipts grouped by month, last six months
-        // including the current one, oldest first. (Month expression is
-        // driver-aware so the dashboard also runs on sqlite in dev;
-        // MySQL/MariaDB behaviour is unchanged.)
+        // Comparison periods for the KPI deltas. The view only prints a
+        // delta when BOTH periods hold receipts — on sparse data a
+        // percentage against an empty period would be meaningless.
+        $collected_yesterday = (int) Receipt::whereDate('created_at', $now->copy()->subDay()->toDateString())
+            ->sum('amt_paid');
+        $prev_month = $now->copy()->startOfMonth()->subMonth();
+        $collected_prev_month = (int) Receipt::whereYear('created_at', $prev_month->year)
+            ->whereMonth('created_at', $prev_month->month)
+            ->sum('amt_paid');
+
+        // Collection trend (Loop 92): session receipts grouped by the
+        // month they were actually recorded in, oldest first. Only
+        // months present in the ledger become bars — no zero-filled
+        // placeholder months. (Month expression is driver-aware so the
+        // dashboard also runs on sqlite in dev; MySQL/MariaDB behaviour
+        // is unchanged.)
         $month_expr = DB::connection()->getDriverName() === 'sqlite'
             ? "strftime('%Y-%m', created_at)"
             : "DATE_FORMAT(created_at, '%Y-%m')";
-        $monthly = Receipt::where('created_at', '>=', $now->copy()->startOfMonth()->subMonths(5))
+        $monthly = Receipt::where('year', $year)
             ->selectRaw("$month_expr as ym, COALESCE(SUM(amt_paid), 0) as total")
             ->groupBy('ym')
+            ->orderBy('ym')
             ->pluck('total', 'ym');
         $collection_labels = [];
         $collection_values = [];
-        foreach (range(5, 0) as $months_ago) {
-            $month = $now->copy()->startOfMonth()->subMonths($months_ago);
-            $collection_labels[] = $month->format('M');
-            $collection_values[] = (int) ($monthly[$month->format('Y-m')] ?? 0);
+        foreach ($monthly as $ym => $total) {
+            $collection_labels[] = Carbon::createFromFormat('Y-m', $ym)->format('M Y');
+            $collection_values[] = (int) $total;
         }
+        $collection_period = '';
+        if ($collection_labels) {
+            $collection_period = count($collection_labels) === 1
+                ? $collection_labels[0]
+                : $collection_labels[0] . ' – ' . $collection_labels[count($collection_labels) - 1];
+        }
+
+        // Collection by payment method (Loop 92): receipts carry a
+        // per-receipt method only for gateway payments
+        // ('online_razorpay'); manual counter receipts store NULL by
+        // design (see the gateway-columns migration). Buckets therefore
+        // name exactly what the ledger records — Counter vs Online —
+        // over the same session population as Total Collected, so the
+        // slices always reconcile with the KPI.
+        $online_row = Receipt::where('year', $year)
+            ->where('method', 'online_razorpay')
+            ->selectRaw('COUNT(*) as cnt, COALESCE(SUM(amt_paid), 0) as total')
+            ->first();
+        $session_receipt_count = (int) Receipt::where('year', $year)->count();
+        $online_count = (int) ($online_row->cnt ?? 0);
+        $online_total = (int) ($online_row->total ?? 0);
+        $method_breakdown = [];
+        if ($session_receipt_count - $online_count > 0) {
+            $method_breakdown[] = [
+                'label' => 'Counter',
+                'amount' => $collected_session - $online_total,
+                'count' => $session_receipt_count - $online_count,
+            ];
+        }
+        if ($online_count > 0) {
+            $method_breakdown[] = [
+                'label' => 'Online (Razorpay)',
+                'amount' => $online_total,
+                'count' => $online_count,
+            ];
+        }
+        usort($method_breakdown, function ($a, $b) { return $b['amount'] <=> $a['amount']; });
+        foreach ($method_breakdown as &$bucket) {
+            $bucket['pct'] = $collected_session > 0
+                ? (int) round($bucket['amount'] / $collected_session * 100)
+                : 0;
+        }
+        unset($bucket);
 
         // Recent payments: the latest receipts (money events), each with
         // the student and fee definition it belongs to. Class labels
@@ -1154,8 +1503,20 @@ class HomeController extends Controller
                 'title' => optional(optional($record)->payment)->title ?: '—',
                 'class' => $class_label,
                 'amount' => (int) $receipt->amt_paid,
-                'method' => optional(optional($record)->payment)->method ?: '—',
+                // Method as the printed receipt presents it: a gateway
+                // receipt names its channel; a counter receipt carries
+                // the fee's configured method.
+                'method' => $receipt->method === 'online_razorpay'
+                    ? 'Online (Razorpay)'
+                    : (optional(optional($record)->payment)->method
+                        ? ucwords(optional(optional($record)->payment)->method)
+                        : '—'),
                 'date' => $receipt->created_at,
+                // Loop 92: receipt identity + settlement state so the
+                // row can link to the real receipt document.
+                'ref' => optional($record)->ref_no ?: '—',
+                'pr_id' => (int) $receipt->pr_id,
+                'cleared' => $record ? (bool) $record->paid : false,
             ];
         });
 
@@ -1207,10 +1568,14 @@ class HomeController extends Controller
             'collected_today' => $collected_today,
             'collected_month' => $collected_month,
             'collected_session' => $collected_session,
+            'collected_yesterday' => $collected_yesterday,
+            'collected_prev_month' => $collected_prev_month,
             'payments_today_count' => $payments_today_count,
             'outstanding_total' => $outstanding_total,
             'collection_labels' => $collection_labels,
             'collection_values' => $collection_values,
+            'collection_period' => $collection_period,
+            'method_breakdown' => $method_breakdown,
             'recent_payments' => $recent_payments,
             'defaulters' => $defaulter_rows->take(5),
             'defaulters_count' => $defaulter_rows->count(),
@@ -1281,10 +1646,34 @@ class HomeController extends Controller
     protected function librarianHomeData(Carbon $now): array
     {
         $today = $now->toDateString();
+        $bookCopies = (int) Book::sum('total_copies');
+
+        // Loop 100: catalogue mix by the real `book_type` field — copies
+        // per type for the dashboard donut. Types with no copies on the
+        // shelf record still count their titles, but only types holding
+        // copies can draw a slice, so the breakdown keeps copies > 0.
+        $typeBreakdown = Book::query()
+            ->selectRaw('book_type, COUNT(*) as titles, COALESCE(SUM(total_copies), 0) as copies')
+            ->groupBy('book_type')
+            ->orderByDesc('copies')
+            ->get()
+            ->filter(function ($row) {
+                return (int) $row->copies > 0;
+            })
+            ->map(function ($row) use ($bookCopies) {
+                return [
+                    'label' => $row->book_type ?: 'Other',
+                    'titles' => (int) $row->titles,
+                    'copies' => (int) $row->copies,
+                    'pct' => $bookCopies > 0 ? (int) round($row->copies / $bookCopies * 100) : 0,
+                ];
+            })
+            ->values();
 
         return [
             'book_titles' => Book::count(),
-            'book_copies' => (int) Book::sum('total_copies'),
+            'book_copies' => $bookCopies,
+            'type_breakdown' => $typeBreakdown,
             'books_issued' => BookRequest::active()->count(),
             'loans_due_today' => BookRequest::active()->whereDate('end_date', $today)->count(),
             'loans_overdue' => BookRequest::active()->whereDate('end_date', '<', $today)->count(),

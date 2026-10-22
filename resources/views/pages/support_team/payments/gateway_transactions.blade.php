@@ -6,6 +6,7 @@
          seen, including the failed and unverifiable ones (nothing is
          silently dropped). Captured rows link to the receipt the
          payment generated through the normal payment path. --}}
+  <div class="l75-gw">
     @component('partials.patterns.list_page')
         @slot('subtitle')
             {{ $txns->count() }} gateway transaction(s) &middot; captured money is recorded as normal fee receipts
@@ -39,9 +40,9 @@
                             <td>{{ $t->created_at->format('d M Y, h:i A') }}</td>
                             <td class="font-weight-bold">{{ optional($t->student)->name ?: '—' }}</td>
                             <td>{{ $t->invoice_ref ?: '—' }}</td>
-                            <td><small>{{ $t->order_id }}</small></td>
-                            <td><small>{{ $t->payment_id ?: '—' }}</small></td>
-                            <td class="text-right">{{ \App\Helpers\Money::inr($t->amount) }}</td>
+                            <td><small class="gw-id">{{ $t->order_id }}</small></td>
+                            <td><small class="gw-id">{{ $t->payment_id ?: '—' }}</small></td>
+                            <td class="text-right gw-amount">{{ \App\Helpers\Money::inr($t->amount) }}</td>
                             <td>
                                 @if($t->status === 'captured')
                                     <span class="badge badge-success">Captured</span>
@@ -67,4 +68,5 @@
             </div>
         @endif
     @endcomponent
+  </div>
 @endsection

@@ -12,6 +12,7 @@ use App\Http\Requests\Mark\MarkComponentUpdate;
 use App\Http\Requests\Mark\MarkSelector;
 use App\Models\Setting;
 use App\Repositories\ExamRepo;
+use PDF;
 use App\Repositories\MarkRepo;
 use App\Repositories\MyClassRepo;
 use App\Http\Controllers\Controller;
@@ -79,22 +80,68 @@ class MarkController extends Controller
         return redirect()->route('marks.show', [$student_id, $req->year]);
     }
 
+    /**
+     * Fee-defaulter document block (owner ruling 2026-10-22): a
+     * student whose current-session fees are outstanding — or their
+     * parent — cannot generate the marksheet (term or annual; screen,
+     * print or PDF) until the dues are paid. The definition is
+     * App\Support\FeeDefaulter's, the very one the Fee Defaulters
+     * page lists, so the block lifts itself the moment the balance
+     * clears. teamSA (the school office) generation is never
+     * blocked, and the notice view receives no marks data at all.
+     * Returns the notice response, or null when generation proceeds.
+     */
+    protected function feeDefaulterBlock($student_id, $document)
+    {
+        if (Qs::userIsTeamSA()) {
+            return null;
+        }
+
+        $due = \App\Support\FeeDefaulter::outstandingFor($student_id, Qs::getCurrentSession());
+        if ($due <= 0) {
+            return null;
+        }
+
+        return view('pages.support_team.fee_blocked', [
+            'document' => $document,
+            'sr' => $this->student->getRecord(['user_id' => $student_id])->first(),
+            'due' => $due,
+            'year' => Qs::getCurrentSession(),
+            'viewer_is_parent' => Qs::userIsMyChild($student_id, Auth::user()->id),
+        ]);
+    }
+
+    /* Map a stored upload URL (/storage/...) to a base64 data URI read
+       from the local file, for renderers that cannot fetch URLs
+       (dompdf). Anything that is not a local storage file is returned
+       unchanged. */
+    protected function pdfImageDataUri($url)
+    {
+        $path = parse_url($url, PHP_URL_PATH);
+        if ($path && \Illuminate\Support\Str::startsWith($path, '/storage/')) {
+            $local = storage_path('app/public/' . \Illuminate\Support\Str::after($path, '/storage/'));
+            if (is_file($local)) {
+                $mime = mime_content_type($local) ?: 'image/png';
+                return 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($local));
+            }
+        }
+        return $url;
+    }
+
     public function show($student_id, $year)
     {
-        /* Prevent Other Students/Parents from viewing Result of others */
-        if(Auth::user()->id != $student_id && !Qs::userIsTeamSAT() && !Qs::userIsMyChild($student_id, Auth::user()->id)){
+        /* Prevent Other Students/Parents from viewing Result of others.
+           Owner ruling 2026-10-22: the marksheet is a student/office
+           document — teachers no longer open it at all (they keep
+           marks ENTRY). The gate is therefore teamSA, not teamSAT:
+           a teacher fails this check like any unrelated user. */
+        if(Auth::user()->id != $student_id && !Qs::userIsTeamSA() && !Qs::userIsMyChild($student_id, Auth::user()->id)){
             return redirect(route('dashboard'))->with('pop_error', __('msg.denied'));
         }
 
-        /* Batch S: teamSAT membership is not enough for a teacher —
-           the student's class must be one of their assigned classes. */
-        if(Qs::userIsTeacher()){
-            $sr = $this->student->getRecord(['user_id' => $student_id])->first();
-            if(!$sr || !TeacherScope::canTeachClass(Auth::user(), $sr->my_class_id)){
-                return redirect(route('dashboard'))->with('pop_error', __('msg.denied'));
-            }
+        if ($block = $this->feeDefaulterBlock($student_id, 'Marksheet')) {
+            return $block;
         }
-
 
         if(!$this->verifyStudentExamYear($student_id, $year)){
             return $this->noStudentRecord();
@@ -157,6 +204,10 @@ class MarkController extends Controller
             return redirect(route('dashboard'))->with('pop_error', __('msg.denied'));
         }
 
+        if ($block = $this->feeDefaulterBlock($student_id, 'Marksheet')) {
+            return $block;
+        }
+
         /* Workstream BH — Result Publish gate (replaces the retired
            PIN gate): a student or parent may print only a published
            exam's result. teamSA staff printing is never gated. */
@@ -215,18 +266,15 @@ class MarkController extends Controller
      */
     public function show_annual($student_id, $year)
     {
-        /* Prevent Other Students/Parents from viewing Result of others */
-        if(Auth::user()->id != $student_id && !Qs::userIsTeamSAT() && !Qs::userIsMyChild($student_id, Auth::user()->id)){
+        /* Prevent Other Students/Parents from viewing Result of others.
+           Owner ruling 2026-10-22 (see show()): teachers are denied
+           the annual report card exactly like the term marksheet. */
+        if(Auth::user()->id != $student_id && !Qs::userIsTeamSA() && !Qs::userIsMyChild($student_id, Auth::user()->id)){
             return redirect(route('dashboard'))->with('pop_error', __('msg.denied'));
         }
 
-        /* Batch S: teamSAT membership is not enough for a teacher —
-           the student's class must be one of their assigned classes. */
-        if(Qs::userIsTeacher()){
-            $sr = $this->student->getRecord(['user_id' => $student_id])->first();
-            if(!$sr || !TeacherScope::canTeachClass(Auth::user(), $sr->my_class_id)){
-                return redirect(route('dashboard'))->with('pop_error', __('msg.denied'));
-            }
+        if ($block = $this->feeDefaulterBlock($student_id, 'Annual Report Card')) {
+            return $block;
         }
 
         if(!$this->verifyStudentExamYear($student_id, $year)){
@@ -263,6 +311,10 @@ class MarkController extends Controller
             return redirect(route('dashboard'))->with('pop_error', __('msg.denied'));
         }
 
+        if ($block = $this->feeDefaulterBlock($student_id, 'Annual Report Card')) {
+            return $block;
+        }
+
         if(!$this->verifyStudentExamYear($student_id, $year)){
             return $this->noStudentRecord();
         }
@@ -281,6 +333,65 @@ class MarkController extends Controller
         $d = $this->annualCardData($student_id, $year, $exams);
 
         return view('pages.support_team.marks.print.annual', $d);
+    }
+
+    /**
+     * Loop 85 — the annual / cumulative report as a downloadable PDF.
+     * Gating is print_annual()'s, verbatim (teamSA print permission,
+     * self / my-child, plus the BH publish gate for non-teamSA
+     * viewers), and the document is the SAME annual_report_card
+     * partial fed by the SAME annualCardData assembly — screen,
+     * print and PDF can therefore never disagree on a figure.
+     */
+    public function pdf_annual($student_id, $year)
+    {
+        /* Prevent Other Students/Parents from viewing Result of others */
+        if(Auth::user()->id != $student_id && !Qs::userIsTeamSA() && !Qs::userIsMyChild($student_id, Auth::user()->id)){
+            return redirect(route('dashboard'))->with('pop_error', __('msg.denied'));
+        }
+
+        /* The defaulter block answers with the notice page rather
+           than a PDF — the same response print_annual's publish gate
+           already gives in that situation. */
+        if ($block = $this->feeDefaulterBlock($student_id, 'Annual Report Card')) {
+            return $block;
+        }
+
+        if(!$this->verifyStudentExamYear($student_id, $year)){
+            return $this->noStudentRecord();
+        }
+
+        $exams = $this->exam->getExam(['year' => $year]);
+        if(!Qs::userIsTeamSA()){
+            $exams = $exams->filter(function($ex){ return $ex->results_published; });
+            if($exams->isEmpty()){
+                return view('pages.support_team.marks.not_published', [
+                    'sr' => $this->student->getRecord(['user_id' => $student_id])->first(),
+                    'year' => $year,
+                ]);
+            }
+        }
+
+        $d = $this->annualCardData($student_id, $year, $exams);
+
+        /* dompdf in this stack does not fetch asset() URLs (remote
+           images disabled), so a PDF rendered straight from the card
+           data silently drops every image — logo, stamp and, since the
+           2026-10-22 digital-signature ruling, the principal's
+           signature. The PDF path therefore inlines those three from
+           local storage as data URIs; screen/print keep the URLs. */
+        foreach (['stamp', 'principal_signature'] as $imgKey) {
+            if (!empty($d['card'][$imgKey])) {
+                $d['card'][$imgKey] = $this->pdfImageDataUri($d['card'][$imgKey]);
+            }
+        }
+        if (!empty($d['s']['logo'])) {
+            $d['s']['logo'] = $this->pdfImageDataUri($d['s']['logo']);
+        }
+
+        $pdf_name = 'Annual_Report_'.\Illuminate\Support\Str::slug($d['sr']->user->name).'_'.$year.'.pdf';
+
+        return PDF::loadView('pages.support_team.marks.print.annual_pdf', $d)->setPaper('a4')->download($pdf_name);
     }
 
     /**
@@ -393,12 +504,35 @@ class MarkController extends Controller
         $exam = $this->exam->find($exam_id);
         $marks = $this->exam->getMark($p);
 
+        /* Batch 114 (Part A audit): snapshot the stored scores BEFORE
+           the save so the audit entry below can name every changed
+           cell with its old -> new value. The pre-114 entry recorded
+           only that "marks updated" — no values, which made a disputed
+           mark untraceable. */
+        $oldScores = [];
+        if(MarkScheme::isConfigured($exam_id, $subject_id)){
+            foreach($marks as $mk){
+                foreach($mk->markComponents as $mc){
+                    $oldScores[$mk->id][$mc->component_id] = $mc->score === NULL ? NULL : (int) $mc->score;
+                }
+            }
+        }
+        else{
+            foreach($marks as $mk){
+                foreach(['t1', 't2', 'exm'] as $field){
+                    $oldScores[$mk->id][$field] = $mk->$field === NULL ? NULL : (int) $mk->$field;
+                }
+            }
+        }
+
         /* Batch M2: raw scores land first — in mark_components for a
            configured scheme, in the legacy columns otherwise. Blank
            means "not entered" (stored NULL); 0 is a real score. The
            FormRequest has already proven every cell is a whole number
            within its component's max — invalid saves are rejected,
            never silently wiped (the legacy >100 wipe is deleted). */
+        $changes = [];
+        $fmtVal = function($v){ return $v === NULL ? 'blank' : (string) $v; };
         if(MarkScheme::isConfigured($exam_id, $subject_id)){
             $components = MarkScheme::configuredComponents($exam_id, $subject_id);
 
@@ -407,16 +541,25 @@ class MarkController extends Controller
                 foreach($components as $comp){
                     $v = $req->input('comp_'.$mk->id.'_'.$comp->id);
                     $scores[$comp->id] = ($v === NULL || $v === '') ? NULL : (int) $v;
+                    $old = $oldScores[$mk->id][$comp->id] ?? NULL;
+                    if($old !== $scores[$comp->id]){
+                        $changes[] = $mk->user->name.' — '.$comp->name.': '.$fmtVal($old).' -> '.$fmtVal($scores[$comp->id]);
+                    }
                 }
                 MarkScheme::saveComponentScores($mk, $scores);
             }
         }
         else{
+            $legacyNames = ['t1' => '1st CA', 't2' => '2nd CA', 'exm' => 'Exam'];
             foreach($marks as $mk){
                 $d = [];
                 foreach(['t1', 't2', 'exm'] as $field){
                     $v = $req->input($field.'_'.$mk->id);
                     $d[$field] = ($v === NULL || $v === '') ? NULL : (int) $v;
+                    $old = $oldScores[$mk->id][$field] ?? NULL;
+                    if($old !== $d[$field]){
+                        $changes[] = $mk->user->name.' — '.$legacyNames[$field].': '.$fmtVal($old).' -> '.$fmtVal($d[$field]);
+                    }
                 }
                 $d['tca'] = ($d['t1'] === NULL && $d['t2'] === NULL) ? NULL : (int) $d['t1'] + (int) $d['t2'];
 
@@ -429,7 +572,15 @@ class MarkController extends Controller
         MarkComputation::recomputeSubject($exam, $class_id, $section_id, $subject_id, $this->year);
         MarkComputation::recomputeRecords($exam, $class_id, $section_id, $this->year);
 
-        Audit::log('marks.updated', null, 'Marks updated: exam '.$exam_id.', class '.$class_id.', subject '.$subject_id);
+        $auditMsg = 'Marks updated: exam '.$exam_id.', class '.$class_id.', subject '.$subject_id;
+        if($changes){
+            $shown = array_slice($changes, 0, 40);
+            $auditMsg .= '. Changes: '.implode('; ', $shown);
+            if(count($changes) > 40){
+                $auditMsg .= '; … and '.(count($changes) - 40).' more';
+            }
+        }
+        Audit::log('marks.updated', null, $auditMsg);
 
        return Qs::jsonUpdateOk();
     }
@@ -623,12 +774,12 @@ class MarkController extends Controller
 
     /**
      * Batch S: who may open a student's marks surfaces at all — the
-     * student themselves, their parent, teamSA staff, or a teacher
-     * whose assigned classes include the student's class. This is the
-     * check show() has always applied (plus the teacher-scope half);
-     * the select-year gateway now applies it too, so an unrelated
-     * student, another parent, the accountant or the librarian can no
-     * longer reach even a student's exam-year metadata.
+     * student themselves, their parent, or teamSA staff. The
+     * select-year gateway applies it too, so an unrelated student,
+     * another parent, the accountant or the librarian can no longer
+     * reach even a student's exam-year metadata. (The Batch S teacher
+     * branch was removed by the owner ruling of 2026-10-22:
+     * marksheets are student/office documents, not teacher ones.)
      */
     protected function canAccessStudentMarks($student_id)
     {
@@ -646,9 +797,9 @@ class MarkController extends Controller
             return true;
         }
 
-        if (Qs::userIsTeacher()) {
-            return TeacherScope::canTeachStudent($user, $student_id);
-        }
+        /* Owner ruling 2026-10-22: no teacher branch — the select-year
+           gateway leads to the marksheet, which teachers no longer
+           open (marks entry is their surface, not the report card). */
 
         return false;
     }

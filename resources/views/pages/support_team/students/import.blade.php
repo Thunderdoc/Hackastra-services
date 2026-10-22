@@ -44,7 +44,7 @@
         </div>
     @endif
 
-    <div class="card">
+    <div class="card pat-form-card">
         <div class="card-header header-elements-inline">
             <h6 class="card-title">Admit Many Students At Once — Upload a CSV File</h6>
             <div>
@@ -54,29 +54,35 @@
             {!! Qs::getPanelOptions() !!}
         </div>
 
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-7">
-                    <h6>How it works</h6>
-                    <ol class="pl-3">
+        <div class="card-body p-0">
+            <div class="pat-form-section">
+                <div class="pat-form-section-title">How it works</div>
+                    <ol class="pl-3 mb-0">
                         <li>Download the template and fill one row per student (keep the first row — the column names — exactly as it is).</li>
                         <li>Class, Section, State, LGA, Nationality etc. are written by <strong>name</strong>, exactly as they appear in the system — see the reference lists on this page.</li>
                         <li>Upload the file. Each row is checked on its own: good rows are admitted immediately, bad rows are skipped and listed in a report with the row number and the reason.</li>
                         <li>Imported students log in with the usual default student password, and get an admission number in the same format as students admitted one by one.</li>
                     </ol>
+            </div>
 
+            <div class="pat-form-section">
+                <div class="pat-form-section-title">Upload CSV</div>
                     <form method="post" enctype="multipart/form-data" action="{{ route('students.import.store') }}">
                         @csrf
-                        <div class="form-group">
-                            <label for="import_file" class="d-block">CSV File: <span class="text-danger">*</span></label>
-                            <input type="file" name="import_file" id="import_file" accept=".csv" required class="form-input-styled @error('import_file') is-invalid @enderror" data-fouc>
-                            @include('partials.errors.field', ['field' => 'import_file'])
-                            <span class="form-text text-muted">.csv only, max 10MB. Rows with problems are skipped, never half-saved.</span>
+                        <div class="pat-fields">
+                            <div class="pat-field pat-field-wide">
+                                <label for="import_file">CSV File <span class="text-danger">*</span></label>
+                                <input type="file" name="import_file" id="import_file" accept=".csv" required class="form-input-styled @error('import_file') is-invalid @enderror" data-fouc>
+                                @include('partials.errors.field', ['field' => 'import_file'])
+                                <span class="form-text text-muted">.csv only, max 10MB. Rows with problems are skipped, never half-saved.</span>
+                            </div>
                         </div>
-                        <button type="submit" class="btn btn-success"><i class="icon-upload mr-1"></i> Import Students</button>
+                        <button type="submit" class="btn btn-success mt-2"><i class="icon-upload mr-1"></i> Import Students</button>
                     </form>
+            </div>
 
-                    <h6 class="mt-4">Columns</h6>
+            <div class="pat-form-section">
+                <div class="pat-form-section-title">Columns</div>
                     <table class="table table-bordered">
                         <thead>
                         <tr>
@@ -105,10 +111,10 @@
                         <tr><td>adm_no</td><td></td><td>Your own admission number suffix (letters/numbers). Leave empty to auto-generate.</td></tr>
                         </tbody>
                     </table>
-                </div>
+            </div>
 
-                <div class="col-md-5">
-                    <h6>Valid names in this school</h6>
+            <div class="pat-form-section">
+                <div class="pat-form-section-title">Valid names in this school</div>
                     <p class="text-muted mb-1"><strong>Classes &amp; Sections</strong></p>
                     <ul class="pl-3">
                         @foreach($my_classes as $c)
@@ -121,8 +127,7 @@
                     <p>{{ $nationals->pluck('name')->implode(', ') }}</p>
                     <p class="text-muted mb-1"><strong>States</strong></p>
                     <p>{{ $states->pluck('name')->implode(', ') }}</p>
-                    <p class="text-muted">LGA names must match the LGAs registered under each state in <em>Settings → Locations</em>.</p>
-                </div>
+                    <p class="text-muted mb-0">LGA names must match the LGAs registered under each state in <em>Settings → Locations</em>.</p>
             </div>
         </div>
     </div>

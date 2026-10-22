@@ -30,6 +30,11 @@
         .sign-line { display: block; border-bottom: 1px solid #44546a; height: 26px; margin-bottom: 4px; }
         .admit-seal-cell { width: 118px; padding-right: 0 !important; text-align: right; }
         .admit-seal { display: inline-flex; align-items: center; justify-content: center; width: 104px; height: 64px; border: 1.5px dashed #9aa7b5; border-radius: 6px; color: #9aa7b5; font-size: .64rem; font-weight: 700; letter-spacing: .12em; }
+        .admit-sign-name { display: block; height: 26px; line-height: 38px; font-size: .78rem; color: #10263b; white-space: nowrap; }
+        .admit-sign-img { display: block; height: 26px; max-width: 140px; object-fit: contain; }
+        .admit-sign-sub { display: block; font-size: .7rem; color: #44546a; margin-top: 1px; }
+        .sign-line-filled { height: 2px !important; }
+        .admit-seal-img { width: 104px; height: 64px; object-fit: contain; }
         @media print {
             @page { size: A4; margin: 10mm; }
             /* Document design v2 (Workstream CY): cards size to their

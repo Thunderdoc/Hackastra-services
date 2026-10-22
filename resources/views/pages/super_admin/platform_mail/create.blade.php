@@ -1,20 +1,24 @@
 @extends('layouts.master')
 @section('page_title', 'Send Platform Mail')
 @section('content')
-    <div class="card">
-        <div class="card-header header-elements-inline">
-            <span class="text-muted">Message platform accounts — a specific user, all School Admins, or everyone in a role</span>
-            {!! Qs::getPanelOptions() !!}
-        </div>
-        <div class="card-body">
-            @if($mail_note)
-                <div class="alert alert-warning">{{ $mail_note }}</div>
-            @endif
+    {{-- Loop 75: rebuilt on the shared form_page pattern (was a
+         legacy stacked card form). Same fields, ids, POST route and
+         audience-toggle script as before — presentation only. --}}
+    @if($mail_note)
+        <div class="alert alert-warning">{{ $mail_note }}</div>
+    @endif
 
-            <form method="post" action="{{ route('platform_mail.send') }}">
-                @csrf
+    @component('partials.patterns.form_page', [
+        'form_action' => route('platform_mail.send'),
+    ])
+        @slot('subtitle')
+            Message platform accounts — a specific user, all School Admins, or everyone in a role
+        @endslot
 
-                <div class="form-group">
+        <div class="pat-form-section">
+            <div class="pat-form-section-title"><span class="pat-sec-icon"><i class="icon-users4"></i></span> Audience</div>
+            <div class="pat-fields">
+                <div class="pat-field">
                     <label for="audience">Send to <span class="text-danger">*</span></label>
                     <select name="audience" id="audience" class="form-control">
                         <option value="user" {{ old('audience') === 'user' ? 'selected' : '' }}>A specific user</option>
@@ -24,7 +28,7 @@
                     @error('audience')<span class="text-danger">{{ $message }}</span>@enderror
                 </div>
 
-                <div class="form-group" id="audience-user">
+                <div class="pat-field" id="audience-user">
                     <label for="user_id">Recipient user <span class="text-danger">*</span></label>
                     <select name="user_id" id="user_id" class="form-control">
                         <option value="">— Select a user —</option>
@@ -37,7 +41,7 @@
                     @error('user_id')<span class="text-danger">{{ $message }}</span>@enderror
                 </div>
 
-                <div class="form-group" id="audience-role" style="display:none">
+                <div class="pat-field" id="audience-role" style="display:none">
                     <label for="role">Role <span class="text-danger">*</span></label>
                     <select name="role" id="role" class="form-control">
                         <option value="">— Select a role —</option>
@@ -47,25 +51,35 @@
                     </select>
                     @error('role')<span class="text-danger">{{ $message }}</span>@enderror
                 </div>
+            </div>
+        </div>
 
-                <div class="form-group">
+        <div class="pat-form-section">
+            <div class="pat-form-section-title"><span class="pat-sec-icon"><i class="icon-envelop5"></i></span> Message</div>
+            <div class="pat-fields">
+                <div class="pat-field pat-field-wide">
                     <label for="subject">Subject <span class="text-danger">*</span></label>
                     <input type="text" name="subject" id="subject" class="form-control" maxlength="150" value="{{ old('subject') }}" required>
                     @error('subject')<span class="text-danger">{{ $message }}</span>@enderror
                 </div>
 
-                <div class="form-group">
+                <div class="pat-field pat-field-wide">
                     <label for="body">Message <span class="text-danger">*</span></label>
                     <textarea name="body" id="body" class="form-control" rows="8" required>{{ old('body') }}</textarea>
                     @error('body')<span class="text-danger">{{ $message }}</span>@enderror
                 </div>
-
-                <button type="submit" class="btn btn-primary"><i class="icon-envelop5 mr-2"></i>Send Mail</button>
-                <a href="{{ route('platform_mail.index') }}" class="btn btn-light ml-2">Sent Mail</a>
-                <p class="text-muted mt-3 mb-0">Every send is recorded in Sent Mail and in the Audit Log. Accounts without an email address, and terminated accounts, are never mailed.</p>
-            </form>
+            </div>
         </div>
-    </div>
+
+        <div class="pat-form-section">
+            <p class="text-muted mb-0">Every send is recorded in Sent Mail and in the Audit Log. Accounts without an email address, and terminated accounts, are never mailed.</p>
+        </div>
+
+        @slot('actions')
+            <a href="{{ route('platform_mail.index') }}" class="btn btn-light">Sent Mail</a>
+            <button type="submit" class="btn btn-primary"><i class="icon-envelop5 mr-2"></i>Send Mail</button>
+        @endslot
+    @endcomponent
 @endsection
 
 @section('scripts')

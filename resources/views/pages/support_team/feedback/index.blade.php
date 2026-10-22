@@ -5,10 +5,7 @@
          Compile flow: triage (status/note) → merge duplicates into a
          canonical report → forward the compiled set to the Super
          Admin with the bulk action at the bottom of the table. --}}
-    @if(session('flash_success'))
-        <div class="alert alert-success border-0">{{ session('flash_success') }}</div>
-    @endif
-
+  <div class="l75-fb">
     @component('partials.patterns.list_page')
         @slot('subtitle')
             All feedback and issues reported in the school. Merge duplicates first, then forward the compiled reports to the Super Admin.
@@ -102,7 +99,7 @@
                             @endif
                         </td>
                         <td>
-                            <a href="{{ route('feedback.show', $item->id) }}"><strong>#{{ $item->id }} {{ $item->title }}</strong></a>
+                            <a class="fb-report-title" href="{{ route('feedback.show', $item->id) }}">#{{ $item->id }} {{ $item->title }}</a>
                             <span class="text-muted">· {{ $item->typeLabel() }}</span>
                             <div class="text-muted">{{ \Illuminate\Support\Str::limit($item->description, 80) }}</div>
                             @if($item->isDuplicate())
@@ -117,11 +114,11 @@
                         <td><a href="{{ route('feedback.show', $item->id) }}" class="btn btn-light btn-sm">Open</a></td>
                     </tr>
                 @empty
-                    <tr><td colspan="6" class="text-center text-muted">No feedback matches. New reports from anyone in the school land here.</td></tr>
+                    <tr><td colspan="6" class="fb-empty text-muted">No feedback matches. New reports from anyone in the school land here.</td></tr>
                 @endforelse
                 </tbody>
             </table>
-            <div class="d-flex justify-content-between align-items-center flex-wrap mt-2">
+            <div class="fb-forward-bar">
                 <button type="submit" class="btn btn-primary" data-confirm="Forward the selected reports to the Super Admin? Duplicates and already-forwarded items are skipped." data-confirm-title="Forward to Super Admin" data-confirm-action="Forward">
                     <i class="icon-share2 mr-1"></i> Forward selected to Super Admin
                 </button>
@@ -130,4 +127,5 @@
         </form>
         {{ $items->links() }}
     @endcomponent
+  </div>
 @endsection

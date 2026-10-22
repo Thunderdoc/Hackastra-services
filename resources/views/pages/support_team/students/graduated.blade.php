@@ -73,7 +73,10 @@
                                             <form method="post" id="ng-{{ Qs::hash($s->id) }}" action="{{ route('st.not_graduated', Qs::hash($s->id)) }}" class="hidden">@csrf @method('put')</form>
                                         @endif
 
+                                        {{-- Marksheet action hidden for teachers (owner ruling 2026-10-22) — the route refuses them too. --}}
+                                        @if(!Qs::userIsTeacher())
                                         <a target="_blank" href="{{ route('marks.year_selector', Qs::hash($s->user->id)) }}" class="dropdown-item"><i class="icon-check"></i> Marksheet</a>
+                                        @endif
 
                                         {{--Delete--}}
                                         @if(Qs::userIsTeamSAWrite())

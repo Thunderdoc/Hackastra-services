@@ -13,6 +13,7 @@ use App\Http\Requests\Payment\PayNowRequest;
 use App\Http\Requests\Payment\SelectClassRequest;
 use App\Models\GatewayTransaction;
 use App\Models\PaymentRecord;
+use App\Models\Receipt;
 use App\Models\Setting;
 use App\Models\StudentRecord;
 use App\Repositories\MyClassRepo;
@@ -45,27 +46,102 @@ class PaymentController extends Controller
 
     public function index()
     {
-        $d['selected'] = false;
         $d['years'] = $this->pay->getPaymentYears();
 
-        return view('pages.support_team.payments.index', $d);
+        // Loop 94: land on the current session's figures by default —
+        // the session picker (select_year → show) still switches.
+        // A school with no fees and no receipts yet for the current
+        // session keeps the legacy "select a year" landing.
+        $hasData = $this->pay->getPayment(['year' => $this->year])->count() > 0
+            || Receipt::where('year', $this->year)->exists();
+
+        if (!$hasData) {
+            $d['selected'] = false;
+            return view('pages.support_team.payments.index', $d);
+        }
+
+        return view('pages.support_team.payments.index',
+            array_merge($d, $this->sessionPageData($this->year)));
     }
 
     public function show($year)
     {
-        $d['payments'] = $p = $this->pay->getPayment(['year' => $year])->get();
+        $p = $this->pay->getPayment(['year' => $year])->get();
 
         if(($p->count() < 1)){
             return Qs::goWithDanger('payments.index');
         }
 
-        $d['selected'] = true;
-        $d['my_classes'] = $this->my_class->all();
+        $d = $this->sessionPageData($year);
         $d['years'] = $this->pay->getPaymentYears();
-        $d['year'] = $year;
 
         return view('pages.support_team.payments.index', $d);
 
+    }
+
+    /**
+     * Loop 94 — everything the Manage Payments page shows for one
+     * session: the fee definitions (as before), the four stat-card
+     * aggregates over the receipts ledger, and the session's payment
+     * records (receipts, latest first, paginated). Read-only: no
+     * money state is written or recomputed here — dues follow the
+     * Fee Defaulters report's own rule (see sessionDues()).
+     */
+    protected function sessionPageData($year)
+    {
+        $d['selected'] = true;
+        $d['year'] = $year;
+        $d['payments'] = $this->pay->getPayment(['year' => $year])->get();
+        $d['my_classes'] = $this->my_class->all();
+
+        $d['stat_total_payments'] = Receipt::where('year', $year)->count();
+        $d['stat_total_collected'] = (int) Receipt::where('year', $year)->sum('amt_paid');
+        [$d['stat_pending_dues'], $d['stat_defaulters']] = $this->sessionDues($year);
+
+        $d['records'] = Receipt::where('year', $year)
+            ->with(['pr.payment', 'pr.student'])
+            ->orderByDesc('created_at')->orderByDesc('id')
+            ->paginate(15);
+
+        $studentIds = $d['records']->getCollection()
+            ->pluck('pr.student_id')->filter()->unique()->all();
+        $d['record_students'] = StudentRecord::with(['my_class', 'section'])
+            ->whereIn('user_id', $studentIds)->get()->keyBy('user_id');
+
+        return $d;
+    }
+
+    /**
+     * Outstanding dues for a session, by the Fee Defaulters report's
+     * rule (FeeReportController::defaulterRows) run for the given
+     * year: non-graduated students owing on unpaid records; a record
+     * owes its stored balance, or the full fee amount when untouched.
+     * Returns [total_due, defaulter_count].
+     */
+    protected function sessionDues($year)
+    {
+        $studentIds = StudentRecord::where('grad', 0)->pluck('user_id');
+
+        $owing = PaymentRecord::with('payment')
+            ->where('year', $year)
+            ->where('paid', 0)
+            ->whereIn('student_id', $studentIds->all())
+            ->get()
+            ->groupBy('student_id');
+
+        $total = 0;
+        $count = 0;
+        foreach ($owing as $records) {
+            $due = (int) $records->sum(function ($r) {
+                return $r->balance ?: ($r->payment ? $r->payment->amount : 0);
+            });
+            if ($due > 0) {
+                $total += $due;
+                $count++;
+            }
+        }
+
+        return [$total, $count];
     }
 
     public function select_year(Request $req)

@@ -28,17 +28,24 @@ class StudyMaterialController extends Controller
 {
     protected $fileRules = 'file|mimes:pdf,doc,docx,zip,txt,jpg,jpeg,png,gif,webp|max:10240';
 
-    public function index()
+    public function index(Request $req)
     {
         $user = Auth::user();
 
         $query = StudyMaterial::with(['subject', 'my_class', 'section', 'teacher'])
             ->orderBy('my_class_id')->orderBy('subject_id')->latest();
 
+        // Loop 82: the subject universe of the viewer's scope — the
+        // grouped page renders an honest empty group for each of
+        // these subjects that carries no materials.
+        $scopeSubjects = collect();
+
         if (Qs::userIsTeacher()) {
             $query->where('teacher_id', $user->id);
+            $scopeSubjects = Subject::where('teacher_id', $user->id)->orderBy('name')->get();
         } elseif (Qs::userIsTeamSA()) {
             // Admin + Super Admin read everything (SA read-only).
+            // Their universe is the whole school — no empty groups.
         } elseif (Qs::userIsStudent()) {
             $sr = Qs::getSRByUserID($user->id);
             if (!$sr) {
@@ -48,10 +55,16 @@ class StudyMaterialController extends Controller
                 ->where(function ($q) use ($sr) {
                     $q->whereNull('section_id')->orWhere('section_id', $sr->section_id);
                 });
+            $scopeSubjects = Subject::where('my_class_id', $sr->my_class_id)->orderBy('name')->get();
         } elseif (Qs::userIsParent()) {
             $children = StudentRecord::where('my_parent_id', $user->id)->where('grad', 0)->get();
             if ($children->isEmpty()) {
-                $d['materials'] = collect();
+                $d = [
+                    'materials' => collect(),
+                    'card_total' => 0, 'card_subjects' => 0, 'card_classes' => 0, 'card_recent' => 0,
+                    'filter_subjects' => collect(), 'filter_classes' => collect(),
+                    'scope_subjects' => collect(), 'filters_active' => false,
+                ];
                 return view('pages.support_team.materials.index', $d);
             }
             $query->whereIn('my_class_id', $children->pluck('my_class_id')->unique())
@@ -59,8 +72,61 @@ class StudyMaterialController extends Controller
                     $q->whereNull('section_id')
                         ->orWhereIn('section_id', $children->pluck('section_id')->unique());
                 });
+            $scopeSubjects = Subject::whereIn('my_class_id', $children->pluck('my_class_id')->unique())
+                ->orderBy('name')->get();
         } else {
             return $this->deny();
+        }
+
+        // Summary cards describe the WHOLE scoped set — the filters
+        // below narrow the listing, never the cards.
+        $d['card_total'] = (clone $query)->count();
+        $d['card_subjects'] = (clone $query)->distinct()->count('subject_id');
+        $d['card_classes'] = (clone $query)->distinct()->count('my_class_id');
+        $d['card_recent'] = (clone $query)->where('created_at', '>=', now()->subDays(7))->count();
+        $d['filter_subjects'] = Subject::whereIn('id', (clone $query)->distinct()->pluck('subject_id'))
+            ->orderBy('name')->get();
+        $d['filter_classes'] = MyClass::whereIn('id', (clone $query)->distinct()->pluck('my_class_id'))
+            ->orderBy('name')->get();
+        $d['scope_subjects'] = $scopeSubjects;
+        $d['filters_active'] = $req->filled('q') || $req->filled('subject_id')
+            || $req->filled('class_id') || $req->filled('type');
+
+        // Server-side filters (Loop 82) — they combine.
+        if ($req->filled('q')) {
+            $term = '%' . trim((string) $req->query('q')) . '%';
+            $query->where(function ($q) use ($term) {
+                $q->where('title', 'like', $term)
+                    ->orWhere('description', 'like', $term)
+                    ->orWhereHas('subject', function ($s) use ($term) {
+                        $s->where('name', 'like', $term);
+                    });
+            });
+        }
+        if ($req->filled('subject_id')) {
+            $query->where('subject_id', (int) $req->query('subject_id'));
+        }
+        if ($req->filled('class_id')) {
+            $query->where('my_class_id', (int) $req->query('class_id'));
+        }
+        if ($req->query('type') === 'document') {
+            $query->whereNotNull('file_path');
+        } elseif ($req->query('type') === 'link') {
+            $query->whereNotNull('link_url');
+        }
+        switch ($req->query('sort')) {
+            case 'oldest':
+                $query->reorder('created_at', 'asc')->orderBy('id', 'asc');
+                break;
+            case 'title':
+                $query->reorder('title', 'asc');
+                break;
+            case 'newest':
+                $query->reorder('created_at', 'desc')->orderBy('id', 'desc');
+                break;
+            default:
+                // default stays: class, subject, latest
+                break;
         }
 
         $d['materials'] = $query->get();

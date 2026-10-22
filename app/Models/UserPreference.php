@@ -20,6 +20,9 @@ class UserPreference extends Model
         'notify_announcements',
         'notify_attendance',
         'notify_exams',
+        // My Account v3: gates the LMS bell alerts (assignment graded,
+        // internal marks pushed) — enforced in App\Support\Notify.
+        'notify_lms',
         'date_format',
         'time_format',
         // Loop 50 (Workstream BX): the topbar dark-mode toggle writes
@@ -35,6 +38,7 @@ class UserPreference extends Model
             'notify_announcements' => '1',
             'notify_attendance' => '1',
             'notify_exams' => '1',
+            'notify_lms' => '1',
             'date_format' => 'd M Y',
             'time_format' => '12',
             // Owner directive 2026-10-22 ("dark mode for all"): accounts

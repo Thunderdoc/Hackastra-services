@@ -1,7 +1,7 @@
 @extends('layouts.master')
 @section('page_title', 'Assignments')
 @section('page_breadcrumb')
-    <a href="{{ route('dashboard') }}">Home</a> &nbsp;/&nbsp; Assignments
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Learning &nbsp;/&nbsp; Assignments
 @endsection
 @section('content')
     {{-- Workstream CS2 (LMS): parent read-only assignment view,
@@ -68,7 +68,10 @@
                                     @endphp
                                     <tr>
                                         <td>
-                                            <strong>{{ $assignment->title }}</strong>
+                                            <a href="{{ route('assignments.show', $assignment->id) }}"><strong>{{ $assignment->title }}</strong></a>
+                                            @if($assignment->description)
+                                                <div class="text-muted lms82-clamp2">{{ \Illuminate\Support\Str::limit($assignment->description, 110) }}</div>
+                                            @endif
                                             <div class="text-muted">{{ optional($assignment->teacher)->name ?? '' }}</div>
                                         </td>
                                         <td><span class="lms-chip lms-chip-subject">{{ optional($assignment->subject)->name ?? '—' }}</span></td>

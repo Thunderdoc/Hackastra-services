@@ -10,7 +10,9 @@ use App\Support\CsvExport;
 use App\Support\TeacherScope;
 use Illuminate\Support\Facades\Auth;
 use App\Models\MyClass;
+use App\Models\Section;
 use App\Models\StudentRecord;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -120,6 +122,93 @@ class AttendanceController extends Controller
      */
     public function report(Request $request)
     {
+        $d = $this->monthlyReportData($request);
+
+        return view('pages.support_team.attendance.report', $d);
+    }
+
+    /**
+     * Print preview of the monthly report — the v2 document
+     * (partials.monthly_report_document) on its own page with a small
+     * toolbar. Same data, same guard as report(): a teacher can never
+     * preview another class's document by editing the URL.
+     */
+    public function reportPrint(Request $request)
+    {
+        $d = $this->monthlyReportData($request);
+
+        if (!$d['selected_class']) {
+            return redirect()->route('attendance.report')
+                ->with('flash_danger', 'No class available to preview.');
+        }
+
+        $d['autoprint'] = $request->boolean('autoprint');
+
+        return view('pages.support_team.attendance.report_print', $d);
+    }
+
+    /**
+     * Downloadable PDF of the monthly report — the SAME document
+     * template as the print preview, rendered by dompdf. Page
+     * numbers are stamped by a canvas page script ("Page X of Y" on
+     * every page); the filename comes from the report metadata.
+     */
+    public function reportPdf(Request $request)
+    {
+        $d = $this->monthlyReportData($request);
+
+        if (!$d['selected_class']) {
+            return redirect()->route('attendance.report')
+                ->with('flash_danger', 'No class available to download.');
+        }
+
+        $filename = 'attendance-report-'
+            . Str::slug($d['selected_class']->name) . '-'
+            . strtolower($d['month']->format('F')) . '-'
+            . $d['month']->format('Y') . '.pdf';
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pages.support_team.attendance.report_pdf', $d);
+        $pdf->setPaper('a4', 'portrait');
+
+        // dompdf's canvas page_text draws on the pages that exist at
+        // call time, so render first (through the wrapper, which
+        // then serves download() from this same render) and stamp
+        // the running footer onto every finished page.
+        $pdf->render();
+        $dompdf = $pdf->getDomPDF();
+        $canvas = $dompdf->getCanvas();
+        $metrics = $dompdf->getFontMetrics();
+        $font = $metrics->getFont('DejaVu Sans');
+        $grey = [0.44, 0.47, 0.53];
+        $width = $canvas->get_width();
+        $height = $canvas->get_height();
+
+        $canvas->page_text(34, $height - 26,
+            'Monthly Attendance Report - ' . $d['selected_class']->name . ' - ' . $d['month']->format('F Y'),
+            $font, 8, $grey);
+        $labelWidth = $metrics->getTextWidth('Page 10 of 10', $font, 8);
+        $canvas->page_text($width - 34 - $labelWidth, $height - 26,
+            'Page {PAGE_NUM} of {PAGE_COUNT}', $font, 8, $grey);
+
+        return $pdf->download($filename);
+    }
+
+    /**
+     * Shared computation behind report(), reportPrint() and
+     * reportPdf() — one source of truth so the screen, the printed
+     * document and the PDF can never disagree. The counting rule is
+     * unchanged: period entries only, % = (present + late) / marked,
+     * unsubmitted registers excluded, zero-marked students get a
+     * null percent (never 0%).
+     *
+     * Beyond the original report keys this adds: per-row status
+     * band/label (the document policy: Excellent >= 90, Good >= 80,
+     * Needs Attention 60-79, Critical < 60), the totals' shares of
+     * all marked entries, the class summary figures, and the school
+     * identity block the document letterhead renders.
+     */
+    protected function monthlyReportData(Request $request): array
+    {
         $this->guardClassScope($request->query('class_id'));
 
         $d['classes'] = $this->visibleClasses();
@@ -130,6 +219,10 @@ class AttendanceController extends Controller
         $d['rows'] = collect();
         $d['totals'] = ['present' => 0, 'absent' => 0, 'late' => 0, 'marked' => 0];
         $d['sessions_held'] = 0;
+        $d['shares'] = ['present' => 0.0, 'absent' => 0.0, 'late' => 0.0];
+        $d['class_summary'] = ['students' => 0, 'with_100' => 0, 'below_80' => 0, 'registers' => 0];
+        $d['generated_on'] = now();
+        $d['school'] = $this->schoolIdentity();
 
         if ($d['selected_class']) {
             $students = StudentRecord::with('user', 'section')
@@ -154,18 +247,112 @@ class AttendanceController extends Controller
                 $d['totals']['late'] += $s['late'];
                 $d['totals']['marked'] += $s['marked'];
 
+                $percent = $this->percentFor($s['present'], $s['late'], $s['marked']);
+                [$band, $label] = $this->statusBand($percent);
+
                 return [
                     'student' => $student,
                     'present' => $s['present'],
                     'absent' => $s['absent'],
                     'late' => $s['late'],
                     'marked' => $s['marked'],
-                    'percent' => $this->percentFor($s['present'], $s['late'], $s['marked']),
+                    'percent' => $percent,
+                    'status_band' => $band,
+                    'status_label' => $label,
                 ];
             });
+
+            $marked = $d['totals']['marked'];
+            if ($marked > 0) {
+                $d['shares'] = [
+                    'present' => round($d['totals']['present'] / $marked * 100, 1),
+                    'absent' => round($d['totals']['absent'] / $marked * 100, 1),
+                    'late' => round($d['totals']['late'] / $marked * 100, 1),
+                ];
+            }
+
+            $d['class_summary'] = [
+                'students' => $students->count(),
+                'with_100' => $d['rows']->where('percent', 100)->count(),
+                'below_80' => $d['rows']->filter(function ($row) {
+                    return $row['percent'] !== null && $row['percent'] < 80;
+                })->count(),
+                'registers' => $d['sessions_held'],
+            ];
         }
 
-        return view('pages.support_team.attendance.report', $d);
+        return $d;
+    }
+
+    /** The document status policy, shared by screen and document. */
+    private function statusBand($percent): array
+    {
+        if ($percent === null) {
+            return ['none', 'No Records'];
+        }
+        if ($percent >= 90) {
+            return ['excellent', 'Excellent'];
+        }
+        if ($percent >= 80) {
+            return ['good', 'Good'];
+        }
+        if ($percent >= 60) {
+            return ['attention', 'Needs Attention'];
+        }
+
+        return ['critical', 'Critical'];
+    }
+
+    /**
+     * School identity for the document letterhead — Settings only,
+     * nothing invented. Logo/stamp are exposed twice: the stored
+     * value for the browser surfaces, and a local file path for
+     * dompdf when the upload resolves to a file on disk (null when
+     * it does not, so the PDF falls back to the monogram tile
+     * instead of a broken image).
+     */
+    private function schoolIdentity(): array
+    {
+        $initials = '';
+        foreach (preg_split('/\s+/', trim((string) Qs::getSystemName())) as $word) {
+            if ($word !== '') {
+                $initials .= strtoupper(substr($word, 0, 1));
+                if (strlen($initials) >= 2) {
+                    break;
+                }
+            }
+        }
+
+        return [
+            'name' => Qs::getSystemName(),
+            'address' => Qs::getSetting('address'),
+            'phone' => Qs::getSetting('phone'),
+            'email' => Qs::getSetting('system_email'),
+            'session' => Qs::getCurrentSession(),
+            'code' => strtoupper((string) Qs::getAppCode()),
+            'initials' => $initials !== '' ? $initials : 'S',
+            'principal_name' => Qs::getSetting('principal_name'),
+            'logo' => Qs::getSetting('logo') ?: null,
+            'stamp' => Qs::getSetting('school_stamp') ?: null,
+            'logo_file' => $this->localFileFor(Qs::getSetting('logo')),
+            'stamp_file' => $this->localFileFor(Qs::getSetting('school_stamp')),
+        ];
+    }
+
+    /** Resolve a stored upload value to an on-disk path, if it is one. */
+    private function localFileFor($value)
+    {
+        if (!$value || !is_string($value)) {
+            return null;
+        }
+        if (preg_match('#^https?://#i', $value)) {
+            $path = parse_url($value, PHP_URL_PATH);
+            $candidate = $path ? public_path(ltrim($path, '/')) : null;
+        } else {
+            $candidate = public_path(ltrim($value, '/'));
+        }
+
+        return $candidate && file_exists($candidate) ? $candidate : null;
     }
 
     /**
@@ -177,6 +364,68 @@ class AttendanceController extends Controller
      */
     public function defaulters(Request $request)
     {
+        $d = $this->defaulterData($request);
+
+        // The screen table is paginated (15/page, the house pattern);
+        // $d['rows'] keeps the FULL filtered set so the print
+        // document and the summary cards always cover every match,
+        // not just the visible page.
+        $perPage = 15;
+        $page = LengthAwarePaginator::resolveCurrentPage();
+        $d['paginator'] = new LengthAwarePaginator(
+            $d['rows']->forPage($page, $perPage)->values(),
+            $d['rows']->count(),
+            $perPage,
+            $page,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
+
+        return view('pages.support_team.attendance.defaulters', $d);
+    }
+
+    /**
+     * CSV export of the defaulter list — the same filtered set the
+     * screen shows, computed by the same defaulterData() so the
+     * figures can never drift from the page or the print document.
+     */
+    public function defaultersExport(Request $request)
+    {
+        $d = $this->defaulterData($request);
+
+        $rows = $d['rows']->map(function ($row) {
+            return [
+                optional($row['student']->user)->name,
+                $row['student']->adm_no,
+                optional($row['student']->my_class)->name,
+                optional($row['student']->section)->name,
+                $row['present'],
+                $row['absent'],
+                $row['late'],
+                $row['marked'],
+                $row['percent'] . '%',
+                $row['status'],
+            ];
+        })->all();
+
+        $filename = 'low-attendance-' . $d['month']->format('Y-m') . '-below-' . $d['threshold'] . '.csv';
+
+        return CsvExport::download($filename,
+            ['Student', 'Admission No', 'Class', 'Section', 'Present', 'Absent', 'Late', 'Periods Marked', 'Attendance %', 'Status'],
+            $rows);
+    }
+
+    /**
+     * The defaulter computation, shared by the page and its CSV
+     * export. Filters: class, section (only within the chosen
+     * class), month, threshold, search (student name / admission
+     * no.) — all server-side and combinable. Summary aggregates are
+     * computed over the full filtered set: below-threshold count,
+     * critical count (< 50%, labelled as such in the UI), the mean
+     * of the listed students' percentages, and total enrolled
+     * students in the class/section scope.
+     */
+    private function defaulterData(Request $request): array
+    {
         $d['thresholds'] = [50, 60, 70, 75, 80, 90];
         $threshold = (int) $request->query('threshold', 75);
         $d['threshold'] = in_array($threshold, $d['thresholds'], true) ? $threshold : 75;
@@ -187,18 +436,46 @@ class AttendanceController extends Controller
             ? $d['classes']->firstWhere('id', (int) $request->query('class_id'))
             : null; // null = every class the user may see
 
-        $students = StudentRecord::with('user', 'my_class', 'section')
-            ->where('grad', 0)
-            ->when(Qs::userIsTeacher(), function ($q) {
-                // Batch S: a teacher's "every class" defaulter scan
-                // covers only their assigned classes.
-                return $q->whereIn('my_class_id', TeacherScope::classIds(Auth::user()));
-            })
-            ->when($d['selected_class'], function ($q) use ($d) {
-                return $q->where('my_class_id', $d['selected_class']->id);
-            })
-            ->orderBy('id')
-            ->get();
+        // Sections are limited to the chosen class; a section id
+        // that does not belong to it is ignored, never honoured.
+        $d['sections'] = $d['selected_class']
+            ? Section::where('my_class_id', $d['selected_class']->id)->orderBy('name')->get()
+            : collect();
+        $d['selected_section'] = ($d['selected_class'] && $request->query('section_id'))
+            ? $d['sections']->firstWhere('id', (int) $request->query('section_id'))
+            : null;
+        $d['search'] = trim((string) $request->query('search', ''));
+
+        $scope = function (bool $withSearch) use ($d) {
+            return StudentRecord::with('user', 'my_class', 'section')
+                ->where('grad', 0)
+                ->when(Qs::userIsTeacher(), function ($q) {
+                    // Batch S: a teacher's "every class" defaulter scan
+                    // covers only their assigned classes.
+                    return $q->whereIn('my_class_id', TeacherScope::classIds(Auth::user()));
+                })
+                ->when($d['selected_class'], function ($q) use ($d) {
+                    return $q->where('my_class_id', $d['selected_class']->id);
+                })
+                ->when($d['selected_section'], function ($q) use ($d) {
+                    return $q->where('section_id', $d['selected_section']->id);
+                })
+                ->when($withSearch && $d['search'] !== '', function ($q) use ($d) {
+                    $like = '%' . str_replace(['%', '_'], ['\%', '\_'], $d['search']) . '%';
+                    return $q->where(function ($w) use ($like) {
+                        $w->where('adm_no', 'like', $like)
+                            ->orWhereHas('user', function ($u) use ($like) {
+                                $u->where('name', 'like', $like);
+                            });
+                    });
+                });
+        };
+
+        // Total enrolled in the class/section scope (search is a
+        // table finder, not an enrolment filter).
+        $d['total_students'] = $scope(false)->count();
+
+        $students = $scope(true)->orderBy('id')->get();
 
         $stats = $this->statusCounts(
             $students->pluck('id')->all(),
@@ -226,6 +503,10 @@ class AttendanceController extends Controller
                     'late' => $s['late'],
                     'marked' => $s['marked'],
                     'percent' => $percent,
+                    // Honest tiers: Critical is strictly below 50%;
+                    // every other listed student is At Risk (50% up
+                    // to the chosen threshold).
+                    'status' => $percent < 50 ? 'Critical' : 'At Risk',
                 ];
             })
             ->filter()
@@ -234,8 +515,14 @@ class AttendanceController extends Controller
             })
             ->values();
         $d['scanned'] = $scanned;
+        $d['summary'] = [
+            'below' => $d['rows']->count(),
+            'critical' => $d['rows']->where('status', 'Critical')->count(),
+            'average' => $d['rows']->isEmpty() ? null : round((float) $d['rows']->avg('percent'), 1),
+            'total_students' => $d['total_students'],
+        ];
 
-        return view('pages.support_team.attendance.defaulters', $d);
+        return $d;
     }
 
     /**

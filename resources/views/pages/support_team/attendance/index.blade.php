@@ -18,10 +18,6 @@
             {!! Qs::getPanelOptions() !!}
         </div>
         <div class="card-body">
-            @if(session('flash_success'))
-                <div class="alert alert-success border-0">{{ session('flash_success') }}</div>
-            @endif
-
             @if($selected_class)
                 <div class="d-flex flex-wrap align-items-center mb-3">
                     <span class="badge badge-primary mr-2 mb-1" style="font-size: 100%">{{ $selected_class->name }}</span>
