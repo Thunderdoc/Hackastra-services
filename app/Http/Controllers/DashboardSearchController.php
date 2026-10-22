@@ -30,6 +30,25 @@ class DashboardSearchController extends Controller
             'payments' => collect(),
         ];
 
+        if (Qs::userIsSuperAdmin()) {
+            // Platform-only model (owner ruling 2026-10-22,
+            // Workstream DD): the Super Admin's search covers
+            // platform accounts (staff types) only — never student
+            // or parent records, classes or payments.
+            if (strlen($term) >= 2) {
+                $like = '%' . $term . '%';
+
+                $data['staff'] = User::whereIn('user_type', ['teacher', 'admin', 'super_admin', 'accountant', 'librarian'])
+                    ->where(function ($q) use ($like) {
+                        $q->where('name', 'like', $like)->orWhere('email', 'like', $like);
+                    })
+                    ->take(10)
+                    ->get();
+            }
+
+            return view('pages.support_team.search_results', $data);
+        }
+
         if (strlen($term) >= 2) {
             $like = '%' . $term . '%';
 

@@ -103,7 +103,11 @@
                                 <td class="profile-label">Children/Ward</td>
                                 <td>
                                     @foreach(Qs::findMyChildren($user->id) as $sr)
-                                        <span> - <a href="{{ route('students.show', Qs::hash($sr->id)) }}">{{ $sr->user->name.' - '.$sr->my_class->name. ' '.$sr->section->name }}</a></span><br>
+                                        {{-- Workstream DD: the child name/class is this
+                                             account's own data, but the student page is
+                                             school domain — the platform-only Super
+                                             Admin sees it as text, not a link. --}}
+                                        <span> - @if(Qs::userIsSuperAdmin()){{ $sr->user->name.' - '.$sr->my_class->name. ' '.$sr->section->name }}@else<a href="{{ route('students.show', Qs::hash($sr->id)) }}">{{ $sr->user->name.' - '.$sr->my_class->name. ' '.$sr->section->name }}</a>@endif</span><br>
                                     @endforeach
                                 </td>
                             </tr>

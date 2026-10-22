@@ -158,22 +158,17 @@
 
                 <!-- Main -->
                 @if(Qs::userIsSuperAdmin())
-                {{-- Portal switcher (Workstream AB): the Super Admin owns the
-                     PLATFORM and oversees many schools; the school portal is
-                     one click away. These two links replace the generic
-                     "Dashboard" item for super_admin only — every other role
-                     keeps the single Dashboard link below. --}}
+                {{-- Platform-only model (owner ruling 2026-10-22,
+                     Workstream DD — replaces the Workstream AB portal
+                     switcher): the Super Admin owns the PLATFORM. There
+                     is no school portal for this account any more: the
+                     Platform Overview is its only dashboard, and the
+                     school sections below are not rendered for it. --}}
                 <li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Portals</div><i class="icon-menu" title="Portals"></i></li>
                 <li class="nav-item">
                     <a href="{{ route('dashboard') }}" class="nav-link {{ (Route::is('dashboard') || Route::is('home')) ? 'active' : '' }}">
                         <i class="icon-office"></i>
                         <span>Platform Overview</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="{{ route('dashboard.school') }}" class="nav-link {{ (Route::is('dashboard.school')) ? 'active' : '' }}">
-                        <i class="icon-graduation2"></i>
-                        <span>School Dashboard</span>
                     </a>
                 </li>
                 @else
@@ -185,6 +180,11 @@
                 </li>
                 @endif
 
+                {{-- Workstream DD: every section from here to the role
+                     fragment include is SCHOOL domain. The platform-only
+                     Super Admin never renders any of it; all other roles
+                     are unaffected (the condition is simply true). --}}
+                @if(!Qs::userIsSuperAdmin())
                 {{-- Batch 1B: group headers unify the generic sidebar with the
                      Batch 9 teacher sidebar's design language. Headers sit
                      INSIDE the same permission gates as the items they label,
@@ -193,12 +193,19 @@
                 <li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Attendance</div><i class="icon-menu" title="Attendance"></i></li>
                 {{-- Workstream AR: the day-wise register is retired — the
                      one Attendance entry point is the period register. --}}
+                {{-- Workstream DD: taking a register is a school WRITE
+                     (PeriodAttendanceController store is the period's own
+                     teacher only). Super Admin is view-only in the school,
+                     so the entry renders for the write team (Admin +
+                     Teacher) only; SA keeps the two read views below. --}}
+                @if(Qs::userIsTeamSATWrite())
                 <li class="nav-item">
                     <a href="{{ route('attendance.periods.index') }}" class="nav-link {{ (Route::is('attendance.periods.*')) ? 'active' : '' }}">
                         <i class="icon-watch"></i>
                         <span>Mark Attendance</span>
                     </a>
                 </li>
+                @endif
                 <li class="nav-item">
                     <a href="{{ route('attendance.report') }}" class="nav-link {{ (Route::is('attendance.report')) ? 'active' : '' }}">
                         <i class="icon-stats-bars2"></i>
@@ -304,6 +311,13 @@
                             @if(Qs::userIsTeamSA())
 
                             {{--Student Promotion--}}
+                            {{-- Workstream DD: promoting/resetting promotions is a
+                                 school WRITE — PromotionController gates
+                                 promote/reset/reset_all behind teamSAWrite
+                                 (Admin only). The SA menu therefore drops the
+                                 whole Promotion submenu; SA keeps the read
+                                 views (Student Information, Students Graduated). --}}
+                            @if(Qs::userIsTeamSAWrite())
                             <li class="nav-item nav-item-submenu {{ in_array(Route::currentRouteName(), ['students.promotion', 'students.promotion_manage']) ? 'nav-item-expanded' : '' }}"><a href="#" class="nav-link {{ in_array(Route::currentRouteName(), ['students.promotion', 'students.promotion_manage' ]) ? 'active' : '' }}">Student Promotion</a>
                             <ul class="nav nav-group-sub">
                                 <li class="nav-item"><a href="{{ route('students.promotion') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['students.promotion']) ? 'active' : '' }}">Promote Students</a></li>
@@ -311,6 +325,7 @@
                             </ul>
 
                             </li>
+                            @endif
 
                             {{--Student Graduated--}}
                             <li class="nav-item"><a href="{{ route('students.graduated') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['students.graduated' ]) ? 'active' : '' }}">Students Graduated</a></li>
@@ -420,6 +435,7 @@
 
 
                 {{--End Exam--}}
+                @endif {{-- /school-domain sections (Workstream DD) --}}
 
                 @include('pages.'.Qs::getUserType().'.menu')
 

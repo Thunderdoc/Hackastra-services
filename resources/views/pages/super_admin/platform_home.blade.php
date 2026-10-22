@@ -4,8 +4,12 @@
 @section('content')
     {{-- Workstream R: Platform Super Admin home — platform oversight
          (users & roles, audit & security, configuration), deliberately
-         separate from the school's daily-operations dashboard, which
-         stays reachable via the "Open School Dashboard" action. --}}
+         separate from the school's daily-operations dashboard.
+         Workstream DD (owner ruling 2026-10-22): the Super Admin is
+         platform-only — there is no path from this page into the
+         school at all; the old "Open School Dashboard" action and the
+         school-page tiles/links were removed, and the aggregates that
+         remain are unlinked. --}}
     <div class="dashboard-hero mb-4">
         <div>
             <h2 class="mb-1">{{ $greeting }}, {{ Auth::user()->name }} <span aria-hidden="true">👋</span></h2>
@@ -18,9 +22,6 @@
                     <strong>{{ $today->format('l, d F Y') }}</strong>
                 </span>
             </div>
-            <a href="{{ route('dashboard.school') }}" class="btn dashboard-primary-action">
-                <i class="icon-windows2 mr-2"></i> Open School Dashboard
-            </a>
         </div>
     </div>
 
@@ -30,10 +31,13 @@
             ['label' => 'Total Users', 'value' => number_format($total_users), 'sub' => 'Accounts across all roles · ' . number_format($signed_in_this_week) . ' signed in this week', 'icon' => 'icon-users4', 'tone' => 'blue', 'link' => route('users.index')],
             ['label' => 'Audit Entries Today', 'value' => number_format($audit_today), 'sub' => 'Recorded actions today', 'icon' => 'icon-shield-check', 'tone' => 'green', 'link' => route('audit_logs.index')],
             ['label' => 'Audit Entries This Week', 'value' => number_format($audit_week), 'sub' => 'Since ' . $audit_week_from->format('l, d M'), 'icon' => 'icon-stats-bars', 'tone' => 'orange', 'link' => route('audit_logs.index')],
-            ['label' => 'Configuration', 'value' => $settings_done . ' of ' . $settings_total, 'sub' => $settings_missing->isNotEmpty() ? 'Missing: ' . $settings_missing->implode(', ') : 'All key settings completed', 'icon' => 'icon-cog5', 'tone' => 'purple', 'link' => route('settings')],
+            {{-- Workstream DD: the Configuration aggregate stays (it is
+                 a platform-level completeness signal) but is UNLINKED —
+                 the settings page itself is the school's. --}}
+            ['label' => 'Configuration', 'value' => $settings_done . ' of ' . $settings_total, 'sub' => $settings_missing->isNotEmpty() ? 'Missing: ' . $settings_missing->implode(', ') : 'All key settings completed', 'icon' => 'icon-cog5', 'tone' => 'purple', 'link' => null],
         ] as $stat)
             <div class="col-sm-6 col-xl-3">
-                <a href="{{ $stat['link'] }}" class="dashboard-stat-card dashboard-stat-{{ $stat['tone'] }}">
+                @if($stat['link'])<a href="{{ $stat['link'] }}" class="dashboard-stat-card dashboard-stat-{{ $stat['tone'] }}">@else<div class="dashboard-stat-card dashboard-stat-{{ $stat['tone'] }}">@endif
                     <span class="dashboard-stat-top">
                         <span class="dashboard-stat-icon"><i class="{{ $stat['icon'] }}"></i></span>
                     </span>
@@ -42,7 +46,7 @@
                         <strong>{{ $stat['value'] }}</strong>
                         <small>{{ $stat['sub'] }}</small>
                     </span>
-                </a>
+                @if($stat['link'])</a>@else</div>@endif
             </div>
         @endforeach
     </div>
@@ -125,9 +129,17 @@
                             <span class="platform-snap-icon snap-green"><i class="icon-users4"></i></span>
                             <span class="platform-snap-copy"><small>Teachers</small><strong>{{ number_format($snapshot_teacher_count) }}</strong></span>
                         </div>
+                        {{-- Numbers-not-records (owner ruling 2026-10-22):
+                             the lifetime collection TOTAL is a platform
+                             statistic — a plain number, never a link into
+                             the school's payment records. --}}
+                        <div class="platform-snap-tile">
+                            <span class="platform-snap-icon snap-blue"><i class="icon-coins"></i></span>
+                            <span class="platform-snap-copy"><small>Total fee collection</small><strong>{{ \App\Helpers\Money::inr($snapshot_collection_total) }}</strong></span>
+                        </div>
                     </div>
                     <div class="platform-snap-foot">
-                        <p class="dashboard-muted mb-0">Day-to-day school operations live on the school dashboard — open it from the primary action above. (Zero-tolerance dedup: this panel no longer repeats that link.)</p>
+                        <p class="dashboard-muted mb-0">Day-to-day school operations are managed by the school Admin. This panel is a read-only size signal for the platform.</p>
                     </div>
                 </div>
             </section>
@@ -144,12 +156,9 @@
                          Users panel footer below is that path; no "Audit Logs"
                          tile either — the Activity panel footer is that path. --}}
                     <a href="{{ route('users.create') }}"><i class="icon-user-plus"></i><span>Create User</span></a>
-                    <a href="{{ route('settings') }}"><i class="icon-cog5"></i><span>School Settings</span></a>
-                    <a href="{{ route('grades.index') }}"><i class="icon-book"></i><span>Grades Setup</span></a>
-                    <a href="{{ route('sections.index') }}"><i class="icon-windows2"></i><span>Sections</span></a>
-                    {{-- Workstream CO + zero-tolerance dedup: no "School
-                         Dashboard" tile here — the hero "Open School
-                         Dashboard" primary action is the one path there. --}}
+                    {{-- Workstream DD: the School Settings / Grades Setup /
+                         Sections tiles are gone — those pages are school
+                         domain, and this account is platform-only. --}}
                 </div>
             </section>
 
@@ -157,7 +166,9 @@
             <section class="dashboard-panel mb-4">
                 <div class="dashboard-panel-heading">
                     <div><h5 class="mb-1"><i class="icon-cog5 text-blue mr-1"></i> Configuration Checklist</h5><p class="dashboard-muted mb-0">{{ $settings_done }} of {{ $settings_total }} key settings completed{{ $settings_missing->isNotEmpty() ? ' · Missing: ' . $settings_missing->implode(', ') : '' }}</p></div>
-                    <a href="{{ route('settings') }}" class="dashboard-view-all">Settings <i class="icon-arrow-right7"></i></a>
+                    {{-- Workstream DD: no Settings link — the settings page
+                         belongs to the school Admin. The checklist itself
+                         is a read-only platform aggregate and stays. --}}
                 </div>
                 @foreach($settings_checklist as $item)
                     <div class="dashboard-event">

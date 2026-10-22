@@ -7,7 +7,14 @@
         <div class="card-body">
             <ul class="nav nav-tabs nav-tabs-highlight">
                 <li class="nav-item"><a href="#all-exams" class="nav-link active" data-toggle="tab">Manage Exam</a></li>
+                {{-- Workstream DD: exam creation is a school WRITE
+                     (ExamController@store is teamSAWrite). CM gated the
+                     row actions below but left this tab + its form pane
+                     visible to the view-only Super Admin — the UI must
+                     never offer what the server denies. --}}
+                @if(Qs::userIsTeamSAWrite())
                 <li class="nav-item"><a href="#new-exam" class="nav-link" data-toggle="tab"><i class="icon-plus2"></i> Add Exam</a></li>
+                @endif
             </ul>
 
             <div class="tab-content">
@@ -86,6 +93,7 @@
                         </div>
                     </div>
 
+                @if(Qs::userIsTeamSAWrite())
                 <div class="tab-pane fade" id="new-exam">
                     <div class="row">
                         <div class="col-md-12">
@@ -123,6 +131,7 @@
                         </div>
                     </form>
                 </div>
+                @endif
             </div>
         </div>
     </div>

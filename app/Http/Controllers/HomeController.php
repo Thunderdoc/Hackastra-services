@@ -343,6 +343,11 @@ class HomeController extends Controller
             // school today; these are its headline sizes, not tenants.
             'snapshot_student_count' => StudentRecord::where('grad', 0)->count(),
             'snapshot_teacher_count' => (int) DB::table('users')->where('user_type', 'teacher')->count(),
+            // Owner ruling 2026-10-22 (numbers-not-records): platform
+            // statistics are aggregates ONLY — counts and totals like
+            // this lifetime fee-collection sum belong on the Overview
+            // as plain numbers with no drill-down into records.
+            'snapshot_collection_total' => (int) DB::table('payment_records')->sum('amt_paid'),
         ];
     }
 

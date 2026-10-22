@@ -129,9 +129,16 @@
                                 <td class="text-right text-muted" colspan="4">—</td>
                                 <td><span class="badge pay-badge-none">Not generated</span></td>
                                 <td class="text-right pay-actions">
+                                    {{-- Workstream DD: the generate/edit form below is
+                                         teamAccountWrite-gated, but this toggle button
+                                         was not — the view-only Super Admin got a live
+                                         "Generate" button opening an empty panel.
+                                         Same gate as the Edit button above. --}}
+                                    @if(Qs::userIsTeamAccountWrite())
                                     <button type="button" class="btn btn-primary btn-sm" data-toggle="collapse" data-target="#pay-form-{{ $member->id }}">
                                         <i class="icon-plus3 mr-1"></i> Generate
                                     </button>
+                                    @endif
                                 </td>
                             @endif
                         </tr>

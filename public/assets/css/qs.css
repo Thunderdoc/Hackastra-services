@@ -3205,3 +3205,41 @@ html.hk-dark .lav-toast-close:hover{color:#fff}
 .acct-toggle-row{padding:7px 13px}
 .acct-activity-row{padding:5px 2px}
 .acct-activity-list{max-height:150px}
+
+/* ============================================================
+   Loop 72 — Sidebar final (Workstream DC, owner escalation
+   2026-10-22). Forensic pass in PIXELS on the owner's exact
+   state (Admin, Administrative > Payments open, Manage
+   Payments active) found what earlier loops missed because
+   they verified code, not rendering:
+   (1) TRIPLE BLUE STACK — the open parent (Administrative),
+   the active submenu parent (Payments) and the active leaf
+   (Manage Payments) all rendered as filled blue pills, two
+   of them the identical rgba(52,120,246,.25) fill: the eye
+   reads three selections and stacked boxes.
+   (2) GUIDE LINE — .nav-group-sub kept border-left (only
+   ever removed at depth >= 2), drawing a vertical line the
+   full height of every open group.
+   (3) COMPOUNDING INSETS — each group added margin-left:18px,
+   so child pills hung inside a bordered, offset band: the
+   "floating panel inside the panel" the owner flagged all
+   night. Cures below: blue is reserved for the ONE active
+   leaf (Loop 54's solid rule for leaf .active is untouched);
+   ancestors become a quiet neutral trail; groups lose the
+   border and the inset margin so every row's box shares the
+   single rail column and hierarchy is carried by text indent
+   alone (34px depth 1, 52px depth 2 — the same x positions
+   the text already occupied). Presentation only: no markup,
+   label, order, href or visibility changes.
+   ============================================================ */
+/* (2)+(3) group bands flush at every depth: no line, no inset */
+body:not(.sidebar-xs) .sidebar.sidebar-dark .nav-group-sub{margin:1px 0 3px;border-left:none;background:transparent;box-shadow:none}
+/* (3) hierarchy by text indent, not by nested boxes */
+body:not(.sidebar-xs) .sidebar-main .nav-group-sub .nav-link{padding-left:34px}
+body:not(.sidebar-xs) .sidebar-main .nav-group-sub .nav-group-sub .nav-link{padding-left:52px}
+/* (1) open parents: neutral trail, never a blue block */
+body:not(.sidebar-xs) .sidebar-main .nav-sidebar .nav-item-open>.nav-link:not(.disabled){background-color:rgba(255,255,255,.06);color:#fff}
+/* (1) submenu parent carrying .active (ancestor of the current leaf): trail, not selection */
+body:not(.sidebar-xs) .sidebar.sidebar-dark .nav-group-sub .nav-item-submenu>.nav-link.active{background-color:rgba(255,255,255,.06);color:#fff;font-weight:600}
+/* Collapsed-rail flyout joins the sidebar's own navy (theme slate grey retired) */
+.sidebar-xs .sidebar-main .nav-group-sub{background-color:rgb(16,38,59);border:1px solid rgba(255,255,255,.08);box-shadow:0 10px 30px rgba(0,0,0,.45)}

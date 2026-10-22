@@ -37,6 +37,11 @@ class Kernel extends HttpKernel
             \Illuminate\View\Middleware\ShareErrorsFromSession::class,
             \App\Http\Middleware\VerifyCsrfToken::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
+            // Workstream DD (owner ruling 2026-10-22): the Super Admin
+            // is platform-only — this guard runs last in the web group
+            // (session available) and confines super_admin requests to
+            // the platform allowlist. All other roles pass through.
+            \App\Http\Middleware\Custom\PlatformOnly::class,
         ],
 
         'api' => [

@@ -24,7 +24,7 @@
     </a>
     <form class="lav-search" role="search" method="GET" action="{{ route('dashboard.search') }}">
         <i class="icon-search4"></i>
-        <input type="search" name="q" id="lav-global-search" value="{{ request('q') }}" placeholder="Search students, teachers, classes, payments..." aria-label="Search students, teachers, classes, payments, exams">
+        <input type="search" name="q" id="lav-global-search" value="{{ request('q') }}" placeholder="{{ Qs::userIsSuperAdmin() ? 'Search platform users...' : 'Search students, teachers, classes, payments...' }}" aria-label="Search">
         <kbd>Ctrl + K</kbd>
     </form>
     <script>
@@ -64,9 +64,12 @@
                 setInterval(tick, 1000);
             })();
         </script>
-        @if(Qs::userIsTeamSA())
+        @if(Qs::userIsTeamSA() && !Qs::userIsSuperAdmin())
             <a href="{{ route('settings') }}" class="session-chip lav-session-chip" title="Open settings to change the current session"><i class="icon-calendar3"></i><span class="lav-session-label">Current Session:&nbsp;</span><strong>{{ Qs::getSetting('current_session') }}</strong></a>
         @else
+            {{-- The Super Admin lands here too (Workstream DD): the
+                 session is shown as information, but the settings page
+                 is the school's — no link for the platform account. --}}
             <span class="session-chip lav-session-chip"><i class="icon-calendar3"></i><span class="lav-session-label">Current Session:&nbsp;</span><strong>{{ Qs::getSetting('current_session') }}</strong></span>
         @endif
         {{-- Loop 50 — dark-mode toggle: EVERY role, exactly once, beside
@@ -115,7 +118,10 @@
             $lavUpcomingEvents = collect();
             $lavTodayEvents = collect();
             $lavEventsToday = 0;
-            if (\Illuminate\Support\Facades\Schema::hasTable('school_events')) {
+            // Platform-only model (owner ruling 2026-10-22, Workstream
+            // DD): school events are school data — the Super Admin's
+            // bell, badge and home toasts never surface them.
+            if (!Qs::userIsSuperAdmin() && \Illuminate\Support\Facades\Schema::hasTable('school_events')) {
                 $lavUpcomingEvents = \App\Models\SchoolEvent::whereDate('starts_at', '>=', now()->toDateString())
                     ->orderBy('starts_at')->take(5)->get();
                 $lavTodayEvents = $lavUpcomingEvents->filter(function ($lavEv) {
@@ -138,7 +144,12 @@
             $lavIsHome = request()->routeIs('home') || request()->routeIs('dashboard')
                 || request()->routeIs('dashboard.school') || request()->path() === 'home';
         @endphp
-        @if(Qs::userIsTeamSAT() || Qs::userIsTeamAccount())
+        @if(Qs::userIsSuperAdmin())
+            {{-- Platform-only model (Workstream DD): the bell is a
+                 school-activity feed (recent payments, new students,
+                 events, circulars). The Super Admin gets no bell —
+                 platform activity lives on the Platform Overview. --}}
+        @elseif(Qs::userIsTeamSAT() || Qs::userIsTeamAccount())
             @php
                 $lavRecentPayments = \App\Models\PaymentRecord::with('payment')->latest()->take(4)->get();
                 $lavRecentStudents = \App\Models\StudentRecord::with('user')->latest()->take(4)->get();
