@@ -66,5 +66,19 @@ class RouteServiceProvider extends ServiceProvider
         RateLimiter::for('api', function (Request $request) {
             return Limit::perMinute(60);
         });
+
+        /* Workstream DG: named limiters for the password-reset surface.
+           Named limiters get their OWN bucket — the unnamed throttle:5,1
+           shares one per-IP bucket across every guest endpoint using it,
+           which would let reset-link requests eat the reset-submit
+           allowance (and vice versa). 5/min per IP each is far above any
+           genuine use and far below mail-bombing/brute-force speed. */
+        RateLimiter::for('password-email', function (Request $request) {
+            return Limit::perMinute(5)->by($request->ip());
+        });
+
+        RateLimiter::for('password-reset', function (Request $request) {
+            return Limit::perMinute(5)->by($request->ip());
+        });
     }
 }

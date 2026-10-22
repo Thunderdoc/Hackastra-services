@@ -65,7 +65,7 @@ class UserRequest extends FormRequest
         if($this->method() === 'POST'){
             $input = $this->all();
 
-            $input['user_type'] = Qs::decodeHash($input['user_type']);
+            $input['user_type'] = ($input['user_type'] ?? null) ? Qs::decodeHash($input['user_type']) : null;
 
             $this->getInputSource()->replace($input);
 

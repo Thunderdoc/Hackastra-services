@@ -29,14 +29,14 @@ class StudentRecordCreate extends FormRequest
             'email' => 'sometimes|nullable|email|max:100|unique:users',
             'photo' => 'sometimes|nullable|image|mimes:jpeg,gif,png,jpg,webp|max:2048',
             'address' => 'required|string|min:6|max:120',
-            'bg_id' => 'sometimes|nullable',
-            'state_id' => 'required',
-            'lga_id' => 'required',
-            'nal_id' => 'required',
-            'my_class_id' => 'required',
-            'section_id' => 'required',
-            'my_parent_id' => 'sometimes|nullable',
-            'dorm_id' => 'sometimes|nullable',
+            'bg_id' => 'sometimes|nullable|exists:blood_groups,id',
+            'state_id' => 'required|exists:states,id',
+            'lga_id' => 'required|exists:lgas,id',
+            'nal_id' => 'required|exists:nationalities,id',
+            'my_class_id' => 'required|exists:my_classes,id',
+            'section_id' => 'required|exists:sections,id',
+            'my_parent_id' => 'sometimes|nullable|exists:users,id',
+            'dorm_id' => 'sometimes|nullable|exists:dorms,id',
         ];
     }
 

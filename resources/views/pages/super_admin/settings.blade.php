@@ -251,6 +251,37 @@
     </fieldset>
     @endif
 
+    {{-- ======================= Platform (Workstream DG) =======================
+         Platform-owned keys live in their own form: the school form above is
+         Admin-written (and read-only for the Super Admin), while this
+         section is Super Admin only. SettingController splits saves by
+         field — google_site_verification is in PLATFORM_FIELDS. --}}
+    @if(Qs::userIsSuperAdmin())
+    <div class="card mt-3">
+        <div class="card-body">
+            <form method="POST" action="{{ route('settings.update') }}">
+                @csrf
+                @method('PUT')
+                <div class="pat-form-section">
+                    <div class="pat-form-section-title">Platform</div>
+                    <div class="pat-form-section-sub">Settings that belong to the Hackstra platform itself, not to any one school.</div>
+                    <div class="pat-fields">
+                        <div class="pat-field pat-field-wide">
+                            <label for="google_site_verification">Google Search Console Verification</label>
+                            <input name="google_site_verification" id="google_site_verification" value="{{ $s['google_site_verification'] ?? '' }}" type="text" class="form-control @error('google_site_verification') is-invalid @enderror" placeholder="Paste the content value of the Google verification meta tag" autocomplete="off" spellcheck="false">
+                            @include('partials.errors.field', ['field' => 'google_site_verification'])
+                            <small class="form-text text-muted">In Google Search Console, choose the "HTML tag" verification method and paste only the <code>content</code> value here. It is printed on the public sign-in page so Google can confirm this domain. Leave blank to remove the tag.</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-right mt-2">
+                    <button type="submit" class="btn btn-primary">Save Platform Settings</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    @endif
+
     {{--Settings Edit Ends--}}
 
     {{-- ======================= AI Assistant (Workstream DH) ======================= --}}

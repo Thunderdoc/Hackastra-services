@@ -1,2 +1,9 @@
+# Hackstra is a private school management system.
+# Only the public sign-in page (and the static assets it needs to
+# render) may be crawled; every application page requires a login
+# and stays out of search indexes.
 User-agent: *
-Disallow:
+Allow: /login
+Allow: /assets/
+Allow: /global_assets/
+Disallow: /

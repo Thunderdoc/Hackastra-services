@@ -316,9 +316,16 @@ class Qs
 
     public static function getFileMetaData($file)
     {
-        //$dataFile['name'] = $file->getClientOriginalName();
-        $dataFile['ext'] = $file->getClientOriginalExtension();
-        $dataFile['type'] = $file->getClientMimeType();
+        // Never trust the client-supplied filename or Content-Type: both are
+        // attacker-controlled and were previously copied into the stored
+        // file's extension, letting an upload named e.g. "evil.html" (with
+        // image content) land on the public disk as a web-served HTML page
+        // (stored XSS). Derive the extension and type from the file's real,
+        // sniffed type instead, clamped to the image extensions the app
+        // accepts on its upload forms (jpeg/png/gif/webp).
+        $ext = strtolower((string) $file->guessExtension());
+        $dataFile['ext'] = in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'], true) ? $ext : 'jpg';
+        $dataFile['type'] = $file->getMimeType();
         $dataFile['size'] = self::formatBytes($file->getSize());
         return $dataFile;
     }

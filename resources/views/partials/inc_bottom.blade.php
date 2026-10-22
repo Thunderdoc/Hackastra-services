@@ -15,10 +15,16 @@
 
 {{--DataTables--}}
 <script src="{{ asset('global_assets/js/plugins/tables/datatables/datatables.min.js') }}"></script>
+{{-- The Buttons extension stack (JSZip + PDFMake + fonts + Buttons,
+     ~1.95 MB) is only used by the export buttons on the students list
+     (table.datatable-button-html5-columns). Loading it on every page
+     made each dashboard ~2.7 MB; load it only where it is used. --}}
+@if(request()->routeIs('students.list'))
 <script src="{{ asset('global_assets/js/plugins/tables/datatables/extensions/jszip/jszip.min.js') }}"></script>
 <script src="{{ asset('global_assets/js/plugins/tables/datatables/extensions/pdfmake/pdfmake.min.js') }}"></script>
 <script src="{{ asset('global_assets/js/plugins/tables/datatables/extensions/pdfmake/vfs_fonts.min.js') }}"></script>
 <script src="{{ asset('global_assets/js/plugins/tables/datatables/extensions/buttons.min.js') }}"></script>
+@endif
 
 {{--Date Pickers--}}
 <script src="{{ asset('global_assets/js/plugins/ui/moment/moment.min.js') }}"></script>

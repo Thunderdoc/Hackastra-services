@@ -1,3 +1,5 @@
+<link rel="icon" href="{{ asset('global_assets/images/logo_icon_dark.png') }}" media="(prefers-color-scheme: light)">
+<link rel="icon" href="{{ asset('global_assets/images/logo_icon_light.png') }}" media="(prefers-color-scheme: dark)">
 <!-- Global stylesheets -->
 <link href="https://fonts.googleapis.com/css?family=Roboto:400,300,100,500,700,900" rel="stylesheet" type="text/css">
 <link href="{{ asset('global_assets/css/icons/icomoon/styles.css') }}" rel="stylesheet" type="text/css">

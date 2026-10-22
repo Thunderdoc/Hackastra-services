@@ -9,7 +9,7 @@
             dataType: 'json',
             url: url,
             success: function (resp) {
-                //console.log(resp);
+
                 lga.empty();
                 $.each(resp, function (i, data) {
                     lga.append($('<option>', {
@@ -31,7 +31,7 @@
             dataType: 'json',
             url: url,
             success: function (resp) {
-                //console.log(resp);
+
                 section.empty();
                 $.each(resp, function (i, data) {
                     section.append($('<option>', {
@@ -54,7 +54,6 @@
             dataType: 'json',
             url: url,
             success: function (resp) {
-                console.log(resp);
                 section.empty();
                 subject.empty();
                 $.each(resp.sections, function (i, data) {

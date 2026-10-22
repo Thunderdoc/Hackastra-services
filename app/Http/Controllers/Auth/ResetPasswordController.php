@@ -35,5 +35,8 @@ class ResetPasswordController extends Controller
     public function __construct()
     {
         $this->middleware('guest');
+        // Workstream DG: cap reset submissions per IP — a leaked or
+        // guessed token must not be brute-forceable at line speed.
+        $this->middleware('throttle:password-reset')->only('reset');
     }
 }

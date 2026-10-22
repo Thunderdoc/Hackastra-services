@@ -20,7 +20,7 @@ class PayNowRequest extends FormRequest
     public function rules()
     {
         return [
-            'amt_paid' => 'required|numeric',
+            'amt_paid' => 'required|numeric|min:1',
         ];
     }
 

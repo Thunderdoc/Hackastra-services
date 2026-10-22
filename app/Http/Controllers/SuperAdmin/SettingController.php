@@ -17,9 +17,9 @@ class SettingController extends Controller
      *   - SCHOOL_FIELDS: the school's own identity/operations — writable
      *     by the school Admin; the Super Admin views them read-only.
      *   - PLATFORM_FIELDS: platform-level keys — writable by the Super
-     *     Admin only. No platform keys exist in the form today; any
-     *     future platform key MUST be listed here, because an unlisted
-     *     key defaults to school-owned.
+     *     Admin only. Any future platform key MUST be listed here,
+     *     because an unlisted key defaults to school-owned. (First
+     *     platform key: google_site_verification, Workstream DG.)
      * A save that reaches across the boundary is refused whole.
      */
     public const SCHOOL_FIELDS = [
@@ -28,7 +28,12 @@ class SettingController extends Controller
         'lock_exam', 'principal_name', 'logo', 'school_stamp',
     ];
 
-    public const PLATFORM_FIELDS = [];
+    public const PLATFORM_FIELDS = [
+        // Workstream DG: Google Search Console ownership token for the
+        // public sign-in page. Platform-level (the domain belongs to the
+        // platform, not to any one school), so the Super Admin owns it.
+        'google_site_verification',
+    ];
 
     protected $setting, $my_class;
 
@@ -79,7 +84,14 @@ class SettingController extends Controller
         }
 
         $sets = $req->except('_token', '_method', 'logo', 'school_stamp', 'school_stamp_remove');
-        $sets['lock_exam'] = $sets['lock_exam'] == 1 ? 1 : 0;
+        // Only touch lock_exam when it was actually posted: a platform-only
+        // save (Super Admin, PLATFORM_FIELDS) must not rewrite school keys
+        // it never carried. (Workstream DG — previously this line added
+        // lock_exam=0 to every save that omitted the field.)
+        if (array_key_exists('lock_exam', $sets)) {
+            $sets['lock_exam'] = $sets['lock_exam'] == 1 ? 1 : 0;
+        }
+
         /* Workstream CU: gateway secrets are write-only in the form
            (the stored value is never rendered back), so a blank field
            means "keep what is saved", never "wipe it". Same for the

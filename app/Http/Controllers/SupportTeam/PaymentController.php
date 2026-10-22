@@ -22,6 +22,7 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use PDF;
 
 class PaymentController extends Controller
@@ -259,6 +260,15 @@ class PaymentController extends Controller
         $pr = $this->pay->findRecord($pr_id);
         $this->authorize('update', $pr);
         $payment = $this->pay->find($pr->payment_id);
+        // A recorded payment must never exceed the outstanding balance:
+        // overpaying drove balances negative (and negative amounts unwound
+        // real payments while still issuing receipts). Refuse gracefully.
+        $outstanding = $payment->amount - $pr->amt_paid;
+        if ($req->amt_paid > $outstanding) {
+            throw ValidationException::withMessages([
+                'amt_paid' => 'Amount exceeds the outstanding balance ('.number_format($outstanding).').',
+            ]);
+        }
         $d['amt_paid'] = $amt_p = $pr->amt_paid + $req->amt_paid;
         $d['balance'] = $bal = $payment->amount - $amt_p;
         $d['paid'] = $bal < 1 ? 1 : 0;

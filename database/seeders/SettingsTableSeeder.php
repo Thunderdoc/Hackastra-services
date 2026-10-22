@@ -36,6 +36,9 @@ class SettingsTableSeeder extends Seeder
             ['type' => 'logo', 'description' => ''],
             ['type' => 'principal_name', 'description' => ''],
             ['type' => 'school_stamp', 'description' => ''],
+            // Workstream DG: Google Search Console verification token
+            // (platform-owned, set by the Super Admin in Settings).
+            ['type' => 'google_site_verification', 'description' => ''],
             ['type' => 'next_term_fees_j', 'description' => '20000'],
             ['type' => 'next_term_fees_pn', 'description' => '25000'],
             ['type' => 'next_term_fees_p', 'description' => '25000'],

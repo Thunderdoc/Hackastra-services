@@ -19,6 +19,20 @@ class SettingUpdate extends FormRequest
      */
     public function rules()
     {
+        /* Workstream DG: a Super Admin save that carries ONLY platform
+           keys (SettingController::PLATFORM_FIELDS) is validated against
+           those keys alone — the school form's required fields are not
+           part of that save and must not fail it. Any other save keeps
+           the full school rule set below. */
+        $posted = array_keys($this->except('_token', '_method'));
+        if ($posted && !array_diff($posted, \App\Http\Controllers\SuperAdmin\SettingController::PLATFORM_FIELDS)) {
+            return [
+                // Google issues an alphanumeric token (letters, digits,
+                // dashes, underscores), shown in Search Console.
+                'google_site_verification' => ['sometimes', 'nullable', 'string', 'max:255', 'regex:/^[A-Za-z0-9_-]+$/'],
+            ];
+        }
+
         return [
             'system_name' => 'required|string|min:3',
             'current_session' => 'required|string',

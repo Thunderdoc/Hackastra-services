@@ -147,6 +147,10 @@ class UserController extends Controller
         $data = $req->except(Qs::getStaffRecord());
         $data['name'] = ucwords($req->name);
         $data['user_type'] = $user_type;
+        // email_verified_at is fillable on the model and was never
+        // overwritten here, so a crafted create could set it (mass
+        // assignment). A provisioned account starts unverified.
+        $data['email_verified_at'] = null;
         $data['photo'] = Qs::getDefaultUserImage();
         $data['code'] = strtoupper(Str::random(10));
 
@@ -207,6 +211,9 @@ class UserController extends Controller
         $data = $req->except(Qs::getStaffRecord());
         $data['name'] = ucwords($req->name);
         $data['user_type'] = $user_type;
+        // Same mass-assignment guard as store(): never let the request
+        // rewrite the account's verification timestamp.
+        $data['email_verified_at'] = $user->email_verified_at;
 
         if($user_is_staff && !$user_is_teamSA){
             $data['username'] = Qs::getAppCode().'/STAFF/'.date('Y/m', strtotime($req->emp_date)).'/'.mt_rand(1000, 9999);
