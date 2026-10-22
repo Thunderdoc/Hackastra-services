@@ -3,6 +3,7 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class SettingsTableSeeder extends Seeder
 {
@@ -48,6 +49,23 @@ class SettingsTableSeeder extends Seeder
         ];
 
         DB::table('settings')->insert($data);
+
+        /* Loop 106: a fresh demo must not nag "Missing: School logo"
+           on the platform Configuration Checklist. Seed the bundled
+           Hackstra mark exactly the way a Settings upload would land
+           it — same public-disk location and file name the uploader
+           produces (uploads/logo.<ext>), and the same asset-URL value
+           shape SettingController stores — so the login page, the
+           settings preview and printed documents (incl. the PDF
+           image inliner, which resolves /storage/ URLs) all render
+           the seeded logo with no special cases anywhere. */
+        $bundled_logo = public_path('images/hackstra-logo.svg');
+        if (is_file($bundled_logo)) {
+            Storage::disk('public')->put('uploads/logo.svg', file_get_contents($bundled_logo));
+            DB::table('settings')
+                ->where('type', 'logo')
+                ->update(['description' => asset('storage/uploads/logo.svg')]);
+        }
 
     }
 }

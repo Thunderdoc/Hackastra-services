@@ -28,6 +28,7 @@
     .report-card .rc-contact{color:#000;font-size:12px;}
     .report-card .rc-logo-tile{display:inline-flex;align-items:center;justify-content:center;width:64px;height:64px;background:#10263b;color:#fff;font-size:20px;font-weight:800;letter-spacing:.03em;border-radius:8px;}
     .report-card .rc-photo{width:100px;height:100px;object-fit:cover;border:1px solid #b9c6d4;}
+    .report-card .rc-photo-tile{display:inline-flex;align-items:center;justify-content:center;width:100px;height:100px;background:#eef2f7;color:#10263b;font-size:30px;font-weight:800;letter-spacing:.03em;border:1px solid #b9c6d4;}
     .report-card .rc-titleband{background:#10263b;color:#fff;text-align:center;padding:6px 8px 7px;margin:10px 0;}
     .report-card .rc-title{color:#fff;font-size:15px;font-weight:bold;text-transform:uppercase;letter-spacing:.6px;}
     .report-card .rc-subtitle{color:#dbe7fb;font-size:12.5px;font-weight:bold;text-transform:uppercase;letter-spacing:.4px;margin-top:1px;}
@@ -119,7 +120,24 @@
                 @endif
             </td>
             <td style="width:100px; text-align:right;">
-                <img class="rc-photo" src="{{ $sr->user->photo }}" alt="">
+                {{-- Photo rule (Workstream BR, audit Fix Wave 1 R-02):
+                     a real uploaded photo, else an initials tile —
+                     never the stock silhouette. Mirrors the annual
+                     report card exactly; this partial missed the guard. --}}
+                @if(Qs::hasRealPhoto($sr->user->photo))
+                    <img class="rc-photo" src="{{ $sr->user->photo }}" alt="">
+                @else
+                    @php
+                        $rcTermInitials = '';
+                        foreach (preg_split('/\s+/', trim((string) $sr->user->name)) as $rcTermWord) {
+                            if ($rcTermWord !== '') {
+                                $rcTermInitials .= strtoupper(substr($rcTermWord, 0, 1));
+                                if (strlen($rcTermInitials) >= 2) { break; }
+                            }
+                        }
+                    @endphp
+                    <span class="rc-photo-tile" aria-hidden="true">{{ $rcTermInitials ?: 'S' }}</span>
+                @endif
             </td>
         </tr>
     </table>

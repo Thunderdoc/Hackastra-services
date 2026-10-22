@@ -26,7 +26,7 @@
 
         @if($grades->count())
             <div class="table-responsive">
-            <table class="table">
+            <table class="table l108-stack">
                 <thead>
                 <tr>
                     <th>S/N</th>
@@ -40,12 +40,12 @@
                 <tbody>
                 @foreach($grades as $gr)
                     <tr>
-                        <td>{{ $loop->iteration }}</td>
-                        <td>{{ $gr->name }}</td>
-                        <td>{{ $gr->class_type_id ? $class_types->where('id', $gr->class_type_id)->first()->name : ''}}</td>
-                        <td>{{ $gr->mark_from.' - '.$gr->mark_to }}</td>
-                        <td>{{ $gr->remark }}</td>
-                        <td class="text-center">
+                        <td data-label="S/N">{{ $loop->iteration }}</td>
+                        <td data-label="Name">{{ $gr->name }}</td>
+                        <td data-label="Grade Type">{{ $gr->class_type_id ? $class_types->where('id', $gr->class_type_id)->first()->name : ''}}</td>
+                        <td data-label="Range">{{ $gr->mark_from.' - '.$gr->mark_to }}</td>
+                        <td data-label="Remark">{{ $gr->remark }}</td>
+                        <td class="text-center" data-label="Action">
                             @if(Qs::userIsTeamSAWrite())
                                 <a href="{{ route('grades.edit', $gr->id) }}" class="btn btn-sm btn-primary"><i class="icon-pencil"></i> Edit</a>
                                 <button type="button" id="{{ $gr->id }}" onclick="confirmDelete(this.id)" class="btn btn-sm btn-danger"><i class="icon-trash"></i> Delete</button>

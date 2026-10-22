@@ -2,16 +2,20 @@
 @section('page_title', 'Manage TimeTable Record')
 @section('content')
 
-    <div class="card">
+    <div class="pat-list">
+    <div class="card pat-card">
         {{-- Workstream DB: legacy panel-options chrome removed, in line
              with the redesigned pages; the record identity stays as
-             the card title. --}}
+             the card title. Loop 108: shell moved onto the pat card +
+             the tab strip takes the l108-tabs standard (the legacy
+             nav-tabs-highlight rendering was the old light style);
+             tabs, panes and the Edit Subjects modal flow unchanged. --}}
         <div class="card-header header-elements-inline">
             <h6 class="card-title font-weight-bold">{{ $ttr->name.' ('.$my_class->name.')'.' '.$ttr->year }}</h6>
         </div>
 
         <div class="card-body">
-            <ul class="nav nav-tabs nav-tabs-highlight">
+            <ul class="nav nav-tabs nav-tabs-highlight l108-tabs">
                 <li class="nav-item"><a href="#manage-ts" class="nav-link active" data-toggle="tab">Manage Time Slots</a></li>
                 <li class="nav-item"><a href="#add-sub" class="nav-link" data-toggle="tab">Add Subject</a></li>
                 <li class="nav-item"><a href="#edit-subs" class="nav-link " data-toggle="tab">Edit Subjects</a></li>
@@ -27,6 +31,7 @@
                 @include('pages.support_team.timetables.subjects.edit')
             </div>
         </div>
+    </div>
     </div>
 
     {{--TimeTable Manage Ends--}}

@@ -7,7 +7,11 @@
          filter (pills, server-side ?user_type=) + ONE table; the
          create form lives on its own page (users.create). Row action
          endpoints, the teamSA-only Reset/Delete block and the
-         confirmDelete mechanics are unchanged. --}}
+         confirmDelete mechanics are unchanged.
+         Loop 106: premium design scope (.l106-users) — pill filter
+         chips, card table, status pills; same for both roles, the
+         DATA stays scoped by viewer in UserController@index. --}}
+  <div class="l106 l106-users">
     @component('partials.patterns.list_page')
         @slot('title')
             <i class="icon-users mr-2"></i> Manage Users
@@ -54,7 +58,7 @@
                 @foreach($users as $u)
                     <tr>
                         <td>{{ $loop->iteration }}</td>
-                        <td><img class="rounded-circle" style="height: 40px; width: 40px;" src="{{ $u->photo }}" alt="photo"></td>
+                        <td>@if(Qs::hasRealPhoto($u->photo))<img class="rounded-circle" style="height: 40px; width: 40px;" src="{{ $u->photo }}" alt="photo">@else<span class="hk-ini" style="width:40px;height:40px;font-size:.8rem" aria-hidden="true">{{ Qs::initials($u->name) }}</span>@endif</td>
                         <td>{{ $u->name }}</td>
                         <td>{{ $u->username }}</td>
                         <td>{{ $u->phone }}</td>
@@ -122,4 +126,5 @@
             ])
         @endif
     @endcomponent
+  </div>{{-- /.l106-users --}}
 @endsection

@@ -46,8 +46,22 @@ class UserController extends Controller
         $ut2 = $ut->where('level', '>=', 2);
 
         $d['user_types'] = Qs::userIsAdmin() ? $ut2 : $ut;
+        /* Loop 106 (owner ruling, flagged live 2026-10-23): the Super
+           Admin is the PLATFORM owner — "numbers, not records". Their
+           Manage Users list carries platform accounts only (Super
+           Admins + School Admins); the school's people (teachers,
+           parents, accountants, librarians) are the school Admin's
+           domain and never appear in the SA list, its counts or its
+           role filter. Scoped by the VIEWER's role only — the school
+           Admin's own list below is untouched. */
+        if (Qs::userIsSuperAdmin()) {
+            $d['user_types'] = $ut->whereIn('title', ['super_admin', 'admin'])->values();
+        }
         $d['states'] = $this->loc->getStates();
         $d['users'] = $this->user->getPTAUsers();
+        if (Qs::userIsSuperAdmin()) {
+            $d['users'] = $d['users']->whereIn('user_type', ['super_admin', 'admin'])->values();
+        }
         $d['nationals'] = $this->loc->getAllNationals();
         $d['blood_groups'] = $this->user->getBloodGroups();
 
@@ -79,7 +93,14 @@ class UserController extends Controller
         $id = Qs::decodeHash($id);
         $d['user'] = $this->user->find($id);
 
-        if ($d['user'] && !$this->mayWriteUserTarget($d['user']->user_type)) {
+        /* Audit R-12 (2026-10-23): a raw or otherwise undecodable id
+           resolves to no user — answer 404 instead of letting the
+           view dereference null (was a 500 Ignition page). */
+        if (!$d['user']) {
+            abort(404);
+        }
+
+        if (!$this->mayWriteUserTarget($d['user']->user_type)) {
             return back()->with('flash_danger', __('msg.denied'));
         }
         $d['states'] = $this->loc->getStates();
@@ -97,7 +118,12 @@ class UserController extends Controller
         }
 
         $target = $this->user->find($id);
-        if ($target && !$this->mayWriteUserTarget($target->user_type)) {
+        /* Audit R-12 companion guard: an unresolvable id is refused,
+           never dereferenced. */
+        if (!$target) {
+            return back()->with('flash_danger', __('msg.denied'));
+        }
+        if (!$this->mayWriteUserTarget($target->user_type)) {
             return back()->with('flash_danger', __('msg.denied'));
         }
 
@@ -200,7 +226,12 @@ class UserController extends Controller
 
         $user = $this->user->find($id);
 
-        if ($user && !$this->mayWriteUserTarget($user->user_type)) {
+        /* Audit R-12 companion guard (see edit()). */
+        if (!$user) {
+            return Qs::json(__('msg.denied'), FALSE);
+        }
+
+        if (!$this->mayWriteUserTarget($user->user_type)) {
             return Qs::json(__('msg.denied'), FALSE);
         }
 
@@ -248,6 +279,12 @@ class UserController extends Controller
         if(!$user_id){return back();}
 
         $data['user'] = $this->user->find($user_id);
+
+        /* Audit R-12 companion guard: a decodable-but-nonexistent id
+           404s instead of dereferencing null in the profile view. */
+        if (!$data['user']) {
+            abort(404);
+        }
 
         /* Prevent Other Students from viewing Profile of others*/
         if(Auth::user()->id != $user_id && !Qs::userIsTeamSAT() && !Qs::userIsMyChild(Auth::user()->id, $user_id)){
@@ -349,7 +386,12 @@ class UserController extends Controller
 
         $user = $this->user->find($id);
 
-        if ($user && !$this->mayWriteUserTarget($user->user_type)) {
+        /* Audit R-12 companion guard (see edit()). */
+        if (!$user) {
+            return back()->with('pop_error', __('msg.denied'));
+        }
+
+        if (!$this->mayWriteUserTarget($user->user_type)) {
             return back()->with('pop_error', __('msg.denied'));
         }
 
@@ -378,7 +420,18 @@ class UserController extends Controller
         $ut = $this->user->getAllTypes();
         $ut2 = $ut->where('level', '>=', 2);
 
-        $d['user_types'] = Qs::userIsAdmin() ? $ut2 : $ut;
+        /* Loop 106: the Super Admin provisions platform accounts only
+           (Super Admin + School Admin) — the create form offers the SA
+           the same roles their list shows. The school Admin's options
+           (level >= 2) are unchanged. store()'s level gate is as-is.
+           Audit R-15 (2026-10-23): Librarian joins the SA's create
+           options — the role was un-creatable anywhere until the
+           user_types row was seeded; the SA provisions the school's
+           librarian account at onboarding just like its Admins. The
+           SA's LIST stays platform-accounts-only (Loop 106). */
+        $d['user_types'] = Qs::userIsAdmin()
+            ? $ut2
+            : (Qs::userIsSuperAdmin() ? $ut->whereIn('title', ['super_admin', 'admin', 'librarian'])->values() : $ut);
         $d['states'] = $this->loc->getStates();
         $d['nationals'] = $this->loc->getAllNationals();
         $d['blood_groups'] = $this->user->getBloodGroups();

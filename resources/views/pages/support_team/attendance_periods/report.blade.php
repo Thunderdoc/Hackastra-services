@@ -13,7 +13,13 @@
     @component('partials.patterns.list_page')
         @slot('action')
             @if($selected_class && $selected_subject)
-                <a class="btn btn-light btn-sm" href="{{ route('attendance.periods.export', ['class_id' => $selected_class->id, 'subject_id' => $selected_subject->id, 'from' => $from->format('Y-m-d'), 'to' => $to->format('Y-m-d')]) }}"><i class="icon-file-download mr-1"></i> Export CSV</a>
+                {{-- Audit Fix Wave 1: the export is the session log for
+                     the CHOSEN scope — pass class/subject only when the
+                     teacher/admin actually chose them (present in this
+                     request); on the default landing the export covers
+                     every session in the date range instead of silently
+                     inheriting the page's defaulted class/subject. --}}
+                <a class="btn btn-light btn-sm" href="{{ route('attendance.periods.export', array_filter(['class_id' => request()->query('class_id'), 'subject_id' => request()->query('subject_id'), 'from' => $from->format('Y-m-d'), 'to' => $to->format('Y-m-d')])) }}"><i class="icon-file-download mr-1"></i> Export CSV</a>
             @endif
         @endslot
         @slot('filters')

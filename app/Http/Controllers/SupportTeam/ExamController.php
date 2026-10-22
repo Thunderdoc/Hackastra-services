@@ -44,21 +44,27 @@ class ExamController extends Controller
 
     public function edit($id)
     {
-        $d['ex'] = $this->exam->find($id);
-        return view('pages.support_team.exams.edit', $d);
+        // Audit Fix Wave 1 (R-13/X-2): the {exam} parameter is not
+        // hash-bound, so a Qs-hashed URL missed the lookup and the
+        // view dereferenced null (500). Resolve raw OR hashed ids;
+        // a genuinely missing exam lands on the index with a warning
+        // like the sibling modules, never a 500.
+        $d['ex'] = $ex = $this->exam->find(Qs::resolveId($id));
+
+        return is_null($ex) ? Qs::goWithDanger('exams.index') : view('pages.support_team.exams.edit', $d);
     }
 
     public function update(ExamUpdate $req, $id)
     {
         $data = $req->only(['name', 'term']);
 
-        $this->exam->update($id, $data);
+        $this->exam->update(Qs::resolveId($id), $data);
         return back()->with('flash_success', __('msg.update_ok'));
     }
 
     public function destroy($id)
     {
-        $this->exam->delete($id);
+        $this->exam->delete(Qs::resolveId($id));
         return back()->with('flash_success', __('msg.del_ok'));
     }
 
@@ -85,13 +91,13 @@ class ExamController extends Controller
      */
     public function publishResults($id)
     {
-        $this->exam->update($id, ['results_published' => true]);
+        $this->exam->update(Qs::resolveId($id), ['results_published' => true]);
         return back()->with('flash_success', 'Results published. Students and parents can now view results for this exam.');
     }
 
     public function unpublishResults($id)
     {
-        $this->exam->update($id, ['results_published' => false]);
+        $this->exam->update(Qs::resolveId($id), ['results_published' => false]);
         return back()->with('flash_success', 'Results unpublished. Students and parents can no longer view results for this exam.');
     }
 

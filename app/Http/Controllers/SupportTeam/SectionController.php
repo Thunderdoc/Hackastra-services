@@ -52,7 +52,8 @@ class SectionController extends Controller
 
     public function edit($id)
     {
-        $d['s'] = $s = $this->my_class->findSection($id);
+        // Audit Fix Wave 1 (X-2): resolve raw OR Qs-hashed ids.
+        $d['s'] = $s = $this->my_class->findSection(Qs::resolveId($id));
         $d['teachers'] = $this->user->getUserByType('teacher');
 
         return is_null($s) ? Qs::goWithDanger('sections.index') :view('pages.support_team.sections.edit', $d);
@@ -61,13 +62,14 @@ class SectionController extends Controller
     public function update(SectionUpdate $req, $id)
     {
         $data = $req->only(['name', 'teacher_id']);
-        $this->my_class->updateSection($id, $data);
+        $this->my_class->updateSection(Qs::resolveId($id), $data);
 
         return Qs::jsonUpdateOk();
     }
 
     public function destroy($id)
     {
+        $id = Qs::resolveId($id);
         if($this->my_class->isActiveSection($id)){
             return back()->with('pop_warning', 'Every class must have a default section, You Cannot Delete It');
         }

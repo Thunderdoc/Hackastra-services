@@ -14,6 +14,11 @@
     <a href="{{ route('admit_cards.my') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['admit_cards.my', 'admit_cards.my_card']) ? 'active' : '' }}" title="Admit Cards"><i class="icon-profile"></i> <span>Admit Cards</span></a>
 </li>
 
+{{--Exam Date Sheet (owner-ordered module 2026-10-22): children's classes--}}
+<li class="nav-item">
+    <a href="{{ route('exam_dates.index') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['exam_dates.index', 'exam_dates.show', 'exam_dates.print', 'exam_dates.pdf']) ? 'active' : '' }}" title="Exam Date Sheet"><i class="icon-calendar3"></i> <span>Exam Date Sheet</span></a>
+</li>
+
 <li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Attendance</div><i class="icon-menu" title="Attendance"></i></li>
 
 {{--Children Attendance--}}

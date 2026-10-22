@@ -31,6 +31,7 @@ class UsersTableSeeder extends Seeder
 
             ['name' => 'Ankit Kumar',
                 'email' => 'superadmin@hackstra.app',
+                'phone' => '+91 98110 00001',
                 'username' => 'superadmin',
                 'password' => $password,
                 'user_type' => 'super_admin',
@@ -40,6 +41,7 @@ class UsersTableSeeder extends Seeder
 
             ['name' => 'Kavita Rao',
             'email' => 'admin@hackstra.app',
+                'phone' => '+91 98110 00002',
             'password' => $password,
             'user_type' => 'admin',
             'username' => 'admin',
@@ -49,6 +51,7 @@ class UsersTableSeeder extends Seeder
 
             ['name' => 'Ananya Sharma',
                 'email' => 'teacher@hackstra.app',
+                'phone' => '+91 98110 00003',
                 'user_type' => 'teacher',
                 'username' => 'teacher',
                 'password' => $password,
@@ -58,6 +61,7 @@ class UsersTableSeeder extends Seeder
 
             ['name' => 'Kabir Anand',
                 'email' => 'parent@hackstra.app',
+                'phone' => '+91 98110 00004',
                 'user_type' => 'parent',
                 'username' => 'parent',
                 'password' => $password,
@@ -67,6 +71,7 @@ class UsersTableSeeder extends Seeder
 
             ['name' => 'Joseph Mathew',
                 'email' => 'accountant@hackstra.app',
+                'phone' => '+91 98110 00005',
                 'user_type' => 'accountant',
                 'username' => 'accountant',
                 'password' => $password,
@@ -80,6 +85,10 @@ class UsersTableSeeder extends Seeder
     protected function createManyUsers(int $count)
     {
         $data = [];
+        /* Audit fix (2026-10-23): users.phone was NULL for every
+           seeded account, so the Manage Users Phone column rendered
+           blank on all rows. Demo numbers from the 98110 001xx block. */
+        $phoneSeq = 100;
         $user_type = Qs::getAllUserTypes(['super_admin', 'librarian', 'student']);
 
         // Realistic demo names per generated account (keyed by user type,
@@ -96,7 +105,8 @@ class UsersTableSeeder extends Seeder
 
             foreach ($user_type as $k => $ut){
 
-                $data[] = ['name' => $demo_names[$user_type[$k]][$i] ?? ucfirst($user_type[$k]).' '.$i,
+                $data[] = ['phone' => '+91 98110 00' . $phoneSeq++,
+                    'name' => $demo_names[$user_type[$k]][$i] ?? ucfirst($user_type[$k]).' '.$i,
                     'email' => $user_type[$k].$i.'@'.$user_type[$k].'.com',
                     'user_type' => $user_type[$k],
                     'username' => $user_type[$k].$i,

@@ -26,7 +26,7 @@
 
         @if($my_classes->count())
             <div class="table-responsive">
-            <table class="table">
+            <table class="table l108-stack">
                 <thead>
                 <tr>
                     <th>S/N</th>
@@ -38,10 +38,10 @@
                 <tbody>
                 @foreach($my_classes as $c)
                     <tr>
-                        <td>{{ $loop->iteration }}</td>
-                        <td>{{ $c->name }}</td>
-                        <td>{{ $c->class_type->name }}</td>
-                        <td class="text-center">
+                        <td data-label="S/N">{{ $loop->iteration }}</td>
+                        <td data-label="Name">{{ $c->name }}</td>
+                        <td data-label="Class Type">{{ $c->class_type->name }}</td>
+                        <td class="text-center" data-label="Action">
                             @if(Qs::userIsTeamSAWrite())
                                 <a href="{{ route('classes.edit', $c->id) }}" class="btn btn-sm btn-primary"><i class="icon-pencil"></i> Edit</a>
                                 <button type="button" id="{{ $c->id }}" onclick="confirmDelete(this.id)" class="btn btn-sm btn-danger"><i class="icon-trash"></i> Delete</button>

@@ -9,7 +9,13 @@
          platform-only — there is no path from this page into the
          school at all; the old "Open School Dashboard" action and the
          school-page tiles/links were removed, and the aggregates that
-         remain are unlinked. --}}
+         remain are unlinked.
+         Loop 106 (owner-flagged live 2026-10-23): the platform surfaces
+         get the same premium dark-first design system as the school
+         Loops — the .l106 scope styles every component below (hero,
+         stat cards, panels, snapshot tiles, checklist) in both
+         themes — and the user figures are platform accounts only. --}}
+    <div class="l106 l106-platform">
     <div class="dashboard-hero mb-4">
         <div>
             <h2 class="mb-1">{{ $greeting }}, {{ Auth::user()->name }} <span aria-hidden="true">👋</span></h2>
@@ -28,7 +34,7 @@
     {{-- Platform headline numbers — every value comes from a live query --}}
     <div class="row dashboard-stats">
         @foreach([
-            ['label' => 'Total Users', 'value' => number_format($total_users), 'sub' => 'Accounts across all roles · ' . number_format($signed_in_this_week) . ' signed in this week' . (($suspended_users || $terminated_users) ? ' · ' . number_format($suspended_users) . ' suspended · ' . number_format($terminated_users) . ' terminated' : ''), 'icon' => 'icon-users4', 'tone' => 'blue', 'link' => route('users.index')],
+            ['label' => 'Platform Accounts', 'value' => number_format($total_users), 'sub' => 'Super Admins + School Admins · ' . number_format($signed_in_this_week) . ' signed in this week' . (($suspended_users || $terminated_users) ? ' · ' . number_format($suspended_users) . ' suspended · ' . number_format($terminated_users) . ' terminated' : ''), 'icon' => 'icon-users4', 'tone' => 'blue', 'link' => route('users.index')],
             ['label' => 'Audit Entries Today', 'value' => number_format($audit_today), 'sub' => 'Recorded actions today', 'icon' => 'icon-shield-check', 'tone' => 'green', 'link' => route('audit_logs.index')],
             ['label' => 'Audit Entries This Week', 'value' => number_format($audit_week), 'sub' => 'Since ' . $audit_week_from->format('l, d M'), 'icon' => 'icon-stats-bars', 'tone' => 'orange', 'link' => route('audit_logs.index')],
             {{-- Workstream DD: the Configuration aggregate stays (it is
@@ -53,10 +59,12 @@
 
     <div class="row platform-overview">
         <div class="col-xl-8">
-            {{-- Users by role — grouped counts from the users table --}}
+            {{-- Platform accounts by role — platform accounts only
+                 (Loop 106); the school's people are counted in the
+                 School Snapshot panel below. --}}
             <section class="dashboard-panel mb-4">
                 <div class="dashboard-panel-heading">
-                    <div><h5 class="mb-1"><i class="icon-users2 text-blue mr-1"></i> Users by Role</h5><p class="dashboard-muted mb-0">Who can sign in, and as what</p></div>
+                    <div><h5 class="mb-1"><i class="icon-users2 text-blue mr-1"></i> Platform Accounts by Role</h5><p class="dashboard-muted mb-0">Who runs the platform and the school office</p></div>
                     <a href="{{ route('users.index') }}" class="dashboard-view-all">Manage Users <i class="icon-arrow-right7"></i></a>
                 </div>
                 <div class="table-responsive">
@@ -226,4 +234,5 @@
 
         </div>
     </div>
+    </div>{{-- /.l106 --}}
 @endsection

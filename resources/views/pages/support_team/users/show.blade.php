@@ -6,7 +6,12 @@
         <div class="col-lg-4 col-xl-3">
             <div class="card profile-card">
                 <div class="card-body text-center">
+                    {{-- Photo rule (audit R-02, final pass): real photo or initials tile, never the stock silhouette. --}}
+                    @if(Qs::hasRealPhoto($user->photo))
                     <img src="{{ $user->photo }}" alt="photo" class="profile-avatar">
+                    @else
+                    <span class="profile-avatar hk-ini" style="font-size:2rem" aria-hidden="true">{{ Qs::initials($user->name) }}</span>
+                    @endif
                     <h5 class="profile-name">{{ $user->name }}</h5>
                     <span class="badge profile-role">{{ ucwords(str_replace('_', ' ', $user->user_type)) }}</span>
                     @php($acct_status = $user->getAttribute('status') ?: 'active')
@@ -56,7 +61,10 @@
 
         <div class="col-lg-8 col-xl-9">
             <div class="card">
-                <div class="card-header bg-white header-elements-inline">
+                {{-- Loop 108: bg-white dropped — it forced a white
+                     header band in dark mode; the themed card header
+                     now applies in both modes. --}}
+                <div class="card-header header-elements-inline">
                     <h6 class="card-title font-weight-semibold mb-0">Profile Information</h6>
                 </div>
                 <div class="table-responsive">

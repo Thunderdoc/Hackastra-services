@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\SupportTeam;
 
+use App\Helpers\Qs;
 use App\Http\Requests\Grade\GradeCreate;
 use App\Http\Requests\Grade\GradeUpdate;
 use App\Repositories\ExamRepo;
@@ -40,22 +41,26 @@ class GradeController extends Controller
 
     public function edit($id)
     {
+        // Audit Fix Wave 1 (X-2): resolve raw OR Qs-hashed ids (the
+        // un-resolved hash missed the lookup and the view 500'd on
+        // null); a missing grade lands on the index like siblings.
         $d['class_types'] = $this->my_class->getTypes();
-        $d['gr'] = $this->exam->findGrade($id);
-        return view('pages.support_team.grades.edit', $d);
+        $d['gr'] = $gr = $this->exam->findGrade(Qs::resolveId($id));
+
+        return is_null($gr) ? Qs::goWithDanger('grades.index') : view('pages.support_team.grades.edit', $d);
     }
 
     public function update(GradeUpdate $req, $id)
     {
         $data = $req->all();
 
-        $this->exam->updateGrade($id, $data);
+        $this->exam->updateGrade(Qs::resolveId($id), $data);
         return back()->with('flash_success', __('msg.update_ok'));
     }
 
     public function destroy($id)
     {
-        $this->exam->deleteGrade($id);
+        $this->exam->deleteGrade(Qs::resolveId($id));
         return back()->with('flash_success', __('msg.del_ok'));
     }
 

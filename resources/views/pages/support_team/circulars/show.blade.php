@@ -67,12 +67,29 @@
                     <div class="l75-cd-body">{!! nl2br(e($circular->body)) !!}</div>
                 </div>
             </div>
+
+            @if($circular->attachments->isNotEmpty())
+                <div class="card">
+                    <div class="card-header"><h6 class="card-title">Attachments</h6></div>
+                    <div class="card-body">
+                        @foreach($circular->attachments as $attachment)
+                            <div class="d-flex align-items-center {{ !$loop->last ? 'mb-2' : '' }}">
+                                <i class="icon-attachment mr-2"></i>
+                                <a href="{{ $attachment->downloadUrl() }}">{{ $attachment->original_name }}</a>
+                                <span class="text-muted ml-2">{{ $attachment->isImage() ? 'Image' : 'PDF' }}</span>
+                                <a href="{{ $attachment->downloadUrl() }}" class="btn btn-light btn-sm ml-auto"><i class="icon-download mr-1"></i> Download</a>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
         </div>
 
         <div class="col-lg-4">
             <div class="card">
                 <div class="card-header"><h6 class="card-title">Quick Information</h6></div>
                 <div class="card-body">
+                    <div class="l75-qi-row"><span class="k">Reference No.</span><span class="v">{{ $circular->reference() }}</span></div>
                     <div class="l75-qi-row"><span class="k">Circular ID</span><span class="v">#{{ $circular->id }}</span></div>
                     <div class="l75-qi-row"><span class="k">Priority</span><span class="v">{{ $priorities[$circular->priority] ?? $circular->priority }}</span></div>
                     <div class="l75-qi-row"><span class="k">Status</span><span class="v">{{ $circular->is_published ? 'Published · ' . $statusPill[0] : 'Draft' }}</span></div>

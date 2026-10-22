@@ -158,7 +158,7 @@
                     </div>
                 @else
                     <div class="print-hide">
-                        <table class="table def95-table">
+                        <table class="table def95-table l108-stack">
                             <thead>
                             <tr>
                                 <th style="width:34px">#</th>
@@ -180,24 +180,24 @@
                                     $def95Ini = strtoupper(substr($def95Words[0] ?? '', 0, 1) . (isset($def95Words[1]) ? substr($def95Words[1], 0, 1) : ''));
                                 @endphp
                                 <tr>
-                                    <td>{{ $rows->firstItem() + $loop->index }}</td>
-                                    <td>
+                                    <td data-label="#">{{ $rows->firstItem() + $loop->index }}</td>
+                                    <td data-label="Student">
                                         <span class="def95-student"><span class="l7-avatar l7-avatar-md" aria-hidden="true">{{ $def95Ini }}@if(Qs::hasRealPhoto($row['student']->user->photo))<img src="{{ $row['student']->user->photo }}" alt="" onerror="this.remove()">@endif</span><strong>{{ optional($row['student']->user)->name }}</strong></span>
                                     </td>
-                                    <td>{{ $row['student']->adm_no ?: '—' }}</td>
-                                    <td>{{ optional($row['student']->my_class)->name ?: '—' }}</td>
-                                    <td>{{ optional($row['student']->section)->name ?: '—' }}</td>
-                                    <td class="text-right">{{ \App\Helpers\Money::inr($row['total_fees']) }}</td>
-                                    <td class="text-right">{{ \App\Helpers\Money::inr($row['total_paid']) }}</td>
-                                    <td class="text-right def95-due">{{ \App\Helpers\Money::inr($row['total_due']) }}</td>
-                                    <td>
+                                    <td data-label="Admission No">{{ $row['student']->adm_no ?: '—' }}</td>
+                                    <td data-label="Class">{{ optional($row['student']->my_class)->name ?: '—' }}</td>
+                                    <td data-label="Section">{{ optional($row['student']->section)->name ?: '—' }}</td>
+                                    <td class="text-right" data-label="Total Fees">{{ \App\Helpers\Money::inr($row['total_fees']) }}</td>
+                                    <td class="text-right" data-label="Paid">{{ \App\Helpers\Money::inr($row['total_paid']) }}</td>
+                                    <td class="text-right def95-due" data-label="Balance Due">{{ \App\Helpers\Money::inr($row['total_due']) }}</td>
+                                    <td data-label="Status">
                                         @if($row['status'] === 'partial')
                                             <span class="def95-pill def95-pill-partial">Partially Paid</span>
                                         @else
                                             <span class="def95-pill def95-pill-unpaid">Unpaid</span>
                                         @endif
                                     </td>
-                                    <td class="text-right">
+                                    <td class="text-right" data-label="Action">
                                         <a href="{{ route('payments.invoice', Qs::hash($row['student']->user_id)) }}" class="btn btn-light btn-sm" aria-label="View payments for {{ optional($row['student']->user)->name }}"><i class="icon-eye mr-1"></i> View</a>
                                     </td>
                                 </tr>

@@ -406,35 +406,83 @@ class PeriodAttendanceController extends Controller
         return view('pages.support_team.attendance_periods.report', $d);
     }
 
-    /** CSV export of the report's per-student table. */
+    /**
+     * CSV export of the period-attendance SESSION LOG for the
+     * requested scope — one row per submitted session (audit Fix
+     * Wave 1). The old export silently reused the report's per-student
+     * summary AND the report's defaulted class/subject, so the bare
+     * URL produced 3 student rows that represented none of the 36
+     * seeded sessions. Now the filters mean what they say: class_id
+     * and subject_id restrict the scope ONLY when actually supplied
+     * (no silent defaulting); from/to default to the current month,
+     * exactly like the report. The filename names the scope it
+     * carries ('all-classes' when unscoped), and the row count always
+     * equals the number of sessions in the scope.
+     */
     public function export(Request $request)
     {
-        $d = $this->reportData($request);
-
-        if (!$d['selected_class'] || !$d['selected_subject']) {
-            return redirect()->route('attendance.periods.report')
-                ->with('flash_danger', 'No class or subject available to export.');
+        $from = $this->dateParam($request, 'from') ?: Carbon::today()->startOfMonth();
+        $to = $this->dateParam($request, 'to') ?: Carbon::today();
+        if ($to->lt($from)) {
+            [$from, $to] = [$to, $from];
         }
 
-        $rows = $d['rows']->map(function ($row) {
+        $class = $request->query('class_id')
+            ? MyClass::find((int) $request->query('class_id'))
+            : null;
+
+        $subject = null;
+        if ($request->query('subject_id')) {
+            $candidate = Subject::find((int) $request->query('subject_id'));
+            // A subject outside the chosen class would empty the file;
+            // fall back to the class scope instead of exporting nothing.
+            if ($candidate && (!$class || (int) $candidate->my_class_id === (int) $class->id)) {
+                $subject = $candidate;
+            }
+        }
+
+        // Inclusive calendar bounds via whereDate: the shared
+        // betweenDates scope string-compares the datetime column
+        // against 'Y-m-d', which silently drops the final day's
+        // sessions (their stored value carries a time component) —
+        // an export "to 2026-10-23" must contain 2026-10-23.
+        $query = AttendanceSession::with(['my_class', 'subject', 'teacher', 'time_table.time_slot', 'entries'])
+            ->whereDate('date', '>=', $from->format('Y-m-d'))
+            ->whereDate('date', '<=', $to->format('Y-m-d'))
+            ->orderBy('date')
+            ->orderBy('id');
+        if ($class) {
+            $query->forClass($class->id);
+        }
+        if ($subject) {
+            $query->forSubject($subject->id);
+        }
+        $sessions = $query->get();
+
+        $rows = $sessions->map(function ($session) {
             return [
-                optional($row['student']->user)->name,
-                optional($row['student']->section)->name,
-                $row['held'],
-                $row['present'],
-                $row['absent'],
-                $row['late'],
-                $row['percent'] === null ? '' : $row['percent'],
+                $session->date->format('Y-m-d'),
+                optional($session->my_class)->name,
+                optional($session->subject)->name,
+                optional(optional($session->time_table)->time_slot)->full ?: '—',
+                optional($session->teacher)->name,
+                $session->topic,
+                $session->countByStatus(AttendanceSessionEntry::STATUS_PRESENT),
+                $session->countByStatus(AttendanceSessionEntry::STATUS_ABSENT),
+                $session->countByStatus(AttendanceSessionEntry::STATUS_LATE),
+                $session->entries->count(),
             ];
         })->all();
 
-        $filename = 'period-attendance-'
-            . Str::slug($d['selected_class']->name) . '-'
-            . Str::slug($d['selected_subject']->name) . '-'
-            . $d['from']->format('Y-m-d') . '-to-' . $d['to']->format('Y-m-d') . '.csv';
+        $scope = $class
+            ? Str::slug($class->name) . ($subject ? '-' . Str::slug($subject->name) : '-all-subjects')
+            : 'all-classes';
+        $filename = 'period-attendance-sessions-'
+            . $scope . '-'
+            . $from->format('Y-m-d') . '-to-' . $to->format('Y-m-d') . '.csv';
 
         return CsvExport::download($filename,
-            ['Student', 'Section', 'Sessions Held', 'Present', 'Absent', 'Late', 'Attendance %'],
+            ['Date', 'Class', 'Subject', 'Time', 'Teacher', 'Topic Taught', 'Present', 'Absent', 'Late', 'Students Marked'],
             $rows);
     }
 

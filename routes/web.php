@@ -66,6 +66,29 @@ Route::group(['middleware' => 'auth'], function () {
 
         });
 
+        /*************** Bulk Management (Phase A) *****************/
+        /* Staged CSV pipeline: hub + upload/preview/confirm/history.
+           Gates live in BulkManagementController (teamSA reads,
+           teamSAWrite writes) — same pattern as StudentBulkController.
+           {job} is implicit model binding; the {id} hash-decode rule
+           does not apply, and bulk.* is deliberately NOT on the Super
+           Admin's PlatformOnly allowlist (audit §8.1). */
+        Route::group(['prefix' => 'bulk'], function(){
+            Route::get('/', 'BulkManagementController@index')->name('bulk.index');
+            Route::get('students/add', 'BulkManagementController@studentsAdd')->name('bulk.students.add');
+            Route::get('students/edit', 'BulkManagementController@studentsEdit')->name('bulk.students.edit');
+            Route::get('staff/add', 'BulkManagementController@staffAdd')->name('bulk.staff.add');
+            Route::post('upload', 'BulkManagementController@upload')->name('bulk.upload');
+            Route::get('jobs/{job}', 'BulkManagementController@show')->name('bulk.jobs.show');
+            Route::get('jobs/{job}/errors', 'BulkManagementController@errors')->name('bulk.jobs.errors');
+            Route::post('jobs/{job}/confirm', 'BulkManagementController@confirm')->name('bulk.jobs.confirm');
+            Route::post('jobs/{job}/apply', 'BulkManagementController@apply')->name('bulk.jobs.apply');
+            Route::post('jobs/{job}/discard', 'BulkManagementController@discard')->name('bulk.jobs.discard');
+            Route::get('templates/students-edit', 'BulkManagementController@studentsEditTemplate')->name('bulk.templates.students_edit');
+            Route::get('templates/staff-add', 'BulkManagementController@staffAddTemplate')->name('bulk.templates.staff_add');
+            Route::get('exports/students', 'BulkManagementController@exportsStudents')->name('bulk.exports.students');
+        });
+
         /*************** Users *****************/
         Route::group(['prefix' => 'users'], function(){
             Route::post('reset_pass/{id}', 'UserController@reset_pass')->name('users.reset_pass');
@@ -191,11 +214,11 @@ Route::group(['middleware' => 'auth'], function () {
                 Route::post('bulk', 'MarkController@bulk_select')->name('marks.bulk_select');
             });
 
-            // Marks Correction (batch fix) is a WRITE — Admin only.
-            Route::group(['middleware' => 'teamSAWrite'], function(){
-                Route::get('batch_fix', 'MarkController@batch_fix')->name('marks.batch_fix');
-                Route::put('batch_update', 'MarkController@batch_update')->name('marks.batch_update');
-            });
+            /* Marks Correction (batch fix) REMOVED by owner decision
+               2026-10-23: the standalone page, its routes and its menu
+               item are gone (direct URLs 404). The recompute pipeline
+               itself (App\Support\MarkComputation) stays — marks entry
+               and the assignment internal-marks push still use it. */
 
             // FOR teamSATWrite (Workstream CM): marks entry is a write
             // surface — Admin + assigned teachers; SA's marks read is
@@ -231,6 +254,21 @@ Route::group(['middleware' => 'auth'], function () {
            exams resource so the action names win cleanly. */
         Route::post('exams/{exam}/publish-results', 'ExamController@publishResults')->name('exams.publish_results');
         Route::post('exams/{exam}/unpublish-results', 'ExamController@unpublishResults')->name('exams.unpublish_results');
+
+        /* Exam Date Sheet (owner-ordered 2026-10-22) — the Admin sets
+           per-subject dates per exam + class; teachers, students and
+           parents read their scoped sheet. Registered before the
+           exams resource like the publish switches above. The manage
+           page is teamSA / its save is teamSAWrite (controller
+           middleware); the read routes resolve their scope per role
+           inside ExamDateController. Super Admin is kept out by
+           PlatformOnly (none of these names are allowlisted). */
+        Route::get('exams/date-sheet/manage', 'ExamDateController@manage')->name('exam_dates.manage');
+        Route::post('exams/date-sheet/manage', 'ExamDateController@save')->name('exam_dates.save');
+        Route::get('exam-dates', 'ExamDateController@show')->name('exam_dates.index');
+        Route::get('exam-dates/show', 'ExamDateController@show')->name('exam_dates.show');
+        Route::get('exam-dates/print', 'ExamDateController@printSheet')->name('exam_dates.print');
+        Route::get('exam-dates/pdf', 'ExamDateController@pdf')->name('exam_dates.pdf');
 
         Route::resource('students', 'StudentRecordController');
         Route::resource('users', 'UserController');
@@ -288,6 +326,7 @@ Route::group(['middleware' => 'auth'], function () {
         Route::patch('circulars/{circular}/toggle-publish', 'CircularController@togglePublish')->name('circulars.toggle_publish');
         Route::get('circulars/{circular}/print', 'CircularController@print')->name('circulars.print');
         Route::get('circulars/{circular}/pdf', 'CircularController@pdf')->name('circulars.pdf');
+        Route::get('circulars/{circular}/attachments/{attachment}', 'CircularController@downloadAttachment')->name('circulars.attachments.download');
         Route::resource('circulars', 'CircularController');
 
         /*************** LMS — Assignments (Workstream CS1 + CS2 alignment) *****************/

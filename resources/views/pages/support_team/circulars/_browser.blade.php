@@ -122,9 +122,13 @@
                         @endif
                     </div>
                     <div class="circ-meta">
+                        <span class="circ-meta-item"><i class="icon-file-text2"></i>Ref: {{ $circular->reference() }}</span>
                         <span class="circ-meta-item"><i class="icon-user"></i>{{ $circular->publisher->name ?? 'School Office' }}</span>
                         <span class="circ-meta-item"><i class="icon-calendar3"></i>{{ $circular->created_at->format('d M Y') }}</span>
                         <span class="circ-aud"><i class="icon-users"></i>For {{ $audiences[$circular->audience] ?? $circular->audience }}</span>
+                        @if($circular->attachments->isNotEmpty())
+                            <span class="circ-meta-item"><i class="icon-attachment"></i>{{ $circular->attachments->count() }} {{ $circular->attachments->count() === 1 ? 'attachment' : 'attachments' }}</span>
+                        @endif
                         @if($status === 'Expired' && $circular->expires_at)
                             <span class="circ-meta-item"><i class="icon-history"></i>Expired on {{ $circular->expires_at->format('d M Y') }}</span>
                         @elseif($status === 'Scheduled' && $circular->starts_at)

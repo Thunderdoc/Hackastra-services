@@ -43,7 +43,7 @@
                 <select data-placeholder="Select Time..." required class="select form-control" name="ts_id" id="ts_id">
                     <option value=""></option>
                     @foreach($time_slots as $tms)
-                        <option {{ old('ts_id') == $tms->full ? 'selected' : '' }} value="{{ $tms->id }}">{{ $tms->full}}</option>
+                        <option {{ old('ts_id') == $tms->id ? 'selected' : '' }} value="{{ $tms->id }}">{{ $tms->full}}</option>
                     @endforeach
                 </select>
             </div>

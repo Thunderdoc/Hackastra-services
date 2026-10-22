@@ -145,6 +145,37 @@
     </div>
 </div>
 
+{{-- Loop 105: attachments — the feedback system's contract
+     (Workstream CW): at most 3 files per circular in total,
+     images or PDF, 2 MB each. Files are served only through the
+     audience-gated download route, never a public URL. --}}
+<div class="pat-form-section">
+    <div class="pat-form-section-title"><span class="pat-sec-num">3</span> Attachments</div>
+    <div class="pat-fields">
+        @if(isset($circular) && $circular->attachments->isNotEmpty())
+            <div class="pat-field pat-field-wide">
+                <label>Current attachments</label>
+                @foreach($circular->attachments as $attachment)
+                    <div class="d-flex align-items-center mb-1">
+                        <i class="icon-attachment mr-2"></i>
+                        <a href="{{ $attachment->downloadUrl() }}">{{ $attachment->original_name }}</a>
+                        <label class="ml-3 mb-0 text-danger" style="cursor:pointer">
+                            <input type="checkbox" name="remove_attachments[]" value="{{ $attachment->id }}"> Remove
+                        </label>
+                    </div>
+                @endforeach
+                <span class="form-text text-muted">Tick Remove and save to delete a file. New uploads below are added to the ones you keep — 3 in total at most.</span>
+            </div>
+        @endif
+        <div class="pat-field pat-field-wide">
+            <label for="attachments">{{ isset($circular) ? 'Add attachments' : 'Attachments' }}</label>
+            <input name="attachments[]" id="attachments" type="file" multiple class="form-control @error('attachments') is-invalid @enderror" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf">
+            @include('partials.errors.field', ['field' => 'attachments'])
+            <span class="form-text text-muted">Optional. Up to 3 files in total — images (jpg, png, gif, webp) or PDF, at most 2 MB each. Only the circular's audience can download them.</span>
+        </div>
+    </div>
+</div>
+
 {{-- Loop 75: composer helpers — character counts, the plain-text
      formatting strip, and the live preview sync. Everything reads
      the real form fields; the preview panel (_preview partial)

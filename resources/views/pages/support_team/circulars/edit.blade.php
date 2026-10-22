@@ -12,6 +12,7 @@
             @component('partials.patterns.form_page', [
                 'form_action' => route('circulars.update', $circular->id),
                 'form_method' => 'PUT',
+                'form_enctype' => 'multipart/form-data',
                 'back' => route('circulars.index'),
             ])
                 @slot('title')

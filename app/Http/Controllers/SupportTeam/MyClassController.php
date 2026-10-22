@@ -51,7 +51,9 @@ class MyClassController extends Controller
 
     public function edit($id)
     {
-        $d['c'] = $c = $this->my_class->find($id);
+        // Audit Fix Wave 1 (X-2): resolve raw OR Qs-hashed ids — the
+        // un-resolved hash silently fell back to the index.
+        $d['c'] = $c = $this->my_class->find(Qs::resolveId($id));
 
         return is_null($c) ? Qs::goWithDanger('classes.index') : view('pages.support_team.classes.edit', $d) ;
     }
@@ -59,14 +61,14 @@ class MyClassController extends Controller
     public function update(ClassUpdate $req, $id)
     {
         $data = $req->only(['name']);
-        $this->my_class->update($id, $data);
+        $this->my_class->update(Qs::resolveId($id), $data);
 
         return Qs::jsonUpdateOk();
     }
 
     public function destroy($id)
     {
-        $this->my_class->delete($id);
+        $this->my_class->delete(Qs::resolveId($id));
         return back()->with('flash_success', __('msg.del_ok'));
     }
 

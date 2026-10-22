@@ -53,6 +53,24 @@ class Qs
         return !Str::endsWith($photo, '/global_assets/images/user.png');
     }
 
+    /**
+     * Up to two initials from a display name (photo-rule fallback tile).
+     */
+    public static function initials($name)
+    {
+        $initials = '';
+        foreach (preg_split('/\s+/', trim((string) $name)) as $word) {
+            if ($word !== '') {
+                $initials .= strtoupper(substr($word, 0, 1));
+                if (strlen($initials) >= 2) {
+                    break;
+                }
+            }
+        }
+
+        return $initials !== '' ? $initials : '?';
+    }
+
     public static function getPanelOptions()
     {
         // Batch 1A (Loop 28): the legacy Limitless ⌄/× panel cluster
@@ -168,6 +186,30 @@ class Qs
         $hash = new Hashids($salt, 14);
         $decoded = $hash->decode($str);
         return $toString ? implode(',', $decoded) : $decoded;
+    }
+
+    /**
+     * Audit Fix Wave 1 (X-2): the one resolver for record route
+     * parameters that are NOT bound through Route::bind('id').
+     * Modules disagree historically — grades 500 on a hashed id,
+     * events 404, classes/sections/subjects/dorms silently fall back
+     * to the index — while their in-app links use raw ids. Accept
+     * BOTH shapes: a purely numeric value is a raw id (returned
+     * untouched, so the 177 in-app hrefs behave exactly as before);
+     * anything else is tried as a Qs hash and, when it decodes, the
+     * decoded id is used; when it does not decode, the value passes
+     * through unchanged so the controller's normal not-found handling
+     * (404 / goWithDanger) applies instead of a wrong record.
+     */
+    public static function resolveId($value)
+    {
+        if ($value === null || $value === '' || is_numeric($value)) {
+            return $value;
+        }
+
+        $decoded = self::decodeHash($value);
+
+        return $decoded !== '' ? $decoded : $value;
     }
 
     public static function userIsTeamAccount()

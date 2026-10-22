@@ -233,39 +233,36 @@ class HomeController extends Controller
      */
     protected function platformHomeData(Carbon $now): array
     {
+        /* Loop 106 (owner ruling: "numbers, not records"): the
+           overview's USER figures describe platform accounts only —
+           Super Admins + School Admins. The school's people are
+           counted in the School Snapshot panel below, never in the
+           platform account figures or the Users-by-Role panel. */
         $role_labels = [
             'super_admin' => 'Platform Super Admin',
             'admin' => 'School Admin',
-            'teacher' => 'Teachers',
-            'student' => 'Students',
-            'parent' => 'Parents',
-            'accountant' => 'Accountant',
-            'librarian' => 'Librarian',
         ];
 
         $counts = DB::table('users')
             ->select('user_type', DB::raw('count(*) as total'))
+            ->whereIn('user_type', array_keys($role_labels))
             ->groupBy('user_type')
             ->pluck('total', 'user_type');
 
         /* Account lifecycle counts (Workstream DF) — real rows in a
-           non-active state; guarded so an un-migrated database (no
-           status column yet) still renders the overview. */
+           non-active state, platform accounts only (Loop 106);
+           guarded so an un-migrated database (no status column yet)
+           still renders the overview. */
         $suspended_users = 0;
         $terminated_users = 0;
         if (Schema::hasColumn('users', 'status')) {
-            $suspended_users = (int) DB::table('users')->where('status', 'suspended')->count();
-            $terminated_users = (int) DB::table('users')->where('status', 'terminated')->count();
+            $suspended_users = (int) DB::table('users')->whereIn('user_type', array_keys($role_labels))->where('status', 'suspended')->count();
+            $terminated_users = (int) DB::table('users')->whereIn('user_type', array_keys($role_labels))->where('status', 'terminated')->count();
         }
 
         $role_counts = [];
         foreach ($role_labels as $type => $label) {
             $role_counts[] = ['type' => $type, 'label' => $label, 'total' => (int) ($counts[$type] ?? 0)];
-            unset($counts[$type]);
-        }
-        // Any user_type outside the known list is still accounted for.
-        foreach ($counts as $type => $total) {
-            $role_counts[] = ['type' => $type, 'label' => ucwords(str_replace('_', ' ', $type)), 'total' => (int) $total];
         }
 
         $audit_today = 0;
@@ -288,10 +285,12 @@ class HomeController extends Controller
                 ->take(8)
                 ->get();
             // Distinct accounts with at least one successful sign-in
-            // since the start of this week.
+            // since the start of this week — platform accounts only
+            // (Loop 106), matching the scoped Total Users figure.
             $signed_in_this_week = (int) AuditLog::where('action', 'auth.login')
                 ->where('created_at', '>=', $now->copy()->startOfWeek())
                 ->whereNotNull('user_id')
+                ->whereIn('user_id', DB::table('users')->whereIn('user_type', ['super_admin', 'admin'])->select('id'))
                 ->distinct()
                 ->count('user_id');
             // Latest successful sign-in per role (for the Users by Role

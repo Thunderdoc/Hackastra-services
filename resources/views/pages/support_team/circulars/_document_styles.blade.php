@@ -18,6 +18,15 @@
     .cdoc-meta .k { color: #718096; width: 150px; }
     .cdoc-meta .v { font-weight: 600; }
     .cdoc-body { font-size: 14.5px; line-height: 1.7; }
+    .cdoc-sign { margin-top: 40px; }
+    .cdoc-sign table { border-collapse: collapse; width: 100%; }
+    .cdoc-sign-cell { vertical-align: bottom; width: 50%; }
+    .cdoc-sign-right { text-align: right; }
+    .cdoc-seal { height: 84px; width: 84px; object-fit: contain; }
+    .cdoc-sig { height: 44px; margin-bottom: -8px; max-width: 200px; object-fit: contain; }
+    .cdoc-sign-line { border-bottom: 1px solid #172536; height: 44px; margin: 0 0 6px auto; width: 220px; }
+    .cdoc-sign-role { color: #5f7185; font-size: 11px; font-weight: 700; letter-spacing: 1.5px; margin: 0; text-transform: uppercase; }
+    .cdoc-sign-name { font-size: 13px; font-weight: 600; margin: 2px 0 0; }
     .cdoc-foot { border-top: 1px solid #e4eaf1; color: #718096; font-size: 11.5px; margin-top: 28px; padding-top: 10px; }
     .cdoc-foot table { border-collapse: collapse; width: 100%; }
     .cdoc-foot .r { text-align: right; }

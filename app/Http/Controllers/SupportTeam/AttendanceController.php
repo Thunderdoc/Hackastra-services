@@ -202,10 +202,12 @@ class AttendanceController extends Controller
      * null percent (never 0%).
      *
      * Beyond the original report keys this adds: per-row status
-     * band/label (the document policy: Excellent >= 90, Good >= 80,
-     * Needs Attention 60-79, Critical < 60), the totals' shares of
-     * all marked entries, the class summary figures, and the school
-     * identity block the document letterhead renders.
+     * band/label (the settled app-wide tier scale, aligned in audit
+     * Fix Wave 1: Excellent >= 90, Good >= 75, Needs Attention
+     * 50-74, Critical < 50 — the same thresholds the Low Attendance
+     * page uses), the totals' shares of all marked entries, the
+     * class summary figures, and the school identity block the
+     * document letterhead renders.
      */
     protected function monthlyReportData(Request $request): array
     {
@@ -220,7 +222,7 @@ class AttendanceController extends Controller
         $d['totals'] = ['present' => 0, 'absent' => 0, 'late' => 0, 'marked' => 0];
         $d['sessions_held'] = 0;
         $d['shares'] = ['present' => 0.0, 'absent' => 0.0, 'late' => 0.0];
-        $d['class_summary'] = ['students' => 0, 'with_100' => 0, 'below_80' => 0, 'registers' => 0];
+        $d['class_summary'] = ['students' => 0, 'with_100' => 0, 'below_75' => 0, 'registers' => 0];
         $d['generated_on'] = now();
         $d['school'] = $this->schoolIdentity();
 
@@ -274,8 +276,8 @@ class AttendanceController extends Controller
             $d['class_summary'] = [
                 'students' => $students->count(),
                 'with_100' => $d['rows']->where('percent', 100)->count(),
-                'below_80' => $d['rows']->filter(function ($row) {
-                    return $row['percent'] !== null && $row['percent'] < 80;
+                'below_75' => $d['rows']->filter(function ($row) {
+                    return $row['percent'] !== null && $row['percent'] < 75;
                 })->count(),
                 'registers' => $d['sessions_held'],
             ];
@@ -284,7 +286,15 @@ class AttendanceController extends Controller
         return $d;
     }
 
-    /** The document status policy, shared by screen and document. */
+    /**
+     * The document status policy, shared by screen and document.
+     * Audit Fix Wave 1: aligned to the settled app-wide tiers —
+     * Critical strictly below 50%, the at-risk band 50-74% (the Low
+     * Attendance page's line is 75%), Good from 75%, Excellent
+     * from 90%. This method previously ran a private 60/80 scale,
+     * so the same student could be "Needs Attention" here and not
+     * a defaulter there.
+     */
     private function statusBand($percent): array
     {
         if ($percent === null) {
@@ -293,10 +303,10 @@ class AttendanceController extends Controller
         if ($percent >= 90) {
             return ['excellent', 'Excellent'];
         }
-        if ($percent >= 80) {
+        if ($percent >= 75) {
             return ['good', 'Good'];
         }
-        if ($percent >= 60) {
+        if ($percent >= 50) {
             return ['attention', 'Needs Attention'];
         }
 

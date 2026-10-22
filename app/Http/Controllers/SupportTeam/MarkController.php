@@ -585,31 +585,11 @@ class MarkController extends Controller
        return Qs::jsonUpdateOk();
     }
 
-    public function batch_fix()
-    {
-        $d['exams'] = $this->exam->getExam(['year' => $this->year]);
-        $d['my_classes'] = $this->my_class->all();
-        $d['sections'] = $this->my_class->getAllSections();
-        $d['selected'] = false;
-
-        return view('pages.support_team.marks.batch_fix', $d);
-    }
-
-    public function batch_update(Request $req): \Illuminate\Http\JsonResponse
-    {
-        $exam_id = $req->exam_id;
-        $class_id = $req->my_class_id;
-        $section_id = $req->section_id;
-
-        $exam = $this->exam->find($exam_id);
-
-        /* Batch M2: the batch fix now runs through the same single
-           computation pipeline as the entry save (grades re-derived
-           from the stored tex totals, records recomputed). */
-        MarkComputation::fixClass($exam, $class_id, $section_id, $this->year);
-
-        return Qs::jsonUpdateOk();
-    }
+    /* batch_fix() / batch_update() removed 2026-10-23 (owner decision):
+       the standalone Marks Correction page is gone. The recompute
+       pipeline it called (MarkComputation::fixClass and friends) is
+       untouched — marks entry above and the assignment internal-marks
+       push still recompute through it. */
 
     public function comment_update(Request $req, $exr_id)
     {

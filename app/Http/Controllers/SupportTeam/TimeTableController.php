@@ -293,49 +293,107 @@ class TimeTableController extends Controller
     }
 
     /**
-     * Loop 81: print view of the teacher's own weekly timetable
-     * (v2 document design). Teachers only — everyone else keeps the
-     * records UI, exactly like mine().
+     * Audit Fix Wave 1 (R-14): the class timetable record mine()
+     * shows a student (own record) or a parent (the ?child-selected
+     * child, with mine()'s tamper guard), resolved exactly like
+     * mine() — current-session record first, latest year as fallback.
+     * Null when there is no child or no record for the class.
      */
-    public function mine_print()
+    protected function ownClassRecord(Request $req)
     {
-        if (!Qs::userIsTeacher()) {
-            return redirect()->route('tt.index');
+        $user = Auth::user();
+
+        if (Qs::userIsStudent()) {
+            $child = Qs::findStudentRecord($user->id);
+        } else {
+            $children = Qs::findMyChildren($user->id);
+            $child = $children->firstWhere('id', (int) $req->query('child')) ?: $children->first();
         }
 
-        $d = $this->teacherWeekData(Auth::user());
-        $d['teacher'] = Auth::user();
-        $d['year'] = $this->year;
-        $d['s'] = Setting::all()->flatMap(function ($s) {
-            return [$s->type => $s->description];
-        });
+        if (!$child) {
+            return null;
+        }
 
-        return view('pages.support_team.timetables.mine_print', $d);
+        return TimeTableRecord::where('my_class_id', $child->my_class_id)
+                ->whereNull('exam_id')->where('year', $this->year)->first()
+            ?: TimeTableRecord::where('my_class_id', $child->my_class_id)
+                ->whereNull('exam_id')->orderByDesc('year')->first();
+    }
+
+    /**
+     * Loop 81: print view of the teacher's own weekly timetable
+     * (v2 document design). Audit Fix Wave 1 (R-14): students and
+     * parents get the print document of their own class record —
+     * the same document records/print renders — instead of falling
+     * through to the (HTML) timetables list.
+     */
+    public function mine_print(Request $req)
+    {
+        if (Qs::userIsTeacher()) {
+            $d = $this->teacherWeekData(Auth::user());
+            $d['teacher'] = Auth::user();
+            $d['year'] = $this->year;
+            $d['s'] = Setting::all()->flatMap(function ($s) {
+                return [$s->type => $s->description];
+            });
+
+            return view('pages.support_team.timetables.mine_print', $d);
+        }
+
+        if (Qs::userIsStudent() || Qs::userIsParent()) {
+            $ttr = $this->ownClassRecord($req);
+
+            if (!$ttr) {
+                return redirect()->route('tt.mine');
+            }
+
+            return view('pages.support_team.timetables.print', $this->recordPrintData($ttr));
+        }
+
+        return redirect()->route('tt.index');
     }
 
     /**
      * Loop 81: the same teacher weekly timetable as a downloadable PDF.
      * barryvdh/laravel-dompdf is already in the tree (composer.lock),
      * so this is a real download of the print template, not a mock.
+     * Audit Fix Wave 1 (R-14): students and parents download a real
+     * PDF of their own class record's document — this route used to
+     * redirect them to the HTML list, so "pdf" returned text/html.
      */
-    public function mine_pdf()
+    public function mine_pdf(Request $req)
     {
-        if (!Qs::userIsTeacher()) {
-            return redirect()->route('tt.index');
+        if (Qs::userIsTeacher()) {
+            $d = $this->teacherWeekData(Auth::user());
+            $d['teacher'] = Auth::user();
+            $d['year'] = $this->year;
+            $d['s'] = Setting::all()->flatMap(function ($s) {
+                return [$s->type => $s->description];
+            });
+            $d['for_pdf'] = true;
+
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pages.support_team.timetables.mine_print', $d)
+                ->setPaper('a4', 'landscape');
+
+            return $pdf->download('my-timetable-' . \Illuminate\Support\Str::slug(Auth::user()->name) . '-' . $this->year . '.pdf');
         }
 
-        $d = $this->teacherWeekData(Auth::user());
-        $d['teacher'] = Auth::user();
-        $d['year'] = $this->year;
-        $d['s'] = Setting::all()->flatMap(function ($s) {
-            return [$s->type => $s->description];
-        });
-        $d['for_pdf'] = true;
+        if (Qs::userIsStudent() || Qs::userIsParent()) {
+            $ttr = $this->ownClassRecord($req);
 
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pages.support_team.timetables.mine_print', $d)
-            ->setPaper('a4', 'landscape');
+            if (!$ttr) {
+                return redirect()->route('tt.mine');
+            }
 
-        return $pdf->download('my-timetable-' . \Illuminate\Support\Str::slug(Auth::user()->name) . '-' . $this->year . '.pdf');
+            $d = $this->recordPrintData($ttr);
+
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pages.support_team.timetables.print', $d)
+                ->setPaper('a4', 'landscape');
+
+            return $pdf->download('my-timetable-' . \Illuminate\Support\Str::slug(optional($d['my_class'])->name ?: 'class') . '-' . $this->year . '.pdf');
+        }
+
+        return redirect()->route('tt.index');
     }
 
     /**
@@ -531,9 +589,22 @@ class TimeTableController extends Controller
     }
     public function print_record($ttr_id)
     {
-        $d_time = [];
         $d['ttr'] = $ttr = $this->tt->findRecord($ttr_id);
         $this->guardRecordScope($ttr);
+
+        return view('pages.support_team.timetables.print', $this->recordPrintData($ttr));
+    }
+
+    /**
+     * Audit Fix Wave 1 (R-14): the class-record print assembly, shared
+     * by print_record() and the student/parent mine_print/mine_pdf —
+     * one source so every route renders the same document.
+     */
+    protected function recordPrintData($ttr): array
+    {
+        $d_time = [];
+        $d['ttr'] = $ttr;
+        $ttr_id = $ttr->id;
         $d['ttr_id'] = $ttr_id;
         $d['my_class'] = $this->my_class->find($ttr->my_class_id);
 
@@ -563,7 +634,7 @@ class TimeTableController extends Controller
             return [$s->type => $s->description];
         });
 
-        return view('pages.support_team.timetables.print', $d);
+        return $d;
     }
 
     public function store_record(TTRecordRequest $req)

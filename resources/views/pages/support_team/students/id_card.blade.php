@@ -2,13 +2,13 @@
 @section('page_title', 'ID Card - '.$sr->user->name)
 @section('content')
 
+    {{-- Loop 108: legacy card-header chrome dropped (panel options +
+         the repeated "Student ID Card" title — the common header
+         carries the page title). The ID card document itself (Loop
+         27 .idc- design, print behaviour via .idc-screen-only) is
+         untouched. --}}
     <div class="idc-page">
         <div class="card idc-screen-only">
-            <div class="card-header header-elements-inline">
-                <h6 class="card-title">Student ID Card</h6>
-                {!! Qs::getPanelOptions() !!}
-            </div>
-
             <div class="card-body">
                 <p class="idc-lead">{{ $sr->user->name }} &middot; {{ $sr->my_class->name }}@if($sr->section) &middot; {{ $sr->section->name }}@endif &middot; Adm No {{ $sr->adm_no ?: '—' }}</p>
                 <a href="{{ route('students.show', Qs::hash($sr->id)) }}" class="btn btn-light"><i class="icon-arrow-left7 mr-2"></i> Back to Profile</a>

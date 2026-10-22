@@ -5,7 +5,24 @@
     <div class="col-md-3 text-center">
         <div class="card">
             <div class="card-body">
-                <img style="width: 90%; height:90%" src="{{ $sr->user->photo }}" alt="photo" class="rounded-circle">
+                {{-- Photo rule (audit Fix Wave 1, R-02): a real uploaded
+                     photo, else an initials tile — never the stock
+                     silhouette the seeded/default photo value points
+                     at. Same rule as the report cards (Workstream BR). --}}
+                @if(Qs::hasRealPhoto($sr->user->photo))
+                    <img style="width: 90%; height:90%" src="{{ $sr->user->photo }}" alt="photo" class="rounded-circle">
+                @else
+                    @php
+                        $profileInitials = '';
+                        foreach (preg_split('/\s+/', trim((string) $sr->user->name)) as $profileWord) {
+                            if ($profileWord !== '') {
+                                $profileInitials .= strtoupper(substr($profileWord, 0, 1));
+                                if (strlen($profileInitials) >= 2) { break; }
+                            }
+                        }
+                    @endphp
+                    <span class="rounded-circle" aria-hidden="true" style="display: inline-flex; align-items: center; justify-content: center; width: 90%; aspect-ratio: 1/1; background: #3478f6; color: #fff; font-size: 2.6rem; font-weight: 700;">{{ $profileInitials ?: 'S' }}</span>
+                @endif
                 <br>
                 <h3 class="mt-3">{{ $sr->user->name }}</h3>
                 {{-- Loop 102: honest incompleteness marker — the fields the

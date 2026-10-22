@@ -116,7 +116,7 @@
                 <a href="{{ route('my_payslips.index') }}" class="btn btn-primary btn-sm">Reset Filters</a>
             </div>
         @else
-            <table class="table mp89-table">
+            <table class="table mp89-table l108-stack">
                 <thead>
                 <tr>
                     <th style="width:44px">#</th>
@@ -133,8 +133,8 @@
                 <tbody>
                 @foreach($records as $rec)
                     <tr>
-                        <td>{{ $records->firstItem() + $loop->index }}</td>
-                        <td>
+                        <td data-label="#">{{ $records->firstItem() + $loop->index }}</td>
+                        <td data-label="Month">
                             <div class="mp89-month">
                                 <span class="mp89-month-icon"><i class="icon-calendar3"></i></span>
                                 <span class="mp89-month-text">
@@ -143,19 +143,19 @@
                                 </span>
                             </div>
                         </td>
-                        <td class="text-right">{{ \App\Helpers\Money::inr($rec->basic_salary) }}</td>
-                        <td class="text-right">{{ \App\Helpers\Money::inr($rec->allowances) }}</td>
-                        <td class="text-right">{{ \App\Helpers\Money::inr($rec->deductions) }}</td>
-                        <td class="text-right"><span class="mp89-net">{{ \App\Helpers\Money::inr($rec->net_pay) }}</span></td>
-                        <td>
+                        <td class="text-right" data-label="Basic">{{ \App\Helpers\Money::inr($rec->basic_salary) }}</td>
+                        <td class="text-right" data-label="Allowances">{{ \App\Helpers\Money::inr($rec->allowances) }}</td>
+                        <td class="text-right" data-label="Deductions">{{ \App\Helpers\Money::inr($rec->deductions) }}</td>
+                        <td class="text-right" data-label="Net Pay"><span class="mp89-net">{{ \App\Helpers\Money::inr($rec->net_pay) }}</span></td>
+                        <td data-label="Status">
                             @if($rec->isPaid())
                                 <span class="badge pay-badge-paid">Paid</span>
                             @else
                                 <span class="badge pay-badge-pending">Pending</span>
                             @endif
                         </td>
-                        <td>{{ $rec->paid_at ? $rec->paid_at->format('d M Y') : '—' }}</td>
-                        <td class="text-right mp89-actions">
+                        <td data-label="Paid On">{{ $rec->paid_at ? $rec->paid_at->format('d M Y') : '—' }}</td>
+                        <td class="text-right mp89-actions" data-label="Actions">
                             <a href="{{ route('my_payslips.payslip', $rec->id) }}" class="btn btn-light btn-sm"><i class="icon-file-text2 mr-1"></i> View</a>
                             <a href="{{ route('my_payslips.pdf', $rec->id) }}" class="btn btn-light btn-sm"><i class="icon-file-pdf mr-1"></i> PDF</a>
                         </td>

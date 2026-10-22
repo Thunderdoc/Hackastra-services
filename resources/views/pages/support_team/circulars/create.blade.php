@@ -13,6 +13,7 @@
         <div class="l75-circ-main">
             @component('partials.patterns.form_page', [
                 'form_action' => route('circulars.store'),
+                'form_enctype' => 'multipart/form-data',
                 'back' => route('circulars.index'),
             ])
                 @slot('title')

@@ -29,6 +29,10 @@ class UserFactory extends Factory
 
         return [
             'name' => $this->faker->name,
+            /* Audit fix (2026-10-23): the factory never set phone,
+               so every factory-made account showed a blank Phone
+               column in Manage Users. Indian demo mobile pattern. */
+            'phone' => '+91 ' . $this->faker->numerify('98########'),
             'email' => $this->faker->safeEmail,
             'username' => $this->faker->userName,
             'password' => Hash::make($user_type),

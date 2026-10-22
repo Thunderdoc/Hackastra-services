@@ -131,8 +131,13 @@ class MyController extends Controller
     /**
      * One payment record presented exactly as the staff invoice page
      * presents it: total = the fee amount, paid = amt_paid (0 when
-     * untouched), balance = the stored balance, falling back to the
-     * full fee amount for records nobody has paid against yet.
+     * untouched), balance = fee − amt_paid. That difference IS the
+     * stored balance in every state the pay flow maintains (audit
+     * Fix Wave 1, R-01): fully paid → 0, partially paid → the stored
+     * remainder, untouched → the full fee. The old rule
+     * ($record->balance ?: fee amount) treated a stored balance of 0
+     * as "no balance stored" and showed the FULL fee on fully-paid
+     * rows, contradicting the same card's ₹0 total.
      */
     protected function presentRecord($record): array
     {
@@ -154,7 +159,7 @@ class MyController extends Controller
             'title' => $record->payment->title,
             'total' => (int) $record->payment->amount,
             'paid' => $paid,
-            'balance' => (int) ($record->balance ?: $record->payment->amount),
+            'balance' => max(0, (int) $record->payment->amount - $paid),
             'status' => $status,
             'badge' => $badge,
             'has_receipts' => $record->receipt->isNotEmpty(),

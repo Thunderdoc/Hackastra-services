@@ -5,7 +5,7 @@
 <div class="page-content">
     <div class="content-wrapper">
         <div class="content">
-            <div class="card">
+            <div class="card pat-card">
                 <div class="card-header">
                     <h1 class="card-title font-weight-bold text-center">PRIVACY POLICY</h1>
                 </div>

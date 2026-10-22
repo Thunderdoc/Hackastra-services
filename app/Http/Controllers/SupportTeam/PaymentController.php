@@ -387,6 +387,40 @@ class PaymentController extends Controller
             }
             $d['selected'] = true;
             $d['my_class_id'] = $class_id;
+
+            // Loop 107: print assembly for the class list's A4 document.
+            // Per-student fee totals for the current session, derived
+            // exactly like exportRow() (fee - amt_paid per record; the
+            // stored balance column is unreliable). Feeds ONLY the
+            // print-only document table in the manage blade; the screen
+            // table keeps its original data.
+            $records = $this->pay->getRecord(['year' => $this->year])
+                ->whereIn('student_id', $st->pluck('user_id')->all())
+                ->with('payment')->get();
+            $byStudent = $records->groupBy('student_id');
+            $print_rows = $st->map(function ($s) use ($byStudent) {
+                $recs = $byStudent->get($s->user_id, collect());
+                $total = $recs->sum(function ($r) { return optional($r->payment)->amount ?: 0; });
+                $paid = $recs->sum(function ($r) { return $r->amt_paid ?: 0; });
+                $balance = $total - $paid;
+                $status = $recs->isEmpty() ? 'No fees recorded'
+                    : ($balance <= 0 ? 'Paid' : ($paid > 0 ? 'Partially Paid' : 'Unpaid'));
+                return [
+                    'adm_no' => $s->adm_no,
+                    'name' => optional($s->user)->name,
+                    'class_section' => optional($s->my_class)->name . ($s->section ? ' / ' . optional($s->section)->name : ''),
+                    'total' => $total,
+                    'paid' => $paid,
+                    'balance' => $balance,
+                    'status' => $status,
+                ];
+            });
+            $d['print_rows'] = $print_rows;
+            $d['print_totals'] = [
+                'total' => $print_rows->sum('total'),
+                'paid' => $print_rows->sum('paid'),
+                'balance' => $print_rows->sum('balance'),
+            ];
         }
 
         return view('pages.support_team.payments.manage', $d);

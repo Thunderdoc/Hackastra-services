@@ -1,0 +1,470 @@
+<?php
+
+namespace App\Support\Bulk;
+
+use App\Helpers\Mk;
+use App\Helpers\Qs;
+use App\Http\Controllers\SupportTeam\StudentBulkController;
+use App\Models\BloodGroup;
+use App\Models\Dorm;
+use App\Models\Lga;
+use App\Models\MyClass;
+use App\Models\Nationality;
+use App\Models\Section;
+use App\Models\State;
+use App\Models\StudentRecord;
+use App\Repositories\MyClassRepo;
+use App\Repositories\StudentRepo;
+use App\Repositories\UserRepo;
+use App\User;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+
+/**
+ * Students on the bulk engine (Phase A) — add + update modes.
+ *
+ * ADD deliberately reuses the proven one-pass importer's code:
+ * StudentBulkController::validateRow() (now emitting structured
+ * errors) for validation and ::createStudent() for the per-row
+ * transactional create, so a staged-import student is identical in
+ * shape to a legacy-import or form student. The engine adds what the
+ * legacy flow lacked (audit §1.1): validate-time adm_no collision
+ * classified `duplicate`, and the row-fingerprint rail that makes
+ * re-uploading a file idempotent even for rows with neither email
+ * nor adm_no.
+ *
+ * UPDATE matches on adm_no, never overwrites from a blank cell, diffs
+ * old → new at validate time, and its apply runs the identical field
+ * writes + Mk::deleteOldRecord hook as StudentRecordController@update.
+ */
+class StudentBulkModule
+{
+    /** CSV columns accepted in both modes (the importer's 19). */
+    public const COLUMNS = StudentBulkController::COLUMNS;
+
+    /** Error messages that mean "this identity already exists" — a
+     *  duplicate classification, not a malformed row. */
+    protected const IDENTITY_MESSAGES = [
+        'Email already exists in the system.',
+        'Email is duplicated within this file.',
+    ];
+
+    protected $toolkit;
+    protected $myClass;
+    protected $userRepo;
+    protected $studentRepo;
+
+    public function __construct(StudentBulkController $toolkit, MyClassRepo $myClass, UserRepo $userRepo, StudentRepo $studentRepo)
+    {
+        $this->toolkit = $toolkit;
+        $this->myClass = $myClass;
+        $this->userRepo = $userRepo;
+        $this->studentRepo = $studentRepo;
+    }
+
+    public function toolkit(): StudentBulkController
+    {
+        return $this->toolkit;
+    }
+
+    /** Header columns a file must carry for the given mode. */
+    public function requiredHeader(string $mode): array
+    {
+        return $mode === 'update' ? ['adm_no'] : StudentBulkController::REQUIRED;
+    }
+
+    /**************** ADD MODE ****************/
+
+    public function validateAdd(array $raw, BulkContext $ctx): array
+    {
+        $row = $raw;
+        $errors = $this->toolkit->validateRow($row, $ctx->lookups, array_keys($ctx->seenEmails));
+
+        // Claim the email for in-file duplicate detection as soon as
+        // its format is known-good (identity errors don't block claim).
+        $email = isset($row['email']) ? trim((string) $row['email']) : '';
+        $emailFormatBad = collect($errors)->contains(function ($e) {
+            return $e['message'] === 'Email is not a valid email address.';
+        });
+        if ($email !== '' && !$emailFormatBad) {
+            $ctx->claimEmail($email);
+        }
+
+        $fingerprint = $this->addFingerprint($row);
+
+        // adm_no collision must surface NOW as `duplicate` (audit §4.2);
+        // in the legacy flow it only exploded inside createStudent().
+        $usernameExists = false;
+        $admNo = isset($row['adm_no']) ? trim((string) $row['adm_no']) : '';
+        if ($admNo !== '' && !empty($row['class_type']) && !empty($row['year_admitted'])) {
+            $username = $this->usernameFor($row);
+            $usernameExists = StudentRecord::where('adm_no', $username)->exists();
+        }
+
+        $identityOnly = $errors && collect($errors)->every(function ($e) {
+            return in_array($e['message'], self::IDENTITY_MESSAGES, true);
+        });
+
+        $isDuplicate = $usernameExists
+            || isset($ctx->priorAppliedFingerprints[$fingerprint])
+            || isset($ctx->seenFingerprints[$fingerprint]);
+
+        if ($errors && !$identityOnly) {
+            $verdict = 'invalid';
+        } elseif ($isDuplicate || $identityOnly) {
+            $verdict = 'duplicate';
+            if (!$errors) {
+                $errors = [[
+                    'field' => $admNo !== '' ? 'adm_no' : 'name',
+                    'value' => $admNo !== '' ? $admNo : ($row['name'] ?? ''),
+                    'message' => 'This student was already created by an earlier import — row skipped.',
+                ]];
+            }
+        } else {
+            $verdict = 'valid_create';
+            $ctx->seenFingerprints[$fingerprint] = true;
+        }
+
+        // The class_type model can't ride JSON — persist its code only;
+        // applyAdd() rehydrates the tiny object createStudent() reads.
+        $resolved = $row;
+        if (!empty($resolved['class_type'])) {
+            $resolved['class_type_code'] = $resolved['class_type']->code;
+        }
+        unset($resolved['class_type']);
+
+        return [
+            'verdict' => $verdict,
+            'resolved' => $resolved,
+            'errors' => $errors ?: null,
+            'changes' => null,
+            'fingerprint' => $fingerprint,
+        ];
+    }
+
+    public function applyAdd(array $resolved): int
+    {
+        $row = $resolved;
+        $type = $this->myClass->findTypeByClass($row['my_class_id']);
+        $row['class_type'] = (object) ['code' => $type ? $type->code : ($row['class_type_code'] ?? '')];
+
+        $username = $this->toolkit->createStudent($row, []);
+
+        $sr = StudentRecord::where('adm_no', $username)->first();
+        return $sr ? (int) $sr->user_id : 0;
+    }
+
+    /** The admission number createStudent() will generate for a row. */
+    protected function usernameFor(array $row): string
+    {
+        $admNo = isset($row['adm_no']) ? trim((string) $row['adm_no']) : '';
+        return strtoupper(
+            Qs::getAppCode() . '/' . $row['class_type']->code . '/' . trim((string) $row['year_admitted']) . '/' .
+            ($admNo !== '' ? $admNo : mt_rand(1000, 99999))
+        );
+    }
+
+    /**
+     * Fingerprint rail (audit §6.2): deterministic identity of a row.
+     * With an adm_no, the full generated username; without one, the
+     * normalised name + class + section + year + dob — the fields a
+     * school office would use to recognise the same child twice.
+     */
+    protected function addFingerprint(array $row): string
+    {
+        $admNo = isset($row['adm_no']) ? trim((string) $row['adm_no']) : '';
+        if ($admNo !== '' && !empty($row['class_type']) && !empty($row['year_admitted'])) {
+            return hash('sha256', 'students|adm|' . $this->usernameFor($row));
+        }
+        $norm = function ($v) {
+            return strtolower(trim(preg_replace('/\s+/', ' ', (string) $v)));
+        };
+        $dob = !empty($row['dob']) ? date('Y-m-d', strtotime($row['dob'])) : '';
+        return hash('sha256', 'students|bio|' . implode('|', [
+            $norm($row['name'] ?? ''),
+            $row['my_class_id'] ?? ('c:' . $norm($row['class'] ?? '')),
+            $row['section_id'] ?? ('s:' . $norm($row['section'] ?? '')),
+            trim((string) ($row['year_admitted'] ?? '')),
+            $dob,
+        ]));
+    }
+
+    /**************** UPDATE MODE ****************/
+
+    public function validateUpdate(array $raw, BulkContext $ctx): array
+    {
+        $get = function ($key) use ($raw) {
+            return isset($raw[$key]) ? trim((string) $raw[$key]) : '';
+        };
+
+        $adm = strtoupper($get('adm_no'));
+        $fingerprint = hash('sha256', 'students|upd|' . $adm);
+        $base = ['resolved' => null, 'changes' => null, 'fingerprint' => $fingerprint];
+
+        if ($adm === '') {
+            return $base + ['verdict' => 'invalid', 'errors' => [[
+                'field' => 'adm_no', 'value' => '',
+                'message' => 'Admission Number is required for bulk edit — it is the key each row is matched on.',
+            ]]];
+        }
+
+        $sr = StudentRecord::with('user')->where('adm_no', $adm)->first();
+        if (!$sr || !$sr->user) {
+            return $base + ['verdict' => 'unmatched', 'errors' => [[
+                'field' => 'adm_no', 'value' => $adm,
+                'message' => 'No student matches this Admission Number — row skipped (bulk edit never creates students).',
+            ]]];
+        }
+
+        if (isset($ctx->seenFingerprints[$fingerprint])) {
+            return $base + ['verdict' => 'duplicate', 'errors' => [[
+                'field' => 'adm_no', 'value' => $adm,
+                'message' => 'This student appears more than once in the file — only the first row is used.',
+            ]]];
+        }
+
+        $user = $sr->user;
+        $errors = [];
+        $userChanges = [];   // db field => new value
+        $recChanges = [];    // db field => new value
+        $changes = [];       // column => [old, new] display pair
+
+        $err = function ($field, $value, $message) use (&$errors) {
+            $errors[] = ['field' => $field, 'value' => $value, 'message' => $message];
+        };
+        $diff = function ($column, $oldDisplay, $newDisplay, $bucket, $dbField, $newValue) use (&$changes, &$userChanges, &$recChanges) {
+            $changes[$column] = ['old' => $oldDisplay, 'new' => $newDisplay];
+            if ($bucket === 'user') {
+                $userChanges[$dbField] = $newValue;
+            } else {
+                $recChanges[$dbField] = $newValue;
+            }
+        };
+
+        // ---- user profile fields ----
+        if ($get('name') !== '') {
+            $name = $get('name');
+            if (Str::length($name) < 6 || Str::length($name) > 150) {
+                $err('name', $name, 'Name must be between 6 and 150 characters.');
+            } elseif (strtolower(ucwords($name)) !== strtolower((string) $user->name)) {
+                $diff('name', (string) $user->name, ucwords($name), 'user', 'name', ucwords($name));
+            }
+        }
+
+        if ($get('gender') !== '') {
+            $g = strtolower($get('gender'));
+            if (in_array($g, ['male', 'm'], true)) {
+                $gender = 'Male';
+            } elseif (in_array($g, ['female', 'f'], true)) {
+                $gender = 'Female';
+            } else {
+                $gender = null;
+                $err('gender', $get('gender'), 'Gender must be Male or Female.');
+            }
+            if ($gender && $gender !== $user->gender) {
+                $diff('gender', (string) $user->gender, $gender, 'user', 'gender', $gender);
+            }
+        }
+
+        if ($get('email') !== '') {
+            $email = $get('email');
+            if (!filter_var($email, FILTER_VALIDATE_EMAIL) || Str::length($email) > 100) {
+                $err('email', $email, 'Email is not a valid email address.');
+            } elseif (User::where('email', $email)->where('id', '<>', $user->id)->exists()
+                || ($ctx->emailClaimed($email) && (int) ($ctx->seenEmailsForUser[strtolower($email)] ?? $user->id) !== (int) $user->id)) {
+                $err('email', $email, 'Email already exists in the system.');
+            } else {
+                $ctx->claimEmail($email);
+                $ctx->seenEmailsForUser[strtolower($email)] = (int) $user->id;
+                if (strtolower($email) !== strtolower((string) $user->email)) {
+                    $diff('email', (string) $user->email, $email, 'user', 'email', $email);
+                }
+            }
+        }
+
+        foreach (['phone', 'phone2'] as $col) {
+            if ($get($col) !== '') {
+                $v = $get($col);
+                if (Str::length($v) < 6 || Str::length($v) > 20) {
+                    $err($col, $v, ucfirst($col) . ' must be between 6 and 20 characters.');
+                } elseif ($v !== (string) $user->{$col}) {
+                    $diff($col, (string) $user->{$col}, $v, 'user', $col, $v);
+                }
+            }
+        }
+
+        if ($get('dob') !== '') {
+            $ts = strtotime($get('dob'));
+            if ($ts === false) {
+                $err('dob', $get('dob'), 'Date of Birth is not a recognisable date (use YYYY-MM-DD).');
+            } else {
+                $dob = date('Y-m-d', $ts);
+                $stored = $user->dob ? (strtotime((string) $user->dob) ? date('Y-m-d', strtotime((string) $user->dob)) : (string) $user->dob) : '';
+                if ($dob !== $stored) {
+                    $diff('dob', (string) $user->dob, $dob, 'user', 'dob', $dob);
+                }
+            }
+        }
+
+        if ($get('address') !== '') {
+            $address = $get('address');
+            if (Str::length($address) < 6 || Str::length($address) > 120) {
+                $err('address', $address, 'Address must be between 6 and 120 characters.');
+            } elseif ($address !== (string) $user->address) {
+                $diff('address', (string) $user->address, $address, 'user', 'address', $address);
+            }
+        }
+
+        // ---- by-name relations on the user ----
+        if ($get('blood_group') !== '') {
+            $bg = $ctx->lookups['blood_groups'][strtolower($get('blood_group'))] ?? null;
+            if (!$bg) {
+                $err('blood_group', $get('blood_group'), "Blood Group '{$get('blood_group')}' was not found.");
+            } elseif ((int) $bg->id !== (int) $user->bg_id) {
+                $old = $user->bg_id ? optional(BloodGroup::find($user->bg_id))->name : '';
+                $diff('blood_group', (string) $old, $bg->name, 'user', 'bg_id', $bg->id);
+            }
+        }
+
+        if ($get('nationality') !== '') {
+            $nal = $ctx->lookups['nationals'][strtolower($get('nationality'))] ?? null;
+            if (!$nal) {
+                $err('nationality', $get('nationality'), "Nationality '{$get('nationality')}' was not found.");
+            } elseif ((int) $nal->id !== (int) $user->nal_id) {
+                $old = $user->nal_id ? optional(Nationality::find($user->nal_id))->name : '';
+                $diff('nationality', (string) $old, $nal->name, 'user', 'nal_id', $nal->id);
+            }
+        }
+
+        // state / LGA are resolved as a pair: LGA belongs to the
+        // effective state (the row's new state, else the current one).
+        $newState = null;
+        if ($get('state') !== '') {
+            $newState = $ctx->lookups['states'][strtolower($get('state'))] ?? null;
+            if (!$newState) {
+                $err('state', $get('state'), "State '{$get('state')}' was not found.");
+            } elseif ((int) $newState->id !== (int) $user->state_id) {
+                $old = $user->state_id ? optional(State::find($user->state_id))->name : '';
+                $diff('state', (string) $old, $newState->name, 'user', 'state_id', $newState->id);
+            }
+        }
+        if ($get('lga') !== '') {
+            $stateId = $newState ? $newState->id : $user->state_id;
+            $lga = $stateId ? ($ctx->lookups['lgas'][$stateId][strtolower($get('lga'))] ?? null) : null;
+            if (!$lga) {
+                $err('lga', $get('lga'), "LGA '{$get('lga')}' was not found in the selected state.");
+            } elseif ((int) $lga->id !== (int) $user->lga_id) {
+                $old = $user->lga_id ? optional(Lga::find($user->lga_id))->name : '';
+                $diff('lga', (string) $old, $lga->name, 'user', 'lga_id', $lga->id);
+            }
+        } elseif ($newState && (int) $newState->id !== (int) $user->state_id && $user->lga_id) {
+            $err('lga', '', 'LGA is required when changing state — the current LGA does not belong to the new state.');
+        }
+
+        // ---- student record fields ----
+        // class / section as a pair, same reasoning as state / LGA.
+        $newClass = null;
+        if ($get('class') !== '') {
+            $newClass = $ctx->lookups['classes'][strtolower($get('class'))] ?? null;
+            if (!$newClass) {
+                $err('class', $get('class'), "Class '{$get('class')}' was not found.");
+            } elseif ((int) $newClass->id !== (int) $sr->my_class_id) {
+                $old = optional(MyClass::find($sr->my_class_id))->name;
+                $diff('class', (string) $old, $newClass->name, 'record', 'my_class_id', $newClass->id);
+            }
+        }
+        if ($get('section') !== '') {
+            $classId = $newClass ? $newClass->id : $sr->my_class_id;
+            $section = $classId ? ($ctx->lookups['sections'][$classId][strtolower($get('section'))] ?? null) : null;
+            if (!$section) {
+                $err('section', $get('section'), "Section '{$get('section')}' was not found in the selected class.");
+            } elseif ((int) $section->id !== (int) $sr->section_id) {
+                $old = optional(Section::find($sr->section_id))->name;
+                $diff('section', (string) $old, $section->name, 'record', 'section_id', $section->id);
+            }
+        } elseif ($newClass && (int) $newClass->id !== (int) $sr->my_class_id) {
+            $err('section', '', 'Section is required when changing class — provide the section in the new class.');
+        }
+
+        if ($get('parent_email') !== '') {
+            $parent = User::where('email', $get('parent_email'))->where('user_type', 'parent')->first();
+            if (!$parent) {
+                $err('parent_email', $get('parent_email'), "Parent email '{$get('parent_email')}' does not match an existing parent account.");
+            } elseif ((int) $parent->id !== (int) $sr->my_parent_id) {
+                $old = $sr->my_parent_id ? (optional(User::find($sr->my_parent_id))->email ?: '') : '';
+                $diff('parent_email', (string) $old, $parent->email, 'record', 'my_parent_id', $parent->id);
+            }
+        }
+
+        if ($get('dorm') !== '') {
+            $dorm = $ctx->lookups['dorms'][strtolower($get('dorm'))] ?? null;
+            if (!$dorm) {
+                $err('dorm', $get('dorm'), "Dormitory '{$get('dorm')}' was not found.");
+            } elseif ((int) $dorm->id !== (int) $sr->dorm_id) {
+                $old = $sr->dorm_id ? optional(Dorm::find($sr->dorm_id))->name : '';
+                $diff('dorm', (string) $old, $dorm->name, 'record', 'dorm_id', $dorm->id);
+            }
+        }
+
+        if ($get('dorm_room_no') !== '' && $get('dorm_room_no') !== (string) $sr->dorm_room_no) {
+            $diff('dorm_room_no', (string) $sr->dorm_room_no, $get('dorm_room_no'), 'record', 'dorm_room_no', $get('dorm_room_no'));
+        }
+
+        if ($get('house') !== '' && $get('house') !== (string) $sr->house) {
+            $diff('house', (string) $sr->house, $get('house'), 'record', 'house', $get('house'));
+        }
+
+        if ($get('year_admitted') !== '') {
+            $year = $get('year_admitted');
+            if (!preg_match('/^\d{4}$/', $year)) {
+                $err('year_admitted', $year, 'Year Admitted must be a 4-digit year.');
+            } elseif ($year !== (string) $sr->year_admitted) {
+                $diff('year_admitted', (string) $sr->year_admitted, $year, 'record', 'year_admitted', $year);
+            }
+        }
+
+        if ($errors) {
+            return $base + ['verdict' => 'invalid', 'errors' => $errors];
+        }
+
+        $ctx->seenFingerprints[$fingerprint] = true;
+
+        return [
+            'verdict' => 'valid_update',
+            'resolved' => [
+                'sr_id' => (int) $sr->id,
+                'user_id' => (int) $user->id,
+                'user' => $userChanges,
+                'record' => $recChanges,
+            ],
+            'errors' => null,
+            'changes' => $changes,
+            'fingerprint' => $fingerprint,
+        ];
+    }
+
+    public function applyUpdate(array $resolved): int
+    {
+        $sr = StudentRecord::find($resolved['sr_id']);
+        if (!$sr) {
+            throw new \RuntimeException('Student record no longer exists.');
+        }
+
+        DB::transaction(function () use ($resolved, $sr) {
+            if (!empty($resolved['user'])) {
+                $this->userRepo->update($sr->user_id, $resolved['user']);
+            }
+            if (!empty($resolved['record'])) {
+                $this->studentRepo->updateRecord($sr->id, $resolved['record']);
+            }
+        });
+
+        // Same hook, same argument as StudentRecordController@update:
+        // marks/exam records of the PREVIOUS class are deleted whenever
+        // the resulting class differs from where they were earned.
+        $newClassId = $resolved['record']['my_class_id'] ?? $sr->my_class_id;
+        Mk::deleteOldRecord($sr->user_id, $newClassId);
+
+        return (int) $sr->user_id;
+    }
+}

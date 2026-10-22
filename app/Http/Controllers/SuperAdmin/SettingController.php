@@ -130,6 +130,14 @@ class SettingController extends Controller
         if($req->hasFile('logo')) {
             $logo = $req->file('logo');
             $f = Qs::getFileMetaData($logo);
+            /* Loop 106: Qs::getFileMetaData clamps extensions to the
+               raster set every other upload field uses (Wave 8 stored
+               -XSS guard — untouched). The logo additionally accepts a
+               genuinely-sniffed SVG (rendered via <img> only); keyed
+               off the file's real MIME type, never its name. */
+            if ($logo->getMimeType() === 'image/svg+xml') {
+                $f['ext'] = 'svg';
+            }
             $f['name'] = 'logo.' . $f['ext'];
             $f['path'] = $logo->storeAs(Qs::getPublicUploadPath(), $f['name']);
             $logo_path = asset('storage/' . $f['path']);

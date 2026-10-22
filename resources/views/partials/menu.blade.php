@@ -144,6 +144,11 @@
                         <li class="nav-item">
                             <a href="{{ route('marks.index') }}" class="nav-link {{ (Route::is('marks.index')) ? 'active' : '' }}">Marks</a>
                         </li>
+                        {{-- Exam Date Sheet (owner-ordered module
+                             2026-10-22): the teacher's scoped read view --}}
+                        <li class="nav-item">
+                            <a href="{{ route('exam_dates.index') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['exam_dates.index', 'exam_dates.show', 'exam_dates.print', 'exam_dates.pdf']) ? 'active' : '' }}">Exam Date Sheet</a>
+                        </li>
                         {{-- Owner ruling 2026-10-22: Marksheet + Admit Cards
                              removed from the teacher menu — both are
                              student/office documents, and their routes
@@ -370,6 +375,15 @@
                         <a href="{{ route('users.index') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['users.index', 'users.show', 'users.edit']) ? 'active' : '' }}"><i class="icon-users4"></i> <span> Users</span></a>
                     </li>
 
+                    {{--Bulk Management (Phase A): staged CSV add/edit hub.
+                        Owner-ordered single menu item; Admin-only, like
+                        every bulk write (teamSAWrite).--}}
+                    @if(Qs::userIsAdmin())
+                    <li class="nav-item">
+                        <a href="{{ route('bulk.index') }}" class="nav-link {{ \Illuminate\Support\Str::startsWith(Route::currentRouteName() ?? '', 'bulk.') ? 'active' : '' }}"><i class="icon-upload"></i> <span> Bulk Management</span></a>
+                    </li>
+                    @endif
+
                     {{--Manage Classes--}}
                     <li class="nav-item">
                         <a href="{{ route('classes.index') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['classes.index','classes.edit']) ? 'active' : '' }}"><i class="icon-windows2"></i> <span> Classes</span></a>
@@ -407,7 +421,7 @@
                 {{--Exam--}}
                 @if(Qs::userIsTeamSAT())
                 <li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Examinations</div><i class="icon-menu" title="Examinations"></i></li>
-                <li class="nav-item nav-item-submenu {{ in_array(Route::currentRouteName(), ['exams.index', 'exams.edit', 'grades.index', 'grades.edit', 'marks.index', 'marks.manage', 'marks.bulk', 'marks.tabulation', 'marks.show', 'marks.batch_fix', 'admit_cards.index', 'admit_cards.print',]) ? 'nav-item-expanded nav-item-open' : '' }} ">
+                <li class="nav-item nav-item-submenu {{ in_array(Route::currentRouteName(), ['exams.index', 'exams.edit', 'grades.index', 'grades.edit', 'marks.index', 'marks.manage', 'marks.bulk', 'marks.tabulation', 'marks.show', 'admit_cards.index', 'admit_cards.print',]) ? 'nav-item-expanded nav-item-open' : '' }} ">
                     <a href="#" class="nav-link"><i class="icon-books"></i> <span> Exams</span></a>
 
                     <ul class="nav nav-group-sub" data-submenu-title="Manage Exams">
@@ -423,6 +437,15 @@
                             <li class="nav-item">
                                 <a href="{{ route('exams.index') }}"
                                    class="nav-link {{ (Route::is('exams.index')) ? 'active' : '' }}">Exam List</a>
+                            </li>
+                        @endif
+
+                        @if(Qs::userIsAdmin())
+                        {{--Exam Date Sheet (owner-ordered module 2026-10-22):
+                            the Admin sets the per-subject dates here--}}
+                            <li class="nav-item">
+                                <a href="{{ route('exam_dates.manage') }}"
+                                   class="nav-link {{ in_array(Route::currentRouteName(), ['exam_dates.manage', 'exam_dates.save']) ? 'active' : '' }}">Exam Date Sheet</a>
                             </li>
                         @endif
 
@@ -462,12 +485,7 @@
                                        class="nav-link {{ in_array(Route::currentRouteName(), ['grades.index', 'grades.edit']) ? 'active' : '' }}">Grades</a>
                             </li>
 
-                            {{--Marks Correction (labelled "Batch Fix" before Workstream BG)--}}
-                            @if(Qs::userIsTeamSAWrite())
-                            <li class="nav-item">
-                                <a href="{{ route('marks.batch_fix') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['marks.batch_fix']) ? 'active' : '' }}">Marks Correction</a>
-                            </li>
-                            @endif
+                            {{--Marks Correction menu item removed with the page (owner decision 2026-10-23).--}}
                         @endif
 
                     </ul>
@@ -485,22 +503,32 @@
                 <li class="nav-item">
                     <a href="{{ route('my_account') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['my_account']) ? 'active' : '' }}"><i class="icon-user"></i> <span>My Account</span></a>
                 </li>
+                {{-- Audit R-17: Ask Hackstra is a school-domain route —
+                     PlatformOnly bounces the Super Admin to /dashboard,
+                     so the item is hidden for SA (it keeps School
+                     Feedback + Platform Mail as its channels). --}}
+                @if(!Qs::userIsSuperAdmin())
                 <li class="nav-item">
                     <a href="{{ route('ask.index') }}" class="nav-link {{ (Route::is('ask.*')) ? 'active' : '' }}"><i class="icon-bubbles4"></i> <span>Ask Hackstra</span></a>
                 </li>
+                @endif
                 @if(in_array(Auth::user()->user_type, Qs::getStaff(['super_admin'])))
                 <li class="nav-item">
                     <a href="{{ route('my_payslips.index') }}" class="nav-link {{ (Route::is('my_payslips.*')) ? 'active' : '' }}"><i class="icon-coin-dollar"></i> <span>My Payslips</span></a>
                 </li>
                 @endif
-                {{-- Feedback (Workstream CW): every role can report to the
-                     school Admin and track its own reports --}}
+                {{-- Feedback (Workstream CW): school roles report to the
+                     school Admin and track their own reports. Super Admin
+                     excluded (audit R-17): those routes are school-domain
+                     and PlatformOnly bounces SA; SA uses School Feedback. --}}
+                @if(!Qs::userIsSuperAdmin())
                 <li class="nav-item">
                     <a href="{{ route('feedback.create') }}" class="nav-link {{ (Route::is('feedback.create')) ? 'active' : '' }}"><i class="icon-bubbles"></i> <span>Give Feedback</span></a>
                 </li>
                 <li class="nav-item">
                     <a href="{{ route('feedback.mine') }}" class="nav-link {{ (Route::is('feedback.mine') || Route::is('feedback.mine.show')) ? 'active' : '' }}"><i class="icon-stack"></i> <span>My Feedback</span></a>
                 </li>
+                @endif
 @endif
 
                 </ul>

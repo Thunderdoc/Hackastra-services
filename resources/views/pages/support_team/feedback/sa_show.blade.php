@@ -5,13 +5,13 @@
          report is read-only — the SA cannot edit the reporter's text.
          The SA records the handling status and a reply, which the
          reporter reads in My Feedback. --}}
-  <div class="l75-fb-detail">
-    <div class="card">
-        <div class="card-header header-elements-inline">
-            <h6 class="card-title">#{{ $item->id }} — {{ $item->title }}</h6>
+  <div class="l75-fb-detail l106">
+    <div class="l106-panel l106-fb-card">
+        <div class="l106-panel-head">
+            <h6>#{{ $item->id }} — {{ $item->title }}</h6>
             <a href="{{ route('feedback.sa_index') }}" class="btn btn-light btn-sm">Back to School Feedback</a>
         </div>
-        <div class="card-body">
+        <div class="l106-panel-body">
             <div class="mb-2">
                 @include('pages.support_team.feedback._chips', ['item' => $item])
                 <span class="text-muted ml-2">{{ $item->typeLabel() }}</span>
@@ -49,9 +49,9 @@
         </div>
     </div>
 
-    <div class="card">
-        <div class="card-header"><h6 class="card-title">Super Admin Handling</h6></div>
-        <div class="card-body">
+    <div class="l106-panel l106-fb-card">
+        <div class="l106-panel-head"><h6>Super Admin Handling</h6></div>
+        <div class="l106-panel-body">
             <form method="post" action="{{ route('feedback.sa_update', $item->id) }}">
                 @csrf @method('patch')
                 <div class="row">

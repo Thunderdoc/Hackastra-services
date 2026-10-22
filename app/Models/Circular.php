@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Helpers\Qs;
 use Eloquent;
 
 class Circular extends Eloquent
@@ -69,6 +70,27 @@ class Circular extends Eloquent
     public function publisher()
     {
         return $this->belongsTo(\App\User::class, 'published_by');
+    }
+
+    public function attachments()
+    {
+        return $this->hasMany(CircularAttachment::class, 'circular_id');
+    }
+
+    /**
+     * The official reference number printed on the document and
+     * shown in the list and detail views (Loop 105):
+     * <APPCODE>/CIR/<session>/<zero-padded id>, e.g.
+     * HA/CIR/2018-2019/0007. Derived deterministically from the
+     * record plus the CURRENT settings (school app code + current
+     * session), so every surface that renders it — list, detail,
+     * print, PDF — computes the identical string; nothing is
+     * stored, so it can never drift out of sync.
+     */
+    public function reference(): string
+    {
+        return Qs::getAppCode() . '/CIR/' . Qs::getCurrentSession()
+            . '/' . str_pad((string) $this->id, 4, '0', STR_PAD_LEFT);
     }
 
     /**

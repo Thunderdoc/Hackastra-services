@@ -12,9 +12,9 @@ use App\Repositories\MyClassRepo;
 /**
  * Batch M2 — the single marks computation pipeline.
  *
- * Extracted from MarkController@update / @batch_update so that every
- * writer (teacher entry save, the admin batch fix, future surfaces)
- * produces identical derived data. For each mark row it derives:
+ * Extracted from MarkController@update so that every writer
+ * (teacher entry save, the assignment internal-marks push, future
+ * surfaces) produces identical derived data. For each mark row it derives:
  *
  *   subject total  — via MarkScheme (configured components or legacy)
  *   tex{term}      — the dual-write: the subject total ALSO lands in
@@ -95,8 +95,10 @@ class MarkComputation
     }
 
     /**
-     * The admin batch-fix path (marks.batch_update): grades are
-     * re-derived from the ALREADY STORED tex{term} totals (raw scores
+     * Whole-class re-derivation (kept in code after the standalone
+     * Marks Correction page was removed by owner decision
+     * 2026-10-23): grades are re-derived from the ALREADY STORED
+     * tex{term} totals (raw scores
      * are not re-read), then records are recomputed. Semantics are
      * byte-identical to the controller code this replaces; for
      * configured subjects it stays correct because entry dual-writes

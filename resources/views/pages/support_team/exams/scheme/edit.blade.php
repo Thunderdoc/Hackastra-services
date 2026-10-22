@@ -8,12 +8,16 @@
         @endforeach
     </datalist>
 
-    <div class="card">
-        <div class="card-header header-elements-inline">
-            <span class="text-muted">{{ $ex->name }} · Term {{ $ex->term }} · {{ $ex->year }}</span>
-            {!! Qs::getPanelOptions() !!}
+    {{-- Loop 108: legacy card-header chrome dropped (panel options);
+         shared pat shell now. The editor itself (Loop 76 scheme
+         blocks, copy bar, presets, scripts section) is unchanged. --}}
+    <div class="pat-list">
+        <div class="pat-toolbar">
+            <div class="pat-toolbar-text">
+                <div class="pat-toolbar-sub">{{ $ex->name }} &middot; Term {{ $ex->term }} &middot; {{ $ex->year }}</div>
+            </div>
         </div>
-
+        <div class="card pat-card">
         <div class="card-body">
             @if($errors->any())
                 <div class="alert alert-danger border-0">
@@ -134,6 +138,7 @@
             @endforeach
 
             <a href="{{ route('exams.scheme', $ex->id) }}" class="btn btn-light"><i class="icon-arrow-left5 mr-1"></i> Back to Classes</a>
+        </div>
         </div>
     </div>
 

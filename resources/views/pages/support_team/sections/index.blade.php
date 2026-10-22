@@ -46,7 +46,7 @@
 
         @if($selected_class && $sections->count())
             <div class="table-responsive">
-            <table class="table">
+            <table class="table l108-stack">
                 <thead>
                 <tr>
                     <th>S/N</th>
@@ -59,15 +59,15 @@
                 <tbody>
                 @foreach($sections as $s)
                     <tr>
-                        <td>{{ $loop->iteration }}</td>
-                        <td>{{ $s->name }} @if($s->active)<i class="icon-check"></i>@endif</td>
-                        <td>{{ $s->my_class->name }}</td>
+                        <td data-label="S/N">{{ $loop->iteration }}</td>
+                        <td data-label="Name">{{ $s->name }} @if($s->active)<i class="icon-check"></i>@endif</td>
+                        <td data-label="Class">{{ $s->my_class->name }}</td>
                         @if($s->teacher_id)
-                            <td><a target="_blank" href="{{ route('users.show', Qs::hash($s->teacher_id)) }}">{{ $s->teacher->name }}</a></td>
+                            <td data-label="Teacher"><a target="_blank" href="{{ route('users.show', Qs::hash($s->teacher_id)) }}">{{ $s->teacher->name }}</a></td>
                         @else
-                            <td> - </td>
+                            <td data-label="Teacher"> - </td>
                         @endif
-                        <td class="text-center">
+                        <td class="text-center" data-label="Action">
                             @if(Qs::userIsTeamSAWrite())
                                 <a href="{{ route('sections.edit', $s->id) }}" class="btn btn-sm btn-primary"><i class="icon-pencil"></i> Edit</a>
                                 <button type="button" id="{{ $s->id }}" onclick="confirmDelete(this.id)" class="btn btn-sm btn-danger"><i class="icon-trash"></i> Delete</button>

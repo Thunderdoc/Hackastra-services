@@ -39,7 +39,12 @@ class SettingUpdate extends FormRequest
             'address' => 'required|string|min:8',
             'system_email' => 'sometimes|nullable|email',
             'lock_exam' => 'required',
-            'logo' => 'sometimes|nullable|image|mimes:jpeg,gif,png,jpg,webp|max:2048',
+            /* Loop 106: svg admitted for the LOGO only — the bundled
+               school mark is an SVG and the logo is rendered via
+               <img> (script-inert context). The content sniff in
+               SettingController still decides the stored extension
+               from the file's real type, never the client name. */
+            'logo' => 'sometimes|nullable|image|mimes:jpeg,gif,png,jpg,webp,svg|max:2048',
             'principal_name' => 'sometimes|nullable|string|max:120',
             /* Online fee payments (Workstream CU) — secrets are
                sometimes|nullable so leaving the field blank keeps the

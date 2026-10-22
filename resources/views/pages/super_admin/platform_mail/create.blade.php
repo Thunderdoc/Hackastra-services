@@ -3,7 +3,10 @@
 @section('content')
     {{-- Loop 75: rebuilt on the shared form_page pattern (was a
          legacy stacked card form). Same fields, ids, POST route and
-         audience-toggle script as before — presentation only. --}}
+         audience-toggle script as before — presentation only.
+         Loop 106: premium design scope (.l106-mail) — presentation
+         only, same form pattern and fields. --}}
+  <div class="l106 l106-mail">
     @if($mail_note)
         <div class="alert alert-warning">{{ $mail_note }}</div>
     @endif
@@ -80,6 +83,7 @@
             <button type="submit" class="btn btn-primary"><i class="icon-envelop5 mr-2"></i>Send Mail</button>
         @endslot
     @endcomponent
+  </div>{{-- /.l106-mail --}}
 @endsection
 
 @section('scripts')

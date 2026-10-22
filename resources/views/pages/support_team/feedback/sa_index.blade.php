@@ -4,7 +4,7 @@
     {{-- School Feedback (Workstream CW): the Super Admin sees ONLY
          what school Admins compiled and forwarded — never the raw
          school inbox. The Admin is the filter, per the workflow. --}}
-  <div class="l75-fb">
+  <div class="l75-fb l106">
     @component('partials.patterns.list_page')
         @slot('subtitle')
             Reports forwarded by the school Admin after de-duplication. Open one to record the fix or decision — the reporter sees your reply.

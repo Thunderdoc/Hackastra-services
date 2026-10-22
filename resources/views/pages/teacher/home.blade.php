@@ -1,13 +1,18 @@
 @extends('layouts.master')
 @section('page_title', 'Dashboard')
 @section('content')
-    {{-- Loop 79 (Teacher dashboard redesign): welcome strip, five real
+    {{-- Loop 79 (Teacher dashboard redesign): welcome strip, real
          KPI cards, Today's Timetable + right rail (Quick Actions,
          Today's Tasks, Notifications), then this month's attendance
          charts. Every value comes from HomeController@teacherHomeData
          (Loop 79 block) — period status is read from submitted
          registers, never inferred from the clock. Styling is Loop 79
-         CSS scoped to .t10-*. --}}
+         CSS scoped to .t10-*.
+         Audit Fix Wave 1: the KPI row is back to the reference's FOUR
+         cards — the fifth card ("Assignments to Grade") duplicated the
+         grading queue that Today's Tasks already lists; its count now
+         rides in the Today's Tasks panel sub-line so the figure stays
+         on the page in every state, including zero. --}}
     <div class="t10-welcome">
         <div class="t10-welcome-main">
             <h2>{{ $greeting }}, {{ Auth::user()->name }} <span aria-hidden="true">👋</span></h2>
@@ -20,7 +25,7 @@
         </aside>
     </div>
 
-    {{-- KPI row — five cards, all real counts for this teacher. --}}
+    {{-- KPI row — the reference's four cards, all real counts for this teacher. --}}
     <div class="t10-kpi-grid">
         <div class="t10-kpi t10-kpi-blue">
             <span class="t10-kpi-icon"><i class="icon-book"></i></span>
@@ -65,15 +70,6 @@
                 <span class="t10-kpi-label">Today&rsquo;s Periods</span>
                 <strong>{{ number_format($today_periods->count()) }}</strong>
                 <small>{{ $today_submitted }} submitted &middot; {{ $today_periods->count() - $today_submitted }} to take</small>
-            </span>
-            <i class="icon-arrow-right7 t10-kpi-chev"></i>
-        </a>
-        <a href="{{ route('assignments.index') }}" class="t10-kpi t10-kpi-pink">
-            <span class="t10-kpi-icon"><i class="icon-file-text2"></i></span>
-            <span class="t10-kpi-copy">
-                <span class="t10-kpi-label">Assignments to Grade</span>
-                <strong>{{ number_format($lms_to_grade ?? 0) }}</strong>
-                <small>Ungraded submissions</small>
             </span>
             <i class="icon-arrow-right7 t10-kpi-chev"></i>
         </a>
@@ -165,7 +161,12 @@
                         <span class="t10-panel-icon t10-tone-red"><i class="icon-alarm"></i></span>
                         <div>
                             <h5>Today&rsquo;s Tasks</h5>
-                            <p class="t10-panel-sub">Pending work, from your live records</p>
+                            {{-- Audit Fix Wave 1: the grading-queue count
+                                 folded here from the removed fifth KPI
+                                 card — always on the page, even at zero
+                                 (the task row below also carries it
+                                 whenever it is above zero). --}}
+                            <p class="t10-panel-sub">Pending work, from your live records &middot; <a href="{{ route('assignments.index') }}">{{ number_format($lms_to_grade ?? 0) }} {{ ($lms_to_grade ?? 0) === 1 ? 'assignment' : 'assignments' }} to grade</a></p>
                         </div>
                     </div>
                 </div>

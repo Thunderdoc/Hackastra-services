@@ -38,7 +38,8 @@ class DormController extends Controller
 
     public function edit($id)
     {
-        $d['dorm'] = $dorm = $this->dorm->find($id);
+        // Audit Fix Wave 1 (X-2): resolve raw OR Qs-hashed ids.
+        $d['dorm'] = $dorm = $this->dorm->find(Qs::resolveId($id));
 
         return !is_null($dorm) ? view('pages.support_team.dorms.edit', $d)
             : Qs::goWithDanger('dorms.index');
@@ -47,14 +48,14 @@ class DormController extends Controller
     public function update(DormUpdate $req, $id)
     {
         $data = $req->only(['name', 'description']);
-        $this->dorm->update($id, $data);
+        $this->dorm->update(Qs::resolveId($id), $data);
 
         return Qs::jsonUpdateOk();
     }
 
     public function destroy($id)
     {
-        $this->dorm->find($id)->delete();
+        $this->dorm->find(Qs::resolveId($id))->delete();
         return back()->with('flash_success', __('msg.delete_ok'));
     }
 

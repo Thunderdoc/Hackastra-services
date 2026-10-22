@@ -6061,3 +6061,357 @@ html.hk-dark .l100-attn-count{color:#eef4fb}
 html.hk-dark .l100-attn-danger{background:#3d1d22;color:#ff9d94}
 html.hk-dark .l100-attn-warning{background:#3a2c10;color:#f2c063}
 html.hk-dark .l100-attn-info{background:#16324f;color:#7fb0ff}
+
+/* =====================================================================
+   Loop 103 — Exam Date Sheet (2026-10-23). Owner-ordered module: the
+   Admin sets per-subject exam dates (exams/date-sheet/manage); the
+   scoped read page (exam-dates/show) serves teacher / student /
+   parent. Only these two pages use the .l103-* classes; the print
+   document is self-styled like every other official print. Dark
+   variants under html.hk-dark; no grid tracks (FIT rule).
+   ===================================================================== */
+.l103-toolbar{margin-bottom:18px}
+.l103-head{align-items:flex-start;display:flex;flex-wrap:wrap;gap:10px 18px;justify-content:space-between;margin-bottom:14px}
+.l103-actions{display:flex;flex-wrap:wrap;gap:8px}
+.l103-table thead th{border-bottom:2px solid #dbe3ec;color:#46586c;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase}
+.l103-table tbody td{vertical-align:middle}
+.l103-empty{border:1.5px dashed #c3cedd;border-radius:10px;margin-top:6px;padding:34px 22px;text-align:center}
+.l103-empty i{color:#7d8fa6;font-size:34px}
+.l103-empty h6{color:#172536;font-size:1rem;margin:10px 0 6px}
+.l103-empty p{margin-left:auto;margin-right:auto;max-width:520px}
+html.hk-dark .l103-table thead th{border-bottom-color:#1d3a55;color:#8fb0cc}
+html.hk-dark .l103-empty{border-color:#1d3a55}
+html.hk-dark .l103-empty i{color:#5b7a9c}
+html.hk-dark .l103-empty h6{color:#eef4fb}
+@media (max-width:575px){
+  .l103-head{flex-direction:column}
+  .l103-actions{width:100%}
+}
+
+/* ============================================================
+   Loop 108 — Redesign completion sweep (2026-10-23). The long
+   tail of utility pages joins the Loop system:
+   (1) .l108-stack — the responsive table treatment for the
+       simple CRUD/record tables (Subjects, Classes, Sections,
+       Grades, Dorms, Exams, Marking Scheme, Book Loans, My
+       Children, Promotion, My Admit Cards, My Attendance). On
+       phone widths the table stacks into labelled row-cards so
+       EVERY column stays visible — no clipped TEACHER column,
+       no sideways-hidden Action column (whose dropdown used to
+       break out of the card) — while desktop keeps the table.
+   (2) .l108-tabs — the tab-strip standard for the remaining
+       tabbed hub (Timetable Manage), replacing the old light
+       Limitless nav-tabs-highlight rendering.
+   (3) .l108-badges — the summary-badge sizing the attendance
+       pages used to carry as inline styles.
+   (4) .attendance-grid — the Daily Attendance sticky-student
+       column rules, moved out of the blade's inline <style>
+       (which hardcoded white, so the sticky column rendered
+       white in dark mode; hk-dark colours added).
+   ============================================================ */
+.l108-stack thead th{white-space:nowrap}
+@media (max-width:767.98px){
+  .l108-stack{display:block;width:100%}
+  .l108-stack thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .l108-stack tbody{display:block}
+  .l108-stack tr{display:block;background:#fff;border:1px solid #e4eaf1;border-radius:12px;margin-bottom:10px;padding:10px 14px}
+  .l108-stack.table-striped tbody tr{background:#fff}
+  .l108-stack td{display:flex;align-items:center;justify-content:space-between;gap:14px;border:0;border-top:1px solid #f0f3f7;padding:8px 0;text-align:right}
+  .l108-stack td:first-child{border-top:0}
+  .l108-stack td::before{content:attr(data-label);color:#718096;font-size:.72rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;text-align:left;flex:none}
+  .l108-stack td[colspan]{display:block;text-align:center}
+  .l108-stack td[colspan]::before{display:none}
+  .l108-stack td .form-control{max-width:230px}
+  .l108-stack td .dropdown-menu{max-width:80vw}
+  html.hk-dark .l108-stack tr{background:#0d2033;border-color:#1d3a55}
+  html.hk-dark .l108-stack.table-striped tbody tr{background:#0d2033}
+  html.hk-dark .l108-stack td{border-top-color:#1d3a55}
+  html.hk-dark .l108-stack td::before{color:#93a9bf}
+}
+.nav-tabs.l108-tabs{border-bottom:2px solid #e4eaf1;margin-bottom:18px}
+.nav-tabs.l108-tabs .nav-link{border:0;border-bottom:2px solid transparent;margin-bottom:-2px;color:#5c6f84;font-weight:600;padding:10px 14px}
+.nav-tabs.l108-tabs .nav-link:hover{color:#2867dc}
+.nav-tabs.l108-tabs .nav-link.active{background:transparent;border-bottom-color:#3478f6;color:#172536}
+html.hk-dark .nav-tabs.l108-tabs{border-bottom-color:#1d3a55}
+html.hk-dark .nav-tabs.l108-tabs .nav-link{color:#93a9bf}
+html.hk-dark .nav-tabs.l108-tabs .nav-link:hover{color:#9dc0ff}
+html.hk-dark .nav-tabs.l108-tabs .nav-link.active{color:#eef4fb;border-bottom-color:#3478f6}
+.l108-badges .badge{font-size:.85rem;padding:.5em .75em}
+.attendance-grid th.att-sticky,.attendance-grid td.att-sticky{position:sticky;left:0;z-index:1;background:#fff;box-shadow:1px 0 0 #ddd}
+.attendance-grid thead th.att-sticky{z-index:2;background:#f8f9fa}
+.attendance-grid td.att-status,.attendance-grid th.att-status{text-align:center}
+.attendance-grid .att-radio{margin:0}
+html.hk-dark .attendance-grid th.att-sticky,html.hk-dark .attendance-grid td.att-sticky{background:#11283f;box-shadow:1px 0 0 #1d3a55}
+html.hk-dark .attendance-grid thead th.att-sticky{background:#0d2033}
+
+/* Loop 108 (continued) — exam tools cluster + stacked-cell wrap.
+   The Manage Exams row tools (owner order 2026-10-23: the clipped
+   Actions dropdown is gone) render as an inline flex cluster that
+   wraps inside its cell on desktop and takes a full-width row of
+   its own inside a stacked phone card, so no button can render
+   partially off-screen at 390px. Stacked cells also wrap, so a
+   long value (email, topic) drops under its label instead of
+   squeezing it. */
+.l108-tools{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.l108-tools form{display:inline-flex}
+@media (max-width:767.98px){
+  .l108-stack td{flex-wrap:wrap}
+  .l108-stack td .l108-tools{flex:1 1 100%}
+}
+
+/* =====================================================================
+   Loop 106 — Super Admin platform pages premium pass (2026-10-23).
+   Owner-flagged live: the platform surfaces (Platform Overview,
+   Platform Users, Audit Log, Platform Mail, School Feedback) still
+   rendered in the old light Limitless style while every school page
+   had the dark-first design system. This loop gives the platform
+   pages that same system under one scope class (.l106) — deep-navy
+   panels, KPI cards, pill chips and status pills — in BOTH themes,
+   and closes the dark-coverage gaps the older dashboard-* layer
+   never had (snapshot tiles, checklist rows). Every rule is scoped
+   to .l106 so school pages are untouched. Platform Users data is
+   scoped server-side in UserController (SA sees platform accounts
+   only); these rules only present it.
+   ===================================================================== */
+
+/* ---- Shared platform panel / table / pill kit ---- */
+.l106-panel{background:#fff;border:1px solid #e4eaf1;border-radius:14px;overflow:hidden}
+.l106-panel-head{align-items:center;display:flex;gap:16px;justify-content:space-between;padding:20px 22px;border-bottom:1px solid #eef2f7}
+.l106-panel-head h5,.l106-panel-head h6{color:#172536;font-weight:700;margin:0}
+.l106-panel-head h5 i,.l106-panel-head h6 i{color:#3478f6;margin-right:8px}
+.l106-panel-head p{color:#718096;font-size:.8rem;margin:4px 0 0}
+.l106-panel-body{padding:20px 22px}
+.l106-count{background:#f5f7fb;border:1px solid #e4eaf1;border-radius:999px;color:#52657d;font-size:.75rem;font-weight:700;padding:5px 12px;white-space:nowrap}
+.l106-table{border-collapse:collapse;margin:0;width:100%}
+.l106-table th{border-bottom:1px solid #e4eaf1;color:#718096;font-size:.72rem;font-weight:700;letter-spacing:.04em;padding:12px 16px;text-align:left;text-transform:uppercase;white-space:nowrap}
+.l106-table td{border-bottom:1px solid #f0f4f8;color:#33475e;font-size:.85rem;padding:12px 16px;vertical-align:middle}
+.l106-table tbody tr:last-child td{border-bottom:0}
+.l106-table tbody tr:hover{background:#f8faff}
+.l106-table strong{color:#172536}
+.l106-code{background:#f5f7fb;border:1px solid #e4eaf1;border-radius:6px;color:#2867dc;font-size:.78rem;padding:2px 7px}
+.l106-nowrap{white-space:nowrap}
+.l106-empty{padding:14px 22px 24px}
+.l106-pager{border-top:1px solid #eef2f7;padding:14px 22px 6px}
+.l106-pill{border-radius:999px;display:inline-block;font-size:.72rem;font-weight:700;padding:4px 11px;white-space:nowrap}
+.l106-pill-ok{background:#e5f5ec;color:#177245}
+.l106-pill-warn{background:#fdf3e0;color:#9a6a12}
+.l106-pill-bad{background:#fdeaea;color:#b02a2a}
+.l106-fb-card{margin-bottom:20px}
+html.hk-dark .l106-panel{background:#0f2237;border-color:#1d3a55}
+html.hk-dark .l106-panel-head{border-color:#1d3a55}
+html.hk-dark .l106-panel-head h5,html.hk-dark .l106-panel-head h6{color:#eaf3fc}
+html.hk-dark .l106-panel-head p{color:#93a9bf}
+html.hk-dark .l106-count{background:#0c2033;border-color:#23425f;color:#a9c2da}
+html.hk-dark .l106-table th{border-color:#1d3a55;color:#7e97b1}
+html.hk-dark .l106-table td{border-color:#16304a;color:#c3d4e6}
+html.hk-dark .l106-table tbody tr:hover{background:#122a44}
+html.hk-dark .l106-table strong{color:#eaf3fc}
+html.hk-dark .l106-code{background:#0c2033;border-color:#23425f;color:#7fb0ff}
+html.hk-dark .l106-pager{border-color:#1d3a55}
+html.hk-dark .l106-pill-ok{background:#12382a;color:#5fd598}
+html.hk-dark .l106-pill-warn{background:#3a2c10;color:#f2c063}
+html.hk-dark .l106-pill-bad{background:#3d1d22;color:#ff9d94}
+html.hk-dark .l106 .form-control{background:#0c2033;border-color:#23425f;color:#e8f1f9}
+html.hk-dark .l106 .form-control:focus{border-color:#3478f6;color:#e8f1f9}
+html.hk-dark .l106 label{color:#c3d4e6}
+html.hk-dark .l106 .alert-info{background:#16324f;border-color:#23425f;color:#a9c9ef}
+html.hk-dark .l106 .text-muted{color:#7e97b1!important}
+
+/* ---- Platform Overview: hero, KPI cards, panels ---- */
+.l106-platform .dashboard-hero h2{font-weight:800;letter-spacing:-.01em}
+.l106-platform .dashboard-stat-card{border-radius:14px;box-shadow:0 1px 2px rgba(16,42,67,.05)}
+.l106-platform .dashboard-panel{border-radius:14px}
+.l106-platform .platform-snap-tile{background:#f8faff;border:1px solid #e4eaf1;border-radius:12px}
+.l106-platform .dashboard-event{border-bottom:1px solid #f0f4f8;padding:11px 22px}
+.l106-platform .dashboard-event:last-child{border-bottom:0}
+.l106-platform .dashboard-status{border-radius:999px;font-size:.72rem;font-weight:700;padding:4px 11px}
+.l106-platform .dashboard-status.status-success{background:#e5f5ec;color:#177245}
+.l106-platform .dashboard-status.status-warning{background:#fdf3e0;color:#9a6a12}
+html.hk-dark .l106-platform .dashboard-stat-card{background:#0f2237;border-color:#1d3a55;box-shadow:none}
+html.hk-dark .l106-platform .dashboard-panel{background:#0f2237;border-color:#1d3a55}
+html.hk-dark .l106-platform .dashboard-panel-heading h5{color:#eaf3fc}
+html.hk-dark .l106-platform .dashboard-muted{color:#93a9bf}
+html.hk-dark .l106-platform .dashboard-table{color:#c3d4e6}
+html.hk-dark .l106-platform .dashboard-table th{color:#7e97b1}
+html.hk-dark .l106-platform .dashboard-table td,html.hk-dark .l106-platform .dashboard-table th{border-color:#16304a}
+html.hk-dark .l106-platform .platform-snap-tile{background:#0c2033;border-color:#23425f}
+html.hk-dark .l106-platform .platform-snap-copy small{color:#93a9bf}
+html.hk-dark .l106-platform .platform-snap-copy strong{color:#eaf3fc}
+html.hk-dark .l106-platform .dashboard-event{border-color:#16304a}
+html.hk-dark .l106-platform .dashboard-event .event-copy strong{color:#eaf3fc}
+html.hk-dark .l106-platform .dashboard-status.status-success{background:#12382a;color:#5fd598}
+html.hk-dark .l106-platform .dashboard-status.status-warning{background:#3a2c10;color:#f2c063}
+html.hk-dark .l106-platform .dashboard-empty{color:#7e97b1}
+html.hk-dark .l106-platform .dashboard-action-grid a{background:#0c2033;border-color:#23425f;color:#7fb0ff}
+html.hk-dark .l106-platform .dashboard-action-grid a:hover{background:#16324f;color:#a9c9ef}
+
+/* ---- Feedback inbox stat cards inside the platform scope ---- */
+html.hk-dark .l106 .dashboard-stat-card{background:#0f2237;border-color:#1d3a55}
+html.hk-dark .l106 .dashboard-stat-label{color:#93a9bf}
+html.hk-dark .l106 .dashboard-stat-copy strong{color:#eaf3fc}
+html.hk-dark .l106 .dashboard-stat-copy small{color:#7e97b1}
+
+/* ---- Platform Users: pill chips, table, badges, forms ---- */
+.l106-users .pat-toolbar-sub{color:#52657d;font-size:.9rem}
+.l106-users .pat-list .btn{border-radius:999px;font-weight:600;padding:8px 18px}
+.l106-users .pat-list .btn-primary{background:#2563eb;border-color:#2563eb}
+.l106-users .pat-list .table th{border-bottom:2px solid #e4eaf1;color:#718096;font-size:.72rem;letter-spacing:.04em;text-transform:uppercase}
+.l106-users .pat-list .table td{border-color:#f0f4f8;color:#33475e;vertical-align:middle}
+.l106-users .pat-list .table tbody tr:hover{background:#f8faff}
+.l106-users .pat-form-section{background:#fff;border:1px solid #e4eaf1;border-radius:14px}
+html.hk-dark .l106-users .pat-toolbar-sub{color:#93a9bf}
+html.hk-dark .l106-users .pat-list .card,html.hk-dark .l106-users .pat-form-section{background:#0f2237;border-color:#1d3a55}
+html.hk-dark .l106-users .pat-list .btn-light{background:#0c2033;border-color:#23425f;color:#c3d4e6}
+html.hk-dark .l106-users .pat-list .btn-light:hover{background:#16324f;color:#eaf3fc}
+html.hk-dark .l106-users .pat-list .table{color:#c3d4e6}
+html.hk-dark .l106-users .pat-list .table th{border-color:#1d3a55;color:#7e97b1}
+html.hk-dark .l106-users .pat-list .table td{border-color:#16304a;color:#c3d4e6}
+html.hk-dark .l106-users .pat-list .table tbody tr:hover{background:#122a44}
+html.hk-dark .l106-users .badge-success{background:#12382a;color:#5fd598}
+html.hk-dark .l106-users .badge-warning{background:#3a2c10;color:#f2c063}
+html.hk-dark .l106-users .badge-danger{background:#3d1d22;color:#ff9d94}
+html.hk-dark .l106-users .pat-form-section-title{color:#eaf3fc}
+html.hk-dark .l106-users .pat-field label{color:#c3d4e6}
+html.hk-dark .l106-users .form-control{background:#0c2033;border-color:#23425f;color:#e8f1f9}
+html.hk-dark .l106-users .form-control:focus{border-color:#3478f6;color:#e8f1f9}
+html.hk-dark .l106-users .form-text{color:#7e97b1}
+html.hk-dark .l106-users .dropdown-menu{background:#0f2237;border-color:#23425f}
+html.hk-dark .l106-users .dropdown-item{color:#c3d4e6}
+html.hk-dark .l106-users .dropdown-item:hover{background:#16324f;color:#eaf3fc}
+
+@media (max-width:767px){
+  .l106-panel-head{align-items:flex-start;flex-direction:column}
+  .l106-table th,.l106-table td{padding:10px 12px}
+  .l106-users .pat-list .btn{padding:7px 14px}
+}
+
+/* =====================================================================
+   Loop 106 (mobile) — phone pass for the platform pages (2026-10-23,
+   owner order 01:30 IST: mobile is the top priority, verified at
+   390px). Guarantees, all inside the .l106 scope so school pages are
+   untouched: the PAGE never scrolls sideways (wide tables scroll
+   inside their own .table-responsive region at a readable min-width
+   instead of crushing or clipping columns), filter chips stay
+   tappable and wrap cleanly, KPI/action grids re-track for a phone,
+   panel headings stack instead of squeezing, and no panel touches
+   the screen edge (panels live inside the padded content area and
+   keep their radius at every width).
+   ===================================================================== */
+.l106{max-width:100%}
+.l106 .table-responsive{-webkit-overflow-scrolling:touch}
+.l106-table{min-width:620px}
+.l106-users .pat-list .table{min-width:660px}
+.l106-panel-head .btn{white-space:nowrap}
+
+@media (max-width:767px){
+  .l106-platform .dashboard-hero h2{font-size:1.5rem;line-height:1.25}
+  .l106-platform .dashboard-panel-heading{flex-wrap:wrap;gap:8px}
+  .l106-platform .dashboard-event{align-items:flex-start;flex-wrap:wrap;gap:6px}
+  .l106-platform .dashboard-action-grid{grid-template-columns:repeat(3,minmax(0,1fr));padding:0 16px 16px}
+  .l106-platform .platform-snap-tile{padding:12px}
+  .l106-users .pat-toolbar{flex-wrap:wrap;gap:10px}
+  .l106-users .pat-list .table td,.l106-users .pat-list .table th{padding:10px 12px}
+  .l106-users .pat-list .table td{font-size:.84rem}
+  .l106-fb-card .l106-panel-body{padding:16px}
+  html.hk-dark .l106-users .pat-list .table tbody tr:hover{background:transparent}
+}
+@media (max-width:575px){
+  .l106-panel-head{padding:16px}
+  .l106-panel-body{padding:16px}
+  .l106-pager{padding:12px 16px 4px}
+  .l106-empty{padding:10px 16px 18px}
+  .l106-count{font-size:.7rem;padding:4px 10px}
+  .l106-platform .dashboard-action-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .l106-platform .dashboard-stat-copy small{font-size:.78rem;line-height:1.45}
+  .l106-users .pat-list .btn{font-size:.84rem;padding:7px 13px}
+  .l106-users .pat-toolbar .btn{width:100%}
+}
+
+/* ================================================================
+   Audit Fix Wave 1 — Teacher dashboard KPI grid returns to the
+   Loop 79 reference's FOUR cards (the fifth card, "Assignments to
+   Grade", was removed from the blade; its count now rides in the
+   Today's Tasks panel). The base rule (Loop 79) sized the grid for
+   five; this override re-declares the base columns plus the same
+   responsive steps so the cascade past this point matches the old
+   behaviour at every breakpoint.
+   ================================================================ */
+.t10-kpi-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media (max-width:1399px){
+  .t10-kpi-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media (max-width:767px){
+  .t10-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:575px){
+  .t10-kpi-grid{grid-template-columns:minmax(0,1fr)}
+}
+
+/* =====================================================================
+   Loop 107 — Mobile fit & quality (2026-10-23). Owner-flagged on the
+   live phone build, mechanisms pinned by runtime measurement + the
+   batch146 audit (R-03..R-10):
+   (1) Row-action dropdown menus parented inside .table-responsive /
+       scroll cards are amputated by the overflow container — Manage
+       Exams' Actions menu showed 3 of 5 items at 360px, 390px AND
+       1440px (menu bottom 439 vs container bottom 345); menus with
+       dropdown-menu-left in right-most columns (/users x18, students
+       list, payments/manage) depend on sideways scroll state to land
+       on screen at all. On phones (<=767px) an open content dropdown
+       now renders as a fixed bottom sheet: position:fixed escapes
+       every overflow ancestor, the sheet is always fully inside the
+       viewport, and items get taller tap targets. Desktop unchanged.
+   (2) Data tables "fit" only by scrolling sideways inside their
+       cards (Fee Defaulters +649px at 360px, students list +565px,
+       accountant dashboard +387px). Phone table metrics compact
+       (0.82rem, .45/.5rem cells) so far fewer pixels hide off-edge.
+   (3) Android Chrome text autosizing (font boosting) was disabled
+       nowhere; html text-size-adjust:100% stops phone-only widening.
+   (4) Sticky form action bars (.pat-actionbar) may wrap instead of
+       clipping their first button when labels run long (R-09 family).
+   (5) payments/manage print: the sheet is now a real document table
+       (.pay-mgr-print-*) fed by the controller's print assembly; the
+       screen list is print-hidden (see manage.blade.php).
+   ===================================================================== */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+@media (max-width:767px){
+  .content .dropdown-menu.show{position:fixed!important;top:auto!important;bottom:10px!important;left:10px!important;right:10px!important;width:auto!important;min-width:0!important;max-height:62vh;overflow-y:auto;transform:none!important;z-index:2060;border-radius:12px;box-shadow:0 10px 34px rgba(2,12,27,.35)}
+  .content .dropdown-menu.show .dropdown-item{padding-top:.62rem;padding-bottom:.62rem}
+  .content .table{font-size:.82rem}
+  .content .table>thead>tr>th,.content .table>tbody>tr>td,.content .table>tfoot>tr>td{padding:.45rem .5rem}
+  .table-responsive,.l7-table-scroll,.l17-list-scroll,.mp94-table-wrap,.t10-table-wrap{scrollbar-width:thin}
+  .pat-actionbar{flex-wrap:wrap;row-gap:8px}
+}
+.pay-mgr-print-only{display:none}
+@media print{
+  .pay-mgr-print-only{display:block!important}
+  .pay-mgr-print-table{width:100%;border-collapse:collapse;font-size:11.5px;color:#172536}
+  .pay-mgr-print-table th,.pay-mgr-print-table td{border:1px solid #cfd8e3;padding:5px 7px;text-align:left;vertical-align:top}
+  .pay-mgr-print-table thead{display:table-header-group}
+  .pay-mgr-print-table thead th{background:#eef2f7;font-weight:700;white-space:nowrap}
+  .pay-mgr-print-table tfoot td{font-weight:700;background:#f7fafc;border-top:2px solid #94a3b8}
+  .pay-mgr-print-table tbody tr{break-inside:avoid}
+  .pay-mgr-print-table .r{text-align:right;white-space:nowrap}
+}
+
+/* =====================================================================
+   Loop 110 — Final-pass fixes (2026-10-23, parent integration).
+   (1) .lms-grade-col: the assignments grading column's desktop
+       min-width, moved out of the blade's inline <th> style (audit
+       R-10 — the inline style also forced the phone table ~610px
+       wide and pushed the grading Save button off-screen). The
+       submissions table now carries .l108-stack, so on phones each
+       submission is a card and the grading form takes the full row.
+   (2) .hk-ini: the shared initials tile for the photo rule (real
+       photo or initials — never the stock silhouette) on the
+       surfaces Fix Wave 1 listed as leftovers (users index/show,
+       parent children, admit-cards picker, marks bulk, promotion,
+       graduated).
+   ===================================================================== */
+.lms-grade-col{min-width:290px}
+.hk-ini{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:#3478f6;color:#fff;font-weight:700;line-height:1;vertical-align:middle}
+@media (max-width:767.98px){
+  .lms-grade-col{min-width:0}
+  .l108-stack td .lms-grade-form{flex:1 1 100%;text-align:left}
+  .l108-stack td .lms-grade-fields{width:100%}
+}

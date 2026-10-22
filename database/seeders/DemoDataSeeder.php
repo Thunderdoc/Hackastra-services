@@ -880,6 +880,7 @@ class DemoDataSeeder extends Seeder
         DB::table('users')->insert([
             'name' => 'Revathi Subramanian',
             'email' => 'librarian@hackstra.app',
+            'phone' => '+91 98110 00006',
             'username' => 'librarian',
             'password' => bcrypt('hackstra'),
             'user_type' => 'librarian',

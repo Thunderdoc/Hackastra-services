@@ -85,8 +85,7 @@
                                 <tr>
                                     <td>{{ $loop->iteration }}</td>
                                     <td>
-                                        <img class="rounded-circle" style="height: 40px; width: 40px;" src="{{ $sr->user->photo }}" alt="photo"
-                                             onerror="this.onerror=null;this.src='{{ asset('global_assets/images/user.png') }}'">
+                                        @if(Qs::hasRealPhoto($sr->user->photo))<img class="rounded-circle" style="height: 40px; width: 40px;" src="{{ $sr->user->photo }}" alt="photo">@else<span class="hk-ini" style="width:40px;height:40px;font-size:.8rem" aria-hidden="true">{{ Qs::initials($sr->user->name) }}</span>@endif
                                     </td>
                                     <td>{{ $sr->user->name }}</td>
                                     <td>{{ $sr->adm_no }}</td>

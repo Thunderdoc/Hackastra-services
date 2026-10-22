@@ -44,7 +44,11 @@
 
         @if($selected_class && $subjects->count())
             <div class="table-responsive">
-            <table class="table">
+            {{-- Loop 108: l108-stack — on phone widths this table
+                 stacks into labelled rows (every column stays
+                 visible; the TEACHER column no longer clips off the
+                 right edge and SHORT NAME no longer wraps broken). --}}
+            <table class="table l108-stack">
                 <thead>
                 <tr>
                     <th>S/N</th>
@@ -58,12 +62,12 @@
                 <tbody>
                 @foreach($subjects as $s)
                     <tr>
-                        <td>{{ $loop->iteration }}</td>
-                        <td>{{ $s->name }}</td>
-                        <td>{{ $s->slug }}</td>
-                        <td>{{ $s->my_class->name }}</td>
-                        <td>{{ $s->teacher->name }}</td>
-                        <td class="text-center">
+                        <td data-label="S/N">{{ $loop->iteration }}</td>
+                        <td data-label="Name">{{ $s->name }}</td>
+                        <td data-label="Short Name">{{ $s->slug }}</td>
+                        <td data-label="Class">{{ $s->my_class->name }}</td>
+                        <td data-label="Teacher">{{ $s->teacher->name }}</td>
+                        <td class="text-center" data-label="Action">
                             @if(Qs::userIsTeamSAWrite())
                                 <a href="{{ route('subjects.edit', $s->id) }}" class="btn btn-sm btn-primary"><i class="icon-pencil"></i> Edit</a>
                                 <button type="button" id="{{ $s->id }}" onclick="confirmDelete(this.id)" class="btn btn-sm btn-danger"><i class="icon-trash"></i> Delete</button>

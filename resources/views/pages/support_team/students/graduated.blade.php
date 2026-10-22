@@ -50,7 +50,7 @@
                 @foreach($students as $s)
                     <tr>
                         <td>{{ $loop->iteration }}</td>
-                        <td><img class="rounded-circle" style="height: 40px; width: 40px;" src="{{ $s->user->photo }}" alt="photo"></td>
+                        <td>@if(Qs::hasRealPhoto($s->user->photo))<img class="rounded-circle" style="height: 40px; width: 40px;" src="{{ $s->user->photo }}" alt="photo">@else<span class="hk-ini" style="width:40px;height:40px;font-size:.8rem" aria-hidden="true">{{ Qs::initials($s->user->name) }}</span>@endif</td>
                         <td>{{ $s->user->name }}</td>
                         <td>{{ $s->adm_no }}</td>
                         <td>{{ $s->my_class->name.' '.$s->section->name }}</td>

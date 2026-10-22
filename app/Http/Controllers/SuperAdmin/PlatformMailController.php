@@ -40,9 +40,15 @@ class PlatformMailController extends Controller
 
     public function create()
     {
-        $d['accounts'] = User::whereNotNull('email')->where('email', '<>', '')
+        $d['accounts'] = User::whereIn('user_type', ['super_admin', 'admin'])
+            ->whereNotNull('email')->where('email', '<>', '')
             ->orderBy('name', 'asc')->get(['id', 'name', 'email', 'user_type']);
-        $d['user_types'] = $this->user->getAllTypes();
+        /* Audit R-18 (2026-10-23): the composer listed ALL 55 users
+           (37 students included) and every role under "platform
+           accounts" copy. The lists now carry platform accounts only
+           — the same scope resolveRecipients() enforces server-side. */
+        $d['user_types'] = $this->user->getAllTypes()
+            ->whereIn('title', ['super_admin', 'admin'])->values();
         $d['mail_note'] = $this->degradationNote();
 
         return view('pages.super_admin.platform_mail.create', $d);
@@ -136,7 +142,13 @@ class PlatformMailController extends Controller
      */
     protected function resolveRecipients(Request $req): array
     {
-        $base = User::whereNotNull('email')->where('email', '<>', '')
+        /* Audit R-18: platform mail reaches platform accounts only
+           (super_admin + admin) — enforced here, on the shared base
+           query, so a crafted POST (a student id, role=student) can
+           never widen the audience beyond what the composer offers;
+           it resolves to an empty set and the send is refused. */
+        $base = User::whereIn('user_type', ['super_admin', 'admin'])
+            ->whereNotNull('email')->where('email', '<>', '')
             ->where(function ($q) {
                 $q->whereNull('status')->orWhere('status', '!=', User::STATUS_TERMINATED);
             });

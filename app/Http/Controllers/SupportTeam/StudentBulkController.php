@@ -145,7 +145,7 @@ class StudentBulkController extends Controller
             $rowErrors = $this->validateRow($row, $lookups, $seenEmails);
 
             if ($rowErrors) {
-                $errors[] = ['row' => $line, 'name' => $row['name'] ?? '', 'messages' => $rowErrors];
+                $errors[] = ['row' => $line, 'name' => $row['name'] ?? '', 'messages' => array_column($rowErrors, 'message')];
                 continue;
             }
 
@@ -176,11 +176,16 @@ class StudentBulkController extends Controller
     /**
      * Validate one CSV row against the same rules StudentRecordCreate
      * applies to the single-student form, resolving every *_by-name
-     * reference to its id. Returns a list of human-readable problems
-     * (empty = row is importable). Resolved ids are written back into
-     * $row so createStudent() can use them verbatim.
+     * reference to its id. Returns a list of STRUCTURED problems
+     * (Bulk System Phase A, audit §4.2): each entry is
+     * ['field' => …, 'value' => supplied cell, 'message' => …] with the
+     * message texts unchanged from the original strings — the legacy
+     * import page flattens them with array_column(…, 'message'), the
+     * staged bulk engine consumes the structure. Empty = importable.
+     * Resolved ids are written back into $row so createStudent() can
+     * use them verbatim.
      */
-    protected function validateRow(array &$row, array $lookups, array $seenEmails): array
+    public function validateRow(array &$row, array $lookups, array $seenEmails): array
     {
         $errors = [];
         $get = function ($key) use ($row) {
@@ -190,47 +195,47 @@ class StudentBulkController extends Controller
         // name — required|string|min:6|max:150
         $name = $get('name');
         if ($name === '') {
-            $errors[] = 'Name is required.';
+            $errors[] = ['field' => 'name', 'value' => $name, 'message' => 'Name is required.'];
         } elseif (Str::length($name) < 6 || Str::length($name) > 150) {
-            $errors[] = 'Name must be between 6 and 150 characters.';
+            $errors[] = ['field' => 'name', 'value' => $name, 'message' => 'Name must be between 6 and 150 characters.'];
         }
 
         // gender — required; the form offers Male / Female only
         $gender = strtolower($get('gender'));
         if ($gender === '') {
-            $errors[] = 'Gender is required.';
+            $errors[] = ['field' => 'gender', 'value' => $get('gender'), 'message' => 'Gender is required.'];
         } elseif (in_array($gender, ['male', 'm'], true)) {
             $row['gender'] = 'Male';
         } elseif (in_array($gender, ['female', 'f'], true)) {
             $row['gender'] = 'Female';
         } else {
-            $errors[] = 'Gender must be Male or Female.';
+            $errors[] = ['field' => 'gender', 'value' => $get('gender'), 'message' => 'Gender must be Male or Female.'];
         }
 
         // address — required|string|min:6|max:120
         $address = $get('address');
         if ($address === '') {
-            $errors[] = 'Address is required.';
+            $errors[] = ['field' => 'address', 'value' => $address, 'message' => 'Address is required.'];
         } elseif (Str::length($address) < 6 || Str::length($address) > 120) {
-            $errors[] = 'Address must be between 6 and 120 characters.';
+            $errors[] = ['field' => 'address', 'value' => $address, 'message' => 'Address must be between 6 and 120 characters.'];
         }
 
         // email — sometimes|nullable|email|max:100|unique:users
         $email = $get('email');
         if ($email !== '') {
             if (!filter_var($email, FILTER_VALIDATE_EMAIL) || Str::length($email) > 100) {
-                $errors[] = 'Email is not a valid email address.';
+                $errors[] = ['field' => 'email', 'value' => $email, 'message' => 'Email is not a valid email address.'];
             } elseif (in_array(strtolower($email), $seenEmails, true)) {
-                $errors[] = 'Email is duplicated within this file.';
+                $errors[] = ['field' => 'email', 'value' => $email, 'message' => 'Email is duplicated within this file.'];
             } elseif (User::where('email', $email)->exists()) {
-                $errors[] = 'Email already exists in the system.';
+                $errors[] = ['field' => 'email', 'value' => $email, 'message' => 'Email already exists in the system.'];
             }
         }
 
         // phone — sometimes|nullable|string|min:6|max:20
         $phone = $get('phone');
         if ($phone !== '' && (Str::length($phone) < 6 || Str::length($phone) > 20)) {
-            $errors[] = 'Phone must be between 6 and 20 characters.';
+            $errors[] = ['field' => 'phone', 'value' => $phone, 'message' => 'Phone must be between 6 and 20 characters.'];
         }
 
         // dob — optional user field on the form (date picker)
@@ -238,7 +243,7 @@ class StudentBulkController extends Controller
         if ($dob !== '') {
             $ts = strtotime($dob);
             if ($ts === false) {
-                $errors[] = 'Date of Birth is not a recognisable date (use YYYY-MM-DD).';
+                $errors[] = ['field' => 'dob', 'value' => $dob, 'message' => 'Date of Birth is not a recognisable date (use YYYY-MM-DD).'];
             } else {
                 $row['dob'] = date('Y-m-d', $ts);
             }
@@ -247,23 +252,23 @@ class StudentBulkController extends Controller
         // year_admitted — required (a year, as in the form's year select)
         $year = $get('year_admitted');
         if ($year === '') {
-            $errors[] = 'Year Admitted is required.';
+            $errors[] = ['field' => 'year_admitted', 'value' => $year, 'message' => 'Year Admitted is required.'];
         } elseif (!preg_match('/^\d{4}$/', $year)) {
-            $errors[] = 'Year Admitted must be a 4-digit year.';
+            $errors[] = ['field' => 'year_admitted', 'value' => $year, 'message' => 'Year Admitted must be a 4-digit year.'];
         }
 
         // adm_no — sometimes|nullable|alpha_num|min:3|max:150
         $admNo = $get('adm_no');
         if ($admNo !== '' && (!ctype_alnum($admNo) || Str::length($admNo) < 3 || Str::length($admNo) > 150)) {
-            $errors[] = 'Admission Number must be alphanumeric, 3–150 characters.';
+            $errors[] = ['field' => 'adm_no', 'value' => $admNo, 'message' => 'Admission Number must be alphanumeric, 3–150 characters.'];
         }
 
         // nationality — required, by name
         $nal = $lookups['nationals'][strtolower($get('nationality'))] ?? null;
         if ($get('nationality') === '') {
-            $errors[] = 'Nationality is required.';
+            $errors[] = ['field' => 'nationality', 'value' => $get('nationality'), 'message' => 'Nationality is required.'];
         } elseif (!$nal) {
-            $errors[] = "Nationality '{$get('nationality')}' was not found.";
+            $errors[] = ['field' => 'nationality', 'value' => $get('nationality'), 'message' => "Nationality '{$get('nationality')}' was not found."];
         } else {
             $row['nal_id'] = $nal->id;
         }
@@ -271,20 +276,20 @@ class StudentBulkController extends Controller
         // state — required, by name
         $state = $lookups['states'][strtolower($get('state'))] ?? null;
         if ($get('state') === '') {
-            $errors[] = 'State is required.';
+            $errors[] = ['field' => 'state', 'value' => $get('state'), 'message' => 'State is required.'];
         } elseif (!$state) {
-            $errors[] = "State '{$get('state')}' was not found.";
+            $errors[] = ['field' => 'state', 'value' => $get('state'), 'message' => "State '{$get('state')}' was not found."];
         } else {
             $row['state_id'] = $state->id;
         }
 
         // lga — required, by name, and must belong to the chosen state
         if ($get('lga') === '') {
-            $errors[] = 'LGA is required.';
+            $errors[] = ['field' => 'lga', 'value' => $get('lga'), 'message' => 'LGA is required.'];
         } elseif ($state) {
             $lga = $lookups['lgas'][$state->id][strtolower($get('lga'))] ?? null;
             if (!$lga) {
-                $errors[] = "LGA '{$get('lga')}' was not found in {$state->name}.";
+                $errors[] = ['field' => 'lga', 'value' => $get('lga'), 'message' => "LGA '{$get('lga')}' was not found in {$state->name}."];
             } else {
                 $row['lga_id'] = $lga->id;
             }
@@ -294,7 +299,7 @@ class StudentBulkController extends Controller
         if ($get('blood_group') !== '') {
             $bg = $lookups['blood_groups'][strtolower($get('blood_group'))] ?? null;
             if (!$bg) {
-                $errors[] = "Blood Group '{$get('blood_group')}' was not found.";
+                $errors[] = ['field' => 'blood_group', 'value' => $get('blood_group'), 'message' => "Blood Group '{$get('blood_group')}' was not found."];
             } else {
                 $row['bg_id'] = $bg->id;
             }
@@ -305,24 +310,24 @@ class StudentBulkController extends Controller
         // (StudentRecordController@store refuses without one too).
         $class = $lookups['classes'][strtolower($get('class'))] ?? null;
         if ($get('class') === '') {
-            $errors[] = 'Class is required.';
+            $errors[] = ['field' => 'class', 'value' => $get('class'), 'message' => 'Class is required.'];
         } elseif (!$class) {
-            $errors[] = "Class '{$get('class')}' was not found.";
+            $errors[] = ['field' => 'class', 'value' => $get('class'), 'message' => "Class '{$get('class')}' was not found."];
         } else {
             $row['my_class_id'] = $class->id;
             $row['class_type'] = $this->my_class->findTypeByClass($class->id);
             if (is_null($row['class_type'])) {
-                $errors[] = "Class '{$class->name}' has no class type configured.";
+                $errors[] = ['field' => 'class', 'value' => $get('class'), 'message' => "Class '{$class->name}' has no class type configured."];
             }
         }
 
         // section — required, by name, within the chosen class
         if ($get('section') === '') {
-            $errors[] = 'Section is required.';
+            $errors[] = ['field' => 'section', 'value' => $get('section'), 'message' => 'Section is required.'];
         } elseif ($class) {
             $section = $lookups['sections'][$class->id][strtolower($get('section'))] ?? null;
             if (!$section) {
-                $errors[] = "Section '{$get('section')}' was not found in class {$class->name}.";
+                $errors[] = ['field' => 'section', 'value' => $get('section'), 'message' => "Section '{$get('section')}' was not found in class {$class->name}."];
             } else {
                 $row['section_id'] = $section->id;
             }
@@ -332,7 +337,7 @@ class StudentBulkController extends Controller
         if ($get('parent_email') !== '') {
             $parent = User::where('email', $get('parent_email'))->where('user_type', 'parent')->first();
             if (!$parent) {
-                $errors[] = "Parent email '{$get('parent_email')}' does not match an existing parent account.";
+                $errors[] = ['field' => 'parent_email', 'value' => $get('parent_email'), 'message' => "Parent email '{$get('parent_email')}' does not match an existing parent account."];
             } else {
                 $row['my_parent_id'] = $parent->id;
             }
@@ -342,7 +347,7 @@ class StudentBulkController extends Controller
         if ($get('dorm') !== '') {
             $dorm = $lookups['dorms'][strtolower($get('dorm'))] ?? null;
             if (!$dorm) {
-                $errors[] = "Dormitory '{$get('dorm')}' was not found.";
+                $errors[] = ['field' => 'dorm', 'value' => $get('dorm'), 'message' => "Dormitory '{$get('dorm')}' was not found."];
             } else {
                 $row['dorm_id'] = $dorm->id;
             }
@@ -356,7 +361,7 @@ class StudentBulkController extends Controller
      * transaction, exactly as StudentRecordController@store does.
      * Returns the generated admission number (username).
      */
-    protected function createStudent(array $row, array $seenUsernames): string
+    public function createStudent(array $row, array $seenUsernames): string
     {
         $admNo = isset($row['adm_no']) ? trim((string) $row['adm_no']) : '';
         $username = strtoupper(
@@ -461,7 +466,7 @@ class StudentBulkController extends Controller
     /**************** HELPERS ****************/
 
     /** First CSV row → normalised header names (BOM-safe). */
-    protected function readHeaderRow($handle): ?array
+    public function readHeaderRow($handle): ?array
     {
         $headers = fgetcsv($handle);
         if ($headers === false || $headers === [null]) {
@@ -476,7 +481,7 @@ class StudentBulkController extends Controller
         }, $headers);
     }
 
-    protected function rowIsBlank(array $cells): bool
+    public function rowIsBlank(array $cells): bool
     {
         foreach ($cells as $cell) {
             if (trim((string) $cell) !== '') {
@@ -487,7 +492,7 @@ class StudentBulkController extends Controller
     }
 
     /** Zip a CSV row with the header names; unknown columns are ignored. */
-    protected function mapRow(array $headers, array $cells): array
+    public function mapRow(array $headers, array $cells): array
     {
         $row = [];
         foreach ($headers as $i => $name) {
@@ -499,7 +504,7 @@ class StudentBulkController extends Controller
     }
 
     /** Name → model lookups, all keyed by lower-cased name. */
-    protected function buildLookups(): array
+    public function buildLookups(): array
     {
         $byName = function ($models) {
             $out = [];

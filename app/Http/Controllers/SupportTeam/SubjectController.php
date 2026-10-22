@@ -54,7 +54,8 @@ class SubjectController extends Controller
 
     public function edit($id)
     {
-        $d['s'] = $sub = $this->my_class->findSubject($id);
+        // Audit Fix Wave 1 (X-2): resolve raw OR Qs-hashed ids.
+        $d['s'] = $sub = $this->my_class->findSubject(Qs::resolveId($id));
         $d['my_classes'] = $this->my_class->all();
         $d['teachers'] = $this->user->getUserByType('teacher');
 
@@ -64,14 +65,14 @@ class SubjectController extends Controller
     public function update(SubjectUpdate $req, $id)
     {
         $data = $req->all();
-        $this->my_class->updateSubject($id, $data);
+        $this->my_class->updateSubject(Qs::resolveId($id), $data);
 
         return Qs::jsonUpdateOk();
     }
 
     public function destroy($id)
     {
-        $this->my_class->deleteSubject($id);
+        $this->my_class->deleteSubject(Qs::resolveId($id));
         return back()->with('flash_success', __('msg.del_ok'));
     }
 

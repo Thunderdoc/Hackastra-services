@@ -2,8 +2,12 @@
 @section('page_title', 'My Admit Cards')
 @section('content')
 
-    <div class="card">
-
+    {{-- Loop 108: legacy plain card shell replaced with the shared
+         pat shell. Content unchanged (same designed empty states,
+         same per-child exam tables and View / Print links). Tables
+         carry l108-stack so every column stays visible on phones. --}}
+    <div class="pat-list">
+        <div class="card pat-card">
         <div class="card-body">
             @if($records->isEmpty())
                 <div class="lav-empty">
@@ -20,7 +24,7 @@
                         <small class="text-muted">— {{ $sr->my_class->name }}{{ $sr->section ? ', '.$sr->section->name : '' }} ({{ $sr->adm_no }})</small>
                     </h6>
                     <div class="table-responsive mb-4">
-                        <table class="table">
+                        <table class="table l108-stack">
                             <thead>
                             <tr>
                                 <th>Exam</th>
@@ -32,10 +36,10 @@
                             <tbody>
                             @foreach($exams as $ex)
                                 <tr>
-                                    <td>{{ $ex->name }}</td>
-                                    <td>Term {{ $ex->term }}</td>
-                                    <td>{{ $ex->year }}</td>
-                                    <td class="text-center">
+                                    <td data-label="Exam">{{ $ex->name }}</td>
+                                    <td data-label="Term">Term {{ $ex->term }}</td>
+                                    <td data-label="Session">{{ $ex->year }}</td>
+                                    <td class="text-center" data-label="Admit Card">
                                         <a target="_blank" class="btn btn-sm btn-primary"
                                            href="{{ route('admit_cards.my_card', [$ex->id, $sr->user_id]) }}">
                                             <i class="icon-printer mr-1"></i> View / Print
@@ -48,6 +52,7 @@
                     </div>
                 @endforeach
             @endif
+        </div>
         </div>
     </div>
 

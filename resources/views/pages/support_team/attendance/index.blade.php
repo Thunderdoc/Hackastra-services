@@ -1,32 +1,26 @@
 @extends('layouts.master')
 @section('page_title', 'Attendance')
 @section('content')
-    <style>
-        /* Page-specific: keep the student-name column in view while the
-           status grid scrolls horizontally on narrow screens. */
-        .attendance-grid th.att-sticky, .attendance-grid td.att-sticky {
-            position: sticky; left: 0; z-index: 1; background: #fff;
-            box-shadow: 1px 0 0 #ddd;
-        }
-        .attendance-grid thead th.att-sticky { z-index: 2; background: #f8f9fa; }
-        .attendance-grid td.att-status, .attendance-grid th.att-status { text-align: center; }
-        .attendance-grid .att-radio { margin: 0; }
-    </style>
-    <div class="card">
-        <div class="card-header header-elements-inline">
-            <h6 class="card-title">Daily Attendance</h6>
-            {!! Qs::getPanelOptions() !!}
-        </div>
+    {{-- Loop 108: legacy card-header chrome dropped (panel options +
+         the repeated "Daily Attendance" title — the common header
+         carries the page title) for the shared pat shell. The
+         page-specific .attendance-grid styles moved out of this
+         inline <style> block into qs.css Loop 108, which also adds
+         the hk-dark sticky-column colours (the inline copy hardcoded
+         white, so the sticky student column rendered white in dark
+         mode). Filter, summary, grid and save flow unchanged. --}}
+    <div class="pat-list">
+        <div class="card pat-card">
         <div class="card-body">
             @if($selected_class)
-                <div class="d-flex flex-wrap align-items-center mb-3">
-                    <span class="badge badge-primary mr-2 mb-1" style="font-size: 100%">{{ $selected_class->name }}</span>
-                    <span class="badge badge-light mr-2 mb-1" style="font-size: 100%">{{ $date->format('d M Y') }}</span>
-                    <span class="badge badge-info mr-2 mb-1" style="font-size: 100%">Students: {{ $summary['total'] }}</span>
-                    <span class="badge {{ $summary['marked'] === $summary['total'] && $summary['total'] > 0 ? 'badge-success' : 'badge-warning' }} mr-2 mb-1" style="font-size: 100%">Marked: {{ $summary['marked'] }} of {{ $summary['total'] }}</span>
-                    <span class="badge badge-success mr-2 mb-1" style="font-size: 100%">Present: {{ $summary['present'] }}</span>
-                    <span class="badge badge-danger mr-2 mb-1" style="font-size: 100%">Absent: {{ $summary['absent'] }}</span>
-                    <span class="badge badge-warning mr-2 mb-1" style="font-size: 100%">Late: {{ $summary['late'] }}</span>
+                <div class="d-flex flex-wrap align-items-center mb-3 l108-badges">
+                    <span class="badge badge-primary mr-2 mb-1">{{ $selected_class->name }}</span>
+                    <span class="badge badge-light mr-2 mb-1">{{ $date->format('d M Y') }}</span>
+                    <span class="badge badge-info mr-2 mb-1">Students: {{ $summary['total'] }}</span>
+                    <span class="badge {{ $summary['marked'] === $summary['total'] && $summary['total'] > 0 ? 'badge-success' : 'badge-warning' }} mr-2 mb-1">Marked: {{ $summary['marked'] }} of {{ $summary['total'] }}</span>
+                    <span class="badge badge-success mr-2 mb-1">Present: {{ $summary['present'] }}</span>
+                    <span class="badge badge-danger mr-2 mb-1">Absent: {{ $summary['absent'] }}</span>
+                    <span class="badge badge-warning mr-2 mb-1">Late: {{ $summary['late'] }}</span>
                     @if($summary['total'] > 0 && $summary['marked'] < $summary['total'])
                         <span class="text-muted mb-1">{{ $summary['total'] - $summary['marked'] }} not yet marked for this date.</span>
                     @endif
@@ -95,6 +89,7 @@
                     </div>
                 </form>
             @endif
+        </div>
         </div>
     </div>
 @endsection

@@ -47,7 +47,12 @@
         </div>
     </div>
     <div class="idc-body">
-        <div class="idc-photo" aria-hidden="true"><span class="idc-initial">{{ $idcInitial }}</span><img src="{{ $idcUser->photo }}" alt="" onerror="this.remove()"></div>
+        {{-- Photo rule (audit Fix Wave 1, R-02): render the <img> only
+             for a REAL uploaded photo. The seeded/default photo value
+             points at the stock silhouette (user.png), which used to
+             layer over the initials tile and pose as the student's
+             photo; without a real photo the initials tile stands. --}}
+        <div class="idc-photo" aria-hidden="true"><span class="idc-initial">{{ $idcInitial }}</span>@if(Qs::hasRealPhoto($idcUser->photo))<img src="{{ $idcUser->photo }}" alt="" onerror="this.remove()">@endif</div>
         <div class="idc-info">
             <div class="idc-name">{{ $idcUser->name }}</div>
             <div class="idc-row"><span class="idc-label">Class</span><span class="idc-value">{{ $sr->my_class->name }}@if($sr->section) &middot; {{ $sr->section->name }}@endif</span></div>

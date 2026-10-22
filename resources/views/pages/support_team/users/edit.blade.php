@@ -8,7 +8,10 @@
          includes, the getLGA() cascade and the staff-only emp_date
          block; one multipart PUT to users.update (class ajax-update
          keeps the global AJAX submit handler bound, as before). The
-         user type stays a disabled, unsubmitted display field. --}}
+         user type stays a disabled, unsubmitted display field.
+         Loop 106: premium design scope (.l106-users) — presentation
+         only, same form pattern and fields. --}}
+  <div class="l106 l106-users">
     @component('partials.patterns.form_page', [
         'form_action'  => route('users.update', Qs::hash($user->id)),
         'form_method'  => 'PUT',
@@ -143,4 +146,5 @@
             </div>
         </div>
     @endcomponent
+  </div>{{-- /.l106-users --}}
 @endsection

@@ -246,7 +246,7 @@
             @endforelse
             </tbody>
         </table>
-        <div class="mar-policy">Status policy: <strong>Excellent</strong> 90% and above &middot; <strong>Good</strong> 80&ndash;89% &middot; <strong>Needs Attention</strong> 60&ndash;79% &middot; <strong>Critical</strong> below 60%.</div>
+        <div class="mar-policy">Status policy: <strong>Excellent</strong> 90% and above &middot; <strong>Good</strong> 75&ndash;89% &middot; <strong>Needs Attention</strong> 50&ndash;74% &middot; <strong>Critical</strong> below 50%.</div>
 
         {{-- Summary note + class summary --}}
         <table class="mar-panels">
@@ -266,7 +266,7 @@
                                 <td><div class="mar-summary-num">{{ $class_summary['with_100'] }}</div><div class="mar-summary-label">With 100% Attendance</div></td>
                             </tr>
                             <tr>
-                                <td><div class="mar-summary-num">{{ $class_summary['below_80'] }}</div><div class="mar-summary-label">Below 80%</div></td>
+                                <td><div class="mar-summary-num">{{ $class_summary['below_75'] }}</div><div class="mar-summary-label">Below 75%</div></td>
                                 <td><div class="mar-summary-num">{{ $class_summary['registers'] }}</div><div class="mar-summary-label">Registers Submitted</div></td>
                             </tr>
                         </table>

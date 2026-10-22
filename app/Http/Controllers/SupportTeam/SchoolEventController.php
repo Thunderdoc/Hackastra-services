@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\SupportTeam;
 
+use App\Helpers\Qs;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\SchoolEvent\SchoolEventSave;
 use App\Models\SchoolEvent;
@@ -45,7 +46,9 @@ class SchoolEventController extends Controller
 
     public function edit($id)
     {
-        $d['event'] = SchoolEvent::findOrFail($id);
+        // Audit Fix Wave 1 (X-2): resolve raw OR Qs-hashed ids — the
+        // un-resolved hash 404'd a real record.
+        $d['event'] = SchoolEvent::findOrFail(Qs::resolveId($id));
         $d['types'] = SchoolEvent::types();
 
         return view('pages.support_team.events.edit', $d);
@@ -53,7 +56,7 @@ class SchoolEventController extends Controller
 
     public function update(SchoolEventSave $request, $id)
     {
-        $event = SchoolEvent::findOrFail($id);
+        $event = SchoolEvent::findOrFail(Qs::resolveId($id));
         $event->update($request->validated());
 
         return redirect()->route('events.index')->with('flash_success', 'Event updated.');
@@ -61,7 +64,7 @@ class SchoolEventController extends Controller
 
     public function destroy($id)
     {
-        SchoolEvent::findOrFail($id)->delete();
+        SchoolEvent::findOrFail(Qs::resolveId($id))->delete();
 
         return back()->with('flash_success', __('msg.del_ok'));
     }

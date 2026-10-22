@@ -11,6 +11,7 @@
         .admit-logo { max-height: 46px; margin-bottom: 6px; }
         .admit-photo-cell { width: 104px; text-align: right; vertical-align: top; }
         .admit-photo { width: 92px; height: 112px; object-fit: cover; border: 1px solid #dce3ec; border-radius: 6px; }
+        .admit-photo-tile { display: inline-flex; align-items: center; justify-content: center; background: #eef4fe; color: #2867dc; font-size: 1.6rem; font-weight: 700; }
         .admit-title { text-align: center; border-top: 2px solid #10263b; border-bottom: 1px solid #dce3ec; margin-top: 10px; padding: 8px 0 9px; }
         .admit-title span { display: block; font-size: .72rem; font-weight: 700; letter-spacing: .28em; color: #3478f6; }
         .admit-title strong { display: block; font-size: 1.12rem; margin-top: 2px; }

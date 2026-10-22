@@ -26,7 +26,7 @@
 
         @if($dorms->count())
             <div class="table-responsive">
-            <table class="table">
+            <table class="table l108-stack">
                 <thead>
                 <tr>
                     <th>S/N</th>
@@ -38,10 +38,10 @@
                 <tbody>
                 @foreach($dorms as $d)
                     <tr>
-                        <td>{{ $loop->iteration }}</td>
-                        <td>{{ $d->name }}</td>
-                        <td>{{ $d->description}}</td>
-                        <td class="text-center">
+                        <td data-label="S/N">{{ $loop->iteration }}</td>
+                        <td data-label="Name">{{ $d->name }}</td>
+                        <td data-label="Description">{{ $d->description}}</td>
+                        <td class="text-center" data-label="Action">
                             @if(Qs::userIsTeamSAWrite())
                                 <a href="{{ route('dorms.edit', $d->id) }}" class="btn btn-sm btn-primary"><i class="icon-pencil"></i> Edit</a>
                                 <button type="button" id="{{ $d->id }}" onclick="confirmDelete(this.id)" class="btn btn-sm btn-danger"><i class="icon-trash"></i> Delete</button>

@@ -138,12 +138,12 @@
             <div class="marx-classline">
                 <span><strong>{{ $class_summary['students'] }}</strong> Total Students</span>
                 <span><strong>{{ $class_summary['with_100'] }}</strong> With 100%</span>
-                <span><strong>{{ $class_summary['below_80'] }}</strong> Below 80%</span>
+                <span><strong>{{ $class_summary['below_75'] }}</strong> Below 75%</span>
                 <span><strong>{{ $class_summary['registers'] }}</strong> Registers Submitted</span>
             </div>
 
             <p class="text-muted mb-0 mt-2"><small>Counts are period registers: Attendance % = (present + late) / periods marked. Periods with no submitted register are excluded — never counted as absent.<br>
-            Status policy: <strong>Excellent</strong> 90% and above &middot; <strong>Good</strong> 80&ndash;89% &middot; <strong>Needs Attention</strong> 60&ndash;79% &middot; <strong>Critical</strong> below 60%.</small></p>
+            Status policy: <strong>Excellent</strong> 90% and above &middot; <strong>Good</strong> 75&ndash;89% &middot; <strong>Needs Attention</strong> 50&ndash;74% &middot; <strong>Critical</strong> below 50%.</small></p>
         @endif
     @endcomponent
 

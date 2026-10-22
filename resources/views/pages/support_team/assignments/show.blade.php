@@ -76,13 +76,13 @@
         </div>
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table lms-sub-table">
+                <table class="table lms-sub-table l108-stack">
                     <thead>
                     <tr>
                         <th>Student</th>
                         <th>Submitted</th>
                         <th>File / Answer</th>
-                        <th style="min-width:290px">Marks &amp; Feedback</th>
+                        <th class="lms-grade-col">Marks &amp; Feedback</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -93,14 +93,14 @@
                             $admNo = optional(optional($studentUser)->student_record)->adm_no ?? ($submission->adm_no ?? null);
                         @endphp
                         <tr class="{{ $isGraded ? 'lms-row-graded' : '' }}">
-                            <td>
+                            <td data-label="Student">
                                 <strong>{{ optional($studentUser)->name ?? 'Student' }}</strong>
                                 @if($admNo)<div class="text-muted">Adm No: {{ $admNo }}</div>@endif
                                 @if($isGraded)
                                     <span class="lms-chip lms-chip-graded mt-1"><i class="icon-checkmark3 mr-1"></i>Graded</span>
                                 @endif
                             </td>
-                            <td>
+                            <td data-label="Submitted">
                                 @if($submission->submitted_at)
                                     {{ \Carbon\Carbon::parse($submission->submitted_at)->format('d M Y, h:i A') }}
                                     <div class="text-muted">{{ \Carbon\Carbon::parse($submission->submitted_at)->diffForHumans() }}</div>
@@ -111,7 +111,7 @@
                                     <span class="lms-chip lms-chip-late mt-1"><i class="icon-alarm mr-1"></i>LATE</span>
                                 @endif
                             </td>
-                            <td>
+                            <td data-label="File / Answer">
                                 @if($submission->attachment_path)
                                     <a href="{{ route('assignments.download', [$assignment->id, 'submission' => $submission->id]) }}" class="btn btn-light btn-sm"><i class="icon-download mr-1"></i> Download file</a>
                                 @endif
@@ -122,7 +122,7 @@
                                     <span class="text-muted">—</span>
                                 @endif
                             </td>
-                            <td>
+                            <td data-label="Marks & Feedback">
                                 @if(Qs::userIsTeacher() && $assignment->teacher_id == auth()->id())
                                     <form method="post" action="{{ route('assignments.grade', $submission->id) }}" class="lms-grade-form">
                                         @csrf

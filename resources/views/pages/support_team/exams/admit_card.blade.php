@@ -20,8 +20,25 @@
                 <p>@if($school['phone']) Tel: {{ $school['phone'] }} @endif @if($school['email']) &nbsp;|&nbsp; {{ $school['email'] }} @endif</p>
             </td>
             <td class="admit-photo-cell">
-                <img src="{{ $sr->user->photo }}" alt="Student photo" class="admit-photo"
-                     onerror="this.onerror=null;this.src='{{ asset('global_assets/images/user.png') }}'">
+                {{-- Photo rule (audit Fix Wave 1, R-02): a real uploaded
+                     photo, else an initials tile — never the stock
+                     silhouette (the old onerror fallback pointed AT
+                     the silhouette, so it always posed as the photo). --}}
+                @if(Qs::hasRealPhoto($sr->user->photo))
+                    <img src="{{ $sr->user->photo }}" alt="Student photo" class="admit-photo"
+                         onerror="this.remove()">
+                @else
+                    @php
+                        $admitInitials = '';
+                        foreach (preg_split('/\s+/', trim((string) $sr->user->name)) as $admitWord) {
+                            if ($admitWord !== '') {
+                                $admitInitials .= strtoupper(substr($admitWord, 0, 1));
+                                if (strlen($admitInitials) >= 2) { break; }
+                            }
+                        }
+                    @endphp
+                    <span class="admit-photo admit-photo-tile" aria-hidden="true">{{ $admitInitials ?: 'S' }}</span>
+                @endif
             </td>
         </tr>
     </table>
