@@ -75,7 +75,7 @@
                         <span class="login-a-school-caption">School Management System</span>
                     </span>
                 </div>
-                <h1 class="login-a-brand-title">The calm, connected way to run your school.</h1>
+                <h1 class="login-a-brand-title">The calm, <span class="login-a-accent">connected</span> way to run your school.</h1>
                 <p class="login-a-brand-tag">Attendance, fees, results and records — one secure sign-in for your whole school community.</p>
                 <ul class="login-a-brand-list">
                     <li>

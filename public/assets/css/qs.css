@@ -711,6 +711,22 @@ html:not(.hk-dark) .login-a-sparks{fill:#2e6de6}
 html:not(.hk-dark) .login-a-legal{color:rgba(38,58,88,.75)}
 html:not(.hk-dark) .login-a-legal a{color:#1d4fa3}
 html:not(.hk-dark) .login-a-legal a:hover{color:#0b2239}
+/* ----- Premium polish (owner ask, 2026-10-23) -----
+   Gradient accent word in the headline, glass pills for the feature
+   list, a gradient Sign In button with lift, a gentle card entrance,
+   and richer backdrops. Both themes; layout and copy unchanged. */
+@keyframes hkLoginIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.login-a-card{animation:hkLoginIn .6s cubic-bezier(.22,.8,.32,1) both}
+.login-a-accent{background:linear-gradient(92deg,#7fb0ff 0%,#bcd6ff 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.login-a-brand-list li{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);border-radius:12px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);margin-bottom:12px;padding:10px 14px}
+.login-a-btn{background:linear-gradient(135deg,#3478f6 0%,#2867dc 55%,#1f56bd 100%);box-shadow:0 12px 26px rgba(40,103,220,.32)}
+.login-a-btn:hover{background:linear-gradient(135deg,#3d82f8 0%,#2e6de6 55%,#245fc6 100%);box-shadow:0 16px 32px rgba(40,103,220,.38);transform:translateY(-1px)}
+.login-a-btn:active{transform:translateY(0)}
+.login-a-input:focus{background:#fbfdff}
+.login-a-page{background-image:radial-gradient(1100px 620px at 88% -10%,rgba(46,109,230,.26),rgba(46,109,230,0) 60%),radial-gradient(920px 540px at -12% 112%,rgba(46,109,230,.20),rgba(46,109,230,0) 60%),radial-gradient(700px 420px at 50% 118%,rgba(124,93,250,.14),rgba(124,93,250,0) 65%)}
+html:not(.hk-dark) .login-a-accent{background:linear-gradient(92deg,#2867dc 0%,#6ea8ff 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+html:not(.hk-dark) .login-a-brand-list li{background:rgba(255,255,255,.55);border-color:rgba(40,103,220,.18)}
+html:not(.hk-dark) .login-a-page{background-image:radial-gradient(1100px 620px at 88% -10%,rgba(46,109,230,.16),rgba(46,109,230,0) 60%),radial-gradient(920px 540px at -12% 112%,rgba(46,109,230,.12),rgba(46,109,230,0) 60%),radial-gradient(700px 420px at 50% 118%,rgba(124,93,250,.10),rgba(124,93,250,0) 65%),linear-gradient(180deg,#eef3fb 0%,#e2eaf7 100%)}
 /* =====================================================================
    Loop 17 — Batch 6 layout fixes (live browser audit + owner screenshot)
    ---------------------------------------------------------------------
