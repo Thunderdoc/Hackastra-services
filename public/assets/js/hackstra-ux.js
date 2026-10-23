@@ -348,3 +348,12 @@
         }
     }
 })();
+
+/* Loop 120 — mobile drawer backdrop: tapping the dimmed page area closes
+   the open sidebar drawer (the in-drawer "Navigation" strip was removed
+   at the owner's request; the topbar hamburger remains the toggle). */
+document.addEventListener('click', function (e) {
+  if (e.target && e.target.classList && e.target.classList.contains('hk-sidebar-backdrop')) {
+    document.body.classList.remove('sidebar-mobile-main');
+  }
+});

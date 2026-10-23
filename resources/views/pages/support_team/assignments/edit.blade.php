@@ -1,7 +1,7 @@
 @extends('layouts.master')
 @section('page_title', 'Edit Assignment')
 @section('page_breadcrumb')
-    <a href="{{ route('dashboard') }}">Home</a> &nbsp;/&nbsp; <a href="{{ route('assignments.index') }}">Assignments</a> &nbsp;/&nbsp; Edit Assignment
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; <a href="{{ route('assignments.index') }}">Assignments</a> &nbsp;/&nbsp; Edit Assignment
 @endsection
 @section('content')
     {{-- Workstream CS2 (LMS): edit form on the shared form_page

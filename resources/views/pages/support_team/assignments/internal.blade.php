@@ -1,7 +1,7 @@
 @extends('layouts.master')
 @section('page_title', 'Assignment → Internal Marks')
 @section('page_breadcrumb')
-    <a href="{{ route('dashboard') }}">Home</a> &nbsp;/&nbsp; <a href="{{ route('assignments.index') }}">Assignments</a> &nbsp;/&nbsp; <a href="{{ route('assignments.show', $assignment->id) }}">{{ \Illuminate\Support\Str::limit($assignment->title, 32) }}</a> &nbsp;/&nbsp; Internal Marks
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; <a href="{{ route('assignments.index') }}">Assignments</a> &nbsp;/&nbsp; <a href="{{ route('assignments.show', $assignment->id) }}">{{ \Illuminate\Support\Str::limit($assignment->title, 32) }}</a> &nbsp;/&nbsp; Internal Marks
 @endsection
 @section('content')
     {{-- Workstream CS2 (LMS): internal-marks panel — the bridge from

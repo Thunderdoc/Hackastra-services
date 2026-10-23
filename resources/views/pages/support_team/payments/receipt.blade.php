@@ -16,7 +16,7 @@
            monogram — plus the monogram/logo tile in the header
            band and the generated-by line. Same Loop 68 tokens:
            navy #10263b, hairline #b9c6d4, shaded heads #eef2f7. */
-        .wm { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 340px; max-height: 420px; opacity: .10; z-index: 0; }
+        .wm { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 340px; max-height: 420px; opacity: .05; z-index: 0; pointer-events: none; }
         .wm-mono { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-18deg); font-size: 128px; font-weight: 800; letter-spacing: .04em; line-height: 1; color: #10263b; opacity: .055; z-index: 0; white-space: nowrap; }
         .receipt > *:not(.wm):not(.wm-mono) { position: relative; z-index: 1; }
         .header { background: #10263b; color: #fff; padding: 18px 22px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -44,7 +44,7 @@
         .summary { width: 300px; margin-left: auto; border-collapse: collapse; }
         .summary td { padding: 6px 8px; font-size: 13px; border-bottom: 1px solid #edf1f5; }
         .summary td.num { text-align: right; font-weight: bold; }
-        .summary .due td { color: #c0392b; font-size: 14px; }
+        .summary .due td { color: #b02a1e; font-size: 14px; background: #fdeceb; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         .summary .cleared td { color: #188b66; font-size: 14px; }
         .words { margin: 14px 22px 0; background: #f8faff; border: 1px solid #e4eaf1; padding: 10px 12px; font-size: 13px; }
         .words span { color: #718096; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; display: block; margin-bottom: 3px; }
@@ -54,7 +54,9 @@
         .sign .line { display: inline-block; width: 180px; border-top: 1px solid #172536; margin-top: 22px; padding-top: 4px; font-size: 12px; }
         .stamp { display: inline-block; border: 2px solid #188b66; color: #188b66; font-weight: bold; padding: 4px 12px; letter-spacing: .08em; }
         .stamp.due { border-color: #c0392b; color: #c0392b; }
+        @page { size: A4 portrait; margin: 8mm; }
         @media print { body { padding: 0; } .receipt { border: none; } }
+        table.items tr, .summary, .words, .footer { page-break-inside: avoid; }
     </style>
 </head>
 <body>

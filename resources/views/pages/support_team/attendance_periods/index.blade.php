@@ -1,7 +1,7 @@
 @extends('layouts.master')
 @section('page_title', 'Mark Attendance')
 @section('page_breadcrumb')
-    <a href="{{ route('dashboard') }}">Home</a> &nbsp;/&nbsp; Attendance &nbsp;/&nbsp; Mark Attendance
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Attendance &nbsp;/&nbsp; Mark Attendance
 @endsection
 @section('page_actions')
     <a href="{{ route('attendance.periods.report') }}" class="btn btn-light"><i class="icon-stats-bars2 mr-1"></i> Subject-wise Report</a>
@@ -159,7 +159,7 @@
                  view) — Students Present moved off this row; the figure
                  still lives in the subject-wise report. --}}
             <div class="ma-stat ma-stat-red">
-                <span class="ma-stat-icon"><i class="icon-cross2"></i></span>
+                <span class="ma-stat-icon"><i class="icon-alarm"></i></span>
                 <div class="ma-stat-copy">
                     <span class="ma-stat-value">{{ $stats['pending'] }}</span>
                     <span class="ma-stat-label"><span class="text-danger">Not</span> Taken Today</span>
@@ -259,7 +259,7 @@
                                                 <span class="ma-avatar" aria-hidden="true">{{ strtoupper(substr($row['teacher']->name, 0, 1)) }}@if(\App\Helpers\Qs::hasRealPhoto($row['teacher']->photo))<img src="{{ $row['teacher']->photo }}" alt="" onerror="this.remove()">@endif</span>
                                                 <span class="ma-teacher-copy">
                                                     <span class="ma-teacher-name">{{ $row['teacher']->name }}</span>
-                                                    <span class="ma-teacher-role">{{ optional($row['subject'])->name ? optional($row['subject'])->name . ' Teacher' : 'Teacher' }}</span>
+                                                    <span class="ma-teacher-role">Teacher</span>
                                                 </span>
                                             </div>
                                         @else

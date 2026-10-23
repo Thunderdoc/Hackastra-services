@@ -1,7 +1,7 @@
 @extends('layouts.master')
 @section('page_title', 'Add Study Material')
 @section('page_breadcrumb')
-    <a href="{{ route('dashboard') }}">Home</a> &nbsp;/&nbsp; <a href="{{ route('materials.index') }}">Study Materials</a> &nbsp;/&nbsp; Add Study Material
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; <a href="{{ route('materials.index') }}">Study Materials</a> &nbsp;/&nbsp; Add Study Material
 @endsection
 @section('content')
     {{-- Workstream CS2 (LMS): material create form on the shared

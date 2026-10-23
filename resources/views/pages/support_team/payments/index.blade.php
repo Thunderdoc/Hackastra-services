@@ -166,7 +166,7 @@
 
                 @if($records->count())
                     <div class="table-responsive mp94-table-wrap">
-                        <table class="table mp94-table">
+                        <table class="table mp94-table l108-stack">
                             <thead>
                             <tr>
                                 <th style="width:40px">#</th>
@@ -191,18 +191,18 @@
                                     $settled = (int) $r->balance <= 0;
                                 @endphp
                                 <tr>
-                                    <td>{{ $records->firstItem() + $loop->index }}</td>
-                                    <td><span class="mp94-ref">{{ $pr->ref_no }}</span></td>
-                                    <td>
+                                    <td data-label="#">{{ $records->firstItem() + $loop->index }}</td>
+                                    <td data-label="Receipt No"><span class="mp94-ref">{{ $pr->ref_no }}</span></td>
+                                    <td data-label="Student Name">
                                         <strong>{{ optional(optional($pr)->student)->name }}</strong>
                                         @if($sr && $sr->adm_no)<br><small class="text-muted">Adm {{ $sr->adm_no }}</small>@endif
                                     </td>
-                                    <td>{{ optional(optional($sr)->my_class)->name ?: '—' }}@if($sr && $sr->section) &middot; {{ $sr->section->name }}@endif</td>
-                                    <td class="text-right font-weight-bold">{{ \App\Helpers\Money::inr($r->amt_paid) }}</td>
-                                    <td>{{ $method }}</td>
-                                    <td>{{ $r->created_at->format('d M Y') }}<br><small class="text-muted">{{ $r->created_at->format('h:i A') }}</small></td>
-                                    <td><span class="mp94-pill {{ $settled ? 'mp94-pill-paid' : 'mp94-pill-partial' }}">{{ $settled ? 'Paid' : 'Partial' }}</span></td>
-                                    <td class="text-center text-nowrap">
+                                    <td data-label="Class & Section">{{ optional(optional($sr)->my_class)->name ?: '—' }}@if($sr && $sr->section) &middot; {{ $sr->section->name }}@endif</td>
+                                    <td data-label="Amount (₹)" class="text-right font-weight-bold">{{ \App\Helpers\Money::inr($r->amt_paid) }}</td>
+                                    <td data-label="Payment Method">{{ $method }}</td>
+                                    <td data-label="Payment Date">{{ $r->created_at->format('d M Y') }}<br><small class="text-muted">{{ $r->created_at->format('h:i A') }}</small></td>
+                                    <td data-label="Status"><span class="mp94-pill {{ $settled ? 'mp94-pill-paid' : 'mp94-pill-partial' }}">{{ $settled ? 'Paid' : 'Partial' }}</span></td>
+                                    <td data-label="Actions" class="text-center text-nowrap">
                                         <a href="{{ route('payments.receipts', Qs::hash($pr->id)) }}" class="btn btn-light btn-sm"><i class="icon-eye mr-1"></i> View</a>
                                         <a href="{{ route('payments.pdf_receipts', Qs::hash($pr->id)) }}" class="btn btn-light btn-sm"><i class="icon-printer mr-1"></i> PDF</a>
                                     </td>

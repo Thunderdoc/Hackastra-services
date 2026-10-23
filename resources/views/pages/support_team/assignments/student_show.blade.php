@@ -1,7 +1,7 @@
 @extends('layouts.master')
 @section("page_title", "Assignment")
 @section('page_breadcrumb')
-    <a href="{{ route('dashboard') }}">Home</a> &nbsp;/&nbsp; <a href="{{ route('assignments.index') }}">My Assignments</a> &nbsp;/&nbsp; {{ \Illuminate\Support\Str::limit($assignment->title, 40) }}
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; <a href="{{ route('assignments.index') }}">My Assignments</a> &nbsp;/&nbsp; {{ \Illuminate\Support\Str::limit($assignment->title, 40) }}
 @endsection
 @section('content')
     {{-- Workstream CS2 (LMS): student view of one assignment — full

@@ -21,18 +21,6 @@
     </div>@endif
 
 
-    <!-- Sidebar mobile toggler -->
-    <div class="sidebar-mobile-toggler text-center">
-        <a href="#" class="sidebar-mobile-main-toggle">
-            <i class="icon-arrow-left8"></i>
-        </a>
-        Navigation
-        <a href="#" class="sidebar-mobile-expand">
-            <i class="icon-screen-full"></i>
-            <i class="icon-screen-normal"></i>
-        </a>
-    </div>
-    <!-- /sidebar mobile toggler -->
 
     <!-- Sidebar content -->
     <div class="sidebar-content">
@@ -553,3 +541,6 @@
 <script>
 (function(){try{var v=sessionStorage.getItem('hackstra-sidebar-scroll');if(v!==null){var n=parseInt(v,10);if(n>0){var el=document.querySelector('.sidebar .card-sidebar-mobile')||document.querySelector('.sidebar .sidebar-content');if(el){el.scrollTop=n;}}}}catch(e){}})();
 </script>
+
+{{-- Mobile drawer backdrop: tap outside the open drawer to close it (owner request 2026-10-23). --}}
+<div class="hk-sidebar-backdrop" aria-hidden="true"></div>
