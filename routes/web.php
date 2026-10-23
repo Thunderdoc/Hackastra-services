@@ -410,6 +410,8 @@ Route::group(['middleware' => 'auth'], function () {
         Route::resource('books', 'BookController')->except(['show']);
         Route::resource('book_requests', 'BookRequestController')->only(['index', 'create', 'store']);
         Route::patch('book_requests/{id}/return', 'BookRequestController@markReturned')->name('book_requests.return');
+        Route::get('library/fines', 'LibraryFineController@index')->name('library_fines.index');
+        Route::post('library/fines/{id}/waive', 'LibraryFineController@waive')->name('library_fines.waive');
 
     });
 

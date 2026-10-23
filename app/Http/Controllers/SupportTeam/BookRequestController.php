@@ -6,8 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\BookRequest\BookRequestCreate;
 use App\Models\Book;
 use App\Models\BookRequest;
+use App\Support\LibraryFines;
 use App\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -103,6 +106,30 @@ class BookRequestController extends Controller
             }
         });
 
-        return back()->with('flash_success', 'Book marked as returned.');
+        /* Library fine (owner, 2026-10-23): a late return imposes
+           the fine automatically — days overdue x the Settings rate
+           — and for a student it lands in the main fee account via
+           LibraryFines, so it shows in the student's fees, balance
+           and defaulters until paid or waived. The librarian does
+           not calculate anything; the system does, and reports it
+           in this flash so nothing is silent. */
+        $message = 'Book marked as returned.';
+        if ($loan->end_date) {
+            $daysLate = (int) Carbon::parse($loan->end_date)->startOfDay()
+                ->diffInDays(Carbon::today(), false);
+            if ($daysLate > 0) {
+                $amount = $daysLate * LibraryFines::dailyRate();
+                $bookTitle = optional($loan->book)->name ?: 'Book';
+                $fine = LibraryFines::impose($loan, $amount, $daysLate,
+                    'Late return — ' . $bookTitle . ' (' . $daysLate . ' day' . ($daysLate === 1 ? '' : 's') . ' overdue)',
+                    Auth::id());
+                $borrower = optional($loan->user)->name ?: 'the borrower';
+                $message .= ' Library fine of ₹' . number_format($amount) . ' imposed on ' . $borrower
+                    . ' (' . $daysLate . ' day' . ($daysLate === 1 ? '' : 's') . ' overdue)'
+                    . ($fine->payment_record_id ? ' — added to their fee account.' : '.');
+            }
+        }
+
+        return back()->with('flash_success', $message);
     }
 }

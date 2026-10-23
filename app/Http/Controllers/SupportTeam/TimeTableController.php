@@ -713,6 +713,15 @@ class TimeTableController extends Controller
 
     public function delete($tt_id)
     {
+        /* Break-it guard (2026-10-23, TT-01): a period cell that
+           already carries SUBMITTED attendance must not be deleted —
+           attendance_sessions.time_table_id is set-null on delete,
+           which would orphan the register and free the same lesson
+           to be marked again under a new cell. Refuse and explain;
+           the register is history and history is not deletable. */
+        if (AttendanceSession::where('time_table_id', $tt_id)->exists()) {
+            return back()->with('flash_danger', 'This period cannot be deleted — attendance has already been submitted for it. Submitted attendance is locked history.');
+        }
         $this->tt->delete($tt_id);
         return back()->with('flash_success', __('msg.delete_ok'));
     }
@@ -896,6 +905,14 @@ class TimeTableController extends Controller
 
     public function delete_record($ttr_id)
     {
+        /* TT-01 companion guard: deleting a whole timetable record
+           deletes its cells — the same orphaning risk as the single
+           cell delete when any of those cells carries submitted
+           attendance. */
+        if (AttendanceSession::whereIn('time_table_id',
+            TimeTable::where('ttr_id', $ttr_id)->pluck('id'))->exists()) {
+            return back()->with('flash_danger', 'This timetable cannot be deleted — attendance has already been submitted on its periods. Submitted attendance is locked history.');
+        }
         $this->tt->deleteRecord($ttr_id);
         return back()->with('flash_success', __('msg.delete_ok'));
     }

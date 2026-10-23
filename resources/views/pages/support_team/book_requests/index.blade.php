@@ -14,6 +14,7 @@
             </div>
             <div class="pat-toolbar-actions">
                 <a href="{{ route('books.index') }}" class="btn btn-light btn-sm"><i class="icon-books mr-1"></i> Catalogue</a>
+                <a href="{{ route('library_fines.index') }}" class="btn btn-light btn-sm"><i class="icon-coin-dollar mr-1"></i> Library Fines</a>
                 @if(Qs::userIsTeamLibraryWrite())
                 <a href="{{ route('book_requests.create') }}" class="btn btn-primary btn-sm"><i class="icon-plus2 mr-1"></i> Issue a Book</a>
                 @endif

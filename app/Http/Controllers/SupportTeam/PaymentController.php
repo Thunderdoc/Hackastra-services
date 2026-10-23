@@ -376,6 +376,10 @@ class PaymentController extends Controller
 
         $this->pay->updateRecord($pr_id, $d);
 
+        // Library fine mirror (owner, 2026-10-23): when the record
+        // being paid is a library fine's fee entry, settle the fine.
+        \App\Support\LibraryFines::syncFromPaymentRecord($this->pay->findRecord($pr_id));
+
         $d2['amt_paid'] = $req->amt_paid;
         $d2['balance'] = $bal;
         $d2['pr_id'] = $pr_id;
