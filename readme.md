@@ -7,6 +7,9 @@ Attendance, exams, fees, library, documents and communication in one place, with
 
 [![Laravel 12](https://img.shields.io/badge/Laravel-12-FF2D20?style=flat-square&logo=laravel&logoColor=white)](https://laravel.com)
 [![PHP 8.4](https://img.shields.io/badge/PHP-8.4-777BB4?style=flat-square&logo=php&logoColor=white)](https://www.php.net)
+[![MySQL / MariaDB](https://img.shields.io/badge/DB-MySQL%20%2F%20MariaDB-4479A1?style=flat-square&logo=mysql&logoColor=white)](https://www.mysql.com)
+[![Docker](https://img.shields.io/badge/Docker-ready-2496ED?style=flat-square&logo=docker&logoColor=white)](Dockerfile)
+[![Tests](https://img.shields.io/badge/tests-21%20passing-brightgreen?style=flat-square)](tests)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-hackastra.onrender.com-blue?style=flat-square)](https://hackastra.onrender.com)
 
@@ -151,6 +154,18 @@ Available after seeding (`php artisan db:seed`, or any `SEED_DEMO=true` deployme
 | Student | student@hackstra.app | hackstra |
 
 The demo school is **Hackstra Academy**. Additional sample accounts are also seeded (extra teachers `teacher1–3@teacher.com`, password `teacher`; extra students, password `student`).
+
+## 📚 Documentation
+
+- [Deployment guide](docs/DEPLOYMENT.md) — Railway / Render walkthrough, environment and demo mode
+- [Production notes](docs/PRODUCTION.md) — running Hackstra for a real school
+- [Case study](docs/CASE_STUDY.md) — how the product was rebuilt and verified
+- [Product audit](docs/PRODUCT_AUDIT.md) — module-by-module audit of the platform
+- [SaaS + AI roadmap](docs/SAAS_AI_ROADMAP.md) — the multi-school direction and the AI layer plan
+
+## 🗺 Status
+
+**v1.0.0** — the complete single-school platform: seven role portals, period attendance, configurable exams and marks, fees with online payment, library with fines, planning & scheduling (staffing, allocation, timetable validation, invigilation) and a School Readiness score. The live demo above runs exactly this code. Next on the roadmap: multi-school SaaS (one platform, many schools) — see the roadmap doc.
 
 ## 🔒 Security
 
