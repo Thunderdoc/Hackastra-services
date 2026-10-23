@@ -2,9 +2,12 @@
 
 # 🏫 Hackstra — School Management System
 
-**Admissions to alumni — one platform that takes a school fully digital.**
-Attendance, exams, fees, library, documents and communication in one place, with nothing left on pen and paper.
+### Admissions to alumni — one platform that takes a school fully digital.
 
+Attendance, exams, fees, library, timetables, staffing and documents in one place —
+with nothing left on pen and paper.
+
+[![Release](https://img.shields.io/badge/release-v1.0.0-blue?style=flat-square)](https://github.com/Thunderdoc/Hackastra-services/releases/tag/v1.0.0)
 [![Laravel 12](https://img.shields.io/badge/Laravel-12-FF2D20?style=flat-square&logo=laravel&logoColor=white)](https://laravel.com)
 [![PHP 8.4](https://img.shields.io/badge/PHP-8.4-777BB4?style=flat-square&logo=php&logoColor=white)](https://www.php.net)
 [![MySQL / MariaDB](https://img.shields.io/badge/DB-MySQL%20%2F%20MariaDB-4479A1?style=flat-square&logo=mysql&logoColor=white)](https://www.mysql.com)
@@ -21,6 +24,16 @@ Developed and maintained by **[Ankit Kumar](https://github.com/Thunderdoc)**.
 </div>
 
 ---
+
+## 💡 Why Hackstra
+
+Most schools still run on registers, spreadsheets and WhatsApp messages. Hackstra replaces all of it with one role-based platform that the **school admin runs alone** — the system asks only for the essential inputs and generates the rest:
+
+- **Timetables** are generated from subject requirements (periods per week, teacher eligibility), then *validated* — teacher clashes and unmet requirements are reported, never silently shipped.
+- **Exam date sheets** are generated with realistic break days between papers, and **invigilation duties** are auto-assigned, balanced across teachers, never double-booked.
+- **Fees reconcile themselves** — every student's balance must recompute from their fee records; an integrity check flags any drift, and library fines flow into fees automatically.
+- **Nothing is hardcoded** — marking schemes, teacher load caps, fine rates, school identity, session and terms are all configured inside the app, per school.
+- **Every role sees only its own world** — enforced on the server: teachers see their classes, parents their children, the platform owner sees numbers, not school records.
 
 ## 📸 Screenshots
 
@@ -47,13 +60,13 @@ Developed and maintained by **[Ankit Kumar](https://github.com/Thunderdoc)**.
 ## ✨ Features
 
 **Platform & roles**
-- Seven role portals — Super Admin, Admin, Teacher, Student, Parent, Accountant, Librarian — each with its own home, menu and permissions
+- Seven role portals — Super Admin, Admin, Teacher, Student, Parent, Accountant, Librarian — each with its own home, menu and permissions, plus a dedicated **Principal demo login** (school head's view, admin rights)
 - Platform Overview for the Super Admin (platform owner) across schools, plus a per-school dashboard
 - Role-based data scoping enforced on the server: a teacher sees only their own classes, a parent only their own children, an accountant only the fee office
 
 **Students & admissions**
 - Student records with photos, classes and sections
-- **Quick Admit** — admit a student with just the essentials and complete the profile later
+- **Quick Admit** — admit a student with just the essentials and complete the profile later; admission numbers are allocated collision-safely
 - Bulk CSV import with a downloadable template, bulk actions, promotions, graduations and printable student ID cards
 
 **Attendance**
@@ -62,7 +75,7 @@ Developed and maintained by **[Ankit Kumar](https://github.com/Thunderdoc)**.
 
 **Exams, marks & documents**
 - Exams with fully configurable marking schemes — components such as Theory, Internal Assessment and Viva, each with its own maximum, per school / exam / subject
-- Marks entry with a live class summary; every mark change is written to the audit log with its old and new values
+- Marks entry with a live class summary; assignment averages can be pushed into the Internal component; every mark change is written to the audit log with its old and new values
 - A publish switch controls when results become visible to students and parents
 - Printable term marksheets, an Annual / Cumulative Report Card, and admit cards
 - **Digital documents** — the Principal's signature and the school seal are uploaded once in Settings and printed on documents automatically
@@ -71,6 +84,7 @@ Developed and maintained by **[Ankit Kumar](https://github.com/Thunderdoc)**.
 **Fees & payments**
 - Collect Fee at the counter: itemised fee heads, full or part payment, instant receipt with amount in words
 - **Online payment** — parents pay from their portal through the school's own Razorpay account; the money goes straight to the school, never through Hackstra
+- **Fee-ledger integrity** — a scanner reconciles every record (balance = fee − paid); resets restore the full fee owed so a defaulter can never be hidden, and fee definitions in use cannot be deleted
 - Fee Defaulters report that prints professionally on exactly one page, a collection report with per-day breakdown, and CSV exports
 
 **Library**
@@ -78,13 +92,12 @@ Developed and maintained by **[Ankit Kumar](https://github.com/Thunderdoc)**.
 - **Overdue fines** at a per-day rate set in Settings — a student's fine appears in their fee records automatically and clears when the fee is paid; fines can also be waived by the librarian
 
 **Planning & scheduling**
-- Subject requirements (periods per week, theory/practical, double periods) and teacher eligibility, both configured in the app — nothing hardcoded
+- Subject requirements (periods per week, theory/practical, double periods) and teacher eligibility, both configured in the app
 - **Staffing Dashboard** — demand vs capacity per subject and per teacher, shortfalls and overloads from live data
 - **Allocation** — reasoned teacher recommendations; eligibility is enforced on the server, and sending a teacher over the weekly cap needs an explicit, audit-logged override
 - Timetable generator that hits the configured requirements exactly, plus a **validator** that hunts teacher clashes, class collisions and unmet requirements across every timetable of the year
 - Exam date-sheet generator with break days between papers, and **invigilation duties** auto-assigned — balanced across teachers, never double-booked at the same date and time
 - **School Readiness** — one page that scores how ready the school is (setup, enrolment, staffing, timetables, exams, fee-ledger consistency) with a fix link for every gap
-- **Fee-ledger integrity** — every student's balance must recompute from their fee records; resets restore the full fee owed (never hide a defaulter) and fee definitions in use cannot be deleted
 
 **Communication & AI**
 - Circulars with audience targeting and priority levels (print + PDF), a notification bell, and platform mail
@@ -100,23 +113,37 @@ Developed and maintained by **[Ankit Kumar](https://github.com/Thunderdoc)**.
 
 ## 🛠 Tech stack
 
-- Laravel 12 · PHP 8.4 · Blade · Bootstrap 4 (Limitless) + a custom design system
-- MySQL / MariaDB in production; SQLite used for local development
-- Docker images for demo (bundled database) and production (external MySQL)
-- Razorpay for online fee payment (each school connects its own account)
+| Layer | Technology |
+| --- | --- |
+| Backend | Laravel 12 · PHP 8.4 |
+| Frontend | Blade · Bootstrap 4 (Limitless) + a custom design system |
+| Database | MySQL / MariaDB in production · SQLite for local development |
+| Payments | Razorpay (each school connects its own account) |
+| Packaging | Docker images for demo (bundled database) and production (external MySQL); the production image is published to **GitHub Packages (GHCR)** on every push to `master` |
+| Testing | PHPUnit — unit + feature suites, including regression tests for the scheduling, ledger and admission engines |
 
-## 🚀 Running it
+## 🚀 Get Hackstra
 
-### Demo (single container, Render-style)
+### Option 1 — Docker image (GitHub Packages)
+
+```bash
+docker pull ghcr.io/thunderdoc/hackastra-services:latest
+docker run -p 8080:80 \
+  -e APP_KEY=<your-app-key> -e APP_ENV=production -e APP_DEBUG=false \
+  -e DB_HOST=<mysql-host> -e DB_DATABASE=<db> -e DB_USERNAME=<user> -e DB_PASSWORD=<pass> \
+  ghcr.io/thunderdoc/hackastra-services:latest
+```
+
+### Option 2 — Demo (single container, Render-style)
 
 ```bash
 docker build -f Dockerfile.render -t hackstra-demo .
 docker run -p 8080:80 -e APP_KEY=<your-app-key> hackstra-demo
 ```
 
-The demo image bundles its own MariaDB and re-seeds demo data on every start — data is intentionally ephemeral.
+The demo image bundles its own MariaDB and re-seeds demo data on every start — data is intentionally ephemeral. This is exactly what the [live demo](https://hackastra.onrender.com) runs.
 
-### Production (Docker + external MySQL)
+### Option 3 — Production from source (Docker + external MySQL)
 
 ```bash
 docker build -t hackstra .
@@ -163,9 +190,9 @@ The demo school is **Hackstra Academy**. Additional sample accounts are also see
 - [Product audit](docs/PRODUCT_AUDIT.md) — module-by-module audit of the platform
 - [SaaS + AI roadmap](docs/SAAS_AI_ROADMAP.md) — the multi-school direction and the AI layer plan
 
-## 🗺 Status
+## 🗺 Status & roadmap
 
-**v1.0.0** — the complete single-school platform: seven role portals, period attendance, configurable exams and marks, fees with online payment, library with fines, planning & scheduling (staffing, allocation, timetable validation, invigilation) and a School Readiness score. The live demo above runs exactly this code. Next on the roadmap: multi-school SaaS (one platform, many schools) — see the roadmap doc.
+**v1.0.0** — the complete single-school platform described above; the live demo runs exactly this code, and the automated test suite (21 tests) covers the ledger, scheduling, eligibility and admission engines. Next: multi-school SaaS — one platform, many schools — see the roadmap doc.
 
 ## 🔒 Security
 
