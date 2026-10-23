@@ -11,7 +11,7 @@
         .mar-toolbar .mar-toolbar-title{font-weight:700;margin-right:auto;}
         .mar-sheet{background:#fff;max-width:900px;margin:0 auto;padding:34px 38px;border:1px solid #d7e0ec;box-shadow:0 10px 34px rgba(16,38,59,.10);}
         @page{size:A4;margin:13mm 12mm 16mm;
-            @bottom-left{content:"Monthly Attendance Report — {{ $selected_class->name }} · {{ $month->format('F Y') }}";font-size:9px;color:#718096;}
+            @bottom-left{content:"Attendance Report — {{ $class_label }} · {{ $range_label }}";font-size:9px;color:#718096;}
             @bottom-right{content:"Page " counter(page) " of " counter(pages);font-size:9px;color:#718096;}
         }
         @media print{
@@ -21,8 +21,8 @@
 
     <div class="mar-toolbar print-hide">
         <span class="mar-toolbar-title">Print Preview — Monthly Attendance Report</span>
-        <a href="{{ route('attendance.report', ['class_id' => $selected_class->id, 'month' => $month->format('Y-m')]) }}" class="btn btn-light btn-sm"><i class="icon-arrow-left7 mr-1"></i> Back to Report</a>
-        <a href="{{ route('attendance.report.pdf', ['class_id' => $selected_class->id, 'month' => $month->format('Y-m')]) }}" class="btn btn-light btn-sm"><i class="icon-download mr-1"></i> Download PDF</a>
+        <a href="{{ route('attendance.report', ['class_id' => !empty($all_classes) ? 'all' : $selected_class->id, 'month' => $month->format('Y-m'), 'months' => $months ?? 1]) }}" class="btn btn-light btn-sm"><i class="icon-arrow-left7 mr-1"></i> Back to Report</a>
+        <a href="{{ route('attendance.report.pdf', ['class_id' => !empty($all_classes) ? 'all' : $selected_class->id, 'month' => $month->format('Y-m'), 'months' => $months ?? 1]) }}" class="btn btn-light btn-sm"><i class="icon-download mr-1"></i> Download PDF</a>
         <button type="button" class="btn btn-primary btn-sm" onclick="window.print()"><i class="icon-printer mr-1"></i> Print</button>
     </div>
 

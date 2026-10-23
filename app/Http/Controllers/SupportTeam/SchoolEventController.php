@@ -25,6 +25,19 @@ class SchoolEventController extends Controller
         $d['events'] = SchoolEvent::orderByDesc('starts_at')->paginate(15);
         $d['types'] = SchoolEvent::types();
 
+        /* Owner redesign (2026-10-23): summary chips over the WHOLE
+           set, not the visible page — total, upcoming, this month,
+           and the next event coming up. */
+        $today = now()->startOfDay();
+        $d['ev_stats'] = [
+            'total' => SchoolEvent::count(),
+            'upcoming' => SchoolEvent::where('starts_at', '>=', $today)->count(),
+            'this_month' => SchoolEvent::whereYear('starts_at', $today->year)
+                ->whereMonth('starts_at', $today->month)->count(),
+            'next' => SchoolEvent::where('starts_at', '>=', $today)
+                ->orderBy('starts_at')->first(),
+        ];
+
         return view('pages.support_team.events.index', $d);
     }
 

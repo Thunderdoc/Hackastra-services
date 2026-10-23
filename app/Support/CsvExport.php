@@ -58,7 +58,7 @@ class CsvExport
      * @param mixed $value
      * @return mixed
      */
-    protected static function cell($value)
+    public static function cell($value)
     {
         if (is_string($value) && $value !== '' && in_array($value[0], ['=', '+', '-', '@', "\t", "\r"], true)) {
             return "'" . $value;

@@ -15,7 +15,7 @@
          existing contract: class_id + month, GET, auto-submit. --}}
     @php
         $marxPalette = ['#e8effc', '#e6f6ec', '#fdf3e0', '#efe9fd', '#fdecec', '#e0f2f1'];
-        $marxParams = ['class_id' => $selected_class ? $selected_class->id : '', 'month' => $month->format('Y-m')];
+        $marxParams = ['class_id' => !empty($all_classes) ? 'all' : ($selected_class ? $selected_class->id : ''), 'month' => $month->format('Y-m'), 'months' => $months ?? 1];
     @endphp
 
     @component('partials.patterns.list_page')
@@ -32,6 +32,9 @@
                 <div class="pat-filter-field">
                     <label for="ar_class_id">Class</label>
                     <select name="class_id" id="ar_class_id" class="form-control" onchange="this.form.submit()">
+                        @if($classes->count() > 1)
+                            <option value="all" {{ !empty($all_classes) ? 'selected' : '' }}>All Classes</option>
+                        @endif
                         @foreach($classes as $class)
                             <option value="{{ $class->id }}" {{ $selected_class && $selected_class->id === $class->id ? 'selected' : '' }}>{{ $class->name }}</option>
                         @endforeach
@@ -40,6 +43,14 @@
                 <div class="pat-filter-field">
                     <label for="ar_month">Month</label>
                     <input type="month" name="month" id="ar_month" class="form-control" value="{{ $month->format('Y-m') }}" onchange="this.form.submit()">
+                </div>
+                <div class="pat-filter-field">
+                    <label for="ar_months">Period</label>
+                    <select name="months" id="ar_months" class="form-control" onchange="this.form.submit()">
+                        @foreach([1 => 'This month', 2 => 'Last 2 months', 3 => 'Last 3 months', 6 => 'Last 6 months', 12 => 'Last 12 months'] as $mVal => $mLabel)
+                            <option value="{{ $mVal }}" {{ ($months ?? 1) === $mVal ? 'selected' : '' }}>{{ $mLabel }}</option>
+                        @endforeach
+                    </select>
                 </div>
                 <div class="pat-filter-action">
                     <button type="submit" class="btn btn-primary">Filter</button>
@@ -90,6 +101,7 @@
                 <tr>
                     <th style="width:36px">#</th>
                     <th>Student</th>
+                    @if(!empty($all_classes))<th>Class</th>@endif
                     <th>Section</th>
                     <th>Present</th>
                     <th>Absent</th>
@@ -114,6 +126,7 @@
                     <tr>
                         <td>{{ $loop->iteration }}</td>
                         <td><span class="marx-ava" style="background:{{ $marxPalette[$loop->index % count($marxPalette)] }}" aria-hidden="true">{{ $marxInitials ?: '?' }}</span>{{ $marxName }}</td>
+                        @if(!empty($all_classes))<td>{{ $row['class_name'] }}</td>@endif
                         <td>{{ optional($row['student']->section)->name ?: '—' }}</td>
                         <td>{{ $row['present'] }}</td>
                         <td>@if($row['absent'] > 0)<span class="marx-num-bad">{{ $row['absent'] }}</span>@else{{ $row['absent'] }}@endif</td>

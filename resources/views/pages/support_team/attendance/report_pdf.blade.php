@@ -9,7 +9,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>Monthly Attendance Report — {{ $selected_class->name }} — {{ $month->format('F Y') }}</title>
+    <title>Attendance Report — {{ $class_label }} — {{ $range_label }}</title>
     <style>
         @page{size:A4;margin:10mm 11mm 14mm;}
         body{font-family:'DejaVu Sans',sans-serif;margin:0;padding:0;}

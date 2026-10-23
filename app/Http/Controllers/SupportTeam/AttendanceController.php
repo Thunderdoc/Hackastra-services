@@ -137,7 +137,7 @@ class AttendanceController extends Controller
     {
         $d = $this->monthlyReportData($request);
 
-        if (!$d['selected_class']) {
+        if (!$d['selected_class'] && empty($d['all_classes'])) {
             return redirect()->route('attendance.report')
                 ->with('flash_danger', 'No class available to preview.');
         }
@@ -157,15 +157,14 @@ class AttendanceController extends Controller
     {
         $d = $this->monthlyReportData($request);
 
-        if (!$d['selected_class']) {
+        if (!$d['selected_class'] && empty($d['all_classes'])) {
             return redirect()->route('attendance.report')
                 ->with('flash_danger', 'No class available to download.');
         }
 
         $filename = 'attendance-report-'
-            . Str::slug($d['selected_class']->name) . '-'
-            . strtolower($d['month']->format('F')) . '-'
-            . $d['month']->format('Y') . '.pdf';
+            . Str::slug($d['class_label']) . '-'
+            . Str::slug(strtolower($d['range_label'])) . '.pdf';
 
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pages.support_team.attendance.report_pdf', $d);
         $pdf->setPaper('a4', 'portrait');
@@ -184,7 +183,7 @@ class AttendanceController extends Controller
         $height = $canvas->get_height();
 
         $canvas->page_text(34, $height - 26,
-            'Monthly Attendance Report - ' . $d['selected_class']->name . ' - ' . $d['month']->format('F Y'),
+            'Attendance Report - ' . $d['class_label'] . ' - ' . $d['range_label'],
             $font, 8, $grey);
         $labelWidth = $metrics->getTextWidth('Page 10 of 10', $font, 8);
         $canvas->page_text($width - 34 - $labelWidth, $height - 26,
@@ -211,13 +210,32 @@ class AttendanceController extends Controller
      */
     protected function monthlyReportData(Request $request): array
     {
-        $this->guardClassScope($request->query('class_id'));
+        if ($request->query('class_id') !== 'all') {
+            $this->guardClassScope($request->query('class_id'));
+        }
 
         $d['classes'] = $this->visibleClasses();
-        $d['selected_class'] = $request->query('class_id')
-            ? $d['classes']->firstWhere('id', (int) $request->query('class_id'))
-            : $d['classes']->first();
+        /* Owner (2026-10-23): customizable period downloads — the
+           report covers the chosen month plus the N-1 months before
+           it (months = 1..12), and teamSA / teachers may aggregate
+           ALL their visible classes at once (class_id=all). Teacher
+           scope stays enforced by visibleClasses() itself. */
+        $d['all_classes'] = $request->query('class_id') === 'all' && $d['classes']->count() > 1;
+        $d['selected_class'] = $d['all_classes']
+            ? null
+            : ($request->query('class_id')
+                ? $d['classes']->firstWhere('id', (int) $request->query('class_id'))
+                : $d['classes']->first());
         $d['month'] = $this->monthFromRequest($request);
+        $d['months'] = max(1, min(12, (int) $request->query('months', 1)));
+        $rangeFrom = $d['month']->copy()->subMonths($d['months'] - 1)->startOfMonth();
+        $rangeTo = $d['month']->copy()->endOfMonth();
+        $d['range_label'] = $d['months'] === 1
+            ? $d['month']->format('F Y')
+            : $rangeFrom->format('F Y') . ' – ' . $rangeTo->format('F Y');
+        $d['class_label'] = $d['all_classes']
+            ? 'All Classes'
+            : ($d['selected_class'] ? $d['selected_class']->name : '');
         $d['rows'] = collect();
         $d['totals'] = ['present' => 0, 'absent' => 0, 'late' => 0, 'marked' => 0];
         $d['sessions_held'] = 0;
@@ -226,23 +244,26 @@ class AttendanceController extends Controller
         $d['generated_on'] = now();
         $d['school'] = $this->schoolIdentity();
 
-        if ($d['selected_class']) {
+        $reportClasses = $d['all_classes']
+            ? $d['classes']
+            : ($d['selected_class'] ? collect([$d['selected_class']]) : collect());
+        $totalStudents = 0;
+
+        foreach ($reportClasses as $reportClass) {
             $students = StudentRecord::with('user', 'section')
-                ->where('my_class_id', $d['selected_class']->id)
+                ->where('my_class_id', $reportClass->id)
                 ->where('grad', 0)
                 ->orderBy('id')
                 ->get();
+            $totalStudents += $students->count();
 
-            $from = $d['month']->copy()->startOfMonth();
-            $to = $d['month']->copy()->endOfMonth();
+            $stats = $this->statusCounts($students->pluck('id')->all(), $rangeFrom, $rangeTo);
 
-            $stats = $this->statusCounts($students->pluck('id')->all(), $from, $to);
-
-            $d['sessions_held'] = AttendanceSession::forClass($d['selected_class']->id)
-                ->betweenDates($from, $to)
+            $d['sessions_held'] += AttendanceSession::forClass($reportClass->id)
+                ->betweenDates($rangeFrom, $rangeTo)
                 ->count();
 
-            $d['rows'] = $students->map(function ($student) use ($stats, &$d) {
+            foreach ($students as $student) {
                 $s = $stats[$student->id] ?? ['present' => 0, 'absent' => 0, 'late' => 0, 'marked' => 0];
                 $d['totals']['present'] += $s['present'];
                 $d['totals']['absent'] += $s['absent'];
@@ -252,8 +273,9 @@ class AttendanceController extends Controller
                 $percent = $this->percentFor($s['present'], $s['late'], $s['marked']);
                 [$band, $label] = $this->statusBand($percent);
 
-                return [
+                $d['rows']->push([
                     'student' => $student,
+                    'class_name' => $reportClass->name,
                     'present' => $s['present'],
                     'absent' => $s['absent'],
                     'late' => $s['late'],
@@ -261,9 +283,11 @@ class AttendanceController extends Controller
                     'percent' => $percent,
                     'status_band' => $band,
                     'status_label' => $label,
-                ];
-            });
+                ]);
+            }
+        }
 
+        if ($reportClasses->isNotEmpty()) {
             $marked = $d['totals']['marked'];
             if ($marked > 0) {
                 $d['shares'] = [
@@ -274,7 +298,7 @@ class AttendanceController extends Controller
             }
 
             $d['class_summary'] = [
-                'students' => $students->count(),
+                'students' => $totalStudents,
                 'with_100' => $d['rows']->where('percent', 100)->count(),
                 'below_75' => $d['rows']->filter(function ($row) {
                     return $row['percent'] !== null && $row['percent'] < 75;
@@ -685,68 +709,238 @@ class AttendanceController extends Controller
     }
 
     /**
-     * CSV export of the monthly report. Mirrors report()'s
-     * computation exactly — same class+month filter, same percent
-     * rule, and the same period-entry source.
+     * CSV export of the attendance report. Runs on the SAME
+     * monthlyReportData() as the screen/print/PDF so the four
+     * outputs can never disagree (owner, 2026-10-23: every Excel
+     * download must be systematic and well-labelled) — the file
+     * opens with the school name, the report title, the exact
+     * period and class scope, and a totals row at the foot.
      */
     public function export(Request $request)
     {
-        $this->guardClassScope($request->query('class_id'));
+        $d = $this->monthlyReportData($request);
 
-        $classes = $this->visibleClasses();
-        $selected_class = $request->query('class_id')
-            ? $classes->firstWhere('id', (int) $request->query('class_id'))
-            : $classes->first();
-
-        if (!$selected_class) {
+        if (!$d['selected_class'] && empty($d['all_classes'])) {
             return redirect()->route('attendance.report')
                 ->with('flash_danger', 'No class available to export.');
         }
 
-        $monthParam = $request->query('month');
-        $month = $monthParam && preg_match('/^\d{4}-\d{2}$/', $monthParam)
-            ? Carbon::createFromFormat('Y-m', $monthParam)->startOfMonth()
-            : Carbon::today()->startOfMonth();
-
-        $students = StudentRecord::with('user', 'section')
-            ->where('my_class_id', $selected_class->id)
-            ->where('grad', 0)
-            ->orderBy('id')
-            ->get();
-
-        $stats = $this->statusCounts(
-            $students->pluck('id')->all(),
-            $month->copy()->startOfMonth(),
-            $month->copy()->endOfMonth()
-        );
-
-        $totals = ['present' => 0, 'absent' => 0, 'late' => 0, 'marked' => 0];
-
-        $rows = $students->map(function ($student) use ($stats, &$totals) {
-            $s = $stats[$student->id] ?? ['present' => 0, 'absent' => 0, 'late' => 0, 'marked' => 0];
-            $totals['present'] += $s['present'];
-            $totals['absent'] += $s['absent'];
-            $totals['late'] += $s['late'];
-            $totals['marked'] += $s['marked'];
-
-            return [
-                optional($student->user)->name,
-                optional($student->section)->name,
-                $s['present'],
-                $s['absent'],
-                $s['late'],
-                $s['marked'],
-                // Same rule as the on-screen report; blank when nothing was marked.
-                $s['marked'] > 0 ? round((($s['present'] + $s['late']) / $s['marked']) * 100, 1) : '',
+        $rows = [];
+        foreach ($d['rows'] as $row) {
+            $rows[] = [
+                optional($row['student']->user)->name,
+                $row['student']->adm_no,
+                $row['class_name'],
+                optional($row['student']->section)->name,
+                $row['present'],
+                $row['absent'],
+                $row['late'],
+                $row['marked'],
+                $row['percent'] === null ? '' : $row['percent'],
+                $row['status_label'],
             ];
-        })->all();
+        }
+        $t = $d['totals'];
+        $rows[] = ['TOTAL', '', '', '', $t['present'], $t['absent'], $t['late'], $t['marked'], '', ''];
 
-        $rows[] = ['TOTAL', '', $totals['present'], $totals['absent'], $totals['late'], $totals['marked'], ''];
+        $filename = 'attendance-report-'
+            . Str::slug($d['class_label']) . '-'
+            . Str::slug(strtolower($d['range_label'])) . '.csv';
 
-        $filename = 'attendance-' . Str::slug($selected_class->name) . '-' . $month->format('Y-m') . '.csv';
+        return response()->streamDownload(function () use ($d, $rows) {
+            $out = fopen('php://output', 'w');
+            fwrite($out, "\xEF\xBB\xBF"); // UTF-8 BOM for Excel
+            fputcsv($out, [Qs::getSystemName() . ' — Attendance Report']);
+            fputcsv($out, ['Period', $d['range_label']]);
+            fputcsv($out, ['Class', $d['class_label']]);
+            fputcsv($out, ['Generated on', now()->format('d M Y, h:i A')]);
+            fputcsv($out, []);
+            fputcsv($out, ['Student', 'Admission No', 'Class', 'Section', 'Present', 'Absent', 'Late', 'Periods Marked', 'Attendance %', 'Status']);
+            foreach ($rows as $row) {
+                fputcsv($out, array_map([\App\Support\CsvExport::class, 'cell'], $row));
+            }
+            fclose($out);
+        }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
+    }
 
-        return CsvExport::download($filename,
-            ['Student', 'Section', 'Present', 'Absent', 'Late', 'Periods Marked', 'Attendance %'],
-            $rows);
+    /**
+     * ONE STUDENT's own attendance report (owner, 2026-10-23: the
+     * Low Attendance row action opened the whole CLASS report —
+     * it must open that student's individual report). Same period
+     * machinery as the class report: month + months range, counts
+     * from statusCounts(), plus a per-subject breakdown and the
+     * day-by-day register (latest 60 entries) from the sessions.
+     * Scope: teamSA roles; a teacher only reaches students in
+     * classes they teach (TeacherScope), everyone else 403s.
+     */
+    private function studentReportData(Request $request, $student_id): array
+    {
+        $student = StudentRecord::with(['user', 'my_class', 'section'])
+            ->find(Qs::resolveId($student_id));
+        abort_if(!$student, 404);
+
+        $user = Auth::user();
+        if ($user->user_type === 'teacher'
+            && !TeacherScope::canTeachClass($user, (int) $student->my_class_id)) {
+            abort(403);
+        }
+
+        $d['student'] = $student;
+        $d['month'] = $this->monthFromRequest($request);
+        $months = (int) $request->query('months', 1);
+        $d['months'] = ($months >= 1 && $months <= 12) ? $months : 1;
+        $rangeTo = $d['month']->copy()->endOfMonth();
+        $rangeFrom = $d['month']->copy()->startOfMonth()->subMonths($d['months'] - 1);
+        $d['range_label'] = $d['months'] === 1
+            ? $d['month']->format('F Y')
+            : $rangeFrom->format('F Y') . ' – ' . $d['month']->format('F Y');
+
+        $stats = $this->statusCounts([$student->id], $rangeFrom, $rangeTo);
+        $c = $stats[$student->id] ?? ['present' => 0, 'absent' => 0, 'late' => 0, 'marked' => 0];
+        $d['counts'] = $c;
+        $d['percent'] = $this->percentFor($c['present'], $c['late'], $c['marked']);
+        [$d['status_band'], $d['status_label']] = $this->statusBand($d['percent']);
+
+        $entries = AttendanceSessionEntry::where('student_record_id', $student->id)
+            ->whereHas('session', function ($q) use ($rangeFrom, $rangeTo) {
+                $q->betweenDates($rangeFrom, $rangeTo);
+            })
+            ->with(['session.subject', 'session.time_table.time_slot'])
+            ->get()
+            ->sortByDesc(function ($entry) {
+                return optional($entry->session)->date;
+            })
+            ->values();
+
+        $subjects = [];
+        foreach ($entries as $entry) {
+            $subject = optional($entry->session)->subject;
+            $key = $subject ? $subject->id : 0;
+            if (!isset($subjects[$key])) {
+                $subjects[$key] = ['subject' => $subject, 'present' => 0, 'absent' => 0, 'late' => 0, 'marked' => 0];
+            }
+            if (isset($subjects[$key][$entry->status])) {
+                $subjects[$key][$entry->status]++;
+            }
+            $subjects[$key]['marked']++;
+        }
+        foreach ($subjects as &$row) {
+            $row['percent'] = $this->percentFor($row['present'], $row['late'], $row['marked']);
+        }
+        unset($row);
+        $d['subjects'] = collect($subjects)->sortBy(function ($row) {
+            return optional($row['subject'])->name;
+        })->values();
+        $d['school'] = $this->schoolIdentity();
+        $d['entries'] = $entries->take(60);
+        $d['entries_total'] = $entries->count();
+
+        return $d;
+    }
+
+    public function studentReport(Request $request, $student_id)
+    {
+        $d = $this->studentReportData($request, $student_id);
+        $d['student_hash'] = Qs::hash($d['student']->id);
+
+        return view('pages.support_team.attendance.student_report', $d);
+    }
+
+    public function studentReportPdf(Request $request, $student_id)
+    {
+        $d = $this->studentReportData($request, $student_id);
+
+        $filename = 'student-attendance-'
+            . Str::slug($d['student']->adm_no) . '-'
+            . Str::slug(strtolower($d['range_label'])) . '.pdf';
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pages.support_team.attendance.student_report_pdf', $d)
+            ->setPaper('a4', 'portrait');
+
+        $studentName = optional($d['student']->user)->name;
+        $rangeLabel = $d['range_label'];
+        $pdf->output();
+        $dompdf = $pdf->getDomPDF();
+        $canvas = $dompdf->getCanvas();
+        $height = $canvas->get_height();
+        $font = $dompdf->getFontMetrics()->getFont('DejaVu Sans');
+        $grey = [0.55, 0.57, 0.61];
+        $canvas->page_text(34, $height - 26,
+            'Student Attendance Report - ' . $studentName . ' - ' . $rangeLabel,
+            $font, 8, $grey);
+        $canvas->page_text($canvas->get_width() - 92, $height - 26,
+            'Page {PAGE_NUM} of {PAGE_COUNT}', $font, 8, $grey);
+
+        return $pdf->download($filename);
+    }
+
+    public function studentReportExport(Request $request, $student_id)
+    {
+        $d = $this->studentReportData($request, $student_id);
+        $student = $d['student'];
+        $filename = 'student-attendance-'
+            . Str::slug($student->adm_no) . '-'
+            . Str::slug(strtolower($d['range_label'])) . '.csv';
+        $c = $d['counts'];
+
+        return response()->streamDownload(function () use ($d, $student, $c) {
+            $out = fopen('php://output', 'w');
+            fwrite($out, "\xEF\xBB\xBF");
+            fputcsv($out, [Qs::getSystemName() . ' — Student Attendance Report']);
+            fputcsv($out, ['Student', \App\Support\CsvExport::cell(optional($student->user)->name)]);
+            fputcsv($out, ['Admission No', $student->adm_no]);
+            fputcsv($out, ['Class', optional($student->my_class)->name . ' · ' . optional($student->section)->name]);
+            fputcsv($out, ['Period', $d['range_label']]);
+            fputcsv($out, ['Generated on', now()->format('d M Y, h:i A')]);
+            fputcsv($out, []);
+            fputcsv($out, ['Present', 'Absent', 'Late', 'Periods Marked', 'Attendance %', 'Status']);
+            fputcsv($out, [$c['present'], $c['absent'], $c['late'], $c['marked'],
+                $d['percent'] === null ? '' : $d['percent'], $d['status_label']]);
+            fputcsv($out, []);
+            fputcsv($out, ['Date', 'Subject', 'Status']);
+            foreach ($d['entries'] as $entry) {
+                $session = $entry->session;
+                fputcsv($out, array_map([\App\Support\CsvExport::class, 'cell'], [
+                    $session && $session->date ? \Illuminate\Support\Carbon::parse($session->date)->format('d M Y') : '',
+                    optional(optional($session)->subject)->name,
+                    ucfirst($entry->status),
+                ]));
+            }
+            fclose($out);
+        }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
+    }
+
+    /**
+     * PDF of the defaulter list itself (owner, 2026-10-23: the old
+     * "View Full Report" button navigated away to the class report;
+     * everything must open and download from THIS page). Runs on
+     * the same defaulterData() as the screen and the CSV.
+     */
+    public function defaultersPdf(Request $request)
+    {
+        $d = $this->defaulterData($request);
+        $d['school'] = $this->schoolIdentity();
+
+        $filename = 'low-attendance-' . $d['month']->format('Y-m')
+            . '-below-' . $d['threshold'] . '.pdf';
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pages.support_team.attendance.defaulters_pdf', $d)
+            ->setPaper('a4', 'landscape');
+
+        $monthLabel = $d['month']->format('F Y');
+        $threshold = $d['threshold'];
+        $pdf->output();
+        $dompdf = $pdf->getDomPDF();
+        $canvas = $dompdf->getCanvas();
+        $height = $canvas->get_height();
+        $font = $dompdf->getFontMetrics()->getFont('DejaVu Sans');
+        $grey = [0.55, 0.57, 0.61];
+        $canvas->page_text(34, $height - 26,
+            'Low Attendance Report - ' . $monthLabel . ' - Below ' . $threshold . '%',
+            $font, 8, $grey);
+        $canvas->page_text($canvas->get_width() - 92, $height - 26,
+            'Page {PAGE_NUM} of {PAGE_COUNT}', $font, 8, $grey);
+
+        return $pdf->download($filename);
     }
 }

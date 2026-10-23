@@ -5,6 +5,9 @@
     <div class="card">
         <div class="card-header header-elements-inline">
             <h6 class="card-title">Exam Date Sheet</h6>
+            <div class="header-elements">
+                <a href="{{ route('exam_dates.generate.form') }}" class="btn btn-success btn-sm"><i class="icon-magic-wand mr-1"></i> Auto-Generate Date Sheet</a>
+            </div>
             {!! Qs::getPanelOptions() !!}
         </div>
 

@@ -7,7 +7,12 @@ use App\Http\Requests\TimeTable\TSRequest;
 use App\Http\Requests\TimeTable\TTRecordRequest;
 use App\Http\Requests\TimeTable\TTRequest;
 use App\Http\Requests\TimeTable\UseTimeSlotRequest;
+use App\Models\AttendanceSession;
+use App\Models\MyClass;
+use App\Models\Section;
 use App\Models\Setting;
+use App\Models\Subject;
+use App\Models\TimeSlot;
 use App\Models\TimeTable;
 use App\Models\TimeTableRecord;
 use App\Repositories\ExamRepo;
@@ -16,6 +21,8 @@ use App\Repositories\TimeTableRepo;
 use App\Support\TeacherScope;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 
 class TimeTableController extends Controller
@@ -149,7 +156,212 @@ class TimeTableController extends Controller
             return true;
         })->values();
 
+        /* Owner redesign (2026-10-23): the list renders as CLASS
+           CARDS — every class with its sections and timetable
+           state — so these aggregates ride along: sections grouped
+           by class, and per-record period/subject counts. */
+        $d['sections_by_class'] = Section::orderBy('name')
+            ->get()->groupBy('my_class_id');
+        $d['record_stats'] = [];
+        foreach (TimeTable::select('ttr_id', 'subject_id')->get()->groupBy('ttr_id') as $ttrId => $cells) {
+            $d['record_stats'][$ttrId] = [
+                'periods' => $cells->count(),
+                'subjects' => $cells->pluck('subject_id')->unique()->count(),
+            ];
+        }
+
         return view('pages.support_team.timetables.index', $d);
+    }
+
+    /**
+     * AUTO-GENERATE timetables (owner's ADMIN-LOAD-ZERO law,
+     * 2026-10-23): the system asks the Admin only for the school
+     * day basics — start time, period length, periods per day,
+     * lunch and break placement — then builds a complete,
+     * clash-free timetable for every class from its subjects and
+     * their teachers. The Admin reviews, edits any period on the
+     * Manage page, and is done; nobody hand-builds a grid.
+     */
+    public function generateForm(Request $req)
+    {
+        $d['preset_class'] = $req->query('class_id');
+        $d['my_classes'] = $this->my_class->all();
+        $d['defaults'] = [
+            'start_time' => '08:00', 'period_minutes' => 40,
+            'periods_per_day' => 8, 'lunch_after' => 4,
+            'lunch_minutes' => 45, 'break_after' => 2,
+            'break_minutes' => 15, 'days' => 5,
+        ];
+
+        return view('pages.support_team.timetables.generate', $d);
+    }
+
+    public function generate(Request $req)
+    {
+        $data = $req->validate([
+            'start_time' => 'required|date_format:H:i',
+            'period_minutes' => 'required|integer|min:20|max:90',
+            'periods_per_day' => 'required|integer|min:4|max:12',
+            'lunch_after' => 'required|integer|min:1|max:12',
+            'lunch_minutes' => 'required|integer|min:15|max:90',
+            'break_after' => 'nullable|integer|min:0|max:12',
+            'break_minutes' => 'nullable|integer|min:5|max:45',
+            'days' => 'required|integer|in:5,6',
+            'scope' => 'required|in:all,one',
+            'class_id' => 'nullable|integer',
+            'mode' => 'required|in:skip,replace',
+        ]);
+        foreach (['period_minutes', 'periods_per_day', 'lunch_after', 'lunch_minutes', 'break_after', 'break_minutes', 'days'] as $k) {
+            if (isset($data[$k])) {
+                $data[$k] = (int) $data[$k];
+            }
+        }
+        if ($data['scope'] === 'one' && empty($data['class_id'])) {
+            return back()->with('flash_danger', 'Choose the class to generate for.')->withInput();
+        }
+
+        // The school-day clock: teaching slots only; lunch and the
+        // short break simply move the clock forward.
+        $cursor = Carbon::parse('2026-01-05 ' . $data['start_time']); // a Monday
+        $slots = [];
+        for ($i = 1; $i <= $data['periods_per_day']; $i++) {
+            $from = $cursor->copy();
+            $to = $cursor->copy()->addMinutes($data['period_minutes']);
+            $slots[] = ['from' => $from, 'to' => $to];
+            $cursor = $to->copy();
+            if ($i === (int) $data['lunch_after']) {
+                $cursor->addMinutes($data['lunch_minutes']);
+            }
+            if (!empty($data['break_after']) && $i === (int) $data['break_after']) {
+                $cursor->addMinutes($data['break_minutes'] ?? 15);
+            }
+        }
+        // Sanity clamp (break-it pass, 2026-10-23): a school day that
+        // runs past 9:30 PM is a form mistake, not a timetable —
+        // refuse it instead of generating a nonsense grid.
+        $lastSlot = end($slots);
+        if ($lastSlot && ($lastSlot['to']->format('Y-m-d') !== '2026-01-05'
+            || $lastSlot['to']->gt(Carbon::parse('2026-01-05 21:30')))) {
+            return back()->with('flash_danger', 'That school day would run past 9:30 PM — reduce the periods, shorten them, or start earlier.')->withInput();
+        }
+        $dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+        $classes = $data['scope'] === 'one'
+            ? MyClass::where('id', $data['class_id'])->get()
+            : MyClass::orderBy('id')->get();
+
+        $teacherBusy = []; // [day][slot][teacher_id] = true, across ALL classes
+        $summary = ['generated' => [], 'skipped' => [], 'no_subjects' => [], 'locked' => [], 'placed' => 0, 'empty' => 0];
+
+        foreach ($classes as $class) {
+            $subjects = Subject::where('my_class_id', $class->id)->orderBy('id')->get();
+            if ($subjects->isEmpty()) {
+                $summary['no_subjects'][] = $class->name;
+                continue;
+            }
+
+            $record = TimeTableRecord::where('my_class_id', $class->id)
+                ->whereNull('exam_id')->where('year', $this->year)->first();
+            if ($record && $data['mode'] === 'skip') {
+                $summary['skipped'][] = $class->name;
+                continue;
+            }
+            if ($record && $data['mode'] === 'replace') {
+                /* Break-it guard (2026-10-23): attendance sessions
+                   point at timetable cells (time_table_id, set-null
+                   on delete). Replacing a timetable whose periods
+                   already carry SUBMITTED attendance would orphan
+                   those registers and let the same lesson be marked
+                   twice under the new grid — refuse and report; the
+                   class keeps its timetable for this session. */
+                $hasSessions = AttendanceSession::whereIn('time_table_id',
+                    TimeTable::where('ttr_id', $record->id)->pluck('id'))->exists();
+                if ($hasSessions) {
+                    $summary['locked'][] = $class->name;
+                    continue;
+                }
+            }
+
+            DB::transaction(function () use ($record, $class, $subjects, $slots, $dayNames, $data, &$teacherBusy, &$summary) {
+                if ($record) {
+                    TimeTable::where('ttr_id', $record->id)->delete();
+                    TimeSlot::where('ttr_id', $record->id)->delete();
+                } else {
+                    $record = TimeTableRecord::create([
+                        'name' => $class->name . ' Timetable',
+                        'my_class_id' => $class->id,
+                        'exam_id' => null,
+                        'year' => $this->year,
+                    ]);
+                }
+
+                $slotModels = [];
+                foreach ($slots as $slot) {
+                    $slotModels[] = TimeSlot::create([
+                        'ttr_id' => $record->id,
+                        'hour_from' => $slot['from']->format('g'),
+                        'min_from' => $slot['from']->format('i'),
+                        'meridian_from' => $slot['from']->format('A'),
+                        'hour_to' => $slot['to']->format('g'),
+                        'min_to' => $slot['to']->format('i'),
+                        'meridian_to' => $slot['to']->format('A'),
+                        'time_from' => $slot['from']->format('g:i A'),
+                        'time_to' => $slot['to']->format('g:i A'),
+                        'timestamp_from' => $slot['from']->timestamp,
+                        'timestamp_to' => $slot['to']->timestamp,
+                        'full' => $slot['from']->format('g:i A') . ' - ' . $slot['to']->format('g:i A'),
+                    ]);
+                }
+
+                $weekCount = $subjects->mapWithKeys(function ($s) { return [$s->id => 0]; })->all();
+                for ($day = 1; $day <= $data['days']; $day++) {
+                    $dayCount = $subjects->mapWithKeys(function ($s) { return [$s->id => 0]; })->all();
+                    foreach ($slotModels as $slotIdx => $slotModel) {
+                        $candidates = $subjects->sortBy(function ($s) use ($weekCount, $dayCount) {
+                            return ($weekCount[$s->id] * 100) + ($dayCount[$s->id] * 10);
+                        })->values();
+                        $chosen = null;
+                        foreach ($candidates as $cand) {
+                            if (!$cand->teacher_id || empty($teacherBusy[$day][$slotIdx][$cand->teacher_id])) {
+                                $chosen = $cand;
+                                break;
+                            }
+                        }
+                        if (!$chosen) {
+                            $summary['empty']++;
+                            continue;
+                        }
+                        if ($chosen->teacher_id) {
+                            $teacherBusy[$day][$slotIdx][$chosen->teacher_id] = true;
+                        }
+                        $weekCount[$chosen->id]++;
+                        $dayCount[$chosen->id]++;
+                        $cell = TimeTable::create([
+                            'ttr_id' => $record->id,
+                            'ts_id' => $slotModel->id,
+                            'subject_id' => $chosen->id,
+                            'day' => $dayNames[$day - 1],
+                            'timestamp_from' => $slotModel->timestamp_from + (($day - 1) * 86400),
+                            'timestamp_to' => $slotModel->timestamp_to + (($day - 1) * 86400),
+                        ]);
+                        $cell->day_num = $day; // not in TimeTable::$fillable
+                        $cell->save();
+                        $summary['placed']++;
+                    }
+                }
+                $summary['generated'][] = $class->name;
+            });
+        }
+
+        $msg = 'Timetables generated for ' . count($summary['generated']) . ' class(es): '
+            . $summary['placed'] . ' periods placed'
+            . ($summary['empty'] ? ', ' . $summary['empty'] . ' period(s) left empty (every teacher busy) — fill them on the Manage page' : '')
+            . ($summary['skipped'] ? '. Skipped (already have one): ' . implode(', ', $summary['skipped']) : '')
+            . (!empty($summary['locked']) ? '. Kept (attendance already submitted, timetable locked this session): ' . implode(', ', $summary['locked']) : '')
+            . ($summary['no_subjects'] ? '. No subjects yet: ' . implode(', ', $summary['no_subjects']) : '')
+            . '.';
+
+        return redirect()->route('tt.index')->with('flash_success', $msg);
     }
 
     /**

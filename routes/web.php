@@ -103,6 +103,10 @@ Route::group(['middleware' => 'auth'], function () {
         /*************** TimeTables *****************/
         Route::group(['prefix' => 'timetables'], function(){
             Route::get('/', 'TimeTableController@index')->name('tt.index');
+            Route::group(['middleware' => 'teamSAWrite'], function(){
+                Route::get('generate', 'TimeTableController@generateForm')->name('tt.generate.form');
+                Route::post('generate', 'TimeTableController@generate')->name('tt.generate');
+            });
             Route::get('mine', 'TimeTableController@mine')->name('tt.mine');
             /* Loop 81: teacher's own weekly timetable — print + PDF */
             Route::get('mine/print', 'TimeTableController@mine_print')->name('tt.mine_print');
@@ -265,6 +269,8 @@ Route::group(['middleware' => 'auth'], function () {
            PlatformOnly (none of these names are allowlisted). */
         Route::get('exams/date-sheet/manage', 'ExamDateController@manage')->name('exam_dates.manage');
         Route::post('exams/date-sheet/manage', 'ExamDateController@save')->name('exam_dates.save');
+        Route::get('exams/date-sheet/generate', 'ExamDateController@generateForm')->name('exam_dates.generate.form');
+        Route::post('exams/date-sheet/generate', 'ExamDateController@generate')->name('exam_dates.generate');
         Route::get('exam-dates', 'ExamDateController@show')->name('exam_dates.index');
         Route::get('exam-dates/show', 'ExamDateController@show')->name('exam_dates.show');
         Route::get('exam-dates/print', 'ExamDateController@printSheet')->name('exam_dates.print');
@@ -295,6 +301,10 @@ Route::group(['middleware' => 'auth'], function () {
         Route::get('attendance/report/pdf', 'AttendanceController@reportPdf')->name('attendance.report.pdf');
         Route::get('attendance/defaulters', 'AttendanceController@defaulters')->name('attendance.defaulters');
         Route::get('attendance/defaulters/export', 'AttendanceController@defaultersExport')->name('attendance.defaulters.export');
+        Route::get('attendance/defaulters/pdf', 'AttendanceController@defaultersPdf')->name('attendance.defaulters.pdf');
+        Route::get('attendance/student/{student_id}', 'AttendanceController@studentReport')->name('attendance.student_report');
+        Route::get('attendance/student/{student_id}/pdf', 'AttendanceController@studentReportPdf')->name('attendance.student_report.pdf');
+        Route::get('attendance/student/{student_id}/export', 'AttendanceController@studentReportExport')->name('attendance.student_report.export');
         Route::get('attendance/my', 'AttendanceController@my')->name('attendance.my');
 
         /*************** Student ID Card (Workstream AJ) *****************/

@@ -146,7 +146,7 @@
 
     <div class="mar-body">
         <div class="mar-title">Monthly Attendance Report</div>
-        <div class="mar-subtitle">{{ $selected_class->name }} &nbsp;|&nbsp; {{ $month->format('F Y') }}</div>
+        <div class="mar-subtitle">{{ $class_label }} &nbsp;|&nbsp; {{ $range_label }}</div>
 
         {{-- Metadata row --}}
         <table class="mar-meta">
@@ -164,7 +164,7 @@
                 <td style="width:190px;padding-left:8px;">
                     <div class="mar-meta-box">
                         <div class="mar-meta-label">Class &amp; Section</div>
-                        <div class="mar-meta-value">{{ $selected_class->name }}</div>
+                        <div class="mar-meta-value">{{ $class_label }}</div>
                     </div>
                 </td>
             </tr>
@@ -192,7 +192,7 @@
                 <td><div class="mar-chip mar-chip-periods">
                     <div class="mar-chip-num">{{ $totals['marked'] }}</div>
                     <div class="mar-chip-label">Total Periods</div>
-                    <div class="mar-chip-cap">Marked for this month</div>
+                    <div class="mar-chip-cap">{{ ($months ?? 1) > 1 ? 'Marked in this period' : 'Marked for this month' }}</div>
                 </div></td>
                 <td><div class="mar-chip mar-chip-registers">
                     <div class="mar-chip-num">{{ $sessions_held }}</div>
@@ -259,7 +259,7 @@
                 </td>
                 <td>
                     <div class="mar-panel">
-                        <div class="mar-panel-title">Class Summary ({{ $selected_class->name }})</div>
+                        <div class="mar-panel-title">Class Summary ({{ $class_label }})</div>
                         <table class="mar-summary-grid">
                             <tr>
                                 <td><div class="mar-summary-num">{{ $class_summary['students'] }}</div><div class="mar-summary-label">Total Students</div></td>
@@ -292,7 +292,7 @@
                 </td>
                 <td style="width:38%;vertical-align:bottom;">
                     <div class="mar-foot-meta">
-                        <strong>Attendance Report &ndash; {{ $selected_class->name }}</strong><br>
+                        <strong>Attendance Report &ndash; {{ $class_label }}</strong><br>
                         Printed on {{ $generated_on->format('d M Y, g:i A') }}
                     </div>
                 </td>

@@ -5,6 +5,7 @@
 @endsection
 @if(Qs::userIsTeamSAWrite())
 @section('page_actions')
+    <a href="{{ route('tt.generate.form') }}" class="btn btn-success"><i class="icon-magic-wand mr-1"></i> Auto-Generate</a>
     <a href="#tt-create" class="btn btn-primary"><i class="icon-plus2 mr-1"></i> Create Timetable</a>
 @endsection
 @endif
@@ -78,90 +79,92 @@
         $ttVisibleGroups = 0;
     @endphp
 
-    @if($tt_records_all->count() === 0)
+    {{-- Owner redesign (2026-10-23): CLASS CARDS — every class is
+         a card with its sections and timetable state; clicking a
+         class opens its timetable. Records (class + exam) list
+         inside the card with all their existing actions. --}}
+    @if($my_classes->count() === 0)
         <div class="card"><div class="card-body">
             <div class="ttx-empty-state">
                 <i class="icon-table2"></i>
-                <p>No timetables have been created yet.</p>
+                <p>No classes exist yet — add classes first, then generate their timetables.</p>
             </div>
         </div></div>
     @else
+        @if($tt_records_all->count() === 0 && Qs::userIsTeamSAWrite())
+            <div class="card ttc-cta"><div class="card-body">
+                <div class="ttc-cta-copy">
+                    <strong>No timetables yet.</strong>
+                    <span>Let the system build every class timetable for you — you only tell it the school hours, lunch and breaks.</span>
+                </div>
+                <a href="{{ route('tt.generate.form') }}" class="btn btn-success"><i class="icon-magic-wand mr-1"></i> Auto-Generate Timetables</a>
+            </div></div>
+        @endif
+
+        <div class="ttc-grid">
         @foreach($my_classes as $mc)
-            @php $records = $tt_records->where('my_class_id', $mc->id); @endphp
-            @if($records->count())
-                @php $ttVisibleGroups++; $gid = 'tt-group-'.$mc->id; @endphp
-                <div class="card l81-group">
-                    <div class="l81-group-head">
-                        <button type="button" class="l81-group-toggle" data-toggle="collapse" data-target="#{{ $gid }}"
-                                aria-expanded="true" aria-controls="{{ $gid }}" aria-label="Toggle {{ $mc->name }} timetables">
-                            <span class="l81-group-tile"><i class="icon-graduation2"></i></span>
-                            <span class="l81-group-name">{{ $mc->name }}</span>
-                            <span class="badge badge-light">{{ $records->count() }} timetable{{ $records->count() === 1 ? '' : 's' }}</span>
-                            <span class="badge badge-light l81-year-badge">Year: {{ $records->pluck('year')->unique()->implode(', ') }}</span>
-                            <i class="icon-chevron-down l81-chev" aria-hidden="true"></i>
-                        </button>
-                        @if(Qs::userIsTeamSAWrite())
-                            <div class="btn-group l81-group-menu">
-                                <button type="button" class="btn btn-light btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="Actions for {{ $mc->name }}"><i class="icon-more2"></i></button>
-                                <div class="dropdown-menu dropdown-menu-right">
-                                    <a class="dropdown-item" href="#tt-create"><i class="icon-plus2 mr-2"></i> New Timetable</a>
-                                </div>
-                            </div>
+            @php
+                $records = $tt_records->where('my_class_id', $mc->id)->values();
+                $primary = $records->first(function ($r) use ($stats) { return !$r->exam_id && $r->year === $stats['session']; }) ?: $records->first();
+                $sections = $sections_by_class[$mc->id] ?? collect();
+            @endphp
+            @if($records->count() || !$ttFiltersActive)
+                @php $ttVisibleGroups++; @endphp
+                <div class="card ttc-card">
+                    <div class="ttc-head">
+                        <span class="l81-group-tile"><i class="icon-graduation2"></i></span>
+                        <div class="ttc-head-copy">
+                            <span class="ttc-name">{{ $mc->name }}</span>
+                            <span class="ttc-sub">{{ $records->count() }} timetable{{ $records->count() === 1 ? '' : 's' }} · {{ $sections->count() }} section{{ $sections->count() === 1 ? '' : 's' }}</span>
+                        </div>
+                        @if($primary)
+                            <a href="{{ route('ttr.show', $primary->id) }}" class="btn btn-primary btn-sm">Open Timetable</a>
+                        @elseif(Qs::userIsTeamSAWrite())
+                            <a href="{{ route('tt.generate.form', ['class_id' => $mc->id]) }}" class="btn btn-success btn-sm"><i class="icon-magic-wand mr-1"></i> Generate</a>
                         @endif
                     </div>
-                    <div id="{{ $gid }}" class="collapse show">
-                        <div class="l7-table-scroll">
-                            <table class="table ttx-table l81-table">
-                                <thead>
-                                <tr>
-                                    <th style="width:56px">S/N</th>
-                                    <th>Name</th>
-                                    <th>Type</th>
-                                    <th>Year</th>
-                                    <th>Status</th>
-                                    <th style="width:1%">Action</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                @foreach($records as $ttr)
-                                    <tr>
-                                        <td>{{ $loop->iteration }}</td>
-                                        <td><strong>{{ $ttr->name }}</strong></td>
-                                        <td>{{ ($ttr->exam_id) ? $ttr->exam->name : 'Class TimeTable' }}</td>
-                                        <td>{{ $ttr->year }}</td>
-                                        <td>
-                                            @if($ttr->year === $stats['session'])
-                                                <span class="l81-status l81-status-active"><span class="l81-dot"></span> Active</span>
-                                            @else
-                                                <span class="l81-status l81-status-past"><span class="l81-dot"></span> Past Session</span>
-                                            @endif
-                                        </td>
-                                        <td>
-                                            <div class="ttx-actions l81-actions">
-                                                <a href="{{ route('ttr.show', $ttr->id) }}" class="btn btn-light btn-sm"><i class="icon-eye mr-1"></i> View</a>
-                                                <a target="_blank" href="{{ route('ttr.print', $ttr->id) }}" class="btn btn-light btn-sm"><i class="icon-printer mr-1"></i> Print</a>
-                                                @if(Qs::userIsTeamSAWrite())
-                                                    <div class="btn-group">
-                                                        <button type="button" class="btn btn-light btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="More actions for {{ $ttr->name }}"><i class="icon-more2"></i></button>
-                                                        <div class="dropdown-menu dropdown-menu-right">
-                                                            <a class="dropdown-item" href="{{ route('ttr.manage', $ttr->id) }}"><i class="icon-plus-circle2 mr-2"></i> Manage</a>
-                                                            <a class="dropdown-item" href="{{ route('ttr.edit', $ttr->id) }}"><i class="icon-pencil mr-2"></i> Edit</a>
-                                                            <a class="dropdown-item text-danger" id="{{ $ttr->id }}" onclick="confirmDelete(this.id)" href="#"><i class="icon-trash mr-2"></i> Delete</a>
-                                                        </div>
-                                                    </div>
-                                                    <form method="post" id="item-delete-{{ $ttr->id }}" action="{{ route('ttr.destroy', $ttr->id) }}" class="hidden">@csrf @method('delete')</form>
-                                                @endif
-                                            </div>
-                                        </td>
-                                    </tr>
-                                @endforeach
-                                </tbody>
-                            </table>
+                    @if($sections->count())
+                        <div class="ttc-sections">
+                            @foreach($sections as $sec)<span class="ttc-chip">{{ $sec->name }}</span>@endforeach
                         </div>
+                    @endif
+                    <div class="ttc-records">
+                    @forelse($records as $ttr)
+                        @php $rs = $record_stats[$ttr->id] ?? ['periods' => 0, 'subjects' => 0]; @endphp
+                        <div class="ttc-record">
+                            <div class="ttc-record-copy">
+                                <strong>{{ $ttr->name }}</strong>
+                                <span class="ttc-record-meta">{{ $ttr->exam_id ? $ttr->exam->name : 'Class TimeTable' }} · {{ $ttr->year }} · {{ $rs['periods'] }} periods · {{ $rs['subjects'] }} subjects</span>
+                            </div>
+                            @if($ttr->year === $stats['session'])
+                                <span class="l81-status l81-status-active"><span class="l81-dot"></span> Active</span>
+                            @else
+                                <span class="l81-status l81-status-past"><span class="l81-dot"></span> Past Session</span>
+                            @endif
+                            <div class="ttx-actions l81-actions">
+                                <a href="{{ route('ttr.show', $ttr->id) }}" class="btn btn-light btn-sm"><i class="icon-eye mr-1"></i> View</a>
+                                <a target="_blank" href="{{ route('ttr.print', $ttr->id) }}" class="btn btn-light btn-sm"><i class="icon-printer mr-1"></i> Print</a>
+                                @if(Qs::userIsTeamSAWrite())
+                                    <div class="btn-group">
+                                        <button type="button" class="btn btn-light btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="More actions for {{ $ttr->name }}"><i class="icon-more2"></i></button>
+                                        <div class="dropdown-menu dropdown-menu-right">
+                                            <a class="dropdown-item" href="{{ route('ttr.manage', $ttr->id) }}"><i class="icon-plus-circle2 mr-2"></i> Manage</a>
+                                            <a class="dropdown-item" href="{{ route('ttr.edit', $ttr->id) }}"><i class="icon-pencil mr-2"></i> Edit</a>
+                                            <a class="dropdown-item text-danger" id="{{ $ttr->id }}" onclick="confirmDelete(this.id)" href="#"><i class="icon-trash mr-2"></i> Delete</a>
+                                        </div>
+                                    </div>
+                                    <form method="post" id="item-delete-{{ $ttr->id }}" action="{{ route('ttr.destroy', $ttr->id) }}" class="hidden">@csrf @method('delete')</form>
+                                @endif
+                            </div>
+                        </div>
+                    @empty
+                        <div class="ttc-empty">No timetable yet for this class.</div>
+                    @endforelse
                     </div>
                 </div>
             @endif
         @endforeach
+        </div>
 
         @if($ttVisibleGroups === 0)
             <div class="card"><div class="card-body">

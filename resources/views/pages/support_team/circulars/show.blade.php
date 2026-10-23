@@ -28,7 +28,15 @@
              sit between Download PDF and Back. --}}
         <span class="spacer"></span>
         <a href="{{ route('circulars.print', $circular->id) }}" target="_blank" rel="noopener" class="btn btn-light"><i class="icon-printer mr-1"></i> Print</a>
-        <a href="{{ route('circulars.pdf', $circular->id) }}" class="btn btn-light"><i class="icon-download mr-1"></i> Download PDF</a>
+        @if($circular->is_published && $circular->official_pdf_generated_at)
+            {{-- One canonical PDF (owner downloads rule, 2026-10-23):
+                 the header download IS the signed official copy —
+                 the same file the Official Signed PDF card below
+                 offers — never a second, divergent render. --}}
+            <a href="{{ route('circulars.official', [$circular->id, 'download' => 1]) }}" class="btn btn-light"><i class="icon-download mr-1"></i> Download PDF</a>
+        @else
+            <a href="{{ route('circulars.pdf', $circular->id) }}" class="btn btn-light"><i class="icon-download mr-1"></i> Download PDF</a>
+        @endif
         @if($canWrite)
             <a href="{{ route('circulars.edit', $circular->id) }}" class="btn btn-light"><i class="icon-pencil7 mr-1"></i> Edit</a>
             <form method="post" action="{{ route('circulars.destroy', $circular->id) }}" style="display:inline">

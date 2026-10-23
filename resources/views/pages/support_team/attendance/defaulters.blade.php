@@ -69,10 +69,11 @@
                     <button type="button" class="btn btn-light btn-sm" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="icon-download mr-1"></i> Export <i class="icon-chevron-down ml-1"></i></button>
                     <div class="dropdown-menu dropdown-menu-right">
                         <a href="{{ route('attendance.defaulters.export', request()->query()) }}" class="dropdown-item"><i class="icon-file-text2"></i> Export CSV</a>
+                        <a href="{{ route('attendance.defaulters.pdf', request()->query()) }}" class="dropdown-item"><i class="icon-file-pdf"></i> Download PDF</a>
                         <button type="button" class="dropdown-item" onclick="window.print()"><i class="icon-printer"></i> Print</button>
                     </div>
                 </div>
-                <a href="{{ route('attendance.report', array_filter(['class_id' => $selected_class ? $selected_class->id : null, 'month' => $month->format('Y-m')])) }}" class="btn btn-primary btn-sm"><i class="icon-stats-bars mr-1"></i> View Full Report</a>
+
             </div>
         </div>
 
@@ -229,7 +230,7 @@
                                         <a href="#" class="list-icons-item" data-toggle="dropdown" aria-label="More actions for {{ $studentUser->name }}"><i class="icon-menu9"></i></a>
                                         <div class="dropdown-menu dropdown-menu-right">
                                             <a href="{{ route('students.show', Qs::hash($row['student']->id)) }}" class="dropdown-item"><i class="icon-eye"></i> View Profile</a>
-                                            <a href="{{ route('attendance.report', ['class_id' => $row['student']->my_class_id, 'month' => $month->format('Y-m')]) }}" class="dropdown-item"><i class="icon-stats-bars"></i> Attendance Report</a>
+                                            <a href="{{ route('attendance.student_report', [Qs::hash($row['student']->id), 'month' => $month->format('Y-m')]) }}" class="dropdown-item"><i class="icon-stats-bars"></i> Attendance Report</a>
                                         </div>
                                     </div>
                                 </div>
