@@ -872,6 +872,30 @@ class TimeTableController extends Controller
         }
 
         $this->tt->updateTimeSlot($ts_id, $data);
+
+        /* TT-02 residual (2026-10-23): placed cells snapshot the
+           slot's time-of-day into their own timestamps at placement
+           (generator: slot timestamp + day offset; manual entry:
+           cell date + slot time string), and the clash validator
+           keys off the CELL timestamps. Without this sync, editing
+           a slot's times left every placed period reporting the old
+           times to the validator. Recompose each cell's timestamps
+           from its own date part + the slot's new times, preserving
+           the day/date each cell belongs to. Attendance sessions
+           point at cells, not timestamps, so locked registers stay
+           attached to their periods. */
+        TimeTable::where('ts_id', $ts_id)->get()->each(function ($cell) use ($tf, $tt) {
+            /* Cell timestamps arrive as unix integers from the
+               generator/manual flows, but nothing casts the columns
+               — normalize datetime strings too before reading the
+               date part, or an (int) cast would eat the year. */
+            $fromTs = is_numeric($cell->timestamp_from) ? (int) $cell->timestamp_from : strtotime($cell->timestamp_from);
+            $toTs = is_numeric($cell->timestamp_to) ? (int) $cell->timestamp_to : strtotime($cell->timestamp_to);
+            $cell->timestamp_from = strtotime(date('Y-m-d', $fromTs) . ' ' . $tf);
+            $cell->timestamp_to = strtotime(date('Y-m-d', $toTs) . ' ' . $tt);
+            $cell->save();
+        });
+
         return redirect()->route('ttr.manage', $req->ttr_id)->with('flash_success', __('msg.update_ok'));
     }
 

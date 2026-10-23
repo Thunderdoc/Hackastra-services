@@ -84,5 +84,6 @@ class Kernel extends HttpKernel
         'examIsLocked' => \App\Http\Middleware\Custom\ExamIsLocked::class,
         'active_account' => \App\Http\Middleware\Custom\EnsureActiveAccount::class,
         'my_parent' => \App\Http\Middleware\Custom\MyParent::class,
+        'student' => \App\Http\Middleware\Custom\Student::class,
     ];
 }

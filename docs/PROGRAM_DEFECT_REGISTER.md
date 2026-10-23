@@ -211,6 +211,78 @@ setting. All fixtures are self-created inside rolled-back
 transactions. Full suite: 21 tests / 71 assertions, OK (baseline
 was 14 tests).
 
+## Closing round (2026-10-23 evening, owner order: "fix everything remaining")
+
+### TT-02 residual — CLOSED
+`update_time_slot` now recomposes every placed cell's timestamps
+from the cell's own date part + the slot's new time-of-day (cells
+snapshot slot times at placement; the clash validator reads cell
+timestamps). Verified live: slot 8:00–8:40 → 9:15–9:55 moved all
+5 placed cells, dates intact. The first implementation cast cell
+timestamps with (int), which corrupts datetime-string values into
+the epoch — caught by the new regression test and hardened to
+normalize numeric and string shapes.
+
+### VACANCY — subjects.teacher_id nullable (DONE)
+Migration `2026_10_23_000007` makes `subjects.teacher_id`
+nullable. Create/edit forms accept "no teacher" (hint text says
+what happens); the subjects index renders a Vacant badge instead
+of dereferencing a null teacher (the one unguarded deref found);
+Allocation already treated null as an `unassigned` problem and
+now surfaces real vacancies with recommendations. Generator,
+validator, attendance guards and dashboards were swept and are
+null-safe. Both subject FormRequests normalize a tampered
+undecodable teacher hash to NULL (never an empty string).
+Verified end-to-end through the real forms.
+
+### STUDENT-PORTAL — student Fees / Library / Events (DONE)
+The audit's student-portal gaps are closed by
+`MyStudent\PortalController` (the dormant `Student` middleware is
+now registered as the `student` alias): `/fees/mine` (own fee
+statement on the parent's presentation; receipt route guarded by
+PaymentRecordPolicy@view, whose student branch is exact),
+`/library/mine` (own loans + own fines), `/school-events` (path
+chosen to avoid the teamSA events resource's {event} binding).
+Read-only; no request parameter selects a student. Verified:
+own pages 200, own receipt 200, foreign receipt 403, teacher and
+parent redirected to login, missing receipt 404.
+
+### SQUAD-F flags — CLOSED
+My Account photo hint now reads "JPG, PNG, GIF or WebP (Max
+2MB)" — the server (UserRequest/UserUpdate) always accepted
+WebP; the hint lied. Payslip footer printed the PAID date as
+"Generated on"; it now prints the true generation date with the
+creator kept as "Recorded by" (the paid date already appears as
+Payment Date on the same document).
+
+### Verified already-fixed (audit snapshots superseded — no change made)
+- **§20/§21 feedback queues**: Loop 87/118 uplifts rebuilt both
+  pages after the audit snapshot — rail cards carry bodies, My
+  Feedback has the All Reports tab, search, sort and the Admin
+  Response column; the sidebar lights exactly one of Give/My
+  Feedback per page (probed live, both directions).
+- **§22 circulars search**: the shared `_browser` partial renders
+  the search input and the controller's `q` filter (title / body /
+  publisher) narrows results; probed live incl. the no-match
+  empty state.
+- **C1 R-18**: platform-mail recipients are restricted to
+  platform accounts (controller carries the Audit R-18 fix).
+- **C1 R-19**: the SA audit log paginates 50/page with a total
+  count and pager.
+- **Stale section list ("SSS 2-A under JSS 2")**: NOT
+  REPRODUCIBLE — every seeded section belongs to its class and no
+  view/JS holds a hardcoded list; the sighting was transient
+  data on the ephemeral demo DB, since reseeded.
+
+### TEST-02 — closing-round regression tests (DONE 2026-10-23)
+`tests/Feature/ProgramFixesTest.php`: 4 tests — slot-time edit
+recomposes placed-cell timestamps preserving dates; a vacant
+subject is stored null and flagged `unassigned` by Allocation;
+a student reads own fees/library/events + own receipt and is
+403'd on a foreign receipt; a non-student is redirected from
+the portal. Full suite: **25 tests / 86 assertions, OK.**
+qa-smoke: PASS.
+
 ## Queued by phase (from the master prompt backlog)
 
 - Phase 3: enrollment/session integrity deep-check; ADM-01 fix.

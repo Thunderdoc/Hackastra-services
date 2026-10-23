@@ -67,7 +67,7 @@
                         <td data-label="Name">{{ $s->name }}</td>
                         <td data-label="Short Name">{{ $s->slug }}</td>
                         <td data-label="Class">{{ $s->my_class->name }}</td>
-                        <td data-label="Teacher">{{ $s->teacher->name }}</td>
+                        <td data-label="Teacher">@if($s->teacher){{ $s->teacher->name }}@else<span class="badge badge-warning">Vacant</span>@endif</td>
                         <td data-label="Periods/Wk">{{ $s->periods_per_week ?: '—' }}{{ $s->subject_type === 'practical' ? ' · Practical' : '' }}{{ $s->needs_double ? ' · Double' : '' }}</td>
                         <td class="text-center" data-label="Action">
                             @if(Qs::userIsTeamSAWrite())
@@ -119,13 +119,14 @@
                         </select>
                     </div>
                     <div class="pat-field">
-                        <label for="teacher_id">Teacher <span class="text-danger">*</span></label>
-                        <select required data-placeholder="Select Teacher" class="form-control select-search" name="teacher_id" id="teacher_id">
+                        <label for="teacher_id">Teacher</label>
+                        <select data-placeholder="Select Teacher" class="form-control select-search" name="teacher_id" id="teacher_id">
                             <option value=""></option>
                             @foreach($teachers as $t)
                                 <option {{ old('teacher_id') == Qs::hash($t->id) ? 'selected' : '' }} value="{{ Qs::hash($t->id) }}">{{ $t->name }}</option>
                             @endforeach
                         </select>
+                        <small class="form-text text-muted">Leave empty if no teacher is assigned yet — the subject will show as Vacant and appear on the Teacher Allocation page.</small>
                     </div>
                     <div class="pat-field">
                         <label for="periods_per_week">Periods per Week</label>

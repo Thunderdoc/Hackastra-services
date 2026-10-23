@@ -496,6 +496,19 @@ Route::group(['namespace' => 'MyParent','middleware' => 'my_parent',], function(
 
 });
 
+/************************ STUDENT ****************************/
+/* Student self-service portal (2026-10-23): own fees, own library,
+   school events — all read-only, all scoped server-side to the
+   signed-in student (PortalController takes no student parameter).
+   Paths follow the module/mine convention (tt.mine, id_card.mine);
+   /school-events avoids the teamSA events resource's {event} binding. */
+Route::group(['namespace' => 'MyStudent', 'middleware' => 'student'], function () {
+    Route::get('/fees/mine', 'PortalController@fees')->name('student.fees');
+    Route::get('/fees/mine/receipt/{pr_id}', 'PortalController@feesReceipt')->name('student.fees.receipt');
+    Route::get('/library/mine', 'PortalController@library')->name('student.library');
+    Route::get('/school-events', 'PortalController@events')->name('student.events');
+});
+
 /************************ PAYMENT GATEWAY WEBHOOK (Workstream CU) ****************************/
 /* Public endpoint called by Razorpay's servers. CSRF-exempt (see
    VerifyCsrfToken) — the webhook signature is the credential. */

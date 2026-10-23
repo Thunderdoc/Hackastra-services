@@ -179,7 +179,7 @@
                                         <div>
                                             <label for="acct-photo" class="acct-upload-btn"><i class="icon-upload"></i> Upload Photo</label>
                                             <input id="acct-photo" name="photo" type="file" accept="image/*" class="acct-file-input">
-                                            <div class="acct-hint">JPG, PNG, GIF (Max 2MB)</div>
+                                            <div class="acct-hint">JPG, PNG, GIF or WebP (Max 2MB)</div>
                                             <div class="acct-file-name" id="acct-photo-name"></div>
                                             @error('photo')<small class="acct-error">{{ $message }}</small>@enderror
                                         </div>

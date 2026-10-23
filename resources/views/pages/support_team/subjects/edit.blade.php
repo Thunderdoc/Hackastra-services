@@ -39,6 +39,7 @@
                             <option {{ $s->teacher_id == $t->id ? 'selected' : '' }} value="{{ Qs::hash($t->id) }}">{{ $t->name }}</option>
                         @endforeach
                     </select>
+                    <small class="form-text text-muted">Choose the empty option to leave this subject Vacant — it will appear on the Teacher Allocation page.</small>
                 </div>
                 <div class="pat-field">
                     <label for="periods_per_week">Periods per Week</label>

@@ -51,3 +51,25 @@
 </li>
 
 {{-- Circulars lives once in the shared sidebar (partials/menu) — Batch 6 (D13) removed the duplicate that used to sit here. --}}
+
+{{-- Student portal (2026-10-23): own fees, own library, school
+     events — new items only, appended after every existing item;
+     nothing above was moved, renamed or removed. --}}
+<li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Fees</div><i class="icon-menu" title="Fees"></i></li>
+
+{{--My Fees--}}
+<li class="nav-item">
+    <a href="{{ route('student.fees') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['student.fees', 'student.fees.receipt']) ? 'active' : '' }}" title="My Fees"><i class="icon-coins"></i> <span>My Fees</span></a>
+</li>
+
+<li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Library &amp; Events</div><i class="icon-menu" title="Library & Events"></i></li>
+
+{{--My Library--}}
+<li class="nav-item">
+    <a href="{{ route('student.library') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['student.library']) ? 'active' : '' }}" title="My Library"><i class="icon-book"></i> <span>My Library</span></a>
+</li>
+
+{{--School Events--}}
+<li class="nav-item">
+    <a href="{{ route('student.events') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['student.events']) ? 'active' : '' }}" title="School Events"><i class="icon-calendar3"></i> <span>School Events</span></a>
+</li>
