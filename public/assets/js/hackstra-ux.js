@@ -185,9 +185,17 @@
         var form = event.target;
         if (form.method && form.method.toLowerCase() === 'get') { return; }
         if (form.hasAttribute('data-no-loading')) { return; }
+        // A second submit of the SAME form while the first is in flight is
+        // the double-submit this guard exists to stop. Track it with our
+        // own flag: the old "any submit button disabled -> preventDefault"
+        // test also fired when a PAGE script disabled its button inside
+        // this very submit event (its own loading state — e.g. the marks
+        // selector), which silently cancelled legitimate first submits and
+        // left the button spinning forever.
+        if (form.dataset.hxSubmitting === '1') { event.preventDefault(); return; }
+        form.dataset.hxSubmitting = '1';
         var buttons = form.querySelectorAll('button[type="submit"], input[type="submit"]');
         buttons.forEach(function (button) {
-            if (button.disabled) { event.preventDefault(); return; }
             button.classList.add('is-loading');
             // Delay disabling by a tick so the button's own name/value
             // is still included in the submitted form data.

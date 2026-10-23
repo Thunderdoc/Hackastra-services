@@ -6,7 +6,13 @@
      1). The bands are passed to the script below as JSON so the grid
      can never drift from the configured scale. Loop 76's input chrome
      (form-control + .l76-mark-input, .l76-marks-table, .l76-actionbar)
-     is carried over unchanged. --}}
+     is carried over unchanged.
+     Loop 115 (reference replica, presentation only): inputs gain a
+     visual "/ max" suffix (a sibling span, never part of the value),
+     TOTAL / PERCENTAGE values move into pill spans — the JS hooks
+     stay the same single .l86-total / .l86-pct element per row — and
+     the summary + actions form one footer strip. The script below
+     is byte-identical to Loop 86. --}}
 @php
     $l86BandsPrimary = \App\Models\Grade::where('class_type_id', $class_type->id)->orderBy('mark_from')->get();
     $l86BandsFallback = \App\Models\Grade::whereNull('class_type_id')->orderBy('mark_from')->get();
@@ -43,7 +49,7 @@
             <thead>
             <tr>
                 <th>S/N</th>
-                <th>Name</th>
+                <th>STUDENT NAME</th>
                 <th>ADM_NO</th>
                 @foreach($scheme['components'] as $comp)
                     <th>{{ strtoupper($comp['name']) }} ({{ $comp['max_marks'] }})</th>
@@ -66,10 +72,10 @@
                     <td>{{ $mk->user->name }} </td>
                     <td>{{ $mk->user->student_record->adm_no }}</td>
                     @foreach($scheme['components'] as $comp)
-                        <td><input title="{{ $comp['name'] }}" min="0" max="{{ $comp['max_marks'] }}" class="form-control text-center l76-mark-input" name="comp_{{ $mk->id }}_{{ $comp['id'] }}" value="{{ \App\Support\MarkScheme::scoreFor($mk, $comp) }}" type="number"></td>
+                        <td><span class="l115-mwrap"><input title="{{ $comp['name'] }}" min="0" max="{{ $comp['max_marks'] }}" class="form-control text-center l76-mark-input" name="comp_{{ $mk->id }}_{{ $comp['id'] }}" value="{{ \App\Support\MarkScheme::scoreFor($mk, $comp) }}" type="number"><span class="l115-mmax" aria-hidden="true">/ {{ $comp['max_marks'] }}</span></span></td>
                     @endforeach
-                    <td class="l86-total">{{ $l86Total ?? '—' }}</td>
-                    <td class="l86-pct">{{ $l86Pct === null ? '—' : number_format($l86Pct, 1).'%' }}</td>
+                    <td><span class="l86-total l115-pill-total">{{ $l86Total ?? '—' }}</span></td>
+                    <td><span class="l86-pct l115-pill-pct">{{ $l86Pct === null ? '—' : number_format($l86Pct, 1).'%' }}</span></td>
                     <td class="l86-grade">@if($l86Grade)<span class="l86-grade-pill" data-grade="{{ $l86Grade }}">{{ $l86Grade }}</span>@else — @endif</td>
                     <td class="l86-actions">
                         <div class="dropdown">
@@ -94,7 +100,7 @@
             <thead>
             <tr>
                 <th>S/N</th>
-                <th>Name</th>
+                <th>STUDENT NAME</th>
                 <th>ADM_NO</th>
                 <th>1ST CA (20)</th>
                 <th>2ND CA (20)</th>
@@ -118,12 +124,12 @@
                     <td>{{ $mk->user->student_record->adm_no }}</td>
 
     {{--                CA AND EXAMS --}}
-                    <td><input title="1ST CA" min="0" max="20" class="form-control text-center l76-mark-input" name="t1_{{ $mk->id }}" value="{{ $mk->t1 }}" type="number"></td>
-                    <td><input title="2ND CA" min="0" max="20" class="form-control text-center l76-mark-input" name="t2_{{ $mk->id }}" value="{{ $mk->t2 }}" type="number"></td>
-                    <td><input title="EXAM" min="0" max="60" class="form-control text-center l76-mark-input" name="exm_{{ $mk->id }}" value="{{ $mk->exm }}" type="number"></td>
+                    <td><span class="l115-mwrap"><input title="1ST CA" min="0" max="20" class="form-control text-center l76-mark-input" name="t1_{{ $mk->id }}" value="{{ $mk->t1 }}" type="number"><span class="l115-mmax" aria-hidden="true">/ 20</span></span></td>
+                    <td><span class="l115-mwrap"><input title="2ND CA" min="0" max="20" class="form-control text-center l76-mark-input" name="t2_{{ $mk->id }}" value="{{ $mk->t2 }}" type="number"><span class="l115-mmax" aria-hidden="true">/ 20</span></span></td>
+                    <td><span class="l115-mwrap"><input title="EXAM" min="0" max="60" class="form-control text-center l76-mark-input" name="exm_{{ $mk->id }}" value="{{ $mk->exm }}" type="number"><span class="l115-mmax" aria-hidden="true">/ 60</span></span></td>
 
-                    <td class="l86-total">{{ $l86Total ?? '—' }}</td>
-                    <td class="l86-pct">{{ $l86Pct === null ? '—' : number_format($l86Pct, 1).'%' }}</td>
+                    <td><span class="l86-total l115-pill-total">{{ $l86Total ?? '—' }}</span></td>
+                    <td><span class="l86-pct l115-pill-pct">{{ $l86Pct === null ? '—' : number_format($l86Pct, 1).'%' }}</span></td>
                     <td class="l86-grade">@if($l86Grade)<span class="l86-grade-pill" data-grade="{{ $l86Grade }}">{{ $l86Grade }}</span>@else — @endif</td>
                     <td class="l86-actions">
                         <div class="dropdown">
@@ -142,28 +148,32 @@
 
     {{-- Batch 114 (Loop 86): live summary strip — computed from the
          grid's current values (students with nothing entered yet are
-         excluded, exactly like the server's totals). --}}
-    <div class="l86-summary">
-        <div class="l86-stat">
-            <span class="l86-stat-ic l86-stat-ic-users"><i class="icon-users"></i></span>
-            <div><strong>{{ $marks->count() }}</strong><span>Total Students</span></div>
-        </div>
-        <div class="l86-stat">
-            <span class="l86-stat-ic l86-stat-ic-avg"><i class="icon-stats-bars2"></i></span>
-            <div><strong class="l86-avg">{{ $l86Avg === null ? '—' : number_format($l86Avg, 1) }}</strong><span>Class Average</span></div>
-        </div>
-        <div class="l86-stat">
-            <span class="l86-stat-ic l86-stat-ic-high"><i class="icon-arrow-up5"></i></span>
-            <div><strong class="l86-high">{{ $l86High ?? '—' }}</strong><span>Highest Marks</span></div>
-        </div>
-        <div class="l86-stat">
-            <span class="l86-stat-ic l86-stat-ic-low"><i class="icon-arrow-down5"></i></span>
-            <div><strong class="l86-low">{{ $l86Low ?? '—' }}</strong><span>Lowest Marks</span></div>
-        </div>
-    </div>
+         excluded, exactly like the server's totals). Loop 115: the
+         strip and the action bar are ONE slim footer strip inside
+         the grid card, as in the reference — stats left, actions
+         right. All JS hooks (.l86-avg/.l86-high/.l86-low, #l86-dirty,
+         .l86-reset) are unchanged. --}}
     <div class="l86-nomatch" id="l86-nomatch" hidden>No student matches your search.</div>
 
-    <div class="l76-actionbar">
+    <div class="l76-actionbar l115-actionbar">
+        <div class="l86-summary l115-summary">
+            <div class="l86-stat">
+                <span class="l86-stat-ic l86-stat-ic-users"><i class="icon-users"></i></span>
+                <div><strong>{{ $marks->count() }}</strong><span>Total Students</span></div>
+            </div>
+            <div class="l86-stat">
+                <span class="l86-stat-ic l86-stat-ic-avg"><i class="icon-stats-bars2"></i></span>
+                <div><strong class="l86-avg">{{ $l86Avg === null ? '—' : number_format($l86Avg, 1) }}</strong><span>Class Average</span></div>
+            </div>
+            <div class="l86-stat">
+                <span class="l86-stat-ic l86-stat-ic-high"><i class="icon-arrow-up5"></i></span>
+                <div><strong class="l86-high">{{ $l86High ?? '—' }}</strong><span>Highest Marks</span></div>
+            </div>
+            <div class="l86-stat">
+                <span class="l86-stat-ic l86-stat-ic-low"><i class="icon-arrow-down5"></i></span>
+                <div><strong class="l86-low">{{ $l86Low ?? '—' }}</strong><span>Lowest Marks</span></div>
+            </div>
+        </div>
         <span class="l86-dirty-hint" id="l86-dirty" hidden><i class="icon-pencil7"></i> Unsaved changes</span>
         <button type="button" class="btn btn-light l86-reset"><i class="icon-reset"></i> Reset</button>
         <button type="submit" class="btn btn-primary">Update Marks <i class="icon-paperplane ml-2"></i></button>

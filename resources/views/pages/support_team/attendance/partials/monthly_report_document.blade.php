@@ -47,7 +47,7 @@
     .mar-title{text-align:center;margin:8px 0 2px;color:#10263b;font-size:20px;font-weight:800;}
     .mar-subtitle{text-align:center;color:#44546a;font-size:13px;margin-bottom:8px;}
     .mar-meta{width:100%;margin-bottom:8px;}
-    .mar-meta-label{color:#718096;font-size:9.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;}
+    .mar-meta-label{color:#718096;font-size:9.5px;font-weight:700;}
     .mar-meta-value{color:#10263b;font-size:13px;font-weight:700;}
     .mar-meta-box{background:#eef2f7;padding:8px 14px;border-radius:6px;}
     .mar-chips{width:100%;margin-bottom:9px;}
@@ -158,12 +158,12 @@
                 <td style="width:190px;padding-left:8px;">
                     <div class="mar-meta-box">
                         <div class="mar-meta-label">Academic Session</div>
-                        <div class="mar-meta-value">{{ $school['session'] }}</div>
+                        <div class="mar-meta-value">{{ str_replace('-', ' - ', $school['session']) }}</div>
                     </div>
                 </td>
                 <td style="width:190px;padding-left:8px;">
                     <div class="mar-meta-box">
-                        <div class="mar-meta-label">Class</div>
+                        <div class="mar-meta-label">Class &amp; Section</div>
                         <div class="mar-meta-value">{{ $selected_class->name }}</div>
                     </div>
                 </td>
@@ -177,27 +177,27 @@
                 <td><div class="mar-chip mar-chip-present">
                     <div class="mar-chip-num">{{ $totals['present'] }}</div>
                     <div class="mar-chip-label">Total Present</div>
-                    <div class="mar-chip-cap">{{ number_format($shares['present'], 1) }}% of all marked entries</div>
+                    <div class="mar-chip-cap">{{ number_format($shares['present'], 1) }}% of all periods</div>
                 </div></td>
                 <td><div class="mar-chip mar-chip-absent">
                     <div class="mar-chip-num">{{ $totals['absent'] }}</div>
                     <div class="mar-chip-label">Total Absent</div>
-                    <div class="mar-chip-cap">{{ number_format($shares['absent'], 1) }}% of all marked entries</div>
+                    <div class="mar-chip-cap">{{ number_format($shares['absent'], 1) }}% of all periods</div>
                 </div></td>
                 <td><div class="mar-chip mar-chip-late">
                     <div class="mar-chip-num">{{ $totals['late'] }}</div>
                     <div class="mar-chip-label">Total Late</div>
-                    <div class="mar-chip-cap">{{ number_format($shares['late'], 1) }}% of all marked entries</div>
+                    <div class="mar-chip-cap">{{ number_format($shares['late'], 1) }}% of all periods</div>
                 </div></td>
                 <td><div class="mar-chip mar-chip-periods">
                     <div class="mar-chip-num">{{ $totals['marked'] }}</div>
-                    <div class="mar-chip-label">Total Periods Marked</div>
-                    <div class="mar-chip-cap">Student-period entries this month</div>
+                    <div class="mar-chip-label">Total Periods</div>
+                    <div class="mar-chip-cap">Marked for this month</div>
                 </div></td>
                 <td><div class="mar-chip mar-chip-registers">
                     <div class="mar-chip-num">{{ $sessions_held }}</div>
                     <div class="mar-chip-label">Registers Submitted</div>
-                    <div class="mar-chip-cap">Period registers submitted this month</div>
+                    <div class="mar-chip-cap">Out of total periods</div>
                 </div></td>
             </tr>
         </table>
@@ -254,7 +254,7 @@
                 <td>
                     <div class="mar-panel">
                         <div class="mar-panel-title">Summary Note</div>
-                        <p>Counts are period registers: Attendance % = (present + late) / periods marked &times; 100. Periods with no submitted register are excluded &mdash; never counted as absent. A student with no marked periods this month shows &mdash; and carries no status.</p>
+                        <p>Counts are period registers: Attendance % = (present + late) / periods marked. Periods with no submitted register are excluded &mdash; never counted as absent.</p>
                     </div>
                 </td>
                 <td>
@@ -292,7 +292,7 @@
                 </td>
                 <td style="width:38%;vertical-align:bottom;">
                     <div class="mar-foot-meta">
-                        <strong>Monthly Attendance Report &mdash; {{ $selected_class->name }}</strong><br>
+                        <strong>Attendance Report &ndash; {{ $selected_class->name }}</strong><br>
                         Printed on {{ $generated_on->format('d M Y, g:i A') }}
                     </div>
                 </td>

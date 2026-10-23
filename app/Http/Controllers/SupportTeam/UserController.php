@@ -212,7 +212,9 @@ class UserController extends Controller
             $this->user->createStaffRecord($d2);
         }
 
-        return Qs::jsonStoreOk();
+        // Loop 112: post-save lands on the users index (owner ruling) —
+        // was Qs::jsonStoreOk() (AJAX stay-on-form).
+        return Qs::storeOk('users.index');
     }
 
     public function update(UserRequest $req, $id)
@@ -270,7 +272,9 @@ class UserController extends Controller
             $this->user->updateStaffRecord(['user_id' => $id], $d2);
         }
 
-        return Qs::jsonUpdateOk();
+        // Loop 112: post-save lands on the users index (owner ruling) —
+        // was Qs::jsonUpdateOk() (AJAX stay-on-form).
+        return Qs::updateOk('users.index');
     }
 
     public function show($user_id)

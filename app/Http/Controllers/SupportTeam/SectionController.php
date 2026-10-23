@@ -47,7 +47,8 @@ class SectionController extends Controller
         $data = $req->all();
         $this->my_class->createSection($data);
 
-        return Qs::jsonStoreOk();
+        // Loop 112: post-save lands on the sections index (owner ruling).
+        return Qs::storeOk('sections.index');
     }
 
     public function edit($id)
@@ -64,7 +65,8 @@ class SectionController extends Controller
         $data = $req->only(['name', 'teacher_id']);
         $this->my_class->updateSection(Qs::resolveId($id), $data);
 
-        return Qs::jsonUpdateOk();
+        // Loop 112: post-save lands on the sections index (owner ruling).
+        return Qs::updateOk('sections.index');
     }
 
     public function destroy($id)

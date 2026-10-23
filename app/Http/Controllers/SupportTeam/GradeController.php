@@ -36,7 +36,8 @@ class GradeController extends Controller
         $data = $req->all();
 
         $this->exam->createGrade($data);
-        return back()->with('flash_success', __('msg.store_ok'));
+        // Loop 112: post-save lands on the grades index (owner ruling).
+        return Qs::storeOk('grades.index');
     }
 
     public function edit($id)
@@ -55,7 +56,9 @@ class GradeController extends Controller
         $data = $req->all();
 
         $this->exam->updateGrade(Qs::resolveId($id), $data);
-        return back()->with('flash_success', __('msg.update_ok'));
+        // Loop 112: post-save lands on the grades index (owner ruling) —
+        // was back() to the edit form.
+        return Qs::updateOk('grades.index');
     }
 
     public function destroy($id)

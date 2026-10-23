@@ -24,22 +24,21 @@
                 $fbResolved = (int) ($counts['resolved'] ?? 0);
                 $fbClosed = (int) (($counts['wont_fix'] ?? 0) + ($counts['duplicate'] ?? 0));
             @endphp
-            <div class="row dashboard-stats">
+            {{-- Loop 118: the reference's KPI cards are plain and
+                 value-led — the number first, its label beneath, no
+                 icon disc and no subtext line. --}}
+            <div class="row dashboard-stats l118-fb-stats">
                 @foreach([
-                    ['label' => 'Total Reports', 'value' => $total, 'sub' => 'Everything you have reported', 'icon' => 'icon-file-text2', 'tone' => 'blue'],
-                    ['label' => 'Pending', 'value' => $fbPending, 'sub' => 'New, acknowledged or in progress', 'icon' => 'icon-alarm', 'tone' => 'orange'],
-                    ['label' => 'Resolved', 'value' => $fbResolved, 'sub' => 'Resolved by the school', 'icon' => 'icon-checkmark-circle2', 'tone' => 'green'],
-                    ['label' => 'Closed', 'value' => $fbClosed, 'sub' => "Closed (won't fix) or merged as duplicate", 'icon' => 'icon-cross2', 'tone' => 'red'],
+                    ['label' => 'Total Reports', 'value' => $total, 'tone' => 'blue'],
+                    ['label' => 'Pending', 'value' => $fbPending, 'tone' => 'orange'],
+                    ['label' => 'Resolved', 'value' => $fbResolved, 'tone' => 'green'],
+                    ['label' => 'Closed', 'value' => $fbClosed, 'tone' => 'red'],
                 ] as $stat)
                     <div class="col-sm-6 col-xl-3">
                         <div class="dashboard-stat-card dashboard-stat-{{ $stat['tone'] }}">
-                            <span class="dashboard-stat-top">
-                                <span class="dashboard-stat-icon"><i class="{{ $stat['icon'] }}"></i></span>
-                            </span>
                             <span class="dashboard-stat-copy">
-                                <span class="dashboard-stat-label">{{ $stat['label'] }}</span>
                                 <strong>{{ number_format($stat['value']) }}</strong>
-                                <small>{{ $stat['sub'] }}</small>
+                                <span class="dashboard-stat-label">{{ $stat['label'] }}</span>
                             </span>
                         </div>
                     </div>
@@ -47,7 +46,9 @@
             </div>
         @endslot
 
-        @if($total > 0)
+        {{-- Loop 118: the list chrome (status tabs + search) renders
+             ALWAYS — the reference's empty state keeps it above the
+             empty illustration instead of dropping it at zero reports. --}}
         @slot('filters')
             <div class="l87-tabs" role="tablist" aria-label="Filter by status">
                 @php
@@ -90,18 +91,28 @@
                 </div>
             </form>
         @endslot
-        @endif
 
         @if($total === 0)
-            <div class="l87-empty">
-                <div class="l87-empty-art" aria-hidden="true">
-                    <span class="l87-empty-doc"><i class="icon-file-text2"></i></span>
-                    <span class="l87-empty-bubble"><i class="icon-bubbles"></i></span>
-                </div>
-                <h5 class="l87-empty-title">No feedback reports yet</h5>
-                <p class="l87-empty-text">Have a suggestion or noticed an issue? Submit a report to the school administration and track its progress here.</p>
-                <a href="{{ route('feedback.create') }}" class="btn btn-primary"><i class="icon-plus2 mr-1"></i> Create Your First Report</a>
-            </div>
+            {{-- Loop 118: the reference's empty state keeps the table
+                 header row above the empty illustration. --}}
+            <table class="table l118-fb-empty-table">
+                <thead><tr><th style="width:3rem">#</th><th>Report</th><th>Category</th><th>Status</th><th>Submitted On</th><th>Admin Response</th><th>Actions</th></tr></thead>
+                <tbody>
+                <tr>
+                    <td colspan="7" class="l118-fb-empty-cell">
+                        <div class="l87-empty">
+                            <div class="l87-empty-art" aria-hidden="true">
+                                <span class="l87-empty-doc"><i class="icon-file-text2"></i></span>
+                                <span class="l87-empty-bubble"><i class="icon-bubbles"></i></span>
+                            </div>
+                            <h5 class="l87-empty-title">No reports yet</h5>
+                            <p class="l87-empty-text">You have not reported anything yet. Use the New Report button to send feedback, suggestions or issues to the school admin.</p>
+                            <a href="{{ route('feedback.create') }}" class="btn btn-primary"><i class="icon-plus2 mr-1"></i> New Report</a>
+                        </div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
         @else
         <table class="table">
             <thead><tr><th style="width:3rem">#</th><th>Report</th><th>Category</th><th>Status</th><th>Submitted On</th><th>Admin Response</th><th>Actions</th></tr></thead>

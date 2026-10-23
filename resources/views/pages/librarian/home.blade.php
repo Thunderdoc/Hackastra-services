@@ -4,21 +4,25 @@
 @section('content')
     {{-- Loop 100: librarian home premium pass — every figure is computed in
          HomeController::librarianHomeData from the books catalogue and the
-         book_requests loan ledger; nothing here is decorative data. --}}
+         book_requests loan ledger; nothing here is decorative data.
+         Loop 117 (replica pass): the reference block order — Issue/Return
+         Trend + Book Category Overview, Recently Issued + Needs Attention,
+         Quick Actions + Recent Circulars — and the trend chart itself,
+         drawn from the same ledger (HomeController::libraryTrend). --}}
     <div class="dashboard-hero mb-4">
         <div>
             <h2 class="mb-1">{{ $greeting }}, {{ Auth::user()->name }} <span aria-hidden="true">👋</span></h2>
             <p class="mb-0 dashboard-muted">Here&rsquo;s your library overview for today.</p>
         </div>
         <div class="dashboard-hero-side">
-            <div class="dashboard-hero-date">
+            <div class="dashboard-hero-date l117-date-chip">
                 <i class="icon-calendar3"></i>
                 <span>
                     <strong>{{ $today->format('l, d F Y') }}</strong>
                 </span>
             </div>
             <a href="{{ route('book_requests.index') }}" class="btn dashboard-primary-action">
-                <i class="icon-books mr-2"></i> Issue / Return Book
+                <i class="icon-plus2 mr-2"></i> Issue / Return Book
             </a>
         </div>
     </div>
@@ -27,7 +31,7 @@
          Each card links to the real list it summarises. --}}
     <div class="row dashboard-stats">
         @foreach([
-            ['label' => 'Total Books', 'value' => number_format($book_copies), 'sub' => number_format($book_titles).' titles in the catalogue', 'icon' => 'icon-books', 'tone' => 'blue', 'href' => route('books.index')],
+            ['label' => 'Total Books', 'value' => number_format($book_copies), 'sub' => 'All books in catalogue', 'icon' => 'icon-books', 'tone' => 'blue', 'href' => route('books.index')],
             ['label' => 'Books Issued', 'value' => number_format($books_issued), 'sub' => 'Currently with members', 'icon' => 'icon-list', 'tone' => 'purple', 'href' => route('book_requests.index', ['status' => 'issued'])],
             ['label' => 'Due Today', 'value' => number_format($loans_due_today), 'sub' => 'To be returned today', 'icon' => 'icon-calendar3', 'tone' => 'orange', 'href' => route('book_requests.index', ['status' => 'issued'])],
             ['label' => 'Overdue Books', 'value' => number_format($loans_overdue), 'sub' => 'Past their due date', 'icon' => 'icon-alarm', 'tone' => 'red', 'href' => route('book_requests.index', ['status' => 'issued'])],
@@ -48,6 +52,125 @@
                 </a>
             </div>
         @endforeach
+    </div>
+
+    <div class="row">
+        <div class="col-xl-8">
+            {{-- Book Issue/Return Trend — issued vs returned per bucket from
+                 the loan ledger (Loop 117). The Day / Week / Month toggle
+                 re-aggregates the same real rows server-side; the script
+                 below only switches which pre-rendered set is visible. --}}
+            <section class="dashboard-panel mb-4">
+                <div class="dashboard-panel-heading">
+                    <div><h5 class="mb-1"><i class="icon-stats-bars2 text-blue mr-1"></i> Book Issue/Return Trend</h5><p class="dashboard-muted mb-0" id="l117-trend-sub">Daily library activity for the last 14 days</p></div>
+                    <div class="l117-trend-toggle" role="group" aria-label="Trend range">
+                        <button type="button" class="l117-trend-btn is-active" data-l117-trend="day">Day</button>
+                        <button type="button" class="l117-trend-btn" data-l117-trend="week">Week</button>
+                        <button type="button" class="l117-trend-btn" data-l117-trend="month">Month</button>
+                    </div>
+                </div>
+                <div class="l117-trend-legend">
+                    <span class="l117-trend-key"><span class="l117-dot l117-dot-issued"></span> Books Issued</span>
+                    <span class="l117-trend-key"><span class="l117-dot l117-dot-returned"></span> Books Returned</span>
+                </div>
+                @foreach(['day', 'week', 'month'] as $l117Mode)
+                    @php
+                        $l117Set = $library_trend[$l117Mode];
+                        $l117Max = 1;
+                        $l117Total = 0;
+                        foreach ($l117Set as $l117Bucket) {
+                            $l117Max = max($l117Max, $l117Bucket['issued'], $l117Bucket['returned']);
+                            $l117Total += $l117Bucket['issued'] + $l117Bucket['returned'];
+                        }
+                    @endphp
+                    <div class="l117-trend-panel" data-l117-panel="{{ $l117Mode }}" @if($l117Mode !== 'day') hidden @endif>
+                        <div class="l117-trend-chart">
+                            @foreach($l117Set as $l117Bucket)
+                                <div class="l117-trend-group">
+                                    <div class="l117-trend-bars">
+                                        <span class="l117-bar l117-bar-issued" style="height: {{ $l117Bucket['issued'] > 0 ? max(4, (int) round($l117Bucket['issued'] / $l117Max * 100)) : 0 }}%" title="{{ $l117Bucket['label'] }} — Issued: {{ $l117Bucket['issued'] }}"></span>
+                                        <span class="l117-bar l117-bar-returned" style="height: {{ $l117Bucket['returned'] > 0 ? max(4, (int) round($l117Bucket['returned'] / $l117Max * 100)) : 0 }}%" title="{{ $l117Bucket['label'] }} — Returned: {{ $l117Bucket['returned'] }}"></span>
+                                    </div>
+                                    <span class="l117-trend-label">{{ $l117Bucket['label'] }}</span>
+                                </div>
+                            @endforeach
+                        </div>
+                        @if($l117Total === 0)
+                            <p class="dashboard-muted text-center mb-0 mt-2">No issue or return activity recorded in this period.</p>
+                        @endif
+                    </div>
+                @endforeach
+                <script>
+                    (function () {
+                        var subs = {
+                            day: 'Daily library activity for the last 14 days',
+                            week: 'Weekly library activity for the last 8 weeks',
+                            month: 'Monthly library activity for the last 6 months'
+                        };
+                        var buttons = document.querySelectorAll('[data-l117-trend]');
+                        var panels = document.querySelectorAll('[data-l117-panel]');
+                        var sub = document.getElementById('l117-trend-sub');
+                        Array.prototype.forEach.call(buttons, function (btn) {
+                            btn.addEventListener('click', function () {
+                                var mode = btn.getAttribute('data-l117-trend');
+                                Array.prototype.forEach.call(buttons, function (b) { b.classList.toggle('is-active', b === btn); });
+                                Array.prototype.forEach.call(panels, function (p) { p.hidden = p.getAttribute('data-l117-panel') !== mode; });
+                                if (sub && subs[mode]) { sub.textContent = subs[mode]; }
+                            });
+                        });
+                    })();
+                </script>
+            </section>
+        </div>
+
+        <div class="col-xl-4">
+            {{-- Book Category Overview — copies per real book_type, drawn from
+                 the catalogue itself; the slices sum to Total Books (copies). --}}
+            <section class="dashboard-panel mb-4">
+                <div class="dashboard-panel-heading">
+                    <div><h5 class="mb-1"><i class="icon-pie-chart text-blue mr-1"></i> Book Category Overview</h5></div>
+                </div>
+                @if($type_breakdown->isNotEmpty())
+                    @php
+                        $typeColors = ['Book' => '#3478f6', 'Textbook' => '#22b573', 'Journal' => '#f5a623', 'Magazine' => '#8b5cf6', 'E-Book' => '#e05260', 'Other' => '#8494a7'];
+                    @endphp
+                    <div class="l100-donut-wrap">
+                        @php
+                            $circ = 2 * pi() * 42;
+                            $offset = 0;
+                        @endphp
+                        <svg class="l100-donut" viewBox="0 0 120 120" width="132" height="132" role="img" aria-label="Book category overview: @foreach($type_breakdown as $bucket){{ $bucket['label'] }} {{ $bucket['pct'] }}%@if(!$loop->last), @endif @endforeach">
+                            <circle class="l100-donut-track" cx="60" cy="60" r="42" fill="none" stroke-width="15"></circle>
+                            @foreach($type_breakdown as $bucket)
+                                @php
+                                    $seg = $book_copies > 0 ? $bucket['copies'] / $book_copies * $circ : 0;
+                                @endphp
+                                <circle cx="60" cy="60" r="42" fill="none" stroke="{{ $typeColors[$bucket['label']] ?? '#8494a7' }}" stroke-width="15"
+                                        stroke-dasharray="{{ round(max(0, $seg - 1.5), 2) }} {{ round($circ, 2) }}"
+                                        stroke-dashoffset="{{ round(-$offset, 2) }}"
+                                        transform="rotate(-90 60 60)">
+                                    <title>{{ $bucket['label'] }}: {{ number_format($bucket['copies']) }} copies ({{ $bucket['pct'] }}%)</title>
+                                </circle>
+                                @php $offset += $seg; @endphp
+                            @endforeach
+                            <text x="60" y="58" text-anchor="middle" class="l100-donut-num">{{ number_format($book_copies) }}</text>
+                            <text x="60" y="74" text-anchor="middle" class="l100-donut-cap">Total Books</text>
+                        </svg>
+                        <div class="l100-donut-legend">
+                            @foreach($type_breakdown as $bucket)
+                                <div class="l100-legend-row">
+                                    <span class="l100-legend-dot" style="background: {{ $typeColors[$bucket['label']] ?? '#8494a7' }}"></span>
+                                    <span class="l100-legend-label">{{ $bucket['label'] }}</span>
+                                    <span class="l100-legend-fig"><strong>{{ number_format($bucket['copies']) }} ({{ $bucket['pct'] }}%)</strong></span>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @else
+                    <div class="dashboard-empty">No books in the catalogue yet. Add a book and the category mix will appear here.</div>
+                @endif
+            </section>
+        </div>
     </div>
 
     <div class="row">
@@ -99,7 +222,47 @@
                     </table>
                 </div>
             </section>
+        </div>
 
+        <div class="col-xl-4">
+            {{-- Needs Attention — real counts from the loan ledger and the
+                 catalogue only. Reservations / fines / lost rows exist in
+                 the reference but have no data source in this app, so they
+                 are never faked; the two ledger-backed rows always render
+                 (zero included) so the panel keeps its reference shape. --}}
+            <section class="dashboard-panel mb-4">
+                <div class="dashboard-panel-heading">
+                    <div><h5 class="mb-1"><i class="icon-alarm text-blue mr-1"></i> Needs Attention</h5></div>
+                    <a href="{{ route('book_requests.index') }}" class="dashboard-view-all">View All <i class="icon-arrow-right7"></i></a>
+                </div>
+                <div class="l100-attn">
+                    <a href="{{ route('book_requests.index', ['status' => 'issued']) }}" class="l100-attn-row">
+                        <span class="l100-attn-icon l100-attn-danger"><i class="icon-alarm"></i></span>
+                        <span class="l100-attn-copy"><strong>Overdue Books</strong><small>Past their due date</small></span>
+                        <strong class="l100-attn-count text-danger">{{ number_format($loans_overdue) }}</strong>
+                        <i class="icon-arrow-right7 l100-attn-arrow"></i>
+                    </a>
+                    <a href="{{ route('book_requests.index', ['status' => 'issued']) }}" class="l100-attn-row">
+                        <span class="l100-attn-icon l100-attn-warning"><i class="icon-calendar3"></i></span>
+                        <span class="l100-attn-copy"><strong>Due Today</strong><small>To be returned today</small></span>
+                        <strong class="l100-attn-count">{{ number_format($loans_due_today) }}</strong>
+                        <i class="icon-arrow-right7 l100-attn-arrow"></i>
+                    </a>
+                    @if($titles_out_of_stock > 0)
+                        <a href="{{ route('books.index') }}" class="l100-attn-row">
+                            <span class="l100-attn-icon l100-attn-info"><i class="icon-books"></i></span>
+                            <span class="l100-attn-copy"><strong>Out of Stock</strong><small>Titles with no copy on the shelf</small></span>
+                            <strong class="l100-attn-count">{{ number_format($titles_out_of_stock) }}</strong>
+                            <i class="icon-arrow-right7 l100-attn-arrow"></i>
+                        </a>
+                    @endif
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-xl-8">
             {{-- Quick Actions — only routes the librarian role really has --}}
             <section class="dashboard-panel dashboard-quick-actions mb-4">
                 <div class="dashboard-panel-heading">
@@ -117,96 +280,6 @@
         </div>
 
         <div class="col-xl-4">
-            {{-- Book Type Overview — copies per real book_type, drawn from the
-                 catalogue itself; the slices sum to Total Books (copies). --}}
-            <section class="dashboard-panel mb-4">
-                <div class="dashboard-panel-heading">
-                    <div><h5 class="mb-1"><i class="icon-pie-chart text-blue mr-1"></i> Book Type Overview</h5><p class="dashboard-muted mb-0">Copies by catalogue type</p></div>
-                </div>
-                @if($type_breakdown->isNotEmpty())
-                    @php
-                        $typeColors = ['Book' => '#3478f6', 'Textbook' => '#22b573', 'Journal' => '#f5a623', 'Magazine' => '#8b5cf6', 'E-Book' => '#e05260', 'Other' => '#8494a7'];
-                    @endphp
-                    <div class="l100-donut-wrap">
-                        @php
-                            $circ = 2 * pi() * 42;
-                            $offset = 0;
-                        @endphp
-                        <svg class="l100-donut" viewBox="0 0 120 120" width="132" height="132" role="img" aria-label="Book type overview: @foreach($type_breakdown as $bucket){{ $bucket['label'] }} {{ $bucket['pct'] }}%@if(!$loop->last), @endif @endforeach">
-                            <circle class="l100-donut-track" cx="60" cy="60" r="42" fill="none" stroke-width="15"></circle>
-                            @foreach($type_breakdown as $bucket)
-                                @php
-                                    $seg = $book_copies > 0 ? $bucket['copies'] / $book_copies * $circ : 0;
-                                @endphp
-                                <circle cx="60" cy="60" r="42" fill="none" stroke="{{ $typeColors[$bucket['label']] ?? '#8494a7' }}" stroke-width="15"
-                                        stroke-dasharray="{{ round(max(0, $seg - 1.5), 2) }} {{ round($circ, 2) }}"
-                                        stroke-dashoffset="{{ round(-$offset, 2) }}"
-                                        transform="rotate(-90 60 60)">
-                                    <title>{{ $bucket['label'] }}: {{ number_format($bucket['copies']) }} copies ({{ $bucket['pct'] }}%)</title>
-                                </circle>
-                                @php $offset += $seg; @endphp
-                            @endforeach
-                            <text x="60" y="58" text-anchor="middle" class="l100-donut-num">{{ number_format($book_copies) }}</text>
-                            <text x="60" y="74" text-anchor="middle" class="l100-donut-cap">Total Copies</text>
-                        </svg>
-                        <div class="l100-donut-legend">
-                            @foreach($type_breakdown as $bucket)
-                                <div class="l100-legend-row">
-                                    <span class="l100-legend-dot" style="background: {{ $typeColors[$bucket['label']] ?? '#8494a7' }}"></span>
-                                    <span class="l100-legend-label">{{ $bucket['label'] }}</span>
-                                    <span class="l100-legend-fig"><strong>{{ number_format($bucket['copies']) }}</strong><small>{{ $bucket['pct'] }}% · {{ $bucket['titles'] }} {{ $bucket['titles'] === 1 ? 'title' : 'titles' }}</small></span>
-                                </div>
-                            @endforeach
-                            <div class="l100-legend-total">
-                                <span>Total Books</span>
-                                <strong>{{ number_format($book_copies) }} copies · {{ number_format($book_titles) }} titles</strong>
-                            </div>
-                        </div>
-                    </div>
-                @else
-                    <div class="dashboard-empty">No books in the catalogue yet. Add a book and the type mix will appear here.</div>
-                @endif
-            </section>
-
-            {{-- Needs Attention — only real counts from the loan ledger and the
-                 catalogue; an honest all-clear state when there is nothing to do. --}}
-            <section class="dashboard-panel mb-4">
-                <div class="dashboard-panel-heading">
-                    <div><h5 class="mb-1"><i class="icon-alarm text-blue mr-1"></i> Needs Attention</h5><p class="dashboard-muted mb-0">Items that need a follow-up</p></div>
-                    <a href="{{ route('book_requests.index') }}" class="dashboard-view-all">View All <i class="icon-arrow-right7"></i></a>
-                </div>
-                @if($loans_overdue > 0 || $loans_due_today > 0 || $titles_out_of_stock > 0)
-                    <div class="l100-attn">
-                        @if($loans_overdue > 0)
-                            <a href="{{ route('book_requests.index', ['status' => 'issued']) }}" class="l100-attn-row">
-                                <span class="l100-attn-icon l100-attn-danger"><i class="icon-alarm"></i></span>
-                                <span class="l100-attn-copy"><strong>Overdue Books</strong><small>Past their due date</small></span>
-                                <strong class="l100-attn-count text-danger">{{ number_format($loans_overdue) }}</strong>
-                                <i class="icon-arrow-right7 l100-attn-arrow"></i>
-                            </a>
-                        @endif
-                        @if($loans_due_today > 0)
-                            <a href="{{ route('book_requests.index', ['status' => 'issued']) }}" class="l100-attn-row">
-                                <span class="l100-attn-icon l100-attn-warning"><i class="icon-calendar3"></i></span>
-                                <span class="l100-attn-copy"><strong>Due Today</strong><small>To be returned today</small></span>
-                                <strong class="l100-attn-count">{{ number_format($loans_due_today) }}</strong>
-                                <i class="icon-arrow-right7 l100-attn-arrow"></i>
-                            </a>
-                        @endif
-                        @if($titles_out_of_stock > 0)
-                            <a href="{{ route('books.index') }}" class="l100-attn-row">
-                                <span class="l100-attn-icon l100-attn-info"><i class="icon-books"></i></span>
-                                <span class="l100-attn-copy"><strong>Out of Stock</strong><small>Titles with no copy on the shelf</small></span>
-                                <strong class="l100-attn-count">{{ number_format($titles_out_of_stock) }}</strong>
-                                <i class="icon-arrow-right7 l100-attn-arrow"></i>
-                            </a>
-                        @endif
-                    </div>
-                @else
-                    <div class="dashboard-empty">Everything is up to date — nothing overdue, nothing due today, and every title has a copy on the shelf.</div>
-                @endif
-            </section>
-
             {{-- Recent Circulars — published, in window, addressed to everyone or staff --}}
             <section class="dashboard-panel mb-4">
                 <div class="dashboard-panel-heading">

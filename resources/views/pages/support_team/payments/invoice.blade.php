@@ -318,6 +318,74 @@
 
     {{--Payments Invoice List Ends--}}
 
+    {{-- Documents Premium pass: print-only FEE STATEMENT document.
+         window.print() on this page used to print the collect-fee
+         screen UI (KPI tiles, tabs, forms); it now prints a proper
+         statement — Settings letterhead, the student's fee records
+         and the page's own totals (fee − amount paid, the export
+         rule). The screen itself is unchanged. --}}
+    <style>
+        .l153-invoice-doc { display: none; }
+        @media print {
+            .content .card, .content .l93-layout, .content .alert { display: none !important; }
+            .l153-invoice-doc { display: block !important; }
+            .l153-inv-band { background: #10263b; color: #fff; padding: 8px 12px; font-size: 15px; font-weight: 700; letter-spacing: .05em; margin: 10px 0 12px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .l153-inv-meta { width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 12.5px; }
+            .l153-inv-meta td { padding: 3px 8px 3px 0; vertical-align: top; }
+            .l153-inv-meta td.k { color: #718096; width: 110px; font-weight: 700; }
+            .l153-inv-totals td { font-weight: 700; }
+        }
+    </style>
+    <div class="l153-invoice-doc">
+        <div class="print-doc-head">
+            @if(Qs::getSetting('logo'))<img src="{{ Qs::getSetting('logo') }}" alt="">@endif
+            <div>
+                <h1>{{ Qs::getSystemName() }}</h1>
+                <p>{{ Qs::getSetting('address') }}@if(Qs::getSetting('phone')) &middot; Tel: {{ Qs::getSetting('phone') }}@endif @if(Qs::getSetting('system_email')) &middot; {{ Qs::getSetting('system_email') }}@endif</p>
+            </div>
+        </div>
+        <div class="l153-inv-band">FEE STATEMENT</div>
+        <table class="l153-inv-meta">
+            <tr>
+                <td class="k">Student</td><td>{{ $sr->user->name }}</td>
+                <td class="k">Admission No</td><td>{{ $sr->adm_no }}</td>
+            </tr>
+            <tr>
+                <td class="k">Class</td><td>{{ $sr->my_class->name }}@if($sr->section) &mdash; Section {{ $sr->section->name }}@endif</td>
+                <td class="k">Session</td><td>{{ $year ?: Qs::getCurrentSession() }}</td>
+            </tr>
+        </table>
+        <table class="table">
+            <thead>
+                <tr><th style="width:36px">#</th><th>Fee</th><th>Reference</th><th style="text-align:right">Amount</th><th style="text-align:right">Paid</th><th style="text-align:right">Balance</th><th>Status</th></tr>
+            </thead>
+            <tbody>
+                @foreach($l93All as $r)
+                <tr>
+                    <td>{{ $loop->iteration }}</td>
+                    <td>{{ $r->payment->title }}</td>
+                    <td>{{ $r->ref_no }}</td>
+                    <td style="text-align:right">{{ \App\Helpers\Money::inr($r->payment->amount) }}</td>
+                    <td style="text-align:right">{{ \App\Helpers\Money::inr($r->amt_paid ?: 0) }}</td>
+                    <td style="text-align:right">{{ \App\Helpers\Money::inr($r->payment->amount - ($r->amt_paid ?: 0)) }}</td>
+                    <td>{{ $r->paid ? 'Cleared' : (($r->amt_paid ?: 0) > 0 ? 'Partly Paid' : 'Unpaid') }}</td>
+                </tr>
+                @endforeach
+                <tr class="l153-inv-totals">
+                    <td colspan="3" style="text-align:right">Totals</td>
+                    <td style="text-align:right">{{ \App\Helpers\Money::inr($l93TotalFees) }}</td>
+                    <td style="text-align:right">{{ \App\Helpers\Money::inr($l93TotalPaid) }}</td>
+                    <td style="text-align:right">{{ \App\Helpers\Money::inr($l93TotalDue) }}</td>
+                    <td></td>
+                </tr>
+            </tbody>
+        </table>
+        <div class="print-doc-foot">
+            <span>Printed on {{ now()->format('d M Y, h:i A') }}</span>
+            <span>Fee Statement &middot; {{ $sr->user->name }}</span>
+        </div>
+    </div>
+
 @endsection
 
 @section('scripts')

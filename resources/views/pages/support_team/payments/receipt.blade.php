@@ -9,7 +9,7 @@
          external file — to keep web print and PDF identical. --}}
     <style>
         * { box-sizing: border-box; }
-        body { font-family: 'DejaVu Sans', Arial, Helvetica, sans-serif; color: #172536; margin: 0; padding: 24px; font-size: 13px; }
+        body { font-family: 'DejaVu Sans', Arial, Helvetica, sans-serif; color: #172536; margin: 0; padding: 16px; font-size: 13px; }
         .receipt { position: relative; max-width: 760px; margin: 0 auto; border: 1px solid #b9c6d4; overflow: hidden; }
         /* Document design v2 (Workstream DB): watermark behind the
            content — the uploaded logo, else a large app-code
@@ -26,7 +26,7 @@
         .header .logo { max-height: 56px; max-width: 120px; }
         .header .school { font-size: 22px; font-weight: bold; letter-spacing: .02em; }
         .header .meta { color: #c7d6e8; font-size: 11px; margin-top: 4px; line-height: 1.5; }
-        .genline { text-align: center; color: #718096; font-size: 9.5px; letter-spacing: .16em; text-transform: uppercase; margin: 2px 22px 16px; }
+        .genline { text-align: center; color: #718096; font-size: 9.5px; letter-spacing: .16em; text-transform: uppercase; margin: 2px 22px 6px; }
         .titlebar { width: 100%; border-collapse: collapse; border-bottom: 2px solid #10263b; }
         .titlebar td { padding: 12px 22px; vertical-align: top; }
         .titlebar .doc-title { font-size: 19px; font-weight: bold; color: #10263b; letter-spacing: .04em; }
@@ -48,10 +48,10 @@
         .summary .cleared td { color: #188b66; font-size: 14px; }
         .words { margin: 14px 22px 0; background: #f8faff; border: 1px solid #e4eaf1; padding: 10px 12px; font-size: 13px; }
         .words span { color: #718096; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; display: block; margin-bottom: 3px; }
-        .footer { width: 100%; border-collapse: collapse; margin-top: 26px; }
-        .footer td { padding: 0 22px 18px; font-size: 11px; color: #718096; vertical-align: bottom; }
+        .footer { width: 100%; border-collapse: collapse; margin-top: 14px; }
+        .footer td { padding: 0 22px 10px; font-size: 11px; color: #718096; vertical-align: bottom; }
         .sign { text-align: right; color: #172536; }
-        .sign .line { display: inline-block; width: 180px; border-top: 1px solid #172536; margin-top: 34px; padding-top: 4px; font-size: 12px; }
+        .sign .line { display: inline-block; width: 180px; border-top: 1px solid #172536; margin-top: 22px; padding-top: 4px; font-size: 12px; }
         .stamp { display: inline-block; border: 2px solid #188b66; color: #188b66; font-weight: bold; padding: 4px 12px; letter-spacing: .08em; }
         .stamp.due { border-color: #c0392b; color: #c0392b; }
         @media print { body { padding: 0; } .receipt { border: none; } }

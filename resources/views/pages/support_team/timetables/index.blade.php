@@ -1,7 +1,7 @@
 @extends('layouts.master')
 @section('page_title', 'Manage Timetables')
 @section('page_breadcrumb')
-    <a href="{{ route('dashboard') }}">Home</a> &nbsp;/&nbsp; Academics &nbsp;/&nbsp; Timetables
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Academics &nbsp;/&nbsp; Timetables
 @endsection
 @if(Qs::userIsTeamSAWrite())
 @section('page_actions')
@@ -18,12 +18,14 @@
          Data + routes are the pre-redesign ones; writes stay
          teamSAWrite-gated exactly as before. --}}
 
+    <p class="ma-intro">View and manage class timetables for the current academic session.</p>
+
     <div class="row dashboard-stats">
         @foreach([
-            ['label' => 'Total Timetables', 'value' => $stats['total'], 'sub' => 'All timetable records', 'icon' => 'icon-table2', 'tone' => 'blue'],
-            ['label' => 'Active Timetables', 'value' => $stats['active'], 'sub' => 'In the current session', 'icon' => 'icon-checkmark-circle2', 'tone' => 'green'],
-            ['label' => 'Classes Covered', 'value' => $stats['classes'], 'sub' => 'Distinct classes', 'icon' => 'icon-users', 'tone' => 'purple'],
-            ['label' => 'Current Session', 'value' => $stats['session'], 'sub' => 'From school settings', 'icon' => 'icon-calendar52', 'tone' => 'orange'],
+            ['label' => 'Total Timetables', 'value' => $stats['total'], 'sub' => '', 'icon' => 'icon-table2', 'tone' => 'blue'],
+            ['label' => 'Active Timetables', 'value' => $stats['active'], 'sub' => '', 'icon' => 'icon-checkmark-circle2', 'tone' => 'green'],
+            ['label' => 'Classes', 'value' => $stats['classes'], 'sub' => '', 'icon' => 'icon-users', 'tone' => 'purple'],
+            ['label' => 'Current Session', 'value' => $stats['session'], 'sub' => '', 'icon' => 'icon-calendar52', 'tone' => 'orange'],
         ] as $stat)
             <div class="col-sm-6 col-xl-3">
                 <div class="dashboard-stat-card dashboard-stat-{{ $stat['tone'] }}">
@@ -44,7 +46,7 @@
         <form method="get" action="{{ route('tt.index') }}" class="pat-filter-form">
             <div class="pat-filter-field" style="flex:2 1 240px">
                 <label for="tt-q">Search</label>
-                <input type="text" id="tt-q" name="q" value="{{ $f_q }}" class="form-control" placeholder="Search by timetable or class name&hellip;">
+                <input type="text" id="tt-q" name="q" value="{{ $f_q }}" class="form-control" placeholder="Search timetables by class name&hellip;">
             </div>
             <div class="pat-filter-field">
                 <label for="tt-class">Class</label>

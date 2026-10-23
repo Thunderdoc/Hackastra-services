@@ -23,11 +23,22 @@
          header). In-page card headings must never repeat the title. --}}
     <div class="page-header-content header-elements-md-inline">
         <div class="page-title d-flex">
+            {{-- Loop 118: optional icon tile beside the title — a page
+                 opts in with @section('page_icon') holding the tile
+                 markup (the reference designs carry one on some
+                 pages). Pages without the section render exactly as
+                 before. --}}
+            @if(View::hasSection('page_icon'))
+                @yield('page_icon')
+            @endif
             <div>
                 @if(View::hasSection('page_breadcrumb'))
                     <div class="page-header-crumb">@yield('page_breadcrumb')</div>
                 @endif
                 <h4><span class="font-weight-semibold">@yield('page_title')</span></h4>
+                @if(View::hasSection('page_subtitle'))
+                    <div class="page-header-sub">@yield('page_subtitle')</div>
+                @endif
             </div>
         </div>
         @if(View::hasSection('page_actions'))

@@ -6415,3 +6415,578 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
   .l108-stack td .lms-grade-form{flex:1 1 100%;text-align:left}
   .l108-stack td .lms-grade-fields{width:100%}
 }
+
+/* ============================================================
+   Loop 111 — Sidebar dead-zone fix (owner report 2026-10-23,
+   phone in desktop mode): the sidebar stays OFF-CANVAS up to
+   991.98px (Limitless sidebar-expand-md), but the topbar swapped
+   to the DESKTOP collapse toggle at 768px — so between 768 and
+   991.98px the only visible toggle (sidebar-xs) could never open
+   the drawer, and the drawer's own open button was display:none.
+   In that range the topbar now shows the MOBILE drawer toggle
+   and hides the desktop collapse toggle. Desktop >=992px and
+   phones <=767.98px are byte-identical to before.
+   ============================================================ */
+@media (min-width:768px) and (max-width:991.98px){
+  .lav-topbar .lav-topbar-mobile{display:block}
+  .lav-topbar .lav-topbar-mobile .navbar-toggler{display:inline-block}
+  .lav-topbar .lav-topbar-toggle.sidebar-main-toggle{display:none}
+
+}
+/* =====================================================================
+   Loop 112 — Bulk Management premium pass + system-generated numbers
+   (2026-10-23). The bulk hub and its flow pages (upload form, job
+   preview) join the Loop standard the rest of the app already
+   speaks: a hero band with a medallion on the hub, flow cards with
+   icon chips and a clean action row, the shared table header
+   treatment (as .l103-table) on the history / columns / changes /
+   error tables, and the summary counts sized like .l108-badges.
+   Wide tables also carry .l108-stack so phones read them as
+   labelled row-cards. Dark variants under html.hk-dark in the
+   Loop 50 family colours. No layout tracks that can overflow.
+   ===================================================================== */
+.l111-hero{display:flex;gap:16px;align-items:flex-start}
+.l111-hero-ic{flex:none;width:46px;height:46px;border-radius:12px;background:#eaf1fe;color:#2867dc;display:flex;align-items:center;justify-content:center;font-size:22px}
+.l111-hero h6{font-size:1.02rem;margin:2px 0 6px;color:#172536}
+.l111-hero p{margin:0;color:#46586c}
+.l111-flow{height:100%;transition:border-color .15s ease,box-shadow .15s ease}
+.l111-flow:hover{border-color:#b9cbe4;box-shadow:0 6px 18px rgba(23,37,54,.07)}
+.l111-flow-ic{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:10px;background:#eaf1fe;color:#2867dc;font-size:18px;margin-bottom:10px}
+.l111-flow .card-title{font-size:.98rem;margin-bottom:6px;color:#172536}
+.l111-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.l111-card{margin-bottom:20px}
+.l111-drop{border:1.5px dashed #c3cedd;border-radius:10px;padding:16px 16px 6px;background:#f8fafc}
+.l111-table thead th{border-bottom:2px solid #dbe3ec;color:#46586c;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+.l111-table tbody td{vertical-align:middle}
+.l111-counts .badge{font-size:.85rem;padding:.5em .75em}
+html.hk-dark .l111-hero-ic{background:#16324f;color:#7fb0ff}
+html.hk-dark .l111-hero h6{color:#eef4fb}
+html.hk-dark .l111-hero p{color:#93a9bf}
+html.hk-dark .l111-flow:hover{border-color:#1d3a55;box-shadow:0 6px 18px rgba(0,0,0,.35)}
+html.hk-dark .l111-flow-ic{background:#16324f;color:#7fb0ff}
+html.hk-dark .l111-flow .card-title{color:#eef4fb}
+html.hk-dark .l111-drop{border-color:#1d3a55;background:#0d2033}
+html.hk-dark .l111-table thead th{border-bottom-color:#1d3a55;color:#8fb0cc}
+@media (max-width:575px){
+  .l111-hero{flex-direction:column;gap:10px}
+  .l111-actions .btn{flex:1 1 auto}
+}
+
+/* =====================================================================
+   Loop 113 — Login premium: the sign-in page comes alive
+   ---------------------------------------------------------------------
+   Owner (2026-10-23): "login page bahut static hai — mast aur acha
+   banao." Loop 16 (Design A) was a still picture; this loop gives it
+   a pulse WITHOUT touching a single behaviour: same form, fields,
+   route, CSRF, errors, remember-me, throttling and redirects.
+
+   What changes is only presentation:
+   - the split card rises softly into view once on load;
+   - the navy brand panel breathes: a slow gradient drift layer, a
+     faint blueprint grid, and the existing SVG glow orbs / hexagons /
+     sparks floating on long, quiet loops (transform + opacity only —
+     no layout is ever animated, so the page stays fast);
+   - the panel now opens with the school's own identity (logo tile +
+     name from Settings), states its value in one line, and ticks the
+     three things the product does first: Attendance, Fees, Results;
+   - the form panel sits on a soft ivory surface, fields carry icons,
+     the error alert gains a firm accent edge, and the Sign In button
+     lifts a breath on hover;
+   - on phones the brand panel is a compact identity band (the form
+     panel's own brandmark steps aside — the band already says it).
+   Every animation dies under prefers-reduced-motion.
+   The dead login-campus.jpg layer (file never existed in the tree)
+   is dropped from the brand background: one 404 less on first paint.
+   ============================================================ */
+
+/* --- Card entrance: one quiet rise, then still --- */
+@keyframes l112Rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.login-a-card{animation:l112Rise .7s cubic-bezier(.22,.8,.32,1) both}
+
+/* --- Page ambience drifts behind the card --- */
+.login-a-page{position:relative}
+.login-a-page::before{animation:l112Drift 30s ease-in-out infinite alternate;background:radial-gradient(720px 460px at 18% 108%,rgba(84,148,255,.20),rgba(84,148,255,0) 62%),radial-gradient(640px 420px at 86% -6%,rgba(52,120,246,.16),rgba(52,120,246,0) 60%);content:"";inset:0;pointer-events:none;position:absolute}
+.login-a-card,.login-a-legal{position:relative;z-index:1}
+
+/* --- Brand panel: living navy --- */
+.login-a-brand{background-image:linear-gradient(165deg,rgba(10,33,56,.50) 0%,rgba(10,33,56,.74) 52%,rgba(8,28,48,.94) 100%),linear-gradient(158deg,#17436f 0%,#0b2239 56%,#081c30 100%)}
+.login-a-brand::before{animation:l112Drift 24s ease-in-out infinite alternate;background:radial-gradient(560px 380px at 82% 88%,rgba(64,132,255,.30),rgba(64,132,255,0) 65%),radial-gradient(480px 340px at 6% 2%,rgba(64,132,255,.20),rgba(64,132,255,0) 62%);content:"";inset:-12%;pointer-events:none;position:absolute;z-index:0}
+.login-a-brand::after{background-image:linear-gradient(rgba(127,176,255,.065) 1px,transparent 1px),linear-gradient(90deg,rgba(127,176,255,.065) 1px,transparent 1px);background-size:44px 44px;content:"";inset:0;-webkit-mask-image:radial-gradient(120% 90% at 30% 40%,#000 30%,transparent 78%);mask-image:radial-gradient(120% 90% at 30% 40%,#000 30%,transparent 78%);pointer-events:none;position:absolute;z-index:0}
+@keyframes l112Drift{from{transform:translate3d(-1.6%,-1%,0) scale(1)}to{transform:translate3d(1.8%,1.4%,0) scale(1.05)}}
+
+/* The SVG art floats: orbs breathe, hexagons hover, sparks twinkle. */
+.login-a-orb{transform-box:fill-box;transform-origin:center;will-change:transform,opacity}
+.login-a-orb-a{animation:l112FloatA 17s ease-in-out infinite alternate}
+.login-a-orb-b{animation:l112FloatB 21s ease-in-out infinite alternate}
+@keyframes l112FloatA{from{opacity:.85;transform:translate(0,0) scale(1)}to{opacity:1;transform:translate(-26px,-20px) scale(1.07)}}
+@keyframes l112FloatB{from{opacity:.5;transform:translate(0,0) scale(1.04)}to{opacity:.75;transform:translate(22px,16px) scale(.97)}}
+.login-a-hexes{animation:l112HexFloat 19s ease-in-out infinite alternate;transform-box:fill-box;transform-origin:center}
+@keyframes l112HexFloat{from{transform:translateY(0)}to{transform:translateY(-10px)}}
+.login-a-sparks{animation:l112Spark 5.5s ease-in-out infinite alternate}
+@keyframes l112Spark{from{opacity:.45}to{opacity:1}}
+
+/* --- School identity row (logo + name from Settings) --- */
+.login-a-school{align-items:center;display:flex;gap:14px;margin-bottom:34px}
+.login-a-school-tile{align-items:center;background:#fff;border-radius:13px;box-shadow:0 10px 24px rgba(2,12,24,.35);display:inline-flex;flex:0 0 52px;height:52px;justify-content:center;padding:7px;width:52px}
+.login-a-school-tile svg{display:block;height:100%;width:100%}
+.login-a-school-logo{max-height:100%;max-width:100%;object-fit:contain}
+.login-a-school-meta{display:flex;flex-direction:column;min-width:0}
+.login-a-school-name{color:#fff;font-size:1.32rem;font-weight:700;letter-spacing:-.01em;line-height:1.15}
+.login-a-school-caption{color:#8db4ff;font-size:.72rem;font-weight:600;letter-spacing:.14em;margin-top:3px;text-transform:uppercase}
+.login-a-brand-list li strong{color:#fff;font-weight:700}
+
+/* --- Form panel: soft ivory, icons in the fields, a firmer alert --- */
+.login-a-panel{background:#fdfcf9}
+.login-a-control{position:relative}
+.login-a-field-icon{align-items:center;color:#8fa1b5;display:flex;height:40px;justify-content:center;left:6px;pointer-events:none;position:absolute;top:50%;transform:translateY(-50%);width:36px;z-index:2}
+.login-a-field-icon svg{height:19px;width:19px}
+.login-a-input-icon{padding-left:46px}
+.login-a-field:focus-within .login-a-field-icon{color:#2867dc}
+.login-a-alert{border-left:4px solid #d9534f;box-shadow:0 8px 22px rgba(138,43,43,.08)}
+.login-a-btn{transition:background .15s ease,box-shadow .2s ease,transform .2s ease}
+.login-a-btn:hover{transform:translateY(-1px)}
+.login-a-btn:active{transform:translateY(0)}
+
+/* Dark theme (guest shell mirror): the ivory steps aside, icons cool. */
+html.hk-dark .login-a-panel{background:transparent}
+html.hk-dark .login-a-field-icon{color:#5f7a94}
+html.hk-dark .login-a-field:focus-within .login-a-field-icon{color:#6ea8ff}
+
+/* --- Phones/tablets: the brand panel becomes the identity band --- */
+@media (max-width:991.98px){
+    .login-a-panel .login-a-brandmark{display:none}
+    .login-a-school{margin-bottom:16px}
+    .login-a-school-tile{border-radius:11px;flex-basis:44px;height:44px;width:44px}
+    .login-a-school-name{font-size:1.12rem}
+    .login-a-brand-tag{display:none}
+    .login-a-title{margin-top:4px}
+}
+@media (max-width:480px){
+    .login-a-school{gap:11px;margin-bottom:12px}
+    .login-a-school-tile{flex-basis:38px;height:38px;width:38px}
+    .login-a-school-name{font-size:1rem}
+    .login-a-school-caption{font-size:.64rem}
+}
+
+/* --- Stillness on request: no motion for reduced-motion users --- */
+@media (prefers-reduced-motion:reduce){
+    .login-a-card,.login-a-page::before,.login-a-brand::before,.login-a-orb-a,.login-a-orb-b,.login-a-hexes,.login-a-sparks{animation:none!important}
+    .login-a-btn{transition:none}
+    .login-a-btn:hover{transform:none}
+}
+
+/* ============================================================
+   Loop 116 — Annual / Cumulative Report replica pass (2026-10-23).
+   The identity card's status pill keeps the reference's title
+   case ("Active", not "ACTIVE"); the document itself is restyled
+   inside marks/partials/annual_report_card (design v3).
+   ============================================================ */
+.ar85-status{text-transform:none;letter-spacing:.01em}
+
+   Loop 115 — Marks selector + entry grid reference replica
+   (2026-10-23, REFERENCE_DIFF_AUDIT §16 + §17). Presentation
+   only — no marks JS, POST contract or computation changes:
+   (a) the shared page header gains an optional subtitle line
+       (.page-header-sub, rendered only when a page defines the
+       page_subtitle section — header.blade.php);
+   (b) the marks selector's four fields sit in ONE row on wide
+       screens (the pattern grid caps at 3 tracks >=1400px, which
+       produced the owner's 3+1 screenshot);
+   (c) the manage page gains the reference's static stepper
+       (.l115-steps — steps 1-3 complete, step 4 current), the
+       context chips become slim tinted strips, mark inputs carry
+       a visual "/ max" suffix (a sibling span, never part of the
+       input value), TOTAL and PERCENTAGE render as pills (the
+       percentage pill takes the row's grade tone via :has on the
+       JS-rendered grade pill, so it stays correct while typing),
+       and the summary + actions form one slim footer strip
+       inside the grid card.
+   Colours reuse the app tokens; hk-dark variants included.
+   ============================================================ */
+
+/* (a) header subtitle */
+.page-header-sub{color:#5b6b7f;font-size:.85rem;margin-top:2px}
+html.hk-dark .page-header-sub{color:#93a7bd}
+
+/* (b) selector: one row of four on wide screens */
+@media (min-width:1200px){
+  .l115-selector-form .pat-fields{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
+.l115-change-btn{border:1px solid #dbe5f2}
+html.hk-dark .l115-change-btn{background:#132c46;border-color:#22405f;color:#e8eef5}
+
+/* (c1) static stepper (manage page) */
+.l115-steps{background:#fff;border:1px solid #e4eaf1;border-radius:12px;display:flex;list-style:none;margin:0 0 16px;padding:14px 20px}
+.l115-step{align-items:center;display:flex;flex:1;gap:10px;min-width:0;position:relative}
+.l115-step:not(:last-child)::after{background:#dbe5f2;content:"";height:2px;left:52px;position:absolute;right:10px;top:17px}
+.l115-step-dot{align-items:center;background:#3478f6;border:2px solid #3478f6;border-radius:50%;color:#fff;display:inline-flex;flex:none;font-size:.85rem;font-weight:700;height:36px;justify-content:center;position:relative;width:36px;z-index:1}
+.l115-step.is-current .l115-step-dot{box-shadow:0 0 0 4px rgba(52,120,246,.18)}
+.l115-step-text{display:flex;flex-direction:column;line-height:1.25;min-width:0}
+.l115-step-text strong{color:#172536;font-size:.86rem;font-weight:600;white-space:nowrap}
+.l115-step-text small{color:#5b6b7f;font-size:.74rem;white-space:nowrap}
+html.hk-dark .l115-steps{background:#0f2237;border-color:#22405f}
+html.hk-dark .l115-step:not(:last-child)::after{background:#22405f}
+html.hk-dark .l115-step-text strong{color:#e8eef5}
+html.hk-dark .l115-step-text small{color:#93a7bd}
+@media (max-width:767px){
+  .l115-steps{flex-direction:column;gap:12px}
+  .l115-step:not(:last-child)::after{display:none}
+}
+
+/* (c2) context chips: slim tinted strips */
+.l86-chip{border-radius:10px;padding:9px 14px}
+.l86-chip-ic{border-radius:8px;flex:0 0 34px;font-size:1rem;height:34px;width:34px}
+.l86-chip:has(.l86-chip-ic-subject){background:#f5f1fe;border-color:#e3dbfa}
+.l86-chip:has(.l86-chip-ic-class){background:#eef4fd;border-color:#d7e5fa}
+.l86-chip:has(.l86-chip-ic-exam){background:#eafaf1;border-color:#cdefdc}
+html.hk-dark .l86-chip:has(.l86-chip-ic-subject){background:#1c1836;border-color:#2c2150}
+html.hk-dark .l86-chip:has(.l86-chip-ic-class){background:#12283f;border-color:#1d3a55}
+html.hk-dark .l86-chip:has(.l86-chip-ic-exam){background:#122e22;border-color:#1e4634}
+
+/* (c3) mark input "/ max" suffix (visual only) */
+.l115-mwrap{display:block;margin:0 auto;max-width:120px;position:relative}
+.l115-mwrap .l76-mark-input{margin:0;width:100%}
+.l115-mmax{color:#9fb0c3;font-size:.78rem;pointer-events:none;position:absolute;right:8px;top:50%;transform:translateY(-50%)}
+html.hk-dark .l115-mmax{color:#5f7a99}
+
+/* (c4) TOTAL / PERCENTAGE pills */
+.l115-pill-total,.l115-pill-pct{border-radius:999px;display:inline-block;line-height:1.25;padding:4px 12px}
+tr.l86-row:has(.l86-grade-pill) .l115-pill-total{background:#e3edfd;color:#2456a6}
+tr.l86-row:has(.l86-grade-pill[data-grade="A"]) .l115-pill-pct{background:#e9f9f0;color:#1d9d61}
+tr.l86-row:has(.l86-grade-pill[data-grade="B"]) .l115-pill-pct{background:#eef3fb;color:#3478f6}
+tr.l86-row:has(.l86-grade-pill[data-grade="C"]) .l115-pill-pct{background:#fdf3e0;color:#b97f10}
+tr.l86-row:has(.l86-grade-pill[data-grade="D"]) .l115-pill-pct,tr.l86-row:has(.l86-grade-pill[data-grade="E"]) .l115-pill-pct{background:#fdeee0;color:#c2610a}
+tr.l86-row:has(.l86-grade-pill[data-grade="F"]) .l115-pill-pct{background:#fdeaea;color:#d64545}
+html.hk-dark tr.l86-row:has(.l86-grade-pill) .l115-pill-total{background:#1d3a55;color:#7db1f8}
+html.hk-dark tr.l86-row:has(.l86-grade-pill[data-grade="A"]) .l115-pill-pct{background:#14382a;color:#4cc98a}
+html.hk-dark tr.l86-row:has(.l86-grade-pill[data-grade="B"]) .l115-pill-pct{background:#1d3a55;color:#7db1f8}
+html.hk-dark tr.l86-row:has(.l86-grade-pill[data-grade="C"]) .l115-pill-pct{background:#3d2f10;color:#eec25e}
+html.hk-dark tr.l86-row:has(.l86-grade-pill[data-grade="D"]) .l115-pill-pct,html.hk-dark tr.l86-row:has(.l86-grade-pill[data-grade="E"]) .l115-pill-pct{background:#3d2410;color:#f0a35e}
+html.hk-dark tr.l86-row:has(.l86-grade-pill[data-grade="F"]) .l115-pill-pct{background:#3d1a1a;color:#f28b8b}
+
+/* (c5) one slim footer strip inside the grid card */
+.l115-actionbar{align-items:center;background:transparent;flex-wrap:wrap;gap:10px 14px;justify-content:flex-start;margin:14px 0 0;padding:12px 0 0;position:static}
+.l115-summary{flex:1 1 auto;flex-wrap:nowrap;gap:6px 20px;margin-top:0}
+.l115-summary .l86-stat{background:transparent;border:0;border-radius:0;flex:0 1 auto;padding:2px 4px}
+.l115-actionbar .l86-dirty-hint{margin-right:0}
+html.hk-dark .l115-actionbar{background:transparent;border-color:#1d3a55}
+@media (max-width:991px){
+  .l115-summary{flex-wrap:wrap}
+}
+
+/* =====================================================================
+   Loop 118 — Replica pass: Payments + Feedback (2026-10-23).
+   Manage Payments gains the reference's titled session band above
+   the KPI cards; Fee Defaulters gains the reference's red title
+   tile and table-card head; the payments tables read their headers
+   in the references' title case instead of the global caps style
+   (screen tables only — the printed documents keep their own
+   tables); My Feedback's KPI cards go plain and value-led, and its
+   empty state keeps the list chrome above the illustration.
+   ===================================================================== */
+.l118-session-band{margin-bottom:16px}
+.l118-band-head h6{font-size:.95rem;font-weight:700;margin:0}
+.l118-band-head p{color:#718096;font-size:.82rem;margin:2px 0 12px}
+.l118-band-form{align-items:flex-end;display:flex;flex-wrap:wrap;gap:12px}
+.l118-band-field{flex:1 1 200px}
+html.hk-dark .l118-band-head p{color:#8fa6bd}
+
+.l118-page-icon{align-items:center;align-self:center;border-radius:10px;color:#fff;display:inline-flex;flex:none;font-size:20px;height:44px;justify-content:center;margin-right:14px;width:44px}
+.l118-red-tile{background:#f43f5e}
+
+.l118-card-head{align-items:flex-start;display:flex;justify-content:space-between;margin-bottom:8px}
+.l118-card-title{font-size:.95rem;font-weight:700;margin:0}
+.l118-card-sub{color:#718096;font-size:.82rem;margin:2px 0 0}
+html.hk-dark .l118-card-sub{color:#8fa6bd}
+
+/* .content prefix: must outrank the global .content .table caps rule. */
+.content .mp94-table thead th,.content .def95-table thead th{font-size:.8rem;letter-spacing:0;text-transform:none}
+
+.l118-fb-stats .dashboard-stat-card{align-items:center;min-height:0}
+.l118-fb-stats .dashboard-stat-label{font-size:.85rem;font-weight:500;letter-spacing:0;margin-top:2px;text-transform:none}
+.l118-fb-empty-table{margin-bottom:0}
+.l118-fb-empty-cell{padding:0!important}
+
+   Loop 114 — Circulars replica pass (2026-10-23, reference-diff
+   audit §9 / §2 / §10). (A) List stat chips: the Loop 75 markup
+   used .dash-stat classes that were never defined anywhere, so
+   the four chips rendered as one unstyled run-on line — the
+   .l114-stat system below is the reference chip (tinted card,
+   deeper icon tile, coloured label over the number, subtext).
+   (B) List cards become standalone cards (the shared list_page
+   panel is neutralised only where it wraps the circulars list)
+   and status pills drop their forced uppercase. (C) Composer:
+   message count at the editor's bottom-right. (D) Preview rail:
+   head, preview card, meta grid, tips panel. (E) Detail: page
+   subtitle, five-across meta strip, tinted message quote box,
+   published banner, attachment rows, title-case pills. Dark
+   variants ride the Loop 50 tokens.
+   ============================================================ */
+
+/* --- (A) List stat chips ----------------------------------- */
+.l114-stats{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
+.l114-stat{align-items:center;border:1px solid transparent;border-radius:12px;display:flex;gap:13px;padding:14px 16px}
+.l114-stat-ic{align-items:center;border-radius:10px;display:inline-flex;flex:0 0 auto;font-size:1.18rem;height:44px;justify-content:center;width:44px}
+.l114-stat-body{display:flex;flex-direction:column;min-width:0}
+.l114-stat-label{font-size:.8rem;font-weight:700}
+.l114-stat-value{color:#172536;font-size:1.32rem;font-weight:800;line-height:1.15}
+.l114-stat-sub{color:#718096;font-size:.76rem}
+.l114-stat-blue{background:#eef4ff;border-color:#dbe7fb}
+.l114-stat-blue .l114-stat-ic{background:#d3e2fd;color:#2867dc}
+.l114-stat-blue .l114-stat-label{color:#2867dc}
+.l114-stat-green{background:#e9f9f1;border-color:#d2efdf}
+.l114-stat-green .l114-stat-ic{background:#c9f0da;color:#12a150}
+.l114-stat-green .l114-stat-label{color:#128a4c}
+.l114-stat-amber{background:#fdf6e7;border-color:#f7e7c3}
+.l114-stat-amber .l114-stat-ic{background:#ffe3b3;color:#e8930c}
+.l114-stat-amber .l114-stat-label{color:#d97f06}
+.l114-stat-red{background:#fdeeee;border-color:#f8d7d4}
+.l114-stat-red .l114-stat-ic{background:#ffd9d4;color:#e0483e}
+.l114-stat-red .l114-stat-label{color:#d63b31}
+html.hk-dark .l114-stat{border-color:#1d3a55}
+html.hk-dark .l114-stat-blue{background:rgba(40,103,220,.13)}
+html.hk-dark .l114-stat-green{background:rgba(18,161,80,.13)}
+html.hk-dark .l114-stat-amber{background:rgba(232,147,12,.12)}
+html.hk-dark .l114-stat-red{background:rgba(224,72,62,.13)}
+html.hk-dark .l114-stat-blue .l114-stat-ic{background:#173a5f;color:#6ea8ff}
+html.hk-dark .l114-stat-green .l114-stat-ic{background:#14402c;color:#5fd68f}
+html.hk-dark .l114-stat-amber .l114-stat-ic{background:#453311;color:#f5b84c}
+html.hk-dark .l114-stat-red .l114-stat-ic{background:#4a2320;color:#ff9d94}
+html.hk-dark .l114-stat-value{color:#eef4fb}
+html.hk-dark .l114-stat-sub{color:#93a9bf}
+
+/* --- (B) Standalone list cards + title-case pills ---------- */
+.pat-card:has(.l75-circ-list){background:transparent;border:0;box-shadow:none}
+.pat-card:has(.l75-circ-list)>.card-body{padding:0}
+.pat-card:has(.l75-circ-list) .table-responsive{overflow:visible}
+.l75-circ-list{display:grid;gap:14px}
+.l75-circ-list .circ-item{border:1px solid #e7edf3;border-left:4px solid var(--circ-accent);border-radius:12px}
+.l75-circ-list .circ-pri-normal{background:#fff}
+.l75-circ-list .circ-item:last-of-type{border-bottom:1px solid #e7edf3}
+html.hk-dark .l75-circ-list .circ-pri-normal{background:#0f2438}
+html.hk-dark .l75-circ-list .circ-item{border-color:#1d3a55;border-left-color:var(--circ-accent)}
+html.hk-dark .l75-circ-list .circ-item:last-of-type{border-bottom-color:#1d3a55}
+.l75-circ-list .l75-pill{letter-spacing:.01em;text-transform:none}
+.l114-showing{color:#718096;font-size:.82rem;margin-top:14px}
+html.hk-dark .l114-showing{color:#93a9bf}
+
+/* --- (C) Composer message count ----------------------------- */
+.l114-body-count{color:#9aa7b5;font-size:.76rem;margin-top:4px;text-align:right}
+html.hk-dark .l114-body-count{color:#68809a}
+
+/* --- (D) Preview rail --------------------------------------- */
+.l114-pv-head{align-items:flex-start;display:flex;gap:12px;padding:15px 18px 13px}
+.l114-pv-eye{align-items:center;background:#e7f0fe;border-radius:50%;color:#2867dc;display:inline-flex;flex:0 0 auto;font-size:1rem;height:36px;justify-content:center;width:36px}
+.l114-pv-title{color:#172536;font-size:1rem;font-weight:700;line-height:1.25}
+.l114-pv-sub{color:#718096;font-size:.8rem;margin-top:2px}
+.l114-pv-card{background:#eef4fc;margin:0 14px 14px;padding:12px}
+.l114-pv-card .circ-item{background:#fff;border:1px solid #e7edf3;border-left:4px solid var(--circ-accent);border-radius:10px;padding:15px 16px 13px}
+.l114-pv-top{display:flex;gap:12px}
+.l114-pv-tile{align-items:center;background:#2867dc;border-radius:50%;color:#fff;display:inline-flex;flex:0 0 auto;font-size:1.05rem;height:44px;justify-content:center;width:44px}
+.l114-pv-main{flex:1;min-width:0}
+.l114-pv-titlerow{align-items:flex-start;display:flex;gap:8px}
+.l114-pv-titlerow .circ-title{flex:1;font-size:1rem;margin:0;min-width:0}
+.l114-pv-new{background:#e3ecfd;border-radius:999px;color:#2867dc;flex:0 0 auto;font-size:.68rem;font-weight:700;padding:2px 9px}
+.l114-pv-date{color:#718096;font-size:.78rem;margin-top:3px}
+.l114-pv-meta{border-top:1px solid #eef2f6;display:grid;gap:11px 12px;grid-template-columns:1fr 1fr;margin-top:11px;padding-top:12px}
+.l114-pv-meta-item{align-items:center;display:flex;gap:9px;min-width:0}
+.l114-pv-meta-ic{align-items:center;background:#eef4ff;border-radius:8px;color:#3478f6;display:inline-flex;flex:0 0 auto;font-size:.85rem;height:30px;justify-content:center;width:30px}
+.l114-pv-meta-txt{display:flex;flex-direction:column;min-width:0}
+.l114-pv-meta-lbl{color:#9aa7b5;font-size:.68rem;font-weight:600}
+.l114-pv-meta-val{color:#172536;font-size:.82rem;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+html.hk-dark .l114-pv-eye{background:#173a5f;color:#6ea8ff}
+html.hk-dark .l114-pv-title{color:#eef4fb}
+html.hk-dark .l114-pv-sub{color:#93a9bf}
+html.hk-dark .l114-pv-card{background:#0c1e31}
+html.hk-dark .l114-pv-card .circ-item{background:#0f2438;border-color:#1d3a55;border-left-color:var(--circ-accent)}
+html.hk-dark .l114-pv-new{background:#173a5f;color:#9dbcf5}
+html.hk-dark .l114-pv-date{color:#93a9bf}
+html.hk-dark .l114-pv-meta{border-top-color:#1d3a55}
+html.hk-dark .l114-pv-meta-ic{background:#132c46;color:#6ea8ff}
+html.hk-dark .l114-pv-meta-val{color:#e8f1f9}
+.l114-pv-tips{margin-top:16px;padding:15px 18px}
+.l114-pv-tips-head{align-items:center;color:#172536;display:flex;font-weight:700;gap:9px}
+.l114-pv-tips-ic{align-items:center;background:#fdf0da;border-radius:8px;color:#dd8f12;display:inline-flex;font-size:.9rem;height:28px;justify-content:center;width:28px}
+.l114-pv-tips-list{color:#43556c;font-size:.84rem;line-height:1.5;margin:10px 0 2px;padding-left:18px}
+.l114-pv-tips-list li{margin-bottom:5px}
+.l114-pv-tips-list li:last-child{margin-bottom:0}
+html.hk-dark .l114-pv-tips-head{color:#eef4fb}
+html.hk-dark .l114-pv-tips-ic{background:#453311;color:#f5b84c}
+html.hk-dark .l114-pv-tips-list{color:#c3d4e6}
+
+/* --- (E) Detail page ----------------------------------------- */
+.l114-page-sub{color:#43556c;font-size:.92rem;margin:0 0 14px}
+html.hk-dark .l114-page-sub{color:#a9bfd6}
+.l114-case{letter-spacing:.01em;text-transform:none}
+@media (min-width:992px){
+  .l114-meta5{grid-template-columns:repeat(5,minmax(0,1fr))}
+}
+.l114-cd-msg-ic{color:#3478f6;margin-right:8px}
+.l114-quote{background:#f2f7fd;border-radius:12px;padding:16px 18px}
+html.hk-dark .l114-quote{background:#0c1e31}
+.l114-att-ic{align-items:center;background:#fdeeee;border-radius:10px;color:#d63b31;display:inline-flex;flex:0 0 auto;font-size:1.15rem;height:42px;justify-content:center;margin-right:12px;width:42px}
+html.hk-dark .l114-att-ic{background:#4a2320;color:#ff9d94}
+.l114-att-txt{display:flex;flex-direction:column;min-width:0}
+.l114-att-name{color:#172536;font-weight:600}
+.l114-att-name:hover{color:#2867dc;text-decoration:none}
+html.hk-dark .l114-att-name{color:#eef4fb}
+.l114-att-sub{color:#718096;font-size:.78rem}
+html.hk-dark .l114-att-sub{color:#93a9bf}
+.l114-cd-banner{align-items:flex-start;display:flex;gap:10px;margin-top:16px}
+.l114-cd-banner i{font-size:1.05rem;margin-top:2px}
+@media print{
+  .l114-pv-tips{display:none!important}
+}
+
+   Loop 119 — Replica text-sweep presentation fixes (2026-10-23).
+   Small, scoped corrections that ride along with the reference
+   text alignment: (1) at >=1500px the My Account field hints were
+   absolutely positioned onto the label line and collided with
+   long labels ("Staff / Student Code") — hints return to the
+   normal flow under their input; (2) Submitted Register stat
+   labels render in title case like the reference, and the table
+   card gains its subtext style; (3) the Monthly Report screen's
+   initials discs keep dark text in dark mode (their pale disc
+   backgrounds are inline in both themes, so near-white text was
+   invisible); (4) the LMS filter search field gets more room so
+   its placeholder never clips, and the Materials sort select
+   keeps a readable width; (5) Student Information section chips
+   go neutral; (6) the Accountant donut centre fits its new
+   "Total Collected" amount.
+   ============================================================ */
+@media (min-width:1500px){
+  .acct-field .acct-hint{position:static;text-align:left;margin-top:5px}
+}
+.rg-chip-label{text-transform:none;letter-spacing:0}
+.rg-table-sub{color:#718096;font-size:.8rem;margin:2px 0 0}
+html.hk-dark .rg-table-sub{color:#93a9bf}
+html.hk-dark .marx-ava{color:#33475c}
+.lms82-filter-search{flex:3 1 320px;min-width:240px}
+#lms82m-sort{min-width:200px}
+.l83-chip{background:#eef2f7;color:#44546a}
+html.hk-dark .l83-chip{background:#22314a;color:#b9c9dd}
+.l92-donut-num{font-size:12px}
+.l92-donut-cap{font-size:8px}
+
+   Loop 117 — Replica pass: dashboards + attendance (2026-10-23).
+   (a) Librarian home: Book Issue/Return Trend chart (CSS bars fed
+   by HomeController::libraryTrend), the hero date as a chip.
+   (b) Low Attendance: reference header (breadcrumb + icon tile),
+   value-led KPI cards, table-card head with the search inside.
+   (c) Mark Attendance: teacher summary stats in the pager card,
+   admin status filter tabs, the red Not Taken Today tone, the
+   Locked legend dot, schedule subtext.
+   (d) X-9: the home reminder strip (.lav-toast-stack, de-floated
+   by Loop 75-H) renders from the topbar partial at body level, so
+   it spanned the full viewport width and its text began under
+   the fixed sidebar — clipped mid-word at desktop widths. It now
+   takes the same rail offsets as the topbar itself (Loop 111
+   block): 218px expanded, 56px collapsed, none below 992px
+   where the sidebar is an off-canvas overlay.
+   ============================================================ */
+@media (min-width:992px){
+  .lav-toast-stack{margin-left:218px}
+  body.sidebar-xs .lav-toast-stack{margin-left:56px}
+}
+
+/* (a) Librarian trend + date chip */
+.l117-date-chip{background:#fff;border:1px solid #e4eaf1;border-radius:10px;color:#46586c;padding:8px 14px}
+html.hk-dark .l117-date-chip{background:#1b2a42;border-color:#2c405f;color:#a9bfd6}
+.l117-trend-toggle{background:#eef2f7;border-radius:9px;display:inline-flex;flex:none;gap:2px;padding:3px}
+.l117-trend-btn{background:transparent;border:0;border-radius:7px;color:#5b6b7f;font-size:.8rem;font-weight:600;padding:5px 14px}
+.l117-trend-btn.is-active{background:#3478f6;color:#fff}
+html.hk-dark .l117-trend-toggle{background:#22344c}
+html.hk-dark .l117-trend-btn{color:#a9bfd6}
+html.hk-dark .l117-trend-btn.is-active{background:#3478f6;color:#fff}
+.l117-trend-legend{display:flex;flex-wrap:wrap;gap:8px 18px;margin:2px 0 10px}
+.l117-trend-key{align-items:center;color:#5b6b7f;display:inline-flex;font-size:.8rem;font-weight:600;gap:6px}
+html.hk-dark .l117-trend-key{color:#a9bfd6}
+.l117-dot{border-radius:50%;display:inline-block;flex:none;height:9px;width:9px}
+.l117-dot-issued{background:#3478f6}
+.l117-dot-returned{background:#22b573}
+.l117-trend-chart{align-items:flex-end;display:flex;gap:6px;height:170px}
+.l117-trend-group{align-items:center;display:flex;flex:1 1 0;flex-direction:column;gap:6px;height:100%;justify-content:flex-end;min-width:0}
+.l117-trend-bars{align-items:flex-end;display:flex;flex:1 1 auto;gap:3px;justify-content:center;width:100%}
+.l117-bar{border-radius:3px 3px 0 0;display:block;width:11px}
+.l117-bar-issued{background:#3478f6}
+.l117-bar-returned{background:#22b573}
+.l117-trend-label{color:#7a8794;font-size:.66rem;white-space:nowrap}
+html.hk-dark .l117-trend-label{color:#8fa5c0}
+@media (max-width:575px){
+  .l117-trend-chart{gap:3px}
+  .l117-bar{width:7px}
+  .l117-trend-panel[data-l117-panel="day"] .l117-trend-group:nth-child(even) .l117-trend-label{visibility:hidden}
+}
+
+/* (b) Low Attendance header + KPI cards + table-card head */
+.l117-page-head{align-items:flex-start;display:flex;flex-wrap:wrap;gap:14px 18px;justify-content:space-between;margin-bottom:16px}
+.l117-page-head-main{align-items:flex-start;display:flex;gap:14px;min-width:0}
+.l117-page-head-icon{align-items:center;background:#f28c13;border-radius:12px;color:#fff;display:inline-flex;flex:none;font-size:21px;height:52px;justify-content:center;width:52px}
+.l117-crumb{color:#7a8794;font-size:.78rem;margin-bottom:2px}
+.l117-page-title{color:#172536;font-size:1.35rem;font-weight:700;margin:0}
+.l117-page-sub{color:#5b6b7f;font-size:.9rem;margin:3px 0 0}
+.l117-page-head-actions{align-items:center;display:flex;flex-wrap:wrap;gap:8px}
+html.hk-dark .l117-crumb{color:#8fa5c0}
+html.hk-dark .l117-page-title{color:#eef4fb}
+html.hk-dark .l117-page-sub{color:#a9bfd6}
+.l117-kpi{align-items:center;border:1px solid transparent;border-radius:12px;display:flex;gap:14px;height:100%;padding:16px 18px}
+.l117-kpi-icon{align-items:center;border-radius:12px;display:inline-flex;flex:none;font-size:19px;height:46px;justify-content:center;width:46px}
+.l117-kpi-copy{display:flex;flex-direction:column;line-height:1.25;min-width:0}
+.l117-kpi-copy strong{color:#172536;font-size:1.5rem;font-weight:700}
+.l117-kpi-label{color:#172536;font-size:.92rem;font-weight:600}
+.l117-kpi-copy small{color:#718096;font-size:.78rem}
+.l117-kpi-red{background:#fdf0f0;border-color:#f6d5d5}
+.l117-kpi-red .l117-kpi-icon{background:#fbdcdc;color:#d64545}
+.l117-kpi-blue{background:#eef4fd;border-color:#d3e2f8}
+.l117-kpi-blue .l117-kpi-icon{background:#d9e7fc;color:#2867dc}
+.l117-kpi-amber{background:#fdf6e0;border-color:#f0e2b6}
+.l117-kpi-amber .l117-kpi-icon{background:#f7e7bd;color:#b97e0c}
+.l117-kpi-green{background:#ebf7ee;border-color:#cdeeda}
+.l117-kpi-green .l117-kpi-icon{background:#d3efdc;color:#2f9e44}
+html.hk-dark .l117-kpi{background:#1b2a42;border-color:#2c405f}
+html.hk-dark .l117-kpi-copy strong,html.hk-dark .l117-kpi-label{color:#eef4fb}
+html.hk-dark .l117-kpi-copy small{color:#93a9bf}
+html.hk-dark .l117-kpi-red .l117-kpi-icon{background:#3d2226;color:#ff8a8a}
+html.hk-dark .l117-kpi-blue .l117-kpi-icon{background:#22344c;color:#7db1ff}
+html.hk-dark .l117-kpi-amber .l117-kpi-icon{background:#3d2f16;color:#ffb84d}
+html.hk-dark .l117-kpi-green .l117-kpi-icon{background:#1d3a2a;color:#5fd68a}
+.l117-table-head{align-items:center;display:flex;flex-wrap:wrap;gap:10px 16px;justify-content:space-between;margin-bottom:12px}
+.l117-table-title{color:#172536;font-size:1rem;font-weight:600;margin:0}
+.l117-table-sub{color:#7a8794;font-size:.82rem;margin:2px 0 0}
+.l117-table-search{flex:0 1 320px;min-width:200px;position:relative}
+.l117-table-search > i{color:#93a5b8;left:11px;pointer-events:none;position:absolute;top:50%;transform:translateY(-50%)}
+.l117-table-search .form-control{padding-left:34px}
+html.hk-dark .l117-table-title{color:#eef4fb}
+html.hk-dark .l117-table-sub{color:#8fa5c0}
+
+/* (c) Mark Attendance additions */
+.ma-stat-red .ma-stat-icon{background:#fdecec;color:#d64545}
+html.hk-dark .ma-stat-red .ma-stat-icon{background:#3d2226;color:#ff8a8a}
+.ma-dot-locked{background:#8494a7}
+.ma-schedule-sub{color:#7a8794;font-size:.82rem;margin:3px 0 0}
+html.hk-dark .ma-schedule-sub{color:#8fa5c0}
+.ma-tabs{background:#eef2f7;border-radius:9px;display:inline-flex;flex:none;gap:2px;padding:3px}
+.ma-tab{align-items:center;background:transparent;border:0;border-radius:7px;color:#5b6b7f;display:inline-flex;font-size:.8rem;font-weight:600;gap:6px;padding:5px 12px}
+.ma-tab.is-active{background:#3478f6;color:#fff}
+.ma-tab-count{background:rgba(23,37,54,.08);border-radius:999px;font-size:.7rem;font-weight:700;padding:1px 7px}
+.ma-tab.is-active .ma-tab-count{background:rgba(255,255,255,.25)}
+html.hk-dark .ma-tabs{background:#22344c}
+html.hk-dark .ma-tab{color:#a9bfd6}
+html.hk-dark .ma-tab.is-active{background:#3478f6;color:#fff}
+html.hk-dark .ma-tab-count{background:rgba(255,255,255,.12)}
+.ma-pager-main{align-items:center;display:flex;flex-wrap:wrap;gap:8px 14px}
+.ma-pager-date-copy{display:flex;flex-direction:column;line-height:1.2}
+.ma-pager-date-copy small{color:#7a8794;font-size:.72rem;font-weight:600}
+.ma-pager-date-copy strong{font-size:.95rem}
+html.hk-dark .ma-pager-date-copy small{color:#8fa5c0}
+.ma-pager-stats{display:flex;flex-wrap:wrap;gap:8px}
+.ma-pager-stat{background:#f4f7fb;border-radius:9px;display:flex;flex-direction:column;line-height:1.2;padding:6px 12px}
+.ma-pager-stat small{color:#7a8794;font-size:.68rem;font-weight:600}
+.ma-pager-stat strong{color:#172536;font-size:1.05rem}
+.ma-pager-stat-done strong{color:#2f9e44}
+.ma-pager-stat-pending strong{color:#dd7a03}
+html.hk-dark .ma-pager-stat{background:#22344c}
+html.hk-dark .ma-pager-stat small{color:#8fa5c0}
+html.hk-dark .ma-pager-stat strong{color:#e8eefc}
+html.hk-dark .ma-pager-stat-done strong{color:#5fd68a}
+html.hk-dark .ma-pager-stat-pending strong{color:#ffb84d}

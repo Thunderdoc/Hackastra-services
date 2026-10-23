@@ -326,6 +326,7 @@ Route::group(['middleware' => 'auth'], function () {
         Route::patch('circulars/{circular}/toggle-publish', 'CircularController@togglePublish')->name('circulars.toggle_publish');
         Route::get('circulars/{circular}/print', 'CircularController@print')->name('circulars.print');
         Route::get('circulars/{circular}/pdf', 'CircularController@pdf')->name('circulars.pdf');
+        Route::get('circulars/{circular}/official', 'CircularController@official')->name('circulars.official');
         Route::get('circulars/{circular}/attachments/{attachment}', 'CircularController@downloadAttachment')->name('circulars.attachments.download');
         Route::resource('circulars', 'CircularController');
 

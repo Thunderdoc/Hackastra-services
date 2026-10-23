@@ -6,12 +6,11 @@
          label-column card from the owner's screenshot, with the
          page title repeated as the card heading — the heading is
          dropped, the common header carries the title. Shell only:
-         same PUT to sections.update via .ajax-update, same fields,
+         same PUT to sections.update (Loop 112: plain form, post-save lands on the index), same fields,
          bindings and hashed teacher values. --}}
     @component('partials.patterns.form_page', [
         'form_action' => route('sections.update', $s->id),
         'form_method' => 'PUT',
-        'form_class' => 'ajax-update',
         'back' => route('sections.index'),
         'submit_label' => 'Submit form',
     ])

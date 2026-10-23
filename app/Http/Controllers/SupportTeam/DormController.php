@@ -33,7 +33,8 @@ class DormController extends Controller
         $data = $req->only(['name', 'description']);
         $this->dorm->create($data);
 
-        return Qs::jsonStoreOk();
+        // Loop 112: post-save lands on the dorms index (owner ruling).
+        return Qs::storeOk('dorms.index');
     }
 
     public function edit($id)
@@ -50,7 +51,8 @@ class DormController extends Controller
         $data = $req->only(['name', 'description']);
         $this->dorm->update(Qs::resolveId($id), $data);
 
-        return Qs::jsonUpdateOk();
+        // Loop 112: post-save lands on the dorms index (owner ruling).
+        return Qs::updateOk('dorms.index');
     }
 
     public function destroy($id)

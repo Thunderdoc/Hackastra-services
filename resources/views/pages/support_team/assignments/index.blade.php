@@ -39,7 +39,7 @@
             <div class="lms82-stats">
                 <div class="lms82-stat">
                     <span class="lms82-stat-icon lms82-tone-blue"><i class="icon-file-text2"></i></span>
-                    <span class="lms82-stat-copy"><strong>{{ $card_total ?? 0 }}</strong><span>Total Assignments</span><small>{{ $isTeacher ? 'Created by you' : 'All classes' }}</small></span>
+                    <span class="lms82-stat-copy"><strong>{{ $card_total ?? 0 }}</strong><span>Total Assignments</span><small>All classes</small></span>
                 </div>
                 <div class="lms82-stat">
                     <span class="lms82-stat-icon lms82-tone-green"><i class="icon-paperplane"></i></span>
@@ -279,6 +279,10 @@
                 @endif
             @endforelse
         </div>
+
+        @if(method_exists($assignments, 'total') && $assignments->total() > 0)
+            <p class="text-muted mb-2"><small>Showing {{ $assignments->firstItem() }} to {{ $assignments->lastItem() }} of {{ $assignments->total() }} {{ $assignments->total() == 1 ? 'assignment' : 'assignments' }}</small></p>
+        @endif
 
         @if(method_exists($assignments, 'links'))
             {{ $assignments->links() }}

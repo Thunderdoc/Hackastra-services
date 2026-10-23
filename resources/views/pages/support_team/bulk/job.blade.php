@@ -5,7 +5,7 @@
     {{-- Preview / progress / result for one bulk job. The confirm
          form carries the job's single-use token; once burned, this
          page can never apply the job again (audit §6.2). --}}
-    <div class="card">
+    <div class="card l111-card">
         <div class="card-header header-elements-inline">
             <h6 class="card-title">Job #{{ $job->id }} — {{ $job->title() }}</h6>
             {!! Qs::getPanelOptions() !!}
@@ -23,7 +23,7 @@
                 @elseif($job->status === 'failed') <span class="badge badge-danger">Failed</span>
                 @else <span class="badge badge-light">{{ ucfirst($job->status) }}</span> @endif
             </p>
-            <p class="mb-0">
+            <p class="mb-0 l111-counts">
                 <span class="badge badge-light">{{ $job->total_rows }} rows in file</span>
                 <span class="badge badge-success">{{ $job->create_count }} to create</span>
                 <span class="badge badge-info">{{ $job->update_count }} to update</span>
@@ -39,7 +39,7 @@
     </div>
 
     @if($job->status === 'validated')
-        <div class="card">
+        <div class="card l111-card">
             <div class="card-body">
                 @if($job->mode === 'update')
                     <p><strong>Before you confirm:</strong> rows that change a student's class also delete that student's marks and exam records for the previous class — exactly what the single Edit Student form does. The old → new table below is the full list of what will change; blank cells in your file changed nothing.</p>
@@ -68,7 +68,7 @@
     @endif
 
     @if($job->status === 'applying')
-        <div class="card">
+        <div class="card l111-card">
             <div class="card-body">
                 <p><strong>Applying is in progress</strong> — {{ $applied_rows_count }} row(s) applied, {{ $pending_count }} still pending. Progress is saved row by row: if this page was closed, resume here.</p>
                 @if($can_write)
@@ -86,25 +86,25 @@
     @endif
 
     @if($job->mode === 'update' && $changed_rows->isNotEmpty())
-        <div class="card">
+        <div class="card l111-card">
             <div class="card-header header-elements-inline">
                 <h6 class="card-title">Changes — Old → New</h6>
                 {!! Qs::getPanelOptions() !!}
             </div>
             <div class="card-body">
                 <div class="table-responsive">
-                    <table class="table">
+                    <table class="table l111-table l108-stack">
                         <thead><tr><th>CSV Row</th><th>Student</th><th>Field</th><th>Old</th><th></th><th>New</th></tr></thead>
                         <tbody>
                         @foreach($changed_rows as $r)
                             @foreach($r->changes as $field => $pair)
                                 <tr>
-                                    <td>{{ $r->row_number }}</td>
-                                    <td>{{ $r->raw['name'] ?? '' }} <span class="text-muted">({{ $r->raw['adm_no'] ?? '' }})</span></td>
-                                    <td><code>{{ $field }}</code></td>
-                                    <td>{{ $pair['old'] !== '' && $pair['old'] !== null ? $pair['old'] : '—' }}</td>
-                                    <td>→</td>
-                                    <td>{{ $pair['new'] !== '' && $pair['new'] !== null ? $pair['new'] : '—' }}</td>
+                                    <td data-label="CSV Row">{{ $r->row_number }}</td>
+                                    <td data-label="Student">{{ $r->raw['name'] ?? '' }} <span class="text-muted">({{ $r->raw['adm_no'] ?? '' }})</span></td>
+                                    <td data-label="Field"><code>{{ $field }}</code></td>
+                                    <td data-label="Old">{{ $pair['old'] !== '' && $pair['old'] !== null ? $pair['old'] : '—' }}</td>
+                                    <td data-label="">→</td>
+                                    <td data-label="New">{{ $pair['new'] !== '' && $pair['new'] !== null ? $pair['new'] : '—' }}</td>
                                 </tr>
                             @endforeach
                         @endforeach
@@ -119,23 +119,23 @@
     @endif
 
     @if($invalid_rows->isNotEmpty())
-        <div class="card">
+        <div class="card l111-card">
             <div class="card-header header-elements-inline">
                 <h6 class="card-title">Rows With Errors — Not Applied</h6>
                 {!! Qs::getPanelOptions() !!}
             </div>
             <div class="card-body">
                 <div class="table-responsive">
-                    <table class="table">
+                    <table class="table l111-table l108-stack">
                         <thead><tr><th>CSV Row</th><th>Field</th><th>You Supplied</th><th>Problem</th></tr></thead>
                         <tbody>
                         @foreach($invalid_rows as $r)
                             @foreach($r->errors ?? [] as $e)
                                 <tr>
-                                    <td>{{ $r->row_number }}</td>
-                                    <td><code>{{ $e['field'] ?? '' }}</code></td>
-                                    <td>{{ $e['value'] ?? '' }}</td>
-                                    <td>{{ $e['message'] ?? '' }}</td>
+                                    <td data-label="CSV Row">{{ $r->row_number }}</td>
+                                    <td data-label="Field"><code>{{ $e['field'] ?? '' }}</code></td>
+                                    <td data-label="You Supplied">{{ $e['value'] ?? '' }}</td>
+                                    <td data-label="Problem">{{ $e['message'] ?? '' }}</td>
                                 </tr>
                             @endforeach
                         @endforeach
@@ -148,25 +148,25 @@
     @endif
 
     @if($problem_rows->isNotEmpty())
-        <div class="card">
+        <div class="card l111-card">
             <div class="card-header header-elements-inline">
                 <h6 class="card-title">Skipped &amp; Failed Rows</h6>
                 {!! Qs::getPanelOptions() !!}
             </div>
             <div class="card-body">
                 <div class="table-responsive">
-                    <table class="table">
+                    <table class="table l111-table l108-stack">
                         <thead><tr><th>CSV Row</th><th>Outcome</th><th>Why</th></tr></thead>
                         <tbody>
                         @foreach($problem_rows as $r)
                             <tr>
-                                <td>{{ $r->row_number }}</td>
-                                <td>
+                                <td data-label="CSV Row">{{ $r->row_number }}</td>
+                                <td data-label="Outcome">
                                     @if($r->verdict === 'duplicate') <span class="badge badge-secondary">Duplicate — skipped</span>
                                     @elseif($r->verdict === 'unmatched') <span class="badge badge-secondary">No match — skipped</span>
                                     @else <span class="badge badge-danger">Failed</span> @endif
                                 </td>
-                                <td>
+                                <td data-label="Why">
                                     @if($r->verdict === 'failed')
                                         {{ $r->failure }}
                                     @elseif($r->errors)

@@ -7,15 +7,14 @@
          keeps its original name, id, classes, data attributes,
          required flags, old() bindings, @error hooks, error includes
          and the getLGA() State->LGA cascade, in one multipart POST to
-         users.store (class ajax-store keeps the global AJAX submit
-         handler bound, exactly as before).
+         users.store as a plain multipart POST (Loop 112: post-save
+         lands on the users index).
          Loop 106: premium design scope (.l106-users) — presentation
          only, same form pattern and fields. --}}
   <div class="l106 l106-users">
     @component('partials.patterns.form_page', [
         'form_action'  => route('users.store'),
         'form_enctype' => 'multipart/form-data',
-        'form_class'   => 'ajax-store',
         'back'         => route('users.index'),
         'submit_label' => 'Create User',
     ])

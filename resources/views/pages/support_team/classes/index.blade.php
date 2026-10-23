@@ -6,7 +6,7 @@
          rendered, 20 dead anchors in the page body). Now: ONE table
          on the list_page pattern + the create form as a form_page
          card below it. Create contract unchanged — POST classes.store
-         via .ajax-store, same fields/validation (creating a class
+         via a plain POST (Loop 112: post-save lands on the index), same fields/validation (creating a class
          still auto-creates its default section "A"); row actions are
          the same Edit page + confirmDelete flow, rendered as buttons
          instead of a href="#" dropdown. No href="#" remains on this
@@ -65,7 +65,6 @@
         @if(Qs::userIsTeamSAWrite())
         @component('partials.patterns.form_page', [
             'form_action' => route('classes.store'),
-            'form_class' => 'ajax-store',
             'submit_label' => 'Submit form',
         ])
             @slot('title')

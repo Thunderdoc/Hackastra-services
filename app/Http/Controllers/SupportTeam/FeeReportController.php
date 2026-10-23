@@ -139,6 +139,7 @@ class FeeReportController extends Controller
 
         $d = $this->collectionAssembly($f);
         $d['classes'] = MyClass::orderBy('name')->get();
+        $d['methods'] = $this->collectionMethods();
         $d['sections'] = $f['class']
             ? \App\Models\Section::where('my_class_id', $f['class']->id)->orderBy('name')->get()
             : collect();
@@ -189,6 +190,23 @@ class FeeReportController extends Controller
     }
 
     /** PDF export of the same filtered dataset (dompdf, multi-page safe). */
+    /* Map a stored upload URL (/storage/...) to a base64 data URI read
+       from the local file, for renderers that cannot fetch URLs
+       (dompdf). Anything that is not a local storage file is returned
+       unchanged. (Same helper as MarkController/CircularController.) */
+    protected function pdfImageDataUri($url)
+    {
+        $path = parse_url($url, PHP_URL_PATH);
+        if ($path && \Illuminate\Support\Str::startsWith($path, '/storage/')) {
+            $local = storage_path('app/public/' . \Illuminate\Support\Str::after($path, '/storage/'));
+            if (is_file($local)) {
+                $mime = mime_content_type($local) ?: 'image/png';
+                return 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($local));
+            }
+        }
+        return $url;
+    }
+
     public function collectionPdf(Request $request)
     {
         $f = $this->collectionFilters($request);
@@ -197,6 +215,10 @@ class FeeReportController extends Controller
         }
 
         $d = $this->collectionAssembly($f);
+        /* Documents Premium pass: the shared document partial renders
+           a letterhead logo; the PDF path hands it the Settings logo
+           inlined as a data URI (dompdf cannot fetch the URL). */
+        $d['doc_logo'] = $this->pdfImageDataUri(Qs::getSetting('logo'));
         $d['rows_desc'] = collect($d['rows'])->sortByDesc('day')->values();
 
         $filename = 'fee-collection-report-' . $f['from']->format('Y-m-d') . '-to-' . $f['to']->format('Y-m-d') . '.pdf';
@@ -292,11 +314,29 @@ class FeeReportController extends Controller
         $group = in_array($request->query('group'), ['day', 'week', 'month'], true)
             ? $request->query('group') : 'day';
 
+        /* Payment Method filter (Loop 118) — the method a receipt
+           resolves to follows the Manage Payments table's own rule:
+           a gateway receipt (receipts.method = 'online_razorpay')
+           wins; otherwise the fee's own method (payments.method)
+           applies. Only values that actually occur in the ledger are
+           accepted; anything else degrades to "All Methods". */
+        $method = null;
+        $rawMethod = $request->query('method');
+        if (is_string($rawMethod) && $rawMethod !== '') {
+            foreach ($this->collectionMethods() as $value => $label) {
+                if (strcasecmp($value, $rawMethod) === 0) {
+                    $method = $value;
+                    break;
+                }
+            }
+        }
+
         $query = array_filter([
             'from' => $from->format('Y-m-d'),
             'to' => $to->format('Y-m-d'),
             'class_id' => $class ? $class->id : null,
             'section_id' => $section ? $section->id : null,
+            'method' => $method,
             'group' => $group !== 'day' ? $group : null,
         ], function ($v) { return $v !== null; });
 
@@ -305,10 +345,41 @@ class FeeReportController extends Controller
             'to' => $to,
             'class' => $class,
             'section' => $section,
+            'method' => $method,
             'group' => $group,
             'invalid_range' => $to->lt($from),
             'query' => $query,
         ];
+    }
+
+    /**
+     * The Payment Method filter's options: every method value that
+     * actually occurs in the ledger, labelled the way the Manage
+     * Payments table displays it. Receipts store no status, so no
+     * status filter exists — a receipt is a recorded payment.
+     */
+    protected function collectionMethods(): array
+    {
+        $options = [];
+        $seen = [];
+        $stored = \App\Models\Payment::query()->distinct()->orderBy('method')->pluck('method');
+        foreach ($stored as $m) {
+            $m = trim((string) $m);
+            if ($m === '') {
+                continue;
+            }
+            $key = strtolower($m);
+            if (isset($seen[$key])) {
+                continue; // 'cash' and 'Cash' are one method
+            }
+            $seen[$key] = true;
+            $options[$m] = ucwords(str_replace('_', ' ', $m));
+        }
+        if (Receipt::where('method', 'online_razorpay')->exists()) {
+            $options['online_razorpay'] = 'Online (Razorpay)';
+        }
+
+        return $options;
     }
 
     protected function invalidRangeRedirect(array $f)
@@ -333,6 +404,19 @@ class FeeReportController extends Controller
         }
         if ($f['section']) {
             $q->where('student_records.section_id', $f['section']->id);
+        }
+        /* Payment Method (Loop 118) — same resolution rule as the
+           Manage Payments table: the receipt's gateway method wins;
+           otherwise the fee's method applies. */
+        if (($f['method'] ?? null) === 'online_razorpay') {
+            $q->where('receipts.method', 'online_razorpay');
+        } elseif (!empty($f['method'])) {
+            $q->join('payments', 'payments.id', '=', 'payment_records.payment_id')
+                ->whereRaw('LOWER(payments.method) = ?', [strtolower($f['method'])])
+                ->where(function ($w) {
+                    $w->whereNull('receipts.method')
+                        ->orWhere('receipts.method', '!=', 'online_razorpay');
+                });
         }
 
         return $q;

@@ -8,10 +8,9 @@
          left half of a wide card is gone. Shell change only: every
          field keeps its original name, id, classes, required flags,
          old() bindings, @error hooks and error includes, in one
-         ajax-store POST to payments.store, exactly as before. --}}
+         plain POST to payments.store (Loop 112: post-save lands on the index). --}}
     @component('partials.patterns.form_page', [
         'form_action'  => route('payments.store'),
-        'form_class'   => 'ajax-store',
         'back'         => route('payments.index'),
         'submit_label' => 'Submit form',
     ])

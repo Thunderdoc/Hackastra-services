@@ -4,12 +4,11 @@
     {{-- Workstream BW: rebuilt on the shared form_page pattern.
          Was the legacy label-column card (fields in a col-md-8
          island) with the title repeated in the card header —
-         dropped. Shell only: same .ajax-update PUT to ttr.update,
+         dropped. Shell only: same plain PUT to ttr.update (Loop 112: post-save lands on the index),
          same fields and bindings. --}}
     @component('partials.patterns.form_page', [
         'form_action' => route('ttr.update', $ttr->id),
         'form_method' => 'PUT',
-        'form_class' => 'ajax-update',
         'back' => route('tt.index'),
         'submit_label' => 'Submit form',
     ])

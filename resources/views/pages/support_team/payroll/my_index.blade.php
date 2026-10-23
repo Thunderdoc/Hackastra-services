@@ -28,9 +28,9 @@
                     <div class="dashboard-stat-card dashboard-stat-green">
                         <span class="dashboard-stat-top"><span class="dashboard-stat-icon"><i class="icon-wallet"></i></span></span>
                         <span class="dashboard-stat-copy">
-                            <span class="dashboard-stat-label">Total Received &middot; {{ $summary['year'] }}</span>
+                            <span class="dashboard-stat-label">Total Received (YTD)</span>
                             <strong>{{ \App\Helpers\Money::inr($summary['total_received']) }}</strong>
-                            <small>{{ $summary['paid_count'] }} paid {{ $summary['paid_count'] == 1 ? 'payslip' : 'payslips' }} in {{ $summary['year'] }}</small>
+                            <small></small>
                         </span>
                     </div>
                 </div>
@@ -40,7 +40,7 @@
                         <span class="dashboard-stat-copy">
                             <span class="dashboard-stat-label">Total Payslips</span>
                             <strong>{{ number_format($summary['count']) }}</strong>
-                            <small>For {{ $summary['year'] }}</small>
+                            <small></small>
                         </span>
                     </div>
                 </div>
@@ -50,7 +50,7 @@
                         <span class="dashboard-stat-copy">
                             <span class="dashboard-stat-label">Average Monthly Pay</span>
                             <strong>{{ $summary['average'] !== null ? \App\Helpers\Money::inr($summary['average']) : '—' }}</strong>
-                            <small>{{ $summary['average'] !== null ? 'Across paid payslips' : 'No paid payslips yet' }}</small>
+                            <small>{{ $summary['average'] !== null ? '' : 'No paid payslips yet' }}</small>
                         </span>
                     </div>
                 </div>
@@ -59,8 +59,8 @@
                         <span class="dashboard-stat-top"><span class="dashboard-stat-icon"><i class="icon-calendar3"></i></span></span>
                         <span class="dashboard-stat-copy">
                             <span class="dashboard-stat-label">Latest Payment</span>
-                            <strong>{{ $summary['latest_paid'] ? $summary['latest_paid']->monthName().' '.$summary['latest_paid']->year : '—' }}</strong>
-                            <small>{{ $summary['latest_paid'] && $summary['latest_paid']->paid_at ? 'Paid on '.$summary['latest_paid']->paid_at->format('d M Y') : 'No payments yet' }}</small>
+                            <strong>{{ $summary['latest_paid'] ? date('M', mktime(0, 0, 0, (int) $summary['latest_paid']->month, 1)).' '.$summary['latest_paid']->year : '—' }}</strong>
+                            <small>{{ $summary['latest_paid'] ? '' : 'No payments yet' }}</small>
                         </span>
                     </div>
                 </div>
@@ -69,7 +69,7 @@
         @slot('filters')
             <form method="get" action="{{ route('my_payslips.index') }}" class="pat-filter-form">
                 <div class="pat-filter-field">
-                    <label for="mp89-year">Year:</label>
+                    <label for="mp89-year">Year</label>
                     <select id="mp89-year" name="year" class="form-control">
                         @foreach($years as $y)
                             <option value="{{ $y }}" {{ $y == $selected_year ? 'selected' : '' }}>{{ $y }}</option>
@@ -77,7 +77,7 @@
                     </select>
                 </div>
                 <div class="pat-filter-field">
-                    <label for="mp89-month">Month:</label>
+                    <label for="mp89-month">Month</label>
                     <select id="mp89-month" name="month" class="form-control">
                         <option value="0" {{ $selected_month == 0 ? 'selected' : '' }}>All Months</option>
                         @foreach($months as $mNum => $mName)
@@ -98,7 +98,7 @@
             <span class="mp89-history-icon"><i class="icon-file-text2"></i></span>
             <div class="mp89-history-text">
                 <h5>Payslip History</h5>
-                <p>Access and download your salary statements.</p>
+                <p>View, download and keep a record of all your salary slips.</p>
             </div>
         </div>
 
@@ -149,7 +149,7 @@
                         <td class="text-right" data-label="Net Pay"><span class="mp89-net">{{ \App\Helpers\Money::inr($rec->net_pay) }}</span></td>
                         <td data-label="Status">
                             @if($rec->isPaid())
-                                <span class="badge pay-badge-paid">Paid</span>
+                                <span class="badge pay-badge-paid">✓ Paid</span>
                             @else
                                 <span class="badge pay-badge-pending">Pending</span>
                             @endif
@@ -157,7 +157,7 @@
                         <td data-label="Paid On">{{ $rec->paid_at ? $rec->paid_at->format('d M Y') : '—' }}</td>
                         <td class="text-right mp89-actions" data-label="Actions">
                             <a href="{{ route('my_payslips.payslip', $rec->id) }}" class="btn btn-light btn-sm"><i class="icon-file-text2 mr-1"></i> View</a>
-                            <a href="{{ route('my_payslips.pdf', $rec->id) }}" class="btn btn-light btn-sm"><i class="icon-file-pdf mr-1"></i> PDF</a>
+                            <a href="{{ route('my_payslips.pdf', $rec->id) }}" class="btn btn-light btn-sm"><i class="icon-file-pdf mr-1"></i> Download PDF</a>
                         </td>
                     </tr>
                 @endforeach
@@ -165,7 +165,7 @@
             </table>
 
             <div class="mp89-pager">
-                <span class="mp89-pager-info">Showing {{ $records->firstItem() }} to {{ $records->lastItem() }} of {{ $records->total() }} {{ $records->total() == 1 ? 'payslip' : 'payslips' }}</span>
+                <span class="mp89-pager-info">@if($records->firstItem() == $records->lastItem())Showing {{ $records->total() }} of {{ $records->total() }} {{ $records->total() == 1 ? 'payslip' : 'payslips' }}@elseShowing {{ $records->firstItem() }} to {{ $records->lastItem() }} of {{ $records->total() }} {{ $records->total() == 1 ? 'payslip' : 'payslips' }}@endif</span>
                 @if($records->hasPages())
                     <div class="mp89-pager-links">
                         <a class="mp89-pager-link {{ $records->onFirstPage() ? 'mp89-pager-disabled' : '' }}" href="{{ $records->onFirstPage() ? '#' : $records->previousPageUrl() }}">&lsaquo;</a>

@@ -46,7 +46,9 @@ class MyClassController extends Controller
 
         $this->my_class->createSection($s);
 
-        return Qs::jsonStoreOk();
+        // Loop 112: post-save lands on the classes index (owner ruling) —
+        // was Qs::jsonStoreOk() (AJAX stay-on-form).
+        return Qs::storeOk('classes.index');
     }
 
     public function edit($id)
@@ -63,7 +65,9 @@ class MyClassController extends Controller
         $data = $req->only(['name']);
         $this->my_class->update(Qs::resolveId($id), $data);
 
-        return Qs::jsonUpdateOk();
+        // Loop 112: post-save lands on the classes index (owner ruling) —
+        // was Qs::jsonUpdateOk() (AJAX stay-on-form).
+        return Qs::updateOk('classes.index');
     }
 
     public function destroy($id)

@@ -1673,6 +1673,7 @@ class HomeController extends Controller
             'book_titles' => Book::count(),
             'book_copies' => $bookCopies,
             'type_breakdown' => $typeBreakdown,
+            'library_trend' => $this->libraryTrend($now),
             'books_issued' => BookRequest::active()->count(),
             'loans_due_today' => BookRequest::active()->whereDate('end_date', $today)->count(),
             'loans_overdue' => BookRequest::active()->whereDate('end_date', '<', $today)->count(),
@@ -1685,6 +1686,64 @@ class HomeController extends Controller
                 ? Circular::published()->forAudience('librarian')->latest()->take(4)->get()
                 : collect(),
         ];
+    }
+
+    /**
+     * Loop 117: Book Issue/Return Trend for the librarian home —
+     * issued vs returned counts taken from the book_requests loan
+     * ledger itself, bucketed three ways (last 14 days, last 8
+     * weeks, last 6 months) so the card's Day / Week / Month toggle
+     * re-aggregates the same real rows. A return is stamped by the
+     * loan's updated_at on the day it was marked returned — the
+     * ledger carries no separate returned_at column.
+     */
+    protected function libraryTrend(Carbon $now): array
+    {
+        $windowStart = $now->copy()->subMonths(6)->startOfMonth();
+
+        $issuedByDay = BookRequest::query()
+            ->selectRaw('DATE(start_date) as d, COUNT(*) as c')
+            ->whereDate('start_date', '>=', $windowStart->toDateString())
+            ->groupBy('d')
+            ->pluck('c', 'd');
+        $returnedByDay = BookRequest::query()
+            ->selectRaw('DATE(updated_at) as d, COUNT(*) as c')
+            ->where('returned', '1')
+            ->whereDate('updated_at', '>=', $windowStart->toDateString())
+            ->groupBy('d')
+            ->pluck('c', 'd');
+
+        $bucket = function (Carbon $from, Carbon $to, string $label) use ($issuedByDay, $returnedByDay) {
+            $issued = 0;
+            $returned = 0;
+            for ($day = $from->copy(); $day->lte($to); $day->addDay()) {
+                $key = $day->toDateString();
+                $issued += (int) ($issuedByDay[$key] ?? 0);
+                $returned += (int) ($returnedByDay[$key] ?? 0);
+            }
+
+            return ['label' => $label, 'issued' => $issued, 'returned' => $returned];
+        };
+
+        $day = [];
+        for ($i = 13; $i >= 0; $i--) {
+            $d = $now->copy()->subDays($i);
+            $day[] = $bucket($d, $d, $d->format('d M'));
+        }
+
+        $week = [];
+        for ($i = 7; $i >= 0; $i--) {
+            $start = $now->copy()->startOfWeek()->subWeeks($i);
+            $week[] = $bucket($start, $start->copy()->endOfWeek(), $start->format('d M'));
+        }
+
+        $month = [];
+        for ($i = 5; $i >= 0; $i--) {
+            $start = $now->copy()->startOfMonth()->subMonths($i);
+            $month[] = $bucket($start, $start->copy()->endOfMonth(), $start->format('M Y'));
+        }
+
+        return ['day' => $day, 'week' => $week, 'month' => $month];
     }
 
     /**

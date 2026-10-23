@@ -10,9 +10,13 @@
          feeds the KPI cards, the trend chart, the summary panel, the
          daily table, the window.print document, the CSV export and
          the PDF export — so every surface shows the same figures for
-         the same filters. Receipts carry no status and record a
-         payment method only for online gateway payments, so no
-         method/status filter is offered: it could only mislead. --}}
+         the same filters. Receipts carry no status, so no status
+         filter is offered. Loop 118 adds the Payment Method filter:
+         a receipt's method resolves exactly the way the Manage
+         Payments table displays it — the gateway method stored on
+         the receipt wins, otherwise the fee's own method applies —
+         and the filter is wired through the same assembly, so the
+         screen, CSV and PDF all honour it. --}}
 
     {{-- Print document head/foot (Workstream CL / Loop 71 v2): hidden
          on screen, shown by window.print(). Kept as-is. --}}
@@ -65,7 +69,7 @@
                         <span class="dashboard-stat-copy">
                             <span class="dashboard-stat-label">Total Collection</span>
                             <strong>{{ \App\Helpers\Money::inr($grand_total) }}</strong>
-                            <small>{{ number_format($receipts_count) }} receipt(s) recorded</small>
+                            <small>{{ number_format($receipts_count) }} {{ \Illuminate\Support\Str::plural('receipt', $receipts_count) }} recorded</small>
                         </span>
                     </div>
                 </div>
@@ -75,7 +79,7 @@
                         <span class="dashboard-stat-copy">
                             <span class="dashboard-stat-label">Average per Receipt</span>
                             <strong>{{ \App\Helpers\Money::inr($avg_per_receipt) }}</strong>
-                            <small>Total collection &divide; receipts</small>
+                            <small>{{ \App\Helpers\Money::indianFormat($grand_total) }} &divide; {{ number_format($receipts_count) }}</small>
                         </span>
                     </div>
                 </div>
@@ -85,7 +89,7 @@
                         <span class="dashboard-stat-copy">
                             <span class="dashboard-stat-label">Students Paid</span>
                             <strong>{{ number_format($unique_students) }}</strong>
-                            <small>Unique students in this range</small>
+                            <small>Unique students</small>
                         </span>
                     </div>
                 </div>
@@ -95,7 +99,7 @@
                         <span class="dashboard-stat-copy">
                             <span class="dashboard-stat-label">Daily Average</span>
                             <strong>{{ \App\Helpers\Money::inr($daily_average) }}</strong>
-                            <small>Per day with collections ({{ number_format($days_with_collections) }})</small>
+                            <small>Over {{ number_format($days_with_collections) }} {{ \Illuminate\Support\Str::plural('day', $days_with_collections) }}</small>
                         </span>
                     </div>
                 </div>
@@ -129,6 +133,15 @@
                         @endforeach
                     </select>
                 </div>
+                <div class="pat-filter-field">
+                    <label for="cr97-method">Payment Method</label>
+                    <select id="cr97-method" name="method" class="form-control">
+                        <option value="">All Methods</option>
+                        @foreach($methods as $methodValue => $methodLabel)
+                            <option value="{{ $methodValue }}" {{ ($f['method'] ?? null) === $methodValue ? 'selected' : '' }}>{{ $methodLabel }}</option>
+                        @endforeach
+                    </select>
+                </div>
                 <div class="pat-filter-action">
                     <button type="submit" class="btn btn-primary"><i class="icon-filter3 mr-1"></i> Filter</button>
                     <a href="{{ route('payments.collection') }}" class="btn btn-light"><i class="icon-reset mr-1"></i> Reset</a>
@@ -151,7 +164,7 @@
                 <div class="cr97-panel-head">
                     <div>
                         <h5><i class="icon-stats-bars2 mr-2"></i>Collection Trend</h5>
-                        <p>Fee collection by {{ $f['group'] }}, from the receipts ledger.</p>
+                        <p>Daily fee collection with number of receipts.</p>
                     </div>
                     <div class="btn-group btn-group-sm cr97-group-toggle" role="group" aria-label="Chart grouping">
                         @foreach(['day' => 'Day', 'week' => 'Week', 'month' => 'Month'] as $g => $label)
@@ -182,8 +195,8 @@
                     <li><span>Total Receipts</span><strong>{{ number_format($receipts_count) }}</strong></li>
                     <li><span>Unique Students</span><strong>{{ number_format($unique_students) }}</strong></li>
                     <li><span>Average per Receipt</span><strong>{{ \App\Helpers\Money::inr($avg_per_receipt) }}</strong></li>
-                    <li><span>Highest Collection Day</span><strong>{{ $highest_day ? \App\Helpers\Money::inr($highest_day['total']) : '—' }}</strong>@if($highest_day)<small>{{ $highest_day['day']->format('d M Y') }}</small>@endif</li>
-                    <li><span>Lowest Collection Day</span><strong>{{ $lowest_day ? \App\Helpers\Money::inr($lowest_day['total']) : '—' }}</strong>@if($lowest_day)<small>{{ $lowest_day['day']->format('d M Y') }}</small>@endif</li>
+                    <li><span>Highest Collection (Single Day)</span><strong>{{ $highest_day ? \App\Helpers\Money::inr($highest_day['total']) : '—' }}</strong>@if($highest_day)<small>{{ $highest_day['day']->format('d M Y') }}</small>@endif</li>
+                    <li><span>Lowest Collection (Single Day)</span><strong>{{ $lowest_day ? \App\Helpers\Money::inr($lowest_day['total']) : '—' }}</strong>@if($lowest_day)<small>{{ $lowest_day['day']->format('d M Y') }}</small>@endif</li>
                 </ul>
                 <p class="cr97-summary-note">Highest and lowest are taken over days with collections only; days with no receipts are not counted as zero days.</p>
             </div>
@@ -209,7 +222,7 @@
                     <th>Date</th>
                     <th>Day</th>
                     <th class="text-right">No. of Receipts</th>
-                    <th class="text-right">Amount Collected</th>
+                    <th class="text-right">Amount Collected (₹)</th>
                     <th class="text-right">Average Amount</th>
                     <th class="text-right print-hide">Actions</th>
                 </tr>

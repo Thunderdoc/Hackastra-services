@@ -1,17 +1,20 @@
 @extends('layouts.master')
 @section('page_title', 'Low Attendance (Below 75%)')
+@section('hide_page_header', true)
 @section('content')
 
     {{-- Loop 78 — Low Attendance premium uplift. The screen side
-         stays on the shared list_page pattern; the toolbar carries
-         the real actions (Full Report, Export CSV, Print), the
-         stats slot carries four summary cards computed from the
-         CURRENT filter set, and the filter row gains Section
-         (limited to the chosen class) and Search (name / admission
-         no.). Print uses the v2 document system (Loop 31/71):
-         the print-doc head/foot below + a print-only table with
-         the FULL filtered set, so the paper figures always match
-         the screen cards even when the screen table is paginated. --}}
+         stays on the shared list_page pattern; the stats slot
+         carries four summary cards computed from the CURRENT
+         filter set, and the filter row gains Section (limited to
+         the chosen class). Print uses the v2 document system
+         (Loop 31/71): the print-doc head/foot below + a print-only
+         table with the FULL filtered set, so the paper figures
+         always match the screen cards even when the screen table
+         is paginated.
+         Loop 117 — replica pass: reference header (breadcrumb +
+         icon tile), one Export dropdown, the reference KPI set,
+         and the search moved into the table card. --}}
     @php
         $filterLine = $month->format('F Y')
             . ($selected_class ? ' · Class: ' . $selected_class->name : ' · All Classes')
@@ -47,33 +50,51 @@
     @endif
 
     <div class="att-low">
+        {{-- Loop 117 (replica pass): the reference header — breadcrumb,
+             icon tile, title + subtitle, and ONE Export dropdown beside
+             View Full Report (the build had split Export CSV / Print
+             into separate buttons). Screen-only; print keeps the
+             document head above. --}}
+        <div class="l117-page-head print-hide">
+            <div class="l117-page-head-main">
+                <span class="l117-page-head-icon"><i class="icon-users"></i></span>
+                <div>
+                    <div class="l117-crumb">Attendance &nbsp;/&nbsp; Low Attendance</div>
+                    <h4 class="l117-page-title">Low Attendance (Below {{ $threshold }}%)</h4>
+                    <p class="l117-page-sub">Students whose overall attendance is below the selected threshold.</p>
+                </div>
+            </div>
+            <div class="l117-page-head-actions">
+                <div class="dropdown d-inline-block">
+                    <button type="button" class="btn btn-light btn-sm" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="icon-download mr-1"></i> Export <i class="icon-chevron-down ml-1"></i></button>
+                    <div class="dropdown-menu dropdown-menu-right">
+                        <a href="{{ route('attendance.defaulters.export', request()->query()) }}" class="dropdown-item"><i class="icon-file-text2"></i> Export CSV</a>
+                        <button type="button" class="dropdown-item" onclick="window.print()"><i class="icon-printer"></i> Print</button>
+                    </div>
+                </div>
+                <a href="{{ route('attendance.report', array_filter(['class_id' => $selected_class ? $selected_class->id : null, 'month' => $month->format('Y-m')])) }}" class="btn btn-primary btn-sm"><i class="icon-stats-bars mr-1"></i> View Full Report</a>
+            </div>
+        </div>
+
         @component('partials.patterns.list_page')
-            @slot('subtitle')
-                Identify students who need attendance support and take timely action.
-            @endslot
-
-            @slot('action')
-                <a href="{{ route('attendance.report', array_filter(['class_id' => $selected_class ? $selected_class->id : null, 'month' => $month->format('Y-m')])) }}" class="btn btn-light btn-sm"><i class="icon-stats-bars mr-1"></i> View Full Report</a>
-                <a href="{{ route('attendance.defaulters.export', request()->query()) }}" class="btn btn-light btn-sm"><i class="icon-download mr-1"></i> Export CSV</a>
-                <button type="button" class="btn btn-primary btn-sm" onclick="window.print()"><i class="icon-printer mr-1"></i> Print</button>
-            @endslot
-
             @slot('stats')
+                {{-- Loop 117: the reference KPI set, value-led — Students
+                     below threshold, Classes carrying them, their average,
+                     and total enrolment in scope. Every figure is computed
+                     from the same filtered rows in defaulterData(). --}}
                 <div class="row dashboard-stats">
                     @foreach([
-                        ['label' => 'Students Below Threshold', 'value' => number_format($summary['below']), 'sub' => 'Below ' . $threshold . '% in ' . $month->format('F Y'), 'icon' => 'icon-users', 'tone' => 'red'],
-                        ['label' => 'Critical', 'value' => number_format($summary['critical']), 'sub' => 'Attendance below 50%', 'icon' => 'icon-warning2', 'tone' => 'orange'],
-                        ['label' => 'Average Attendance', 'value' => $avgLabel, 'sub' => 'Of the students listed below', 'icon' => 'icon-stats-bars', 'tone' => 'purple'],
-                        ['label' => 'Total Students', 'value' => number_format($summary['total_students']), 'sub' => 'Enrolled in the selected scope', 'icon' => 'icon-graduation2', 'tone' => 'blue'],
+                        ['value' => number_format($summary['below']), 'label' => 'Students', 'sub' => 'Below ' . $threshold . '% attendance', 'icon' => 'icon-users', 'tone' => 'red'],
+                        ['value' => number_format($summary['classes']), 'label' => 'Classes', 'sub' => 'Have students below ' . $threshold . '%', 'icon' => 'icon-graduation2', 'tone' => 'blue'],
+                        ['value' => $avgLabel, 'label' => 'Average Attendance', 'sub' => 'Of at-risk students', 'icon' => 'icon-watch', 'tone' => 'amber'],
+                        ['value' => number_format($summary['total_students']), 'label' => 'Total Students', 'sub' => ($selected_class || $selected_section) ? 'Enrolled in the selected scope' : 'Across all classes', 'icon' => 'icon-users4', 'tone' => 'green'],
                     ] as $stat)
                         <div class="col-sm-6 col-xl-3">
-                            <div class="dashboard-stat-card dashboard-stat-{{ $stat['tone'] }}">
-                                <span class="dashboard-stat-top">
-                                    <span class="dashboard-stat-icon"><i class="{{ $stat['icon'] }}"></i></span>
-                                </span>
-                                <span class="dashboard-stat-copy">
-                                    <span class="dashboard-stat-label">{{ $stat['label'] }}</span>
+                            <div class="l117-kpi l117-kpi-{{ $stat['tone'] }}">
+                                <span class="l117-kpi-icon"><i class="{{ $stat['icon'] }}"></i></span>
+                                <span class="l117-kpi-copy">
                                     <strong>{{ $stat['value'] }}</strong>
+                                    <span class="l117-kpi-label">{{ $stat['label'] }}</span>
                                     <small>{{ $stat['sub'] }}</small>
                                 </span>
                             </div>
@@ -114,16 +135,32 @@
                             @endforeach
                         </select>
                     </div>
-                    <div class="pat-filter-field" style="flex:2 1 220px">
-                        <label for="ad_search">Search</label>
-                        <input type="text" name="search" id="ad_search" class="form-control" value="{{ $search }}" placeholder="Student name or admission no.&hellip;">
-                    </div>
                     <div class="pat-filter-action">
                         <button type="submit" class="btn btn-primary">Filter</button>
                         <a href="{{ route('attendance.defaulters') }}" class="btn btn-light ml-2">Reset</a>
                     </div>
                 </form>
             @endslot
+
+            {{-- Loop 117: the table card gains its reference header —
+                 title + subtext, and the search box lives here now
+                 (it sat in the filter card). The search still posts
+                 the same GET contract; the active filters ride along
+                 as hidden fields so searching never resets them. --}}
+            <div class="l117-table-head print-hide">
+                <div>
+                    <h6 class="l117-table-title">Students with Low Attendance</h6>
+                    <p class="l117-table-sub">List of students whose attendance is below the selected threshold.</p>
+                </div>
+                <form method="GET" action="{{ route('attendance.defaulters') }}" class="l117-table-search" role="search">
+                    @if($selected_class)<input type="hidden" name="class_id" value="{{ $selected_class->id }}">@endif
+                    @if($selected_section)<input type="hidden" name="section_id" value="{{ $selected_section->id }}">@endif
+                    <input type="hidden" name="month" value="{{ $month->format('Y-m') }}">
+                    <input type="hidden" name="threshold" value="{{ $threshold }}">
+                    <i class="icon-search4"></i>
+                    <input type="text" name="search" value="{{ $search }}" class="form-control" placeholder="Search by name or roll number..." aria-label="Search by name or roll number">
+                </form>
+            </div>
 
             @if($rows->isEmpty())
                 @include('partials.patterns.empty_state', [
@@ -136,6 +173,7 @@
                     <tr>
                         <th style="width:38px">#</th>
                         <th>Student</th>
+                        <th>Adm No</th>
                         <th>Class</th>
                         <th>Section</th>
                         <th class="ad-num">Present</th>
@@ -167,10 +205,10 @@
                                     @endif
                                     <span class="att-low-student-text">
                                         <strong>{{ $studentUser->name }}</strong>
-                                        <small>{{ $row['student']->adm_no ?: 'No admission no.' }}</small>
                                     </span>
                                 </div>
                             </td>
+                            <td>{{ $row['student']->adm_no ?: '—' }}</td>
                             <td>{{ optional($row['student']->my_class)->name ?: '—' }}</td>
                             <td>{{ optional($row['student']->section)->name ?: '—' }}</td>
                             <td class="ad-num">{{ $row['present'] }}</td>
@@ -201,10 +239,10 @@
                     </tbody>
                 </table>
                 <div class="d-flex flex-wrap justify-content-between align-items-center mt-2 print-hide">
-                    <span class="text-muted"><small>Showing {{ $paginator->firstItem() }} to {{ $paginator->lastItem() }} of {{ $paginator->total() }} student(s) &middot; {{ $scanned }} student(s) with marked periods were scanned</small></span>
+                    <span class="text-muted"><small>Showing {{ $paginator->firstItem() }} to {{ $paginator->lastItem() }} of {{ $paginator->total() }} students</small></span>
                     {{ $paginator->links() }}
                 </div>
-                <p class="text-muted mb-0 mt-2"><small>Attendance % = (present + late) / periods marked, worst first. Critical = below 50%; At Risk = 50% up to the chosen threshold. Students with no period attendance records in the month are excluded — never counted as 0%.</small></p>
+                <p class="text-muted mb-0 mt-2"><small>Attendance % = (present + late) / periods marked, worst first. Critical = below 50%; At Risk = 50% up to the chosen threshold. {{ $scanned }} student(s) with marked periods were scanned; students with no period attendance records in the month are excluded — never counted as 0%.</small></p>
             @endif
         @endcomponent
 

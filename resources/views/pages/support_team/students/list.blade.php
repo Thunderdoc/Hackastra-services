@@ -1,5 +1,5 @@
 @extends('layouts.master')
-@section('page_title', 'Student Information — '.$my_class->name)
+@section('page_title', 'Student Information – '.$my_class->name)
 @section('page_breadcrumb')
     <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; <a href="{{ route('students.index') }}">Students</a> &nbsp;/&nbsp; Student Information
 @endsection
@@ -91,7 +91,7 @@
     <div class="l83-wrap">
     @component('partials.patterns.list_page')
         @slot('subtitle')
-            {{ $students->count() }} {{ $students->count() == 1 ? 'student' : 'students' }} &middot; Session {{ Qs::getCurrentSession() }}@if($selected_section || $q !== '') &middot; Showing {{ $listed->count() }}@endif
+            View and manage all students in {{ $my_class->name }}. Total {{ $students->count() }} {{ $students->count() == 1 ? 'student' : 'students' }} &middot; Session {{ Qs::getCurrentSession() }}@if($selected_section || $q !== '') &middot; Showing {{ $listed->count() }}@endif
         @endslot
         @slot('action')
             <a href="{{ $l83PrintUrl }}" class="btn btn-light btn-sm"><i class="icon-printer mr-1"></i> Print</a>
@@ -115,7 +115,7 @@
                         <span class="dashboard-stat-copy">
                             <span class="dashboard-stat-label">Total Students</span>
                             <strong>{{ number_format($l83Total) }}</strong>
-                            <small>{{ ($selected_section || $q !== '') ? 'Matching current filter' : 'In '.$my_class->name }}</small>
+                            <small>{{ ($selected_section || $q !== '') ? 'Matching current filter' : 'in '.$my_class->name }}</small>
                         </span>
                     </div>
                 </div>
@@ -154,7 +154,7 @@
         @slot('filters')
             <form method="get" action="{{ route('students.list', $my_class->id) }}" class="pat-filter-form">
                 <div class="pat-filter-field">
-                    <label for="section_id">Section:</label>
+                    <label for="section_id">Section</label>
                     <select id="section_id" name="section_id" class="form-control">
                         <option value="">All Sections</option>
                         @foreach($sections as $s)
@@ -163,8 +163,8 @@
                     </select>
                 </div>
                 <div class="pat-filter-field">
-                    <label for="q">Search:</label>
-                    <input id="q" name="q" type="text" class="form-control" value="{{ $q }}" placeholder="Name, ADM No or email">
+                    <label for="q">Search</label>
+                    <input id="q" name="q" type="text" class="form-control" value="{{ $q }}" placeholder="Search by name, ADM No or email&hellip;">
                 </div>
                 @if($sort !== 'name_asc')<input type="hidden" name="sort" value="{{ $sort }}">@endif
                 @if($view_mode === 'grid')<input type="hidden" name="view" value="grid">@endif
@@ -347,6 +347,19 @@
 
 @section('scripts')
 @if($print_mode ?? false)
+{{-- Loop 111 (owner order 2026-10-23): this document prints on ONE
+     A4 LANDSCAPE page. The scoped @page below belongs to this print
+     view only — every other document keeps its own page setup. It
+     also overrides the two global @page traps that produced the
+     owner's phantom second page on his phone: Bootstrap's print
+     block (@page size a3 + body min-width 992px) and the ID-card
+     block's global size:auto. --}}
+<style>
+    @page { size: A4 landscape; margin: 10mm; }
+    @media print {
+        body { min-width: 0 !important; }
+    }
+</style>
 <script>
         window.addEventListener('load', function () {
             setTimeout(function () { window.print(); }, 350);

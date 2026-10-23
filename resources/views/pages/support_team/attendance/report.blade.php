@@ -23,14 +23,14 @@
             @if($selected_class)
                 <a href="{{ route('attendance.report.print', $marxParams) }}" target="_blank" class="btn btn-light btn-sm"><i class="icon-eye mr-1"></i> Preview</a>
                 <a href="{{ route('attendance.report.print', $marxParams + ['autoprint' => 1]) }}" target="_blank" class="btn btn-light btn-sm"><i class="icon-printer mr-1"></i> Print</a>
-                <a href="{{ route('attendance.report.pdf', $marxParams) }}" class="btn btn-light btn-sm"><i class="icon-file-pdf mr-1"></i> PDF</a>
+                <a href="{{ route('attendance.report.pdf', $marxParams) }}" class="btn btn-light btn-sm"><i class="icon-file-pdf mr-1"></i> Download PDF</a>
             @endif
             <a href="{{ route('attendance.export', $marxParams) }}" class="btn btn-primary btn-sm"><i class="icon-download mr-1"></i> Export</a>
         @endslot
         @slot('filters')
             <form method="GET" action="{{ route('attendance.report') }}" class="pat-filter-form">
                 <div class="pat-filter-field">
-                    <label for="ar_class_id">Class:</label>
+                    <label for="ar_class_id">Class</label>
                     <select name="class_id" id="ar_class_id" class="form-control" onchange="this.form.submit()">
                         @foreach($classes as $class)
                             <option value="{{ $class->id }}" {{ $selected_class && $selected_class->id === $class->id ? 'selected' : '' }}>{{ $class->name }}</option>
@@ -38,7 +38,7 @@
                     </select>
                 </div>
                 <div class="pat-filter-field">
-                    <label for="ar_month">Month:</label>
+                    <label for="ar_month">Month</label>
                     <input type="month" name="month" id="ar_month" class="form-control" value="{{ $month->format('Y-m') }}" onchange="this.form.submit()">
                 </div>
                 <div class="pat-filter-action">
@@ -54,27 +54,27 @@
                 <div class="marx-stat marx-stat-present">
                     <div class="marx-stat-num">{{ $totals['present'] }}</div>
                     <div class="marx-stat-label">Total Present</div>
-                    <div class="marx-stat-cap">{{ number_format($shares['present'], 1) }}% of all marked entries</div>
+                    <div class="marx-stat-cap">{{ number_format($shares['present'], 1) }}% of all periods</div>
                 </div>
                 <div class="marx-stat marx-stat-absent">
                     <div class="marx-stat-num">{{ $totals['absent'] }}</div>
                     <div class="marx-stat-label">Total Absent</div>
-                    <div class="marx-stat-cap">{{ number_format($shares['absent'], 1) }}% of all marked entries</div>
+                    <div class="marx-stat-cap">{{ number_format($shares['absent'], 1) }}% of all periods</div>
                 </div>
                 <div class="marx-stat marx-stat-late">
                     <div class="marx-stat-num">{{ $totals['late'] }}</div>
                     <div class="marx-stat-label">Total Late</div>
-                    <div class="marx-stat-cap">{{ number_format($shares['late'], 1) }}% of all marked entries</div>
+                    <div class="marx-stat-cap">{{ number_format($shares['late'], 1) }}% of all periods</div>
                 </div>
                 <div class="marx-stat marx-stat-periods">
                     <div class="marx-stat-num">{{ $totals['marked'] }}</div>
-                    <div class="marx-stat-label">Total Periods Marked</div>
-                    <div class="marx-stat-cap">Student-period entries this month</div>
+                    <div class="marx-stat-label">Total Periods</div>
+                    <div class="marx-stat-cap">Marked for this month</div>
                 </div>
                 <div class="marx-stat marx-stat-registers">
                     <div class="marx-stat-num">{{ $sessions_held }}</div>
                     <div class="marx-stat-label">Registers Submitted</div>
-                    <div class="marx-stat-cap">Period registers submitted this month</div>
+                    <div class="marx-stat-cap">Out of total periods</div>
                 </div>
             </div>
         @endif

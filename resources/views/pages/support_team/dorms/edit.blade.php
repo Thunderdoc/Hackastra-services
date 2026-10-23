@@ -5,13 +5,11 @@
          (Loop 28/39 grid, full width). Was the legacy narrow
          label-column card with the title repeated in the card
          header — dropped, the common header carries it. Shell
-         only: same PUT to dorms.update via .ajax-update with its
-         data-reload="#page-header", same fields and bindings. --}}
+         only: same PUT to dorms.update (Loop 112: plain form,
+         post-save lands on the index), same fields and bindings. --}}
     @component('partials.patterns.form_page', [
         'form_action' => route('dorms.update', $dorm->id),
         'form_method' => 'PUT',
-        'form_class' => 'ajax-update',
-        'form_reload' => '#page-header',
         'back' => route('dorms.index'),
         'submit_label' => 'Submit form',
     ])

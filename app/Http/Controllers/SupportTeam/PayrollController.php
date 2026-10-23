@@ -249,12 +249,35 @@ class PayrollController extends Controller
         return $this->renderPayslip($payroll, route('my_payslips.index'));
     }
 
+    /* Map a stored upload URL (/storage/...) to a base64 data URI read
+       from the local file, for renderers that cannot fetch URLs
+       (dompdf). Anything that is not a local storage file is returned
+       unchanged. (Same helper as MarkController/CircularController.) */
+    protected function pdfImageDataUri($url)
+    {
+        $path = parse_url($url, PHP_URL_PATH);
+        if ($path && \Illuminate\Support\Str::startsWith($path, '/storage/')) {
+            $local = storage_path('app/public/' . \Illuminate\Support\Str::after($path, '/storage/'));
+            if (is_file($local)) {
+                $mime = mime_content_type($local) ?: 'image/png';
+                return 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($local));
+            }
+        }
+        return $url;
+    }
+
     /** Own-payslip PDF (Loop 89): same document as the print view. */
     public function myPayslipPdf(Payroll $payroll)
     {
         abort_unless($payroll->user_id === Auth::id(), 403);
 
         $d = $this->payslipDocData($payroll);
+
+        /* Documents Premium pass: the shared payslip_document partial
+           reads the logo from Settings as a URL, which dompdf cannot
+           fetch — the PDF paths hand it an inlined data URI instead
+           (the partial prefers $logo_pdf when present). */
+        $d['logo_pdf'] = $this->pdfImageDataUri(Qs::getSetting('logo'));
 
         return \Barryvdh\DomPDF\Facade\Pdf::loadView('pages.support_team.payroll.payslip_pdf', $d)
             ->download('Payslip_' . $payroll->monthName() . '_' . $payroll->year . '.pdf');
@@ -283,6 +306,7 @@ class PayrollController extends Controller
         $d['school_name'] = Qs::getSystemName();
         $d['school_address'] = Qs::getSetting('address');
         $d['current_session'] = Qs::getSetting('current_session');
+        $d['logo_pdf'] = $this->pdfImageDataUri(Qs::getSetting('logo'));
 
         return \Barryvdh\DomPDF\Facade\Pdf::loadView('pages.support_team.payroll.payslips_pdf_all', $d)
             ->download('Payslips_' . $year . '.pdf');

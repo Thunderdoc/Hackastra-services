@@ -528,6 +528,12 @@ class AttendanceController extends Controller
         $d['summary'] = [
             'below' => $d['rows']->count(),
             'critical' => $d['rows']->where('status', 'Critical')->count(),
+            // Loop 117: distinct classes carrying at least one listed
+            // student — the reference KPI set's Classes card, counted
+            // from the same filtered rows as every other card.
+            'classes' => $d['rows']->map(function ($row) {
+                return $row['student']->my_class_id;
+            })->filter()->unique()->count(),
             'average' => $d['rows']->isEmpty() ? null : round((float) $d['rows']->avg('percent'), 1),
             'total_students' => $d['total_students'],
         ];

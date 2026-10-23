@@ -30,7 +30,7 @@
                 </span>
             </div>
             <a href="{{ route('payments.create') }}" class="btn dashboard-primary-action">
-                <i class="icon-wallet mr-2"></i> Record Payment
+                <i class="icon-wallet mr-2"></i> + Record Payment
             </a>
         </div>
     </div>
@@ -95,7 +95,7 @@
                 </div>
                 <div class="table-responsive">
                     <table class="table dashboard-table mb-0">
-                        <thead><tr><th>#</th><th>Student</th><th>Receipt No.</th><th>Class</th><th>Method</th><th>Amount</th><th>Date &amp; Time</th><th>Status</th><th></th></tr></thead>
+                        <thead><tr><th>#</th><th>Student Name</th><th>Receipt No.</th><th>Class</th><th>Payment Method</th><th>Amount</th><th>Date &amp; Time</th><th>Status</th><th></th></tr></thead>
                         <tbody>
                         @forelse($recent_payments as $row)
                             <tr>
@@ -162,8 +162,8 @@
                                 </circle>
                                 @php $offset += $seg; @endphp
                             @endforeach
-                            <text x="60" y="58" text-anchor="middle" class="l92-donut-num">{{ $current_session ?: '—' }}</text>
-                            <text x="60" y="74" text-anchor="middle" class="l92-donut-cap">Session</text>
+                            <text x="60" y="58" text-anchor="middle" class="l92-donut-num">{{ \App\Helpers\Money::inr($collected_session) }}</text>
+                            <text x="60" y="72" text-anchor="middle" class="l92-donut-cap">Total Collected</text>
                         </svg>
                         <div class="l92-donut-legend">
                             @foreach($method_breakdown as $bucket)

@@ -16,7 +16,7 @@
         @if($is_manager)
             Every circular from the school office — drafts, scheduled and live.
         @else
-            Notices from the school office, addressed to you.
+            Stay informed with the latest announcements, notifications and important updates from the school.
         @endif
     @endslot
 
@@ -27,42 +27,47 @@
     @endif
 
     @slot('stats')
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">
-            <div class="dash-stat"><span class="dash-stat-ic bg-blue"><i class="icon-megaphone"></i></span><span><span class="dash-stat-label">Total Circulars</span><span class="dash-stat-value">{{ $counts['total'] }}</span></span></div>
-            <div class="dash-stat"><span class="dash-stat-ic bg-green"><i class="icon-checkmark2"></i></span><span><span class="dash-stat-label">Active</span><span class="dash-stat-value">{{ $counts['active'] }}</span></span></div>
-            <div class="dash-stat"><span class="dash-stat-ic bg-violet"><i class="icon-calendar3"></i></span><span><span class="dash-stat-label">Upcoming</span><span class="dash-stat-value">{{ $counts['upcoming'] }}</span></span></div>
-            <div class="dash-stat"><span class="dash-stat-ic bg-amber"><i class="icon-history"></i></span><span><span class="dash-stat-label">Expired</span><span class="dash-stat-value">{{ $counts['expired'] }}</span></span></div>
+        {{-- Loop 114: reference stat chips — icon tile, coloured label
+             over the number, subtext under it. The Loop 75 markup used
+             .dash-stat classes that were never defined in qs.css, so
+             the four chips rendered as one unstyled run-on line; the
+             .l114-stat system below is defined in Loop 114 CSS. --}}
+        <div class="l114-stats">
+            <div class="l114-stat l114-stat-blue"><span class="l114-stat-ic"><i class="icon-file-text2"></i></span><span class="l114-stat-body"><span class="l114-stat-label">Total Circulars</span><span class="l114-stat-value">{{ $counts['total'] }}</span><span class="l114-stat-sub">All circulars</span></span></div>
+            <div class="l114-stat l114-stat-green"><span class="l114-stat-ic"><i class="icon-megaphone"></i></span><span class="l114-stat-body"><span class="l114-stat-label">Active</span><span class="l114-stat-value">{{ $counts['active'] }}</span><span class="l114-stat-sub">Currently visible</span></span></div>
+            <div class="l114-stat l114-stat-amber"><span class="l114-stat-ic"><i class="icon-alarm"></i></span><span class="l114-stat-body"><span class="l114-stat-label">Upcoming</span><span class="l114-stat-value">{{ $counts['upcoming'] }}</span><span class="l114-stat-sub">Scheduled to be published</span></span></div>
+            <div class="l114-stat l114-stat-red"><span class="l114-stat-ic"><i class="icon-trash"></i></span><span class="l114-stat-body"><span class="l114-stat-label">Expired</span><span class="l114-stat-value">{{ $counts['expired'] }}</span><span class="l114-stat-sub">No longer visible</span></span></div>
         </div>
     @endslot
 
     @slot('filters')
         <form method="get" action="{{ route('circulars.index') }}" class="pat-filter-form">
             <div class="pat-filter-field" style="flex:1 1 210px">
-                <label for="f-q">Search</label>
-                <input type="text" id="f-q" name="q" value="{{ $filters['q'] }}" class="form-control" placeholder="Title, message or author">
+                <label for="f-q" class="sr-only">Search</label>
+                <input type="text" id="f-q" name="q" value="{{ $filters['q'] }}" class="form-control" placeholder="Search circulars by title, description or author…">
             </div>
             <div class="pat-filter-field">
-                <label for="f-audience">Audience</label>
+                <label for="f-audience" class="sr-only">Audience</label>
                 <select id="f-audience" name="audience" class="form-control">
-                    <option value="">All Audiences</option>
+                    <option value="">All Audience</option>
                     @foreach($audiences as $value => $label)
                         <option value="{{ $value }}" {{ $filters['audience'] === $value ? 'selected' : '' }}>{{ $label }}</option>
                     @endforeach
                 </select>
             </div>
             <div class="pat-filter-field">
-                <label for="f-priority">Priority</label>
+                <label for="f-priority" class="sr-only">Priority</label>
                 <select id="f-priority" name="priority" class="form-control">
-                    <option value="">All Priorities</option>
+                    <option value="">All Priority</option>
                     @foreach($priorities as $value => $label)
                         <option value="{{ $value }}" {{ $filters['priority'] === $value ? 'selected' : '' }}>{{ $label }}</option>
                     @endforeach
                 </select>
             </div>
             <div class="pat-filter-field">
-                <label for="f-status">Status</label>
+                <label for="f-status" class="sr-only">Status</label>
                 <select id="f-status" name="status" class="form-control">
-                    <option value="">All Statuses</option>
+                    <option value="">All Status</option>
                     <option value="active" {{ $filters['status'] === 'active' ? 'selected' : '' }}>Active</option>
                     <option value="upcoming" {{ $filters['status'] === 'upcoming' ? 'selected' : '' }}>Upcoming</option>
                     <option value="expired" {{ $filters['status'] === 'expired' ? 'selected' : '' }}>Expired</option>
@@ -72,11 +77,11 @@
                 </select>
             </div>
             <div class="pat-filter-field">
-                <label for="f-from">From</label>
+                <label for="f-from" class="sr-only">From</label>
                 <input type="date" id="f-from" name="from" value="{{ $filters['from'] }}" class="form-control">
             </div>
             <div class="pat-filter-field">
-                <label for="f-to">To</label>
+                <label for="f-to" class="sr-only">To</label>
                 <input type="date" id="f-to" name="to" value="{{ $filters['to'] }}" class="form-control">
             </div>
             <div class="pat-filter-action">
@@ -103,7 +108,9 @@
                             @if($openable)<a href="{{ route('circulars.show', $circular->id) }}">{{ $circular->title }}</a>@else{{ $circular->title }}@endif
                         </h5>
                         <span class="l75-pill {{ $pillClass }}">{{ $pillLabel }}</span>
-                        <span class="circ-pri-chip circ-pri-chip-{{ $circular->priority }}">@if($circular->priority === 'urgent')<i class="icon-alarm"></i> @endif{{ $priorities[$circular->priority] ?? $circular->priority }}</span>
+                        {{-- Loop 114: no separate priority pill on list
+                             cards — the reference carries priority in the
+                             card's colour bar (and tile) only. --}}
                         @if($can_write)
                             <div class="dropdown l75-kebab">
                                 <button type="button" class="l75-kebab-btn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="Circular actions"><i class="icon-more2"></i></button>
@@ -154,6 +161,9 @@
             ])
         @endforelse
     </div>
+    @if($circulars->total() > 0)
+        <div class="l114-showing">Showing {{ $circulars->firstItem() }} to {{ $circulars->lastItem() }} of {{ $circulars->total() }} circulars</div>
+    @endif
     @if($circulars->hasPages())
         <div class="circ-pager">{{ $circulars->links() }}</div>
     @endif

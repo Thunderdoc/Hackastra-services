@@ -8,8 +8,10 @@ use App\Http\Requests\CircularSave;
 use App\Models\Circular;
 use App\Models\CircularAttachment;
 use App\Support\Audit;
+use App\Support\CircularOfficialPdf;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -32,7 +34,7 @@ class CircularController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('teamSAWrite', ['except' => ['index', 'show', 'print', 'pdf', 'downloadAttachment']]);
+        $this->middleware('teamSAWrite', ['except' => ['index', 'show', 'print', 'pdf', 'official', 'downloadAttachment']]);
         $this->middleware('teamSAWrite', ['only' => ['destroy']]);
     }
 
@@ -139,6 +141,7 @@ class CircularController extends Controller
 
         $circular = Circular::create($data);
         $this->storeAttachments($request, $circular);
+        $this->syncOfficialPdf($circular);
 
         if ($circular->is_published) {
             Audit::log('circular.published', $circular, 'Published circular "' . $circular->title . '" to ' . $circular->audience);
@@ -151,6 +154,17 @@ class CircularController extends Controller
     {
         if (!Qs::userIsTeamSA() && !$circular->isVisibleTo(Auth::user()->user_type)) {
             abort(404);
+        }
+
+        // Lazy heal: a published circular that somehow has no
+        // official signed PDF yet (seeded rows, rows published
+        // before this feature existed, a failed publish-time run)
+        // gets it generated on this first view, then served from
+        // storage ever after. Never throws — the page must render
+        // even if the render fails.
+        if ($circular->is_published && !CircularOfficialPdf::exists($circular)) {
+            CircularOfficialPdf::ensureOfficialPdf($circular);
+            $circular->refresh();
         }
 
         $d['circular'] = $circular->load(['publisher', 'attachments']);
@@ -203,6 +217,39 @@ class CircularController extends Controller
             ->download('circular-' . $circular->id . '.pdf');
     }
 
+    /**
+     * The stored OFFICIAL signed PDF (auto-generated at publish
+     * time by App\Support\CircularOfficialPdf) — served from
+     * storage, never re-rendered per request. Same audience gate
+     * as show()/pdf(): managers reach everything they manage,
+     * every other role only a circular currently visible to them,
+     * so the signed file is never more public than its circular.
+     * Default is an inline view; ?download=1 forces the download.
+     */
+    public function official(Circular $circular)
+    {
+        if (!Qs::userIsTeamSA() && !$circular->isVisibleTo(Auth::user()->user_type)) {
+            abort(404);
+        }
+
+        // First touch of a published circular whose file is
+        // missing generates it here, then serves from storage.
+        if (!CircularOfficialPdf::exists($circular)
+            && !CircularOfficialPdf::ensureOfficialPdf($circular)) {
+            abort(404);
+        }
+
+        $name = 'circular-' . $circular->id . '-official.pdf';
+
+        if (request()->boolean('download')) {
+            return Storage::disk('local')->download($circular->official_pdf_path, $name);
+        }
+
+        return Storage::disk('local')->response($circular->official_pdf_path, $name, [
+            'Content-Type' => 'application/pdf',
+        ]);
+    }
+
     public function edit(Circular $circular)
     {
         $d['circular'] = $circular->load('attachments');
@@ -223,6 +270,10 @@ class CircularController extends Controller
 
         $this->removeAttachments($request, $circular);
         $this->storeAttachments($request, $circular);
+        // Content may have changed: a published circular's official
+        // PDF is refreshed so the signed document always matches
+        // what readers see; an unpublished one loses its file.
+        $this->syncOfficialPdf($circular);
 
         if (!$wasPublished && $circular->is_published) {
             Audit::log('circular.published', $circular, 'Published circular "' . $circular->title . '" to ' . $circular->audience);
@@ -235,6 +286,7 @@ class CircularController extends Controller
     public function togglePublish(Circular $circular)
     {
         $circular->update(['is_published' => !$circular->is_published]);
+        $this->syncOfficialPdf($circular);
 
         if ($circular->is_published) {
             Audit::log('circular.published', $circular, 'Published circular "' . $circular->title . '" to ' . $circular->audience);
@@ -245,6 +297,10 @@ class CircularController extends Controller
 
     public function destroy(Circular $circular)
     {
+        if ($circular->official_pdf_path) {
+            Storage::disk('local')->delete($circular->official_pdf_path);
+        }
+
         foreach ($circular->attachments as $attachment) {
             Storage::disk('local')->delete($attachment->path);
             $attachment->delete();
@@ -253,6 +309,22 @@ class CircularController extends Controller
         $circular->delete();
 
         return back()->with('flash_success', __('msg.del_ok'));
+    }
+
+    /**
+     * Keep the official signed PDF in step with the circular after
+     * a write (create / update / publish toggle). A PDF failure
+     * must NEVER fail the write itself — the publish already
+     * succeeded — so failures are only logged; the lazy path in
+     * show()/official() heals the missing file on first touch.
+     */
+    protected function syncOfficialPdf(Circular $circular): void
+    {
+        try {
+            CircularOfficialPdf::sync($circular);
+        } catch (\Throwable $e) {
+            Log::warning('Circular official PDF sync failed for circular ' . $circular->id . ': ' . $e->getMessage());
+        }
     }
 
     /**

@@ -16,7 +16,7 @@
     <div class="t10-welcome">
         <div class="t10-welcome-main">
             <h2>{{ $greeting }}, {{ Auth::user()->name }} <span aria-hidden="true">👋</span></h2>
-            <p>Here&rsquo;s your teaching overview for {{ $today->format('l, d F Y') }}. Keep up the great work!</p>
+            <p>Here&rsquo;s your teaching overview for today. Keep up the great work!</p>
             <a href="{{ route('attendance.periods.index') }}" class="t10-take-btn"><i class="icon-calendar52"></i> Take Attendance</a>
         </div>
         <aside class="t10-quote">
@@ -40,7 +40,7 @@
             <span class="t10-kpi-copy">
                 <span class="t10-kpi-label">My Classes</span>
                 <strong>{{ number_format($my_assignment_count) }}</strong>
-                <small>Class &amp; section assignments &middot; {{ $scope_class_count }} {{ $scope_class_count === 1 ? 'class' : 'classes' }}</small>
+                <small>Classes you teach in</small>
             </span>
             <i class="icon-arrow-right7 t10-kpi-chev"></i>
         </a>
@@ -50,7 +50,7 @@
                 <span class="t10-kpi-copy">
                     <span class="t10-kpi-label">Total Students</span>
                     <strong>{{ number_format($my_student_count) }}</strong>
-                    <small>Across your assigned classes</small>
+                    <small>Across your classes</small>
                 </span>
                 <i class="icon-arrow-right7 t10-kpi-chev"></i>
             </a>
@@ -60,7 +60,7 @@
                 <span class="t10-kpi-copy">
                     <span class="t10-kpi-label">Total Students</span>
                     <strong>{{ number_format($my_student_count) }}</strong>
-                    <small>Across your assigned classes</small>
+                    <small>Across your classes</small>
                 </span>
             </div>
         @endif
@@ -69,7 +69,7 @@
             <span class="t10-kpi-copy">
                 <span class="t10-kpi-label">Today&rsquo;s Periods</span>
                 <strong>{{ number_format($today_periods->count()) }}</strong>
-                <small>{{ $today_submitted }} submitted &middot; {{ $today_periods->count() - $today_submitted }} to take</small>
+                <small>Scheduled for today</small>
             </span>
             <i class="icon-arrow-right7 t10-kpi-chev"></i>
         </a>
@@ -166,7 +166,10 @@
                                  card — always on the page, even at zero
                                  (the task row below also carries it
                                  whenever it is above zero). --}}
-                            <p class="t10-panel-sub">Pending work, from your live records &middot; <a href="{{ route('assignments.index') }}">{{ number_format($lms_to_grade ?? 0) }} {{ ($lms_to_grade ?? 0) === 1 ? 'assignment' : 'assignments' }} to grade</a></p>
+                            {{-- Loop 117: the reference subtext leads; the
+                                 grading-queue count folded here by Audit
+                                 Fix Wave 1 stays on the page behind it. --}}
+                            <p class="t10-panel-sub">Quick view of pending activities &middot; <a href="{{ route('assignments.index') }}">{{ number_format($lms_to_grade ?? 0) }} {{ ($lms_to_grade ?? 0) === 1 ? 'assignment' : 'assignments' }} to grade</a></p>
                         </div>
                     </div>
                 </div>
@@ -192,10 +195,9 @@
                         <span class="t10-panel-icon t10-tone-blue"><i class="icon-bell2"></i></span>
                         <div>
                             <h5>Notifications</h5>
-                            <p class="t10-panel-sub">Latest updates for you</p>
                         </div>
                     </div>
-                    <a href="{{ route('circulars.index') }}" class="t10-view-all">All Circulars <i class="icon-arrow-right7"></i></a>
+                    <a href="{{ route('circulars.index') }}" class="t10-view-all">View All <i class="icon-arrow-right7"></i></a>
                 </div>
                 @forelse($teacher_notifications as $note)
                     <a href="{{ $note['link'] }}" class="t10-row">
@@ -224,7 +226,6 @@
                     <span class="t10-panel-icon t10-tone-green"><i class="icon-stats-bars"></i></span>
                     <div>
                         <h5>Attendance Overview <span class="t10-head-note">(This Month)</span></h5>
-                        <p class="t10-panel-sub">Attendance % by class &middot; {{ $month_label }}</p>
                     </div>
                 </div>
                 <a href="{{ route('attendance.periods.report') }}" class="t10-view-all">View Report <i class="icon-arrow-right7"></i></a>
@@ -241,7 +242,6 @@
                     <p class="t10-note">{{ $row['class_name'] }} — no marked periods yet in {{ $month_label }}.</p>
                 @endif
             @endforeach
-            <p class="t10-note">Attendance % = (present + late) &divide; marked periods, from submitted registers.</p>
         </section>
 
         <section class="t10-panel">
@@ -250,7 +250,6 @@
                     <span class="t10-panel-icon t10-tone-lavender"><i class="icon-pie-chart"></i></span>
                     <div>
                         <h5>Student Attendance Status</h5>
-                        <p class="t10-panel-sub">Distribution across your students &middot; {{ $month_label }}</p>
                     </div>
                 </div>
                 <a href="{{ route('attendance.defaulters') }}" class="t10-view-all">View Details <i class="icon-arrow-right7"></i></a>
@@ -292,7 +291,6 @@
                         @endforeach
                     </ul>
                 </div>
-                <p class="t10-note">Based on {{ $dist_total }} of {{ $attendance_distribution['total_students'] }} students with marked periods in {{ $month_label }}; each student counted once, by their overall percentage.</p>
             @else
                 <div class="t10-caught-up"><i class="icon-pie-chart"></i> No attendance records for your classes in {{ $month_label }} yet.</div>
             @endif

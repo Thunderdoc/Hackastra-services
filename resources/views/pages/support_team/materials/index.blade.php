@@ -49,7 +49,7 @@
             <div class="lms82-stats">
                 <div class="lms82-stat">
                     <span class="lms82-stat-icon lms82-tone-blue"><i class="icon-book"></i></span>
-                    <span class="lms82-stat-copy"><strong>{{ $card_total ?? 0 }}</strong><span>Total Materials</span><small>Shared in your scope</small></span>
+                    <span class="lms82-stat-copy"><strong>{{ $card_total ?? 0 }}</strong><span>Total Materials</span><small>All subjects</small></span>
                 </div>
                 <div class="lms82-stat">
                     <span class="lms82-stat-icon lms82-tone-green"><i class="icon-stack2"></i></span>
@@ -61,7 +61,7 @@
                 </div>
                 <div class="lms82-stat">
                     <span class="lms82-stat-icon lms82-tone-violet"><i class="icon-alarm"></i></span>
-                    <span class="lms82-stat-copy"><strong>{{ $card_recent ?? 0 }}</strong><span>Recent Materials</span><small>Added in the last 7 days</small></span>
+                    <span class="lms82-stat-copy"><strong>{{ $card_recent ?? 0 }}</strong><span>Recent Materials</span><small>Latest uploads</small></span>
                 </div>
             </div>
         @endslot
@@ -69,7 +69,7 @@
             <form method="get" action="{{ route('materials.index') }}" class="pat-filter-form lms82-filter-form">
                 <div class="pat-filter-field lms82-filter-search">
                     <label for="lms82m-q">Search</label>
-                    <input type="text" id="lms82m-q" name="q" value="{{ request('q') }}" class="form-control" placeholder="Search by title, description or subject...">
+                    <input type="text" id="lms82m-q" name="q" value="{{ request('q') }}" class="form-control" placeholder="Search materials by title, description or subject&hellip;">
                 </div>
                 <div class="pat-filter-field">
                     <label for="lms82m-subject">Subject</label>
@@ -182,7 +182,8 @@
                             </div>
                         @empty
                             <div class="lms82-group-empty">
-                                <i class="icon-book mr-1"></i> No study materials yet — materials for this subject will appear here when teachers add them.
+                                <div><i class="icon-book mr-1"></i> No study materials yet</div>
+                                <div>Materials for this subject will appear here when teachers add them.</div>
                             </div>
                         @endforelse
                     </div>

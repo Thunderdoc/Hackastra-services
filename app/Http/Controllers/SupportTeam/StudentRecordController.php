@@ -102,7 +102,9 @@ class StudentRecordController extends Controller
         $data['password'] = Hash::make('student');
         $data['photo'] = Qs::getDefaultUserImage();
         $adm_no = $req->adm_no;
-        $data['username'] = strtoupper(Qs::getAppCode().'/'.$ct.'/'.$sr['year_admitted'].'/'.($adm_no ?: mt_rand(1000, 99999)));
+        $data['username'] = $adm_no
+            ? strtoupper(Qs::getAppCode().'/'.$ct.'/'.$sr['year_admitted'].'/'.$adm_no)
+            : Qs::generateAdmNo($ct, $sr['year_admitted']);
 
         if($req->hasFile('photo')) {
             $photo = $req->file('photo');
@@ -119,7 +121,10 @@ class StudentRecordController extends Controller
         $sr['session'] = Qs::getSetting('current_session');
 
         $this->student->createRecord($sr); // Create Student
-        return Qs::jsonStoreOk();
+        // Loop 112: post-save lands on the student's class list (owner
+        // ruling) — was Qs::jsonStoreOk() (a raw JSON response to a
+        // plain form POST).
+        return redirect()->route('students.list', $req->my_class_id)->with('flash_success', __('msg.store_ok'));
     }
 
     /**
@@ -165,7 +170,9 @@ class StudentRecordController extends Controller
             'photo' => Qs::getDefaultUserImage(),
         ];
         $adm_no = $req->q_adm_no;
-        $data['username'] = strtoupper(Qs::getAppCode().'/'.$ct.'/'.$req->q_year_admitted.'/'.($adm_no ?: mt_rand(1000, 99999)));
+        $data['username'] = $adm_no
+            ? strtoupper(Qs::getAppCode().'/'.$ct.'/'.$req->q_year_admitted.'/'.$adm_no)
+            : Qs::generateAdmNo($ct, $req->q_year_admitted);
 
         $sr = [
             'my_class_id' => (int) $req->q_my_class_id,
@@ -395,7 +402,9 @@ class StudentRecordController extends Controller
         /*** If Class/Section is Changed in Same Year, Delete Marks/ExamRecord of Previous Class/Section ****/
         Mk::deleteOldRecord($sr->user->id, $srec['my_class_id']);
 
-        return Qs::jsonUpdateOk();
+        // Loop 112: post-save lands on the student's class list (owner
+        // ruling) — was Qs::jsonUpdateOk() (AJAX stay-on-form).
+        return redirect()->route('students.list', $srec['my_class_id'])->with('flash_success', __('msg.update_ok'));
     }
 
     public function destroy($st_id)

@@ -13,15 +13,19 @@
     {{-- Loop 94 (2026-10-22): premium redesign on the BT/CK build.
          Section 1 keeps the Collect Fee counter contract byte-for-byte
          (Workstream BJ: endpoint, results dropdown, invoice links, the
-         script below). Section 2 keeps the session picker POST and the
-         tabbed fee-definition tables (payments/_table, Edit/Delete
-         unchanged) and adds, for the selected session: the four
-         stat cards (receipts ledger + the Fee Defaulters rule) and
-         the Payment Records table — receipts for the session, latest
-         first, server-paginated, each row linking to the record's
-         real receipt document (View) and its PDF (Print). Figures
-         reconcile with the Fee Defaulters and Collection Report
-         pages, which read the same ledger by the same rules. --}}
+         script below). Section 2 keeps the tabbed fee-definition
+         tables (payments/_table, Edit/Delete unchanged) and adds, for
+         the selected session: the four stat cards (receipts ledger +
+         the Fee Defaulters rule) and the Payment Records table —
+         receipts for the session, latest first, server-paginated,
+         each row linking to the record's real receipt document
+         (View) and its PDF (Print). Figures reconcile with the Fee
+         Defaulters and Collection Report pages, which read the same
+         ledger by the same rules.
+         Loop 118 (replica pass): the session picker POST moved out of
+         the component into the reference's titled band ABOVE the KPI
+         cards; subtitle and KPI subtexts now carry the reference
+         wording; records headers are the reference's title-case set. --}}
 
     {{-- Collect Fee (Workstream BJ) --}}
     {{-- Loop 93: premium skin for the counter search — same BJ
@@ -69,14 +73,37 @@
         </div>
     </div>
 
+    {{-- Session band (Loop 118): the session picker leads the page,
+         ABOVE the KPI cards, as the reference's titled band — same
+         POST contract as always (payments.select_year, field "year",
+         same options and selected logic). --}}
+    <div class="card pat-card l118-session-band">
+        <div class="card-body">
+            <div class="l118-band-head">
+                <h6><i class="icon-calendar3 mr-1"></i> Select Academic Session</h6>
+                <p>Choose a session year to view and manage payments.</p>
+            </div>
+            <form method="post" action="{{ route('payments.select_year') }}" class="l118-band-form">
+                @csrf
+                <div class="pat-filter-field l118-band-field">
+                    <label for="year" class="sr-only">Academic Session</label>
+                    <select data-placeholder="Select Year" required id="year" name="year" class="form-control select">
+                        @foreach($years as $yr)
+                            <option {{ ($selected && $year == $yr->year) ? 'selected' : '' }} value="{{ $yr->year }}">{{ $yr->year }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="pat-filter-action">
+                    <button type="submit" class="btn btn-primary">Apply</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     {{-- Session payments --}}
     @component('partials.patterns.list_page')
         @slot('subtitle')
-            @if($selected)
-                <strong>{{ $year }} Session</strong> &mdash; receipts, collections and outstanding dues for the selected session.
-            @else
-                Select a session year to view and manage its fee payments.
-            @endif
+            Search students, view their fee payments, and manage records.
         @endslot
         @if($selected)
             @slot('stats')
@@ -87,7 +114,7 @@
                             <span class="dashboard-stat-copy">
                                 <span class="dashboard-stat-label">Total Payments</span>
                                 <strong>{{ number_format($stat_total_payments) }}</strong>
-                                <small>Receipts recorded &middot; {{ $year }}</small>
+                                <small>All recorded payments</small>
                             </span>
                         </div>
                     </div>
@@ -97,7 +124,7 @@
                             <span class="dashboard-stat-copy">
                                 <span class="dashboard-stat-label">Total Collected</span>
                                 <strong>{{ \App\Helpers\Money::inr($stat_total_collected) }}</strong>
-                                <small>For the selected session</small>
+                                <small>For selected session</small>
                             </span>
                         </div>
                     </div>
@@ -107,7 +134,7 @@
                             <span class="dashboard-stat-copy">
                                 <span class="dashboard-stat-label">Pending Dues</span>
                                 <strong>{{ \App\Helpers\Money::inr($stat_pending_dues) }}</strong>
-                                <small>Outstanding on unpaid records</small>
+                                <small>Across {{ number_format($stat_defaulters) }} students</small>
                             </span>
                         </div>
                     </div>
@@ -117,40 +144,20 @@
                             <span class="dashboard-stat-copy">
                                 <span class="dashboard-stat-label">Defaulters</span>
                                 <strong>{{ number_format($stat_defaulters) }}</strong>
-                                <small>Students with dues &middot; <a href="{{ route('payments.defaulters') }}">View report</a></small>
+                                <small>Students</small>
                             </span>
                         </div>
                     </div>
                 </div>
             @endslot
         @endif
-        @slot('filters')
-            <form method="post" action="{{ route('payments.select_year') }}" class="pat-filter-form">
-                @csrf
-                <div class="pat-filter-field">
-                    <label for="year">Academic Session <span class="text-danger">*</span></label>
-                    <select data-placeholder="Select Year" required id="year" name="year" class="form-control select">
-                        @foreach($years as $yr)
-                            <option {{ ($selected && $year == $yr->year) ? 'selected' : '' }} value="{{ $yr->year }}">{{ $yr->year }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="pat-filter-action">
-                    <button type="submit" class="btn btn-primary">Submit <i class="icon-paperplane ml-2"></i></button>
-                </div>
-                <div class="pat-filter-field">
-                    <span class="text-muted">All figures on this page &mdash; cards, records and fee structure &mdash; are for the selected session.</span>
-                </div>
-            </form>
-        @endslot
-
         @if($selected)
             {{-- Payment Records (Loop 94) --}}
             <div class="mp94-records">
                 <div class="mp94-records-head">
                     <div>
                         <h6 class="mp94-block-title"><i class="icon-file-text2 mr-1"></i> Payment Records</h6>
-                        <p class="mp94-block-sub">Receipts recorded in the {{ $year }} session, latest first.</p>
+                        <p class="mp94-block-sub">View, search and manage all fee payments.</p>
                     </div>
                     @if($records->total())
                         <span class="mp94-showing">Showing {{ $records->firstItem() }} to {{ $records->lastItem() }} of {{ $records->total() }} records</span>
@@ -164,10 +171,10 @@
                             <tr>
                                 <th style="width:40px">#</th>
                                 <th>Receipt No</th>
-                                <th>Student</th>
+                                <th>Student Name</th>
                                 <th>Class &amp; Section</th>
-                                <th class="text-right">Amount</th>
-                                <th>Method</th>
+                                <th class="text-right">Amount (₹)</th>
+                                <th>Payment Method</th>
                                 <th>Payment Date</th>
                                 <th>Status</th>
                                 <th class="text-center">Actions</th>

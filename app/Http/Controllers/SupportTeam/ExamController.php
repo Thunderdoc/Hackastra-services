@@ -39,7 +39,8 @@ class ExamController extends Controller
         }
 
         $this->exam->create($data);
-        return back()->with('flash_success', __('msg.store_ok'));
+        // Loop 112: post-save lands on the exams index (owner ruling).
+        return Qs::storeOk('exams.index');
     }
 
     public function edit($id)
@@ -59,7 +60,9 @@ class ExamController extends Controller
         $data = $req->only(['name', 'term']);
 
         $this->exam->update(Qs::resolveId($id), $data);
-        return back()->with('flash_success', __('msg.update_ok'));
+        // Loop 112: post-save lands on the exams index (owner ruling) —
+        // was back() to the edit form.
+        return Qs::updateOk('exams.index');
     }
 
     public function destroy($id)

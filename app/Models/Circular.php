@@ -12,12 +12,14 @@ class Circular extends Eloquent
     protected $fillable = [
         'title', 'body', 'audience', 'priority', 'published_by',
         'starts_at', 'expires_at', 'is_published',
+        'official_pdf_path', 'official_pdf_generated_at',
     ];
 
     protected $casts = [
         'starts_at' => 'date',
         'expires_at' => 'date',
         'is_published' => 'boolean',
+        'official_pdf_generated_at' => 'datetime',
     ];
 
     /** Audiences a circular can target, with their display labels. */

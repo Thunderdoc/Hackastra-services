@@ -1,15 +1,20 @@
 @extends('layouts.master')
 @section('page_title', 'Annual / Cumulative Report')
 @section('page_breadcrumb')
-    <a href="{{ route('marks.show', [Qs::hash($student_id), $year]) }}">&larr; Back to Student</a> <span class="crumb-sep">&rsaquo;</span> Examinations <span class="crumb-sep">&rsaquo;</span> Results <span class="crumb-sep">&rsaquo;</span> Annual/Cumulative Report
+    <a href="{{ route('marks.show', [Qs::hash($student_id), $year]) }}">&larr; Back to Students</a> <span class="crumb-sep">&rsaquo;</span> Examinations <span class="crumb-sep">&rsaquo;</span> Results <span class="crumb-sep">&rsaquo;</span> Annual/Cumulative Report
 @endsection
 @section('page_actions')
     {{-- Print + PDF — same visibility rule the page has always used:
          only users the print gate admits (teamSA, the student, or
          their parent) see the document actions. --}}
     @if(Qs::userIsTeamSA() || Auth::id() == $student_id || Qs::userIsMyChild($student_id, Auth::id()))
-        <a target="_blank" href="{{ route('marks.print_annual', [Qs::hash($student_id), $year]) }}" class="btn btn-light btn-sm"><i class="icon-printer mr-1"></i> Print Report</a>
-        <a href="{{ route('marks.pdf_annual', [Qs::hash($student_id), $year]) }}" class="btn btn-primary btn-sm ml-2"><i class="icon-file-pdf mr-1"></i> Download PDF</a>
+        <div class="btn-group">
+            <button type="button" class="btn btn-primary btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="icon-upload mr-1"></i> Export</button>
+            <div class="dropdown-menu dropdown-menu-right">
+                <a class="dropdown-item" target="_blank" href="{{ route('marks.print_annual', [Qs::hash($student_id), $year]) }}"><i class="icon-printer mr-2"></i> Print Report</a>
+                <a class="dropdown-item" href="{{ route('marks.pdf_annual', [Qs::hash($student_id), $year]) }}"><i class="icon-file-pdf mr-2"></i> Download PDF</a>
+            </div>
+        </div>
     @endif
 @endsection
 @section('content')
@@ -18,8 +23,9 @@
 
     {{-- Student identity card (Loop 85). Photo rule (Workstream BR):
          the real uploaded photo when one exists, else an initials
-         tile — the stock silhouette is never rendered. Metadata
-         shows only fields the record actually carries. --}}
+         tile — the stock silhouette is never rendered. The six meta
+         items always render (Loop 116); a field the record does not
+         carry shows '—'. --}}
     @php
         $ar85Initials = '';
         foreach (preg_split('/\s+/', trim((string) $sr->user->name)) as $ar85Word) {
@@ -41,7 +47,7 @@
                 <div class="ar85-id-name">
                     <h5>{{ $sr->user->name }}</h5>
                     <div class="ar85-id-class">
-                        {{ $my_class->name }}@if($ar85SectionName) &mdash; {{ $ar85SectionName }}@endif
+                        {{ $my_class->name }}@if($ar85SectionName) &ndash; {{ $ar85SectionName }}@endif
                         <span class="ar85-status {{ $sr->grad ? 'ar85-status-grad' : 'ar85-status-active' }}">{{ $sr->grad ? 'Graduated' : 'Active' }}</span>
                     </div>
                 </div>
@@ -51,18 +57,17 @@
                     <i class="icon-vcard"></i>
                     <div><small>Admission No.</small><strong>{{ $sr->adm_no ?: '–' }}</strong></div>
                 </div>
-                @if($sr->user->dob)
-                    <div class="ar85-meta-item">
-                        <i class="icon-calendar3"></i>
-                        <div><small>Date of Birth</small><strong>{{ date('d M Y', strtotime($sr->user->dob)) }}</strong></div>
-                    </div>
-                @endif
-                @if($sr->user->gender)
-                    <div class="ar85-meta-item">
-                        <i class="icon-user"></i>
-                        <div><small>Gender</small><strong>{{ ucfirst($sr->user->gender) }}</strong></div>
-                    </div>
-                @endif
+                {{-- Loop 116: Date of Birth and Gender are always
+                     shown (the reference's six meta items) — a blank
+                     record value renders '—', never an invented one. --}}
+                <div class="ar85-meta-item">
+                    <i class="icon-calendar3"></i>
+                    <div><small>Date of Birth</small><strong>{{ $sr->user->dob ? date('d M Y', strtotime($sr->user->dob)) : '—' }}</strong></div>
+                </div>
+                <div class="ar85-meta-item">
+                    <i class="icon-user"></i>
+                    <div><small>Gender</small><strong>{{ $sr->user->gender ? ucfirst($sr->user->gender) : '—' }}</strong></div>
+                </div>
                 <div class="ar85-meta-item">
                     <i class="icon-book"></i>
                     <div><small>Class</small><strong>{{ $my_class->name }}</strong></div>

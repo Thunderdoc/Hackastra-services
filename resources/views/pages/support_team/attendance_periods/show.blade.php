@@ -1,7 +1,7 @@
 @extends('layouts.master')
 @section('page_title', 'Mark Attendance — Submitted')
 @section('page_breadcrumb')
-    <a href="{{ route('dashboard') }}">Home</a> &nbsp;/&nbsp; Attendance &nbsp;/&nbsp; <a href="{{ route('attendance.periods.index', ['date' => $session->date->format('Y-m-d')]) }}">Mark Attendance</a> &nbsp;/&nbsp; Submitted
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Attendance &nbsp;/&nbsp; <a href="{{ route('attendance.periods.index', ['date' => $session->date->format('Y-m-d')]) }}">Mark Attendance</a> &nbsp;/&nbsp; Submitted
 @endsection
 @section('page_actions')
     <a href="{{ route('attendance.periods.index', ['date' => $session->date->format('Y-m-d')]) }}" class="btn btn-light"><i class="icon-arrow-left8 mr-1"></i> Back to Periods</a>
@@ -17,7 +17,7 @@
          (v2 document view), Export CSV and Download PDF (dompdf is
          in-tree). Server-side scoping is the controller's show() rule,
          unchanged. --}}
-    <p class="ma-intro">This period&rsquo;s attendance has been submitted and is locked. The record below cannot be edited or re-taken.</p>
+    <p class="ma-intro">View the submitted attendance register for this period. This record is locked and cannot be edited.</p>
 
     <div class="card rg-info-card">
         <div class="card-body">
@@ -25,13 +25,13 @@
                 <div class="rg-info-subject">
                     <div class="rg-subject-name">{{ optional($session->subject)->name }}</div>
                     <div class="rg-subject-meta">
-                        {{ optional($session->my_class)->name }}@if(optional($session->section)->name) &middot; {{ $session->section->name }}@endif
+                        {{ optional($session->my_class)->name }}@if(optional($session->section)->name) &bull; Section: {{ $session->section->name }}@endif
                         @if(optional($session->subject)->slug)<span class="ma-code-chip ml-2">{{ $session->subject->slug }}</span>@endif
                     </div>
                 </div>
                 <div class="rg-lock">
                     <span class="ma-pill ma-pill-done rg-lock-pill"><i class="icon-lock2"></i> Submitted &middot; Locked</span>
-                    <div class="rg-lock-copy">This register is locked and cannot be edited.</div>
+                    <div class="rg-lock-copy">This register cannot be edited or re-taken.</div>
                 </div>
             </div>
 
@@ -79,17 +79,20 @@
         </div>
         <div class="rg-chip rg-chip-note">
             <i class="icon-lock2"></i>
-            <span>Locked record — a submitted period register cannot be edited or re-taken.</span>
+            <span>This record is locked — a submitted period register cannot be edited or re-taken.</span>
         </div>
     </div>
 
     <div class="card">
         <div class="card-body">
             <div class="rg-table-head">
-                <h6 class="ma-schedule-title"><i class="icon-users mr-2"></i> Student Attendance</h6>
+                <div>
+                    <h6 class="ma-schedule-title"><i class="icon-users mr-2"></i> Student Attendance</h6>
+                    <p class="rg-table-sub">List of all students with their attendance status for this period.</p>
+                </div>
                 <div class="rg-search">
                     <i class="icon-search4"></i>
-                    <input type="text" id="rg-search-input" class="form-control" placeholder="Search by name or admission no." autocomplete="off">
+                    <input type="text" id="rg-search-input" class="form-control" placeholder="Search student..." autocomplete="off">
                 </div>
             </div>
 
@@ -98,7 +101,7 @@
                     <thead>
                     <tr>
                         <th>#</th>
-                        <th>Student</th>
+                        <th>Student Name</th>
                         <th>Section</th>
                         <th>Admission No</th>
                         <th>Status</th>
@@ -145,7 +148,7 @@
                 <a href="{{ route('attendance.periods.pdf', $session->id) }}" class="btn btn-light"><i class="icon-file-pdf mr-1"></i> Download PDF</a>
                 <a href="{{ route('attendance.periods.report', ['class_id' => $session->my_class_id, 'subject_id' => $session->subject_id]) }}" class="btn btn-light"><i class="icon-stats-bars2 mr-1"></i> View subject report</a>
             </div>
-            <p class="rg-readonly-note">This is a read-only view of a submitted attendance register. For corrections, please contact the administrator.</p>
+            <p class="rg-readonly-note">This is a read-only view of a submitted attendance register. For any corrections, please contact the administrator.</p>
         </div>
     </div>
 

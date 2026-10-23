@@ -1,10 +1,14 @@
 @extends('layouts.master')
 @section('page_title', 'Manage Exam Marks')
+@section('page_subtitle', 'Select an exam, class, section and subject to manage and enter student marks.')
 @section('page_breadcrumb')
     <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Academics &nbsp;/&nbsp; Exams &nbsp;/&nbsp; Manage Exam Marks
 @endsection
 @section('page_actions')
+    {{-- exams.index is teamSA-only (settled exam-access rule): for a teacher the button dead-ended at a login redirect, so it renders only for teamSA. --}}
+    @if(Qs::userIsTeamSA())
     <a href="{{ route('exams.index') }}" class="btn btn-outline-primary"><i class="icon-calendar3 mr-2"></i>View Exam Schedule</a>
+    @endif
 @endsection
 @section('content')
     {{-- Loop 84 (marks selector redesign): the page is the exam /
@@ -19,7 +23,7 @@
         <span class="l84-banner-icon"><i class="icon-profile"></i></span>
         <div class="l84-banner-text">
             <h5>Record and manage student marks</h5>
-            <p>Select an exam, class, section and subject to view the list of students and enter or edit their marks securely.</p>
+            <p>Select the details below to view the list of students and enter or edit their marks securely.</p>
         </div>
         <ul class="l84-banner-points">
             <li><i class="icon-checkmark3"></i> Supports all exam types</li>
@@ -31,7 +35,7 @@
     <ol class="l84-steps" id="l84-steps" aria-label="Selection progress">
         <li class="l84-step" data-step="1">
             <span class="l84-step-dot"><span class="l84-step-num">1</span><i class="icon-checkmark3 l84-step-check"></i></span>
-            <span class="l84-step-text"><strong>Select Exam</strong><small>Choose exam</small></span>
+            <span class="l84-step-text"><strong>Select Exam</strong><small>Choose exam type</small></span>
         </li>
         <li class="l84-step" data-step="2">
             <span class="l84-step-dot"><span class="l84-step-num">2</span><i class="icon-checkmark3 l84-step-check"></i></span>

@@ -24,7 +24,7 @@
     </a>
     <form class="lav-search" role="search" method="GET" action="{{ route('dashboard.search') }}">
         <i class="icon-search4"></i>
-        <input type="search" name="q" id="lav-global-search" value="{{ request('q') }}" placeholder="{{ Qs::userIsSuperAdmin() ? 'Search platform users...' : 'Search students, teachers, classes, payments...' }}" aria-label="Search">
+        <input type="search" name="q" id="lav-global-search" value="{{ request('q') }}" placeholder="{{ Qs::userIsSuperAdmin() ? 'Search platform users...' : ((Auth::user() && Auth::user()->user_type === 'librarian') ? 'Search students, books, teachers, classes…' : 'Search students, teachers, classes, payments...') }}" aria-label="Search">
         <kbd>Ctrl + K</kbd>
     </form>
     <script>

@@ -1,5 +1,10 @@
 @extends('layouts.master')
-@section('page_title', 'New Circular')
+@section('page_title', 'Create New Circular')
+{{-- Loop 114: the reference header carries a "Back to Circulars"
+     action at the right of the page header. --}}
+@section('page_actions')
+    <a href="{{ route('circulars.index') }}" class="btn btn-light"><i class="icon-arrow-left13 mr-1"></i> Back to Circulars</a>
+@endsection
 @section('content')
     {{-- Workstream BA: rebuilt on the shared form_page pattern (Loop 28) —
          full-width sectioned form with a sticky action bar. Same contract
@@ -17,10 +22,10 @@
                 'back' => route('circulars.index'),
             ])
                 @slot('title')
-                    New Circular
+                    Create New Circular
                 @endslot
                 @slot('subtitle')
-                    It will appear in the Circulars feed of the chosen audience.
+                    Share important announcements, updates, and information with your school community.
                 @endslot
 
                 @include('pages.support_team.circulars._form')

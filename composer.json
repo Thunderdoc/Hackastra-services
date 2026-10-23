@@ -14,7 +14,7 @@
         "fakerphp/faker": "^1.20",
         "guzzlehttp/guzzle": "^7.8",
         "hashids/hashids": "^4.1.0",
-        "laravel/framework": "^11.0",
+        "laravel/framework": "^12.0",
         "laravel/tinker": "^2.9",
         "laravel/ui": "^4.0",
         "razorpay/razorpay": "^2.9",
@@ -24,7 +24,7 @@
         "barryvdh/laravel-ide-helper": "^3.0",
         "mockery/mockery": "^1.6",
         "nunomaduro/collision": "^8.0",
-        "phpunit/phpunit": "^10.0",
+        "phpunit/phpunit": "^11.5.3",
         "spatie/laravel-ignition": "^2.0"
     },
     "autoload": {
@@ -49,7 +49,7 @@
         "sort-packages": true,
         "optimize-autoloader": true,
         "platform": {
-            "php": "8.4.1"
+            "php": "8.3.6"
         }
     },
     "minimum-stability": "stable",

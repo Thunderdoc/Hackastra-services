@@ -361,6 +361,23 @@ class TimeTableController extends Controller
      * PDF of their own class record's document — this route used to
      * redirect them to the HTML list, so "pdf" returned text/html.
      */
+    /* Map a stored upload URL (/storage/...) to a base64 data URI read
+       from the local file, for renderers that cannot fetch URLs
+       (dompdf). Anything that is not a local storage file is returned
+       unchanged. (Same helper as MarkController/CircularController.) */
+    protected function pdfImageDataUri($url)
+    {
+        $path = parse_url($url, PHP_URL_PATH);
+        if ($path && \Illuminate\Support\Str::startsWith($path, '/storage/')) {
+            $local = storage_path('app/public/' . \Illuminate\Support\Str::after($path, '/storage/'));
+            if (is_file($local)) {
+                $mime = mime_content_type($local) ?: 'image/png';
+                return 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($local));
+            }
+        }
+        return $url;
+    }
+
     public function mine_pdf(Request $req)
     {
         if (Qs::userIsTeacher()) {
@@ -370,6 +387,12 @@ class TimeTableController extends Controller
             $d['s'] = Setting::all()->flatMap(function ($s) {
                 return [$s->type => $s->description];
             });
+            /* Documents Premium pass: inline the Settings logo for
+               dompdf (it cannot fetch the URL); browser print keeps
+               the URL from the same builder. */
+            if (!empty($d['s']['logo'])) {
+                $d['s']['logo'] = $this->pdfImageDataUri($d['s']['logo']);
+            }
             $d['for_pdf'] = true;
 
             $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pages.support_team.timetables.mine_print', $d)
@@ -386,6 +409,9 @@ class TimeTableController extends Controller
             }
 
             $d = $this->recordPrintData($ttr);
+            if (!empty($d['s']['logo'])) {
+                $d['s']['logo'] = $this->pdfImageDataUri($d['s']['logo']);
+            }
 
             $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pages.support_team.timetables.print', $d)
                 ->setPaper('a4', 'landscape');
@@ -651,7 +677,9 @@ class TimeTableController extends Controller
         $data = $req->all();
         $this->tt->updateRecord($id, $data);
 
-        return Qs::jsonUpdateOk();
+        // Loop 112: post-save lands on the timetables index (owner
+        // ruling) — was Qs::jsonUpdateOk() (AJAX stay-on-form).
+        return Qs::updateOk('tt.index');
     }
 
     public function delete_record($ttr_id)

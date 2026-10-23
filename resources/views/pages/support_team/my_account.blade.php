@@ -20,7 +20,7 @@
     <div class="acct-page">
 
         <h1 class="acct-title">My Account</h1>
-        <p class="acct-subtitle">Manage your profile, security settings and preferences.</p>
+        <p class="acct-subtitle">Manage your profile, security settings and school preferences.</p>
 
         @if(session('pop_error'))
             <div class="acct-alert acct-alert-danger"><i class="icon-info3"></i> {{ session('pop_error') }}</div>
@@ -179,7 +179,7 @@
                                         <div>
                                             <label for="acct-photo" class="acct-upload-btn"><i class="icon-upload"></i> Upload Photo</label>
                                             <input id="acct-photo" name="photo" type="file" accept="image/*" class="acct-file-input">
-                                            <div class="acct-hint">JPG, PNG, GIF or WebP. Max size 2MB.</div>
+                                            <div class="acct-hint">JPG, PNG, GIF (Max 2MB)</div>
                                             <div class="acct-file-name" id="acct-photo-name"></div>
                                             @error('photo')<small class="acct-error">{{ $message }}</small>@enderror
                                         </div>
@@ -350,7 +350,6 @@
                         <span class="acct-toggle-icon acct-tint-blue"><i class="icon-lock"></i></span>
                         <div>
                             <h3 class="acct-card-title">Account Security</h3>
-                            <p class="acct-panel-sub">Keep your account safe and secure.</p>
                         </div>
                     </div>
 
@@ -372,7 +371,6 @@
                         <span class="acct-toggle-icon acct-tint-purple"><i class="icon-cog"></i></span>
                         <div>
                             <h3 class="acct-card-title">Preferences</h3>
-                            <p class="acct-panel-sub">Customize your account experience.</p>
                         </div>
                     </div>
 
@@ -393,7 +391,6 @@
                         <span class="acct-toggle-icon acct-tint-green"><i class="icon-user"></i></span>
                         <div>
                             <h3 class="acct-card-title">Account Actions</h3>
-                            <p class="acct-panel-sub">Manage your account data.</p>
                         </div>
                     </div>
 

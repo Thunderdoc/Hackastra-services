@@ -299,6 +299,23 @@ class PaymentController extends Controller
         return view('pages.support_team.payments.receipt', $d);
     }
 
+    /* Map a stored upload URL (/storage/...) to a base64 data URI read
+       from the local file, for renderers that cannot fetch URLs
+       (dompdf). Anything that is not a local storage file is returned
+       unchanged. (Same helper as MarkController/CircularController.) */
+    protected function pdfImageDataUri($url)
+    {
+        $path = parse_url($url, PHP_URL_PATH);
+        if ($path && \Illuminate\Support\Str::startsWith($path, '/storage/')) {
+            $local = storage_path('app/public/' . \Illuminate\Support\Str::after($path, '/storage/'));
+            if (is_file($local)) {
+                $mime = mime_content_type($local) ?: 'image/png';
+                return 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($local));
+            }
+        }
+        return $url;
+    }
+
     public function pdf_receipts($pr_id)
     {
         if(!$pr_id) {return Qs::goWithDanger();}
@@ -315,6 +332,14 @@ class PaymentController extends Controller
         $d['s'] = Setting::all()->flatMap(function($s){
             return [$s->type => $s->description];
         });
+
+        /* Documents Premium pass: dompdf cannot fetch the logo URL
+           (remote images disabled), so the PDF path inlines the
+           Settings logo as a data URI — header + watermark render the
+           school's CURRENT logo; the screen view keeps the URL. */
+        if (!empty($d['s']['logo'])) {
+            $d['s']['logo'] = $this->pdfImageDataUri($d['s']['logo']);
+        }
 
         $pdf_name = 'Receipt_'.$pr->ref_no;
 
@@ -516,7 +541,9 @@ class PaymentController extends Controller
         $data['ref_no'] = Pay::genRefCode();
         $this->pay->create($data);
 
-        return Qs::jsonStoreOk();
+        // Loop 112: post-save lands on the fees index (owner ruling) —
+        // was Qs::jsonStoreOk() (AJAX stay-on-form).
+        return Qs::storeOk('payments.index');
     }
 
     public function edit($id)
@@ -531,7 +558,9 @@ class PaymentController extends Controller
         $data = $req->all();
         $this->pay->update($id, $data);
 
-        return Qs::jsonUpdateOk();
+        // Loop 112: post-save lands on the fees index (owner ruling) —
+        // was Qs::jsonUpdateOk() (AJAX stay-on-form).
+        return Qs::updateOk('payments.index');
     }
 
     public function destroy($id)

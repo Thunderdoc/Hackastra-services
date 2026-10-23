@@ -28,10 +28,10 @@
                         <circle cx="2.5" cy="2.5" r="2.5" fill="#5b84c4"/>
                     </pattern>
                 </defs>
-                <circle cx="512" cy="566" r="250" fill="url(#login-a-glow)"/>
-                <circle cx="30" cy="46" r="180" fill="url(#login-a-glow)" opacity=".55"/>
+                <circle class="login-a-orb login-a-orb-a" cx="512" cy="566" r="250" fill="url(#login-a-glow)"/>
+                <circle class="login-a-orb login-a-orb-b" cx="30" cy="46" r="180" fill="url(#login-a-glow)" opacity=".55"/>
                 <rect x="352" y="6" width="196" height="112" fill="url(#login-a-dots)" opacity=".4"/>
-                <g fill="none" stroke="#4d78b8" stroke-width="1.4">
+                <g class="login-a-hexes" fill="none" stroke="#4d78b8" stroke-width="1.4">
                     <polygon points="452,50 481.4,67 481.4,101 452,118 422.6,101 422.6,67" opacity=".75"/>
                     <polygon points="392,130 409.3,140 409.3,160 392,170 374.7,160 374.7,140" opacity=".5"/>
                     <polygon points="486,170 508.5,183 508.5,209 486,222 463.5,209 463.5,183" opacity=".6"/>
@@ -43,7 +43,7 @@
                     <path d="M-20 648 L236 392" fill="none"/>
                     <path d="M-20 600 L188 392" fill="none"/>
                 </g>
-                <g fill="#7fb0ff">
+                <g class="login-a-sparks" fill="#7fb0ff">
                     <circle cx="120" cy="238" r="2.4" opacity=".7"/>
                     <circle cx="486" cy="330" r="2.4" opacity=".6"/>
                     <circle cx="66" cy="356" r="2" opacity=".5"/>
@@ -51,20 +51,44 @@
                 </g>
             </svg>
             <div class="login-a-brand-inner">
-                <h1 class="login-a-brand-title">Welcome to {{ Qs::getSystemName() ?: 'School Management System' }}</h1>
-                <p class="login-a-brand-tag">Manage students, attendance, fees and academics in one place.</p>
+                {{-- Loop 112 — school identity row (logo + name from Settings),
+                     then the value statement, then the three feature ticks. --}}
+                <div class="login-a-school">
+                    <span class="login-a-school-tile">
+                        @if(Qs::getSetting('logo'))
+                            <img src="{{ Qs::getLogo() }}" alt="" class="login-a-school-logo">
+                        @else
+                            <svg viewBox="0 0 48 48" aria-hidden="true" focusable="false">
+                                <defs>
+                                    <linearGradient id="login-a-lg2" x1="0" y1="0" x2="1" y2="1">
+                                        <stop offset="0" stop-color="#3478f6"/>
+                                        <stop offset="1" stop-color="#2867dc"/>
+                                    </linearGradient>
+                                </defs>
+                                <path d="M24 2.8 42 13.1v21.8L24 45.2 6 34.9V13.1z" fill="url(#login-a-lg2)"/>
+                                <path d="M24 12.4l3.4 7 7.7 1.1-5.6 5.4 1.4 7.6L24 29.9l-6.9 3.6 1.4-7.6-5.6-5.4 7.7-1.1z" fill="#fff"/>
+                            </svg>
+                        @endif
+                    </span>
+                    <span class="login-a-school-meta">
+                        <span class="login-a-school-name">{{ Qs::getSystemName() ?: 'School Management System' }}</span>
+                        <span class="login-a-school-caption">School Management System</span>
+                    </span>
+                </div>
+                <h1 class="login-a-brand-title">The calm, connected way to run your school.</h1>
+                <p class="login-a-brand-tag">Attendance, fees, results and records — one secure sign-in for your whole school community.</p>
                 <ul class="login-a-brand-list">
                     <li>
                         <span class="login-a-check"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="11" fill="#2e6de6"/><path d="M7.2 12.6l3.1 3.1 6.5-6.9" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-                        Student enrollment &amp; profiles
+                        <span><strong>Attendance</strong> — period-wise registers, done in seconds</span>
                     </li>
                     <li>
                         <span class="login-a-check"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="11" fill="#2e6de6"/><path d="M7.2 12.6l3.1 3.1 6.5-6.9" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-                        Attendance tracking &amp; reporting
+                        <span><strong>Fees</strong> — invoices, receipts &amp; defaulter tracking</span>
                     </li>
                     <li>
                         <span class="login-a-check"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="11" fill="#2e6de6"/><path d="M7.2 12.6l3.1 3.1 6.5-6.9" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-                        Fees, billing &amp; academic records
+                        <span><strong>Results</strong> — report cards from your own marking scheme</span>
                     </li>
                 </ul>
             </div>
@@ -110,7 +134,12 @@
 
                 <div class="login-a-field">
                     <label for="identity" class="login-a-label">Email address</label>
-                    <input id="identity" type="text" class="login-a-input{{ $errors->has('identity') ? ' login-a-input-invalid' : '' }}" name="identity" value="{{ old('identity') }}" placeholder="Login ID or Email" autocomplete="username" autofocus>
+                    <div class="login-a-control">
+                        <span class="login-a-field-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        </span>
+                        <input id="identity" type="text" class="login-a-input login-a-input-icon{{ $errors->has('identity') ? ' login-a-input-invalid' : '' }}" name="identity" value="{{ old('identity') }}" placeholder="Login ID or Email" autocomplete="username" autofocus>
+                    </div>
                     @error('identity')
                         <span class="login-a-error" role="alert">{{ $message }}</span>
                     @enderror
@@ -119,7 +148,10 @@
                 <div class="login-a-field">
                     <label for="password" class="login-a-label">{{ __('Password') }}</label>
                     <div class="login-a-password">
-                        <input id="password" required name="password" type="password" class="login-a-input login-a-input-password{{ $errors->has('password') ? ' login-a-input-invalid' : '' }}" placeholder="{{ __('Password') }}" autocomplete="current-password">
+                        <span class="login-a-field-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                        </span>
+                        <input id="password" required name="password" type="password" class="login-a-input login-a-input-icon login-a-input-password{{ $errors->has('password') ? ' login-a-input-invalid' : '' }}" placeholder="{{ __('Password') }}" autocomplete="current-password">
                         <button type="button" id="login-a-toggle" class="login-a-eye" aria-label="Show password" aria-pressed="false">
                             <svg class="login-a-eye-show" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                             <svg class="login-a-eye-hide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>

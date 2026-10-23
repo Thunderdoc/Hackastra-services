@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Fee Defaulters')
+@section('page_icon')
+    <span class="l118-page-icon l118-red-tile" aria-hidden="true"><i class="icon-users4"></i></span>
+@endsection
 @section('page_breadcrumb')
     <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; <a href="{{ route('payments.manage') }}">Payments</a> &nbsp;/&nbsp; Fee Defaulters
 @endsection
@@ -56,7 +59,7 @@
     <div class="pay-def">
         @component('partials.patterns.list_page')
             @slot('subtitle')
-                Review outstanding student fees and manage payment follow-ups.
+                View students with pending fee payments and take necessary action.
             @endslot
             @slot('action')
                 <button type="button" class="btn btn-light btn-sm" onclick="window.print()"><i class="icon-printer mr-1"></i> Print</button>
@@ -132,7 +135,7 @@
                     </div>
                     <div class="pat-filter-field">
                         <label for="def_q">Search</label>
-                        <input type="text" id="def_q" name="q" class="form-control" value="{{ $q }}" placeholder="Name or admission no&hellip;">
+                        <input type="text" id="def_q" name="q" class="form-control" value="{{ $q }}" placeholder="Search by name, admission no&hellip;">
                     </div>
                     <div class="pat-filter-action">
                         <button type="submit" class="btn btn-primary"><i class="icon-filter3 mr-1"></i> Filter</button>
@@ -158,17 +161,25 @@
                     </div>
                 @else
                     <div class="print-hide">
+                        {{-- Loop 118: the reference's table-card head —
+                             title + subtext above the screen table. --}}
+                        <div class="l118-card-head">
+                            <div>
+                                <h6 class="l118-card-title"><i class="icon-users4 mr-1"></i> Defaulter Students</h6>
+                                <p class="l118-card-sub">List of students with pending fee payments.</p>
+                            </div>
+                        </div>
                         <table class="table def95-table l108-stack">
                             <thead>
                             <tr>
                                 <th style="width:34px">#</th>
-                                <th>Student</th>
+                                <th>Student Name</th>
                                 <th>Admission No</th>
                                 <th>Class</th>
                                 <th>Section</th>
                                 <th class="text-right">Total Fees</th>
                                 <th class="text-right">Paid</th>
-                                <th class="text-right">Balance Due</th>
+                                <th class="text-right">Total Due (₹)</th>
                                 <th>Status</th>
                                 <th class="text-right">Action</th>
                             </tr>
@@ -181,7 +192,7 @@
                                 @endphp
                                 <tr>
                                     <td data-label="#">{{ $rows->firstItem() + $loop->index }}</td>
-                                    <td data-label="Student">
+                                    <td data-label="Student Name">
                                         <span class="def95-student"><span class="l7-avatar l7-avatar-md" aria-hidden="true">{{ $def95Ini }}@if(Qs::hasRealPhoto($row['student']->user->photo))<img src="{{ $row['student']->user->photo }}" alt="" onerror="this.remove()">@endif</span><strong>{{ optional($row['student']->user)->name }}</strong></span>
                                     </td>
                                     <td data-label="Admission No">{{ $row['student']->adm_no ?: '—' }}</td>
@@ -189,7 +200,7 @@
                                     <td data-label="Section">{{ optional($row['student']->section)->name ?: '—' }}</td>
                                     <td class="text-right" data-label="Total Fees">{{ \App\Helpers\Money::inr($row['total_fees']) }}</td>
                                     <td class="text-right" data-label="Paid">{{ \App\Helpers\Money::inr($row['total_paid']) }}</td>
-                                    <td class="text-right def95-due" data-label="Balance Due">{{ \App\Helpers\Money::inr($row['total_due']) }}</td>
+                                    <td class="text-right def95-due" data-label="Total Due (₹)">{{ \App\Helpers\Money::inr($row['total_due']) }}</td>
                                     <td data-label="Status">
                                         @if($row['status'] === 'partial')
                                             <span class="def95-pill def95-pill-partial">Partially Paid</span>

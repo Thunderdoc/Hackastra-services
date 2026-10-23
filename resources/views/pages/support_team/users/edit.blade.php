@@ -6,8 +6,8 @@
          keeps its original name, id, classes, data attributes,
          required flags, $user bindings, @error hooks and error
          includes, the getLGA() cascade and the staff-only emp_date
-         block; one multipart PUT to users.update (class ajax-update
-         keeps the global AJAX submit handler bound, as before). The
+         block; one multipart PUT to users.update (Loop 112: plain
+         form, post-save lands on the users index). The
          user type stays a disabled, unsubmitted display field.
          Loop 106: premium design scope (.l106-users) — presentation
          only, same form pattern and fields. --}}
@@ -16,7 +16,6 @@
         'form_action'  => route('users.update', Qs::hash($user->id)),
         'form_method'  => 'PUT',
         'form_enctype' => 'multipart/form-data',
-        'form_class'   => 'ajax-update',
         'back'         => route('users.index'),
         'submit_label' => 'Save Changes',
     ])

@@ -27,9 +27,13 @@
     .cr97-doc-note{color:#718096;font-size:9px;margin-top:10px}
 </style>
 <div class="cr97-doc">
+    @php $crLogo = $doc_logo ?? Qs::getSetting('logo'); @endphp
     <div class="cr97-doc-head">
         <table>
             <tr>
+                @if($crLogo)
+                <td style="width:52px;vertical-align:middle;padding-right:10px"><img src="{{ $crLogo }}" style="max-height:44px;max-width:48px" alt=""></td>
+                @endif
                 <td>
                     <div class="cr97-doc-school">{{ Qs::getSystemName() }}</div>
                     <div class="cr97-doc-meta">{{ Qs::getSetting('address') }} &middot; Session: {{ Qs::getCurrentSession() }}</div>

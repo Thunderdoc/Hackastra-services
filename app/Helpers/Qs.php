@@ -30,6 +30,43 @@ class Qs
         return self::getSetting('system_title') ?: 'HACKSTRA';
     }
 
+    /** Per-request sequence registry for generateAdmNo(), keyed by prefix. */
+    protected static $admNoSeq = [];
+
+    /**
+     * The ONE admission-number generator for the whole app (Loop 111):
+     * APPCODE / CLASS-TYPE / YEAR-ADMITTED / SERIAL, where SERIAL is the
+     * next number in sequence for that prefix — never random, never
+     * taken from user input. Bulk imports, the Admit Student form and
+     * Quick Admit all mint numbers here, so a number means the same
+     * thing however the student arrived. The sequence continues from
+     * the highest numeric suffix already issued under the prefix
+     * (historic numbers were random 4–5 digit suffixes; the floor of
+     * 1000 keeps the 4-digit shape for a school's first student).
+     * Numbers burned by a row that later fails are simply skipped —
+     * a gap from a failure, never a duplicate.
+     */
+    public static function generateAdmNo($classTypeCode, $yearAdmitted)
+    {
+        $prefix = strtoupper(self::getAppCode() . '/' . $classTypeCode . '/' . trim((string) $yearAdmitted) . '/');
+
+        if (!isset(self::$admNoSeq[$prefix])) {
+            $max = 999;
+            $existing = StudentRecord::where('adm_no', 'like', $prefix . '%')->pluck('adm_no');
+            foreach ($existing as $adm) {
+                $suffix = substr((string) $adm, strlen($prefix));
+                if (ctype_digit($suffix)) {
+                    $max = max($max, (int) $suffix);
+                }
+            }
+            self::$admNoSeq[$prefix] = $max;
+        }
+
+        self::$admNoSeq[$prefix]++;
+
+        return $prefix . self::$admNoSeq[$prefix];
+    }
+
     public static function getDefaultUserImage()
     {
         return asset('global_assets/images/user.png');

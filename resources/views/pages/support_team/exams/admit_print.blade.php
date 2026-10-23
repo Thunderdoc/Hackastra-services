@@ -43,8 +43,15 @@
                height + overflow:hidden sliced the instructions and
                signature row off taller cards. break-inside keeps each
                card whole; two cards share a page when they fit. */
-            .admit-card { height: auto; overflow: visible; margin-bottom: 7mm; border-radius: 0; break-inside: avoid; page-break-inside: avoid; }
+            .admit-card { height: auto; overflow: visible; margin-bottom: 3mm; padding: 11px 20px; border-radius: 0; break-inside: avoid; page-break-inside: avoid; }
             .admit-card:last-child { margin-bottom: 0; }
+            /* Documents Premium pass: the layout's .content bottom
+               padding trailed the last card onto a blank final page,
+               and pairs of cards just missed sharing page 1 — zero
+               the trailing padding and tighten the sign row so the
+               sheet packs two cards per page with no empty page. */
+            .admit-sign { margin-top: 14px; }
+            .content { padding-bottom: 0 !important; }
         }
     </style>
 

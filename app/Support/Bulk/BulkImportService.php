@@ -54,7 +54,11 @@ class BulkImportService
 
     public function columnsFor(string $module, string $mode): array
     {
-        return $module === 'staff' ? StaffBulkModule::COLUMNS : StudentBulkModule::COLUMNS;
+        if ($module === 'staff') {
+            return StaffBulkModule::COLUMNS;
+        }
+        // Students: mode-aware (Loop 111) — add drops adm_no.
+        return $this->students->columnsFor($mode);
     }
 
     /**

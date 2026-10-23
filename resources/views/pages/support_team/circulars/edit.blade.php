@@ -1,5 +1,9 @@
 @extends('layouts.master')
 @section('page_title', 'Edit Circular')
+{{-- Loop 114: same header Back action as the create page. --}}
+@section('page_actions')
+    <a href="{{ route('circulars.index') }}" class="btn btn-light"><i class="icon-arrow-left13 mr-1"></i> Back to Circulars</a>
+@endsection
 @section('content')
     {{-- Workstream BA: rebuilt on the shared form_page pattern (Loop 28) —
          full-width sectioned form with a sticky action bar. Same contract

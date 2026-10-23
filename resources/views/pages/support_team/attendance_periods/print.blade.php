@@ -53,10 +53,21 @@
         @media print { body { padding: 0; } .doc { border: none; } .noprint { display: none; } }
         .printbar { max-width: 820px; margin: 0 auto 14px; text-align: right; }
         .printbar button { font: inherit; padding: 8px 18px; border: 1px solid #10263b; background: #10263b; color: #fff; border-radius: 6px; cursor: pointer; }
+        @if(!empty($for_pdf))
+        /* Documents Premium pass (dompdf only): tighter vertical
+           rhythm so the signatory block stays on page 1 with the
+           register table instead of spilling onto a second page. */
+        body { padding: 10px; }
+        .footer { margin-top: 14px; }
+        .footer td { padding-bottom: 10px; }
+        .sign .line { margin-top: 22px; }
+        @endif
     </style>
 </head>
 <body>
+@if(empty($for_pdf))
 <div class="printbar noprint"><button type="button" onclick="window.print()">Print</button></div>
+@endif
 <div class="doc">
     {{-- Watermark (v2): uploaded logo, else the app-code monogram --}}
     @php $rLogo = $s['logo'] ?? \App\Helpers\Qs::getSetting('logo'); @endphp

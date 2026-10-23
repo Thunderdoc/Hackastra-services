@@ -6,7 +6,7 @@
          dead anchors). Now: a class picker (?class_id=, filtered
          server-side, default = first class) + ONE table, and the
          create form as a form_page card. Create contract unchanged —
-         POST subjects.store via .ajax-store, same fields/validation;
+         POST subjects.store via a plain POST (Loop 112: post-save lands on the index), same fields/validation;
          row actions are the same Edit page + confirmDelete flow,
          rendered as buttons instead of a href="#" dropdown. --}}
     @component('partials.patterns.list_page')
@@ -91,7 +91,6 @@
         @if(Qs::userIsTeamSAWrite())
         @component('partials.patterns.form_page', [
             'form_action' => route('subjects.store'),
-            'form_class' => 'ajax-store',
             'submit_label' => 'Submit form',
         ])
             @slot('title')

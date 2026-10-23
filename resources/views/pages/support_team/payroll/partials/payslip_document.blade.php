@@ -17,8 +17,8 @@
     line. Itemised HRA/DA/PF/TDS rows are NEVER invented by
     splitting a stored total. School identity, contacts and the
     logo come from Settings, like every v2 document; the payslip
-    identifier is the record's own id — no numbering scheme is
-    fabricated.
+    identifier is presented as PS-{year}-{month}-{id} — the record's
+    own year, month and id, no numbering scheme is fabricated.
 
     One-page engineering: A4 portrait. The layout is table-only
     (dompdf-safe: no flex/grid/transforms), compact paddings, and
@@ -87,7 +87,7 @@
     /* Footer */
     .pslip-doc .ps-foot{margin-top:14px;border-top:1px solid #b9c6d4;padding-top:6px;}
     .pslip-doc .ps-foot td{font-size:11px;color:#44546a;padding:0;vertical-align:top;}
-    .pslip-doc .ps-foot .ps-gen{text-align:right;color:#718096;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;}
+    .pslip-doc .ps-foot .ps-gen{text-align:right;color:#718096;font-size:9.5px;}
     .pslip-doc .ps-sysline{text-align:center;color:#718096;font-size:10px;margin-top:8px;}
     @media print{
         .pslip-doc{padding:0;font-size:12px;}
@@ -97,7 +97,7 @@
 </style>
 
 @php
-    $psLogo = Qs::getSetting('logo');
+    $psLogo = $logo_pdf ?? Qs::getSetting('logo');
     $psPhone = Qs::getSetting('phone');
     $psEmail = Qs::getSetting('system_email');
     $psInitials = '';
@@ -109,6 +109,23 @@
     }
     if ($psInitials === '') { $psInitials = 'S'; }
     $psTotalEarnings = (float) $payroll->basic_salary + (float) $payroll->allowances;
+    // Loop 119: the reference document prints every amount with two
+    // decimals ("45,000.00"). Money::indianFormat drops a zero
+    // fraction, so the document formats its own amounts here —
+    // Indian grouping, always two decimals, values unchanged.
+    $psDocAmt = function ($v) {
+        $v = (float) $v;
+        $neg = $v < 0 ? '-' : '';
+        $parts = explode('.', number_format(abs($v), 2, '.', ''));
+        $whole = $parts[0];
+        if (strlen($whole) > 3) {
+            $lastThree = substr($whole, -3);
+            $rest = substr($whole, 0, -3);
+            $rest = preg_replace('/\B(?=(\d{2})+(?!\d))/', ',', $rest);
+            $whole = $rest . ',' . $lastThree;
+        }
+        return $neg . $whole . '.' . $parts[1];
+    };
 @endphp
 
 <div class="pslip-doc">
@@ -182,18 +199,18 @@
                 <td style="width:49%;">
                     <table class="ps-panel ps-earn">
                         <tr><th>EARNINGS</th><th class="ps-amt-head">AMOUNT (₹)</th></tr>
-                        <tr><td>Basic Salary</td><td class="ps-amt">{{ \App\Helpers\Money::indianFormat($payroll->basic_salary) }}</td></tr>
-                        <tr><td>Allowances</td><td class="ps-amt">{{ \App\Helpers\Money::indianFormat($payroll->allowances) }}</td></tr>
-                        <tr class="ps-total"><td>Total Earnings</td><td class="ps-amt">{{ \App\Helpers\Money::indianFormat($psTotalEarnings) }}</td></tr>
+                        <tr><td>Basic Salary</td><td class="ps-amt">{{ $psDocAmt($payroll->basic_salary) }}</td></tr>
+                        <tr><td>Allowances</td><td class="ps-amt">{{ $psDocAmt($payroll->allowances) }}</td></tr>
+                        <tr class="ps-total"><td>Total Earnings</td><td class="ps-amt">{{ $psDocAmt($psTotalEarnings) }}</td></tr>
                     </table>
                 </td>
                 <td style="width:2%;"></td>
                 <td style="width:49%;">
                     <table class="ps-panel ps-ded">
                         <tr><th>DEDUCTIONS</th><th class="ps-amt-head">AMOUNT (₹)</th></tr>
-                        <tr><td>Deductions</td><td class="ps-amt">{{ \App\Helpers\Money::indianFormat($payroll->deductions) }}</td></tr>
+                        <tr><td>Deductions</td><td class="ps-amt">{{ $psDocAmt($payroll->deductions) }}</td></tr>
                         <tr><td>&nbsp;</td><td class="ps-amt">&nbsp;</td></tr>
-                        <tr class="ps-total"><td>Total Deductions</td><td class="ps-amt">{{ \App\Helpers\Money::indianFormat($payroll->deductions) }}</td></tr>
+                        <tr class="ps-total"><td>Total Deductions</td><td class="ps-amt">{{ $psDocAmt($payroll->deductions) }}</td></tr>
                     </table>
                 </td>
             </tr>
@@ -205,7 +222,7 @@
                 <td class="ps-net-tile"><span class="ps-net-glyph" aria-hidden="true">₹</span></td>
                 <td>
                     <div class="ps-net-lab">NET PAY</div>
-                    <div class="ps-net-amt">{{ \App\Helpers\Money::inr($payroll->net_pay) }}</div>
+                    <div class="ps-net-amt">₹ {{ $psDocAmt($payroll->net_pay) }}</div>
                     <div class="ps-net-words">Rupees {{ $net_words }} Only</div>
                 </td>
             </tr>
@@ -231,8 +248,8 @@
                     @endif
                 </td>
                 <td>
-                    <div class="ps-lab">Payslip No</div>
-                    <div class="ps-val">#{{ $payroll->id }}</div>
+                    <div class="ps-lab">Payslip ID</div>
+                    <div class="ps-val">PS-{{ $payroll->year }}-{{ str_pad((string) $payroll->month, 2, '0', STR_PAD_LEFT) }}-{{ str_pad((string) $payroll->id, 3, '0', STR_PAD_LEFT) }}</div>
                 </td>
             </tr>
         </table>
@@ -257,8 +274,7 @@
         <table class="ps-foot">
             <tr>
                 <td>
-                    <strong>Date of Issue:</strong> {{ date('d M Y') }}
-                    @if($payroll->creator)<br/>Recorded by {{ $payroll->creator->name }}@endif
+                    Generated on {{ ($payroll->paid_at ?: $payroll->created_at)->format('d M Y') }}@if($payroll->creator) by {{ $payroll->creator->name }}@endif
                 </td>
                 <td class="ps-gen">Generated by Hackstra School Management System</td>
             </tr>

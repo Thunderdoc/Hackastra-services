@@ -7,11 +7,10 @@
          only: the editable fields keep their names and values
          (title, description), and Class / Method / Amount stay
          read-only display values that are never submitted, exactly
-         as before, in one ajax-update PUT to payments.update. --}}
+         as before, in one plain PUT to payments.update (Loop 112: post-save lands on the index). --}}
     @component('partials.patterns.form_page', [
         'form_action'  => route('payments.update', $payment->id),
         'form_method'  => 'PUT',
-        'form_class'   => 'ajax-update',
         'back'         => route('payments.index'),
         'submit_label' => 'Submit form',
     ])

@@ -7,7 +7,7 @@
          with the create form in a narrow half-column tab pane and
          the page title repeated as the card heading. Now: list_page
          table + form_page create card below. Create contract
-         unchanged — POST dorms.store via .ajax-store, same fields;
+         POST dorms.store via a plain form (Loop 112: post-save lands on the index), same fields;
          row actions are the same Edit page + confirmDelete flow,
          rendered as buttons instead of a href="#" dropdown. --}}
 
@@ -65,7 +65,6 @@
         @if(Qs::userIsTeamSAWrite())
         @component('partials.patterns.form_page', [
             'form_action' => route('dorms.store'),
-            'form_class' => 'ajax-store',
             'submit_label' => 'Submit form',
         ])
             @slot('title')

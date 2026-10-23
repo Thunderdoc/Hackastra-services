@@ -1,12 +1,12 @@
 @extends('layouts.master')
 @section('page_title', 'My Timetable')
 @section('page_breadcrumb')
-    <a href="{{ route('dashboard') }}">Home</a> &nbsp;/&nbsp; Academics &nbsp;/&nbsp; My Timetable
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Academics &nbsp;/&nbsp; My Timetable
 @endsection
 @section('page_actions')
     @if($mode === 'teacher')
+        <a target="_blank" href="{{ route('tt.mine_print') }}" class="btn btn-light"><i class="icon-printer mr-1"></i> Print</a>
         <a href="{{ route('tt.mine_pdf') }}" class="btn btn-light"><i class="icon-file-pdf mr-1"></i> Download PDF</a>
-        <a target="_blank" href="{{ route('tt.mine_print') }}" class="btn btn-primary"><i class="icon-printer mr-1"></i> Print</a>
     @elseif($ttr)
         <a target="_blank" href="{{ route('ttr.print', $ttr->id) }}" class="btn btn-primary"><i class="icon-printer mr-1"></i> Print</a>
     @endif
@@ -36,12 +36,14 @@
             }
         @endphp
 
+        <p class="ma-intro">View your weekly teaching schedule for the current academic session.</p>
+
         <div class="row dashboard-stats">
             @foreach([
-                ['label' => 'Teaching Periods', 'value' => $stats['periods'], 'sub' => 'Periods per week', 'icon' => 'icon-stack', 'tone' => 'blue'],
+                ['label' => 'Teaching Periods', 'value' => $stats['periods'], 'sub' => 'per week', 'icon' => 'icon-stack', 'tone' => 'blue'],
                 ['label' => 'Working Days', 'value' => $stats['work_days'], 'sub' => $stats['days_range'] !== '' ? $stats['days_range'] : 'No days scheduled', 'icon' => 'icon-calendar52', 'tone' => 'green'],
                 ['label' => 'Periods per Day', 'value' => $stats['per_day'] !== null ? $stats['per_day'] : 'Varies', 'sub' => $stats['duration'] !== null ? $stats['duration'] . ' minutes each' : 'Durations vary', 'icon' => 'icon-alarm', 'tone' => 'orange'],
-                ['label' => 'Classes', 'value' => $stats['classes']->count(), 'sub' => $stats['classes']->implode(', ') ?: 'None assigned', 'icon' => 'icon-users', 'tone' => 'purple'],
+                ['label' => 'Classes', 'value' => $stats['classes']->count(), 'sub' => $stats['classes']->isNotEmpty() ? $stats['classes']->implode(', ') . ' · Assigned Classes' : 'None assigned', 'icon' => 'icon-users', 'tone' => 'purple'],
             ] as $stat)
                 <div class="col-sm-6 col-xl-3">
                     <div class="dashboard-stat-card dashboard-stat-{{ $stat['tone'] }}">
@@ -66,7 +68,7 @@
                     </div>
                 @else
                     <div class="l81-mine-toolbar">
-                        <p class="ttx-lead" style="margin:0">Your weekly teaching periods &middot; <strong>{{ $period_count }}</strong> period{{ $period_count === 1 ? '' : 's' }} a week</p>
+                        <p class="ttx-lead" style="margin:0">Weekly Timetable</p>
                         <div class="btn-group l81-view-toggle" role="group" aria-label="Timetable view">
                             <button type="button" class="btn btn-primary btn-sm" id="l81-btn-week" aria-pressed="true"><i class="icon-grid6 mr-1"></i> Week View</button>
                             <button type="button" class="btn btn-light btn-sm" id="l81-btn-list" aria-pressed="false"><i class="icon-list mr-1"></i> List View</button>
@@ -145,7 +147,7 @@
 
                     <div class="l81-note">
                         <i class="icon-info22" aria-hidden="true"></i>
-                        <span>This is your personal teaching timetable for the current academic session. For any changes, please contact the school administrator.</span>
+                        <span><strong>Note:</strong> This is your personal teaching timetable for the current academic session. For any changes, please contact the school administrator.</span>
                     </div>
                 @endif
             </div>

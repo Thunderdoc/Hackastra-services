@@ -49,7 +49,8 @@ class SubjectController extends Controller
         $data = $req->all();
         $this->my_class->createSubject($data);
 
-        return Qs::jsonStoreOk();
+        // Loop 112: post-save lands on the subjects index (owner ruling).
+        return Qs::storeOk('subjects.index');
     }
 
     public function edit($id)
@@ -67,7 +68,8 @@ class SubjectController extends Controller
         $data = $req->all();
         $this->my_class->updateSubject(Qs::resolveId($id), $data);
 
-        return Qs::jsonUpdateOk();
+        // Loop 112: post-save lands on the subjects index (owner ruling).
+        return Qs::updateOk('subjects.index');
     }
 
     public function destroy($id)

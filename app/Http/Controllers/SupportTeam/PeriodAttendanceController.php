@@ -318,6 +318,23 @@ class PeriodAttendanceController extends Controller
         return view('pages.support_team.attendance_periods.print', $d);
     }
 
+    /* Map a stored upload URL (/storage/...) to a base64 data URI read
+       from the local file, for renderers that cannot fetch URLs
+       (dompdf). Anything that is not a local storage file is returned
+       unchanged. (Same helper as MarkController/CircularController.) */
+    protected function pdfImageDataUri($url)
+    {
+        $path = parse_url($url, PHP_URL_PATH);
+        if ($path && \Illuminate\Support\Str::startsWith($path, '/storage/')) {
+            $local = storage_path('app/public/' . \Illuminate\Support\Str::after($path, '/storage/'));
+            if (is_file($local)) {
+                $mime = mime_content_type($local) ?: 'image/png';
+                return 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($local));
+            }
+        }
+        return $url;
+    }
+
     /** The register document as a PDF download (dompdf). */
     public function pdfRegister(Request $request, $session_id)
     {
@@ -325,6 +342,16 @@ class PeriodAttendanceController extends Controller
         $d['s'] = Setting::all()->flatMap(function ($s) {
             return [$s->type => $s->description];
         });
+
+        /* Documents Premium pass: mark the dompdf rendering so the
+           blade hides its screen-only Print bar (dompdf ignores the
+           @media print rule that hides it in the browser) and uses
+           compact spacing; inline the Settings logo as a data URI —
+           dompdf cannot fetch the URL, the browser print keeps it. */
+        $d['for_pdf'] = true;
+        if (!empty($d['s']['logo'])) {
+            $d['s']['logo'] = $this->pdfImageDataUri($d['s']['logo']);
+        }
 
         $session = $d['session'];
         $pdf_name = 'Attendance_Register_'
