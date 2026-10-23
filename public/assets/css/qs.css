@@ -691,7 +691,27 @@ a.par-reminder-info:hover{background:#e2ebfa}/* ============ Loop 15 — Librari
     .login-a-wordmark{font-size:1.55rem}
     .login-a-title{font-size:1.6rem}
     .login-a-sub{margin-bottom:24px}
-}/* =====================================================================
+}/* ----- Light theme variant (owner white-mode ask, 2026-10-23) -----
+   The login follows the visitor's saved theme: when hk-theme is light
+   (no .hk-dark on <html>), the page backdrop, brand panel and legal
+   line switch to a bright scheme. The dark (default) design above is
+   untouched. */
+html:not(.hk-dark) .login-a-page{background-color:#e8eef8;background-image:radial-gradient(1100px 620px at 88% -10%,rgba(46,109,230,.16),rgba(46,109,230,0) 60%),radial-gradient(920px 540px at -12% 112%,rgba(46,109,230,.12),rgba(46,109,230,0) 60%),linear-gradient(180deg,#eef3fb 0%,#e2eaf7 100%)}
+html:not(.hk-dark) .login-a-card{box-shadow:0 32px 80px rgba(23,52,96,.18),0 4px 18px rgba(23,52,96,.10)}
+html:not(.hk-dark) .login-a-brand{background-color:#dbe8fb;background-image:linear-gradient(165deg,rgba(219,232,251,.90) 0%,rgba(233,240,253,.93) 52%,rgba(240,245,254,.97) 100%),url('../img/ai/login-campus.jpg'),linear-gradient(158deg,#cfe1fb 0%,#dde9fc 56%,#e8f0fd 100%);color:#0b2239}
+html:not(.hk-dark) .login-a-school-name{color:#0b2239}
+html:not(.hk-dark) .login-a-school-caption{color:#2e6de6}
+html:not(.hk-dark) .login-a-school-tile{box-shadow:0 10px 24px rgba(23,52,96,.16)}
+html:not(.hk-dark) .login-a-brand-title{color:#0b2239}
+html:not(.hk-dark) .login-a-brand-tag{color:#3d5a80}
+html:not(.hk-dark) .login-a-brand-list li{color:#22344d}
+html:not(.hk-dark) .login-a-brand-list li strong{color:#0b2239}
+html:not(.hk-dark) .login-a-hexes{stroke:#7aa5e8}
+html:not(.hk-dark) .login-a-sparks{fill:#2e6de6}
+html:not(.hk-dark) .login-a-legal{color:rgba(38,58,88,.75)}
+html:not(.hk-dark) .login-a-legal a{color:#1d4fa3}
+html:not(.hk-dark) .login-a-legal a:hover{color:#0b2239}
+/* =====================================================================
    Loop 17 — Batch 6 layout fixes (live browser audit + owner screenshot)
    ---------------------------------------------------------------------
    L1 Platform home: Loop 7's equal-height rule
