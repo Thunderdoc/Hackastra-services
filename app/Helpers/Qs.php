@@ -67,6 +67,63 @@ class Qs
         return $prefix . self::$admNoSeq[$prefix];
     }
 
+    /**
+     * ADM-01 (program Phase 3, 2026-10-23): create a student with a
+     * system-minted admission number, collision-safe. generateAdmNo()
+     * sequences within one request, but two CONCURRENT requests can
+     * mint the same next number — the DB UNIQUE index then turns the
+     * loser's insert into a 500 (and, in the non-transactional manual
+     * flow, an orphaned login account). Here the create runs through
+     * $createWithAdmNo($admNo); on a unique violation the sequence is
+     * re-seeded from the database and a fresh number is tried, up to
+     * 5 attempts. Only admission-number/username unique violations
+     * are retried — every other failure rethrows untouched. A number
+     * the ADMIN typed is never routed through here (it must fail
+     * loudly, never be silently renumbered).
+     */
+    public static function mintStudent(callable $createWithAdmNo, $classTypeCode, $yearAdmitted, int $tries = 5)
+    {
+        $last = null;
+        for ($i = 0; $i < $tries; $i++) {
+            if ($i > 0) {
+                // A collision happened: forget the cached sequence so
+                // the next mint re-reads the true database maximum.
+                self::$admNoSeq = [];
+            }
+            $admNo = self::generateAdmNo($classTypeCode, $yearAdmitted);
+            if (StudentRecord::where('adm_no', $admNo)->exists()) {
+                $last = new \RuntimeException("Admission number {$admNo} already exists.");
+                continue;
+            }
+            try {
+                return $createWithAdmNo($admNo);
+            } catch (\Illuminate\Database\QueryException $e) {
+                // Retry ONLY an admission-number/username collision —
+                // any other failure (including a different unique key,
+                // e.g. a duplicate email) is the caller's real error
+                // and must surface immediately, not burn retries.
+                $msg = $e->getMessage();
+                $admCollision = self::isUniqueViolation($e)
+                    && (stripos($msg, 'adm_no') !== false || stripos($msg, 'username') !== false);
+                if (!$admCollision) {
+                    throw $e;
+                }
+                $last = $e;
+            }
+        }
+        throw $last ?: new \RuntimeException('Could not allocate a unique admission number.');
+    }
+
+    /** True when the query exception is a unique-constraint violation. */
+    public static function isUniqueViolation(\Illuminate\Database\QueryException $e): bool
+    {
+        if (in_array((string) $e->getCode(), ['23000', '23505'], true)) {
+            return true;
+        }
+        $msg = $e->getMessage();
+        return stripos($msg, 'unique') !== false || stripos($msg, 'duplicate entry') !== false;
+    }
+
     public static function getDefaultUserImage()
     {
         return asset('global_assets/images/user.png');

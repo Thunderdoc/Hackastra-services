@@ -58,12 +58,26 @@ Residual (Phase 4): `use_time_slot` replaces a record's slot
 definitions wholesale; its interaction with existing cells/sessions
 needs the same examination.
 
-### ADM-01 — Admission-number collision under concurrency 500s (Low)
-`Qs::generateAdmNo()` reads max+1; the UNIQUE index (V-05) turns a
-simultaneous collision into an insert exception instead of a silent
-duplicate — integrity holds, but the unlucky request sees a 500
-rather than a retry. Fix candidate: retry-on-unique-violation around
-student creation (manual + CSV import share the service).
+### ADM-01 — Admission-number collision under concurrency 500s (Low, FIXED 2026-10-23)
+`Qs::generateAdmNo()` sequences within one request; two concurrent
+requests could mint the same next number — the UNIQUE index (V-05)
+then turned the loser's insert into a 500, and the manual Admit
+form (not transactional) orphaned the login account it had just
+created. Fixed with `Qs::mintStudent()`: all three creation paths
+(Admit form, Quick Admit, CSV import) now create user + record in
+one transaction through the service, which re-seeds the sequence
+from the database and retries with a fresh number ONLY on an
+adm_no/username unique violation (any other failure rethrows
+immediately). Admin-TYPED numbers are never renumbered — and the
+typed path got its own fix: `StudentRecordCreate`'s
+`unique:student_records` rule compared the typed SUFFIX against
+stored COMPOSITE numbers so it could never fire; it now builds the
+composite and refuses duplicates with a form error (QuickAdmit
+parity). Verified: occupied next-number is skipped (1000→1001);
+a simulated lost race retries and lands on the next number
+(2 attempts → 1002); a real duplicate typed number returns to the
+form with "Admission number … already exists" and creates nothing;
+both forms still mint sequential numbers on the happy path.
 
 ## Features delivered under the program
 

@@ -114,13 +114,28 @@ class StudentRecordController extends Controller
             $data['photo'] = asset('storage/' . $f['path']);
         }
 
-        $user = $this->user->create($data); // Create User
-
-        $sr['adm_no'] = $data['username'];
-        $sr['user_id'] = $user->id;
+        /* ADM-01 (2026-10-23): the user + record now commit in one
+           transaction, and a system-minted admission number goes
+           through Qs::mintStudent so a concurrent admission minting
+           the same number retries with a fresh one instead of 500ing
+           (and orphaning the login). An admin-typed number is used
+           exactly as given — a collision there must surface, never
+           silently renumber the student. */
         $sr['session'] = Qs::getSetting('current_session');
-
-        $this->student->createRecord($sr); // Create Student
+        $createStudent = function ($username) use ($data, $sr) {
+            $data['username'] = $username;
+            $sr['adm_no'] = $username;
+            DB::transaction(function () use ($data, $sr) {
+                $user = $this->user->create($data); // Create User
+                $sr['user_id'] = $user->id;
+                $this->student->createRecord($sr); // Create Student
+            });
+        };
+        if ($adm_no) {
+            $createStudent($data['username']);
+        } else {
+            Qs::mintStudent($createStudent, $ct, $sr['year_admitted']);
+        }
         // Loop 112: post-save lands on the student's class list (owner
         // ruling) — was Qs::jsonStoreOk() (a raw JSON response to a
         // plain form POST).
@@ -187,11 +202,21 @@ class StudentRecordController extends Controller
             'session' => Qs::getSetting('current_session'),
         ];
 
-        $record = DB::transaction(function () use ($data, $sr) {
-            $user = $this->user->create($data); // Create User
-            $sr['user_id'] = $user->id;
-            return $this->student->createRecord($sr); // Create Student
-        });
+        /* ADM-01 companion: a system-minted number is allocated via
+           Qs::mintStudent (collision retry); an admin-typed number is
+           attempted exactly once, as given. */
+        $createStudent = function ($username) use ($data, $sr) {
+            $data['username'] = $username;
+            $sr['adm_no'] = $username;
+            return DB::transaction(function () use ($data, $sr) {
+                $user = $this->user->create($data); // Create User
+                $sr['user_id'] = $user->id;
+                return $this->student->createRecord($sr); // Create Student
+            });
+        };
+        $record = $adm_no
+            ? $createStudent($data['username'])
+            : Qs::mintStudent($createStudent, $ct, $req->q_year_admitted);
 
         Audit::log('student.quick_admitted', $record,
             'Quick-admitted ' . $data['name'] . ' (' . $data['username'] . ') — profile details pending completion.');

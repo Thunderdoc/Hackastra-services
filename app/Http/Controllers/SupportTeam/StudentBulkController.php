@@ -383,50 +383,53 @@ class StudentBulkController extends Controller
         // sequential per class type + year via the one generator the
         // Admit Student form also uses. A value in the sheet is never
         // read: allocation is the system's job, not the uploader's.
-        $username = Qs::generateAdmNo($row['class_type']->code, $row['year_admitted']);
+        // ADM-01 (2026-10-23): creation goes through Qs::mintStudent —
+        // a number another request took a moment ago (or one already
+        // minted earlier in this same import) is re-minted and retried
+        // instead of failing the row; $seenUsernames is honoured by
+        // minting past any number this import already used.
+        $create = function ($username) use ($row) {
+            $data = [
+                'name' => ucwords(trim($row['name'])),
+                'email' => !empty($row['email']) ? trim($row['email']) : null,
+                'phone' => !empty($row['phone']) ? trim($row['phone']) : null,
+                'phone2' => !empty($row['phone2']) ? trim($row['phone2']) : null,
+                'dob' => !empty($row['dob']) ? $row['dob'] : null,
+                'gender' => $row['gender'],
+                'address' => trim($row['address']),
+                'bg_id' => $row['bg_id'] ?? null,
+                'nal_id' => $row['nal_id'],
+                'state_id' => $row['state_id'],
+                'lga_id' => $row['lga_id'],
+                'user_type' => 'student',
+                'code' => strtoupper(Str::random(10)),
+                'password' => Hash::make('student'),
+                'photo' => Qs::getDefaultUserImage(),
+                'username' => $username,
+            ];
 
-        if (in_array($username, $seenUsernames, true) || StudentRecord::where('adm_no', $username)->exists()) {
-            throw new \RuntimeException("Admission number {$username} already exists.");
-        }
+            $sr = [
+                'my_class_id' => $row['my_class_id'],
+                'section_id' => $row['section_id'],
+                'my_parent_id' => $row['my_parent_id'] ?? null,
+                'dorm_id' => $row['dorm_id'] ?? null,
+                'dorm_room_no' => !empty($row['dorm_room_no']) ? trim($row['dorm_room_no']) : null,
+                'year_admitted' => trim($row['year_admitted']),
+                'house' => !empty($row['house']) ? trim($row['house']) : null,
+                'adm_no' => $username,
+                'session' => Qs::getSetting('current_session'),
+            ];
 
-        $data = [
-            'name' => ucwords(trim($row['name'])),
-            'email' => !empty($row['email']) ? trim($row['email']) : null,
-            'phone' => !empty($row['phone']) ? trim($row['phone']) : null,
-            'phone2' => !empty($row['phone2']) ? trim($row['phone2']) : null,
-            'dob' => !empty($row['dob']) ? $row['dob'] : null,
-            'gender' => $row['gender'],
-            'address' => trim($row['address']),
-            'bg_id' => $row['bg_id'] ?? null,
-            'nal_id' => $row['nal_id'],
-            'state_id' => $row['state_id'],
-            'lga_id' => $row['lga_id'],
-            'user_type' => 'student',
-            'code' => strtoupper(Str::random(10)),
-            'password' => Hash::make('student'),
-            'photo' => Qs::getDefaultUserImage(),
-            'username' => $username,
-        ];
+            DB::transaction(function () use ($data, $sr) {
+                $user = $this->user->create($data);
+                $sr['user_id'] = $user->id;
+                $this->student->createRecord($sr);
+            });
 
-        $sr = [
-            'my_class_id' => $row['my_class_id'],
-            'section_id' => $row['section_id'],
-            'my_parent_id' => $row['my_parent_id'] ?? null,
-            'dorm_id' => $row['dorm_id'] ?? null,
-            'dorm_room_no' => !empty($row['dorm_room_no']) ? trim($row['dorm_room_no']) : null,
-            'year_admitted' => trim($row['year_admitted']),
-            'house' => !empty($row['house']) ? trim($row['house']) : null,
-            'adm_no' => $username,
-            'session' => Qs::getSetting('current_session'),
-        ];
+            return $username;
+        };
 
-        DB::transaction(function () use ($data, $sr) {
-            $user = $this->user->create($data);
-            $sr['user_id'] = $user->id;
-            $this->student->createRecord($sr);
-        });
-
-        return $username;
+        return Qs::mintStudent($create, $row['class_type']->code, $row['year_admitted']);
     }
 
     /**************** BULK DELETE ****************/

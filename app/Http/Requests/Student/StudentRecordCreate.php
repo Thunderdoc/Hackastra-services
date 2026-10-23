@@ -3,7 +3,10 @@
 namespace App\Http\Requests\Student;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Validator;
 use App\Helpers\Qs;
+use App\Models\StudentRecord;
+use App\Repositories\MyClassRepo;
 
 class StudentRecordCreate extends FormRequest
 {
@@ -22,7 +25,7 @@ class StudentRecordCreate extends FormRequest
     {
         return [
             'name' => 'required|string|min:6|max:150',
-            'adm_no' => 'sometimes|nullable|alpha_num|min:3|max:150|unique:student_records',
+            'adm_no' => 'sometimes|nullable|alpha_num|min:3|max:150',
             'gender' => 'required|string',
             'year_admitted' => 'required|string',
             'phone' => 'sometimes|nullable|string|min:6|max:20',
@@ -52,6 +55,35 @@ class StudentRecordCreate extends FormRequest
             'bg_id' => 'Blood Group',
             'my_parent_id' => 'Parent',
         ];
+    }
+
+    /**
+     * ADM-01 companion (2026-10-23): a typed admission number is only
+     * the SUFFIX of the stored composite (APPCODE/TYPE/YEAR/SUFFIX),
+     * so the old unique:student_records rule compared unlike values
+     * and never fired — a duplicate typed number reached the DB
+     * unique index and 500'd. Build the composite exactly as the
+     * controller does and refuse it here with a form error, the same
+     * check QuickAdmitRequest runs.
+     */
+    public function withValidator(Validator $validator)
+    {
+        $validator->after(function (Validator $validator) {
+            $admNo = trim((string) $this->input('adm_no'));
+            $classId = $this->input('my_class_id');
+            $year = $this->input('year_admitted');
+            if ($admNo === '' || !$classId || !$year) {
+                return;
+            }
+            $type = app(MyClassRepo::class)->findTypeByClass($classId);
+            if (!$type) {
+                return;
+            }
+            $composite = strtoupper(Qs::getAppCode() . '/' . $type->code . '/' . trim((string) $year) . '/' . $admNo);
+            if (StudentRecord::where('adm_no', $composite)->exists()) {
+                $validator->errors()->add('adm_no', "Admission number {$composite} already exists.");
+            }
+        });
     }
 
     protected function getValidatorInstance()
