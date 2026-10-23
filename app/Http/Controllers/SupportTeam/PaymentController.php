@@ -570,6 +570,13 @@ class PaymentController extends Controller
     public function destroy($id)
     {
         $payment = $this->pay->find($id);
+        /* LED-02 guard (2026-10-23, Phase 6): a fee definition with
+           student records on it is ledger history — deleting it
+           orphans every record, receipt and balance under it.
+           Only an unused definition can be deleted. */
+        if ($payment && \App\Models\PaymentRecord::where('payment_id', $payment->id)->exists()) {
+            return back()->with('flash_danger', 'This fee already has student payment records — it cannot be deleted. Fees in use are part of the ledger history.');
+        }
         if ($payment) { $payment->delete(); Audit::log('payment.deleted', $payment, 'Payment definition deleted'); }
 
         return Qs::deleteOk('payments.index');
@@ -592,7 +599,16 @@ class PaymentController extends Controller
     {
         $record = $this->pay->findRecord($id);
         if ($record) { $this->authorize('update', $record); }
-        $pr['amt_paid'] = $pr['paid'] = $pr['balance'] = 0;
+        /* LED-01 (2026-10-23, Phase 6): a reset undoes the payments
+           recorded against this record — the student then owes the
+           FULL fee again. The old code also zeroed the balance,
+           which made the record read as settled (invisible to Fee
+           Defaulters, whose lists are balance-driven) while the
+           whole fee was still owed. Balance now returns to the
+           payment's amount, keeping the ledger invariant
+           balance == amount - amt_paid true for every record. */
+        $pr['amt_paid'] = $pr['paid'] = 0;
+        $pr['balance'] = $record && $record->payment ? (int) $record->payment->amount : 0;
         $this->pay->updateRecord($id, $pr);
         Audit::log('payment.reset', $record ?? null, 'Payment record reset to zero');
         $this->pay->deleteReceipts(['pr_id' => $id]);

@@ -27,3 +27,4 @@ _ide_helper_models.php
 /storage/app/backups
 /storage/logs/*.log
 /public/uploads/private
+.phpunit.cache

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\SupportTeam;
 
 use App\Helpers\Qs;
+use App\Support\Staffing;
 use App\Http\Requests\Subject\SubjectCreate;
 use App\Http\Requests\Subject\SubjectUpdate;
 use App\Repositories\MyClassRepo;
@@ -44,9 +45,41 @@ class SubjectController extends Controller
         return view('pages.support_team.subjects.index', $d);
     }
 
+
+    /**
+     * Slice C parity rule: a manual teacher assignment must pass
+     * the same eligibility check the allocation engine uses — but
+     * only once the school has started recording eligibility for
+     * that subject name (a non-empty pool). With an empty pool the
+     * assignment stays free (adoption path) and the staffing
+     * dashboard flags the subject as having no eligible teacher
+     * recorded; the pool can never be bypassed once it exists.
+     */
+    protected function eligibilityRefusal($teacherId, $subjectName)
+    {
+        if (!$teacherId || !$subjectName) {
+            return null;
+        }
+        $pool = Staffing::eligibleTeacherIds($subjectName);
+        if (!empty($pool) && !in_array((int) $teacherId, $pool, true)) {
+            $teacher = \App\User::find($teacherId);
+            return back()->with('flash_danger', ($teacher ? $teacher->name : 'That teacher')
+                . ' is not eligible to teach ' . $subjectName
+                . ' — record their eligibility first (Teacher Eligibility page).')->withInput();
+        }
+
+        return null;
+    }
+
     public function store(SubjectCreate $req)
     {
         $data = $req->all();
+        // Slice A: an unchecked "needs double period" box posts
+        // nothing — normalize it so create/update mean the same.
+        $data['needs_double'] = $req->boolean('needs_double');
+        if ($refusal = $this->eligibilityRefusal(Qs::resolveId($data['teacher_id'] ?? null), $data['name'] ?? null)) {
+            return $refusal;
+        }
         $this->my_class->createSubject($data);
 
         // Loop 112: post-save lands on the subjects index (owner ruling).
@@ -66,6 +99,14 @@ class SubjectController extends Controller
     public function update(SubjectUpdate $req, $id)
     {
         $data = $req->all();
+        $data['needs_double'] = $req->boolean('needs_double');
+        if (!empty($data['teacher_id'])) {
+            $existing = $this->my_class->findSubject(Qs::resolveId($id));
+            $name = $data['name'] ?? ($existing ? $existing->name : null);
+            if ($refusal = $this->eligibilityRefusal(Qs::resolveId($data['teacher_id']), $name)) {
+                return $refusal;
+            }
+        }
         $this->my_class->updateSubject(Qs::resolveId($id), $data);
 
         // Loop 112: post-save lands on the subjects index (owner ruling).

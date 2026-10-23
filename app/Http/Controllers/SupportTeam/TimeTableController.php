@@ -8,6 +8,7 @@ use App\Http\Requests\TimeTable\TTRecordRequest;
 use App\Http\Requests\TimeTable\TTRequest;
 use App\Http\Requests\TimeTable\UseTimeSlotRequest;
 use App\Models\AttendanceSession;
+use App\Support\TimetableValidator;
 use App\Models\MyClass;
 use App\Models\Section;
 use App\Models\Setting;
@@ -251,7 +252,35 @@ class TimeTableController extends Controller
             : MyClass::orderBy('id')->get();
 
         $teacherBusy = []; // [day][slot][teacher_id] = true, across ALL classes
-        $summary = ['generated' => [], 'skipped' => [], 'no_subjects' => [], 'locked' => [], 'placed' => 0, 'empty' => 0];
+        /* Slice D follow-up (2026-10-23, found by the validator):
+           the busy map must also respect timetables that already
+           exist and are NOT being regenerated in this run — a
+           single-class regeneration used to be blind to every other
+           class's record and could double-book their teachers.
+           Kept records (out of scope, skip mode, or attendance-
+           locked) preload a by-time busy map; placement checks both
+           maps. Records with a different period grid are matched by
+           slot start time — the validator remains the final check. */
+        $busyByTime = []; // [day][startMinute][teacher_id] = true
+        $scopeIds = $classes->pluck('id')->all();
+        $existingRecords = TimeTableRecord::whereNull('exam_id')->where('year', $this->year)->get();
+        foreach ($existingRecords as $existing) {
+            $inScope = in_array($existing->my_class_id, $scopeIds, true);
+            if ($inScope && $data['mode'] === 'replace') {
+                $locked = TimeTable::where('ttr_id', $existing->id)
+                    ->whereIn('id', AttendanceSession::pluck('time_table_id'))->exists();
+                if (!$locked) {
+                    continue; // this record is being rebuilt below
+                }
+            }
+            foreach (TimeTable::where('ttr_id', $existing->id)->with('subject')->get() as $cell) {
+                if ($cell->subject && $cell->subject->teacher_id) {
+                    $minute = (int) date('H', (int) $cell->timestamp_from) * 60 + (int) date('i', (int) $cell->timestamp_from);
+                    $busyByTime[$cell->day_num][$minute][$cell->subject->teacher_id] = true;
+                }
+            }
+        }
+        $summary = ['generated' => [], 'skipped' => [], 'no_subjects' => [], 'locked' => [], 'placed' => 0, 'empty' => 0, 'free' => 0, 'shortfalls' => []];
 
         foreach ($classes as $class) {
             $subjects = Subject::where('my_class_id', $class->id)->orderBy('id')->get();
@@ -282,7 +311,7 @@ class TimeTableController extends Controller
                 }
             }
 
-            DB::transaction(function () use ($record, $class, $subjects, $slots, $dayNames, $data, &$teacherBusy, &$summary) {
+            DB::transaction(function () use ($record, $class, $subjects, $slots, $dayNames, $data, &$teacherBusy, &$busyByTime, &$summary) {
                 if ($record) {
                     TimeTable::where('ttr_id', $record->id)->delete();
                     TimeSlot::where('ttr_id', $record->id)->delete();
@@ -314,25 +343,68 @@ class TimeTableController extends Controller
                 }
 
                 $weekCount = $subjects->mapWithKeys(function ($s) { return [$s->id => 0]; })->all();
+                /* Slice D (2026-10-23): the generator now plans
+                   against the curriculum requirements from Slice A.
+                   A subject with periods_per_week set has a hard
+                   weekly TARGET — it is never placed beyond it, and
+                   any shortfall is reported per class in the summary
+                   (never silently dropped). A subject marked
+                   needs_double gets one back-to-back pair during the
+                   week: the placer prefers continuing the previous
+                   slot's subject until that pair exists. Subjects
+                   without a requirement keep the legacy balanced
+                   fill. When every target is met, remaining slots
+                   stay empty as free periods (counted separately
+                   from teacher-busy empties). */
+                $targets = $subjects->mapWithKeys(function ($s) { return [$s->id => $s->periods_per_week]; })->all();
+                $doubled = $subjects->mapWithKeys(function ($s) { return [$s->id => false]; })->all();
                 for ($day = 1; $day <= $data['days']; $day++) {
                     $dayCount = $subjects->mapWithKeys(function ($s) { return [$s->id => 0]; })->all();
+                    $prevSubjectId = null;
                     foreach ($slotModels as $slotIdx => $slotModel) {
-                        $candidates = $subjects->sortBy(function ($s) use ($weekCount, $dayCount) {
-                            return ($weekCount[$s->id] * 100) + ($dayCount[$s->id] * 10);
+                        $candidates = $subjects->filter(function ($s) use ($targets, $weekCount) {
+                            return $targets[$s->id] === null || $weekCount[$s->id] < (int) $targets[$s->id];
+                        })->sortBy(function ($s) use ($weekCount, $dayCount, $prevSubjectId, $doubled, $targets) {
+                            $doubleBoost = ($prevSubjectId === $s->id && $s->needs_double && !$doubled[$s->id]
+                                && ($targets[$s->id] === null || $weekCount[$s->id] < (int) $targets[$s->id])) ? -1000 : 0;
+                            return $doubleBoost + ($weekCount[$s->id] * 100) + ($dayCount[$s->id] * 10);
                         })->values();
                         $chosen = null;
+                        $slotMinute = (int) $slots[$slotIdx]['from']->format('H') * 60 + (int) $slots[$slotIdx]['from']->format('i');
                         foreach ($candidates as $cand) {
-                            if (!$cand->teacher_id || empty($teacherBusy[$day][$slotIdx][$cand->teacher_id])) {
+                            if (!$cand->teacher_id
+                                || (empty($teacherBusy[$day][$slotIdx][$cand->teacher_id])
+                                    && empty($busyByTime[$day][$slotMinute][$cand->teacher_id]))) {
                                 $chosen = $cand;
                                 break;
                             }
                         }
                         if (!$chosen) {
-                            $summary['empty']++;
+                            $allMet = collect($targets)->every(function ($t, $sid) use ($weekCount) {
+                                return $t === null || $weekCount[$sid] >= (int) $t;
+                            });
+                            // $allMet with every target satisfied and
+                            // only untargeted subjects left unplaced
+                            // cannot happen (untargeted are always
+                            // candidates); a null here with all
+                            // targets set+met means a genuinely free
+                            // period, otherwise teachers were busy.
+                            if (collect($targets)->every(function ($t) { return $t !== null; })
+                                && $allMet) {
+                                $summary['free'] = ($summary['free'] ?? 0) + 1;
+                            } else {
+                                $summary['empty']++;
+                            }
+                            $prevSubjectId = null;
                             continue;
                         }
+                        if ($prevSubjectId === $chosen->id && $chosen->needs_double) {
+                            $doubled[$chosen->id] = true;
+                        }
+                        $prevSubjectId = $chosen->id;
                         if ($chosen->teacher_id) {
                             $teacherBusy[$day][$slotIdx][$chosen->teacher_id] = true;
+                            $busyByTime[$day][$slotMinute][$chosen->teacher_id] = true;
                         }
                         $weekCount[$chosen->id]++;
                         $dayCount[$chosen->id]++;
@@ -349,6 +421,12 @@ class TimeTableController extends Controller
                         $summary['placed']++;
                     }
                 }
+                foreach ($subjects as $s) {
+                    if ($s->periods_per_week && $weekCount[$s->id] < (int) $s->periods_per_week) {
+                        $summary['shortfalls'][] = $class->name . ' — ' . $s->name . ': '
+                            . $weekCount[$s->id] . ' of ' . (int) $s->periods_per_week . ' placed';
+                    }
+                }
                 $summary['generated'][] = $class->name;
             });
         }
@@ -356,6 +434,8 @@ class TimeTableController extends Controller
         $msg = 'Timetables generated for ' . count($summary['generated']) . ' class(es): '
             . $summary['placed'] . ' periods placed'
             . ($summary['empty'] ? ', ' . $summary['empty'] . ' period(s) left empty (every teacher busy) — fill them on the Manage page' : '')
+            . (!empty($summary['free']) ? ', ' . $summary['free'] . ' free period(s) (all subject requirements met)' : '')
+            . (!empty($summary['shortfalls']) ? '. REQUIREMENTS NOT FULLY MET — ' . implode('; ', array_slice($summary['shortfalls'], 0, 4)) . (count($summary['shortfalls']) > 4 ? '; and ' . (count($summary['shortfalls']) - 4) . ' more' : '') . ' — add periods to the week or lower the requirement on Subjects' : '')
             . ($summary['skipped'] ? '. Skipped (already have one): ' . implode(', ', $summary['skipped']) : '')
             . (!empty($summary['locked']) ? '. Kept (attendance already submitted, timetable locked this session): ' . implode(', ', $summary['locked']) : '')
             . ($summary['no_subjects'] ? '. No subjects yet: ' . implode(', ', $summary['no_subjects']) : '')
@@ -747,6 +827,18 @@ class TimeTableController extends Controller
 
     public function use_time_slot(UseTimeSlotRequest $req, $ttr_id)
     {
+        /* TT-02 guard (2026-10-23, Phase 5 residual of TT-01):
+           copying slots REPLACES the record's slot rows wholesale,
+           and cells reference slots by a plain id with no foreign
+           key — on a record that already has periods placed, their
+           slot references would dangle and any submitted attendance
+           on them would point at a grid that no longer exists.
+           Slot-copy is for EMPTY timetables (its actual use: a new
+           record adopting a sibling's day structure); a populated
+           record is regenerated instead. */
+        if (TimeTable::where('ttr_id', $ttr_id)->exists()) {
+            return back()->with('flash_danger', 'This timetable already has periods placed — its time slots cannot be replaced. Copy slots onto an empty timetable, or regenerate this one.');
+        }
         $d = [];  //  Empty Current Time Slot Before Adding New
         $this->tt->deleteTimeSlots(['ttr_id' => $ttr_id]);
         $time_slots = $this->tt->getTimeSlotByTTR($req->ttr_id)->toArray();
@@ -785,6 +877,12 @@ class TimeTableController extends Controller
 
     public function delete_time_slot($ts_id)
     {
+        /* TT-02 guard: same dangling-reference problem as the
+           slot-copy — a slot with periods in it cannot be deleted
+           from under them. */
+        if (TimeTable::where('ts_id', $ts_id)->exists()) {
+            return back()->with('flash_danger', 'This time slot has periods placed in it — delete those periods first, then the slot.');
+        }
         $this->tt->deleteTimeSlot($ts_id);
         return back()->with('flash_success', __('msg.delete_ok'));
     }
@@ -799,6 +897,33 @@ class TimeTableController extends Controller
         $d['my_classes'] = $this->my_class->all();
 
         return view('pages.support_team.timetables.edit', $d);
+    }
+
+    /**
+     * Validation report (Slice E, validation half): the shared
+     * TimetableValidator run over this record — clashes across the
+     * whole year's records, requirement coverage, teacher loads.
+     * Read-only; publishing states arrive separately.
+     */
+    public function validateRecord($ttr_id)
+    {
+        $ttr = $this->tt->findRecord($ttr_id);
+        $this->guardRecordScope($ttr);
+        $report = TimetableValidator::report($ttr);
+        // Named v_* on purpose: a plain $errors/$warnings in view
+        // data would shadow Laravel's shared ViewErrorBag and break
+        // the layout's error handling.
+        $d = [
+            'record' => $report['record'],
+            'cells' => $report['cells'],
+            'v_errors' => $report['errors'],
+            'v_warnings' => $report['warnings'],
+            'coverage' => $report['coverage'],
+            'loads' => $report['loads'],
+            'my_class' => $this->my_class->find($ttr->my_class_id),
+        ];
+
+        return view('pages.support_team.timetables.validate', $d);
     }
 
     public function show_record($ttr_id)

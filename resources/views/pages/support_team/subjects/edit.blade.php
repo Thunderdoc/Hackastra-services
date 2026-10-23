@@ -40,6 +40,25 @@
                         @endforeach
                     </select>
                 </div>
+                <div class="pat-field">
+                    <label for="periods_per_week">Periods per Week</label>
+                    <input id="periods_per_week" name="periods_per_week" value="{{ $s->periods_per_week }}" type="number" min="1" max="40" class="form-control" placeholder="e.g. 5 — blank = not planned yet">
+                    <small class="form-text text-muted">The curriculum requirement the staffing and timetable engines plan against.</small>
+                </div>
+                <div class="pat-field">
+                    <label for="subject_type">Type</label>
+                    <select class="form-control select" name="subject_type" id="subject_type">
+                        <option value="theory" {{ $s->subject_type === 'practical' ? '' : 'selected' }}>Theory</option>
+                        <option value="practical" {{ $s->subject_type === 'practical' ? 'selected' : '' }}>Practical / Lab</option>
+                    </select>
+                </div>
+                <div class="pat-field">
+                    <label for="needs_double">Double Period</label>
+                    <div class="form-check mt-2">
+                        <input class="form-check-input" type="checkbox" name="needs_double" id="needs_double" value="1" {{ $s->needs_double ? 'checked' : '' }}>
+                        <label class="form-check-label" for="needs_double">Needs one double (back-to-back) period each week</label>
+                    </div>
+                </div>
             </div>
         </div>
     @endcomponent

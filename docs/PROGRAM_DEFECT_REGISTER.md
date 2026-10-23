@@ -103,6 +103,114 @@ fine reason strings). The sidebar has no Library section at all —
 the librarian works from the dashboard + loans page (pre-existing;
 owner decision if a sidebar section is wanted).
 
+### SCHED-A — Curriculum requirements + teacher eligibility + workload caps (Scheduling Engine Slice A, 2026-10-23)
+The engine had nothing to plan against: subjects carried no weekly
+requirement and "who may teach what" was not modeled. Added:
+`subjects.periods_per_week` (NULL = not configured — an honest
+state, never invented), `subject_type` (theory/practical),
+`needs_double`; a `teacher_eligibilities` table + admin page
+(`/planning/eligibility`, teamSA/teamSAWrite) recording the
+subjects each teacher is qualified for; `App\Support\Staffing`
+(caps + eligibility queries every later slice shares); Settings
+fields for `teacher_max_periods_day` (default 8),
+`teacher_max_periods_week` (default 40) and `library_fine_per_day`
+(default ₹10 — the fines rate is now admin-editable too). Verified
+end-to-end locally: eligibility save + service readback, subject
+planning fields save and render in the list ("6 · Practical ·
+Double"), settings values persist and drive the services. One real
+bug caught during verification: an unimported `Str` in the new
+blade 500'd the page when a teacher was selected — fixed (loop
+index ids).
+
+### SCHED-B..F — Staffing, allocation, generator targets, validation, invigilation (2026-10-23)
+Slice B: Staffing Dashboard (/planning/staffing) — demand vs
+capacity per subject and per teacher from configured data only;
+Slice C: allocation workspace with reasoned recommendations,
+eligibility as a server-side hard rule (also enforced on manual
+subject assignment once a pool exists), cap overrides only with a
+reason, all audit-logged; Slice D: the generator places exactly
+the configured weekly targets, forms needs_double pairs, leaves
+genuinely-free periods empty and reports per-class shortfalls;
+Slice F: exam invigilation with balanced auto-assignment and a
+hard same date+time clash rule.
+GEN-01 (found BY the Slice E validator, fixed same day): a
+single-class timetable regeneration ignored every other class's
+existing record and double-booked their teachers (10 clashes).
+The generator now preloads a by-time busy map from all kept
+records; verified 10 → 0 clashes with shortfalls honestly
+reported instead. Slice E validation: per-record reports
+attribute only clashes involving that record (an early version
+multiply-counted the year's clashes — 90 reported for 10 real);
+publication states (draft/published) remain held for the owner's
+explicit nod, as flagged when the sequence was approved.
+
+### TT-02 — Slot replacement/deletion orphaned placed periods (Phase 5, FIXED 2026-10-23)
+The TT-01 follow-up: `use_time_slot` replaced a record's slots
+wholesale and `delete_time_slot` deleted single slots, while
+cells reference slots by a plain id with NO foreign key — on a
+populated record the cells' slot references dangled and submitted
+attendance pointed at a grid that no longer existed. Guards:
+slot-copy now refuses on any record that has periods placed
+(copy belongs on empty timetables; populated ones regenerate),
+and a slot with periods in it cannot be deleted. Verified both
+directions (populated → refused + slots intact; empty → copy and
+delete work). Phase 5 also re-probed: locked period sessions
+expose NO edit/delete route at all (submit-only surface, replay
+refused — Phase 2 proof stands); the retired day-wise store is
+defused by design ("Nothing was saved"); an over-max marks
+submission (99999 against the component scheme) left the stored
+mark untouched.
+
+### LED-01 / LED-02 — Fee-ledger integrity (Phase 6, FIXED 2026-10-23)
+New `LedgerCheck` scanner recomputes the whole ledger (record
+balance == fee − paid, paid-flag agreement, overpay, orphans,
+receipt-ref uniqueness). On the demo data it reconciles exactly
+(₹10,31,300 collected = the Collections anchor; ₹2,79,700
+outstanding = the Fee Defaulters anchor), and it caught two real
+defects: LED-01 — `reset_record` zeroed a record's balance along
+with its payments, making a fully-owing student read as settled
+and invisible to the balance-driven Fee Defaulters list; a reset
+now restores the full fee as the balance (verified: partial
+record reset → 0 paid / full balance / ledger still consistent).
+LED-02 — a fee definition could be deleted while student records
+existed under it, orphaning the ledger; deletion now refuses for
+fees in use (verified both directions). The scanner also runs as
+the Readiness page's "Fee ledger consistent" check.
+
+### CONTENT-01 — Assignments + study materials scoping (Phase 7, VERIFIED CLEAN 2026-10-23)
+Live-probed on the seeded data: a student opens their own
+class's assignment (200) and is denied another class's (302);
+the materials index shows a student only their own class's
+materials; with a real file planted on a foreign class's
+material, the student's direct download returns 403 while the
+Admin's returns the file (200, exact bytes). Submission-file
+downloads check student / owning teacher / parent-of-student /
+teamSA in code. No defects found — this pair was hardened in the
+redesign cycle and holds.
+
+### PERF-01 — Page-load baseline (Phase 9, MEASURED 2026-10-23)
+Local dev server (PHP built-in, SQLite, demo seed — relative
+baseline only, not production numbers): admin dashboard 0.92s
+cold / ~0.4s warm, students 0.58s, users 0.46s, staffing 0.45s,
+readiness 0.35s, defaulters 0.24s, timetables 0.22s, marks
+0.22s; teacher dashboard 0.39s, period attendance 0.38s,
+my-timetable 0.24s. Nothing pathological (>2s) at demo scale.
+Real performance work (query-count profiling, production
+timings on Render) belongs to the post-launch cycle; no code
+changed on the strength of dev-server numbers.
+
+### TEST-01 — Engine regression tests (Phase 11, DONE 2026-10-23)
+`tests/Feature/ProgramEnginesTest.php`: 7 new tests over the
+program's engines — LedgerCheck accepts a consistent record,
+flags a corrupted balance, flags overpayment; Qs::mintStudent
+allocates unique admission numbers back-to-back; the eligibility
+pool unions assigned + listed teachers and excludes others; the
+timetable validator detects a planted cross-record teacher
+clash; the library fine rate defaults to ₹10 and honours the
+setting. All fixtures are self-created inside rolled-back
+transactions. Full suite: 21 tests / 71 assertions, OK (baseline
+was 14 tests).
+
 ## Queued by phase (from the master prompt backlog)
 
 - Phase 3: enrollment/session integrity deep-check; ADM-01 fix.

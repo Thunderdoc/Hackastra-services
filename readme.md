@@ -5,7 +5,7 @@
 **Admissions to alumni — one platform that takes a school fully digital.**
 Attendance, exams, fees, library, documents and communication in one place, with nothing left on pen and paper.
 
-[![Laravel 11](https://img.shields.io/badge/Laravel-11-FF2D20?style=flat-square&logo=laravel&logoColor=white)](https://laravel.com)
+[![Laravel 12](https://img.shields.io/badge/Laravel-12-FF2D20?style=flat-square&logo=laravel&logoColor=white)](https://laravel.com)
 [![PHP 8.4](https://img.shields.io/badge/PHP-8.4-777BB4?style=flat-square&logo=php&logoColor=white)](https://www.php.net)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-hackastra.onrender.com-blue?style=flat-square)](https://hackastra.onrender.com)
@@ -31,6 +31,8 @@ Developed and maintained by **[Ankit Kumar](https://github.com/Thunderdoc)**.
 | **Attendance Register** — period attendance with tappable Present / Absent / Late controls, a topic-taught log and a locked, final submission. | **Collect Fee** — find any student by name, admission number or class and jump straight to their payment records. |
 | ![Student Marksheet](docs/screenshots/marksheet.png) | ![My Account](docs/screenshots/my-account.png) |
 | **Student Marksheet** — component-wise scores (Theory / Internal / Viva) under a configurable marking scheme, ready to print. | **My Account** — one-screen profile, password, notifications and preferences, the same for every role. |
+| ![Staffing Dashboard](docs/screenshots/staffing-dashboard.png) | ![School Readiness](docs/screenshots/school-readiness.png) |
+| **Staffing Dashboard** — periods demanded vs teacher capacity for every subject, with shortfalls and overloads computed from the school's own data. | **School Readiness** — a live checklist with a readiness score: session, enrolment, teacher load, clash-free timetables, exams and a reconciled fee ledger. |
 
 | Mobile | |
 | --- | --- |
@@ -70,6 +72,16 @@ Developed and maintained by **[Ankit Kumar](https://github.com/Thunderdoc)**.
 
 **Library**
 - Book catalogue, issue/return loans and student book requests, with a librarian dashboard built from the live ledger
+- **Overdue fines** at a per-day rate set in Settings — a student's fine appears in their fee records automatically and clears when the fee is paid; fines can also be waived by the librarian
+
+**Planning & scheduling**
+- Subject requirements (periods per week, theory/practical, double periods) and teacher eligibility, both configured in the app — nothing hardcoded
+- **Staffing Dashboard** — demand vs capacity per subject and per teacher, shortfalls and overloads from live data
+- **Allocation** — reasoned teacher recommendations; eligibility is enforced on the server, and sending a teacher over the weekly cap needs an explicit, audit-logged override
+- Timetable generator that hits the configured requirements exactly, plus a **validator** that hunts teacher clashes, class collisions and unmet requirements across every timetable of the year
+- Exam date-sheet generator with break days between papers, and **invigilation duties** auto-assigned — balanced across teachers, never double-booked at the same date and time
+- **School Readiness** — one page that scores how ready the school is (setup, enrolment, staffing, timetables, exams, fee-ledger consistency) with a fix link for every gap
+- **Fee-ledger integrity** — every student's balance must recompute from their fee records; resets restore the full fee owed (never hide a defaulter) and fee definitions in use cannot be deleted
 
 **Communication & AI**
 - Circulars with audience targeting and priority levels (print + PDF), a notification bell, and platform mail
@@ -85,7 +97,7 @@ Developed and maintained by **[Ankit Kumar](https://github.com/Thunderdoc)**.
 
 ## 🛠 Tech stack
 
-- Laravel 11 · PHP 8.4 · Blade · Bootstrap 4 (Limitless) + a custom design system
+- Laravel 12 · PHP 8.4 · Blade · Bootstrap 4 (Limitless) + a custom design system
 - MySQL / MariaDB in production; SQLite used for local development
 - Docker images for demo (bundled database) and production (external MySQL)
 - Razorpay for online fee payment (each school connects its own account)
@@ -131,6 +143,7 @@ Available after seeding (`php artisan db:seed`, or any `SEED_DEMO=true` deployme
 | --- | --- | --- |
 | Super Admin | superadmin@hackstra.app | hackstra |
 | Admin | admin@hackstra.app | hackstra |
+| Principal (school head) | principal@hackstra.app | hackstra |
 | Teacher | teacher@hackstra.app | hackstra |
 | Parent | parent@hackstra.app | hackstra |
 | Accountant | accountant@hackstra.app | hackstra |
@@ -147,4 +160,4 @@ If you discover a security vulnerability in Hackstra, please report it privately
 
 Hackstra is released under the MIT License — see [LICENSE](LICENSE).
 
-© Ankit Kumar. Developed and maintained by Ankit Kumar; originally based on an open-source school-management codebase, extensively rebuilt.
+© Ankit Kumar. Developed and maintained by Ankit Kumar.

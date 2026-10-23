@@ -130,6 +130,7 @@ Route::group(['middleware' => 'auth'], function () {
                     Route::delete('/{ttr}', 'TimeTableController@delete_record')->name('ttr.destroy');
                 });
 
+                Route::get('validate/{ttr}', 'TimeTableController@validateRecord')->name('ttr.validate');
                 Route::get('show/{ttr}', 'TimeTableController@show_record')->name('ttr.show');
                 Route::get('print/{ttr}', 'TimeTableController@print_record')->name('ttr.print');
 
@@ -272,6 +273,9 @@ Route::group(['middleware' => 'auth'], function () {
         Route::get('exams/date-sheet/generate', 'ExamDateController@generateForm')->name('exam_dates.generate.form');
         Route::post('exams/date-sheet/generate', 'ExamDateController@generate')->name('exam_dates.generate');
         Route::get('exam-dates', 'ExamDateController@show')->name('exam_dates.index');
+        Route::get('exams/duties', 'ExamDutyController@index')->name('exam_duties.index');
+        Route::post('exams/duties/assign', 'ExamDutyController@assign')->name('exam_duties.assign');
+        Route::post('exams/duties/auto', 'ExamDutyController@auto')->name('exam_duties.auto');
         Route::get('exam-dates/show', 'ExamDateController@show')->name('exam_dates.show');
         Route::get('exam-dates/print', 'ExamDateController@printSheet')->name('exam_dates.print');
         Route::get('exam-dates/pdf', 'ExamDateController@pdf')->name('exam_dates.pdf');
@@ -281,6 +285,14 @@ Route::group(['middleware' => 'auth'], function () {
         Route::resource('classes', 'MyClassController');
         Route::resource('sections', 'SectionController');
         Route::resource('subjects', 'SubjectController');
+
+        /*************** Academic Planning (Scheduling Engine) *****************/
+        Route::get('planning/readiness', 'PlanningController@readiness')->name('planning.readiness');
+        Route::get('planning/staffing', 'PlanningController@staffing')->name('planning.staffing');
+        Route::get('planning/allocation', 'PlanningController@allocation')->name('planning.allocation');
+        Route::post('planning/allocation/apply', 'PlanningController@applyAllocation')->name('planning.allocation.apply');
+        Route::get('planning/eligibility', 'PlanningController@eligibility')->name('planning.eligibility');
+        Route::post('planning/eligibility', 'PlanningController@saveEligibility')->name('planning.eligibility.save');
         Route::resource('grades', 'GradeController');
         Route::resource('exams', 'ExamController');
 

@@ -7,7 +7,7 @@ use Eloquent;
 
 class Subject extends Eloquent
 {
-    protected $fillable = ['name', 'my_class_id', 'teacher_id', 'slug'];
+    protected $fillable = ['name', 'my_class_id', 'teacher_id', 'slug', 'periods_per_week', 'subject_type', 'needs_double'];
 
     public function my_class()
     {

@@ -392,6 +392,24 @@
                         <a href="{{ route('subjects.index') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['subjects.index','subjects.edit',]) ? 'active' : '' }}"><i class="icon-pin"></i> <span>Subjects</span></a>
                     </li>
 
+                    {{--Teacher Eligibility (Scheduling Engine Slice A):
+                         which subjects each teacher is qualified to
+                         teach — the pool the allocation engine uses. --}}
+                    @if(Qs::userIsTeamSA())
+                    <li class="nav-item">
+                        <a href="{{ route('planning.readiness') }}" class="nav-link {{ (Route::is('planning.readiness')) ? 'active' : '' }}"><i class="icon-clipboard3"></i> <span>School Readiness</span></a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ route('planning.staffing') }}" class="nav-link {{ (Route::is('planning.staffing')) ? 'active' : '' }}"><i class="icon-stats-bars"></i> <span>Staffing Dashboard</span></a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ route('planning.eligibility') }}" class="nav-link {{ (Route::is('planning.eligibility')) ? 'active' : '' }}"><i class="icon-user-check"></i> <span>Teacher Eligibility</span></a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ route('planning.allocation') }}" class="nav-link {{ (Route::is('planning.allocation')) ? 'active' : '' }}"><i class="icon-tree7"></i> <span>Teacher Allocation</span></a>
+                    </li>
+                    @endif
+
                     {{--Feedback (Workstream CW): Admin triages the school
                          inbox; the Super Admin sees forwarded items only--}}
                     @if(Qs::userIsAdmin())

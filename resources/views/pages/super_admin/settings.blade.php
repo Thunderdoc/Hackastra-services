@@ -110,6 +110,29 @@
             </div>
         </div>
 
+        {{-- ======================= Teaching Load & Library ======================= --}}
+        <div class="pat-form-section">
+            <div class="pat-form-section-title">Teaching Load &amp; Library</div>
+            <div class="pat-form-section-sub">Limits the staffing and timetable engines respect, and the library's late-return fine. Leave blank to keep the built-in defaults (8 periods a day, 40 a week, ₹10 a day).</div>
+            <div class="pat-fields">
+                <div class="pat-field">
+                    <label for="teacher_max_periods_day">Max Periods per Teacher — Day</label>
+                    <input name="teacher_max_periods_day" id="teacher_max_periods_day" value="{{ $s['teacher_max_periods_day'] ?? '' }}" type="number" min="1" max="14" class="form-control @error('teacher_max_periods_day') is-invalid @enderror" placeholder="Default 8">
+                    @include('partials.errors.field', ['field' => 'teacher_max_periods_day'])
+                </div>
+                <div class="pat-field">
+                    <label for="teacher_max_periods_week">Max Periods per Teacher — Week</label>
+                    <input name="teacher_max_periods_week" id="teacher_max_periods_week" value="{{ $s['teacher_max_periods_week'] ?? '' }}" type="number" min="1" max="70" class="form-control @error('teacher_max_periods_week') is-invalid @enderror" placeholder="Default 40">
+                    @include('partials.errors.field', ['field' => 'teacher_max_periods_week'])
+                </div>
+                <div class="pat-field">
+                    <label for="library_fine_per_day">Library Fine per Day Late (₹)</label>
+                    <input name="library_fine_per_day" id="library_fine_per_day" value="{{ $s['library_fine_per_day'] ?? '' }}" type="number" min="0" max="1000" class="form-control @error('library_fine_per_day') is-invalid @enderror" placeholder="Default 10">
+                    @include('partials.errors.field', ['field' => 'library_fine_per_day'])
+                </div>
+            </div>
+        </div>
+
         {{-- ======================= Next Term Fees ======================= --}}
         <div class="pat-form-section">
             <div class="pat-form-section-title">Next Term Fees</div>

@@ -56,6 +56,7 @@
                     <th>Short Name</th>
                     <th>Class</th>
                     <th>Teacher</th>
+                    <th>Periods/Wk</th>
                     <th>Action</th>
                 </tr>
                 </thead>
@@ -67,6 +68,7 @@
                         <td data-label="Short Name">{{ $s->slug }}</td>
                         <td data-label="Class">{{ $s->my_class->name }}</td>
                         <td data-label="Teacher">{{ $s->teacher->name }}</td>
+                        <td data-label="Periods/Wk">{{ $s->periods_per_week ?: '—' }}{{ $s->subject_type === 'practical' ? ' · Practical' : '' }}{{ $s->needs_double ? ' · Double' : '' }}</td>
                         <td class="text-center" data-label="Action">
                             @if(Qs::userIsTeamSAWrite())
                                 <a href="{{ route('subjects.edit', $s->id) }}" class="btn btn-sm btn-primary"><i class="icon-pencil"></i> Edit</a>
@@ -124,6 +126,25 @@
                                 <option {{ old('teacher_id') == Qs::hash($t->id) ? 'selected' : '' }} value="{{ Qs::hash($t->id) }}">{{ $t->name }}</option>
                             @endforeach
                         </select>
+                    </div>
+                    <div class="pat-field">
+                        <label for="periods_per_week">Periods per Week</label>
+                        <input id="periods_per_week" name="periods_per_week" value="{{ old('periods_per_week') }}" type="number" min="1" max="40" class="form-control" placeholder="e.g. 5 — leave blank if not planned yet">
+                        <small class="form-text text-muted">The curriculum requirement the staffing and timetable engines plan against.</small>
+                    </div>
+                    <div class="pat-field">
+                        <label for="subject_type">Type</label>
+                        <select class="form-control select" name="subject_type" id="subject_type">
+                            <option value="theory" {{ old('subject_type') === 'practical' ? '' : 'selected' }}>Theory</option>
+                            <option value="practical" {{ old('subject_type') === 'practical' ? 'selected' : '' }}>Practical / Lab</option>
+                        </select>
+                    </div>
+                    <div class="pat-field">
+                        <label for="needs_double">Double Period</label>
+                        <div class="form-check mt-2">
+                            <input class="form-check-input" type="checkbox" name="needs_double" id="needs_double" value="1" {{ old('needs_double') ? 'checked' : '' }}>
+                            <label class="form-check-label" for="needs_double">Needs one double (back-to-back) period each week</label>
+                        </div>
                     </div>
                 </div>
             </div>

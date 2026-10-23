@@ -70,14 +70,21 @@ class SubjectsTableSeeder extends Seeder
                     'name' => $subjects[0],
                     'slug' => $sub_slug[0],
                     'my_class_id' => $my_class->id,
-                    'teacher_id' => $teacher_id
+                    'teacher_id' => $teacher_id,
+                    // Demo curriculum requirements (Scheduling Engine
+                    // Slice A): plausible weekly loads so the staffing
+                    // dashboard demonstrates real demand/capacity math.
+                    'periods_per_week' => 6,
+                    'subject_type' => 'theory',
                 ],
 
                 [
                     'name' => $subjects[1],
                     'slug' => $sub_slug[1],
                     'my_class_id' => $my_class->id,
-                    'teacher_id' => $teacher_id
+                    'teacher_id' => $teacher_id,
+                    'periods_per_week' => 6,
+                    'subject_type' => 'theory',
                 ],
 
             ];

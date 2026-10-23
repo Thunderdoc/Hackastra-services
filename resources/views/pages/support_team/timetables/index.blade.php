@@ -144,6 +144,7 @@
                             <div class="ttx-actions l81-actions">
                                 <a href="{{ route('ttr.show', $ttr->id) }}" class="btn btn-light btn-sm"><i class="icon-eye mr-1"></i> View</a>
                                 <a target="_blank" href="{{ route('ttr.print', $ttr->id) }}" class="btn btn-light btn-sm"><i class="icon-printer mr-1"></i> Print</a>
+                                <a href="{{ route('ttr.validate', $ttr->id) }}" class="btn btn-light btn-sm"><i class="icon-checkmark-circle mr-1"></i> Validate</a>
                                 @if(Qs::userIsTeamSAWrite())
                                     <div class="btn-group">
                                         <button type="button" class="btn btn-light btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="More actions for {{ $ttr->name }}"><i class="icon-more2"></i></button>
