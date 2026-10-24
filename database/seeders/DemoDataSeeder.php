@@ -56,7 +56,7 @@ class DemoDataSeeder extends Seeder
         }
 
         $session = (string) (DB::table('settings')
-            ->where('type', 'current_session')->value('description') ?: '2018-2019');
+            ->where('type', 'current_session')->value('description') ?: '2026-2027');
 
         $students = DB::table('student_records')
             ->where('grad', 0)
@@ -116,6 +116,13 @@ class DemoDataSeeder extends Seeder
             $fn();
         } catch (\Throwable $e) {
             error_log('DemoDataSeeder step failed: ' . $e->getMessage());
+            /* 2026-10-24: error_log alone is invisible when the seed
+               PHP runs with log_errors off (the static PHP used
+               locally, and a swallowed step once left a half-seeded
+               demo with no trace). Surface it on the console too. */
+            if ($this->command) {
+                $this->command->warn('DemoDataSeeder step failed: ' . $e->getMessage());
+            }
         }
     }
 
@@ -189,79 +196,93 @@ class DemoDataSeeder extends Seeder
                 : ($rank < $fullCount + $partialCount ? 'partial' : 'unpaid');
         }
 
-        $recordRows = [];
-        $receiptRows = [];
-        foreach ($students as $student) {
-            $bucket = $bucketByUserId[$student->user_id];
-            foreach (($paymentsByClass[$student->my_class_id] ?? []) as $j => $payment) {
-                if ($bucket === 'full') {
-                    $amtPaid = (int) $payment->amount;
-                    $balance = 0;
-                    $paid = 1;
-                } elseif ($bucket === 'partial') {
-                    $amtPaid = (int) round($payment->amount * [0.4, 0.5, 0.6][$j % 3]);
-                    $balance = (int) $payment->amount - $amtPaid;
-                    $paid = 0;
-                } else {
-                    $amtPaid = null;
-                    $balance = (int) $payment->amount;
-                    $paid = 0;
-                }
+        /* Per-class inserts (2026-10-24): the old version built ALL
+           9,123 payment_record rows + 8,211 receipt rows in memory
+           first — each with its own now() Carbon objects — which
+           jumped the seed process from 44MB to the 128MB limit and
+           killed it mid-seed, silently. One class at a time, with ONE
+           shared timestamp, keeps the peak near a single class; the
+           rows, buckets and receipt linkage are identical. */
+        $now = now();
+        foreach ($students->groupBy('my_class_id') as $classId => $classStudents) {
+            $recordRows = [];
+            $receiptRows = [];
+            foreach ($classStudents as $student) {
+                $bucket = $bucketByUserId[$student->user_id];
+                foreach (($paymentsByClass[$classId] ?? []) as $j => $payment) {
+                    if ($bucket === 'full') {
+                        $amtPaid = (int) $payment->amount;
+                        $balance = 0;
+                        $paid = 1;
+                    } elseif ($bucket === 'partial') {
+                        $amtPaid = (int) round($payment->amount * [0.4, 0.5, 0.6][$j % 3]);
+                        $balance = (int) $payment->amount - $amtPaid;
+                        $paid = 0;
+                    } else {
+                        $amtPaid = null;
+                        $balance = (int) $payment->amount;
+                        $paid = 0;
+                    }
 
-                $recordRows[] = [
-                    'payment_id' => $payment->id,
-                    'student_id' => $student->user_id,
-                    'ref_no' => sprintf('DEMO-RCPT-%02d-%03d', $payment->id, $student->user_id),
-                    'amt_paid' => $amtPaid,
-                    'balance' => $balance,
-                    'paid' => $paid,
-                    'year' => $session,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                    // Stash the record key so receipts can find their
-                    // payment_record id after the bulk insert.
-                    '_key' => $payment->id . ':' . $student->user_id,
-                ];
-
-                if ($amtPaid) {
-                    $receiptRows[] = [
+                    $recordRows[] = [
+                        'payment_id' => $payment->id,
+                        'student_id' => $student->user_id,
+                        'ref_no' => sprintf('DEMO-RCPT-%02d-%03d', $payment->id, $student->user_id),
                         'amt_paid' => $amtPaid,
                         'balance' => $balance,
+                        'paid' => $paid,
                         'year' => $session,
-                        'created_at' => now(),
-                        'updated_at' => now(),
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                        // Stash the record key so receipts can find
+                        // their payment_record id after the bulk insert.
                         '_key' => $payment->id . ':' . $student->user_id,
                     ];
-                }
-            }
-        }
 
-        foreach (array_chunk($recordRows, 200) as $chunk) {
-            DB::table('payment_records')->insert(array_map(function ($row) {
-                unset($row['_key']);
-                return $row;
-            }, $chunk));
-        }
-
-        if ($receiptRows) {
-            $recordIds = DB::table('payment_records')
-                ->get(['id', 'payment_id', 'student_id'])
-                ->mapWithKeys(function ($row) {
-                    return [$row->payment_id . ':' . $row->student_id => $row->id];
-                });
-
-            $receipts = [];
-            foreach ($receiptRows as $row) {
-                $key = $row['_key'];
-                unset($row['_key']);
-                if (isset($recordIds[$key])) {
-                    $row['pr_id'] = $recordIds[$key];
-                    $receipts[] = $row;
+                    if ($amtPaid) {
+                        $receiptRows[] = [
+                            'amt_paid' => $amtPaid,
+                            'balance' => $balance,
+                            'year' => $session,
+                            'created_at' => $now,
+                            'updated_at' => $now,
+                            '_key' => $payment->id . ':' . $student->user_id,
+                        ];
+                    }
                 }
             }
 
-            foreach (array_chunk($receipts, 200) as $chunk) {
-                DB::table('receipts')->insert($chunk);
+            foreach (array_chunk($recordRows, 200) as $chunk) {
+                DB::table('payment_records')->insert(array_map(function ($row) {
+                    unset($row['_key']);
+                    return $row;
+                }, $chunk));
+            }
+
+            if ($receiptRows) {
+                $classPaymentIds = collect($paymentsByClass[$classId] ?? [])->pluck('id')->all();
+                $classStudentIds = $classStudents->pluck('user_id')->all();
+                $recordIds = DB::table('payment_records')
+                    ->whereIn('payment_id', $classPaymentIds)
+                    ->whereIn('student_id', $classStudentIds)
+                    ->get(['id', 'payment_id', 'student_id'])
+                    ->mapWithKeys(function ($row) {
+                        return [$row->payment_id . ':' . $row->student_id => $row->id];
+                    });
+
+                $receipts = [];
+                foreach ($receiptRows as $row) {
+                    $key = $row['_key'];
+                    unset($row['_key']);
+                    if (isset($recordIds[$key])) {
+                        $row['pr_id'] = $recordIds[$key];
+                        $receipts[] = $row;
+                    }
+                }
+
+                foreach (array_chunk($receipts, 200) as $chunk) {
+                    DB::table('receipts')->insert($chunk);
+                }
             }
         }
     }
@@ -451,23 +472,33 @@ class DemoDataSeeder extends Seeder
         if (DB::table('marks')->count() > 0) {
             return;
         }
+        $now = now(); // one shared timestamp: per-row now() Carbon objects were part of the old memory peak
 
         $exam = DB::table('exams')->where('year', $session)->orderBy('id')->first();
         $examId = $exam ? $exam->id : DB::table('exams')->insertGetId([
             'name' => 'Term 1 Examination',
             'term' => 1,
             'year' => $session,
-            'created_at' => now(),
-            'updated_at' => now(),
+            'created_at' => $now,
+            'updated_at' => $now,
         ]);
 
         $subjectsByClass = DB::table('subjects')->orderBy('id')->get()->groupBy('my_class_id');
         $grades = DB::table('grades')->whereNull('class_type_id')->get();
 
+        /* Per-class processing (2026-10-24): the old version built ALL
+           marks + records rows for every student in memory before
+           inserting anything — at ~3,000 students that peaks near
+           100MB and kills a 128MB seed process mid-step, silently
+           (step() only error_logs). One class at a time keeps the
+           peak near a single class; totals, positions and class
+           averages are identical because every grouping was already
+           per class + section. */
+        foreach ($students->groupBy('my_class_id') as $classId => $classStudents) {
         $markRows = [];
-        $totals = []; // student user_id => [total, count, student row]
-        foreach ($students as $student) {
-            $subjects = $subjectsByClass->get($student->my_class_id) ?? collect();
+        $totals = []; // student user_id => [total, count, section_id]
+        foreach ($classStudents as $student) {
+            $subjects = $subjectsByClass->get($classId) ?? collect();
             $total = 0;
             foreach ($subjects as $subject) {
                 $seed = $this->hashOf($student->user_id . '|' . $subject->id . '|' . $examId);
@@ -501,11 +532,11 @@ class DemoDataSeeder extends Seeder
                     'cum_ave' => (string) $subjectTotal,
                     'grade_id' => $grade ? $grade->id : null,
                     'year' => $session,
-                    'created_at' => now(),
-                    'updated_at' => now(),
+                    'created_at' => $now,
+                    'updated_at' => $now,
                 ];
             }
-            $totals[$student->user_id] = [$total, max(1, $subjects->count()), $student];
+            $totals[$student->user_id] = [$total, max(1, $subjects->count()), $student->section_id];
         }
 
         foreach (array_chunk($markRows, 200) as $chunk) {
@@ -513,11 +544,12 @@ class DemoDataSeeder extends Seeder
         }
 
         // Exam records: totals per student, position within their
-        // class + section (the grouping MarkRepo::getPos uses), and the
-        // class average across the whole class.
+        // section (the grouping MarkRepo::getPos uses), and the class
+        // average across this class — same values as before, since
+        // every grouping was already per class + section.
         $groups = [];
-        foreach ($totals as $userId => [$total, $count, $student]) {
-            $groups[$student->my_class_id . ':' . $student->section_id][] = $userId;
+        foreach ($totals as $userId => [$total, $count, $sectionId]) {
+            $groups[$sectionId][] = $userId;
         }
         $positions = [];
         foreach ($groups as $members) {
@@ -528,38 +560,37 @@ class DemoDataSeeder extends Seeder
                 $positions[$userId] = $rank + 1;
             }
         }
-        $classAves = [];
-        foreach ($totals as [$total, $count, $student]) {
-            $classAves[$student->my_class_id][] = $total / $count;
+        $aves = [];
+        foreach ($totals as [$total, $count]) {
+            $aves[] = $total / $count;
         }
-        foreach ($classAves as $classId => $aves) {
-            $classAves[$classId] = number_format(array_sum($aves) / count($aves), 2);
-        }
+        $classAve = number_format(array_sum($aves) / max(1, count($aves)), 2);
 
         $recordRows = [];
-        foreach ($totals as $userId => [$total, $count, $student]) {
+        foreach ($totals as $userId => [$total, $count, $sectionId]) {
             $recordRows[] = [
                 'exam_id' => $examId,
                 'student_id' => $userId,
-                'my_class_id' => $student->my_class_id,
-                'section_id' => $student->section_id,
+                'my_class_id' => $classId,
+                'section_id' => $sectionId,
                 'total' => $total,
                 'ave' => number_format($total / $count, 2),
-                'class_ave' => $classAves[$student->my_class_id],
+                'class_ave' => $classAve,
                 'pos' => $positions[$userId],
                 'af' => null,
                 'ps' => null,
                 'p_comment' => null,
                 't_comment' => null,
                 'year' => $session,
-                'created_at' => now(),
-                'updated_at' => now(),
+                'created_at' => $now,
+                'updated_at' => $now,
             ];
         }
 
         foreach (array_chunk($recordRows, 200) as $chunk) {
             DB::table('exam_records')->insert($chunk);
         }
+        } // end per-class loop
 
         $this->seedDemoMarkingScheme((int) $examId, $subjectsByClass);
     }
@@ -593,6 +624,7 @@ class DemoDataSeeder extends Seeder
             return;
         }
 
+        $now = now();
         // name, short_code, max_marks, sort — the preset of design §3.2.
         $scheme = [
             ['Theory', 'TH', 60, 1],
@@ -615,8 +647,8 @@ class DemoDataSeeder extends Seeder
                     'short_code' => $code,
                     'max_marks' => $max,
                     'sort' => $sort,
-                    'created_at' => now(),
-                    'updated_at' => now(),
+                    'created_at' => $now,
+                    'updated_at' => $now,
                 ]);
             }
 
@@ -646,8 +678,8 @@ class DemoDataSeeder extends Seeder
                         'mark_id' => $mk->id,
                         'component_id' => $componentIds[$code],
                         'score' => $score,
-                        'created_at' => now(),
-                        'updated_at' => now(),
+                        'created_at' => $now,
+                        'updated_at' => $now,
                     ];
                 }
             }

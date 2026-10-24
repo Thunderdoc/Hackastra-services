@@ -62,6 +62,18 @@ class UserController extends Controller
         if (Qs::userIsSuperAdmin()) {
             $d['users'] = $d['users']->whereIn('user_type', ['super_admin', 'admin'])->values();
         }
+        /* Owner direction 2026-10-24: the school Admin's Users list
+           is the STAFF list — admins, teachers, accountants,
+           librarians. Students never appear here (getPTAUsers already
+           excludes them) and parents are now excluded too; both live
+           in their own surfaces (Students list, parent portal).
+           Scoped server-side like the SA rule above, so a tampered
+           ?user_type=parent cannot reveal them — the role filter only
+           offers roles the viewer may see. */
+        if (Qs::userIsAdmin()) {
+            $d['user_types'] = $ut2->whereNotIn('title', ['student', 'parent'])->values();
+            $d['users'] = $d['users']->whereNotIn('user_type', ['student', 'parent'])->values();
+        }
         $d['nationals'] = $this->loc->getAllNationals();
         $d['blood_groups'] = $this->user->getBloodGroups();
 

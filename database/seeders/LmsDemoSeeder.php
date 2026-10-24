@@ -34,7 +34,7 @@ class LmsDemoSeeder extends Seeder
 
         $now = now();
 
-        // Open assignment — Nursery 1 English Language (subject is the
+        // Open assignment — Prep English Language (subject is the
         // class-bound English row; its teacher owns the demo content).
         $openSubject = DB::table('subjects')
             ->where('my_class_id', 1)->where('name', 'English Language')->first();
@@ -81,7 +81,7 @@ class LmsDemoSeeder extends Seeder
             }
         }
 
-        // Past-due assignment — Primary 1 English Language, with a
+        // Past-due assignment — Class 3 English Language, with a
         // graded submission set for the Internal-marks bridge demo.
         $pastSubject = DB::table('subjects')
             ->where('my_class_id', 4)->where('name', 'English Language')->first();

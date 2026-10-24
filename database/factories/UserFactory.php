@@ -33,8 +33,13 @@ class UserFactory extends Factory
                so every factory-made account showed a blank Phone
                column in Manage Users. Indian demo mobile pattern. */
             'phone' => '+91 ' . $this->faker->numerify('98########'),
-            'email' => $this->faker->safeEmail,
-            'username' => $this->faker->userName,
+            /* Seeder scale note (2026-10-24): the demo now seeds
+               ~3,000 students, and faker's bare userName/safeEmail
+               pools collide at that volume (UNIQUE violation on
+               users.username killed a reseed). unique() retries
+               until the value is fresh — required at this scale. */
+            'email' => $this->faker->unique()->safeEmail,
+            'username' => $this->faker->unique()->userName,
             'password' => Hash::make($user_type),
             'user_type' => $user_type,
             'code' => strtoupper(Str::random(10)),

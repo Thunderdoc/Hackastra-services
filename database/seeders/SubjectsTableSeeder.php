@@ -23,25 +23,29 @@ class SubjectsTableSeeder extends Seeder
 
     /**
      * Demo teacher assignment per class (Workstream AT — seed
-     * rebalance, owner decision 2026-10-21). Teacher Chike keeps only
-     * Nursery 1, Nursery 2 and Primary 1; every other class belongs to
-     * one of the other seeded teacher accounts, so the demo obeys the
-     * same assignment-scoping rules as a real school (a teacher sees
-     * exactly the classes this map gives them — never all students).
-     * SectionsTableSeeder reads this same map for sections.teacher_id,
-     * so subject scope and class-teacher scope can never drift apart.
+     * rebalance, owner decision 2026-10-21; ladder rebuilt 2026-10-24
+     * for Prep–Class 12). Seven teacher accounts share the ladder so
+     * no teacher carries more than two classes: with two subjects at
+     * six periods a week each, two classes need 24 of the 40 weekly
+     * slots, leaving the auto-generator room to place every period
+     * without teacher clashes. SectionsTableSeeder reads this same
+     * map for sections.teacher_id, so subject scope and class-teacher
+     * scope can never drift apart.
      */
     protected static $teacherEmailByClass = [
-        'Nursery 1' => 'teacher@hackstra.app',
-        'Nursery 2' => 'teacher@hackstra.app',
-        'Primary 1' => 'teacher@hackstra.app',
-        'Nursery 3' => 'teacher1@teacher.com',
-        'JSS 3' => 'teacher1@teacher.com',
-        'SSS 3' => 'teacher1@teacher.com',
-        'Primary 2' => 'teacher2@teacher.com',
-        'SSS 1' => 'teacher2@teacher.com',
-        'JSS 2' => 'teacher3@teacher.com',
-        'SSS 2' => 'teacher3@teacher.com',
+        'Prep' => 'teacher@hackstra.app',
+        'Class 1' => 'teacher1@teacher.com',
+        'Class 2' => 'teacher2@teacher.com',
+        'Class 3' => 'teacher3@teacher.com',
+        'Class 4' => 'teacher4@teacher.com',
+        'Class 5' => 'teacher5@teacher.com',
+        'Class 6' => 'teacher6@teacher.com',
+        'Class 7' => 'teacher@hackstra.app',
+        'Class 8' => 'teacher1@teacher.com',
+        'Class 9' => 'teacher2@teacher.com',
+        'Class 10' => 'teacher3@teacher.com',
+        'Class 11' => 'teacher4@teacher.com',
+        'Class 12' => 'teacher5@teacher.com',
     ];
 
     public static function demoTeacherEmailForClass($className)

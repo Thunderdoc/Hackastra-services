@@ -6,7 +6,9 @@ use App\Models\Section;
 use App\Models\StudentRecord;
 use App\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class StudentRecordsTableSeeder extends Seeder
 {
@@ -18,7 +20,9 @@ class StudentRecordsTableSeeder extends Seeder
     public function run()
     {
         $this->createStudentRecord();
-        $this->createManyStudentRecords(3);
+        // Owner direction 2026-10-24: a full demo school — about 40
+        // students in every section, not a handful.
+        $this->createManyStudentRecords(40);
         $this->backfillAdmissionNumbers();
     }
 
@@ -49,28 +53,83 @@ class StudentRecordsTableSeeder extends Seeder
             });
     }
 
+    /* Bulk insert (2026-10-24): the factory path (one Eloquent
+       create per user + one per record, with events) runs at ~200
+       students/minute — 3,040 students would take ~15 minutes, and
+       the Render demo entrypoint seeds BEFORE Apache starts, so a
+       slow seed risks the deploy never going live. Raw chunked
+       inserts seed the same rows in seconds. Columns mirror the
+       factories exactly (UserFactory + StudentRecordFactory), and
+       adm_no/username follow backfillAdmissionNumbers' rule
+       (APP_CODE/ClassType/Year/Number) with a running number instead
+       of random retries, so uniqueness needs no per-row query. The
+       backfill step below still runs for the one named student. */
     protected function createManyStudentRecords(int $count)
     {
-        $sections = Section::all();
+        $sections = Section::with('my_class.class_type')->get();
+        $session = \App\Helpers\Qs::getCurrentSession();
+        $appCode = strtoupper(\App\Helpers\Qs::getAppCode());
+        $password = Hash::make('student');
+        $now = now();
+        $faker = fake();
+        $usedPhones = [];
 
-        foreach ($sections as $section){
-          User::factory()
-                ->has(
-                    StudentRecord::factory()
-                    ->state([
+        $userRows = [];
+        $meta = [];
+        $seq = 1000;
+        foreach ($sections as $section) {
+            $ctCode = optional(optional($section->my_class)->class_type)->code ?: 'N';
+            for ($i = 0; $i < $count; $i++) {
+                $admNo = $appCode . '/' . $ctCode . '/' . date('Y') . '/' . $seq++;
+                $email = $faker->unique()->safeEmail;
+                do {
+                    $phone = '+91 ' . $faker->numerify('98########');
+                } while (isset($usedPhones[$phone]));
+                $usedPhones[$phone] = true;
+                $userRows[] = [
+                    'name' => $faker->name,
+                    'phone' => $phone,
+                    'email' => $email,
+                    'username' => $admNo,
+                    'password' => $password,
+                    'user_type' => 'student',
+                    'code' => strtoupper(Str::random(10)),
+                    'remember_token' => Str::random(10),
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+                $meta[] = [
+                    'email' => $email,
                     'section_id' => $section->id,
                     'my_class_id' => $section->my_class_id,
-                    'user_id' => function(User $user){
-                        return ['user_id' => $user->id];
-                    },
-                ]), 'student_record')
-                ->count($count)
-                ->create([
-                    'user_type' => 'student',
-                    'password' => Hash::make('student'),
-                ]);
+                    'adm_no' => $admNo,
+                ];
+            }
         }
 
+        foreach (array_chunk($userRows, 500) as $chunk) {
+            DB::table('users')->insert($chunk);
+        }
+
+        $ids = DB::table('users')
+            ->whereIn('email', array_column($meta, 'email'))
+            ->pluck('id', 'email');
+
+        $recordRows = [];
+        foreach ($meta as $m) {
+            $recordRows[] = [
+                'user_id' => $ids[$m['email']],
+                'my_class_id' => $m['my_class_id'],
+                'section_id' => $m['section_id'],
+                'session' => $session,
+                'adm_no' => $m['adm_no'],
+                'created_at' => $now,
+                'updated_at' => $now,
+            ];
+        }
+        foreach (array_chunk($recordRows, 500) as $chunk) {
+            DB::table('student_records')->insert($chunk);
+        }
     }
 
     protected function createStudentRecord()

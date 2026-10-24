@@ -431,6 +431,14 @@ class TimeTableController extends Controller
             });
         }
 
+        /* Skip-all reads as failure ("0 classes, 0 periods") when every
+           class already has a timetable for this session — say so plainly
+           and point at Replace mode instead of reporting a zero. */
+        if (empty($summary['generated']) && !empty($summary['skipped'])) {
+            $msg = 'No new timetables: every class already has one for ' . $this->year
+                . ' — nothing was generated. Use “Replace theirs with a fresh generated one” to rebuild, or generate for a different session year.'
+                . ' Skipped: ' . implode(', ', $summary['skipped']) . '.';
+        } else {
         $msg = 'Timetables generated for ' . count($summary['generated']) . ' class(es): '
             . $summary['placed'] . ' periods placed'
             . ($summary['empty'] ? ', ' . $summary['empty'] . ' period(s) left empty (every teacher busy) — fill them on the Manage page' : '')
@@ -440,6 +448,7 @@ class TimeTableController extends Controller
             . (!empty($summary['locked']) ? '. Kept (attendance already submitted, timetable locked this session): ' . implode(', ', $summary['locked']) : '')
             . ($summary['no_subjects'] ? '. No subjects yet: ' . implode(', ', $summary['no_subjects']) : '')
             . '.';
+        }
 
         return redirect()->route('tt.index')->with('flash_success', $msg);
     }
@@ -975,7 +984,9 @@ class TimeTableController extends Controller
 
         foreach ($days as $day) {
             foreach ($tms as $tm) {
-                $d_time[] = ['day' => $day, 'time' => $tm->full, 'subject' => $tts->where('ts_id', $tm->id)->where($d_date, $day)->first()->subject->name ?? NULL ];
+                $cell = $tts->where('ts_id', $tm->id)->where($d_date, $day)->first();
+                $teacher = ($cell && $cell->subject && $cell->subject->teacher) ? $cell->subject->teacher->name : null;
+                $d_time[] = ['day' => $day, 'time' => $tm->full, 'subject' => $cell->subject->name ?? null, 'teacher' => $teacher];
             }
         }
 
@@ -1021,7 +1032,9 @@ class TimeTableController extends Controller
 
         foreach ($days as $day) {
             foreach ($tms as $tm) {
-                $d_time[] = ['day' => $day, 'time' => $tm->full, 'subject' => $tts->where('ts_id', $tm->id)->where($d_date, $day)->first()->subject->name ?? NULL ];
+                $cell = $tts->where('ts_id', $tm->id)->where($d_date, $day)->first();
+                $teacher = ($cell && $cell->subject && $cell->subject->teacher) ? $cell->subject->teacher->name : null;
+                $d_time[] = ['day' => $day, 'time' => $tm->full, 'subject' => $cell->subject->name ?? null, 'teacher' => $teacher];
             }
         }
 

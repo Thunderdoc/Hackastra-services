@@ -31,7 +31,7 @@
                 $slots = $time_slots;
                 $map = [];
                 foreach ($d_time as $dt) {
-                    $map[$dt['day']][$dt['time']] = ['title' => $dt['subject'], 'sub' => ''];
+                    $map[$dt['day']][$dt['time']] = ['title' => $dt['subject'], 'sub' => $dt['teacher'] ?? ''];
                 }
                 $day_labels = [];
                 if ($ttr->exam_id) {

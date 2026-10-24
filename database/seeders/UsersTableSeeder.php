@@ -20,7 +20,9 @@ class UsersTableSeeder extends Seeder
         DB::table('users')->delete();
 
         $this->createNewUsers();
-        $this->createManyUsers( 3);
+        // Six generated accounts per type (teachers 1-6) so the
+        // Prep–Class 12 ladder has a real staff room behind it.
+        $this->createManyUsers( 6);
     }
 
     protected function createNewUsers()
@@ -112,7 +114,7 @@ class UsersTableSeeder extends Seeder
         // unchanged — only the display names are human.
         $demo_names = [
             'admin'      => [1 => 'Sanjay Mehta', 2 => 'Deepa Iyer', 3 => 'Vikram Singh'],
-            'teacher'    => [1 => 'Rahul Verma', 2 => 'Priya Nair', 3 => 'Arun Prakash'],
+            'teacher'    => [1 => 'Rahul Verma', 2 => 'Priya Nair', 3 => 'Arun Prakash', 4 => 'Kavya Reddy', 5 => 'Amit Sharma', 6 => 'Neha Gupta'],
             'accountant' => [1 => 'Meera Krishnan', 2 => 'Imran Sheikh', 3 => 'Lakshmi Prasad'],
             'parent'     => [1 => 'Sunita Devi', 2 => 'Mohammed Faiz', 3 => 'Geeta Pillai'],
         ];

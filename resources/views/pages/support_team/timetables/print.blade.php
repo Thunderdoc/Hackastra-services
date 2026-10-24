@@ -33,6 +33,7 @@
 
         table.tt { position: relative; z-index: 1; width: 100%; border-collapse: collapse; border: 1.5px solid #10263b; margin: 10px auto; }
         table.tt th, table.tt td { border: 1px solid #7d8fa6; padding: 20px 5px; text-align: center; font-size: 14px; }
+        .tt-teacher { display: block; font-size: 11px; color: #5b6b80; font-weight: normal; margin-top: 3px; }
         table.tt thead th { background: #eef2f7; color: #10263b; }
         td.tt-day, th.tt-day { text-align: left; white-space: nowrap; }
         .tt-empty { color: #999; }
@@ -105,7 +106,7 @@
             // entry prints "—" instead of shifting the row's cells left.
             $ttxMap = [];
             foreach ($d_time as $dt) {
-                $ttxMap[$dt['day']][$dt['time']] = $dt['subject'];
+                $ttxMap[$dt['day']][$dt['time']] = ['subject' => $dt['subject'], 'teacher' => $dt['teacher'] ?? null];
             }
         @endphp
 
@@ -137,9 +138,9 @@
                             <td class="tt-day"><strong>{{ $day }}</strong></td>
                         @endif
                         @foreach($time_slots as $tms)
-                            @php $subject = $ttxMap[$day][$tms->full] ?? null; @endphp
-                            @if($subject)
-                                <td>{{ $subject }}</td>
+                            @php $cell = $ttxMap[$day][$tms->full] ?? null; @endphp
+                            @if(!empty($cell['subject']))
+                                <td>{{ $cell['subject'] }}@if(!empty($cell['teacher']))<span class="tt-teacher">{{ $cell['teacher'] }}</span>@endif</td>
                             @else
                                 <td class="tt-empty">&mdash;</td>
                             @endif

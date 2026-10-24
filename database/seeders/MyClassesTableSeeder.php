@@ -16,19 +16,28 @@ class MyClassesTableSeeder extends Seeder
     public function run()
     {
         DB::table('my_classes')->delete();
-        $ct = ClassType::pluck('id')->all();
+
+        // Demo ladder, owner direction 2026-10-24: Prep through Class 12.
+        // Class types follow the school ladder: Prep = Pre Nursery,
+        // Classes 1-5 = Primary, 6-8 = Junior Secondary, 9-12 = Senior
+        // Secondary. Types resolve by code, never by row position, so
+        // the order of ClassTypesTableSeeder can never misassign them.
+        $typeId = fn($code) => ClassType::where('code', $code)->value('id');
 
         $data = [
-            ['name' => 'Nursery 1', 'class_type_id' => $ct[2]],
-            ['name' => 'Nursery 2', 'class_type_id' => $ct[2]],
-            ['name' => 'Nursery 3', 'class_type_id' => $ct[2]],
-            ['name' => 'Primary 1', 'class_type_id' => $ct[3]],
-            ['name' => 'Primary 2', 'class_type_id' => $ct[3]],
-            ['name' => 'JSS 2', 'class_type_id' => $ct[4]],
-            ['name' => 'JSS 3', 'class_type_id' => $ct[4]],
-            ['name' => 'SSS 1', 'class_type_id' => $ct[5]],
-            ['name' => 'SSS 2', 'class_type_id' => $ct[5]],
-            ['name' => 'SSS 3', 'class_type_id' => $ct[5]],
+            ['name' => 'Prep', 'class_type_id' => $typeId('PN')],
+            ['name' => 'Class 1', 'class_type_id' => $typeId('P')],
+            ['name' => 'Class 2', 'class_type_id' => $typeId('P')],
+            ['name' => 'Class 3', 'class_type_id' => $typeId('P')],
+            ['name' => 'Class 4', 'class_type_id' => $typeId('P')],
+            ['name' => 'Class 5', 'class_type_id' => $typeId('P')],
+            ['name' => 'Class 6', 'class_type_id' => $typeId('J')],
+            ['name' => 'Class 7', 'class_type_id' => $typeId('J')],
+            ['name' => 'Class 8', 'class_type_id' => $typeId('J')],
+            ['name' => 'Class 9', 'class_type_id' => $typeId('S')],
+            ['name' => 'Class 10', 'class_type_id' => $typeId('S')],
+            ['name' => 'Class 11', 'class_type_id' => $typeId('S')],
+            ['name' => 'Class 12', 'class_type_id' => $typeId('S')],
             ];
 
         DB::table('my_classes')->insert($data);

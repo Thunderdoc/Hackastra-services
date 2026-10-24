@@ -9,7 +9,7 @@ class DashboardDemoDataSeeder extends Seeder
 {
     public function run()
     {
-        $year = (string) (DB::table('settings')->where('type', 'current_session')->value('description') ?: '2018-2019');
+        $year = (string) (DB::table('settings')->where('type', 'current_session')->value('description') ?: '2026-2027');
         $exam = DB::table('exams')->first();
         $students = DB::table('student_records')
             ->where('grad', 0)
