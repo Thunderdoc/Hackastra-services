@@ -215,6 +215,7 @@
                 'message' => 'No fee collections were recorded between ' . $from->format('d M Y') . ' and ' . $to->format('d M Y') . ' for the selected filters.',
             ])
         @else
+            <div class="table-responsive">
             <table class="table">
                 <thead>
                 <tr>
@@ -253,6 +254,7 @@
                 </tr>
                 </tfoot>
             </table>
+            </div>
 
             @if($paged->lastPage() > 1)
                 @php

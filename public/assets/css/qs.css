@@ -3627,6 +3627,20 @@ html.hk-dark .content .select2-container--default .select2-selection--single .se
 .content .select2-container--default .select2-selection--multiple .select2-selection__choice{background:#eef3fb;border:1px solid #d7e2f2;border-radius:20px;color:#1e3a5f;padding:2px 10px;}
 html.hk-dark .content .select2-dropdown{background:#2a2c2f;border-color:#3e4044;box-shadow:0 12px 32px rgba(0,0,0,.5);}
 html.hk-dark .content .select2-container--default .select2-results__option{color:#e7e8e9;}
+/* Pretty scrollbar inside Select2 dropdowns (owner ask 2026-10-24:
+   the browser-default scrollbar looks plain). Thin, rounded thumb
+   with a transparent track; hover picks up the accent blue. Firefox
+   gets the same via scrollbar-color; the list itself is untouched.
+   NOTE: Select2 appends its dropdown to <body>, NOT inside .content,
+   so these rules must NOT be scoped under .content. */
+.select2-results__options{scrollbar-width:thin;scrollbar-color:#8aa4c2 transparent;}
+.select2-results__options::-webkit-scrollbar{width:8px;}
+.select2-results__options::-webkit-scrollbar-track{background:transparent;}
+.select2-results__options::-webkit-scrollbar-thumb{background:#8aa4c2;border-radius:8px;border:2px solid transparent;background-clip:padding-box;}
+.select2-results__options::-webkit-scrollbar-thumb:hover{background:#3478f6;border:2px solid transparent;background-clip:padding-box;}
+html.hk-dark .select2-results__options{scrollbar-color:#4b5563 transparent;}
+html.hk-dark .select2-results__options::-webkit-scrollbar-thumb{background:#4b5563;border:2px solid transparent;background-clip:padding-box;}
+html.hk-dark .select2-results__options::-webkit-scrollbar-thumb:hover{background:#3478f6;border:2px solid transparent;background-clip:padding-box;}
 /* --- (B) School Events list (Workstream DE) ---------------- */
 
 
@@ -5531,7 +5545,7 @@ html.hk-dark .mp94-page.is-disabled{color:#6b6f77}
 .cr97-chart-panel h5,.cr97-summary-panel h5,.cr97-table-head h5{font-weight:700;color:#172536;margin:0 0 2px;font-size:1rem}
 .cr97-chart-panel p,.cr97-table-head p{color:#718096;font-size:.85rem;margin:0}
 .cr97-chart{display:flex;align-items:flex-end;gap:10px;min-height:190px;padding-top:10px;overflow-x:auto}
-.cr97-bar-col{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:74px;flex:1}
+.cr97-bar-col{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:96px;flex:1}
 .cr97-bar-value{font-size:.78rem;font-weight:700;color:#172536;white-space:nowrap}
 .cr97-bar-track{height:120px;width:100%;max-width:64px;display:flex;align-items:flex-end;background:#eef3f9;border-radius:6px 6px 0 0}
 .cr97-bar{width:100%;background:#2f6fd0;border-radius:6px 6px 0 0;min-height:3px}
@@ -5543,8 +5557,8 @@ html.hk-dark .mp94-page.is-disabled{color:#6b6f77}
 .cr97-summary-list li{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:8px 0;border-bottom:1px solid #eef2f6}
 .cr97-summary-list li:last-child{border-bottom:none}
 .cr97-summary-list span{color:#5b6b7f;font-size:.88rem}
-.cr97-summary-list strong{color:#172536;font-size:.95rem;white-space:nowrap}
-.cr97-summary-list small{display:block;text-align:right;color:#93a9bf;font-size:.75rem}
+.cr97-summary-list strong{color:#172536;font-size:.95rem;white-space:nowrap;flex-shrink:0}
+.cr97-summary-list small{display:block;text-align:right;color:#93a9bf;font-size:.75rem;white-space:nowrap;flex-shrink:0}
 .cr97-summary-note{color:#93a9bf;font-size:.78rem;margin:10px 0 0}
 .cr97-table-head{display:flex;justify-content:space-between;align-items:flex-end;margin:4px 0 10px}
 .cr97-pagination{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid #eef2f6}
