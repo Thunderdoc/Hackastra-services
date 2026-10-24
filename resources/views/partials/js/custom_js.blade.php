@@ -17,6 +17,7 @@
                         text: data.name
                     }));
                 });
+                lga.trigger('change');
 
             }
         })
@@ -39,6 +40,7 @@
                         text: data.name
                     }));
                 });
+                section.trigger('change');
 
             }
         })
@@ -68,6 +70,8 @@
                         text: data.name
                     }));
                 });
+                section.trigger('change');
+                subject.trigger('change');
 
             }
         })
@@ -337,4 +341,54 @@
 
 
 
+</script>
+<script>
+/* ==== Site-wide Select2 (2026-10-24) ================================
+   Every plain <select> becomes the template's styled Select2 dropdown,
+   so no page is left with the browser's native list. The demo init
+   (form_select2.js) already covers .select/.select-search; this only
+   touches selects with no Select2 yet. Excluded: DataTables page
+   length menus, [data-native] opt-outs, .no-select2 subtrees. */
+(function ($) {
+    if (!$ || !$.fn || !$.fn.select2) { return; }
+
+    function hkInitSelects(scope) {
+        $(scope).find('select').addBack('select').each(function () {
+            var $sel = $(this);
+            if ($sel.data('select2')) { return; }
+            if ($sel.closest('.dataTables_length').length) { return; }
+            if ($sel.is('[data-native]')) { return; }
+            if ($sel.closest('.no-select2').length) { return; }
+            var hasEmpty = $sel.find('option[value=""]').length > 0;
+            var hasPlaceholder = !!$sel.data('placeholder');
+            var opts = {
+                width: '100%',
+                placeholder: $sel.data('placeholder') || 'Select...',
+                allowClear: hasEmpty || hasPlaceholder
+            };
+            var modal = $sel.closest('.modal');
+            if (modal.length) { opts.dropdownParent = modal; }
+            if ($sel.find('option').length <= 6) { opts.minimumResultsForSearch = Infinity; }
+            try { $sel.select2(opts); } catch (e) { /* leave native */ }
+        });
+    }
+    window.hkInitSelects = hkInitSelects;
+
+    $(function () { hkInitSelects(document); });
+
+    // Selects hidden inside modals until open: init on show.
+    $(document).on('shown.bs.modal', '.modal', function () { hkInitSelects(this); });
+
+    // AJAX-injected selects (rows, partial reloads).
+    if (window.MutationObserver) {
+        var observer = new MutationObserver(function (mutations) {
+            mutations.forEach(function (m) {
+                m.addedNodes.forEach(function (node) {
+                    if (node.nodeType === 1) { hkInitSelects(node); }
+                });
+            });
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+    }
+})(window.jQuery);
 </script>

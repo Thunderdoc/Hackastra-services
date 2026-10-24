@@ -3613,7 +3613,21 @@ html.hk-dark .content .dataTables_wrapper .dataTables_length select {
 }
 html.hk-dark .content .select2-container--default .select2-selection--single .select2-selection__arrow {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2393a9bf' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
-}/* --- (B) School Events list (Workstream DE) ---------------- */
+}/* ==== Site-wide Select2 polish (2026-10-24) =====================
+   Base skin ships in components.min.css and the single box above;
+   this block covers the open panel, result rows, search field and
+   light multi chips (dark equivalents already live near line 3044). */
+.content .select2-container--default.select2-container--focus .select2-selection--single,.content .select2-container--default.select2-container--open .select2-selection--single{border-color:#3478f6;box-shadow:0 0 0 3px rgba(52,120,246,.14);}
+.content .select2-dropdown{border:1px solid #dce3ec;border-radius:10px;box-shadow:0 12px 32px rgba(16,38,59,.16);overflow:hidden;}
+.content .select2-container--default .select2-results__option{padding:8px 12px;color:#334155;}
+.content .select2-container--default .select2-results__option--highlighted[aria-selected]{background:#3478f6;color:#fff;}
+.content .select2-container--default .select2-results__option[aria-selected=true]{background:#eef3fb;color:#1e3a5f;}
+.content .select2-container--default .select2-search--dropdown .select2-search__field{border:1px solid #dce3ec;border-radius:8px;padding:7px 10px;outline:none;}
+.content .select2-container--default .select2-search--dropdown .select2-search__field:focus{border-color:#3478f6;box-shadow:0 0 0 3px rgba(52,120,246,.14);}
+.content .select2-container--default .select2-selection--multiple .select2-selection__choice{background:#eef3fb;border:1px solid #d7e2f2;border-radius:20px;color:#1e3a5f;padding:2px 10px;}
+html.hk-dark .content .select2-dropdown{background:#2a2c2f;border-color:#3e4044;box-shadow:0 12px 32px rgba(0,0,0,.5);}
+html.hk-dark .content .select2-container--default .select2-results__option{color:#e7e8e9;}
+/* --- (B) School Events list (Workstream DE) ---------------- */
 
 
 .de-events .table td { vertical-align: middle; }
@@ -5307,6 +5321,17 @@ html.hk-dark .l93-card-head p{color:#c0c2c6}
 html.hk-dark .l93-fee-title{color:#f0f0f1}
 .l93-fee-sub{color:#8496ab;font-size:.76rem}
 .l93-pay-input{min-width:110px}
+/* ==== Fee Dues pay-now cell (2026-10-24) =========================
+   The Bootstrap .row inside the Pay Now <td> overflows by its
+   negative margins, and the long Record Payment button spilled into
+   the Action cell, where the blue Actions button painted over it.
+   Flex layout keeps input + button inside their own cell: the input
+   flexes, the button keeps its natural width, never overlapping. */
+.l93-table .ajax-pay .row{display:flex;flex-wrap:nowrap;gap:8px;margin-left:0;margin-right:0;}
+.l93-table .ajax-pay .row > [class*="col-"]{width:auto;max-width:none;padding-left:0;padding-right:0;}
+.l93-table .ajax-pay .row > [class*="col-"]:first-child{flex:1 1 110px;min-width:110px;}
+.l93-table .ajax-pay .row > [class*="col-"]:last-child{flex:0 0 auto;}
+.l93-table .ajax-pay .btn{white-space:nowrap;}
 .l93-rail{position:sticky;top:76px}
 @media (max-width:991px){.l93-rail{position:static}}
 .l93-sum-row{display:flex;font-size:.9rem;justify-content:space-between;padding:7px 0;border-bottom:1px dashed #e0e8f2}
@@ -7088,6 +7113,14 @@ html.hk-dark .l84-info-line{background:rgba(255,255,255,.05)}
    its timetable) + the Auto-Generate CTA ==== */
 .ttc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:14px;}
 .ttc-card{margin-bottom:0;display:flex;flex-direction:column;}
+/* ==== Timetable cards: the 3-dot action menu =====================
+   .content .card sets overflow:hidden, which clipped the Bootstrap
+   dropdown menu (it opens below the card's bottom edge) so the menu
+   looked dead on click. The card head has no full-bleed background,
+   so visible overflow costs no corner bleed; the open card is raised
+   above its grid neighbours so its menu paints on top. */
+.content .card.ttc-card{overflow:visible;position:relative;}
+.ttc-card:has(.dropdown.show){z-index:10;}
 .ttc-head{display:flex;align-items:center;gap:10px;padding:14px 16px 10px;}
 .ttc-head-copy{flex:1;min-width:0;display:flex;flex-direction:column;}
 .ttc-name{font-weight:700;font-size:15px;}

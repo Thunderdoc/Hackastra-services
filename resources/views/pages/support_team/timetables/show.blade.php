@@ -10,6 +10,7 @@
     <a href="{{ route('tt.index') }}">Timetables</a> &middot; {{ $my_class->name }}
 @endsection
 @section('page_actions')
+    <a href="{{ route('tt.index') }}" class="btn btn-light btn-sm"><i class="icon-arrow-left7 mr-1"></i> Back</a>
     <a target="_blank" href="{{ route('ttr.print', $ttr->id) }}" class="btn btn-light btn-sm"><i class="icon-printer mr-1"></i> Print Timetable</a>
 @endsection
 @section('content')
