@@ -17,12 +17,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Production PHP settings (no deprecation noise printed into pages)
 RUN cp "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
 
-# Upload limits (owner fix 2026-10-25): php.ini-production caps
-# uploads at 2M, below the app's 10M per-file validation — files
-# between 2M and 10M failed with "The file failed to upload".
-# 20M per file, 256M per POST (20 files x 10M multi-upload plus
-# overhead), 30 files max.
-RUN printf 'upload_max_filesize=20M\npost_max_size=256M\nmax_file_uploads=30\n' > "$PHP_INI_DIR/conf.d/uploads.ini"
+# Upload limits (owner fix 2026-10-25, raised 2026-10-25 for the
+# teacher 200 MB rule): php.ini-production caps uploads at 2M, below
+# the app's validation — files above it failed with "The file failed
+# to upload". Per-file cap 256M (headroom over the 200 MB teacher
+# material limit), 512M per POST (one big file plus form overhead),
+# 30 files max, 10 minutes to receive a large upload.
+RUN printf 'upload_max_filesize=256M\npost_max_size=512M\nmax_file_uploads=30\nmax_input_time=600\n' > "$PHP_INI_DIR/conf.d/uploads.ini"
 
 # Small-footprint MariaDB tuning (fits Render's free 512MB next to Apache)
 RUN printf '[mysqld]\ninnodb_buffer_pool_size=64M\ninnodb_log_file_size=32M\nmax_connections=30\nskip-name-resolve\nperformance_schema=OFF\n' \

@@ -26,7 +26,11 @@ use Illuminate\Support\Facades\Storage;
  */
 class StudyMaterialController extends Controller
 {
-    protected $fileRules = 'file|mimes:pdf,doc,docx,zip,txt,jpg,jpeg,png,gif,webp|max:10240';
+    /* Owner rule 2026-10-25: teachers may upload up to 200 MB per
+       material file (large notes / slide decks / videos). store() is
+       teacher-only (403 otherwise), so this limit is teacher-only by
+       construction — students never upload materials. */
+    protected $fileRules = 'file|mimes:pdf,doc,docx,zip,txt,jpg,jpeg,png,gif,webp|max:204800';
 
     public function index(Request $req)
     {

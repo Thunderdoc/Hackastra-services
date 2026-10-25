@@ -41,6 +41,12 @@ class AssignmentController extends Controller
 {
     protected $fileRules = 'file|mimes:pdf,doc,docx,zip,txt,jpg,jpeg,png,gif,webp|max:10240';
 
+    /* Owner rule 2026-10-25: student submissions are capped at 2 MB.
+       Only submit() uses this — teacher assignment attachments keep
+       the 10 MB rule above, and teacher study materials have their own
+       200 MB rule in StudyMaterialController. */
+    protected $studentFileRules = 'file|mimes:pdf,doc,docx,zip,txt,jpg,jpeg,png,gif,webp|max:2048';
+
     /*****************************************************************
      * READ SIDE
      ****************************************************************/
@@ -393,7 +399,7 @@ class AssignmentController extends Controller
         }
 
         $req->validate([
-            'attachment' => 'nullable|' . $this->fileRules,
+            'attachment' => 'nullable|' . $this->studentFileRules,
             'text_answer' => 'nullable|string',
         ]);
 

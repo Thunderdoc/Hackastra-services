@@ -30,7 +30,7 @@
             <input name="files[]" id="files" type="file" multiple class="form-control @error('files') is-invalid @enderror @error('files.*') is-invalid @enderror">
             @include('partials.errors.field', ['field' => 'files'])
             @include('partials.errors.field', ['field' => 'files.*'])
-            <span class="form-text text-muted">Select as many files as you like — each one becomes its own material under this title. Or paste a link below instead (or as well).</span>
+            <span class="form-text text-muted">Select as many files as you like — each one becomes its own material under this title, up to 200 MB per file. Or paste a link below instead (or as well).</span>
         </div>
 
         <div class="pat-field pat-field-wide">
