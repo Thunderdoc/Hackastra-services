@@ -17,6 +17,7 @@
                 <strong>When:</strong> {{ $job->created_at ? $job->created_at->format('d M Y, H:i') : '' }} &middot;
                 <strong>Status:</strong>
                 @if($job->status === 'completed') <span class="badge badge-success">Completed</span>
+                @elseif($job->status === 'rolled_back') <span class="badge badge-dark">Rolled Back</span>
                 @elseif($job->status === 'applying') <span class="badge badge-warning">Applying…</span>
                 @elseif($job->status === 'validated') <span class="badge badge-primary">Awaiting Confirmation</span>
                 @elseif($job->status === 'discarded') <span class="badge badge-secondary">Discarded</span>
@@ -34,9 +35,26 @@
                     <span class="badge badge-info">{{ $job->applied_update_count }} updated so far</span>
                     @if($job->failed_count) <span class="badge badge-danger">{{ $job->failed_count }} failed</span> @endif
                 @endif
+                @if($rolled_back_count) &middot; <span class="badge badge-dark">{{ $rolled_back_count }} rolled back</span> @endif
             </p>
         </div>
     </div>
+
+    @if($job->status === 'completed')
+        <div class="card l111-card">
+            <div class="card-body">
+                <p class="mb-2"><strong>Undo this job?</strong> Rollback deletes the accounts this job created and restores the values its edits changed. A row is skipped — never force-deleted — when its account has since gained marks, payments, attendance or teaching responsibility, or when its old values were never recorded.</p>
+                @if($can_write)
+                    <form method="POST" action="{{ route('bulk.jobs.rollback', $job->id) }}" onsubmit="return confirm('Roll back this job? Created accounts will be deleted and edited values restored where recorded. This cannot be undone.');">
+                        @csrf
+                        <button type="submit" class="btn btn-warning"><i class="icon-undo2 mr-1"></i> Roll Back This Job</button>
+                    </form>
+                @else
+                    <p class="text-muted mb-0">Only the school Admin can roll back a bulk job.</p>
+                @endif
+            </div>
+        </div>
+    @endif
 
     @if($job->status === 'validated')
         <div class="card l111-card">
@@ -47,7 +65,7 @@
                     <p><strong>Nothing has been saved yet.</strong> Review the rows below — problems and duplicates are listed in full — then confirm to apply the {{ $job->create_count + $job->update_count }} good row(s). Skipped and problem rows are never applied.</p>
                 @endif
                 @if($can_write && ($job->create_count + $job->update_count) > 0)
-                    <form method="POST" action="{{ route('bulk.jobs.confirm', $job->id) }}" onsubmit="return confirm('Apply this bulk job now? This cannot be undone from here.');">
+                    <form method="POST" action="{{ route('bulk.jobs.confirm', $job->id) }}" onsubmit="return confirm('Apply this bulk job now? You can roll it back from the job page afterwards.');">
                         @csrf
                         <input type="hidden" name="confirm_token" value="{{ $job->confirm_token }}">
                         <button type="submit" class="btn btn-success btn-lg"><i class="icon-checkmark-circle2 mr-1"></i> Confirm &amp; Apply {{ $job->create_count + $job->update_count }} Row(s)</button>
@@ -94,13 +112,13 @@
             <div class="card-body">
                 <div class="table-responsive">
                     <table class="table l111-table l108-stack">
-                        <thead><tr><th>CSV Row</th><th>Student</th><th>Field</th><th>Old</th><th></th><th>New</th></tr></thead>
+                        <thead><tr><th>CSV Row</th><th>{{ $job->module === 'staff' ? 'Staff Member' : 'Student' }}</th><th>Field</th><th>Old</th><th></th><th>New</th></tr></thead>
                         <tbody>
                         @foreach($changed_rows as $r)
                             @foreach($r->changes as $field => $pair)
                                 <tr>
                                     <td data-label="CSV Row">{{ $r->row_number }}</td>
-                                    <td data-label="Student">{{ $r->raw['name'] ?? '' }} <span class="text-muted">({{ $r->raw['adm_no'] ?? '' }})</span></td>
+                                    <td data-label="{{ $job->module === 'staff' ? 'Staff Member' : 'Student' }}">{{ $r->raw['name'] ?? '' }} <span class="text-muted">({{ $job->module === 'staff' ? ($r->raw['email'] ?? '') : ($r->raw['adm_no'] ?? '') }})</span></td>
                                     <td data-label="Field"><code>{{ $field }}</code></td>
                                     <td data-label="Old">{{ $pair['old'] !== '' && $pair['old'] !== null ? $pair['old'] : '—' }}</td>
                                     <td data-label="">→</td>

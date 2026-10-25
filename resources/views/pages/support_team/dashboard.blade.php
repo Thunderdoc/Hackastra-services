@@ -33,6 +33,7 @@
                     ['label' => 'Teaching Staff', 'value' => $teacher_count, 'sub' => 'Active teachers', 'icon' => 'icon-user-tie', 'tone' => 'green', 'delta' => $stat_deltas['teachers'], 'link' => route('users.index')],
                     ['label' => 'Administrators', 'value' => $administrator_count, 'sub' => 'System administrators', 'icon' => 'icon-shield-check', 'tone' => 'orange', 'delta' => $stat_deltas['administrators'], 'link' => route('users.index')],
                     ['label' => 'Parents', 'value' => $parent_count, 'sub' => 'Registered parents', 'icon' => 'icon-users2', 'tone' => 'purple', 'delta' => $stat_deltas['parents'], 'link' => route('users.index')],
+                    ['label' => 'New Enquiries', 'value' => $new_enquiry_count, 'sub' => 'Awaiting first contact', 'icon' => 'icon-envelop', 'tone' => 'red', 'delta' => $stat_deltas['enquiries'], 'link' => route('admissions.index')],
                 ] as $stat)
                     <div class="col-sm-6 col-xl-3">
                         <a href="{{ $stat['link'] }}" class="dashboard-stat-card dashboard-stat-{{ $stat['tone'] }}">

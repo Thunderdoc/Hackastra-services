@@ -35,6 +35,10 @@
                 @if(Qs::userIsTeamSA())
                     <a href="{{ route('students.id_card', Qs::hash($sr->id)) }}" class="btn btn-primary mt-2"><i class="icon-vcard mr-1"></i> ID Card</a>
                 @endif
+                @if(Qs::userIsTeamSAWrite())
+                    <a href="{{ route('certificates.create', ['student' => Qs::hash($sr->id), 'type' => 'bonafide']) }}" class="btn btn-light mt-2">Bonafide</a>
+                    <a href="{{ route('certificates.create', ['student' => Qs::hash($sr->id), 'type' => 'transfer']) }}" class="btn btn-light mt-2">Transfer Certificate</a>
+                @endif
             </div>
         </div>
     </div>

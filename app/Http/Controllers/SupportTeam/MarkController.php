@@ -513,6 +513,17 @@ class MarkController extends Controller
             abort(403, 'You can only manage marks for your assigned classes.');
         }
 
+        /* Wave 8 — class-scoped exams (wave 2) belong to exactly
+           one class, but the picker lists every session exam. A
+           mis-pick used to firstOrCreate mark rows for the wrong
+           exam/class pair (silent wrong data on report cards).
+           The picker now filters by class in JS; this guard is the
+           real enforcement — it also covers direct POSTs. */
+        $exam = $this->exam->find($req->exam_id);
+        if (!$exam || ((int) $exam->my_class_id !== 0 && (int) $exam->my_class_id !== (int) $req->my_class_id)) {
+            return back()->with('pop_error', 'The selected exam does not belong to the selected class.');
+        }
+
         $data = $req->only(['exam_id', 'my_class_id', 'section_id', 'subject_id']);
         $d2 = $req->only(['exam_id', 'my_class_id', 'section_id']);
         $d = $req->only(['my_class_id', 'section_id']);
@@ -537,6 +548,14 @@ class MarkController extends Controller
         // Batch S: marks entry is scoped to a teacher's assigned classes.
         if(Qs::userIsTeacher() && !TeacherScope::canTeachClass(Auth::user(), $class_id)){
             abort(403, 'You can only manage marks for your assigned classes.');
+        }
+
+        // Wave 8: same exam-scope guard as selector() — a direct
+        // URL with another class's scoped exam must not render an
+        // entry grid for a nonsense combination.
+        $exam = $this->exam->find($exam_id);
+        if (!$exam || ((int) $exam->my_class_id !== 0 && (int) $exam->my_class_id !== (int) $class_id)) {
+            abort(404);
         }
 
         $d = ['exam_id' => $exam_id, 'my_class_id' => $class_id, 'section_id' => $section_id, 'subject_id' => $subject_id, 'year' => $this->year];
@@ -579,6 +598,12 @@ class MarkController extends Controller
         $p = ['exam_id' => $exam_id, 'my_class_id' => $class_id, 'section_id' => $section_id, 'subject_id' => $subject_id, 'year' => $this->year];
 
         $exam = $this->exam->find($exam_id);
+
+        // Wave 8: same exam-scope guard as selector()/manage() —
+        // never write marks under another class's scoped exam.
+        if (!$exam || ((int) $exam->my_class_id !== 0 && (int) $exam->my_class_id !== (int) $class_id)) {
+            abort(404);
+        }
         $marks = $this->exam->getMark($p);
 
         /* Batch 114 (Part A audit): snapshot the stored scores BEFORE

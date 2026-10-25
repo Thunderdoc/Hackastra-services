@@ -3,7 +3,9 @@
 namespace App\Support\Bulk;
 
 use App\Helpers\Qs;
+use App\Models\Section;
 use App\Models\StaffRecord;
+use App\Models\Subject;
 use App\Repositories\UserRepo;
 use App\User;
 use Illuminate\Support\Facades\DB;
@@ -11,7 +13,8 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 /**
- * Staff ADD on the bulk engine (Phase A; staff bulk EDIT is Phase B).
+ * Staff ADD on the bulk engine (Phase A) + staff bulk EDIT
+ * (Phase B, Wave 11).
  *
  * Mirrors UserController@store field-for-field — same user payload,
  * same generated staff id (APPCODE/STAFF/YYYY/MM/#### from the joining
@@ -25,6 +28,15 @@ use Illuminate\Support\Str;
  *    stable (UserController@update regenerates it), so it is only
  *    ever an output here — never imported, never matched on (§1.2).
  * Passwords are never taken from the spreadsheet.
+ *
+ * EDIT rules (Wave 11): rows match on email, which is the key and
+ * can never be changed by bulk edit; only filled cells change (a
+ * blank cell never overwrites); role, code, password and status are
+ * never editable in bulk — role changes stay in the single User
+ * form with its per-target guards. Only teacher / accountant /
+ * librarian accounts are editable in bulk; admin accounts use the
+ * single User form. Old DB values are recorded at validation time
+ * (Wave 9 pattern) so rollback can restore them.
  */
 class StaffBulkModule
 {
@@ -49,7 +61,8 @@ class StaffBulkModule
 
     public function requiredHeader(string $mode): array
     {
-        return self::REQUIRED_HEADER;
+        // Edit matches on email alone — the key column.
+        return $mode === 'update' ? ['email'] : self::REQUIRED_HEADER;
     }
 
     public function validateAdd(array $raw, BulkContext $ctx): array
@@ -297,5 +310,282 @@ class StaffBulkModule
         }
         $name = strtolower(trim(preg_replace('/\s+/', ' ', (string) ($raw['name'] ?? ''))));
         return hash('sha256', 'staff|bio|' . $name . '|' . ($empDate ?: ''));
+    }
+
+    /**************** UPDATE MODE (Wave 11) ****************/
+
+    public function validateUpdate(array $raw, BulkContext $ctx): array
+    {
+        $get = function ($key) use ($raw) {
+            return isset($raw[$key]) ? trim((string) $raw[$key]) : '';
+        };
+
+        $email = $get('email');
+        $fingerprint = hash('sha256', 'staff|upd|' . strtolower($email));
+        $base = ['resolved' => null, 'changes' => null, 'fingerprint' => $fingerprint];
+
+        if ($email === '') {
+            return $base + ['verdict' => 'invalid', 'errors' => [[
+                'field' => 'email', 'value' => '',
+                'message' => 'Email is required for bulk edit — it is the key each row is matched on.',
+            ]]];
+        }
+
+        $user = User::where('email', $email)->first();
+        if (!$user) {
+            return $base + ['verdict' => 'unmatched', 'errors' => [[
+                'field' => 'email', 'value' => $email,
+                'message' => 'No staff account matches this email — row skipped (bulk edit never creates accounts).',
+            ]]];
+        }
+        if (!in_array($user->user_type, ['teacher', 'accountant', 'librarian'], true)) {
+            return $base + ['verdict' => 'invalid', 'errors' => [[
+                'field' => 'email', 'value' => $email,
+                'message' => 'Only teacher, accountant and librarian accounts can be edited in bulk — admin accounts use the single User form.',
+            ]]];
+        }
+
+        if (isset($ctx->seenFingerprints[$fingerprint])) {
+            return $base + ['verdict' => 'duplicate', 'errors' => [[
+                'field' => 'email', 'value' => $email,
+                'message' => 'This staff account appears more than once in the file — only the first row is used.',
+            ]]];
+        }
+
+        $staffRecord = StaffRecord::where('user_id', $user->id)->first();
+        $errors = [];
+        $userChanges = [];
+        $recChanges = [];
+        $changes = [];
+        $oldUser = [];
+        $oldRec = [];
+
+        $err = function ($field, $value, $message) use (&$errors) {
+            $errors[] = ['field' => $field, 'value' => $value, 'message' => $message];
+        };
+        // Same shape as the student validator's $diff, plus the old
+        // DB value (Wave 9 pattern) so rollback can restore exactly.
+        $diff = function ($column, $oldDisplay, $newDisplay, $bucket, $dbField, $newValue) use (&$changes, &$userChanges, &$recChanges, &$oldUser, &$oldRec, $user, $staffRecord) {
+            $changes[$column] = ['old' => $oldDisplay, 'new' => $newDisplay];
+            if ($bucket === 'user') {
+                $userChanges[$dbField] = $newValue;
+                $oldUser[$dbField] = $user->$dbField;
+            } else {
+                $recChanges[$dbField] = $newValue;
+                $oldRec[$dbField] = $staffRecord ? $staffRecord->$dbField : null;
+            }
+        };
+
+        if ($get('name') !== '') {
+            $name = $get('name');
+            if (Str::length($name) < 6 || Str::length($name) > 150) {
+                $err('name', $name, 'Name must be between 6 and 150 characters.');
+            } elseif (strtolower(ucwords($name)) !== strtolower((string) $user->name)) {
+                $diff('name', (string) $user->name, ucwords($name), 'user', 'name', ucwords($name));
+            }
+        }
+
+        if ($get('gender') !== '') {
+            $g = strtolower($get('gender'));
+            if (in_array($g, ['male', 'm'], true)) {
+                $gender = 'Male';
+            } elseif (in_array($g, ['female', 'f'], true)) {
+                $gender = 'Female';
+            } else {
+                $err('gender', $get('gender'), 'Gender must be Male or Female.');
+                $gender = null;
+            }
+            if ($gender && $gender !== $user->gender) {
+                $diff('gender', (string) $user->gender, $gender, 'user', 'gender', $gender);
+            }
+        }
+
+        foreach (['phone', 'phone2'] as $col) {
+            $v = $get($col);
+            if ($v !== '') {
+                if (Str::length($v) < 6 || Str::length($v) > 20) {
+                    $err($col, $v, ucfirst($col) . ' must be between 6 and 20 characters.');
+                } elseif ($v !== (string) $user->$col) {
+                    $diff($col, (string) $user->$col, $v, 'user', $col, $v);
+                }
+            }
+        }
+
+        if ($get('dob') !== '') {
+            $ts = strtotime($get('dob'));
+            if ($ts === false) {
+                $err('dob', $get('dob'), 'Date of Birth is not a recognisable date (use YYYY-MM-DD).');
+            } else {
+                $dob = date('Y-m-d', $ts);
+                if ($dob !== (string) $user->dob) {
+                    $diff('dob', (string) $user->dob, $dob, 'user', 'dob', $dob);
+                }
+            }
+        }
+
+        if ($get('address') !== '') {
+            $address = $get('address');
+            if (Str::length($address) < 6 || Str::length($address) > 120) {
+                $err('address', $address, 'Address must be between 6 and 120 characters.');
+            } elseif ($address !== (string) $user->address) {
+                $diff('address', (string) $user->address, $address, 'user', 'address', $address);
+            }
+        }
+
+        if ($get('nationality') !== '') {
+            $nal = $ctx->lookups['nationals'][strtolower($get('nationality'))] ?? null;
+            if (!$nal) {
+                $err('nationality', $get('nationality'), "Nationality '{$get('nationality')}' was not found.");
+            } elseif ((int) $nal->id !== (int) $user->nal_id) {
+                $old = $user->nal_id ? optional(\App\Models\Nationality::find($user->nal_id))->name : '';
+                $diff('nationality', (string) $old, $nal->name, 'user', 'nal_id', $nal->id);
+            }
+        }
+
+        if ($get('state') !== '') {
+            $state = $ctx->lookups['states'][strtolower($get('state'))] ?? null;
+            if (!$state) {
+                $err('state', $get('state'), "State '{$get('state')}' was not found.");
+            } elseif ((int) $state->id !== (int) $user->state_id) {
+                $old = $user->state_id ? optional(\App\Models\State::find($user->state_id))->name : '';
+                $diff('state', (string) $old, $state->name, 'user', 'state_id', $state->id);
+            }
+        }
+
+        if ($get('lga') !== '') {
+            $stateId = $user->state_id;
+            // A row changing state + lga together resolves the lga
+            // against the NEW state, not the stored one.
+            if (isset($userChanges['state_id'])) {
+                $stateId = $userChanges['state_id'];
+            }
+            $lga = $ctx->lookups['lgas'][$stateId][strtolower($get('lga'))] ?? null;
+            if (!$lga) {
+                $err('lga', $get('lga'), "LGA '{$get('lga')}' was not found.");
+            } elseif ((int) $lga->id !== (int) $user->lga_id) {
+                $old = $user->lga_id ? optional(\App\Models\Lga::find($user->lga_id))->name : '';
+                $diff('lga', (string) $old, $lga->name, 'user', 'lga_id', $lga->id);
+            }
+        }
+
+        if ($get('blood_group') !== '') {
+            $bg = $ctx->lookups['blood_groups'][strtolower($get('blood_group'))] ?? null;
+            if (!$bg) {
+                $err('blood_group', $get('blood_group'), "Blood Group '{$get('blood_group')}' was not found.");
+            } elseif ((int) $bg->id !== (int) $user->bg_id) {
+                $old = $user->bg_id ? optional(\App\Models\BloodGroup::find($user->bg_id))->name : '';
+                $diff('blood_group', (string) $old, $bg->name, 'user', 'bg_id', $bg->id);
+            }
+        }
+
+        if ($get('emp_date') !== '') {
+            $ts = strtotime($get('emp_date'));
+            if ($ts === false) {
+                $err('emp_date', $get('emp_date'), 'Joining Date is not a recognisable date (use YYYY-MM-DD).');
+            } else {
+                $empDate = date('Y-m-d', $ts);
+                $oldEmp = $staffRecord ? (string) $staffRecord->emp_date : '';
+                if ($empDate !== $oldEmp) {
+                    $diff('emp_date', $oldEmp, $empDate, 'record', 'emp_date', $empDate);
+                }
+            }
+        }
+
+        // user_type, code, password, status: never editable in bulk —
+        // a filled user_type cell is silently ignored (the upload
+        // page says so); it must never appear as a change.
+        if ($errors) {
+            return $base + ['verdict' => 'invalid', 'errors' => $errors];
+        }
+
+        $ctx->seenFingerprints[$fingerprint] = true;
+
+        return [
+            'verdict' => 'valid_update',
+            'resolved' => [
+                'user_id' => (int) $user->id,
+                'staff_record_id' => $staffRecord ? (int) $staffRecord->id : null,
+                'user' => $userChanges,
+                'record' => $recChanges,
+                'old_user' => $oldUser,
+                'old_record' => $oldRec,
+            ],
+            'errors' => null,
+            'changes' => $changes,
+            'fingerprint' => $fingerprint,
+        ];
+    }
+
+    public function applyUpdate(array $resolved): int
+    {
+        $userId = (int) $resolved['user_id'];
+        DB::transaction(function () use ($resolved, $userId) {
+            if (!empty($resolved['user'])) {
+                $this->userRepo->update($userId, $resolved['user']);
+            }
+            if (!empty($resolved['record'])) {
+                $this->userRepo->updateStaffRecord(['user_id' => $userId], $resolved['record']);
+            }
+        });
+        return $userId;
+    }
+
+    /**
+     * Undo one applied UPDATE row: restore the old DB values
+     * recorded at validation time. Returns false always — staff
+     * edits have no destructive side effect to warn about (unlike
+     * student class changes, which delete marks).
+     */
+    public function rollbackUpdate(array $resolved): bool
+    {
+        $userId = (int) ($resolved['user_id'] ?? 0);
+        $user = $userId ? User::find($userId) : null;
+        if (!$user) {
+            throw new \RuntimeException('Staff account no longer exists.');
+        }
+        $oldUser = $resolved['old_user'] ?? [];
+        $oldRec = $resolved['old_record'] ?? [];
+        if (empty($oldUser) && empty($oldRec)) {
+            throw new \RuntimeException('This job was validated before old values were recorded — its edits cannot be restored.');
+        }
+        DB::transaction(function () use ($userId, $oldUser, $oldRec) {
+            if (!empty($oldUser)) {
+                $this->userRepo->update($userId, $oldUser);
+            }
+            if (!empty($oldRec)) {
+                $this->userRepo->updateStaffRecord(['user_id' => $userId], $oldRec);
+            }
+        });
+        return false;
+    }
+
+    /**************** ROLLBACK (Wave 9) ****************/
+
+    /**
+     * Undo one applied ADD row: delete the staff account the job
+     * created. Refuses when the account has since been given
+     * teaching responsibility — deleting it would orphan subjects
+     * and class-teacher links.
+     */
+    public function rollbackAdd(int $userId): void
+    {
+        $user = User::find($userId);
+
+        if ($user) {
+            if (Subject::where('teacher_id', $userId)->exists()) {
+                throw new \RuntimeException('Staff member is assigned as a subject teacher — rollback would orphan subjects.');
+            }
+            if (Section::where('teacher_id', $userId)->exists()) {
+                throw new \RuntimeException('Staff member is a class teacher — rollback would orphan sections.');
+            }
+        }
+
+        DB::transaction(function () use ($userId, $user) {
+            StaffRecord::where('user_id', $userId)->delete();
+            if ($user) {
+                \App\Models\UserNotification::where('user_id', $userId)->delete();
+                $user->delete();
+            }
+        });
     }
 }

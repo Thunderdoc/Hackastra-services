@@ -5,6 +5,15 @@ Auth::routes();
 Route::get('/privacy-policy', 'HomeController@privacy_policy')->name('privacy_policy');
 Route::get('/terms-of-use', 'HomeController@terms_of_use')->name('terms_of_use');
 
+/* Wave 12 — public admission enquiries (no login): a parent asking
+   about a seat. Kept outside the auth group on purpose. */
+Route::get('/admission-enquiry', 'HomeController@admission_form')->name('admission_enquiry.form');
+Route::post('/admission-enquiry', 'HomeController@admission_store')->name('admission_enquiry.store');
+
+/* Wave 15 — health endpoint for uptime monitors (no login, no
+   sensitive data; 503 when the database is unreachable). */
+Route::get('/health', 'HomeController@health')->name('health');
+
 
 Route::group(['middleware' => 'auth'], function () {
 
@@ -78,15 +87,46 @@ Route::group(['middleware' => 'auth'], function () {
             Route::get('students/add', 'BulkManagementController@studentsAdd')->name('bulk.students.add');
             Route::get('students/edit', 'BulkManagementController@studentsEdit')->name('bulk.students.edit');
             Route::get('staff/add', 'BulkManagementController@staffAdd')->name('bulk.staff.add');
+            Route::get('staff/edit', 'BulkManagementController@staffEdit')->name('bulk.staff.edit');
             Route::post('upload', 'BulkManagementController@upload')->name('bulk.upload');
             Route::get('jobs/{job}', 'BulkManagementController@show')->name('bulk.jobs.show');
             Route::get('jobs/{job}/errors', 'BulkManagementController@errors')->name('bulk.jobs.errors');
             Route::post('jobs/{job}/confirm', 'BulkManagementController@confirm')->name('bulk.jobs.confirm');
             Route::post('jobs/{job}/apply', 'BulkManagementController@apply')->name('bulk.jobs.apply');
             Route::post('jobs/{job}/discard', 'BulkManagementController@discard')->name('bulk.jobs.discard');
+            Route::post('jobs/{job}/rollback', 'BulkManagementController@rollback')->name('bulk.jobs.rollback');
             Route::get('templates/students-edit', 'BulkManagementController@studentsEditTemplate')->name('bulk.templates.students_edit');
             Route::get('templates/staff-add', 'BulkManagementController@staffAddTemplate')->name('bulk.templates.staff_add');
+            Route::get('templates/staff-edit', 'BulkManagementController@staffEditTemplate')->name('bulk.templates.staff_edit');
             Route::get('exports/students', 'BulkManagementController@exportsStudents')->name('bulk.exports.students');
+            Route::get('exports/staff', 'BulkManagementController@exportsStaff')->name('bulk.exports.staff');
+        });
+
+        /*************** Admission Enquiries (Wave 12) ***************/
+        Route::group(['prefix' => 'admissions', 'middleware' => 'teamSA'], function(){
+            Route::get('/', 'AdmissionController@index')->name('admissions.index');
+            Route::post('{admission}/status', 'AdmissionController@updateStatus')->name('admissions.status');
+            Route::get('{admission}/convert', 'AdmissionController@convert')->name('admissions.convert');
+        });
+
+        /*************** HR-lite (Wave 13) ***************/
+        Route::group(['prefix' => 'staff-attendance', 'middleware' => 'teamSAWrite'], function(){
+            Route::get('/', 'StaffAttendanceController@index')->name('staff_attendance.index');
+            Route::post('/', 'StaffAttendanceController@store')->name('staff_attendance.store');
+        });
+        Route::group(['prefix' => 'leave'], function(){
+            Route::get('my', 'LeaveRequestController@myIndex')->name('leave.my');
+            Route::post('my', 'LeaveRequestController@store')->name('leave.store');
+            Route::get('/', 'LeaveRequestController@index')->name('leave.index')->middleware('teamSAWrite');
+            Route::post('{leave}/decide', 'LeaveRequestController@decide')->name('leave.decide')->middleware('teamSAWrite');
+        });
+
+        /*************** Certificates (Wave 14) ***************/
+        Route::group(['prefix' => 'certificates'], function(){
+            Route::get('/', 'CertificateController@index')->name('certificates.index');
+            Route::get('create', 'CertificateController@create')->name('certificates.create');
+            Route::post('/', 'CertificateController@store')->name('certificates.store');
+            Route::get('{certificate}/print', 'CertificateController@print')->name('certificates.print');
         });
 
         /*************** Users *****************/
@@ -422,6 +462,7 @@ Route::group(['middleware' => 'auth'], function () {
         Route::get('feedback/{feedback}', 'FeedbackController@show')->name('feedback.show');
         Route::patch('feedback/{feedback}', 'FeedbackController@update')->name('feedback.update');
         Route::post('feedback/{feedback}/duplicate', 'FeedbackController@markDuplicate')->name('feedback.duplicate');
+        Route::post('feedback/{feedback}/reopen', 'FeedbackController@reopen')->name('feedback.reopen');
         /*************** AI Assist (Workstream CX) *****************/
         /* Draft-only endpoints: they return text for the human to
            review in the form; saving happens through the normal

@@ -8,8 +8,10 @@ use App\Http\Controllers\SupportTeam\StudentBulkController;
 use App\Models\BloodGroup;
 use App\Models\Dorm;
 use App\Models\Lga;
+use App\Models\Mark;
 use App\Models\MyClass;
 use App\Models\Nationality;
+use App\Models\PaymentRecord;
 use App\Models\Section;
 use App\Models\State;
 use App\Models\StudentRecord;
@@ -223,16 +225,27 @@ class StudentBulkModule
         $userChanges = [];   // db field => new value
         $recChanges = [];    // db field => new value
         $changes = [];       // column => [old, new] display pair
+        /* Wave 9 (rollback): the display pairs above cannot restore
+           a row — a blood-group old value is a NAME, not the bg_id
+           the database holds. So $diff also records the old DB
+           values; resolved carries them, and rollbackUpdate restores
+           exactly these. Jobs validated before this change have no
+           old values, and their update rows report that instead of
+           guessing. */
+        $oldUser = [];       // db field => old value
+        $oldRec = [];        // db field => old value
 
         $err = function ($field, $value, $message) use (&$errors) {
             $errors[] = ['field' => $field, 'value' => $value, 'message' => $message];
         };
-        $diff = function ($column, $oldDisplay, $newDisplay, $bucket, $dbField, $newValue) use (&$changes, &$userChanges, &$recChanges) {
+        $diff = function ($column, $oldDisplay, $newDisplay, $bucket, $dbField, $newValue) use (&$changes, &$userChanges, &$recChanges, &$oldUser, &$oldRec, $user, $sr) {
             $changes[$column] = ['old' => $oldDisplay, 'new' => $newDisplay];
             if ($bucket === 'user') {
                 $userChanges[$dbField] = $newValue;
+                $oldUser[$dbField] = $user->$dbField;
             } else {
                 $recChanges[$dbField] = $newValue;
+                $oldRec[$dbField] = $sr->$dbField;
             }
         };
 
@@ -431,6 +444,8 @@ class StudentBulkModule
                 'user_id' => (int) $user->id,
                 'user' => $userChanges,
                 'record' => $recChanges,
+                'old_user' => $oldUser,
+                'old_record' => $oldRec,
             ],
             'errors' => null,
             'changes' => $changes,
@@ -461,5 +476,81 @@ class StudentBulkModule
         Mk::deleteOldRecord($sr->user_id, $newClassId);
 
         return (int) $sr->user_id;
+    }
+
+    /**************** ROLLBACK (Wave 9) ****************/
+
+    /**
+     * Undo one applied ADD row: delete the student account the job
+     * created. Refuses when the account has since gained school
+     * data (marks, payments, attendance) — deleting those would
+     * corrupt reports, so the row is skipped with a reason instead.
+     * Mirrors StudentRecordController@destroy's cleanup (upload dir
+     * + login account + record row).
+     */
+    public function rollbackAdd(int $userId): void
+    {
+        $user = User::find($userId);
+        $sr = StudentRecord::where('user_id', $userId)->first();
+
+        if ($user) {
+            if (Mark::where('student_id', $userId)->exists()) {
+                throw new \RuntimeException('Student already has marks recorded — rollback would orphan them.');
+            }
+            if (PaymentRecord::where('student_id', $userId)->exists()) {
+                throw new \RuntimeException('Student already has payments recorded — rollback would orphan them.');
+            }
+            if ($sr && \App\Models\AttendanceSessionEntry::where('student_record_id', $sr->id)->exists()) {
+                throw new \RuntimeException('Student already has attendance recorded — rollback would orphan it.');
+            }
+        }
+
+        DB::transaction(function () use ($user, $sr) {
+            if ($sr) {
+                $sr->delete();
+            }
+            if ($user) {
+                $path = Qs::getUploadPath('student') . $user->code;
+                \Illuminate\Support\Facades\Storage::exists($path)
+                    ? \Illuminate\Support\Facades\Storage::deleteDirectory($path)
+                    : false;
+                \App\Models\UserNotification::where('user_id', $user->id)->delete();
+                $user->delete();
+            }
+        });
+    }
+
+    /**
+     * Undo one applied UPDATE row: restore the old DB values
+     * recorded at validation time. Returns true when the original
+     * update changed the student's class — that change deleted the
+     * previous class's marks (same as the single Edit form), and
+     * those marks cannot be brought back by restoring values.
+     */
+    public function rollbackUpdate(array $resolved): bool
+    {
+        $sr = StudentRecord::find($resolved['sr_id'] ?? null);
+        if (!$sr) {
+            throw new \RuntimeException('Student record no longer exists.');
+        }
+        $oldUser = $resolved['old_user'] ?? [];
+        $oldRec = $resolved['old_record'] ?? [];
+        if (empty($oldUser) && empty($oldRec)) {
+            throw new \RuntimeException('This job was validated before old values were recorded — its edits cannot be restored.');
+        }
+
+        $classChanged = isset($oldRec['my_class_id'])
+            && (int) $oldRec['my_class_id'] !== (int) $sr->my_class_id;
+
+        DB::transaction(function () use ($resolved, $sr, $oldUser, $oldRec) {
+            if (!empty($oldUser)) {
+                $this->userRepo->update($sr->user_id, $oldUser);
+            }
+            if (!empty($oldRec)) {
+                $this->studentRepo->updateRecord($sr->id, $oldRec);
+            }
+        });
+
+        return $classChanged;
     }
 }

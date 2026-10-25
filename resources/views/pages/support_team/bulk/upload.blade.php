@@ -24,9 +24,9 @@
                 <input type="hidden" name="mode" value="{{ $mode }}">
                 <div class="l111-drop">
                     <div class="form-group">
-                        <label for="bulk_file">CSV file <span class="text-danger">*</span></label>
-                        <input type="file" name="bulk_file" id="bulk_file" class="form-control" accept=".csv" required>
-                        <span class="form-text text-muted">CSV only, up to 10 MB and {{ \App\Support\Bulk\BulkImportService::MAX_ROWS }} rows. Names are matched by name, not database ids — Class, Section, State and LGA must be spelled as they appear in the app.</span>
+                        <label for="bulk_file">CSV or Excel file <span class="text-danger">*</span></label>
+                        <input type="file" name="bulk_file" id="bulk_file" class="form-control" accept=".csv,.xlsx" required>
+                        <span class="form-text text-muted">CSV or Excel file, up to 10 MB and {{ \App\Support\Bulk\BulkImportService::MAX_ROWS }} rows. Names are matched by name, not database ids — Class, Section, State and LGA must be spelled as they appear in the app.</span>
                     </div>
                 </div>
                 <button type="submit" class="btn btn-success mt-3"><i class="icon-upload mr-1"></i> Upload &amp; Preview</button>
@@ -61,13 +61,16 @@
                     </tbody>
                 </table>
             </div>
-            @if($mode === 'update')
+            @if($mode === 'update' && $module === 'students')
                 <p class="text-muted mb-0"><strong>Never editable in bulk:</strong> admission number (it is the match key), username, password, account status and role. A row whose Admission Number matches no student is skipped — bulk edit never creates students.</p>
+            @endif
+            @if($mode === 'update' && $module === 'staff')
+                <p class="text-muted mb-0"><strong>Never editable in bulk:</strong> email (it is the match key), role, staff code, password and account status. A row whose email matches no staff account is skipped — bulk edit never creates accounts. Admin accounts are edited in the single User form, not here.</p>
             @endif
             @if($module === 'students' && $mode === 'add')
                 <p class="text-muted mb-0"><strong>Generated for you:</strong> each student's Admission Number (App Code / Class Type / Year / Serial, in sequence — the same numbering as the Admit Student form) and its first password (<code>student</code>). The file has no adm_no column: numbers are allocated by the system, never by the spreadsheet.</p>
             @endif
-            @if($module === 'staff')
+            @if($module === 'staff' && $mode === 'add')
                 <p class="text-muted mb-0"><strong>Generated for you:</strong> each account's username / staff code and its first password (the role name, e.g. <code>teacher</code>) — staff should change it at first login. Email is the identity key for staff; an email that already has an account is refused as a duplicate.</p>
             @endif
         </div>

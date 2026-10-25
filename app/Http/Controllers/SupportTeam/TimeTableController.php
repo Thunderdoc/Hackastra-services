@@ -203,7 +203,7 @@ class TimeTableController extends Controller
             ? Section::where('my_class_id', (int) $presetClassId)->orderBy('name')->get()
             : collect();
         $d['defaults'] = [
-            'start_time' => '08:00', 'period_minutes' => 40,
+            'start_time' => '09:00', 'period_minutes' => 40,
             'periods_per_day' => 8, 'lunch_after' => 4,
             'lunch_minutes' => 45, 'break_after' => 2,
             'break_minutes' => 15, 'days' => 5,

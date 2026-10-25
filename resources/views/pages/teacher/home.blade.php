@@ -117,6 +117,36 @@
             </div>
         </section>
 
+        {{-- Wave 13 (HR-lite): the teacher's own leave requests —
+             status only, no invented balance. --}}
+        <section class="t10-panel">
+            <div class="t10-panel-head">
+                <div class="t10-panel-title">
+                    <span class="t10-panel-icon t10-tone-blue"><i class="icon-calendar2"></i></span>
+                    <div>
+                        <h5>My Leave Requests</h5>
+                        <p class="t10-panel-sub">Your recent requests and their status</p>
+                    </div>
+                </div>
+                <a href="{{ route('leave.my') }}" class="t10-view-all">Apply / View All <i class="icon-arrow-right7"></i></a>
+            </div>
+            <div class="t10-table-wrap">
+                <table class="t10-table">
+                    <tbody>
+                    @forelse($my_leave_requests as $lr)
+                        <tr>
+                            <td>{{ $lr->start_date }} → {{ $lr->end_date }} ({{ $lr->days }} day{{ $lr->days === 1 ? '' : 's' }})</td>
+                            <td>{{ \Illuminate\Support\Str::limit($lr->reason, 50) }}</td>
+                            <td><span class="t10-status t10-status-{{ $lr->status === 'approved' ? 'completed' : ($lr->status === 'rejected' ? 'rejected' : 'pending') }}">{{ ucfirst($lr->status) }}</span></td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="3" class="t10-empty"><i class="icon-calendar2"></i> No leave requests yet. <a href="{{ route('leave.my') }}">Apply for leave</a></td></tr>
+                    @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
         {{-- Attendance charts — in the left column under the
              timetable (owner ask 2026-10-25): the old charts row
              below the grid left a hole under a short left

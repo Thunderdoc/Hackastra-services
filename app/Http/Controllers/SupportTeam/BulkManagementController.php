@@ -39,8 +39,8 @@ class BulkManagementController extends Controller
     {
         $this->middleware('teamSA');
         $this->middleware('teamSAWrite', ['only' => [
-            'studentsAdd', 'studentsEdit', 'staffAdd', 'upload',
-            'confirm', 'apply', 'discard',
+            'studentsAdd', 'studentsEdit', 'staffAdd', 'staffEdit', 'upload',
+            'confirm', 'apply', 'discard', 'rollback',
         ]]);
         $this->service = $service;
     }
@@ -91,6 +91,18 @@ class BulkManagementController extends Controller
         ));
     }
 
+    public function staffEdit()
+    {
+        return view('pages.support_team.bulk.upload', $this->flowData(
+            'staff', 'update',
+            'Bulk Edit Staff',
+            'Upload a CSV keyed by email. Only the cells you fill are changed — a blank cell never overwrites existing data — and the preview shows old → new for every change before you confirm. Only teacher, accountant and librarian accounts can be edited in bulk; a row whose email matches no staff account is skipped.',
+            route('bulk.templates.staff_edit'),
+            StaffBulkModule::COLUMNS,
+            ['email']
+        ));
+    }
+
     protected function flowData($module, $mode, $title, $intro, $templateUrl, $columns, $required): array
     {
         return [
@@ -121,15 +133,20 @@ class BulkManagementController extends Controller
         }
 
         $file = $req->file('bulk_file');
-        if (strtolower($file->getClientOriginalExtension()) !== 'csv') {
-            return back()->with('flash_danger', 'Please upload a .csv file. You can download the template for this flow from the Bulk Management hub.');
-        }
-
-        // Content sniff, not just the client extension (audit §6.3):
-        // a ZIP (xlsx) renamed to .csv must not reach the CSV reader.
+        // Wave 10 — .xlsx is accepted now (XlsxReader, content-sniffed
+        // in staging). The extension only decides the rejection
+        // message: a ZIP renamed to .csv is an Excel file, not a
+        // corrupt CSV, and an .xlsx that is not a ZIP is corrupt.
+        $ext = strtolower($file->getClientOriginalExtension());
         $head = file_get_contents($file->getRealPath(), false, null, 0, 4);
         if ($head === "PK\x03\x04") {
-            return back()->with('flash_danger', 'That file looks like an Excel workbook, not a CSV. In Excel, use Save As → CSV (Comma delimited) and upload that file.');
+            if (!in_array($ext, ['csv', 'xlsx'], true)) {
+                return back()->with('flash_danger', 'Please upload a .csv or .xlsx file. You can download the template for this flow from the Bulk Management hub.');
+            }
+        } elseif ($ext === 'xlsx') {
+            return back()->with('flash_danger', 'That .xlsx file does not look like an Excel workbook — it may be corrupt. Please re-save it from Excel and upload again.');
+        } elseif ($ext !== 'csv') {
+            return back()->with('flash_danger', 'Please upload a .csv or .xlsx file. You can download the template for this flow from the Bulk Management hub.');
         }
 
         [$job, $warning] = $this->service->createJob($req->user(), $module, $mode, $file);
@@ -163,6 +180,7 @@ class BulkManagementController extends Controller
             : collect();
         $data['pending_count'] = (int) $job->pendingRows()->count();
         $data['applied_rows_count'] = (int) $job->rows()->where('verdict', 'applied')->count();
+        $data['rolled_back_count'] = (int) $job->rows()->where('verdict', 'rolled_back')->count();
         $data['can_write'] = Qs::userIsAdmin();
 
         return view('pages.support_team.bulk.job', $data);
@@ -201,6 +219,31 @@ class BulkManagementController extends Controller
         $this->service->discard($job);
         return redirect()->route('bulk.index')
             ->with('flash_success', "Job #{$job->id} discarded. Rows it had already applied are not undone.");
+    }
+
+    /**************** ROLLBACK (Wave 9) ****************/
+
+    public function rollback(BulkImportJob $job)
+    {
+        $result = $this->service->rollback($job);
+
+        if (isset($result['error'])) {
+            return back()->with('flash_danger', $result['error'] . ' Finish applying it first, then roll it back.');
+        }
+
+        if ($result['rolled_back'] === 0) {
+            return back()->with('flash_danger', "Job #{$job->id}: nothing could be rolled back. " . implode(' ', $result['skipped']));
+        }
+
+        $msg = "Job #{$job->id} rolled back: {$result['rolled_back']} row(s) reversed.";
+        if ($result['skipped']) {
+            $msg .= ' Skipped: ' . implode(' ', $result['skipped']);
+        }
+        if ($result['class_changed'] > 0) {
+            $msg .= " Note: {$result['class_changed']} row(s) had changed a student's class — values are restored, but the marks deleted by that class change cannot be brought back.";
+        }
+
+        return redirect()->route('bulk.jobs.show', $job->id)->with('flash_success', $msg);
     }
 
     /**************** DOWNLOADS ****************/
@@ -253,6 +296,54 @@ class BulkManagementController extends Controller
         ];
 
         return CsvExport::download('staff-bulk-add-template.csv', StaffBulkModule::COLUMNS, [$example]);
+    }
+
+    /** Staff bulk-edit template: email key + changed cells only.
+     *  user_type stays in the file for reference but is never
+     *  editable in bulk — the example leaves it blank. */
+    public function staffEditTemplate()
+    {
+        $example = [
+            'Adaeze Chiamaka Obi', '', 'a.obi@example.com', '', '08031234567', '',
+            '', '12 Allen Avenue, Ikeja', '', '', '', '', '',
+        ];
+
+        return CsvExport::download('staff-bulk-edit-template.csv', StaffBulkModule::COLUMNS, [$example]);
+    }
+
+    /**
+     * Download current teacher / accountant / librarian accounts in
+     * the bulk-edit column set (ids resolved back to names), so the
+     * office edits real current data and re-uploads — the same
+     * round-trip as the student export.
+     */
+    public function exportsStaff()
+    {
+        $users = \App\User::whereIn('user_type', ['teacher', 'accountant', 'librarian'])
+            ->orderBy('user_type')->orderBy('id')->get();
+        $staffRecords = \App\Models\StaffRecord::whereIn('user_id', $users->pluck('id'))
+            ->get()->keyBy('user_id');
+
+        $bgNames = BloodGroup::pluck('name', 'id');
+        $nalNames = Nationality::pluck('name', 'id');
+        $stateNames = State::pluck('name', 'id');
+        $lgaNames = Lga::pluck('name', 'id');
+
+        $rows = [];
+        foreach ($users as $u) {
+            $rows[] = [
+                $u->name, $u->user_type, $u->email, $u->gender, $u->phone, $u->phone2,
+                $u->dob ? substr((string) $u->dob, 0, 10) : '',
+                $u->address,
+                $nalNames[$u->nal_id] ?? '',
+                $stateNames[$u->state_id] ?? '',
+                $lgaNames[$u->lga_id] ?? '',
+                $bgNames[$u->bg_id] ?? '',
+                $staffRecords->get($u->id) ? substr((string) $staffRecords->get($u->id)->emp_date, 0, 10) : '',
+            ];
+        }
+
+        return CsvExport::download('staff-current-records.csv', StaffBulkModule::COLUMNS, $rows);
     }
 
     /**

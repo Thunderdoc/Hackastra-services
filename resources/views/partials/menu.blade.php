@@ -239,6 +239,34 @@
                         <span>Low Attendance (Below 75%)</span>
                     </a>
                 </li>
+                {{-- Wave 13 (HR-lite): staff register + leave queue, Admin only --}}
+                @if(Qs::userIsTeamSAWrite())
+                <li class="nav-item">
+                    <a href="{{ route('staff_attendance.index') }}" class="nav-link {{ (Route::is('staff_attendance.*')) ? 'active' : '' }}">
+                        <i class="icon-user-tie"></i>
+                        <span>Staff Attendance</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('leave.index') }}" class="nav-link {{ (Route::is('leave.index') || Route::is('leave.decide')) ? 'active' : '' }}">
+                        <i class="icon-calendar2"></i>
+                        <span>Leave Requests</span>
+                    </a>
+                </li>
+                @endif
+                @endif
+
+                {{-- Wave 13: every staff member's own leave page. It sits
+                     OUTSIDE the teamSAT Attendance gate on purpose:
+                     accountants and librarians are not teamSAT, but
+                     they apply for leave too. --}}
+                @if(in_array(auth()->user()->user_type, ['teacher', 'accountant', 'librarian', 'admin'], true))
+                <li class="nav-item">
+                    <a href="{{ route('leave.my') }}" class="nav-link {{ (Route::is('leave.my') || Route::is('leave.store')) ? 'active' : '' }}">
+                        <i class="icon-calendar2"></i>
+                        <span>My Leave</span>
+                    </a>
+                </li>
                 @endif
 
                 <li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Communication</div><i class="icon-menu" title="Communication"></i></li>
@@ -318,6 +346,22 @@
                                 <li class="nav-item">
                                     <a href="{{ route('students.create') }}"
                                        class="nav-link {{ (Route::is('students.create')) ? 'active' : '' }}">Admit Student</a>
+                                </li>
+                            @endif
+
+                            {{--Admission Enquiries (Wave 12: public enquiry pipeline)--}}
+                            @if(Qs::userIsTeamSAWrite())
+                                <li class="nav-item">
+                                    <a href="{{ route('admissions.index') }}"
+                                       class="nav-link {{ (Route::is('admissions.*')) ? 'active' : '' }}">Admission Enquiries</a>
+                                </li>
+                            @endif
+
+                            {{--Certificates (Wave 14: bonafide + transfer register)--}}
+                            @if(Qs::userIsTeamSAWrite())
+                                <li class="nav-item">
+                                    <a href="{{ route('certificates.index') }}"
+                                       class="nav-link {{ (Route::is('certificates.*')) ? 'active' : '' }}">Certificates</a>
                                 </li>
                             @endif
 

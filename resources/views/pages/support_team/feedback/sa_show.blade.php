@@ -58,11 +58,21 @@
                     <div class="col-md-4">
                         <div class="form-group">
                             <label for="sa_status">Handling status</label>
-                            <select name="sa_status" id="sa_status" class="form-control select">
+                            {{-- Wave 16: a closed report cannot be reopened
+                                 by the Super Admin — the control is
+                                 disabled, and the hidden field keeps
+                                 reply-only saves validating (a disabled
+                                 select submits nothing). Only the school
+                                 Admin can reopen it. --}}
+                            <select name="sa_status" id="sa_status" class="form-control select" {{ $item->isClosedForSa() ? 'disabled' : '' }}>
                                 @foreach($sa_statuses as $value => $label)
                                     <option value="{{ $value }}" {{ $item->sa_status == $value ? 'selected' : '' }}>{{ $label }}</option>
                                 @endforeach
                             </select>
+                            @if($item->isClosedForSa())
+                                <input type="hidden" name="sa_status" value="fixed">
+                                <p class="text-muted mt-1 mb-0">Closed — you cannot reopen this report. Only the school Admin can reopen it from the school side.</p>
+                            @endif
                         </div>
                     </div>
                     <div class="col-md-8">

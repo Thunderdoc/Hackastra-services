@@ -31,6 +31,13 @@ use Illuminate\Support\Str;
  * to the originating school, and each school gets its own separate
  * feedback thread back. Merging happens only inside one school
  * (the Admin's pre-forward dedupe via duplicate_of_id).
+ *
+ * Owner ruling 2026-10-25 (Wave 16, ticket close/reopen): once the
+ * SA closes a report (Fixed), the SA cannot reopen it — the detail
+ * control is disabled and saUpdate refuses the change server-side.
+ * Only the school Admin can reopen it (feedback.reopen), which puts
+ * it back to Received on the SA board (re-escalation). Replies on a
+ * closed report still work through the detail page.
  */
 class FeedbackController extends Controller
 {
@@ -368,7 +375,12 @@ class FeedbackController extends Controller
         return view('pages.support_team.feedback.sa_show', $d);
     }
 
-    /** SA records the handling status + a reply the reporter will see. */
+    /** SA records the handling status + a reply the reporter will see.
+     *  Wave 16: a closed (Fixed) report cannot be reopened by the SA
+     *  — changing its status away from Fixed is refused here even if
+     *  the disabled UI control is bypassed. Saving a reply on a
+     *  closed report is still allowed (replies go through the detail
+     *  page by design). */
     public function saUpdate(Request $request, FeedbackItem $feedback)
     {
         $this->mustBeSuperAdmin();
@@ -378,6 +390,10 @@ class FeedbackController extends Controller
             'sa_status' => 'required|in:' . implode(',', array_keys(FeedbackItem::saStatuses())),
             'sa_reply' => 'nullable|string|max:2000',
         ]);
+
+        if ($feedback->isClosedForSa() && $data['sa_status'] !== 'fixed') {
+            return back()->with('pop_error', 'This report is closed — the Super Admin cannot reopen it. Only the school Admin can reopen it from the school side.');
+        }
 
         $feedback->update($data);
 
@@ -413,19 +429,52 @@ class FeedbackController extends Controller
         }
 
         $items = FeedbackItem::forwarded()->whereIn('id', $ids)->get();
+        $alreadyClosed = $items->filter(function ($item) { return $item->isClosedForSa(); });
+        // Wave 16: already-closed reports are never re-closed (no
+        // duplicate audit noise) — they are simply skipped.
+        $items = $items->reject(function ($item) { return $item->isClosedForSa(); });
         foreach ($items as $item) {
             $item->update(['sa_status' => 'fixed']);
             Audit::log('feedback.sa_closed', $item,
                 'Super Admin closed feedback #' . $item->id . ' from the list (marked Fixed).');
         }
 
-        if ($items->isEmpty()) {
+        if ($items->isEmpty() && $alreadyClosed->isEmpty()) {
             return redirect()->route('feedback.sa_index')
                 ->with('flash_danger', 'No forwarded reports matched the selection.');
         }
 
+        if ($items->isEmpty()) {
+            return redirect()->route('feedback.sa_index')
+                ->with('flash_info', 'Selected report(s) are already closed — nothing was changed.');
+        }
+
         return redirect()->route('feedback.sa_index')
             ->with('flash_success', $items->count() . ' report(s) closed (marked Fixed).');
+    }
+
+    /**
+     * School Admin reopens a closed report (Wave 16 ticket rule):
+     * the ONLY way a Fixed report comes back — it returns to
+     * Received on the Super Admin's board, i.e. a re-escalation.
+     * The school-side status is deliberately untouched: the Admin
+     * controls that separately on this same page. Non-closed and
+     * non-forwarded items cannot be "reopened".
+     */
+    public function reopen(FeedbackItem $feedback)
+    {
+        $this->mustBeAdmin();
+        $this->mustBeForwarded($feedback);
+
+        if (!$feedback->isClosedForSa()) {
+            return back()->with('pop_error', 'Only a closed (Fixed) report can be reopened.');
+        }
+
+        $feedback->update(['sa_status' => 'received']);
+        Audit::log('feedback.reopened', $feedback,
+            'School Admin reopened feedback #' . $feedback->id . ' — back to Received for the Super Admin.');
+
+        return back()->with('flash_success', 'Report reopened — the Super Admin sees it as Received again.');
     }
 
     /* ----------------------------------------------------------------

@@ -55,6 +55,57 @@ class HomeController extends Controller
         return view('pages.other.terms_of_use', $data);
     }
 
+    /** Health endpoint (Wave 15): for uptime monitors. Public on
+     *  purpose — a monitor cannot log in — and deliberately bare:
+     *  only ok/fail, no versions, counts or anything an attacker
+     *  could use. A failed DB ping returns 503. */
+    public function health()
+    {
+        try {
+            \Illuminate\Support\Facades\DB::select('SELECT 1');
+            $db = 'ok';
+        } catch (\Throwable $e) {
+            $db = 'fail';
+        }
+        $ok = $db === 'ok';
+        return response()->json([
+            'status' => $ok ? 'ok' : 'fail',
+            'database' => $db,
+        ], $ok ? 200 : 503);
+    }
+
+    /** Public admission enquiry form (Wave 12): no login needed —
+     *  a parent enquiring about a seat. Classes come from the
+     *  school's own class list; nothing else is exposed. */
+    public function admission_form()
+    {
+        $data['app_name'] = Qs::getSetting('system_name') ?: config('app.name');
+        $data['my_classes'] = \App\Models\MyClass::orderBy('id')->get();
+        return view('pages.other.admission_enquiry', $data);
+    }
+
+    public function admission_store(\Illuminate\Http\Request $request)
+    {
+        $data = $request->validate([
+            'name' => 'required|string|min:3|max:150',
+            'phone' => 'required|string|min:6|max:20',
+            'my_class_id' => 'nullable|exists:my_classes,id',
+            'message' => 'nullable|string|max:1000',
+        ]);
+
+        \App\Models\Admission::create([
+            'name' => ucwords($data['name']),
+            'phone' => $data['phone'],
+            'my_class_id' => $data['my_class_id'] ?? null,
+            'message' => $data['message'] ?? null,
+            'status' => 'new',
+            'session' => Qs::getCurrentSession(),
+        ]);
+
+        return redirect()->route('admission_enquiry.form')
+            ->with('flash_success', 'Thank you! Your enquiry has been received — the school office will contact you soon.');
+    }
+
     public function dashboard()
     {
         $now = Carbon::now();
@@ -138,6 +189,8 @@ class HomeController extends Controller
             $d['teacher_count'] = $d['users']->where('user_type', 'teacher')->count();
             $d['administrator_count'] = $d['users']->whereIn('user_type', ['admin', 'super_admin'])->count();
             $d['parent_count'] = $d['users']->where('user_type', 'parent')->count();
+            // Wave 12: enquiries awaiting first contact.
+            $d['new_enquiry_count'] = \App\Models\Admission::where('status', 'new')->count();
 
             // Real period deltas: records created in the last 30 days vs the
             // 30 days before that. No invented percentages (audit §9).
@@ -146,6 +199,7 @@ class HomeController extends Controller
                 'teachers' => $this->userTypeDelta('teacher', $now),
                 'administrators' => $this->userTypeDelta(['admin', 'super_admin'], $now),
                 'parents' => $this->userTypeDelta('parent', $now),
+                'enquiries' => null,
             ];
 
             $d['recent_students'] = StudentRecord::with(['user', 'my_class', 'section'])
@@ -743,6 +797,14 @@ class HomeController extends Controller
                 ->count();
         }
 
+        // Wave 13 (HR-lite): the teacher's own leave requests, newest
+        // first — status only, no invented balance.
+        $my_leave_requests = collect();
+        if (Schema::hasTable('leave_requests')) {
+            $my_leave_requests = \App\Models\LeaveRequest::where('user_id', $teacher_id)
+                ->orderByDesc('id')->take(5)->get();
+        }
+
         /* ---------------------------------------------------------------
            Loop 79 — Teacher dashboard redesign data. Scope classes =
            the classes this teacher is attached to: subject classes
@@ -959,6 +1021,7 @@ class HomeController extends Controller
 
         return [
             'lms_to_grade' => $lms_to_grade,
+            'my_leave_requests' => $my_leave_requests,
             'my_subjects' => $subjects,
             'my_class_count' => $class_ids->count(),
             'first_class_id' => $class_ids->first(),

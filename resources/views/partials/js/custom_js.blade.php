@@ -91,6 +91,41 @@
         })
     }
 
+    /* Wave 8 — exam picker filtered by class: a class-scoped exam
+       (wave 2) belongs to exactly one class, so once a class is
+       picked the exam dropdown keeps only global exams (scope 0)
+       and that class's exams. Options are rebuilt from a cached
+       clone (Select2 reads options on open, so hiding them is not
+       reliable); the server guard in MarkController is the real
+       enforcement — this only stops the mis-pick at the UI. */
+    function filterExamsByClass(class_id){
+        var exam = $('#exam_id');
+        if (!exam.length) return;
+        if (!exam.data('allOptions')) { exam.data('allOptions', exam.find('option').clone()); }
+        var all = exam.data('allOptions');
+        var current = exam.val();
+        exam.empty();
+        all.each(function(){
+            var scope = $(this).attr('data-scope');
+            if (scope === undefined || scope === '' || scope === '0' || String(scope) === String(class_id)) {
+                exam.append($(this).clone());
+            }
+        });
+        if (exam.find('option[value="' + current + '"]').length) {
+            exam.val(current);
+        } else {
+            exam.prop('selectedIndex', 0);
+        }
+        exam.trigger('change');
+    }
+
+    /* Manage page loads with a class preselected: apply the same
+       filter once. Landing page (no class yet) keeps all exams. */
+    $(function(){
+        var cls = $('#my_class_id');
+        if (cls.length && cls.val()) { filterExamsByClass(cls.val()); }
+    });
+
 
     {{--Notifications--}}
 

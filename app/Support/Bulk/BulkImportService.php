@@ -44,6 +44,7 @@ class BulkImportService
             'students:add' => ['module' => 'students', 'mode' => 'add'],
             'students:update' => ['module' => 'students', 'mode' => 'update'],
             'staff:add' => ['module' => 'staff', 'mode' => 'add'],
+            'staff:update' => ['module' => 'staff', 'mode' => 'update'],
         ];
     }
 
@@ -95,28 +96,33 @@ class BulkImportService
     }
 
     /**
-     * Parse the stored CSV into staged rows and validate every one.
+     * Parse the stored file into staged rows and validate every one.
      * Returns an error message, or null on success (job → validated).
+     * The file may be CSV or .xlsx: the reader is picked by content
+     * (ZIP magic), because createJob stores every upload with a
+     * .csv name regardless of what was uploaded.
      */
     public function stageAndValidate(BulkImportJob $job): ?string
     {
-        $full = Storage::path($job->stored_path);
-        $handle = @fopen($full, 'r');
-        if ($handle === false) {
-            return $this->failJob($job, 'The uploaded file could not be read back from storage.');
+        try {
+            $allRows = $this->readRows($job);
+        } catch (\Throwable $e) {
+            return $this->failJob($job, $e->getMessage());
         }
 
-        $headers = $this->readHeaderRow($handle);
+        if (empty($allRows)) {
+            return $this->failJob($job, 'The file is empty or has no header row.');
+        }
+
+        $headers = $this->normalizeHeaderRow(array_shift($allRows));
         if ($headers === null) {
-            fclose($handle);
-            return $this->failJob($job, 'The CSV file is empty or has no header row.');
+            return $this->failJob($job, 'The file is empty or has no header row.');
         }
 
         $module = $this->moduleFor($job);
         $missing = array_diff($module->requiredHeader($job->mode), $headers);
         if ($missing) {
-            fclose($handle);
-            return $this->failJob($job, 'The CSV is missing required column(s): ' . implode(', ', $missing) . '. Please use the template for this flow.');
+            return $this->failJob($job, 'The file is missing required column(s): ' . implode(', ', $missing) . '. Please use the template for this flow.');
         }
 
         $ctx = $this->buildContext($job);
@@ -125,7 +131,7 @@ class BulkImportService
         $counts = ['total' => 0, 'create' => 0, 'update' => 0, 'skip' => 0, 'error' => 0];
         $line = 1;
 
-        while (($cells = fgetcsv($handle)) !== false) {
+        foreach ($allRows as $cells) {
             $line++;
             if ($cells === [null] || $this->rowIsBlank($cells)) {
                 continue;
@@ -133,7 +139,6 @@ class BulkImportService
 
             $counts['total']++;
             if ($counts['total'] > self::MAX_ROWS) {
-                fclose($handle);
                 $job->rows()->delete();
                 return $this->failJob($job, 'The file has more than ' . self::MAX_ROWS . ' rows. Please split it into smaller files.');
             }
@@ -173,7 +178,6 @@ class BulkImportService
                     $counts['error']++;
             }
         }
-        fclose($handle);
 
         $job->update([
             'status' => 'validated',
@@ -271,6 +275,65 @@ class BulkImportService
         }
     }
 
+    /**
+     * Wave 9 — roll back a COMPLETED job: every applied row is
+     * reversed in reverse order (adds delete the created account,
+     * updates restore the old values recorded at validation time).
+     * A row that cannot be reversed safely (created account has
+     * since gained marks/payments/attendance, or an old update job
+     * recorded no old values) is skipped with its reason, never
+     * force-deleted. Returns counts + skip reasons + how many
+     * restored rows had a class change (those marks are gone for
+     * good — the original class change deleted them, same as the
+     * single Edit form). The job becomes 'rolled_back' only when at
+     * least one row was actually reversed; otherwise it stays
+     * 'completed' and the caller reports that nothing moved.
+     */
+    public function rollback(BulkImportJob $job): array
+    {
+        if ($job->status !== 'completed') {
+            return ['error' => 'Only a completed job can be rolled back.'];
+        }
+
+        $module = $this->moduleFor($job);
+        $rolledBack = 0;
+        $skipped = [];
+        $classChanged = 0;
+
+        $rows = $job->rows()->where('verdict', 'applied')
+            ->orderByDesc('row_number')->get();
+        foreach ($rows as $row) {
+            try {
+                if ($job->mode === 'add') {
+                    $module->rollbackAdd((int) $row->record_id);
+                } else {
+                    if ($module->rollbackUpdate($row->resolved ?? [])) {
+                        $classChanged++;
+                    }
+                }
+                $row->update(['verdict' => 'rolled_back', 'failure' => null]);
+                $rolledBack++;
+            } catch (\Throwable $e) {
+                $row->update(['failure' => Str::limit($e->getMessage(), 500)]);
+                $skipped[] = "Row {$row->row_number}: {$e->getMessage()}";
+            }
+        }
+
+        if ($rolledBack > 0) {
+            $job->update(['status' => 'rolled_back']);
+            Audit::log('bulk.rolled_back', BulkImportJob::class,
+                "Bulk {$job->mode} ({$job->module}) Job #{$job->id} rolled back: "
+                . "{$rolledBack} row(s) reversed, " . count($skipped) . " skipped"
+                . ($classChanged > 0 ? ", {$classChanged} class-change row(s) whose old marks cannot be restored." : '.'));
+        }
+
+        return [
+            'rolled_back' => $rolledBack,
+            'skipped' => $skipped,
+            'class_changed' => $classChanged,
+        ];
+    }
+
     /**************** INTERNALS ****************/
 
     protected function validateRow(BulkImportJob $job, array $raw, BulkContext $ctx): array
@@ -319,23 +382,51 @@ class BulkImportService
         return $message;
     }
 
-    /***** CSV reading — same normalisation as the legacy importer's
-           readHeaderRow/rowIsBlank/mapRow (BOM-safe header row,
-           unknown columns ignored), shared by both modules. *****/
+    /***** File reading — CSV or .xlsx, same normalisation as the
+           legacy importer's readHeaderRow/rowIsBlank/mapRow
+           (BOM-safe header row, unknown columns ignored), shared by
+           both modules. *****/
 
-    protected function readHeaderRow($handle): ?array
+    /**
+     * All rows of the stored file, first row = header. Content-sniffed:
+     * a ZIP magic means .xlsx (uploads are stored with a .csv name
+     * whatever they were), anything else reads as CSV. Read eagerly —
+     * the row cap is 10,000, so the whole file fits comfortably.
+     * @return array<int, array<int, string|null>>
+     */
+    protected function readRows(BulkImportJob $job): array
     {
-        $headers = fgetcsv($handle);
-        if ($headers === false || $headers === [null]) {
+        $full = Storage::path($job->stored_path);
+        if (XlsxReader::looksLikeXlsx($full)) {
+            return XlsxReader::rows($full);
+        }
+        $handle = @fopen($full, 'r');
+        if ($handle === false) {
+            throw new \RuntimeException('The uploaded file could not be read back from storage.');
+        }
+        $rows = [];
+        try {
+            while (($cells = fgetcsv($handle)) !== false) {
+                $rows[] = $cells;
+            }
+        } finally {
+            fclose($handle);
+        }
+        return $rows;
+    }
+
+    protected function normalizeHeaderRow(array $cells): ?array
+    {
+        if ($cells === [null] || $cells === []) {
             return null;
         }
-        $headers[0] = preg_replace('/^\xEF\xBB\xBF/', '', (string) $headers[0]);
+        $cells[0] = preg_replace('/^\xEF\xBB\xBF/', '', (string) $cells[0]);
 
         return array_map(function ($h) {
             $h = strtolower(trim((string) $h));
             $h = preg_replace('/[^a-z0-9]+/', '_', $h);
             return trim($h, '_');
-        }, $headers);
+        }, $cells);
     }
 
     protected function rowIsBlank(array $cells): bool

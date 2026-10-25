@@ -57,6 +57,16 @@
                     @if($item->sa_reply)
                         <div class="mt-1"><strong>SA reply:</strong> {{ $item->sa_reply }}</div>
                     @endif
+                    {{-- Wave 16: only the school Admin can reopen a
+                         closed report — it goes back to Received for
+                         the Super Admin (re-escalation). --}}
+                    @if($item->isClosedForSa())
+                        <form method="post" action="{{ route('feedback.reopen', $item->id) }}" class="mt-2">
+                            @csrf
+                            <button type="submit" class="btn btn-warning btn-sm">Reopen — send back to Super Admin</button>
+                            <span class="text-muted ml-2">Closed by the Super Admin. Reopening puts it back to Received on their board.</span>
+                        </form>
+                    @endif
                 </div>
             @endif
         </div>

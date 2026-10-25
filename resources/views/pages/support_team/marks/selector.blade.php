@@ -23,13 +23,16 @@
                 <label for="exam_id"><span>Exam</span> <span class="l84-req" aria-hidden="true">*</span></label>
                 <select required id="exam_id" name="exam_id" data-placeholder="Select Exam" class="form-control select">
                     @foreach($exams as $ex)
-                        <option {{ $selected && $exam_id == $ex->id ? 'selected' : '' }} value="{{ $ex->id }}">{{ $ex->name }}</option>
+                        {{-- Wave 8: data-scope drives the class filter
+                             (filterExamsByClass in custom_js): 0 =
+                             global exam, otherwise its own class. --}}
+                        <option data-scope="{{ $ex->my_class_id }}" {{ $selected && $exam_id == $ex->id ? 'selected' : '' }} value="{{ $ex->id }}">{{ $ex->name }}</option>
                     @endforeach
                 </select>
             </div>
             <div class="pat-field">
                 <label for="my_class_id"><span>Class</span> <span class="l84-req" aria-hidden="true">*</span></label>
-                <select required onchange="getClassSubjects(this.value)" id="my_class_id" name="my_class_id" class="form-control select">
+                <select required onchange="getClassSubjects(this.value); filterExamsByClass(this.value)" id="my_class_id" name="my_class_id" class="form-control select">
                     <option value="">Select Class</option>
                     @foreach($my_classes as $c)
                         <option {{ ($selected && $my_class_id == $c->id) ? 'selected' : '' }} value="{{ $c->id }}">{{ $c->name }}</option>

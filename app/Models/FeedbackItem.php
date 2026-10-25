@@ -127,6 +127,18 @@ class FeedbackItem extends Eloquent
         return !is_null($this->forwarded_at);
     }
 
+    /**
+     * Ticket rule (Wave 16, owner order 2026-10-25): once the Super
+     * Admin closes a report (sa_status Fixed), the closure is
+     * terminal on the platform side — the SA cannot reopen it, in
+     * the UI or via the API. Only the school Admin can reopen it
+     * (re-escalation), which puts it back to Received for the SA.
+     */
+    public function isClosedForSa(): bool
+    {
+        return $this->sa_status === 'fixed';
+    }
+
     public function isDuplicate(): bool
     {
         return $this->status === 'duplicate';

@@ -96,7 +96,10 @@
             <tbody>
             @forelse($items as $item)
                 <tr>
-                    <td><input type="checkbox" class="fb-bulk-check" value="{{ $item->id }}" title="Select report #{{ $item->id }}"></td>
+                    {{-- Wave 16: closed reports cannot be re-closed —
+                         their checkbox is disabled and skipped by the
+                         select-all script. --}}
+                    <td><input type="checkbox" class="fb-bulk-check" value="{{ $item->id }}" title="{{ $item->isClosedForSa() ? 'Already closed' : 'Select report #' . $item->id }}" {{ $item->isClosedForSa() ? 'disabled' : '' }}></td>
                     <td>
                         <a class="fb-report-title" href="{{ route('feedback.sa_show', $item->id) }}">#{{ $item->id }} {{ $item->title }}</a>
                         <span class="text-muted">· {{ $item->typeLabel() }}</span>
@@ -109,11 +112,15 @@
                     <td>@include('pages.support_team.feedback._chips', ['item' => $item])</td>
                     <td style="white-space:nowrap">{{ $item->forwarded_at->format('d M Y') }}</td>
                     <td style="white-space:nowrap"><a href="{{ route('feedback.sa_show', $item->id) }}" class="btn btn-light btn-sm">Open</a>
+                        @if($item->isClosedForSa())
+                            <button type="button" class="btn btn-light btn-sm" disabled title="Closed — only the school Admin can reopen this report">Closed</button>
+                        @else
                         <form method="post" action="{{ route('feedback.sa_bulk_close') }}" style="display:inline">
                             @csrf
                             <input type="hidden" name="ids[]" value="{{ $item->id }}">
                             <button type="submit" class="btn btn-light btn-sm">Close</button>
                         </form>
+                        @endif
                     </td>
                 </tr>
             @empty
@@ -128,6 +135,9 @@
     (function () {
         var selectAll = document.getElementById('fb-select-all');
         var checks = document.querySelectorAll('.fb-bulk-check');
+        // Wave 16: disabled (already closed) boxes are never counted
+        // or ticked by select-all.
+        var enabled = document.querySelectorAll('.fb-bulk-check:not(:disabled)');
         var count = document.getElementById('fb-bulk-count');
         var btn = document.getElementById('fb-bulk-close-btn');
         var form = document.getElementById('fb-bulk-form');
@@ -136,10 +146,10 @@
             var n = document.querySelectorAll('.fb-bulk-check:checked').length;
             count.textContent = n;
             btn.disabled = n === 0;
-            selectAll.checked = checks.length > 0 && n === checks.length;
+            selectAll.checked = enabled.length > 0 && n === enabled.length;
         }
         selectAll.addEventListener('change', function () {
-            checks.forEach(function (c) { c.checked = selectAll.checked; });
+            enabled.forEach(function (c) { c.checked = selectAll.checked; });
             refresh();
         });
         checks.forEach(function (c) { c.addEventListener('change', refresh); });
