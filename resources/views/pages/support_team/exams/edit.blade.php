@@ -28,6 +28,11 @@
                         <option {{ $ex->term == 3 ? 'selected' : '' }} value="3">Third Term</option>
                     </select>
                 </div>
+                <div class="pat-field">
+                    <label>Class scope</label>
+                    <input class="form-control" disabled type="text" value="{{ empty($ex->my_class_id) ? 'All classes (global exam)' : ($ex->my_class->name ?? 'Class '.$ex->my_class_id) }}">
+                    <small class="text-muted">Scope is fixed at creation — a global exam covers every class for the term, a class exam only its class.</small>
+                </div>
             </div>
         </div>
     @endcomponent

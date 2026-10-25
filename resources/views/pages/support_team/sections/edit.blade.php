@@ -36,4 +36,39 @@
             </div>
         </div>
     @endcomponent
+
+    {{-- Section build (2026-10-25): per-section subject teachers.
+         Blank = the subject's class teacher teaches this section;
+         a chosen teacher teaches that subject in THIS section only.
+         Separate form (own PUT) so the section edit above is untouched. --}}
+    @if(isset($subjects) && $subjects->count())
+    <div class="card mt-3"><div class="card-body">
+        <h6 class="font-weight-bold">Subject teachers for this section</h6>
+        <p class="text-muted">Leave a subject blank to use its class teacher. A teacher chosen here teaches that subject in {{ $s->name }} only — other sections keep their own teachers.</p>
+        <form method="post" action="{{ route('sections.teachers.update', $s->id) }}">
+            @csrf @method('PUT')
+            <div class="table-responsive"><table class="table table-sm">
+                <thead><tr><th>Subject</th><th>Class teacher</th><th>{{ $s->name }} teacher</th></tr></thead>
+                <tbody>
+                @foreach($subjects as $sub)
+                    @php $ov = $overrides[$sub->id] ?? null; @endphp
+                    <tr>
+                        <td>{{ $sub->name }}</td>
+                        <td>{{ $sub->teacher->name ?? 'Vacant' }}</td>
+                        <td>
+                            <select name="teachers[{{ $sub->id }}]" class="form-control select-search" data-placeholder="Use class teacher">
+                                <option value=""></option>
+                                @foreach($teachers as $t)
+                                    <option {{ (int) $ov === (int) $t->id ? 'selected' : '' }} value="{{ Qs::hash($t->id) }}">{{ $t->name }}</option>
+                                @endforeach
+                            </select>
+                        </td>
+                    </tr>
+                @endforeach
+                </tbody>
+            </table></div>
+            <button type="submit" class="btn btn-primary">Save subject teachers</button>
+        </form>
+    </div></div>
+    @endif
 @endsection

@@ -971,10 +971,10 @@ class DemoDataSeeder extends Seeder
         $byEmail = function ($email) {
             return DB::table('users')->where('email', $email)->first();
         };
-        $parent = $byEmail('parent@parent.com');
-        $teacher = $byEmail('teacher@teacher.com');
-        $admin = $byEmail('admin@admin.com');
-        $accountant = $byEmail('accountant@accountant.com');
+        $parent = $byEmail('parent@hackstra.app');
+        $teacher = $byEmail('teacher@hackstra.app');
+        $admin = $byEmail('admin@hackstra.app');
+        $accountant = $byEmail('accountant@hackstra.app');
         $studentUserId = DB::table('student_records')->where('grad', 0)->orderBy('id')->value('user_id');
         $student = $studentUserId ? DB::table('users')->where('id', $studentUserId)->first() : null;
 

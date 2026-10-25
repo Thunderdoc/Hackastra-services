@@ -38,9 +38,9 @@
         <a href="{{ route('tt.mine') }}" class="t10-kpi t10-kpi-green">
             <span class="t10-kpi-icon"><i class="icon-windows2"></i></span>
             <span class="t10-kpi-copy">
-                <span class="t10-kpi-label">My Classes</span>
+                <span class="t10-kpi-label">My Assignments</span>
                 <strong>{{ number_format($my_assignment_count) }}</strong>
-                <small>Classes you teach in</small>
+                <small>Sections led + classes taught</small>
             </span>
             <i class="icon-arrow-right7 t10-kpi-chev"></i>
         </a>
@@ -97,7 +97,7 @@
                         <tr>
                             <td class="t10-time">{{ $row['time_label'] }}</td>
                             <td><span class="t10-subject">{{ $row['subject_name'] }}</span></td>
-                            <td>{{ $row['class_name'] }}@if(!empty($row['sections'])) &middot; {{ implode(', ', $row['sections']) }}@endif</td>
+                            <td>{{ $row['class_name'] }}@if(!empty($row['section_name'])) &middot; {{ $row['section_name'] }}@elseif(!empty($row['sections'])) &middot; {{ implode(', ', $row['sections']) }}@endif</td>
                             <td>—</td>
                             <td><span class="t10-status t10-status-{{ $row['status'] }}">{{ $row['status_label'] }}</span></td>
                             <td>

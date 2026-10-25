@@ -82,7 +82,7 @@ class TimeTableRepo
 
     public function getAllRecords()
     {
-        return TimeTableRecord::orderBy('created_at')->with(['my_class', 'exam'])->get();
+        return TimeTableRecord::orderBy('created_at')->with(['my_class', 'exam', 'section'])->get();
     }
 
     public function getTTRByIDs($ids)

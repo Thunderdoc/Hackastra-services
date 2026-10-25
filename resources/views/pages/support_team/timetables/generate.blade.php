@@ -63,12 +63,22 @@
                 </div>
                 <div class="pat-field">
                     <label for="class_id">Class (when "One class only")</label>
-                    <select id="class_id" name="class_id" class="form-control">
+                    <select id="class_id" name="class_id" class="form-control" onchange="getClassSections(this.value, '#section_id')">
                         <option value="">Select Class</option>
                         @foreach($my_classes as $mc)
                             <option value="{{ $mc->id }}" {{ old('class_id', $preset_class ?? '') == $mc->id ? 'selected' : '' }}>{{ $mc->name }}</option>
                         @endforeach
                     </select>
+                </div>
+                <div class="pat-field">
+                    <label for="section_id">Section (when "One class only")</label>
+                    <select id="section_id" name="section_id" class="form-control">
+                        <option value="">Whole class (all sections)</option>
+                        @foreach($preset_sections as $sec)
+                            <option value="{{ $sec->id }}" {{ old('section_id') == $sec->id ? 'selected' : '' }}>{{ $sec->name }}</option>
+                        @endforeach
+                    </select>
+                    <small class="text-muted">Leave blank for the whole-class grid. Pick a section to generate that section's own grid, with its own teachers and timings.</small>
                 </div>
                 <div class="pat-field">
                     <label for="mode">Classes that already have a timetable <span class="text-danger">*</span></label>

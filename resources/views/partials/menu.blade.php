@@ -463,7 +463,7 @@
                             </li>
                         @endif
 
-                        @if(Qs::userIsTeamSA())
+                        @if(Qs::userIsTeamSA() || Qs::userIsTeacher())
                             {{--Tabulation Sheet--}}
                             <li class="nav-item">
                                 <a href="{{ route('marks.tabulation') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['marks.tabulation']) ? 'active' : '' }}">Tabulation Sheet</a>

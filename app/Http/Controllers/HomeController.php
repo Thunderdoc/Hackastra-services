@@ -573,11 +573,10 @@ class HomeController extends Controller
 
         $today_periods = collect();
         if (Schema::hasTable('time_tables')) {
-            $today_periods = TimeTable::with(['subject.my_class', 'time_slot', 'tt_record.my_class'])
-                ->where('day', $now->format('l'))
-                ->whereHas('subject', function ($q) use ($teacher_id) {
-                    $q->where('teacher_id', $teacher_id);
-                })
+            $today_periods = TimeTable::with(['subject.my_class', 'time_slot', 'tt_record.my_class', 'tt_record.section'])
+                ->where('day', $now->format('l'));
+            \App\Support\SectionTeacher::applyTeacherFilter($today_periods, (int) $teacher_id);
+            $today_periods = $today_periods
                 ->get()
                 ->map(function (TimeTable $period) use ($now, $led_by_class, $session_by_period) {
                     $slot = $period->time_slot;
@@ -612,6 +611,7 @@ class HomeController extends Controller
                         'time_label' => optional($slot)->full ?: '—',
                         'subject_name' => optional($period->subject)->name ?: '—',
                         'class_name' => optional($class)->name ?: '—',
+                        'section_name' => optional(optional($period->tt_record)->section)->name,
                         'sections' => $class ? ($led_by_class[$class->id] ?? []) : [],
                         'status' => $status,
                         'status_label' => $status_label,

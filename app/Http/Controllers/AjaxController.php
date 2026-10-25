@@ -30,6 +30,12 @@ class AjaxController extends Controller
 
     public function get_class_sections($class_id)
     {
+        // Owner grant 2026-10-25: a teacher's section cascade only
+        // ever lists their assigned classes' sections — every data
+        // page re-validates, but the list itself must not leak.
+        if (Qs::userIsTeacher() && !\App\Support\TeacherScope::canTeachClass(Auth::user(), $class_id)) {
+            return [];
+        }
         $sections = $this->my_class->getClassSections($class_id);
         return $sections = $sections->map(function($q){
             return ['id' => $q->id, 'name' => $q->name];

@@ -20,9 +20,18 @@
                 </div>
                 <div class="pat-field">
                     <label for="my_class_id">Class <span class="text-danger">*</span></label>
-                    <select required data-placeholder="Select Class" class="form-control select" name="my_class_id" id="my_class_id">
+                    <select required data-placeholder="Select Class" class="form-control select" name="my_class_id" id="my_class_id" onchange="getClassSections(this.value, '#section_id')">
                         @foreach($my_classes as $mc)
                             <option {{ $ttr->my_class_id == $mc->id ? 'selected' : '' }} value="{{ $mc->id }}">{{ $mc->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="pat-field">
+                    <label for="section_id">Section</label>
+                    <select class="form-control select" name="section_id" id="section_id">
+                        <option value="">Whole class (all sections)</option>
+                        @foreach($sections as $sec)
+                            <option {{ $ttr->section_id == $sec->id ? 'selected' : '' }} value="{{ $sec->id }}">{{ $sec->name }}</option>
                         @endforeach
                     </select>
                 </div>

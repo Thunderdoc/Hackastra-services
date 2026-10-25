@@ -235,7 +235,7 @@
                                     @if(optional($row['subject'])->slug)<span class="ma-code-chip">{{ $row['subject']->slug }}</span>@endif
                                 </td>
                                 @if($is_teacher)
-                                    <td>{{ optional($row['class'])->name }}</td>
+                                    <td>{{ optional($row['class'])->name }}@if(optional($row['section'])->name) — {{ $row['section']->name }}@endif</td>
                                     <td>
                                         @if($row['session'])
                                             <span class="ma-pill ma-pill-done"><i class="icon-checkmark3"></i> Submitted</span>

@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Models\Subject;
 use App\Models\TimeTable;
 use App\Models\TimeTableRecord;
+use App\User;
 
 /**
  * Timetable validation (Scheduling Engine Slice E, validation
@@ -43,7 +44,7 @@ class TimetableValidator
         foreach ($cells as $c) {
             if (!$c->subject) {
                 $errors[] = 'A period on ' . $c->day . ' points at a subject that no longer exists.';
-            } elseif (!$c->subject->teacher_id) {
+            } elseif (!SectionTeacher::teacherIdFor($record->section_id ?? null, $c->subject)) {
                 $errors[] = $c->subject->name . ' on ' . $c->day . ' has no teacher assigned.';
             }
         }
@@ -82,11 +83,11 @@ class TimetableValidator
             ->whereIn('ttr_id', $yearRecords)->get();
         $cap = Staffing::maxPeriodsPerWeek();
         $loads = [];
-        foreach ($allCells->groupBy(function ($c) { return optional($c->subject)->teacher_id; }) as $teacherId => $group) {
+        foreach ($allCells->groupBy(function ($c) { return SectionTeacher::teacherIdFor(optional($c->tt_record)->section_id ?? null, $c->subject); }) as $teacherId => $group) {
             if (!$teacherId) {
                 continue;
             }
-            $teacher = optional($group->first()->subject)->teacher;
+            $teacher = User::find($teacherId);
             $loads[] = [
                 'teacher' => $teacher,
                 'periods' => $group->count(),
@@ -121,17 +122,20 @@ class TimetableValidator
         $seen = [];
         $out = [];
         foreach ($cells as $c) {
-            if (!$c->subject || !$c->subject->teacher_id) {
+            // Section build: a clash is about the teacher who
+            // actually teaches the cell (override or class teacher).
+            $teacherId = SectionTeacher::teacherIdFor(optional($c->tt_record)->section_id ?? null, $c->subject);
+            if (!$c->subject || !$teacherId) {
                 continue;
             }
-            $key = $c->subject->teacher_id . '|' . $c->day_num . '|' . date('H:i', (int) $c->timestamp_from);
+            $key = $teacherId . '|' . $c->day_num . '|' . date('H:i', (int) $c->timestamp_from);
             if (isset($seen[$key])) {
                 $first = $seen[$key];
                 if ((int) $first->ttr_id === (int) $c->ttr_id) {
                     continue; // same record+slot duplicates are class collisions, counted there
                 }
                 $out[] = [
-                    'message' => 'Teacher double-booked: ' . $c->subject->teacher->name . ' on ' . $c->day
+                    'message' => 'Teacher double-booked: ' . (optional(User::find($teacherId))->name ?: 'A teacher') . ' on ' . $c->day
                         . ' at ' . date('g:i A', (int) $c->timestamp_from) . ' — '
                         . optional($first->tt_record)->name . ' and ' . optional($c->tt_record)->name . '.',
                     'records' => [(int) $first->ttr_id, (int) $c->ttr_id],

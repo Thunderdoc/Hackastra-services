@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Helpers\Qs;
 use App\Models\StudentRecord;
 use App\Models\UserNotification;
 use App\Models\UserPreference;
@@ -80,6 +81,71 @@ class Notify
         }
 
         return UserNotification::where('user_id', $userId)->unread()->count();
+    }
+
+    /**
+     * Owner build 2026-10-25 — result-published broadcast: when an
+     * exam's results are published, every active student of the
+     * exam's session (and each linked parent) gets one bell
+     * notification pointing at their own marksheet. Unlike the LMS
+     * helpers above, results are essential school communication, so
+     * they are NOT gated by the notify_lms preference — the owner
+     * ordered "saab ko jana chahes". Class-scoped exams (my_class_id
+     * set) notify only that class. Re-publishing refreshes: unread
+     * copies of the same broadcast are removed first, so nobody
+     * gets the same announcement twice. Returns rows inserted.
+     */
+    public static function resultsPublished($exam): int
+    {
+        if (!$exam || !Schema::hasTable('user_notifications')) {
+            return 0;
+        }
+
+        $students = StudentRecord::where('session', $exam->year)
+            ->where('grad', 0)
+            ->get(['user_id', 'my_parent_id', 'my_class_id']);
+
+        if (Schema::hasColumn('exams', 'my_class_id') && !empty($exam->my_class_id)) {
+            $students = $students->where('my_class_id', (int) $exam->my_class_id);
+        }
+
+        $title = 'Results published: ' . $exam->name;
+        $body = $exam->name . ' (' . $exam->year . ') results are out. View the marksheet.';
+        $now = now();
+        $rows = [];
+        foreach ($students as $st) {
+            if (!$st->user_id) {
+                continue;
+            }
+            $link = route('marks.print', [Qs::hash($st->user_id), $exam->id, $exam->year]);
+            $rows[] = [
+                'user_id' => (int) $st->user_id, 'type' => 'result_published',
+                'title' => $title, 'body' => $body, 'link' => $link,
+                'read_at' => null, 'created_at' => $now, 'updated_at' => $now,
+            ];
+            if ($st->my_parent_id) {
+                $rows[] = [
+                    'user_id' => (int) $st->my_parent_id, 'type' => 'result_published',
+                    'title' => $title, 'body' => $body, 'link' => $link,
+                    'read_at' => null, 'created_at' => $now, 'updated_at' => $now,
+                ];
+            }
+        }
+
+        if (empty($rows)) {
+            return 0;
+        }
+
+        // Refresh, don't duplicate: drop unread copies of this exact
+        // broadcast (links are per-student, so only their rows go).
+        UserNotification::where('type', 'result_published')->whereNull('read_at')
+            ->whereIn('link', array_unique(array_column($rows, 'link')))->delete();
+
+        foreach (array_chunk($rows, 500) as $chunk) {
+            UserNotification::insert($chunk);
+        }
+
+        return count($rows);
     }
 
     public static function latestFor($userId, int $take = 5)

@@ -203,11 +203,11 @@ Route::group(['middleware' => 'auth'], function () {
         Route::group(['prefix' => 'marks'], function(){
 
            // FOR teamSA — views only (Workstream CM): SA keeps the
-           // tabulation sheet + its print document; the selector POST
-           // only redirects into that view.
+           // tabulation print document; the sheet VIEW is teamSAT
+           // since the owner grant of 2026-10-25 (assigned class
+           // teachers read their own students' sheets, scoped in
+           // MarkController@tabulation; print stays teamSA-only).
             Route::group(['middleware' => 'teamSA'], function(){
-                Route::get('tabulation/{exam?}/{class?}/{sec_id?}', 'MarkController@tabulation')->name('marks.tabulation');
-                Route::post('tabulation', 'MarkController@tabulation_select')->name('marks.tabulation_select');
                 Route::get('tabulation/print/{exam}/{class}/{sec_id}', 'MarkController@print_tabulation')->name('marks.print_tabulation');
 
                 /* Marksheet (bulk class sheet) — owner ruling
@@ -217,6 +217,13 @@ Route::group(['middleware' => 'auth'], function () {
                    at the route gate; Admin keeps generation. */
                 Route::get('bulk/{class?}/{section?}', 'MarkController@bulk')->name('marks.bulk');
                 Route::post('bulk', 'MarkController@bulk_select')->name('marks.bulk_select');
+            });
+
+            // FOR teamSAT — the tabulation sheet view + its selector
+            // POST (which only redirects into that view).
+            Route::group(['middleware' => 'teamSAT'], function(){
+                Route::get('tabulation/{exam?}/{class?}/{sec_id?}', 'MarkController@tabulation')->name('marks.tabulation');
+                Route::post('tabulation', 'MarkController@tabulation_select')->name('marks.tabulation_select');
             });
 
             /* Marks Correction (batch fix) REMOVED by owner decision
@@ -283,6 +290,7 @@ Route::group(['middleware' => 'auth'], function () {
         Route::resource('students', 'StudentRecordController');
         Route::resource('users', 'UserController');
         Route::resource('classes', 'MyClassController');
+        Route::put('sections/{id}/teachers', 'SectionController@updateTeachers')->name('sections.teachers.update');
         Route::resource('sections', 'SectionController');
         Route::resource('subjects', 'SubjectController');
 

@@ -5,9 +5,12 @@ namespace App\Http\Controllers\SupportTeam;
 use App\Helpers\Qs;
 use App\Http\Requests\Section\SectionCreate;
 use App\Http\Requests\Section\SectionUpdate;
+use App\Models\Subject;
 use App\Repositories\MyClassRepo;
 use App\Http\Controllers\Controller;
 use App\Repositories\UserRepo;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class SectionController extends Controller
 {
@@ -56,6 +59,13 @@ class SectionController extends Controller
         // Audit Fix Wave 1 (X-2): resolve raw OR Qs-hashed ids.
         $d['s'] = $s = $this->my_class->findSection(Qs::resolveId($id));
         $d['teachers'] = $this->user->getUserByType('teacher');
+        // Section build (2026-10-25): the class's subjects plus this
+        // section's teacher overrides, for the matrix below the form.
+        if ($s) {
+            $d['subjects'] = Subject::where('my_class_id', $s->my_class_id)->orderBy('id')->get();
+            $d['overrides'] = DB::table('section_subject_teachers')
+                ->where('section_id', $s->id)->pluck('teacher_id', 'subject_id');
+        }
 
         return is_null($s) ? Qs::goWithDanger('sections.index') :view('pages.support_team.sections.edit', $d);
     }
@@ -67,6 +77,55 @@ class SectionController extends Controller
 
         // Loop 112: post-save lands on the sections index (owner ruling).
         return Qs::updateOk('sections.index');
+    }
+
+    /**
+     * Section build (2026-10-25): per-section subject teachers.
+     * Blank = no override (the subject's class teacher teaches this
+     * section); a chosen teacher teaches that subject in THIS
+     * section only. Only the section's own class subjects are
+     * honoured, so foreign keys in the request are ignored.
+     */
+    public function updateTeachers(Request $req, $id)
+    {
+        $section = $this->my_class->findSection(Qs::resolveId($id));
+        if (!$section) {
+            return Qs::goWithDanger('sections.index');
+        }
+
+        $input = (array) $req->input('teachers', []);
+        $subjects = Subject::where('my_class_id', $section->my_class_id)->get();
+        foreach ($subjects as $subject) {
+            $raw = $input[$subject->id] ?? '';
+            if ($raw === '' || $raw === null) {
+                DB::table('section_subject_teachers')
+                    ->where('section_id', $section->id)
+                    ->where('subject_id', $subject->id)->delete();
+                continue;
+            }
+            $teacherId = Qs::decodeHash($raw);
+            $teacher = $teacherId ? $this->user->find($teacherId) : null;
+            if (!$teacher || $teacher->user_type !== 'teacher') {
+                continue; // forged or non-teacher value: ignore, never store
+            }
+            $exists = DB::table('section_subject_teachers')
+                ->where('section_id', $section->id)
+                ->where('subject_id', $subject->id)->exists();
+            if ($exists) {
+                DB::table('section_subject_teachers')
+                    ->where('section_id', $section->id)
+                    ->where('subject_id', $subject->id)
+                    ->update(['teacher_id' => $teacher->id, 'updated_at' => now()]);
+            } else {
+                DB::table('section_subject_teachers')->insert([
+                    'section_id' => $section->id, 'subject_id' => $subject->id,
+                    'teacher_id' => $teacher->id, 'created_at' => now(), 'updated_at' => now(),
+                ]);
+            }
+        }
+
+        return redirect()->route('sections.index')
+            ->with('flash_success', 'Subject teachers saved for ' . $section->name . '.');
     }
 
     public function destroy($id)

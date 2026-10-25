@@ -8,6 +8,8 @@ use App\Support\MarkComputation;
 use App\Support\MarkScheme;
 use App\Support\ReportCard;
 use App\Support\TeacherScope;
+use App\Models\Section;
+use App\Models\Subject;
 use App\Http\Requests\Mark\MarkComponentUpdate;
 use App\Http\Requests\Mark\MarkSelector;
 use App\Models\Setting;
@@ -662,17 +664,28 @@ class MarkController extends Controller
 
     public function tabulation($exam_id = NULL, $class_id = NULL, $section_id = NULL)
     {
-        // Batch S: tabulation routes already sit behind teamSA; this is
-        // the in-controller half of the same rule should a teacher ever
-        // reach here — a tabulation sheet covers a whole class, so it
-        // must be one of the teacher's assigned classes.
+        // Owner grant 2026-10-25: the assigned class teacher reads
+        // their own students' tabulation sheet (routes now sit
+        // behind teamSAT; print stays teamSA). A teacher sees only
+        // their assigned classes, and only their sections within
+        // them — a subject teacher sees every section of the classes
+        // they teach; a pure class teacher sees only the sections
+        // they lead.
         if($class_id && Qs::userIsTeacher() && !TeacherScope::canTeachClass(Auth::user(), $class_id)){
             abort(403, 'You can only view tabulation for your assigned classes.');
+        }
+        if($section_id && Qs::userIsTeacher() && !in_array((int) $section_id, $this->teacherSectionIds(Auth::user(), $class_id), true)){
+            abort(403, 'You can only view tabulation for your assigned sections.');
         }
 
         $d['my_classes'] = $this->my_class->all();
         $d['exams'] = $this->exam->getExam(['year' => $this->year]);
         $d['selected'] = FALSE;
+
+        if(Qs::userIsTeacher()){
+            $teacher = Auth::user();
+            $d['my_classes'] = $d['my_classes']->whereIn('id', TeacherScope::classIds($teacher))->values();
+        }
 
         if($class_id && $exam_id && $section_id){
 
@@ -710,7 +723,33 @@ class MarkController extends Controller
             //$d['ct'] = $ct = $d['class_type']->code;
         }
 
+        if(Qs::userIsTeacher()){
+            // Selector + sheet show only the teacher's own sections.
+            $d['sections'] = Section::whereIn('id', $this->teacherSectionIds(Auth::user()))->get();
+        }
+
         return view('pages.support_team.marks.tabulation.index', $d);
+    }
+
+    /**
+     * Owner grant 2026-10-25: section ids a teacher may view on the
+     * tabulation sheet. Null class = every assigned class; a subject
+     * teacher gets every section of the classes they teach, a pure
+     * class teacher only the sections they lead.
+     */
+    protected function teacherSectionIds($user, $classId = null): array
+    {
+        $classIds = $classId ? [(int) $classId] : TeacherScope::classIds($user);
+        $ids = [];
+        foreach ($classIds as $cid) {
+            $teachesSubject = Subject::where('my_class_id', $cid)->where('teacher_id', $user->id)->exists();
+            $q = Section::where('my_class_id', $cid);
+            if (!$teachesSubject) {
+                $q->where('teacher_id', $user->id);
+            }
+            $ids = array_merge($ids, $q->pluck('id')->map(function ($id) { return (int) $id; })->all());
+        }
+        return array_values(array_unique($ids));
     }
 
     public function print_tabulation($exam_id, $class_id, $section_id)

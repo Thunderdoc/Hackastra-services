@@ -78,7 +78,9 @@
             <div class="card-header header-elements-inline">
                 <h6 class="qs-tab-context mb-0">Tabulation Sheet for {{ $my_class->name.' '.$section->name.' - '.$ex->name.' ('.$year.')' }}</h6>
                 <div class="header-elements">
+                    @if(Qs::userIsTeamSA())
                     <a target="_blank" href="{{ route('marks.print_tabulation', [$exam_id, $my_class_id, $section_id]) }}?order={{ $order ?? 'rank' }}" class="btn btn-light btn-sm qs-tab-print"><i class="icon-printer mr-1"></i> Print Tabulation Sheet</a>
+                    @endif
                 </div>
             </div>
             <div class="card-body">
@@ -94,6 +96,9 @@
                         <th class="qs-tab-total qs-tab-total-h">Total</th>
                         <th class="qs-tab-ave">Average</th>
                         <th class="qs-tab-pos">Position</th>
+                        @if(Qs::userIsTeacher())
+                        <th>Teacher's Comment</th>
+                        @endif
                     </tr>
                     </thead>
                     <tbody>
@@ -109,6 +114,9 @@
                             <td class="qs-tab-total">{{ $tabRec->total ?: '-' }}</td>
                             <td class="qs-tab-ave">{{ $tabRec->ave ?: '-' }}</td>
                             <td class="qs-tab-pos">@if($tabPos)<span class="qs-tab-pos-chip qs-tab-pos-{{ $tabPos <= 3 ? $tabPos : 'n' }}">{!! Mk::getSuffix($tabPos) !!}</span>@else - @endif</td>
+                            @if(Qs::userIsTeacher())
+                            <td>@if($tabRec)<input type="text" class="form-control form-control-sm tab-teacher-comment" data-exr="{{ $tabRec->id }}" value="{{ $tabRec->t_comment }}" placeholder="Add comment…">@endif</td>
+                            @endif
                         </tr>
                     @endforeach
                     </tbody>
@@ -118,4 +126,25 @@
         </div>
     @endif
   </div>
+  @if(Qs::userIsTeacher() && $selected)
+  <script>
+  // Owner grant 2026-10-25: the teacher writes their comment right
+  // on the tabulation row — same comment_update endpoint the marks
+  // show page uses, scoped there to the teacher's own classes.
+  document.querySelectorAll('.tab-teacher-comment').forEach(function (input) {
+      input.addEventListener('change', function () {
+          var exr = input.getAttribute('data-exr');
+          var token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+          var fd = new FormData();
+          fd.append('_method', 'PUT');
+          fd.append('_token', token);
+          fd.append('t_comment', input.value);
+          input.style.borderColor = '#f2a13b';
+          fetch('/marks/comment_update/' + exr, { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+              .then(function (r) { input.style.borderColor = r.ok ? '#188b66' : '#c0392b'; })
+              .catch(function () { input.style.borderColor = '#c0392b'; });
+      });
+  });
+  </script>
+  @endif
 @endsection

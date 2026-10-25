@@ -105,7 +105,7 @@
         @foreach($my_classes as $mc)
             @php
                 $records = $tt_records->where('my_class_id', $mc->id)->values();
-                $primary = $records->first(function ($r) use ($stats) { return !$r->exam_id && $r->year === $stats['session']; }) ?: $records->first();
+                $primary = $records->first(function ($r) use ($stats) { return !$r->exam_id && $r->year === $stats['session'] && !$r->section_id; }) ?: $records->first(function ($r) use ($stats) { return !$r->exam_id && $r->year === $stats['session']; }) ?: $records->first();
                 $sections = $sections_by_class[$mc->id] ?? collect();
             @endphp
             @if($records->count() || !$ttFiltersActive)
@@ -134,7 +134,7 @@
                         <div class="ttc-record">
                             <div class="ttc-record-copy">
                                 <strong>{{ $ttr->name }}</strong>
-                                <span class="ttc-record-meta">{{ $ttr->exam_id ? $ttr->exam->name : 'Class TimeTable' }} · {{ $ttr->year }} · {{ $rs['periods'] }} periods · {{ $rs['subjects'] }} subjects</span>
+                                <span class="ttc-record-meta">@if($ttr->section_id) Section {{ $ttr->section->name ?? '' }} · @endif{{ $ttr->exam_id ? $ttr->exam->name : 'Class TimeTable' }} · {{ $ttr->year }} · {{ $rs['periods'] }} periods · {{ $rs['subjects'] }} subjects</span>
                             </div>
                             @if($ttr->year === $stats['session'])
                                 <span class="l81-status l81-status-active"><span class="l81-dot"></span> Active</span>
@@ -202,9 +202,18 @@
                 </div>
                 <div class="pat-field">
                     <label for="my_class_id">Class <span class="text-danger">*</span></label>
-                    <select required data-placeholder="Select Class" class="form-control select" name="my_class_id" id="my_class_id">
+                    <select required data-placeholder="Select Class" class="form-control select" name="my_class_id" id="my_class_id" onchange="getClassSections(this.value, '#section_id')">
                         @foreach($my_classes as $mc)
                             <option {{ old('my_class_id') == $mc->id ? 'selected' : '' }} value="{{ $mc->id }}">{{ $mc->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="pat-field">
+                    <label for="section_id">Section</label>
+                    <select class="form-control select" name="section_id" id="section_id">
+                        <option value="">Whole class (all sections)</option>
+                        @foreach(($sections_by_class[old('my_class_id') ?: ($my_classes->first()->id ?? null)] ?? collect()) as $sec)
+                            <option {{ old('section_id') == $sec->id ? 'selected' : '' }} value="{{ $sec->id }}">{{ $sec->name }}</option>
                         @endforeach
                     </select>
                 </div>

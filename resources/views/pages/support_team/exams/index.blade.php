@@ -33,6 +33,7 @@
                     <th>Name</th>
                     <th>Term</th>
                     <th>Session</th>
+                    <th>Scope</th>
                     <th>Results</th>
                     <th>Tools</th>
                 </tr>
@@ -44,6 +45,7 @@
                         <td data-label="Name">{{ $ex->name }}</td>
                         <td data-label="Term">{{ 'Term '.$ex->term }}</td>
                         <td data-label="Session">{{ $ex->year }}</td>
+                        <td data-label="Scope">{{ empty($ex->my_class_id) ? 'All classes' : ($my_classes->firstWhere('id', $ex->my_class_id)->name ?? 'Class '.$ex->my_class_id) }}</td>
                         <td data-label="Results">
                             @if($ex->results_published)
                                 <span class="badge badge-success">Published</span>
@@ -128,6 +130,16 @@
                             <option {{ old('term') == 2 ? 'selected' : '' }} value="2">Second Term</option>
                             <option {{ old('term') == 3 ? 'selected' : '' }} value="3">Third Term</option>
                         </select>
+                    </div>
+                    <div class="pat-field">
+                        <label for="my_class_id">Class</label>
+                        <select data-placeholder="All classes" class="form-control select-search" name="my_class_id" id="my_class_id">
+                            <option value="">All classes</option>
+                            @foreach($my_classes as $mc)
+                                <option {{ old('my_class_id') == $mc->id ? 'selected' : '' }} value="{{ $mc->id }}">{{ $mc->name }}</option>
+                            @endforeach
+                        </select>
+                        <small class="text-muted">All classes = the old global exam. One class = only that class gets this exam for the term; other classes need their own.</small>
                     </div>
                 </div>
             </div>

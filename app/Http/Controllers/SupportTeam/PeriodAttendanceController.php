@@ -12,6 +12,7 @@ use App\Models\StudentRecord;
 use App\Models\Subject;
 use App\Models\TimeTable;
 use App\Support\CsvExport;
+use App\Support\SectionTeacher;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -201,7 +202,7 @@ class PeriodAttendanceController extends Controller
 
         $d['period'] = $period;
         $d['date'] = $date;
-        $d['students'] = $this->roster($period['class']->id);
+        $d['students'] = $this->roster($period['class']->id, optional($period['section'])->id ?? null);
 
         return view('pages.support_team.attendance_periods.take', $d);
     }
@@ -243,7 +244,7 @@ class PeriodAttendanceController extends Controller
                 ->with('flash_danger', 'Attendance for this period was already submitted and is locked — it cannot be taken again.');
         }
 
-        $students = $this->roster($period['class']->id);
+        $students = $this->roster($period['class']->id, optional($period['section'])->id ?? null);
         $rosterIds = $students->pluck('id')->all();
         $submittedIds = array_map('intval', array_keys($data['statuses']));
         sort($rosterIds);
@@ -260,7 +261,7 @@ class PeriodAttendanceController extends Controller
                     'date' => $date->toDateString(),
                     'time_table_id' => $period['tt']->id,
                     'my_class_id' => $period['class']->id,
-                    'section_id' => null, // timetables are class-level in this schema
+                    'section_id' => optional($period['section'])->id ?? null,
                     'subject_id' => $period['subject']->id,
                     'teacher_id' => $request->user()->id,
                     'topic' => $data['topic'],
@@ -604,14 +605,14 @@ class PeriodAttendanceController extends Controller
             return collect();
         }
 
-        $query = TimeTable::with(['subject.my_class', 'subject.teacher', 'time_slot', 'tt_record.my_class'])
+        $query = TimeTable::with(['subject.my_class', 'subject.teacher', 'time_slot', 'tt_record.my_class', 'tt_record.section'])
             ->where('day', $date->format('l'))
             ->whereNotNull('subject_id');
 
         if ($teacherId !== null) {
-            $query->whereHas('subject', function ($q) use ($teacherId) {
-                $q->where('teacher_id', $teacherId);
-            });
+            // Section build: a teacher's periods include cells they
+            // teach via a section override, not only as class teacher.
+            SectionTeacher::applyTeacherFilter($query, $teacherId);
         }
         if ($classId !== null) {
             $query->whereHas('tt_record', function ($q) use ($classId) {
@@ -638,7 +639,8 @@ class PeriodAttendanceController extends Controller
                     'tt' => $tt,
                     'subject' => $tt->subject,
                     'class' => $class,
-                    'teacher' => optional($tt->subject)->teacher,
+                    'section' => optional($tt->tt_record)->section,
+                    'teacher' => SectionTeacher::teacherFor(optional($tt->tt_record)->section_id ?? null, $tt->subject),
                     'time_label' => optional($slot)->full ?: '—',
                     'sort' => $start ? $start->format('H:i') : '99:99',
                     'session' => $sessions->get($tt->id),
@@ -654,7 +656,7 @@ class PeriodAttendanceController extends Controller
     /** One period by timetable id, in the same shape periodsFor returns. */
     protected function resolvePeriod(int $ttId): array
     {
-        $tt = TimeTable::with(['subject.my_class', 'subject.teacher', 'time_slot', 'tt_record.my_class'])
+        $tt = TimeTable::with(['subject.my_class', 'subject.teacher', 'time_slot', 'tt_record.my_class', 'tt_record.section'])
             ->findOrFail($ttId);
 
         $class = optional($tt->tt_record)->my_class ?: optional($tt->subject)->my_class;
@@ -666,16 +668,22 @@ class PeriodAttendanceController extends Controller
             'tt' => $tt,
             'subject' => $tt->subject,
             'class' => $class,
-            'teacher' => $tt->subject->teacher,
+            'section' => optional($tt->tt_record)->section,
+            'teacher' => SectionTeacher::teacherFor(optional($tt->tt_record)->section_id ?? null, $tt->subject),
             'time_label' => optional($tt->time_slot)->full ?: '—',
         ];
     }
 
-    /** Active (non-graduated) students of a class, in register order. */
-    protected function roster(int $classId)
+    /** Active (non-graduated) students of a class — or of one section
+        when a section period is being taken, so a section register
+        never lists the whole class. */
+    protected function roster(int $classId, $sectionId = null)
     {
         return StudentRecord::with('user', 'section')
             ->where('my_class_id', $classId)
+            ->when($sectionId, function ($q) use ($sectionId) {
+                $q->where('section_id', $sectionId);
+            })
             ->where('grad', 0)
             ->orderBy('id')
             ->get();
@@ -702,7 +710,7 @@ class PeriodAttendanceController extends Controller
                 ->with('flash_danger', 'Period attendance is submitted by the subject teacher — this view is read-only for administrators.');
         }
 
-        if ((int) optional($period['subject'])->teacher_id !== (int) $request->user()->id) {
+        if ((int) SectionTeacher::teacherIdFor(optional($period['section'])->id ?? null, $period['subject']) !== (int) $request->user()->id) {
             abort(403, 'You can only take attendance for your own periods.');
         }
 

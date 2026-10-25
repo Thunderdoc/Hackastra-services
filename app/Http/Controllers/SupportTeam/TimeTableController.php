@@ -19,6 +19,7 @@ use App\Models\TimeTableRecord;
 use App\Repositories\ExamRepo;
 use App\Repositories\MyClassRepo;
 use App\Repositories\TimeTableRepo;
+use App\Support\SectionTeacher;
 use App\Support\TeacherScope;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
@@ -187,6 +188,10 @@ class TimeTableController extends Controller
     {
         $d['preset_class'] = $req->query('class_id');
         $d['my_classes'] = $this->my_class->all();
+        $presetClassId = old('class_id', $d['preset_class']);
+        $d['preset_sections'] = $presetClassId
+            ? Section::where('my_class_id', (int) $presetClassId)->orderBy('name')->get()
+            : collect();
         $d['defaults'] = [
             'start_time' => '08:00', 'period_minutes' => 40,
             'periods_per_day' => 8, 'lunch_after' => 4,
@@ -210,6 +215,7 @@ class TimeTableController extends Controller
             'days' => 'required|integer|in:5,6',
             'scope' => 'required|in:all,one',
             'class_id' => 'nullable|integer',
+            'section_id' => 'nullable|integer',
             'mode' => 'required|in:skip,replace',
         ]);
         foreach (['period_minutes', 'periods_per_day', 'lunch_after', 'lunch_minutes', 'break_after', 'break_minutes', 'days'] as $k) {
@@ -219,6 +225,25 @@ class TimeTableController extends Controller
         }
         if ($data['scope'] === 'one' && empty($data['class_id'])) {
             return back()->with('flash_danger', 'Choose the class to generate for.')->withInput();
+        }
+
+        // Section scope (owner build 2026-10-25): a section grid
+        // replaces the class grid for that section only. A section
+        // target must belong to the chosen class. With any other
+        // scope the section choice is ignored, not an error.
+        $sectionId = !empty($data['section_id']) ? (int) $data['section_id'] : null;
+        $section = null;
+        if ($data['scope'] !== 'one') {
+            $sectionId = null;
+        }
+        if ($sectionId) {
+            if (empty($data['class_id'])) {
+                return back()->with('flash_danger', 'Choose the class the section belongs to.')->withInput();
+            }
+            $section = Section::find($sectionId);
+            if (!$section || (int) $section->my_class_id !== (int) $data['class_id']) {
+                return back()->with('flash_danger', 'That section does not belong to the chosen class.')->withInput();
+            }
         }
 
         // The school-day clock: teaching slots only; lunch and the
@@ -251,6 +276,18 @@ class TimeTableController extends Controller
             ? MyClass::where('id', $data['class_id'])->get()
             : MyClass::orderBy('id')->get();
 
+        // Generation targets: (class, section?) pairs. A section
+        // target builds only that section's grid; every other target
+        // builds the whole-class grid as before.
+        $targets = [];
+        foreach ($classes as $c) {
+            $targets[] = [
+                'class' => $c,
+                'section_id' => ($data['scope'] === 'one' ? $sectionId : null),
+                'section' => ($data['scope'] === 'one' ? $section : null),
+            ];
+        }
+
         $teacherBusy = []; // [day][slot][teacher_id] = true, across ALL classes
         /* Slice D follow-up (2026-10-23, found by the validator):
            the busy map must also respect timetables that already
@@ -260,13 +297,43 @@ class TimeTableController extends Controller
            Kept records (out of scope, skip mode, or attendance-
            locked) preload a by-time busy map; placement checks both
            maps. Records with a different period grid are matched by
-           slot start time — the validator remains the final check. */
+           slot start time — the validator remains the final check.
+           Section build (2026-10-25): only the records actually
+           being rebuilt are excluded from the preload — a class
+           grid stays blocking when a section grid is generated,
+           and section grids stay blocking when a class grid is
+           regenerated, because a teacher cannot teach both at once.
+           Kept cells resolve their teacher through the record's
+           section, so section overrides count as busy. */
         $busyByTime = []; // [day][startMinute][teacher_id] = true
-        $scopeIds = $classes->pluck('id')->all();
+        $targetKeys = [];
+        foreach ($targets as $t) {
+            $targetKeys[$t['class']->id . ':' . ($t['section_id'] ?? '')] = true;
+        }
+        // Section supersede (2026-10-25): a section grid REPLACES
+        // the class grid for that section, so the same class's class
+        // grid must not block the section's own generation — the
+        // section's teachers would otherwise never be placeable
+        // (the class grid already books them at every slot). The
+        // class grid stays live for the OTHER sections, and the
+        // validator flags any resulting double-booking, so the
+        // admin sees it and generates those sections too (or
+        // deletes the class grid once every section has its own).
+        $supersededIds = [];
+        if ($data['scope'] === 'one' && $sectionId) {
+            $classGrid = TimeTableRecord::where('my_class_id', $data['class_id'])
+                ->whereNull('section_id')->whereNull('exam_id')->where('year', $this->year)->first();
+            if ($classGrid) {
+                $supersededIds[$classGrid->id] = true;
+            }
+        }
         $existingRecords = TimeTableRecord::whereNull('exam_id')->where('year', $this->year)->get();
         foreach ($existingRecords as $existing) {
-            $inScope = in_array($existing->my_class_id, $scopeIds, true);
-            if ($inScope && $data['mode'] === 'replace') {
+            if (isset($supersededIds[$existing->id])) {
+                continue; // superseded by the section grid being built
+            }
+            if ($data['mode'] === 'replace'
+                && isset($targetKeys[$existing->my_class_id . ':' . ($existing->section_id ?? '')])) {
                 $locked = TimeTable::where('ttr_id', $existing->id)
                     ->whereIn('id', AttendanceSession::pluck('time_table_id'))->exists();
                 if (!$locked) {
@@ -274,25 +341,36 @@ class TimeTableController extends Controller
                 }
             }
             foreach (TimeTable::where('ttr_id', $existing->id)->with('subject')->get() as $cell) {
-                if ($cell->subject && $cell->subject->teacher_id) {
+                $teacherId = SectionTeacher::teacherIdFor($existing->section_id ?? null, $cell->subject);
+                if ($cell->subject && $teacherId) {
                     $minute = (int) date('H', (int) $cell->timestamp_from) * 60 + (int) date('i', (int) $cell->timestamp_from);
-                    $busyByTime[$cell->day_num][$minute][$cell->subject->teacher_id] = true;
+                    $busyByTime[$cell->day_num][$minute][$teacherId] = true;
                 }
             }
         }
         $summary = ['generated' => [], 'skipped' => [], 'no_subjects' => [], 'locked' => [], 'placed' => 0, 'empty' => 0, 'free' => 0, 'shortfalls' => []];
 
-        foreach ($classes as $class) {
+        foreach ($targets as $target) {
+            $class = $target['class'];
+            $targetSectionId = $target['section_id'];
+            $targetSection = $target['section'];
+            $displayName = $targetSection ? $class->name . ' ' . $targetSection->name : $class->name;
             $subjects = Subject::where('my_class_id', $class->id)->orderBy('id')->get();
             if ($subjects->isEmpty()) {
-                $summary['no_subjects'][] = $class->name;
+                $summary['no_subjects'][] = $displayName;
                 continue;
             }
 
             $record = TimeTableRecord::where('my_class_id', $class->id)
-                ->whereNull('exam_id')->where('year', $this->year)->first();
+                ->whereNull('exam_id')->where('year', $this->year);
+            if ($targetSectionId) {
+                $record->where('section_id', $targetSectionId);
+            } else {
+                $record->whereNull('section_id');
+            }
+            $record = $record->first();
             if ($record && $data['mode'] === 'skip') {
-                $summary['skipped'][] = $class->name;
+                $summary['skipped'][] = $displayName;
                 continue;
             }
             if ($record && $data['mode'] === 'replace') {
@@ -306,19 +384,20 @@ class TimeTableController extends Controller
                 $hasSessions = AttendanceSession::whereIn('time_table_id',
                     TimeTable::where('ttr_id', $record->id)->pluck('id'))->exists();
                 if ($hasSessions) {
-                    $summary['locked'][] = $class->name;
+                    $summary['locked'][] = $displayName;
                     continue;
                 }
             }
 
-            DB::transaction(function () use ($record, $class, $subjects, $slots, $dayNames, $data, &$teacherBusy, &$busyByTime, &$summary) {
+            DB::transaction(function () use ($record, $class, $targetSectionId, $displayName, $subjects, $slots, $dayNames, $data, &$teacherBusy, &$busyByTime, &$summary) {
                 if ($record) {
                     TimeTable::where('ttr_id', $record->id)->delete();
                     TimeSlot::where('ttr_id', $record->id)->delete();
                 } else {
                     $record = TimeTableRecord::create([
-                        'name' => $class->name . ' Timetable',
+                        'name' => $displayName . ' Timetable',
                         'my_class_id' => $class->id,
+                        'section_id' => $targetSectionId,
                         'exam_id' => null,
                         'year' => $this->year,
                     ]);
@@ -358,6 +437,14 @@ class TimeTableController extends Controller
                    from teacher-busy empties). */
                 $targets = $subjects->mapWithKeys(function ($s) { return [$s->id => $s->periods_per_week]; })->all();
                 $doubled = $subjects->mapWithKeys(function ($s) { return [$s->id => false]; })->all();
+                // Section build: placement uses the teacher who
+                // actually teaches the subject IN THIS SECTION
+                // (override or the subject's class teacher), so a
+                // section grid never double-books its own teachers.
+                $teacherOf = [];
+                foreach ($subjects as $s) {
+                    $teacherOf[$s->id] = SectionTeacher::teacherIdFor($targetSectionId, $s);
+                }
                 for ($day = 1; $day <= $data['days']; $day++) {
                     $dayCount = $subjects->mapWithKeys(function ($s) { return [$s->id => 0]; })->all();
                     $prevSubjectId = null;
@@ -372,9 +459,9 @@ class TimeTableController extends Controller
                         $chosen = null;
                         $slotMinute = (int) $slots[$slotIdx]['from']->format('H') * 60 + (int) $slots[$slotIdx]['from']->format('i');
                         foreach ($candidates as $cand) {
-                            if (!$cand->teacher_id
-                                || (empty($teacherBusy[$day][$slotIdx][$cand->teacher_id])
-                                    && empty($busyByTime[$day][$slotMinute][$cand->teacher_id]))) {
+                            if (!$teacherOf[$cand->id]
+                                || (empty($teacherBusy[$day][$slotIdx][$teacherOf[$cand->id]])
+                                    && empty($busyByTime[$day][$slotMinute][$teacherOf[$cand->id]]))) {
                                 $chosen = $cand;
                                 break;
                             }
@@ -402,9 +489,9 @@ class TimeTableController extends Controller
                             $doubled[$chosen->id] = true;
                         }
                         $prevSubjectId = $chosen->id;
-                        if ($chosen->teacher_id) {
-                            $teacherBusy[$day][$slotIdx][$chosen->teacher_id] = true;
-                            $busyByTime[$day][$slotMinute][$chosen->teacher_id] = true;
+                        if ($teacherOf[$chosen->id]) {
+                            $teacherBusy[$day][$slotIdx][$teacherOf[$chosen->id]] = true;
+                            $busyByTime[$day][$slotMinute][$teacherOf[$chosen->id]] = true;
                         }
                         $weekCount[$chosen->id]++;
                         $dayCount[$chosen->id]++;
@@ -423,11 +510,11 @@ class TimeTableController extends Controller
                 }
                 foreach ($subjects as $s) {
                     if ($s->periods_per_week && $weekCount[$s->id] < (int) $s->periods_per_week) {
-                        $summary['shortfalls'][] = $class->name . ' — ' . $s->name . ': '
+                        $summary['shortfalls'][] = $displayName . ' — ' . $s->name . ': '
                             . $weekCount[$s->id] . ' of ' . (int) $s->periods_per_week . ' placed';
                     }
                 }
-                $summary['generated'][] = $class->name;
+                $summary['generated'][] = $displayName;
             });
         }
 
@@ -439,7 +526,7 @@ class TimeTableController extends Controller
                 . ' — nothing was generated. Use “Replace theirs with a fresh generated one” to rebuild, or generate for a different session year.'
                 . ' Skipped: ' . implode(', ', $summary['skipped']) . '.';
         } else {
-        $msg = 'Timetables generated for ' . count($summary['generated']) . ' class(es): '
+        $msg = 'Timetables generated for ' . count($summary['generated']) . ' ' . ($sectionId ? 'section(s)' : 'class(es)') . ': '
             . $summary['placed'] . ' periods placed'
             . ($summary['empty'] ? ', ' . $summary['empty'] . ' period(s) left empty (every teacher busy) — fill them on the Manage page' : '')
             . (!empty($summary['free']) ? ', ' . $summary['free'] . ' free period(s) (all subject requirements met)' : '')
@@ -495,10 +582,10 @@ class TimeTableController extends Controller
             $d['child'] = $child;
 
             if ($child) {
-                $ttr = TimeTableRecord::where('my_class_id', $child->my_class_id)
-                        ->whereNull('exam_id')->where('year', $this->year)->first()
-                    ?: TimeTableRecord::where('my_class_id', $child->my_class_id)
-                        ->whereNull('exam_id')->orderByDesc('year')->first();
+                // Section build: the section's own grid wins over
+                // the whole-class grid (current session first, then
+                // latest year) — see SectionTeacher.
+                $ttr = SectionTeacher::recordForClassSection($child->my_class_id, $child->section_id ?? null, $this->year);
 
                 if ($ttr) {
                     $grid = $this->recordWeekGrid($ttr);
@@ -525,11 +612,9 @@ class TimeTableController extends Controller
     protected function teacherWeekData($user)
     {
         $periods = TimeTable::with(['subject.my_class', 'time_slot', 'tt_record.my_class'])
-            ->whereNotNull('day')
-            ->whereHas('subject', function ($q) use ($user) {
-                $q->where('teacher_id', $user->id);
-            })
-            ->get();
+            ->whereNotNull('day');
+        SectionTeacher::applyTeacherFilter($periods, (int) $user->id);
+        $periods = $periods->get();
 
         $d = ['mode' => 'teacher', 'map' => []];
         $d['slots'] = $periods->pluck('time_slot')->filter()->unique('id')
@@ -615,10 +700,7 @@ class TimeTableController extends Controller
             return null;
         }
 
-        return TimeTableRecord::where('my_class_id', $child->my_class_id)
-                ->whereNull('exam_id')->where('year', $this->year)->first()
-            ?: TimeTableRecord::where('my_class_id', $child->my_class_id)
-                ->whereNull('exam_id')->orderByDesc('year')->first();
+        return SectionTeacher::recordForClassSection($child->my_class_id, $child->section_id ?? null, $this->year);
     }
 
     /**
@@ -739,7 +821,7 @@ class TimeTableController extends Controller
             if (!$e->time_slot) {
                 continue;
             }
-            $teacher = optional(optional($e->subject)->teacher)->name;
+            $teacher = optional(SectionTeacher::teacherFor($ttr->section_id ?? null, $e->subject))->name;
             $map[$e->day][$e->time_slot->full] = [
                 'title' => optional($e->subject)->name ?: '—',
                 'sub'   => $teacher ?: '',
@@ -923,11 +1005,34 @@ class TimeTableController extends Controller
 
     /*********** RECORDS *************/
 
+    /**
+     * Section build (2026-10-25): a record's section must belong to
+     * its class, and exam timetables are always whole-class. Returns
+     * the clean section id, null for a whole-class record, or false
+     * when the section does not belong to the class.
+     */
+    protected function cleanRecordSection(array $data)
+    {
+        if (!empty($data['exam_id'])) {
+            return null;
+        }
+        $sectionId = !empty($data['section_id']) ? (int) $data['section_id'] : null;
+        if (!$sectionId) {
+            return null;
+        }
+        $section = Section::find($sectionId);
+        if (!$section || (int) $section->my_class_id !== (int) ($data['my_class_id'] ?? 0)) {
+            return false;
+        }
+        return $sectionId;
+    }
+
     public function edit_record($ttr_id)
     {
         $d['ttr'] = $ttr = $this->tt->findRecord($ttr_id);
         $d['exams'] = $this->exam->getExam(['year' => $ttr->year]);
         $d['my_classes'] = $this->my_class->all();
+        $d['sections'] = Section::where('my_class_id', $ttr->my_class_id)->orderBy('name')->get();
 
         return view('pages.support_team.timetables.edit', $d);
     }
@@ -985,7 +1090,7 @@ class TimeTableController extends Controller
         foreach ($days as $day) {
             foreach ($tms as $tm) {
                 $cell = $tts->where('ts_id', $tm->id)->where($d_date, $day)->first();
-                $teacher = ($cell && $cell->subject && $cell->subject->teacher) ? $cell->subject->teacher->name : null;
+                $teacher = ($cell && $cell->subject) ? optional(SectionTeacher::teacherFor($ttr->section_id ?? null, $cell->subject))->name : null;
                 $d_time[] = ['day' => $day, 'time' => $tm->full, 'subject' => $cell->subject->name ?? null, 'teacher' => $teacher];
             }
         }
@@ -1033,7 +1138,7 @@ class TimeTableController extends Controller
         foreach ($days as $day) {
             foreach ($tms as $tm) {
                 $cell = $tts->where('ts_id', $tm->id)->where($d_date, $day)->first();
-                $teacher = ($cell && $cell->subject && $cell->subject->teacher) ? $cell->subject->teacher->name : null;
+                $teacher = ($cell && $cell->subject) ? optional(SectionTeacher::teacherFor($ttr->section_id ?? null, $cell->subject))->name : null;
                 $d_time[] = ['day' => $day, 'time' => $tm->full, 'subject' => $cell->subject->name ?? null, 'teacher' => $teacher];
             }
         }
@@ -1050,6 +1155,10 @@ class TimeTableController extends Controller
     {
         $data = $req->all();
         $data['year'] = $this->year;
+        $data['section_id'] = $this->cleanRecordSection($data);
+        if ($data['section_id'] === false) {
+            return back()->with('flash_danger', 'That section does not belong to the chosen class.');
+        }
         $this->tt->createRecord($data);
 
         return Qs::jsonStoreOk();
@@ -1058,6 +1167,10 @@ class TimeTableController extends Controller
     public function update_record(TTRecordRequest $req, $id)
     {
         $data = $req->all();
+        $data['section_id'] = $this->cleanRecordSection($data);
+        if ($data['section_id'] === false) {
+            return back()->with('flash_danger', 'That section does not belong to the chosen class.');
+        }
         $this->tt->updateRecord($id, $data);
 
         // Loop 112: post-save lands on the timetables index (owner
