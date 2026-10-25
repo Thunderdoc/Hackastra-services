@@ -90,7 +90,8 @@ class DemoDataSeeder extends Seeder
         // rest of the demo looked complete. Nothing else in this seeder
         // feeds the timetables — their inputs (users, subjects, classes)
         // are seeded before DemoDataSeeder ever runs.
-        $this->step(function () use ($session) { $this->seedTeacherTimetables($session); });
+        $this->step(function () use ($session) { $this->seedClassTimetables($session); });
+        $this->step(function () { $this->seedEligibility(); });
         $this->step(function () use ($students, $session) { $this->seedPayments($students, $session); });
         // Workstream AR (period-only unification): the day-wise
         // seedAttendance() step is NO LONGER CALLED — attendance demo
@@ -757,47 +758,32 @@ class DemoDataSeeder extends Seeder
      * every seeded teacher now gets their own timetables (the demo
      * teacher first, then the rest by user id — fully deterministic).
      */
-    protected function seedTeacherTimetables(string $session): void
+    /** Build the demo timetables, one coordinated grid per class.
+     *
+     * Owner change 2026-10-25 (more teachers + more subjects): the old
+     * seed was per-teacher and assumed ONE teacher teaches a class's
+     * subjects (first class periods 1-4, second 5-8). With six
+     * specialist subjects per class that assumption breaks — every
+     * subject teacher would claim the same block and all but the
+     * first teacher's cells would be swallowed by insertOrIgnore.
+     * The new seed is per-class with a global teacher-busy map: for
+     * each class it walks days x slots in order, round-robin across
+     * the class's subjects, placing a period only where that
+     * subject's teacher is free at that (day, slot) and the subject
+     * is still under its periods_per_week. Six subjects at six
+     * periods = 36 of the 40 weekly cells, so every class lands a
+     * full grid and no teacher is ever double-booked — the same
+     * guarantee the validator checks. Record + slot creation is
+     * unchanged from the old seed (same columns, same strtotime
+     * formulas as TimeTableController@store and @store_time_slot).
+     * Idempotency: a subject that already has periods in the record
+     * is never touched, and cells from an earlier partial run
+     * preload the busy map, so a re-run adds nothing and clashes
+     * with nothing.
+     */
+    protected function seedClassTimetables(string $session): void
     {
         if (!Schema::hasTable('time_tables') || !Schema::hasTable('time_slots')) {
-            return;
-        }
-
-        $teacherIds = DB::table('users')
-            ->where('user_type', 'teacher')->orderBy('id')->pluck('id');
-        if ($teacherIds->isEmpty()) {
-            return;
-        }
-
-        foreach ($teacherIds as $teacherId) {
-            $this->seedTeacherTimetableFor((int) $teacherId, $session);
-        }
-    }
-
-    /** Build the demo timetables for one teacher's classes.
-     *
-     * Owner fix 2026-10-25 — the old seed picked ONE subject per
-     * class (always English first, Mathematics never picked), so
-     * every class card read "15 periods · 1 subjects" and the day
-     * ended at noon with no lunch. The new seed gives every class
-     * ALL its subjects on a full generator-default day (40-min
-     * periods, break after 2, lunch after 4): 8 slots, 8:00 AM to
-     * 2:20 PM. A teacher's first class uses periods 1-4, the second
-     * uses periods 5-8, so the teacher is never double-booked; the
-     * break/lunch gaps are implicit in the slot start times and the
-     * grid view renders them as Break/Lunch rows. Demo-seed
-     * assumption: one teacher teaches a class's subjects — a class
-     * split across teachers would need block coordination beyond
-     * this seed. Written exactly the way TimeTableController@store
-     * and @store_time_slot build records (same columns, same
-     * strtotime formulas). Guarded per subject: a subject that
-     * already has periods in the record is never touched.
-     */
-    protected function seedTeacherTimetableFor(int $teacherId, string $session): void
-    {
-        $subjects = DB::table('subjects')
-            ->where('teacher_id', $teacherId)->orderBy('id')->get();
-        if ($subjects->isEmpty()) {
             return;
         }
 
@@ -816,91 +802,133 @@ class DemoDataSeeder extends Seeder
             ['1', '00', 'PM', '1', '40', 'PM'],
             ['1', '40', 'PM', '2', '20', 'PM'],
         ];
-        // A teacher's first class takes periods 1-4, the second 5-8.
-        // The second slice MUST preserve keys — without `true` it
-        // reindexes to 0-3 and both classes would land on periods 1-4.
-        $blocks = [array_slice($daySlots, 0, 4), array_slice($daySlots, 4, 4, true)];
 
-        $classIds = $subjects->pluck('my_class_id')->unique()->values();
-        foreach ($classIds as $classIndex => $classId) {
-            $classSubjects = $subjects->where('my_class_id', $classId)->values();
-            $block = $blocks[$classIndex % count($blocks)];
-
-            $ttr = DB::table('time_table_records')
-                ->where('my_class_id', $classId)
-                ->whereNull('exam_id')
-                ->where('year', $session)
-                ->first();
-
-            if ($ttr) {
-                $ttrId = $ttr->id;
-            } else {
-                $className = DB::table('my_classes')->where('id', $classId)->value('name') ?: 'Class';
-                $name = $className . ' Timetable';
-                if (DB::table('time_table_records')->where('name', $name)->exists()) {
-                    $name .= ' (' . $session . ')';
-                }
-                $ttrId = DB::table('time_table_records')->insertGetId([
-                    'name' => $name,
-                    'my_class_id' => $classId,
-                    'exam_id' => null,
-                    'year' => $session,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
+        // Preload the busy map from cells an earlier partial run may
+        // already have placed: teacher_id => ['dayNum:slotIndex' => true].
+        $busy = [];
+        $slotIndexById = [];
+        $perRecord = [];
+        foreach (DB::table('time_slots')->orderBy('ttr_id')->orderBy('timestamp_from')->get() as $sr) {
+            $perRecord[$sr->ttr_id][] = $sr->id;
+        }
+        foreach ($perRecord as $ids) {
+            foreach ($ids as $i => $sid) {
+                $slotIndexById[$sid] = $i;
             }
+        }
+        $subjectTeacher = DB::table('subjects')->pluck('teacher_id', 'id');
+        foreach (DB::table('time_tables')->get(['ts_id', 'subject_id', 'day_num']) as $cell) {
+            $tid = $subjectTeacher[$cell->subject_id] ?? null;
+            if ($tid && isset($slotIndexById[$cell->ts_id])) {
+                $busy[$tid][$cell->day_num . ':' . $slotIndexById[$cell->ts_id]] = true;
+            }
+        }
 
-            // Idempotency guard (Batch 6, D17): skip subjects that
-            // already have periods in this record; the rest still seed.
-            $placedIds = DB::table('time_tables')->where('ttr_id', $ttrId)
-                ->whereIn('subject_id', $classSubjects->pluck('id')->all())
-                ->distinct()->pluck('subject_id')->all();
-            $pending = $classSubjects->reject(function ($s) use ($placedIds) {
-                return in_array($s->id, $placedIds, true);
-            })->values();
-            if ($pending->isEmpty()) {
+        foreach (DB::table('my_classes')->orderBy('id')->get() as $class) {
+            $subjects = DB::table('subjects')
+                ->where('my_class_id', $class->id)->orderBy('id')->get();
+            if ($subjects->isEmpty()) {
                 continue;
             }
+            $this->seedClassTimetableFor($class, $subjects, $session, $days, $daySlots, $busy);
+        }
+    }
 
-            $slots = [];
-            foreach ($daySlots as [$hf, $mf, $merf, $ht, $mt, $mert]) {
-                $timeFrom = $hf . ':' . $mf . ' ' . $merf;
-                $timeTo = $ht . ':' . $mt . ' ' . $mert;
-                $existing = DB::table('time_slots')
-                    ->where('ttr_id', $ttrId)
-                    ->where('timestamp_from', (string) strtotime($timeFrom))
-                    ->where('timestamp_to', (string) strtotime($timeTo))
-                    ->first();
-                if ($existing) {
-                    $slots[] = $existing;
-                    continue;
-                }
-                $slotId = DB::table('time_slots')->insertGetId([
-                    'ttr_id' => $ttrId,
-                    'hour_from' => (int) $hf,
-                    'min_from' => $mf,
-                    'meridian_from' => $merf,
-                    'hour_to' => (int) $ht,
-                    'min_to' => $mt,
-                    'meridian_to' => $mert,
-                    'time_from' => $timeFrom,
-                    'time_to' => $timeTo,
-                    'timestamp_from' => (string) strtotime($timeFrom),
-                    'timestamp_to' => (string) strtotime($timeTo),
-                    'full' => $timeFrom . ' - ' . $timeTo,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
-                $slots[] = DB::table('time_slots')->where('id', $slotId)->first();
+    protected function seedClassTimetableFor($class, $subjects, string $session, array $days, array $daySlots, array &$busy): void
+    {
+        $classId = $class->id;
+
+        $ttr = DB::table('time_table_records')
+            ->where('my_class_id', $classId)
+            ->whereNull('exam_id')
+            ->where('year', $session)
+            ->first();
+
+        if ($ttr) {
+            $ttrId = $ttr->id;
+        } else {
+            $className = $class->name ?: 'Class';
+            $name = $className . ' Timetable';
+            if (DB::table('time_table_records')->where('name', $name)->exists()) {
+                $name .= ' (' . $session . ')';
             }
+            $ttrId = DB::table('time_table_records')->insertGetId([
+                'name' => $name,
+                'my_class_id' => $classId,
+                'exam_id' => null,
+                'year' => $session,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
 
-            // Block slots, round-robin across the class's pending
-            // subjects: two subjects get two periods each per day.
-            $blockSlots = array_values(array_intersect_key($slots, array_flip(array_keys($block))));
-            $rows = [];
-            foreach ($days as $dayNum => $day) {
-                foreach ($blockSlots as $slotIndex => $slot) {
-                    $subject = $pending[$slotIndex % $pending->count()];
+        // Idempotency guard (Batch 6, D17): skip subjects that already
+        // have periods in this record; the rest still seed.
+        $placedIds = DB::table('time_tables')->where('ttr_id', $ttrId)
+            ->distinct()->pluck('subject_id')->all();
+        $pending = $subjects->reject(function ($s) use ($placedIds) {
+            return in_array($s->id, $placedIds, true);
+        })->values();
+        if ($pending->isEmpty()) {
+            return;
+        }
+
+        $slots = [];
+        foreach ($daySlots as [$hf, $mf, $merf, $ht, $mt, $mert]) {
+            $timeFrom = $hf . ':' . $mf . ' ' . $merf;
+            $timeTo = $ht . ':' . $mt . ' ' . $mert;
+            $existing = DB::table('time_slots')
+                ->where('ttr_id', $ttrId)
+                ->where('timestamp_from', (string) strtotime($timeFrom))
+                ->where('timestamp_to', (string) strtotime($timeTo))
+                ->first();
+            if ($existing) {
+                $slots[] = $existing;
+                continue;
+            }
+            $slotId = DB::table('time_slots')->insertGetId([
+                'ttr_id' => $ttrId,
+                'hour_from' => (int) $hf,
+                'min_from' => $mf,
+                'meridian_from' => $merf,
+                'hour_to' => (int) $ht,
+                'min_to' => $mt,
+                'meridian_to' => $mert,
+                'time_from' => $timeFrom,
+                'time_to' => $timeTo,
+                'timestamp_from' => (string) strtotime($timeFrom),
+                'timestamp_to' => (string) strtotime($timeTo),
+                'full' => $timeFrom . ' - ' . $timeTo,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+            $slots[] = DB::table('time_slots')->where('id', $slotId)->first();
+        }
+
+        // Round-robin placement with caps + the busy map: each subject
+        // stops at its periods_per_week, each teacher never lands two
+        // classes on the same (day, slot). Slots where every pending
+        // subject is capped or its teacher is busy stay free periods.
+        $subjectList = $pending->all();
+        $demand = [];
+        $placed = [];
+        foreach ($subjectList as $s) {
+            $demand[$s->id] = (int) $s->periods_per_week;
+            $placed[$s->id] = 0;
+        }
+        $ptr = 0;
+        $rows = [];
+        foreach ($days as $dayNum => $day) {
+            foreach ($slots as $slotIndex => $slot) {
+                for ($attempt = 0; $attempt < count($subjectList); $attempt++) {
+                    $subject = $subjectList[($ptr + $attempt) % count($subjectList)];
+                    if ($placed[$subject->id] >= $demand[$subject->id]) {
+                        continue;
+                    }
+                    $key = ($dayNum + 1) . ':' . $slotIndex;
+                    if (!empty($busy[$subject->teacher_id][$key])) {
+                        continue;
+                    }
                     $rows[] = [
                         'ttr_id' => $ttrId,
                         'ts_id' => $slot->id,
@@ -913,13 +941,51 @@ class DemoDataSeeder extends Seeder
                         'created_at' => now(),
                         'updated_at' => now(),
                     ];
+                    $busy[$subject->teacher_id][$key] = true;
+                    $placed[$subject->id]++;
+                    $ptr = ($ptr + $attempt + 1) % count($subjectList);
+                    break;
                 }
             }
-            // insertOrIgnore: a (ttr, slot, day) cell holds ONE subject.
-            // If a real timetable entry already occupies a cell, that row
-            // is skipped instead of aborting the whole seed with a unique
-            // constraint violation; every free cell still gets its period.
-            DB::table('time_tables')->insertOrIgnore($rows);
+        }
+        // insertOrIgnore: a (ttr, slot, day) cell holds ONE subject.
+        // If a real timetable entry already occupies a cell, that row
+        // is skipped instead of aborting the whole seed with a unique
+        // constraint violation; every free cell still gets its period.
+        DB::table('time_tables')->insertOrIgnore($rows);
+    }
+
+    /** Seed teacher eligibility from the subjects teachers actually teach.
+     *
+     * Eligibility is keyed by subject NAME (a teacher's capability,
+     * independent of any one class): one row per teacher per distinct
+     * subject name they teach. Specialists therefore seed exactly one
+     * row each, and the eligibility page stops reading "Not recorded"
+     * for every teacher. Guarded on the table being empty, like the
+     * other demo domains.
+     */
+    protected function seedEligibility(): void
+    {
+        if (!Schema::hasTable('teacher_eligibilities')) {
+            return;
+        }
+        if (DB::table('teacher_eligibilities')->count() > 0) {
+            return;
+        }
+        $now = now();
+        $insert = [];
+        foreach (DB::table('subjects')->select('teacher_id', 'name')
+            ->whereNotNull('teacher_id')->distinct()
+            ->orderBy('teacher_id')->orderBy('name')->get() as $r) {
+            $insert[] = [
+                'teacher_id' => $r->teacher_id,
+                'subject_name' => $r->name,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ];
+        }
+        foreach (array_chunk($insert, 200) as $chunk) {
+            DB::table('teacher_eligibilities')->insert($chunk);
         }
     }
 

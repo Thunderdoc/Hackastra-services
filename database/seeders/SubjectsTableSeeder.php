@@ -24,13 +24,19 @@ class SubjectsTableSeeder extends Seeder
     /**
      * Demo teacher assignment per class (Workstream AT — seed
      * rebalance, owner decision 2026-10-21; ladder rebuilt 2026-10-24
-     * for Prep–Class 12). Seven teacher accounts share the ladder so
-     * no teacher carries more than two classes: with two subjects at
-     * six periods a week each, two classes need 24 of the 40 weekly
-     * slots, leaving the auto-generator room to place every period
-     * without teacher clashes. SectionsTableSeeder reads this same
-     * map for sections.teacher_id, so subject scope and class-teacher
-     * scope can never drift apart.
+     * for Prep–Class 12). The ladder below is the CLASS-TEACHER map:
+     * SectionsTableSeeder reads it for sections.teacher_id, and it
+     * is deliberately UNCHANGED by the 2026-10-25 subject expansion
+     * — a class's section leaders stay the same teachers.
+     *
+     * Subject teaching is a DIFFERENT map (owner ask 2026-10-25,
+     * more teachers + more subjects): six subjects per class, each
+     * taught by one of three subject specialists, rotating across
+     * classes in id order. With six periods a week per subject, a
+     * specialist teaches 4–5 classes (24–30 of the 40 weekly slots),
+     * leaving the auto-generator room to place every period without
+     * teacher clashes. The demo staff room is 18 teachers: the 7
+     * originals plus the 11 specialists UsersTableSeeder adds.
      */
     protected static $teacherEmailByClass = [
         'Prep' => 'teacher@hackstra.app',
@@ -48,6 +54,16 @@ class SubjectsTableSeeder extends Seeder
         'Class 12' => 'teacher5@teacher.com',
     ];
 
+    /** Subject name => three specialist teacher emails, in rotation order. */
+    protected static $specialistEmailBySubject = [
+        'English Language' => ['teacher@hackstra.app', 'teacher1@teacher.com', 'teacher2@teacher.com'],
+        'Mathematics' => ['teacher3@teacher.com', 'teacher4@teacher.com', 'teacher5@teacher.com'],
+        'Science' => ['teacher6@teacher.com', 'teacher7@teacher.com', 'teacher8@teacher.com'],
+        'Social Science' => ['teacher9@teacher.com', 'teacher10@teacher.com', 'teacher11@teacher.com'],
+        'Hindi' => ['teacher12@teacher.com', 'teacher13@teacher.com', 'teacher14@teacher.com'],
+        'Computer Science' => ['teacher15@teacher.com', 'teacher16@teacher.com', 'teacher17@teacher.com'],
+    ];
+
     public static function demoTeacherEmailForClass($className)
     {
         return static::$teacherEmailByClass[$className] ?? null;
@@ -55,43 +71,35 @@ class SubjectsTableSeeder extends Seeder
 
     protected function createSubjects()
     {
-        $subjects = ['English Language', 'Mathematics'];
-        $sub_slug = ['Eng', 'Math'];
+        $subjects = ['English Language', 'Mathematics', 'Science', 'Social Science', 'Hindi', 'Computer Science'];
+        $sub_slug = ['Eng', 'Math', 'Sci', 'Soc', 'Hin', 'CS'];
         $teachers = User::where('user_type', 'teacher')->get()->keyBy('email');
         $fallback_teacher_id = User::where('user_type', 'teacher')->first()->id;
-        $my_classes = MyClass::all();
+        $my_classes = MyClass::orderBy('id')->get();
 
-        foreach ($my_classes as $my_class) {
+        foreach ($my_classes as $classIndex => $my_class) {
+            $data = [];
+            foreach ($subjects as $i => $subjectName) {
+                $emails = static::$specialistEmailBySubject[$subjectName];
+                $email = $emails[$classIndex % count($emails)];
+                $teacher_id = isset($teachers[$email])
+                    ? $teachers[$email]->id
+                    : $fallback_teacher_id;
 
-            $email = static::demoTeacherEmailForClass($my_class->name);
-            $teacher_id = ($email && isset($teachers[$email]))
-                ? $teachers[$email]->id
-                : $fallback_teacher_id;
-
-            $data = [
-
-                [
-                    'name' => $subjects[0],
-                    'slug' => $sub_slug[0],
+                $data[] = [
+                    'name' => $subjectName,
+                    'slug' => $sub_slug[$i],
                     'my_class_id' => $my_class->id,
                     'teacher_id' => $teacher_id,
                     // Demo curriculum requirements (Scheduling Engine
                     // Slice A): plausible weekly loads so the staffing
                     // dashboard demonstrates real demand/capacity math.
+                    // Six subjects at six periods = 36 of the 40
+                    // weekly slots, so a full day still has room.
                     'periods_per_week' => 6,
                     'subject_type' => 'theory',
-                ],
-
-                [
-                    'name' => $subjects[1],
-                    'slug' => $sub_slug[1],
-                    'my_class_id' => $my_class->id,
-                    'teacher_id' => $teacher_id,
-                    'periods_per_week' => 6,
-                    'subject_type' => 'theory',
-                ],
-
-            ];
+                ];
+            }
 
             DB::table('subjects')->insert($data);
         }

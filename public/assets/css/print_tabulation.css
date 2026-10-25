@@ -104,4 +104,11 @@ body {
     .tab-marks th, .tab-marks td { padding: 2px 3px; font-size: 12px; }
     .tab-marks thead { display: table-header-group; }
     .tab-marks tr { page-break-inside: avoid; }
+    /* Last-page slack (owner ask 2026-10-25): a full last page
+       (header + 19 rows + summary + signatures) filled the page
+       exactly, spilling only the generated-by line onto page 3.
+       These tightenings reclaim ~32px so the whole last page fits. */
+    .tab-sign { margin-top: 10px; }
+    .tab-sign-line { height: 30px; }
+    .tab-genline { margin-top: 8px; }
 }

@@ -23,6 +23,37 @@ class UsersTableSeeder extends Seeder
         // Six generated accounts per type (teachers 1-6) so the
         // Prep–Class 12 ladder has a real staff room behind it.
         $this->createManyUsers( 6);
+        // Owner ask 2026-10-25 (more teachers): eleven more
+        // subject-specialist teachers (7-17) so the demo staff room
+        // is 18 strong — three specialists per subject, matching
+        // SubjectsTableSeeder's specialist rotation. Teacher-only
+        // (unlike createManyUsers, which adds every type), so the
+        // admin/accountant/parent counts — and the SA users list —
+        // do not bloat with them.
+        $this->createMoreTeachers();
+    }
+
+    protected function createMoreTeachers()
+    {
+        $names = [
+            7 => 'Vikram Rao', 8 => 'Sunita Patil', 9 => 'Manoj Kumar',
+            10 => 'Divya Menon', 11 => 'Rohit Shetty', 12 => 'Pooja Desai',
+            13 => 'Arjun Mehta', 14 => 'Sneha Kulkarni', 15 => 'Karan Singh',
+            16 => 'Anjali Gupta', 17 => 'Varun Nair',
+        ];
+        $data = [];
+        foreach ($names as $i => $name) {
+            $data[] = ['phone' => '+91 98110 00' . (200 + $i),
+                'name' => $name,
+                'email' => 'teacher' . $i . '@teacher.com',
+                'user_type' => 'teacher',
+                'username' => 'teacher' . $i,
+                'password' => Hash::make('teacher'),
+                'code' => strtoupper(Str::random(10)),
+                'remember_token' => Str::random(10),
+            ];
+        }
+        DB::table('users')->insert($data);
     }
 
     protected function createNewUsers()

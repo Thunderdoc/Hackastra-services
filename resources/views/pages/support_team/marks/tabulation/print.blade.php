@@ -44,6 +44,30 @@
     $tabCols = 2 + $subjects->count() + 3;
     $tabCtxExamSpan = (int) ceil(($tabCols - 3) / 2);
     $tabCtxSessSpan = $tabCols - 3 - $tabCtxExamSpan;
+    // Browser-proof pagination (owner ask 2026-10-25 — page 2 lost
+    // its header in his print): the sheet is split server-side
+    // into pages, each page its own table carrying the full
+    // header (school band + title + context + column heads), with
+    // a forced page break between pages. A page's header then no
+    // longer depends on the browser repeating thead — Safari and
+    // other non-repeating printers get it too. Measured capacity
+    // on a landscape page: 21 rows under the full header, but the
+    // last page also carries summary + signatures, so it is capped
+    // at 19 rows (a 20-row last page spilled the signatures alone
+    // onto page 3 in verification).
+    $tabPages = [];
+    $tabRest = $students->values();
+    while ($tabRest->count() > 21) {
+        $tabPages[] = $tabRest->take(21);
+        $tabRest = $tabRest->slice(21)->values();
+    }
+    if ($tabRest->count() >= 20) {
+        $tabPages[] = $tabRest->take(19);
+        $tabPages[] = $tabRest->slice(19)->values();
+    } else {
+        $tabPages[] = $tabRest;
+    }
+    $tabRow = 0;
 @endphp
 <div class="tab-doc">
 
@@ -56,10 +80,12 @@
 
     <div class="tab-body">
 
-        {{-- Tabulation table — the school header, title band and
-             context strip are thead rows (see @php above), so they
-             repeat on every printed page, not just page 1. --}}
-        <table class="tab-marks">
+        {{-- One table per page — every page carries its own
+             full header by construction (see the block above). The thead
+             stays as well, so a chunk that ever spills on a short
+             page still gets its header repeated in Chrome. --}}
+        @foreach($tabPages as $tabChunk)
+        <table class="tab-marks" @if(!$loop->last) style="page-break-after: always;" @endif>
             <thead>
             <tr class="tab-hd-school">
                 <td colspan="2">
@@ -102,9 +128,10 @@
             </tr>
             </thead>
             <tbody>
-            @foreach($students as $s)
+            @foreach($tabChunk as $s)
+                @php $tabRow++; @endphp
                 <tr>
-                    <td class="tab-sn">{{ $loop->iteration }}</td>
+                    <td class="tab-sn">{{ $tabRow }}</td>
                     <td class="tab-name">{{ $s->user->name }}</td>
                     @foreach($subjects as $sub)
                         <td>{{ $marks->where('student_id', $s->user_id)->where('subject_id', $sub->id)->first()->$tex ?? '-' ?: '-' }}</td>
@@ -116,6 +143,7 @@
             @endforeach
             </tbody>
         </table>
+        @endforeach
 
         {{-- Summary strip: aggregates of the printed columns --}}
         <table class="tab-summary">
