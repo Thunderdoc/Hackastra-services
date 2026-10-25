@@ -62,8 +62,16 @@
             dataType: 'json',
             url: url,
             success: function (resp) {
+                // Same leading-option rule as getClassSections: keep a
+                // "no section" / "select subject" option when the
+                // select has one — the old rebuild wiped both, leaving
+                // the first real option silently selected.
+                var keepSection = section.find('option[value=""]').first().clone();
+                var keepSubject = subject.find('option[value=""]').first().clone();
                 section.empty();
                 subject.empty();
+                if (keepSection.length) { section.append(keepSection); }
+                if (keepSubject.length) { subject.append(keepSubject); }
                 $.each(resp.sections, function (i, data) {
                     section.append($('<option>', {
                         value: data.id,

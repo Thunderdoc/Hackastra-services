@@ -8,14 +8,16 @@
          assignment grading to exam marks (owner directive: "the
          teacher can directly use the assignment average to give
          internal marks, any way the teacher wants").
-         Step 1: pick an exam (and optionally a best-N) → GET
+         Step 1: pick an exam (and optionally an average mode: all,
+         best N, or latest N, with N typed freely) → GET
          assignments.internal_preview reloads this panel with $preview
          rows (the controller computes, per student: graded_count,
          counted, average_percent, internal_marks = average scaled
          onto the exam's Internal component max). The average runs
          over the student's graded submissions across ALL of this
          teacher's assignments for the class + subject — or only the
-         student's best N of them, when the teacher picks an N.
+         student's best N / latest N of them, when the teacher picks
+         a mode and N.
          Step 2: POST assignments.push_internal writes those values
          into the exam's Internal component — behind an explicit
          confirm, because it writes real marks. --}}
@@ -39,8 +41,8 @@
                 <strong>graded</strong> submissions across <strong>all your assignments for this
                 {{ optional($assignment->myClass)->name ?? 'class' }} {{ optional($assignment->subject)->name ?? 'subject' }}</strong>
                 and scales the average onto the exam&rsquo;s Internal component — or, if you choose a
-                best-N below, only each student&rsquo;s best N graded assignments count. Review the
-                preview first: pushing writes real marks.
+                mode below, only each student&rsquo;s best N or latest N graded assignments count.
+                Review the preview first: pushing writes real marks.
             </p>
         </div>
     </div>
@@ -60,15 +62,19 @@
                         @endforeach
                     </select>
                 </div>
-                @php $population = (int) ($population_count ?? 0); $chosenN = $best_n ?? request('best_n'); @endphp
+                @php $population = (int) ($population_count ?? 0); $chosenMode = $avg_mode ?? request('mode', 'all'); $chosenN = $avg_n ?? request('avg_n'); @endphp
                 <div class="pat-filter-field" style="flex:1 1 220px">
-                    <label for="best_n">Average from</label>
-                    <select name="best_n" id="best_n" class="form-control">
-                        <option value="" {{ !$chosenN ? 'selected' : '' }}>All graded assignments @if($population)({{ $population }} in this set)@endif</option>
-                        @for($n = 1; $n <= max(1, $population); $n++)
-                            <option value="{{ $n }}" {{ (string) $chosenN === (string) $n ? 'selected' : '' }}>Best {{ $n }} of {{ $population }} graded assignment{{ $population === 1 ? '' : 's' }}</option>
-                        @endfor
+                    <label for="mode">Average mode</label>
+                    <select name="mode" id="mode" class="form-control">
+                        <option value="all" {{ $chosenMode === 'all' ? 'selected' : '' }}>All graded assignments @if($population)({{ $population }} in this set)@endif</option>
+                        <option value="best" {{ $chosenMode === 'best' ? 'selected' : '' }}>Average of best N</option>
+                        <option value="latest" {{ $chosenMode === 'latest' ? 'selected' : '' }}>Average of latest N</option>
                     </select>
+                </div>
+                <div class="pat-filter-field" style="flex:0 1 130px">
+                    <label for="avg_n">N (for Best / Latest)</label>
+                    <input name="avg_n" id="avg_n" type="number" min="1" step="1" value="{{ $chosenN ?? '' }}" class="form-control" placeholder="e.g. 3">
+                    <span class="form-text text-muted">Any number — 3, 5, anything. Ignored for All.</span>
                 </div>
                 <div class="pat-filter-action">
                     <button type="submit" class="btn btn-primary"><i class="icon-search4 mr-1"></i> Load Preview</button>
@@ -125,15 +131,20 @@
                             Step 2 — write these internal marks into
                             <strong>{{ $selectedExam->name }}</strong> for
                             {{ optional($assignment->subject)->name ?? 'this subject' }}.
-                            @if(!empty($best_n))
-                                Averages use each student&rsquo;s <strong>best {{ $best_n }}</strong> graded assignments only.
+                            @if(!empty($avg_mode) && $avg_mode === 'best')
+                                Averages use each student&rsquo;s <strong>best {{ $avg_n ?? 1 }}</strong> graded assignments only.
+                            @elseif(!empty($avg_mode) && $avg_mode === 'latest')
+                                Averages use each student&rsquo;s <strong>latest {{ $avg_n ?? 1 }}</strong> graded assignments only.
+                            @else
+                                Averages use <strong>all</strong> graded assignments.
                             @endif
                             Students with no graded submission are skipped.
                         </div>
                         <form method="post" action="{{ route('assignments.push_internal', $assignment->id) }}">
                             @csrf
                             <input type="hidden" name="exam_id" value="{{ $selectedExam->id }}">
-                            <input type="hidden" name="best_n" value="{{ $best_n ?? '' }}">
+                            <input type="hidden" name="mode" value="{{ $avg_mode ?? 'all' }}">
+                            <input type="hidden" name="avg_n" value="{{ $avg_n ?? '' }}">
                             <button type="submit" class="btn btn-primary"
                                     data-confirm="This writes the previewed averages into the Internal component of {{ $selectedExam->name }} for every listed student. Existing internal marks for this subject will be overwritten. Continue?"
                                     data-confirm-title="Push Internal Marks"

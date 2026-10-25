@@ -165,7 +165,8 @@ class StudyMaterialController extends Controller
             'section_id' => 'nullable|integer|exists:sections,id',
             'subject_id' => 'required|integer|exists:subjects,id',
             'link_url' => 'nullable|url|max:500',
-            'file' => 'nullable|' . $this->fileRules,
+            'files' => 'nullable|array|max:20',
+            'files.*' => $this->fileRules,
         ]);
 
         $subject = Subject::where('id', $data['subject_id'])
@@ -178,19 +179,39 @@ class StudyMaterialController extends Controller
             abort(422, 'The chosen section does not belong to this class.');
         }
 
-        if (!$req->hasFile('file') && empty($data['link_url'])) {
-            return back()->with(['pop_error' => 'Attach a file or paste a link for the material.', 'flash_danger' => 'Attach a file or paste a link for the material.']);
+        $uploaded = array_values(array_filter((array) $req->file('files')));
+        if (empty($uploaded) && empty($data['link_url'])) {
+            return back()->with(['pop_error' => 'Attach files or paste a link for the material.', 'flash_danger' => 'Attach files or paste a link for the material.']);
         }
 
-        unset($data['file']);
+        unset($data['files']);
         $data['teacher_id'] = Auth::id();
-        if ($req->hasFile('file')) {
-            $data['file_path'] = $req->file('file')->store('materials', 'public');
+
+        // Owner ask 2026-10-25: many files in one upload. One material
+        // row per file (the model carries a single file_path); the
+        // first keeps the exact title, the rest take "Title (2)",
+        // "Title (3)"… so students can tell them apart. A pasted link
+        // rides on the first row. With no files, the single link-only
+        // row behaves exactly as before.
+        $created = [];
+        if (!empty($uploaded)) {
+            foreach ($uploaded as $i => $file) {
+                $row = $data;
+                if ($i > 0) {
+                    $row['title'] = $data['title'] . ' (' . ($i + 1) . ')';
+                    // The pasted link belongs to the set once, on the
+                    // first row — not duplicated onto every file.
+                    unset($row['link_url']);
+                }
+                $row['file_path'] = $file->store('materials', 'public');
+                $created[] = StudyMaterial::create($row);
+            }
+        } else {
+            $created[] = StudyMaterial::create($data);
         }
 
-        $material = StudyMaterial::create($data);
-
-        Audit::log('material.created', $material, 'Study material "' . $material->title . '" for class ' . $material->my_class_id . ', subject ' . $material->subject_id);
+        $first = $created[0];
+        Audit::log('material.created', $first, 'Study material "' . $first->title . '" for class ' . $first->my_class_id . ', subject ' . $first->subject_id . (count($created) > 1 ? ' (' . count($created) . ' files)' : ''));
 
         return redirect()->route('materials.index')->with(['pop_success' => __('msg.store_ok'), 'flash_success' => __('msg.store_ok')]);
     }

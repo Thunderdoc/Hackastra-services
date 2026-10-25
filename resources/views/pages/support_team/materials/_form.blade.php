@@ -1,7 +1,10 @@
 {{-- Workstream CS2 (LMS): study-material fields on the shared
      form_page pattern (Loop 28 .pat-* grid). Contract fields:
      my_class_id, section_id (nullable = whole class), subject_id,
-     title, description, file (upload) OR link_url. --}}
+     title, description, files[] (multi-upload) OR link_url. The
+     class select cascades sections AND subjects via
+     getClassSubjects (owner fix 2026-10-25: subjects used to stay
+     unfiltered, so another class's subjects kept showing). --}}
 <div class="pat-form-section">
     <div class="pat-form-section-title">Material Details</div>
     <div class="pat-fields">
@@ -23,10 +26,11 @@
     <div class="pat-form-section-title">File or Link</div>
     <div class="pat-fields">
         <div class="pat-field pat-field-wide">
-            <label for="file">Upload a file (PDF, notes, slides, image&hellip;)</label>
-            <input name="file" id="file" type="file" class="form-control @error('file') is-invalid @enderror">
-            @include('partials.errors.field', ['field' => 'file'])
-            <span class="form-text text-muted">Upload a file <em>or</em> paste a link below — one of the two is enough.</span>
+            <label for="files">Upload files (PDF, notes, slides, images&hellip;)</label>
+            <input name="files[]" id="files" type="file" multiple class="form-control @error('files') is-invalid @enderror @error('files.*') is-invalid @enderror">
+            @include('partials.errors.field', ['field' => 'files'])
+            @include('partials.errors.field', ['field' => 'files.*'])
+            <span class="form-text text-muted">Select as many files as you like — each one becomes its own material under this title. Or paste a link below instead (or as well).</span>
         </div>
 
         <div class="pat-field pat-field-wide">
@@ -42,7 +46,7 @@
     <div class="pat-fields">
         <div class="pat-field">
             <label for="my_class_id">Class <span class="text-danger">*</span></label>
-            <select name="my_class_id" id="my_class_id" onchange="getClassSections(this.value)" required class="form-control select @error('my_class_id') is-invalid @enderror">
+            <select name="my_class_id" id="my_class_id" onchange="getClassSubjects(this.value)" required class="form-control select @error('my_class_id') is-invalid @enderror">
                 <option value="">Select class</option>
                 @foreach($classes ?? [] as $class)
                     <option value="{{ $class->id }}" {{ (string) old('my_class_id', $material->my_class_id ?? '') === (string) $class->id ? 'selected' : '' }}>{{ $class->name }}</option>

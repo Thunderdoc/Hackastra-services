@@ -552,9 +552,10 @@ class AssignmentController extends Controller
      * is taken over the student's GRADED submissions across ALL of
      * THIS teacher's assignments for the same class + subject (not
      * other teachers' assignments, not other subjects), each graded
-     * submission contributing marks_awarded / max_marks x 100 — or,
-     * at the teacher's choice on the preview page, only over the
-     * student's BEST N of those graded submissions. The
+     * submission contributing marks_awarded / max_marks x 100 — and,
+     * at the teacher's choice on the preview page, the average runs
+     * over ALL graded submissions, only the student's BEST N, or only
+     * the student's LATEST N (N typed freely: 3, 5, anything). The
      * average % is scaled onto the max of the scheme's Internal
      * component and written through the very write path the marks
      * screens use (MarkScheme::saveComponentScores +
@@ -579,17 +580,20 @@ class AssignmentController extends Controller
 
         $d['assignment'] = $assignment;
         $d['exam_id'] = $req->input('exam_id') ? (int) $req->input('exam_id') : null;
-        // Owner rule (2026-10-22): the average may use only each
-        // student's BEST N graded assignments out of the set; N is the
-        // teacher's choice on this page and defaults to all of them.
-        $d['best_n'] = $this->bestNFromRequest($req);
+        // Owner rule (2026-10-22, extended 2026-10-25): the average
+        // mode is the teacher's choice on this page — all graded
+        // assignments, the best N, or the latest N (N typed freely:
+        // 3, 5, any number). Defaults to all of them.
+        $d['avg_choice'] = $this->averageChoiceFromRequest($req);
+        $d['avg_mode'] = $d['avg_choice']['mode'];
+        $d['avg_n'] = $d['avg_choice']['n'];
         $d['population_count'] = $this->siblingAssignments($assignment)->count();
 
         if ($d['exam_id']) {
             $exam = Exam::find($d['exam_id']);
             if ($exam) {
                 $component = $this->internalComponent($exam->id, $assignment->subject_id);
-                $d['preview'] = collect($this->computeAverages($assignment, $component, $d['best_n']))
+                $d['preview'] = collect($this->computeAverages($assignment, $component, $d['avg_mode'], $d['avg_n']))
                     ->map(function ($row) {
                         return [
                             'student_name' => $row['student_name'],
@@ -640,7 +644,8 @@ class AssignmentController extends Controller
             return back()->with($this->errFlash('The marking scheme for this exam and subject has no Internal component, so assignment marks cannot be pushed into it.'));
         }
 
-        $rows = $this->computeAverages($assignment, $component, $this->bestNFromRequest($req));
+        $avgChoice = $this->averageChoiceFromRequest($req);
+        $rows = $this->computeAverages($assignment, $component, $avgChoice['mode'], $avgChoice['n']);
         $examRepo = app(ExamRepo::class);
         $written = 0;
         $sectionsTouched = [];
@@ -678,12 +683,13 @@ class AssignmentController extends Controller
             MarkComputation::recomputeRecords($exam, $assignment->my_class_id, $sectionId, $exam->year);
         }
 
-        $bestN = $this->bestNFromRequest($req);
+        $avgDesc = $avgChoice['mode'] === 'best' ? 'best ' . $avgChoice['n'] . ' graded assignments'
+            : ($avgChoice['mode'] === 'latest' ? 'latest ' . $avgChoice['n'] . ' graded assignments' : 'all graded assignments');
         Audit::log('assignment.internal_pushed', $assignment,
             'Teacher ' . Auth::user()->name . ' pushed assignment averages to Internal marks: exam '
             . $exam->id . ' (' . $exam->name . '), class ' . $assignment->my_class_id
             . ', subject ' . $assignment->subject_id . ', students written: ' . $written
-            . ', average over: ' . ($bestN ? 'best ' . $bestN . ' graded assignments' : 'all graded assignments')
+            . ', average over: ' . $avgDesc
             . ', component: ' . $component['name'] . ' (max ' . $component['max_marks'] . ')');
 
         // Owner spec: every student whose Internal marks landed —
@@ -849,33 +855,47 @@ class AssignmentController extends Controller
     }
 
     /**
-     * The teacher's best-N choice from the request: a positive integer,
-     * or NULL for "all graded assignments" (the default, and what an
-     * absent/empty/'all' value means).
+     * The teacher's average choice from the request: a mode
+     * ('all', 'best', 'latest') and a count N (free number the
+     * teacher types — 3, 5, anything; a missing N means 1 for
+     * best/latest, and is ignored for 'all'). The legacy 'best_n'
+     * parameter still maps to mode 'best' so old preview links and
+     * bookmarks keep working.
      */
-    protected function bestNFromRequest(Request $req)
+    protected function averageChoiceFromRequest(Request $req)
     {
-        $n = $req->input('best_n');
-        if ($n === null || $n === '' || strtolower((string) $n) === 'all') {
-            return null;
+        $mode = strtolower((string) $req->input('mode', ''));
+        if (!in_array($mode, ['best', 'latest'], true)) {
+            $legacyN = $req->input('best_n');
+            if ($legacyN !== null && $legacyN !== '' && strtolower((string) $legacyN) !== 'all' && (int) $legacyN > 0) {
+                return ['mode' => 'best', 'n' => (int) $legacyN];
+            }
+            if ($mode !== 'all') {
+                $mode = 'all';
+            }
         }
-        $n = (int) $n;
+        if ($mode === 'all') {
+            return ['mode' => 'all', 'n' => null];
+        }
+        $n = (int) $req->input('avg_n', 0);
 
-        return $n > 0 ? $n : null;
+        return ['mode' => $mode, 'n' => $n > 0 ? $n : 1];
     }
 
     /**
      * Per-student averages for the bridge. Population of assignments:
      * ALL assignments of THIS teacher for the source assignment's
      * class + subject. Only GRADED submissions count; each contributes
-     * marks_awarded / max_marks x 100. With a best-N choice, each
-     * student's percents are sorted best-first and only the top N are
-     * averaged (a student with fewer graded counts what they have —
-     * the average is over min(N, graded_count), reported as 'counted').
-     * Scaled = round(avg% of the component max) — the marks pipeline
-     * stores whole numbers.
+     * marks_awarded / max_marks x 100. Mode 'all' averages every
+     * graded percent; 'best' sorts best-first and averages the top N;
+     * 'latest' sorts by assignment recency (created, then id, both
+     * descending) and averages the newest N. A student with fewer
+     * graded counts what they have — the average is over
+     * min(N, graded_count), reported as 'counted'. Scaled = round
+     * (avg% of the component max) — the marks pipeline stores whole
+     * numbers.
      */
-    protected function computeAverages(Assignment $source, $component, $bestN = null): array
+    protected function computeAverages(Assignment $source, $component, $mode = 'all', $n = null): array
     {
         $siblings = $this->siblingAssignments($source)
             ->load(['submissions' => function ($q) {
@@ -886,7 +906,11 @@ class AssignmentController extends Controller
         foreach ($siblings as $assignment) {
             foreach ($assignment->submissions as $sub) {
                 if ($assignment->max_marks > 0) {
-                    $percents[$sub->student_id][] = ($sub->marks_awarded / $assignment->max_marks) * 100;
+                    $percents[$sub->student_id][] = [
+                        'pct' => ($sub->marks_awarded / $assignment->max_marks) * 100,
+                        'at' => $assignment->created_at ? $assignment->created_at->timestamp : 0,
+                        'id' => $assignment->id,
+                    ];
                 }
             }
         }
@@ -900,9 +924,19 @@ class AssignmentController extends Controller
         $rows = [];
         foreach ($students->get() as $sr) {
             $list = $percents[$sr->user_id] ?? [];
-            rsort($list);
-            $used = $bestN ? array_slice($list, 0, $bestN) : $list;
-            $avg = $used ? array_sum($used) / count($used) : null;
+            if ($mode === 'best') {
+                usort($list, function ($a, $b) { return $b['pct'] <=> $a['pct']; });
+                $used = array_slice($list, 0, $n ?: 1);
+            } elseif ($mode === 'latest') {
+                usort($list, function ($a, $b) {
+                    return ($b['at'] <=> $a['at']) ?: ($b['id'] <=> $a['id']);
+                });
+                $used = array_slice($list, 0, $n ?: 1);
+            } else {
+                $used = $list;
+            }
+            $values = array_column($used, 'pct');
+            $avg = $values ? array_sum($values) / count($values) : null;
             $rows[] = [
                 'student_id' => (int) $sr->user_id,
                 'student_name' => $sr->user ? $sr->user->name : '',
