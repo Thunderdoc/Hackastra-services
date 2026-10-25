@@ -10,7 +10,7 @@ use Illuminate\Http\Request;
 
 /**
  * Library catalogue management (UI/UX sweep — Library module).
- * Access: Super Admin, Admin and Librarian (teamLibrary middleware);
+ * Access: Super Admin and Librarian (teamLibrary middleware);
  * deleting a catalogue record stays Super Admin only, mirroring the
  * School Events module's gating.
  */

@@ -1,7 +1,11 @@
 {{-- Admin menu (Workstream AB): the school Admin runs the whole school, so
      the items that used to be linked only from the Super Admin menu —
-     Settings, Library — live here too. The route gates agree:
-     settings is teamSA, books/book_requests are teamLibrary (SA + admin +
+     Settings — live here too. (Owner order 2026-10-25: the Library
+     item was removed from the Admin panel completely — the Librarian
+     runs the library, the Admin does not need it; see
+     pages/librarian/menu.blade.php for the Librarian's Books link.)
+     The route gates agree:
+     settings is teamSA, books/book_requests are teamLibrary (SA +
      librarian). Workstream CM (owner boundary): the school Admin also
      reads the school's audit trail — the audit_logs route is teamSA
      and the controller scopes the Admin to non-Super-Admin entries —
@@ -14,11 +18,6 @@
 {{--Manage Settings--}}
 <li class="nav-item">
     <a href="{{ route('settings') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['settings',]) ? 'active' : '' }}"><i class="icon-gear"></i> <span>Settings</span></a>
-</li>
-
-{{--Library--}}
-<li class="nav-item">
-    <a href="{{ route('books.index') }}" class="nav-link {{ (Route::is('books.*') || Route::is('book_requests.*')) ? 'active' : '' }}"><i class="icon-books"></i> <span>Library</span></a>
 </li>
 
 {{--Audit Log (school trail — Workstream CM)--}}

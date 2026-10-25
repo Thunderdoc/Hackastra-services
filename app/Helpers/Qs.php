@@ -214,7 +214,12 @@ class Qs
 
     public static function getTeamLibrary()
     {
-        return ['admin', 'super_admin', 'librarian'];
+        /* Owner order 2026-10-25: the Admin does not need the
+           library — the Librarian runs it. Admin removed from the
+           library team entirely (menu + routes), SA stays for
+           platform parity (PlatformOnly redirects SA from school
+           pages regardless). */
+        return ['super_admin', 'librarian'];
     }
 
     /*
@@ -242,7 +247,7 @@ class Qs
 
     public static function getTeamLibraryWrite()
     {
-        return ['admin', 'librarian'];
+        return ['librarian'];
     }
 
     public static function hash($id)

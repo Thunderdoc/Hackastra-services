@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Library loans (book requests): issue a book to a borrower and record
- * its return. Access: Super Admin, Admin and Librarian (teamLibrary).
+ * its return. Access: Super Admin and Librarian (teamLibrary).
  * Issuing/returning keeps Book.issued_copies in step, in a transaction.
  */
 class BookRequestController extends Controller
