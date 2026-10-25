@@ -141,6 +141,14 @@
                             @else
                                 <span class="l81-status l81-status-past"><span class="l81-dot"></span> Past Session</span>
                             @endif
+                            {{-- Wave 7 — owner order 2026-10-25: a clean
+                                 validation turns the timetable green
+                                 here. Live-computed, admin-only, and
+                                 only for the current session — a past
+                                 record never claims a fresh green. --}}
+                            @if(Qs::userIsTeamSAWrite() && $ttr->year === $stats['session'] && in_array($ttr->id, $validated_ids ?? []))
+                                <span class="l81-status l81-status-validated"><i class="icon-checkmark-circle"></i> Validated</span>
+                            @endif
                             <div class="ttx-actions l81-actions">
                                 <a href="{{ route('ttr.show', $ttr->id) }}" class="btn btn-light btn-sm"><i class="icon-eye mr-1"></i> View</a>
                                 <a target="_blank" href="{{ route('ttr.print', $ttr->id) }}" class="btn btn-light btn-sm"><i class="icon-printer mr-1"></i> Print</a>

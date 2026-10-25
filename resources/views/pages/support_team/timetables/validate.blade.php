@@ -16,6 +16,16 @@
             <a href="{{ route('ttr.manage', $record->id) }}" class="btn btn-light btn-sm"><i class="icon-pencil mr-1"></i> Manage</a>
         @endslot
 
+        {{-- Wave 7 — owner order 2026-10-25: validating turns the
+             timetable green, unmistakably. Clean means the green
+             banner; any blocking error means the red one instead —
+             warnings never block the green, they are listed below. --}}
+        @if(count($v_errors))
+            <div class="alert alert-danger"><strong>Not validated — {{ count($v_errors) }} blocking error(s) below.</strong> Fix these before this timetable can be trusted.</div>
+        @else
+            <div class="alert alert-success"><strong>Validated — this timetable is clash-free.</strong>@if(count($v_warnings)) No blocking errors, but {{ count($v_warnings) }} warning(s) below deserve a look.@else No blocking errors and no warnings.@endif</div>
+        @endif
+
         <div class="marx-stats">
             <div class="marx-stat {{ count($v_errors) ? 'marx-stat-absent' : 'marx-stat-present' }}">
                 <div class="marx-stat-num">{{ count($v_errors) }}</div>

@@ -22,14 +22,16 @@ use App\User;
  */
 class TimetableValidator
 {
-    public static function report(TimeTableRecord $record): array
+    /**
+     * Wave 7 — the ERROR half of report(), shared: the index's green
+     * Validated pill must use exactly this verdict, or the pill
+     * could disagree with the Validate page. $cells are this
+     * record's cells (with subject + time_slot); $clashes is the
+     * year's clash set from clashes().
+     */
+    protected static function recordErrors($record, $cells, $clashes): array
     {
         $errors = [];
-        $warnings = [];
-
-        $cells = TimeTable::with(['subject.teacher', 'time_slot'])
-            ->where('ttr_id', $record->id)->get();
-        $yearRecords = TimeTableRecord::where('year', $record->year)->pluck('id');
 
         /* Class collisions: two lessons in the same class slot. */
         foreach ($cells->groupBy(function ($c) { return $c->day_num . '|' . $c->ts_id; }) as $group) {
@@ -50,16 +52,54 @@ class TimetableValidator
         }
 
         /* Teacher double-booking across every record of the year:
-           same teacher, same day, same time of day. On this page
-           only clashes involving THIS record are errors — the full
-           unique set for the year is globalErrors(), which the
+           only clashes involving THIS record are its errors — the
+           full unique set for the year is globalErrors(), which the
            readiness page uses (counting per-record reports would
            multiply-count every clash). */
-        foreach (self::clashes($record->year) as $clash) {
-            if ($clash['records'][0] === $record->id || $clash['records'][1] === $record->id) {
+        foreach ($clashes as $clash) {
+            if (in_array($record->id, $clash['records'], true)) {
                 $errors[] = $clash['message'];
             }
         }
+
+        return array_values(array_unique($errors));
+    }
+
+    /**
+     * Wave 7 — ids of the year's records with ZERO errors, for the
+     * index's green Validated pill. One shared pass (year cells +
+     * year clashes loaded once), never per-record report() calls.
+     * Green is computed live on every list render — nothing is
+     * stored, so an edited timetable can never show a stale green.
+     */
+    public static function cleanRecordIds($year): array
+    {
+        $records = TimeTableRecord::where('year', $year)->get();
+        if ($records->isEmpty()) {
+            return [];
+        }
+        $cells = TimeTable::with(['subject.teacher', 'time_slot'])
+            ->whereIn('ttr_id', $records->pluck('id'))->get()->groupBy('ttr_id');
+        $clashes = self::clashes($year);
+
+        $clean = [];
+        foreach ($records as $record) {
+            if (empty(self::recordErrors($record, $cells->get($record->id, collect()), $clashes))) {
+                $clean[] = $record->id;
+            }
+        }
+        return $clean;
+    }
+
+    public static function report(TimeTableRecord $record): array
+    {
+        $warnings = [];
+
+        $cells = TimeTable::with(['subject.teacher', 'time_slot'])
+            ->where('ttr_id', $record->id)->get();
+        $yearRecords = TimeTableRecord::where('year', $record->year)->pluck('id');
+
+        $errors = self::recordErrors($record, $cells, self::clashes($record->year));
 
         /* Requirement coverage for this record's class. */
         $coverage = [];

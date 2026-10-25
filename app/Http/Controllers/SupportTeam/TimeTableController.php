@@ -172,6 +172,16 @@ class TimeTableController extends Controller
             ];
         }
 
+        /* Wave 7 — green validation: for the Admin, the current
+           session's records whose validator verdict is clean (zero
+           errors), computed live by the same validator the Validate
+           page uses — never stored, so an edited timetable can
+           never show a stale green. Other roles get no validation
+           UI at all (owner fix 2026-10-25). */
+        $d['validated_ids'] = Qs::userIsTeamSAWrite()
+            ? TimetableValidator::cleanRecordIds($this->year)
+            : [];
+
         return view('pages.support_team.timetables.index', $d);
     }
 

@@ -4392,6 +4392,8 @@ html.hk-dark .l81-group .collapse,html.hk-dark .l81-group .collapsing{border-top
 .l81-dot{border-radius:50%;display:inline-block;height:7px;width:7px}
 .l81-status-active{background:#e6f6ec;color:#1e7a34}
 .l81-status-active .l81-dot{background:#2f9e44}
+.l81-status-validated{background:#e6f6ec;color:#1e7a34}
+html.hk-dark .l81-status-validated{background:rgba(47,158,68,.20);color:#8fe3a8}
 .l81-status-past{background:#eef1f5;color:#5b6b7f}
 .l81-status-past .l81-dot{background:#98a6b5}
 html.hk-dark .l81-status-active{background:rgba(47,158,68,.20);color:#8fe3a8}
