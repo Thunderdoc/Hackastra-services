@@ -69,6 +69,25 @@
                 </tbody>
             </table>
             </div>
+            {{-- Wave 5 — owner order 2026-10-25: one PDF with every
+                 marksheet of this section. Admin-only route; the
+                 form carries class + section, the exam is picked. --}}
+            <form method="get" action="{{ route('marks.bulk_download') }}" class="pat-filter-form mt-3">
+                <input type="hidden" name="my_class_id" value="{{ $my_class_id }}">
+                <input type="hidden" name="section_id" value="{{ $section_id }}">
+                <div class="pat-filter-field">
+                    <label for="bulk_exam_id">Exam:</label>
+                    <select required id="bulk_exam_id" name="exam_id" class="form-control select">
+                        <option value="">Select Exam</option>
+                        @foreach($exams as $ex)
+                            <option value="{{ $ex->id }}">{{ $ex->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="pat-filter-action">
+                    <button type="submit" class="btn btn-danger">Download all marksheets (PDF) <i class="icon-download ml-2"></i></button>
+                </div>
+            </form>
         @else
             @include('partials.patterns.empty_state', [
                 'icon' => 'icon-books',

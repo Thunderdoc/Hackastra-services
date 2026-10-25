@@ -95,7 +95,10 @@ class MarkController extends Controller
      */
     protected function feeDefaulterBlock($student_id, $document)
     {
-        if (Qs::userIsTeamSA()) {
+        /* Staff are never the payer: the block pressures students and
+           parents, so teamSA and scoped teachers (already gated by
+           the caller) download without it. */
+        if (Qs::userIsTeamSA() || Qs::userIsTeacher()) {
             return null;
         }
 
@@ -132,12 +135,10 @@ class MarkController extends Controller
 
     public function show($student_id, $year)
     {
-        /* Prevent Other Students/Parents from viewing Result of others.
-           Owner ruling 2026-10-22: the marksheet is a student/office
-           document — teachers no longer open it at all (they keep
-           marks ENTRY). The gate is therefore teamSA, not teamSAT:
-           a teacher fails this check like any unrelated user. */
-        if(Auth::user()->id != $student_id && !Qs::userIsTeamSA() && !Qs::userIsMyChild($student_id, Auth::user()->id)){
+        /* Shared gate (see canAccessStudentMarks): owner decision
+           2026-10-25 reverses the 2026-10-22 ban — scoped teachers
+           open the marksheet like the print. */
+        if(!$this->canAccessStudentMarks($student_id)){
             return redirect(route('dashboard'))->with('pop_error', __('msg.denied'));
         }
 
@@ -201,8 +202,8 @@ class MarkController extends Controller
 
     public function print_view($student_id, $exam_id, $year)
     {
-        /* Prevent Other Students/Parents from viewing Result of others */
-        if(Auth::user()->id != $student_id && !Qs::userIsTeamSA() && !Qs::userIsMyChild($student_id, Auth::user()->id)){
+        /* Shared gate (see canAccessStudentMarks). */
+        if(!$this->canAccessStudentMarks($student_id)){
             return redirect(route('dashboard'))->with('pop_error', __('msg.denied'));
         }
 
@@ -226,14 +227,37 @@ class MarkController extends Controller
             return $this->noStudentRecord();
         }
 
+        $d = $this->marksheetPrintData($student_id, $exam_id, $year);
+        if (!$d) {
+            return $this->noStudentRecord();
+        }
+
+        return view('pages.support_team.marks.print.index', $d);
+    }
+
+    /**
+     * Wave 5 — shared assembly for ONE student's printed marksheet
+     * (the same data print_view feeds marks.print.index). bulkDownload
+     * reuses it per student so a single marksheet and a section bundle
+     * can never disagree on a figure. Returns null when the student
+     * has no record for this exam (print_view used to fatal on that).
+     */
+    protected function marksheetPrintData($student_id, $exam_id, $year)
+    {
         $wh = ['student_id' => $student_id, 'exam_id' => $exam_id, 'year' => $year ];
         $d['marks'] = $mks = $this->exam->getMark($wh);
         $d['exr'] = $exr = $this->exam->getRecord($wh)->first();
+        if (!$exr) {
+            return null;
+        }
         $d['my_class'] = $mc = $this->my_class->find($exr->my_class_id);
         $d['section_id'] = $exr->section_id;
         $d['ex'] = $exam = $this->exam->find($exam_id);
+        if (!$exam) {
+            return null;
+        }
         $d['tex'] = 'tex'.$exam->term;
-        $d['sr'] = $sr =$this->student->getRecord(['user_id' => $student_id])->first();
+        $d['sr'] = $sr = $this->student->getRecord(['user_id' => $student_id])->first();
         $d['class_type'] = $this->my_class->findTypeByClass($mc->id);
         $d['subjects'] = $this->my_class->findSubjectByClass($mc->id);
 
@@ -252,9 +276,60 @@ class MarkController extends Controller
            template (marks/partials/report_card). */
         $d['card'] = ReportCard::build($sr, $exam, $d['subjects'], $mks);
 
-        //$d['mark_type'] = Qs::getMarkType($ct);
+        return $d;
+    }
 
-        return view('pages.support_team.marks.print.index', $d);
+    /**
+     * Wave 5 — owner order 2026-10-25: the Admin downloads a whole
+     * SECTION's marksheets as one PDF (one card per student, in
+     * roll/name order). teamSA-only route; students without a record
+     * for this exam are skipped, never rendered blank. Images are
+     * inlined as data URIs exactly like pdf_annual (dompdf fetches
+     * no remote URLs). Admin office use: no publish gate, no fee
+     * block — teamSA is exempt from both already.
+     */
+    public function bulkDownload(Request $req)
+    {
+        /* A 40-student bundle is a big dompdf layout tree: the stock
+           128M limit dies mid-render (proven by test). Raise it for
+           this request only — a bounded, one-shot generation. The
+           17s a 40-card bundle takes also sits too close to the
+           stock 30s execution cap for bigger sections. */
+        ini_set('memory_limit', '512M');
+        set_time_limit(300);
+
+        $exam = $this->exam->find($req->exam_id);
+        $mc = $this->my_class->find($req->my_class_id);
+        $section = $req->section_id ? Section::find($req->section_id) : null;
+        if (!$exam || !$mc || !$section || (int) $section->my_class_id !== (int) $mc->id) {
+            abort(404);
+        }
+
+        $students = $this->student->getRecord(['my_class_id' => $mc->id, 'section_id' => $section->id])->get()->sortBy('user.name');
+        $cards = [];
+        foreach ($students as $st) {
+            $d = $this->marksheetPrintData($st->user_id, $exam->id, $exam->year);
+            if (!$d) {
+                continue;
+            }
+            foreach (['stamp', 'principal_signature'] as $imgKey) {
+                if (!empty($d['card'][$imgKey])) {
+                    $d['card'][$imgKey] = $this->pdfImageDataUri($d['card'][$imgKey]);
+                }
+            }
+            if (!empty($d['s']['logo'])) {
+                $d['s']['logo'] = $this->pdfImageDataUri($d['s']['logo']);
+            }
+            $cards[] = $d;
+        }
+
+        if (empty($cards)) {
+            return back()->with('flash_info', 'No marksheets found for this section and exam.');
+        }
+
+        $pdf_name = 'Marksheets_'.\Illuminate\Support\Str::slug($mc->name).'_'. \Illuminate\Support\Str::slug($section->name).'_'. \Illuminate\Support\Str::slug($exam->name).'.pdf';
+
+        return PDF::loadView('pages.support_team.marks.print.bulk_pdf', ['cards' => $cards])->setPaper('a4')->download($pdf_name);
     }
 
     /**
@@ -268,10 +343,10 @@ class MarkController extends Controller
      */
     public function show_annual($student_id, $year)
     {
-        /* Prevent Other Students/Parents from viewing Result of others.
-           Owner ruling 2026-10-22 (see show()): teachers are denied
-           the annual report card exactly like the term marksheet. */
-        if(Auth::user()->id != $student_id && !Qs::userIsTeamSA() && !Qs::userIsMyChild($student_id, Auth::user()->id)){
+        /* Shared gate (see canAccessStudentMarks): self, teamSA,
+           my-child, and — owner decision 2026-10-25 — teachers for
+           classes they teach. */
+        if(!$this->canAccessStudentMarks($student_id)){
             return redirect(route('dashboard'))->with('pop_error', __('msg.denied'));
         }
 
@@ -308,8 +383,8 @@ class MarkController extends Controller
      */
     public function print_annual($student_id, $year)
     {
-        /* Prevent Other Students/Parents from viewing Result of others */
-        if(Auth::user()->id != $student_id && !Qs::userIsTeamSA() && !Qs::userIsMyChild($student_id, Auth::user()->id)){
+        /* Shared gate (see canAccessStudentMarks). */
+        if(!$this->canAccessStudentMarks($student_id)){
             return redirect(route('dashboard'))->with('pop_error', __('msg.denied'));
         }
 
@@ -347,8 +422,8 @@ class MarkController extends Controller
      */
     public function pdf_annual($student_id, $year)
     {
-        /* Prevent Other Students/Parents from viewing Result of others */
-        if(Auth::user()->id != $student_id && !Qs::userIsTeamSA() && !Qs::userIsMyChild($student_id, Auth::user()->id)){
+        /* Shared gate (see canAccessStudentMarks). */
+        if(!$this->canAccessStudentMarks($student_id)){
             return redirect(route('dashboard'))->with('pop_error', __('msg.denied'));
         }
 
@@ -632,6 +707,8 @@ class MarkController extends Controller
     public function bulk($class_id = NULL, $section_id = NULL)
     {
         $d['my_classes'] = $this->my_class->all();
+        /* Wave 5: the section bulk-download form needs an exam picker. */
+        $d['exams'] = $this->exam->getExam(['year' => Qs::getCurrentSession()]);
 
         // Batch S: bulk marks is scoped to a teacher's assigned classes.
         if(Qs::userIsTeacher()){
@@ -866,9 +943,15 @@ class MarkController extends Controller
             return true;
         }
 
-        /* Owner ruling 2026-10-22: no teacher branch — the select-year
-           gateway leads to the marksheet, which teachers no longer
-           open (marks entry is their surface, not the report card). */
+        /* Owner decision 2026-10-25 (reverses the 2026-10-22 ban):
+           teachers CAN download marksheets — scoped to the classes
+           they teach (TeacherScope), never the whole school. A
+           teacher opening a foreign class's student still gets 403. */
+        if (Qs::userIsTeacher()) {
+            $sr = Qs::findStudentRecord($student_id);
+
+            return $sr && TeacherScope::canTeachClass($user, $sr->my_class_id);
+        }
 
         return false;
     }

@@ -64,6 +64,14 @@
             @slot('action')
                 <button type="button" class="btn btn-light btn-sm" onclick="window.print()"><i class="icon-printer mr-1"></i> Print</button>
                 <a href="{{ route('payments.defaulters.export', $def95ExportParams) }}" class="btn btn-primary btn-sm"><i class="icon-download mr-1"></i> Export CSV</a>
+                {{-- Wave 5 — owner order 2026-10-25: one click reminds
+                     the whole filtered defaulter set (student + linked
+                     parents, bell). Same filter params as the export,
+                     so a filtered view reminds only that set. --}}
+                <form method="post" action="{{ route('payments.defaulters.remind', $def95ExportParams) }}" style="display:inline">
+                    @csrf
+                    <button type="submit" class="btn btn-danger btn-sm"><i class="icon-bell2 mr-1"></i> Send fee reminders</button>
+                </form>
             @endslot
             @slot('stats')
                 <div class="row dashboard-stats print-hide">

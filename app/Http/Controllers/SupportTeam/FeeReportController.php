@@ -103,6 +103,24 @@ class FeeReportController extends Controller
         return view('pages.support_team.payments.defaulters', $d);
     }
 
+    /**
+     * Wave 5 — owner order 2026-10-25: send fee reminders to the
+     * Defaulters page set (current filters narrow it, exactly like
+     * the listing — class/section/status/search ride the query
+     * string). teamAccount via the controller constructor, so the
+     * accountant can send them too — this is their job, not a
+     * per-student chore anymore.
+     */
+    public function remindDefaulters(Request $request)
+    {
+        $selected_class = $request->query('class_id')
+            ? MyClass::find($request->query('class_id'))
+            : null;
+        $res = \App\Support\Notify::feeReminders($this->year, $selected_class, $this->defaulterFilters($request));
+
+        return back()->with('flash_success', 'Fee reminders sent to ' . $res['defaulters'] . ' defaulter(s) (' . $res['notifications'] . ' notifications).');
+    }
+
     public function defaultersExport(Request $request)
     {
         $class = $request->query('class_id')

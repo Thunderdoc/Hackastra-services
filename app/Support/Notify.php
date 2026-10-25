@@ -148,6 +148,65 @@ class Notify
         return count($rows);
     }
 
+    /**
+     * Wave 5 — owner order 2026-10-25: fee reminders. One bell
+     * notification per defaulter (current session, same
+     * FeeDefaulter definition as the Defaulters page, so the
+     * reminded set can never drift from the listed set) to the
+     * student AND each linked parent. Like resultsPublished, fee
+     * reminders are essential school communication, so they are NOT
+     * gated by notify_lms. Re-sending refreshes: unread copies are
+     * removed first, so nobody gets the same reminder twice. The
+     * optional class + filters narrow the set exactly like the
+     * Defaulters page filters. Returns defaulters + notifications.
+     */
+    public static function feeReminders($year, $selected_class = null, array $filters = []): array
+    {
+        if (!$year || !Schema::hasTable('user_notifications')) {
+            return ['defaulters' => 0, 'notifications' => 0];
+        }
+
+        $rows = \App\Support\FeeDefaulter::rows($year, $selected_class, $filters);
+        $now = now();
+        $notifs = [];
+        $defaulters = 0;
+        foreach ($rows as $row) {
+            $st = $row['student'];
+            if (!$st || !$st->user_id) {
+                continue;
+            }
+            $defaulters++;
+            $due = '₹' . number_format((int) $row['total_due']);
+            $title = 'Fee reminder: ' . $due . ' outstanding';
+            $body = $due . ' is outstanding for session ' . $year . '. Please clear it at the school office.';
+            $notifs[] = [
+                'user_id' => (int) $st->user_id, 'type' => 'fee_reminder',
+                'title' => $title, 'body' => $body, 'link' => route('student.fees'),
+                'read_at' => null, 'created_at' => $now, 'updated_at' => $now,
+            ];
+            if ($st->my_parent_id) {
+                $notifs[] = [
+                    'user_id' => (int) $st->my_parent_id, 'type' => 'fee_reminder',
+                    'title' => $title, 'body' => $body, 'link' => route('my_fees'),
+                    'read_at' => null, 'created_at' => $now, 'updated_at' => $now,
+                ];
+            }
+        }
+
+        if (empty($notifs)) {
+            return ['defaulters' => 0, 'notifications' => 0];
+        }
+
+        UserNotification::where('type', 'fee_reminder')->whereNull('read_at')
+            ->whereIn('user_id', array_unique(array_column($notifs, 'user_id')))->delete();
+
+        foreach (array_chunk($notifs, 500) as $chunk) {
+            UserNotification::insert($chunk);
+        }
+
+        return ['defaulters' => $defaulters, 'notifications' => count($notifs)];
+    }
+
     public static function latestFor($userId, int $take = 5)
     {
         if (!$userId || !Schema::hasTable('user_notifications')) {

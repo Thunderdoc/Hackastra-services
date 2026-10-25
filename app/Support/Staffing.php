@@ -66,6 +66,19 @@ class Staffing
      * engine, Slice C, checks true feasibility); SHORTFALL =
      * demand above capacity. A class-subject without a configured
      * requirement is counted as UNCONFIGURED, never as zero demand.
+     *
+     * Scope note (wave 2, recorded 2026-10-25): COMMITTED here is a
+     * CLASS-subject planning estimate from subjects.teacher_id. It
+     * deliberately does NOT split by section_subject_teachers
+     * overrides: an override changes who teaches a SECTION's
+     * generated cells, and periods_per_week is a class-level number
+     * with no per-section split to divide by — inventing one would
+     * misstate both teachers' loads. True taught loads live in the
+     * generated cells, and the clash validator reads those cells
+     * override-aware. So when overrides exist, the validator — not
+     * this estimate — is the authority for who actually teaches
+     * what. Do not "fix" this estimate by substituting override
+     * teachers for the whole subject.
      */
     public static function report(): array
     {

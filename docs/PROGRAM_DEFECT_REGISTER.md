@@ -57,6 +57,14 @@ with the danger flash; a free cell deletes normally.
 Residual (Phase 4): `use_time_slot` replaces a record's slot
 definitions wholesale; its interaction with existing cells/sessions
 needs the same examination.
+RESOLVED 2026-10-23 (Phase 5, TT-02 guard, examined and closed
+2026-10-25): `use_time_slot` now refuses outright when the record
+has ANY placed cell (`TimeTable::where('ttr_id', ...)->exists()`),
+because cells reference slots by plain id with no foreign key —
+slot-copy is for EMPTY timetables only; a populated record is
+regenerated instead. Submitted sessions point at cells, so refusing
+on any cell covers the submitted case too. No code change needed
+beyond the guard, which is already live.
 
 ### ADM-01 — Admission-number collision under concurrency 500s (Low, FIXED 2026-10-23)
 `Qs::generateAdmNo()` sequences within one request; two concurrent

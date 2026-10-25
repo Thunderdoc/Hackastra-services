@@ -128,9 +128,14 @@ Route::group(['middleware' => 'auth'], function () {
                     Route::get('edit/{ttr}', 'TimeTableController@edit_record')->name('ttr.edit');
                     Route::put('/{ttr}', 'TimeTableController@update_record')->name('ttr.update');
                     Route::delete('/{ttr}', 'TimeTableController@delete_record')->name('ttr.destroy');
+                    /* Owner fix 2026-10-25: validation is an admin QA
+                       tool (clash report + teacher loads) — it was
+                       reachable by every signed-in role, so students
+                       and teachers could open it for their classes.
+                       Now admin-only at the route gate, like manage. */
+                    Route::get('validate/{ttr}', 'TimeTableController@validateRecord')->name('ttr.validate');
                 });
 
-                Route::get('validate/{ttr}', 'TimeTableController@validateRecord')->name('ttr.validate');
                 Route::get('show/{ttr}', 'TimeTableController@show_record')->name('ttr.show');
                 Route::get('print/{ttr}', 'TimeTableController@print_record')->name('ttr.print');
 
@@ -167,6 +172,7 @@ Route::group(['middleware' => 'auth'], function () {
 
             /* Fee reports (Loop 9, Workstream O) */
             Route::get('reports/defaulters', 'FeeReportController@defaulters')->name('payments.defaulters');
+        Route::post('reports/defaulters/remind', 'FeeReportController@remindDefaulters')->name('payments.defaulters.remind');
             Route::get('reports/defaulters/export', 'FeeReportController@defaultersExport')->name('payments.defaulters.export');
             Route::get('reports/collection', 'FeeReportController@collection')->name('payments.collection');
             Route::get('reports/collection/export', 'FeeReportController@collectionExport')->name('payments.collection.export');
@@ -217,6 +223,10 @@ Route::group(['middleware' => 'auth'], function () {
                    at the route gate; Admin keeps generation. */
                 Route::get('bulk/{class?}/{section?}', 'MarkController@bulk')->name('marks.bulk');
                 Route::post('bulk', 'MarkController@bulk_select')->name('marks.bulk_select');
+                /* Wave 5 — owner order 2026-10-25: section-wise bulk
+                   marksheet PDF for the Admin panel (one card per
+                   student of the section). teamSA-only like bulk. */
+                Route::get('bulk-download', 'MarkController@bulkDownload')->name('marks.bulk_download');
             });
 
             // FOR teamSAT — the tabulation sheet view + its selector
