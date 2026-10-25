@@ -205,6 +205,7 @@
 
 
 #page-header .page-header-content{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.hk-global-back{align-self:center;flex-shrink:0}
 #page-header .page-title{display:flex;align-items:center;padding:.85rem 0}
 #page-header .page-title h4{margin:0;line-height:1.3}
 #page-header .header-elements{margin-left:auto}/* --- Equal-height cards/panels inside grid rows --- */
@@ -1159,6 +1160,9 @@ a.t9-row:hover .t9-row-copy strong{color:var(--qs-primary-action)}
 .ttx-grid thead .ttx-day-col{background:#fafbfd;z-index:3}
 .ttx-grid.table-striped tbody tr:nth-of-type(odd) .ttx-day-col{background:#f5f8fc}
 .ttx-cell-title{color:#172536;display:block;font-weight:600;line-height:1.3}
+.ttx-gap-col{background:#fdf6ec !important}
+.ttx-gap-label{display:block;font-weight:700;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:#8a5a12}
+.ttx-gap-range{display:block;font-size:.68rem;color:#8a5a12;white-space:nowrap}
 .ttx-cell-sub{color:#718096;display:block;font-size:.72rem;line-height:1.3;margin-top:1px}
 .ttx-empty{color:#a5b2c2}
 .ttx-lead{color:#44546a;font-size:.92rem;margin:2px 0 16px}
@@ -2928,6 +2932,8 @@ html.hk-dark .pay-edit-row>td{background:#2a2c2f}/* --- Timetable sticky day col
 
 
 html.hk-dark .ttx-grid .ttx-day-col{background:#26272a}
+html.hk-dark .ttx-gap-col{background:#2e2a20 !important}
+html.hk-dark .ttx-gap-label,html.hk-dark .ttx-gap-range{color:#e0b96a}
 html.hk-dark .ttx-grid thead .ttx-day-col{background:#2f3135}
 html.hk-dark .ttx-grid.table-striped tbody tr:nth-of-type(odd) .ttx-day-col{background:#2a2c2f}
 html.hk-dark .ttx-cell-title{color:#f4f4f5}
@@ -4050,7 +4056,7 @@ html.hk-dark .l75-cd-note{background:#26272a;border-color:#36383c;color:#c3d9f5}
          label rail preset row becomes a pattern field grid;
          the loose button row becomes an action row. All JS
          hooks (.scheme-form/.scheme-table/.comp-*//* (1) Marks entry grid — compact variant of the pattern */
-.scheme-sum/
+/*.scheme-sum/
          .scheme-preset) are unchanged.
      (3) Marksheet skills forms (marks/show/skills): the
          label-rail rows become compact label/select rows.
@@ -5619,7 +5625,7 @@ html.hk-dark .stu99-due-soon{background:#4a3512;color:#f2c069}
 html.hk-dark .stu99-due-overdue{background:#4a1f1f;color:#f19a9a}
 html.hk-dark .stu99-badge-todo{background:#303235;color:#7fb0ff}
 html.hk-dark .stu99-badge-done{background:#123527;color:#6fd3a7}
-@media (max-width:575px){.stu99-asg-row{align-items:flex-start;flex-direction:column;gap:8px}.stu99-asg-copy strong{white-space:normal}}/* --- Welcome strip --- */
+@media (max-width:575px){.stu99-asg-row{align-items:flex-start;flex-direction:column;gap:8px}.stu99-asg-copy strong{white-space:normal}}/* --- Welcome strip ---
    Loop 96 — Parent dashboard premium pass (2026-10-22). The
    parent home joins the Loop 79 / Loop 92 standard: greeting
    header, five KPI cards, per-child cards (photo-or-initials
@@ -6330,6 +6336,17 @@ html.hk-dark .l106 .dashboard-stat-copy small{color:#92969d}/* ---- Platform Use
 .l106-users .pat-toolbar-sub{color:#52657d;font-size:.9rem}
 .l106-users .pat-list .btn{border-radius:999px;font-weight:600;padding:8px 18px}
 .l106-users .pat-list .btn-primary{background:#2563eb;border-color:#2563eb}
+/* Users filter redesign (owner ask 2026-10-25): labeled filter
+   groups — Role and Status side by side with a divider on desktop,
+   stacked on narrow screens. Pills, links and active states are
+   unchanged; only the arrangement is new. */
+.l106-users-filters{display:flex;flex-wrap:wrap;gap:16px 28px;align-items:flex-start}
+.l106-users-filter-group{display:flex;flex-direction:column;gap:8px}
+.l106-users-filter-group + .l106-users-filter-group{padding-left:28px;border-left:1px solid #e4eaf1}
+.l106-users-filter-label{font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#718096}
+@media (max-width:767px){.l106-users-filters{flex-direction:column;gap:16px}.l106-users-filter-group + .l106-users-filter-group{padding-left:0;border-left:none}}
+html.hk-dark .l106-users-filter-group + .l106-users-filter-group{border-left-color:#36383c}
+html.hk-dark .l106-users-filter-label{color:#a5a8ad}
 .l106-users .pat-list .table th{border-bottom:2px solid #e4eaf1;color:#718096;font-size:.72rem;letter-spacing:.04em;text-transform:uppercase}
 .l106-users .pat-list .table td{border-color:#f0f4f8;color:#33475e;vertical-align:middle}
 .l106-users .pat-list .table tbody tr:hover{background:#f8faff}
@@ -6781,7 +6798,7 @@ html.hk-dark .l118-card-sub{color:#a2a5aa}/* .content prefix: must outrank the g
 .l118-fb-stats .dashboard-stat-card{align-items:center;min-height:0}
 .l118-fb-stats .dashboard-stat-label{font-size:.85rem;font-weight:500;letter-spacing:0;margin-top:2px;text-transform:none}
 .l118-fb-empty-table{margin-bottom:0}
-.l118-fb-empty-cell{padding:0!important}/* --- (A) List stat chips ----------------------------------- */
+.l118-fb-empty-cell{padding:0!important}/* --- (A) List stat chips -----------------------------------
 
    Loop 114 — Circulars replica pass (2026-10-23, reference-diff
    audit §9 / §2 / §10). (A) List stat chips: the Loop 75 markup
@@ -6914,7 +6931,7 @@ html.hk-dark .l114-att-sub{color:#a5a8ad}
   .l114-pv-tips{display:none!important}
 }
 
-   Loop 119 — Replica text-sweep presentation fixes (2026-10-23).
+/*   Loop 119 — Replica text-sweep presentation fixes (2026-10-23).
    Small, scoped corrections that ride along with the reference
    text alignment: (1) at >=1500px the My Account field hints were
    absolutely positioned onto the label line and collided with
@@ -6944,7 +6961,7 @@ html.hk-dark .l83-chip{background:#333539;color:#c8cace}
 .l92-donut-num{font-size:12px}
 .l92-donut-cap{font-size:8px}
 
-   Loop 117 — Replica pass: dashboards + attendance (2026-10-23).
+/*   Loop 117 — Replica pass: dashboards + attendance (2026-10-23).
    (a) Librarian home: Book Issue/Return Trend chart (CSS bars fed
    by HomeController::libraryTrend), the hero date as a chip.
    (b) Low Attendance: reference header (breadcrumb + icon tile),
@@ -7154,7 +7171,7 @@ html.hk-dark .ttc-chip{background:#26282c;color:#c9cdd4;}
 /* ==== Loop 124 · School Events cards (owner 2026-10-23) ==== */
 .evx-list{display:flex;flex-direction:column;gap:10px;}
 .evx-month{font-weight:800;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:#8a919c;margin-top:10px;}
-.evx-card{display:flex;gap:14px;align-items:flex-start;padding:14px 16px;margin-bottom:0;}
+.evx-card{display:flex;flex-direction:row;flex-wrap:wrap;gap:14px;align-items:flex-start;padding:14px 16px;margin-bottom:0;}
 .evx-body{flex:1;min-width:0;}
 .evx-title-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
 .evx-status{border-radius:20px;padding:1px 9px;font-size:11px;font-weight:700;}

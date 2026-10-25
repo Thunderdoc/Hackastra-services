@@ -163,7 +163,7 @@
             </div>
             <div class="l86-stat">
                 <span class="l86-stat-ic l86-stat-ic-avg"><i class="icon-stats-bars2"></i></span>
-                <div><strong class="l86-avg">{{ $l86Avg === null ? '—' : number_format($l86Avg, 1) }}</strong><span>Class Average</span></div>
+                <div><strong class="l86-avg">{{ $l86Avg === null ? '—' : number_format($l86Avg, 1) }}</strong><span>Subject Average</span></div>
             </div>
             <div class="l86-stat">
                 <span class="l86-stat-ic l86-stat-ic-high"><i class="icon-arrow-up5"></i></span>

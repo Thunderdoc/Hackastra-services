@@ -23,6 +23,14 @@ use Illuminate\Support\Str;
  * feedback, only what the Admin forwarded. Access is enforced per
  * action below (role checks in the controller, mirroring the way
  * CircularController splits its audiences).
+ *
+ * Owner ruling 2026-10-25 (multi-school, standing): feedback is
+ * PER-SCHOOL and is never merged across schools. Today the app runs
+ * one school so there is nothing to mix; when the SaaS school_id
+ * lands, every feedback row, list, forward and SA reply MUST scope
+ * to the originating school, and each school gets its own separate
+ * feedback thread back. Merging happens only inside one school
+ * (the Admin's pre-forward dedupe via duplicate_of_id).
  */
 class FeedbackController extends Controller
 {

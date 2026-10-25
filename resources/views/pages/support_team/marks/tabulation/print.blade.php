@@ -36,6 +36,14 @@
             if ($tabLow === null || (float) $tabRec->total < (float) $tabLow) { $tabLow = $tabRec->total; }
         }
     }
+    // Repeating print header (owner ask 2026-10-25): the school
+    // identity, title band and context strip live INSIDE thead so
+    // the browser repeats them on every printed page — a long sheet
+    // no longer continues onto page 2 with no header. Column count:
+    // # + name + one per subject + total + average + position.
+    $tabCols = 2 + $subjects->count() + 3;
+    $tabCtxExamSpan = (int) ceil(($tabCols - 3) / 2);
+    $tabCtxSessSpan = $tabCols - 3 - $tabCtxExamSpan;
 @endphp
 <div class="tab-doc">
 
@@ -48,46 +56,40 @@
 
     <div class="tab-body">
 
-        {{-- Header band: logo/monogram tile + school identity --}}
-        <table class="tab-head">
-            <tr>
-                <td style="width:110px; text-align:left;">
+        {{-- Tabulation table — the school header, title band and
+             context strip are thead rows (see @php above), so they
+             repeat on every printed page, not just page 1. --}}
+        <table class="tab-marks">
+            <thead>
+            <tr class="tab-hd-school">
+                <td colspan="2">
                     @if($tabLogo)
                         <img class="tab-head-logo" src="{{ $tabLogo }}" alt="">
                     @else
                         <span class="tab-logo-tile" aria-hidden="true">{{ $tabInitials }}</span>
                     @endif
                 </td>
-                <td style="text-align:center;">
+                <td colspan="{{ $tabCols - 3 }}">
                     <span class="tab-school">{{ Qs::getSetting('system_name') }}</span><br/>
                     <span class="tab-addr">{{ ucwords($tabS['address'] ?? '') }}</span><br/>
                     @if(!empty($tabS['phone']) || !empty($tabS['system_email']))
                         <span class="tab-contact">{{ !empty($tabS['phone']) ? 'Tel: '.$tabS['phone'] : '' }}{{ (!empty($tabS['phone']) && !empty($tabS['system_email'])) ? ' | ' : '' }}{{ !empty($tabS['system_email']) ? 'Email: '.$tabS['system_email'] : '' }}</span>
                     @endif
                 </td>
-                <td style="width:110px;"></td>
+                <td></td>
             </tr>
-        </table>
-
-        {{-- Title band --}}
-        <div class="tab-titleband">
-            <div class="tab-title">Tabulation Sheet</div>
-            <div class="tab-subtitle">{{ $my_class->name.' '.$section->name }} &middot; {{ $ex->name }} &middot; {{ $year }}</div>
-        </div>
-
-        {{-- Context strip --}}
-        <table class="tab-context">
-            <tr>
-                <td><span class="tab-ctx-label">Class</span><span class="tab-ctx-value">{{ $my_class->name }}</span></td>
+            <tr class="tab-hd-title">
+                <td colspan="{{ $tabCols }}">
+                    <div class="tab-title">Tabulation Sheet</div>
+                    <div class="tab-subtitle">{{ $my_class->name.' '.$section->name }} &middot; {{ $ex->name }} &middot; {{ $year }}</div>
+                </td>
+            </tr>
+            <tr class="tab-hd-ctx">
+                <td colspan="2"><span class="tab-ctx-label">Class</span><span class="tab-ctx-value">{{ $my_class->name }}</span></td>
                 <td><span class="tab-ctx-label">Section</span><span class="tab-ctx-value">{{ $section->name }}</span></td>
-                <td><span class="tab-ctx-label">Examination</span><span class="tab-ctx-value">{{ $ex->name }}</span></td>
-                <td><span class="tab-ctx-label">Session</span><span class="tab-ctx-value">{{ $year }}</span></td>
+                <td colspan="{{ $tabCtxExamSpan }}"><span class="tab-ctx-label">Examination</span><span class="tab-ctx-value">{{ $ex->name }}</span></td>
+                <td colspan="{{ $tabCtxSessSpan }}"><span class="tab-ctx-label">Session</span><span class="tab-ctx-value">{{ $year }}</span></td>
             </tr>
-        </table>
-
-        {{-- Tabulation table --}}
-        <table class="tab-marks">
-            <thead>
             <tr>
                 <th class="tab-sn">#</th>
                 <th style="text-align: left;">NAMES OF STUDENTS IN CLASS</th>

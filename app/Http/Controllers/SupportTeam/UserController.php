@@ -179,6 +179,16 @@ class UserController extends Controller
         if (!$type || !$actorType || (int) $type->level < (int) $actorType->level) {
             return Qs::json(__('msg.denied'), FALSE);
         }
+        /* Owner ruling 2026-10-25: the Super Admin provisions platform
+           accounts only (Super Admin + School Admin). The level gate
+           above does NOT stop an SA from creating a librarian (level 6
+           is not below the SA's level), so this gate mirrors the
+           create form's SA options — a crafted POST cannot bypass it.
+           School staff, including the librarian, is the school
+           Admin's to provision. */
+        if (Qs::userIsSuperAdmin() && !in_array($type->title, ['super_admin', 'admin'], true)) {
+            return Qs::json(__('msg.denied'), FALSE);
+        }
 
         $user_type = $type->title;
 
@@ -439,15 +449,16 @@ class UserController extends Controller
         /* Loop 106: the Super Admin provisions platform accounts only
            (Super Admin + School Admin) — the create form offers the SA
            the same roles their list shows. The school Admin's options
-           (level >= 2) are unchanged. store()'s level gate is as-is.
-           Audit R-15 (2026-10-23): Librarian joins the SA's create
-           options — the role was un-creatable anywhere until the
-           user_types row was seeded; the SA provisions the school's
-           librarian account at onboarding just like its Admins. The
-           SA's LIST stays platform-accounts-only (Loop 106). */
+           (level >= 2) are unchanged. store()'s level gate is as-is,
+           plus an SA-role gate (see store()).
+           Owner ruling 2026-10-25 (SUPERSEDES Audit R-15's librarian
+           carve-out): the school's internal Admin provisions school
+           staff — including the librarian — so Librarian is NOT an SA
+           create option anymore. The SA's LIST stays
+           platform-accounts-only (Loop 106). */
         $d['user_types'] = Qs::userIsAdmin()
             ? $ut2
-            : (Qs::userIsSuperAdmin() ? $ut->whereIn('title', ['super_admin', 'admin', 'librarian'])->values() : $ut);
+            : (Qs::userIsSuperAdmin() ? $ut->whereIn('title', ['super_admin', 'admin'])->values() : $ut);
         $d['states'] = $this->loc->getStates();
         $d['nationals'] = $this->loc->getAllNationals();
         $d['blood_groups'] = $this->user->getBloodGroups();

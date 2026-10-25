@@ -48,6 +48,14 @@
                                 @endif
                             </select>
                         </div>
+                        <div class="pat-field">
+                            <label for="order">Sheet Order:</label>
+                            <select id="order" name="order" class="form-control select" data-placeholder="Sheet Order">
+                                <option value="rank" {{ ($order ?? 'rank') == 'rank' ? 'selected' : '' }}>Rank-wise</option>
+                                <option value="roll" {{ ($order ?? 'rank') == 'roll' ? 'selected' : '' }}>Roll No-wise</option>
+                                <option value="name" {{ ($order ?? 'rank') == 'name' ? 'selected' : '' }}>Name-wise</option>
+                            </select>
+                        </div>
                     </div>
 
                     <div class="text-right mt-3">
@@ -70,7 +78,7 @@
             <div class="card-header header-elements-inline">
                 <h6 class="qs-tab-context mb-0">Tabulation Sheet for {{ $my_class->name.' '.$section->name.' - '.$ex->name.' ('.$year.')' }}</h6>
                 <div class="header-elements">
-                    <a target="_blank" href="{{ route('marks.print_tabulation', [$exam_id, $my_class_id, $section_id]) }}" class="btn btn-light btn-sm qs-tab-print"><i class="icon-printer mr-1"></i> Print Tabulation Sheet</a>
+                    <a target="_blank" href="{{ route('marks.print_tabulation', [$exam_id, $my_class_id, $section_id]) }}?order={{ $order ?? 'rank' }}" class="btn btn-light btn-sm qs-tab-print"><i class="icon-printer mr-1"></i> Print Tabulation Sheet</a>
                 </div>
             </div>
             <div class="card-body">

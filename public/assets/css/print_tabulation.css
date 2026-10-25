@@ -65,13 +65,20 @@ body {
 /* --- Context strip: class / section / exam / session --- */
 .tab-context { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 8px; }
 .tab-context td { text-align: left; padding: 4px 6px; border: 1px solid #b9c6d4; font-size: 12.5px; }
-.tab-context .tab-ctx-label { color: #718096; font-size: 10.5px; font-weight: bold; letter-spacing: .08em; text-transform: uppercase; display: block; }
-.tab-context .tab-ctx-value { color: #10263b; font-weight: bold; }
+.tab-ctx-label { color: #718096; font-size: 10.5px; font-weight: bold; letter-spacing: .08em; text-transform: uppercase; display: block; }
+.tab-ctx-value { color: #10263b; font-weight: bold; }
 
 /* --- Marks table --- */
 .tab-marks { width: 100%; border-collapse: collapse; border: 1.5px solid #10263b; margin: 8px auto; }
 .tab-marks th, .tab-marks td { border: 1px solid #7d8fa6; padding: 3px 4px; text-align: center; font-size: 12px; }
 .tab-marks thead th { background: #eef2f7; color: #10263b; text-transform: uppercase; letter-spacing: .03em; }
+/* Repeating header rows (owner ask 2026-10-25): the school band,
+   title band and context strip ride inside thead, so the browser
+   repeats them on every printed page. */
+.tab-marks thead .tab-hd-school td { border: none; border-bottom: 2.5px solid #10263b; padding-bottom: 6px; }
+.tab-marks thead .tab-hd-school td:first-child { text-align: left; }
+.tab-marks thead .tab-hd-title td { background: #10263b; border: none; padding: 6px 8px 7px; }
+.tab-marks thead .tab-hd-ctx td { text-align: left; padding: 4px 6px; }
 .tab-marks th.tab-sn, .tab-marks td.tab-sn { width: 32px; color: #44546a; }
 .tab-marks td.tab-name { text-align: left; padding-left: 6px; }
 .tab-marks thead th.tab-total-h { background: #e2ebf7; }
@@ -95,4 +102,6 @@ body {
 
 @media print {
     .tab-marks th, .tab-marks td { padding: 2px 3px; font-size: 12px; }
+    .tab-marks thead { display: table-header-group; }
+    .tab-marks tr { page-break-inside: avoid; }
 }

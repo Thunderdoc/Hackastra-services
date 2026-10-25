@@ -174,6 +174,60 @@ class ReportCard
      *               class_teacher: ?string, principal_name: ?string,
      *               stamp: ?string}
      */
+    /**
+     * Owner ask 2026-10-25 — automate the report-card footer: when
+     * no manual comment was entered, the printed card carries a
+     * comment derived from the student's own results instead of a
+     * blank line. Manual comments always win (the partial checks
+     * them first); these only fill the gap. A NULL average means no
+     * marks were entered, so no comment is invented — the partial
+     * falls back to the blank line.
+     */
+    public static function autoTeacherComment($exr): string
+    {
+        $ave = $exr->ave ?? null;
+        if ($ave === null || $ave === '') {
+            return '';
+        }
+        $ave = (float) $ave;
+        if ($ave >= 90) {
+            return 'Outstanding performance across all subjects. Keep up the excellent work.';
+        }
+        if ($ave >= 75) {
+            return 'Very good performance. Consistent effort — keep it up.';
+        }
+        if ($ave >= 60) {
+            return 'Good performance. A little more focus will bring even better results.';
+        }
+        if ($ave >= 50) {
+            return 'Satisfactory performance. More regular study and practice will help improve.';
+        }
+        return 'Needs more effort and regular practice. Please meet the class teacher to plan improvement.';
+    }
+
+    public static function autoPrincipalComment($exr): string
+    {
+        $pos = $exr->pos ?? null;
+        if ($pos !== null && (int) $pos === 1) {
+            return 'First in class — an excellent achievement. Keep it up.';
+        }
+        if ($pos !== null && (int) $pos <= 3) {
+            return 'Among the top students of the class. Well done.';
+        }
+        $ave = $exr->ave ?? null;
+        if ($ave === null || $ave === '') {
+            return '';
+        }
+        $ave = (float) $ave;
+        if ($ave >= 75) {
+            return 'Very good progress this term. Keep working hard.';
+        }
+        if ($ave >= 50) {
+            return 'Good progress this term. Keep working hard.';
+        }
+        return 'Progress needs attention this term. The school will support improvement.';
+    }
+
     public static function buildAnnual(StudentRecord $sr, $year, $exams, $subjects, $marks, $classMarks, $classTypeId)
     {
         $markRepo = app(MarkRepo::class);

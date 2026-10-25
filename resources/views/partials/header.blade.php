@@ -23,6 +23,15 @@
          header). In-page card headings must never repeat the title. --}}
     <div class="page-header-content header-elements-md-inline">
         <div class="page-title d-flex">
+            {{-- Site-wide Back (owner ask 2026-10-25): every standard
+                 page gets the same way back — the browser history,
+                 falling back to the dashboard when the page was
+                 opened directly. Hidden on the dashboard itself.
+                 Pages with their own Back in page_actions keep it;
+                 this one sits left of the title, always visible. --}}
+            @if(!in_array(request()->path(), ['/', 'home', 'dashboard'], true))
+            <button type="button" class="btn btn-light btn-sm hk-global-back mr-2" onclick="if (window.history.length > 1) { window.history.back(); } else { window.location.href = '{{ route('dashboard') }}'; }" aria-label="Back"><i class="icon-arrow-left7"></i><span class="d-none d-sm-inline"> Back</span></button>
+            @endif
             {{-- Loop 118: optional icon tile beside the title — a page
                  opts in with @section('page_icon') holding the tile
                  markup (the reference designs carry one on some

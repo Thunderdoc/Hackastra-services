@@ -27,7 +27,7 @@
                 </div>
                 <div class="pat-filter-field">
                     <label for="class_id">Class <span class="text-danger">*</span></label>
-                    <select id="class_id" name="class_id" class="form-control" required>
+                    <select id="class_id" name="class_id" class="form-control" onchange="getClassSections(this.value)" required>
                         <option value="">Select Class</option>
                         @foreach($my_classes as $mc)
                             <option value="{{ $mc->id }}" {{ (int) $class_id === $mc->id ? 'selected' : '' }}>{{ $mc->name }}</option>

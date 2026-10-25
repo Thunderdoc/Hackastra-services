@@ -317,21 +317,6 @@ class HomeController extends Controller
             $role_counts[$i]['last_sign_in'] = $last ? Carbon::parse($last) : null;
         }
 
-        $settings_checklist = [];
-        foreach ([
-            'system_name' => 'School name',
-            'logo' => 'School logo',
-            'phone' => 'Contact phone',
-            'system_email' => 'School email',
-            'current_session' => 'Current session',
-        ] as $key => $label) {
-            $settings_checklist[] = [
-                'key' => $key,
-                'label' => $label,
-                'set' => filled(Qs::getSetting($key)),
-            ];
-        }
-
         return [
             'school_name' => Qs::getSetting('system_name'),
             'role_counts' => $role_counts,
@@ -341,10 +326,6 @@ class HomeController extends Controller
             'audit_week_from' => $now->copy()->startOfWeek(),
             'recent_audit' => $recent_audit,
             'recent_logins' => $recent_logins,
-            'settings_checklist' => $settings_checklist,
-            'settings_done' => collect($settings_checklist)->where('set', true)->count(),
-            'settings_total' => count($settings_checklist),
-            'settings_missing' => collect($settings_checklist)->where('set', false)->pluck('label')->values(),
             'signed_in_this_week' => $signed_in_this_week,
             'suspended_users' => $suspended_users,
             'terminated_users' => $terminated_users,

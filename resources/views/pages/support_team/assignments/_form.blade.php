@@ -37,7 +37,7 @@
     <div class="pat-fields">
         <div class="pat-field">
             <label for="my_class_id">Class <span class="text-danger">*</span></label>
-            <select name="my_class_id" id="my_class_id" required class="form-control select @error('my_class_id') is-invalid @enderror">
+            <select name="my_class_id" id="my_class_id" onchange="getClassSections(this.value)" required class="form-control select @error('my_class_id') is-invalid @enderror">
                 <option value="">Select class</option>
                 @foreach($classes ?? [] as $class)
                     <option value="{{ $class->id }}" {{ (string) old('my_class_id', $assignment->my_class_id ?? '') === (string) $class->id ? 'selected' : '' }}>{{ $class->name }}</option>

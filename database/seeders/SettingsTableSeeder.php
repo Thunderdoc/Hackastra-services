@@ -35,7 +35,7 @@ class SettingsTableSeeder extends Seeder
             ['type' => 'ai_api_key', 'description' => ''],
             ['type' => 'ai_embedding_model', 'description' => 'text-embedding-004'],
             ['type' => 'logo', 'description' => ''],
-            ['type' => 'principal_name', 'description' => ''],
+            ['type' => 'principal_name', 'description' => 'Rajesh Iyer'],
             ['type' => 'school_stamp', 'description' => ''],
             // Workstream DG: Google Search Console verification token
             // (platform-owned, set by the Super Admin in Settings).

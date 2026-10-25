@@ -3,7 +3,7 @@
 @section('hide_page_header', true)
 @section('content')
     {{-- Workstream R: Platform Super Admin home — platform oversight
-         (users & roles, audit & security, configuration), deliberately
+         (users & roles, audit & security), deliberately
          separate from the school's daily-operations dashboard.
          Workstream DD (owner ruling 2026-10-22): the Super Admin is
          platform-only — there is no path from this page into the
@@ -19,7 +19,7 @@
     <div class="dashboard-hero mb-4">
         <div>
             <h2 class="mb-1">{{ $greeting }}, {{ Auth::user()->name }} <span aria-hidden="true">👋</span></h2>
-            <p class="mb-0 dashboard-muted">Hackstra platform overview for {{ $school_name ?: 'your school' }} — user accounts, security activity and configuration at a glance.</p>
+            <p class="mb-0 dashboard-muted">Hackstra platform overview for {{ $school_name ?: 'your school' }} — user accounts and security activity at a glance.</p>
         </div>
         <div class="dashboard-hero-side">
             <div class="dashboard-hero-date">
@@ -37,10 +37,6 @@
             ['label' => 'Platform Accounts', 'value' => number_format($total_users), 'sub' => 'Super Admins + School Admins · ' . number_format($signed_in_this_week) . ' signed in this week' . (($suspended_users || $terminated_users) ? ' · ' . number_format($suspended_users) . ' suspended · ' . number_format($terminated_users) . ' terminated' : ''), 'icon' => 'icon-users4', 'tone' => 'blue', 'link' => route('users.index')],
             ['label' => 'Audit Entries Today', 'value' => number_format($audit_today), 'sub' => 'Recorded actions today', 'icon' => 'icon-shield-check', 'tone' => 'green', 'link' => route('audit_logs.index')],
             ['label' => 'Audit Entries This Week', 'value' => number_format($audit_week), 'sub' => 'Since ' . $audit_week_from->format('l, d M'), 'icon' => 'icon-stats-bars', 'tone' => 'orange', 'link' => route('audit_logs.index')],
-            {{-- Workstream DD: the Configuration aggregate stays (it is
-                 a platform-level completeness signal) but is UNLINKED —
-                 the settings page itself is the school's. --}}
-            ['label' => 'Configuration', 'value' => $settings_done . ' of ' . $settings_total, 'sub' => $settings_missing->isNotEmpty() ? 'Missing: ' . $settings_missing->implode(', ') : 'All key settings completed', 'icon' => 'icon-cog5', 'tone' => 'purple', 'link' => null],
         ] as $stat)
             <div class="col-sm-6 col-xl-3">
                 @if($stat['link'])<a href="{{ $stat['link'] }}" class="dashboard-stat-card dashboard-stat-{{ $stat['tone'] }}">@else<div class="dashboard-stat-card dashboard-stat-{{ $stat['tone'] }}">@endif
@@ -168,22 +164,6 @@
                          Sections tiles are gone — those pages are school
                          domain, and this account is platform-only. --}}
                 </div>
-            </section>
-
-            {{-- Configuration checklist — key settings, set or missing --}}
-            <section class="dashboard-panel mb-4">
-                <div class="dashboard-panel-heading">
-                    <div><h5 class="mb-1"><i class="icon-cog5 text-blue mr-1"></i> Configuration Checklist</h5><p class="dashboard-muted mb-0">{{ $settings_done }} of {{ $settings_total }} key settings completed{{ $settings_missing->isNotEmpty() ? ' · Missing: ' . $settings_missing->implode(', ') : '' }}</p></div>
-                    {{-- Workstream DD: no Settings link — the settings page
-                         belongs to the school Admin. The checklist itself
-                         is a read-only platform aggregate and stays. --}}
-                </div>
-                @foreach($settings_checklist as $item)
-                    <div class="dashboard-event">
-                        <span class="event-copy"><strong>{{ $item['label'] }}</strong></span>
-                        <span class="dashboard-status {{ $item['set'] ? 'status-success' : 'status-warning' }}">{{ $item['set'] ? 'Set' : 'Missing' }}</span>
-                    </div>
-                @endforeach
             </section>
 
             {{-- Recent sign-ins — successful logins (failed attempts are

@@ -1,16 +1,20 @@
 {{-- Document design v2 (Workstream CY): fixed label column
      (rc-clabel, nowrap) so the labels never stack vertically the way
-     the width-less table let them. Same texts, same defaults. --}}
+     the width-less table let them. Same texts, same defaults.
+     Owner ask 2026-10-25: a missing manual comment no longer prints
+     a blank line — the card carries a comment derived from the
+     student's own results (ReportCard::auto*Comment); a manual
+     comment still wins whenever one exists. --}}
 <div>
     <table class="rc-comments">
         <tbody>
         <tr>
             <td class="rc-clabel">CLASS TEACHER'S COMMENT:</td>
-            <td>{{ $exr->t_comment ?: str_repeat('__', 40) }}</td>
+            <td>{{ $exr->t_comment ?: \App\Support\ReportCard::autoTeacherComment($exr) ?: str_repeat('__', 40) }}</td>
         </tr>
         <tr>
             <td class="rc-clabel">PRINCIPAL'S COMMENT:</td>
-            <td>{{ $exr->p_comment ?: str_repeat('__', 40) }}</td>
+            <td>{{ $exr->p_comment ?: \App\Support\ReportCard::autoPrincipalComment($exr) ?: str_repeat('__', 40) }}</td>
         </tr>
         <tr>
             <td class="rc-clabel">NEXT TERM BEGINS:</td>

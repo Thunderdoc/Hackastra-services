@@ -72,6 +72,12 @@ This is the one part of tenancy the codebase is accidentally ready for.
   directly — e.g. the dashboard aggregates and `DashboardSearchController`).
 - Policies gain a school check: a record from school A must fail `view` for
   every user of school B *before* the existing ownership logic runs.
+- **Feedback is per-school, never merged (owner ruling 2026-10-25):**
+  `feedback_items` gains `school_id` with the tenancy migration; every
+  feedback list, forward and SA reply scopes to the originating school,
+  and each school gets its own separate feedback thread back. Merging
+  happens only *inside* one school (the school Admin's pre-forward
+  dedupe via `duplicate_of_id`) — never across schools.
 - The role middleware sets stay the same *within* a school; a new
   `platform_admin` identity (above `super_admin`) owns school onboarding and
   must be technically unable to read school data by default — support access,

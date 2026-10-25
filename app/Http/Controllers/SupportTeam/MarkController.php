@@ -686,7 +686,14 @@ class MarkController extends Controller
             }
 
             $d['subjects'] = $this->my_class->getSubjectsByIDs($sub_ids);
-            $d['students'] = $this->student->getRecordByUserIDs($st_ids)->get()->sortBy('user.name');
+            $d['marks'] = $mks = $this->exam->getMark($wh);
+            $d['exr'] = $exr = $this->exam->getRecord($wh);
+            $d['order'] = $order = $this->tabulationOrder();
+            $d['students'] = $this->orderTabulationStudents(
+                $this->student->getRecordByUserIDs($st_ids)->get(),
+                $exr,
+                $order
+            );
             $d['sections'] = $this->my_class->getAllSections();
 
             $d['selected'] = TRUE;
@@ -694,8 +701,6 @@ class MarkController extends Controller
             $d['section_id'] = $section_id;
             $d['exam_id'] = $exam_id;
             $d['year'] = $this->year;
-            $d['marks'] = $mks = $this->exam->getMark($wh);
-            $d['exr'] = $exr = $this->exam->getRecord($wh);
 
             $d['my_class'] = $mc = $this->my_class->find($class_id);
             $d['section']  = $this->my_class->findSection($section_id);
@@ -725,7 +730,13 @@ class MarkController extends Controller
         }
 
         $d['subjects'] = $this->my_class->getSubjectsByIDs($sub_ids);
-        $d['students'] = $this->student->getRecordByUserIDs($st_ids)->get()->sortBy('user.name');
+        $d['exr'] = $exr = $this->exam->getRecord($wh);
+        $d['order'] = $order = $this->tabulationOrder();
+        $d['students'] = $this->orderTabulationStudents(
+            $this->student->getRecordByUserIDs($st_ids)->get(),
+            $exr,
+            $order
+        );
 
         $d['my_class_id'] = $class_id;
         $d['exam_id'] = $exam_id;
@@ -747,9 +758,48 @@ class MarkController extends Controller
         return view('pages.support_team.marks.tabulation.print', $d);
     }
 
+    /* Tabulation sheet order (owner ask 2026-10-25): the sheet and
+       its print document both honour one order, chosen on the
+       tabulation page — rank (position, default), roll number
+       (admission number) or name. Anything else falls back to rank. */
+    protected function tabulationOrder()
+    {
+        $order = request()->query('order', request()->input('order', 'rank'));
+        return in_array($order, ['rank', 'roll', 'name'], true) ? $order : 'rank';
+    }
+
+    protected function orderTabulationStudents($students, $exr, $order)
+    {
+        $posOf = function ($s) use ($exr) {
+            $rec = $exr->where('student_id', $s->user_id)->first();
+            return $rec ? $rec->pos : null;
+        };
+        $totalOf = function ($s) use ($exr) {
+            $rec = $exr->where('student_id', $s->user_id)->first();
+            return $rec ? (float) $rec->total : -1;
+        };
+        if ($order === 'roll') {
+            return $students->sortBy('adm_no')->values();
+        }
+        if ($order === 'name') {
+            return $students->sortBy('user.name')->values();
+        }
+        // Rank: position ascending; unpositioned students last (by
+        // total desc, then name); ties break by total desc, then name.
+        return $students->sort(function ($a, $b) use ($posOf, $totalOf) {
+            $pa = $posOf($a); $pb = $posOf($b);
+            if ($pa === null && $pb === null) {
+                return ($totalOf($b) <=> $totalOf($a)) ?: strcmp($a->user->name, $b->user->name);
+            }
+            if ($pa === null) { return 1; }
+            if ($pb === null) { return -1; }
+            return ($pa <=> $pb) ?: (($totalOf($b) <=> $totalOf($a)) ?: strcmp($a->user->name, $b->user->name));
+        })->values();
+    }
+
     public function tabulation_select(Request $req)
     {
-        return redirect()->route('marks.tabulation', [$req->exam_id, $req->my_class_id, $req->section_id]);
+        return redirect()->route('marks.tabulation', [$req->exam_id, $req->my_class_id, $req->section_id, 'order' => $this->tabulationOrder()]);
     }
 
     /**

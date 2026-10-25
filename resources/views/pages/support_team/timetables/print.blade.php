@@ -36,6 +36,8 @@
         .tt-teacher { display: block; font-size: 11px; color: #5b6b80; font-weight: normal; margin-top: 3px; }
         table.tt thead th { background: #eef2f7; color: #10263b; }
         td.tt-day, th.tt-day { text-align: left; white-space: nowrap; }
+        table.tt th.tt-gap, table.tt td.tt-gap { background: #fdf6ec; font-weight: 700; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: #8a5a12; }
+        table.tt .tt-gap-range { display: block; font-weight: 400; font-size: 10px; letter-spacing: 0; text-transform: none; white-space: nowrap; }
         .tt-empty { color: #999; }
 
         .tt-genline { text-align: center; color: #718096; font-size: 9.5px; letter-spacing: .16em; text-transform: uppercase; margin-top: 14px; border-top: 1px solid #b9c6d4; padding-top: 8px; }
@@ -119,12 +121,33 @@
             @endif
 
             {{-- Tabulation Begins --}}
+            @php
+                // Gap columns (owner fix 2026-10-25): same rule as the
+                // screen grid — 30+ minutes is Lunch, shorter is Break.
+                $ttPrintSlots = collect($time_slots)->sortBy(function ($s) { return strtotime($s->time_from); })->values();
+                $ttPrintCols = [];
+                $ttPrintPrev = null;
+                foreach ($ttPrintSlots as $ttPrintSlot) {
+                    if ($ttPrintPrev) {
+                        $ttPrintGap = (strtotime($ttPrintSlot->time_from) - strtotime($ttPrintPrev->time_to)) / 60;
+                        if ($ttPrintGap > 0) {
+                            $ttPrintCols[] = ['gap' => true, 'label' => $ttPrintGap >= 30 ? 'Lunch' : 'Break', 'range' => $ttPrintPrev->time_to . ' – ' . $ttPrintSlot->time_from];
+                        }
+                    }
+                    $ttPrintCols[] = ['gap' => false, 'slot' => $ttPrintSlot];
+                    $ttPrintPrev = $ttPrintSlot;
+                }
+            @endphp
             <table class="tt">
                 <thead>
                 <tr>
                     <th class="tt-day">Day</th>
-                    @foreach($time_slots as $tms)
-                        <th>{{ $tms->full }}</th>
+                    @foreach($ttPrintCols as $ttPrintCol)
+                        @if($ttPrintCol['gap'])
+                            <th class="tt-gap">{{ $ttPrintCol['label'] }}<span class="tt-gap-range">{{ $ttPrintCol['range'] }}</span></th>
+                        @else
+                            <th>{{ $ttPrintCol['slot']->full }}</th>
+                        @endif
                     @endforeach
                 </tr>
                 </thead>
@@ -137,12 +160,16 @@
                         @else
                             <td class="tt-day"><strong>{{ $day }}</strong></td>
                         @endif
-                        @foreach($time_slots as $tms)
-                            @php $cell = $ttxMap[$day][$tms->full] ?? null; @endphp
-                            @if(!empty($cell['subject']))
-                                <td>{{ $cell['subject'] }}@if(!empty($cell['teacher']))<span class="tt-teacher">{{ $cell['teacher'] }}</span>@endif</td>
+                        @foreach($ttPrintCols as $ttPrintCol)
+                            @if($ttPrintCol['gap'])
+                                <td class="tt-gap">{{ $ttPrintCol['label'] }}</td>
                             @else
-                                <td class="tt-empty">&mdash;</td>
+                                @php $cell = $ttxMap[$day][$ttPrintCol['slot']->full] ?? null; @endphp
+                                @if(!empty($cell['subject']))
+                                    <td>{{ $cell['subject'] }}@if(!empty($cell['teacher']))<span class="tt-teacher">{{ $cell['teacher'] }}</span>@endif</td>
+                                @else
+                                    <td class="tt-empty">&mdash;</td>
+                                @endif
                             @endif
                         @endforeach
                     </tr>

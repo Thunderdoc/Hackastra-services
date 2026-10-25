@@ -33,7 +33,13 @@
             url: url,
             success: function (resp) {
 
+                // Site-wide cascade (owner ask 2026-10-25): keep a
+                // leading "no section" option when the select has
+                // one ("All Sections" / "Whole class") — the old
+                // rebuild wiped it, leaving no way back to all.
+                var keep = section.find('option[value=""]').first().clone();
                 section.empty();
+                if (keep.length) { section.append(keep); }
                 $.each(resp, function (i, data) {
                     section.append($('<option>', {
                         value: data.id,

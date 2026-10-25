@@ -744,13 +744,12 @@ class DemoDataSeeder extends Seeder
     /**
      * Loop 11 — class timetables for the seeded teachers so each
      * Teacher Dashboard's "Today's Periods" panel shows real rows on
-     * any weekday. Two of a teacher's subject assignments (different
-     * classes where the seed provides them) each get a timetable
-     * record, three time slots, and one entry per slot for Monday to
-     * Friday — written exactly the way TimeTableController@store and
-     * @store_time_slot build them (same columns, same strtotime
-     * formulas). Guarded per timetable: a record that already has
-     * entries is never touched.
+     * any weekday. Each class gets a timetable record on a full
+     * 8-period day with ALL its subjects (English + Mathematics),
+     * break after period 2 and lunch after period 4 — written exactly
+     * the way TimeTableController@store and @store_time_slot build
+     * them (same columns, same strtotime formulas). Guarded per
+     * subject: a subject that already has periods is never touched.
      *
      * Workstream AT: this used to build timetables for the demo
      * teacher only — correct when he taught every class. Since the
@@ -775,7 +774,25 @@ class DemoDataSeeder extends Seeder
         }
     }
 
-    /** Build the demo timetables for one teacher's picked subjects. */
+    /** Build the demo timetables for one teacher's classes.
+     *
+     * Owner fix 2026-10-25 — the old seed picked ONE subject per
+     * class (always English first, Mathematics never picked), so
+     * every class card read "15 periods · 1 subjects" and the day
+     * ended at noon with no lunch. The new seed gives every class
+     * ALL its subjects on a full generator-default day (40-min
+     * periods, break after 2, lunch after 4): 8 slots, 8:00 AM to
+     * 2:20 PM. A teacher's first class uses periods 1-4, the second
+     * uses periods 5-8, so the teacher is never double-booked; the
+     * break/lunch gaps are implicit in the slot start times and the
+     * grid view renders them as Break/Lunch rows. Demo-seed
+     * assumption: one teacher teaches a class's subjects — a class
+     * split across teachers would need block coordination beyond
+     * this seed. Written exactly the way TimeTableController@store
+     * and @store_time_slot build records (same columns, same
+     * strtotime formulas). Guarded per subject: a subject that
+     * already has periods in the record is never touched.
+     */
     protected function seedTeacherTimetableFor(int $teacherId, string $session): void
     {
         $subjects = DB::table('subjects')
@@ -784,24 +801,33 @@ class DemoDataSeeder extends Seeder
             return;
         }
 
-        $picks = collect([$subjects->first()]);
-        $second = $subjects->first(function ($s) use ($subjects) {
-            return $s->my_class_id !== $subjects->first()->my_class_id;
-        }) ?: ($subjects->count() > 1 ? $subjects->get(1) : null);
-        if ($second) {
-            $picks->push($second);
-        }
-
         $days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
         // [hour_from, min_from, meridian_from, hour_to, min_to, meridian_to]
-        $slotSets = [
-            [['8', '00', 'AM', '8', '40', 'AM'], ['8', '40', 'AM', '9', '20', 'AM'], ['10', '00', 'AM', '10', '40', 'AM']],
-            [['9', '20', 'AM', '10', '00', 'AM'], ['10', '40', 'AM', '11', '20', 'AM'], ['11', '20', 'AM', '12', '00', 'PM']],
+        // Full day: P1 8:00-8:40, P2 8:40-9:20, break 9:20-9:35,
+        // P3 9:35-10:15, P4 10:15-10:55, lunch 10:55-11:40,
+        // P5 11:40-12:20, P6 12:20-1:00, P7 1:00-1:40, P8 1:40-2:20.
+        $daySlots = [
+            ['8', '00', 'AM', '8', '40', 'AM'],
+            ['8', '40', 'AM', '9', '20', 'AM'],
+            ['9', '35', 'AM', '10', '15', 'AM'],
+            ['10', '15', 'AM', '10', '55', 'AM'],
+            ['11', '40', 'AM', '12', '20', 'PM'],
+            ['12', '20', 'PM', '1', '00', 'PM'],
+            ['1', '00', 'PM', '1', '40', 'PM'],
+            ['1', '40', 'PM', '2', '20', 'PM'],
         ];
+        // A teacher's first class takes periods 1-4, the second 5-8.
+        // The second slice MUST preserve keys — without `true` it
+        // reindexes to 0-3 and both classes would land on periods 1-4.
+        $blocks = [array_slice($daySlots, 0, 4), array_slice($daySlots, 4, 4, true)];
 
-        foreach ($picks as $i => $subject) {
+        $classIds = $subjects->pluck('my_class_id')->unique()->values();
+        foreach ($classIds as $classIndex => $classId) {
+            $classSubjects = $subjects->where('my_class_id', $classId)->values();
+            $block = $blocks[$classIndex % count($blocks)];
+
             $ttr = DB::table('time_table_records')
-                ->where('my_class_id', $subject->my_class_id)
+                ->where('my_class_id', $classId)
                 ->whereNull('exam_id')
                 ->where('year', $session)
                 ->first();
@@ -809,14 +835,14 @@ class DemoDataSeeder extends Seeder
             if ($ttr) {
                 $ttrId = $ttr->id;
             } else {
-                $className = DB::table('my_classes')->where('id', $subject->my_class_id)->value('name') ?: 'Class';
+                $className = DB::table('my_classes')->where('id', $classId)->value('name') ?: 'Class';
                 $name = $className . ' Timetable';
                 if (DB::table('time_table_records')->where('name', $name)->exists()) {
                     $name .= ' (' . $session . ')';
                 }
                 $ttrId = DB::table('time_table_records')->insertGetId([
                     'name' => $name,
-                    'my_class_id' => $subject->my_class_id,
+                    'my_class_id' => $classId,
                     'exam_id' => null,
                     'year' => $session,
                     'created_at' => now(),
@@ -824,18 +850,20 @@ class DemoDataSeeder extends Seeder
                 ]);
             }
 
-            // Idempotency guard (Batch 6, D17): skip only when THIS subject
-            // already has periods in the timetable. The old guard skipped
-            // the whole subject whenever the class timetable had ANY entry
-            // (another subject, or the first pick sharing the same class),
-            // which intermittently left the demo teacher with half — or
-            // none — of the seeded periods after a fresh seed.
-            if (DB::table('time_tables')->where('ttr_id', $ttrId)->where('subject_id', $subject->id)->count() > 0) {
+            // Idempotency guard (Batch 6, D17): skip subjects that
+            // already have periods in this record; the rest still seed.
+            $placedIds = DB::table('time_tables')->where('ttr_id', $ttrId)
+                ->whereIn('subject_id', $classSubjects->pluck('id')->all())
+                ->distinct()->pluck('subject_id')->all();
+            $pending = $classSubjects->reject(function ($s) use ($placedIds) {
+                return in_array($s->id, $placedIds, true);
+            })->values();
+            if ($pending->isEmpty()) {
                 continue;
             }
 
             $slots = [];
-            foreach ($slotSets[$i % count($slotSets)] as [$hf, $mf, $merf, $ht, $mt, $mert]) {
+            foreach ($daySlots as [$hf, $mf, $merf, $ht, $mt, $mert]) {
                 $timeFrom = $hf . ':' . $mf . ' ' . $merf;
                 $timeTo = $ht . ':' . $mt . ' ' . $mert;
                 $existing = DB::table('time_slots')
@@ -866,9 +894,13 @@ class DemoDataSeeder extends Seeder
                 $slots[] = DB::table('time_slots')->where('id', $slotId)->first();
             }
 
+            // Block slots, round-robin across the class's pending
+            // subjects: two subjects get two periods each per day.
+            $blockSlots = array_values(array_intersect_key($slots, array_flip(array_keys($block))));
             $rows = [];
             foreach ($days as $dayNum => $day) {
-                foreach ($slots as $slot) {
+                foreach ($blockSlots as $slotIndex => $slot) {
+                    $subject = $pending[$slotIndex % $pending->count()];
                     $rows[] = [
                         'ttr_id' => $ttrId,
                         'ts_id' => $slot->id,

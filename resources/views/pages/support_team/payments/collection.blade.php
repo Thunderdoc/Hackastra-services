@@ -117,7 +117,7 @@
                 </div>
                 <div class="pat-filter-field">
                     <label for="cr97-class">Class</label>
-                    <select id="cr97-class" name="class_id" class="form-control">
+                    <select id="cr97-class" name="class_id" class="form-control" onchange="getClassSections(this.value, '#cr97-section')">
                         <option value="">All Classes</option>
                         @foreach($classes as $class)
                             <option value="{{ $class->id }}" {{ $f['class'] && $f['class']->id === $class->id ? 'selected' : '' }}>{{ $class->name }}</option>

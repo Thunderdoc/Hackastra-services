@@ -24,18 +24,31 @@
         @endslot
 
         @slot('filters')
-            <div class="d-flex flex-wrap" style="gap:8px">
-                <a href="{{ route('users.index') }}" class="btn {{ $selected_user_type ? 'btn-light' : 'btn-primary' }}">All</a>
-                @foreach($user_types as $ut)
-                    <a href="{{ route('users.index', ['user_type' => $ut->title]) }}" class="btn {{ $selected_user_type === $ut->title ? 'btn-primary' : 'btn-light' }}">{{ $ut->name }}s</a>
-                @endforeach
-            </div>
-            {{-- Account lifecycle filter (Workstream DF) --}}
-            <div class="d-flex flex-wrap mt-2" style="gap:8px">
-                <a href="{{ route('users.index', array_filter(['user_type' => $selected_user_type])) }}" class="btn {{ $selected_status ? 'btn-light' : 'btn-primary' }}">Any status</a>
-                @foreach(['active' => 'Active', 'suspended' => 'Suspended', 'terminated' => 'Terminated'] as $sv => $sl)
-                    <a href="{{ route('users.index', array_filter(['user_type' => $selected_user_type, 'status' => $sv])) }}" class="btn {{ $selected_status === $sv ? 'btn-primary' : 'btn-light' }}">{{ $sl }}</a>
-                @endforeach
+            {{-- Redesign (owner ask 2026-10-25): the two pill rows were
+                 unlabeled and stacked with dead space. Now each filter
+                 set carries its own label, and both sets sit side by
+                 side (divider between them) on desktop, stacking only
+                 on narrow screens. Links, values and active states are
+                 unchanged. --}}
+            <div class="l106-users-filters">
+                <div class="l106-users-filter-group">
+                    <span class="l106-users-filter-label">Role</span>
+                    <div class="d-flex flex-wrap" style="gap:8px">
+                        <a href="{{ route('users.index') }}" class="btn {{ $selected_user_type ? 'btn-light' : 'btn-primary' }}">All</a>
+                        @foreach($user_types as $ut)
+                            <a href="{{ route('users.index', ['user_type' => $ut->title]) }}" class="btn {{ $selected_user_type === $ut->title ? 'btn-primary' : 'btn-light' }}">{{ $ut->name }}s</a>
+                        @endforeach
+                    </div>
+                </div>
+                <div class="l106-users-filter-group">
+                    <span class="l106-users-filter-label">Status</span>
+                    <div class="d-flex flex-wrap" style="gap:8px">
+                        <a href="{{ route('users.index', array_filter(['user_type' => $selected_user_type])) }}" class="btn {{ $selected_status ? 'btn-light' : 'btn-primary' }}">Any status</a>
+                        @foreach(['active' => 'Active', 'suspended' => 'Suspended', 'terminated' => 'Terminated'] as $sv => $sl)
+                            <a href="{{ route('users.index', array_filter(['user_type' => $selected_user_type, 'status' => $sv])) }}" class="btn {{ $selected_status === $sv ? 'btn-primary' : 'btn-light' }}">{{ $sl }}</a>
+                        @endforeach
+                    </div>
+                </div>
             </div>
         @endslot
 
