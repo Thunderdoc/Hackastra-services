@@ -79,7 +79,10 @@ class FeedbackController extends Controller
             }
             $f = Qs::getFileMetaData($file);
             $name = 'feedback_' . $item->id . '_' . Str::random(8) . '.' . $f['ext'];
-            $path = $file->storeAs(Qs::getPublicUploadPath() . 'feedback', $name);
+            // Explicit public disk (same as materials): the attachments
+            // are served via asset('storage/...'), so they must land on
+            // the public disk whatever the default disk is set to.
+            $path = $file->storeAs(Qs::getPublicUploadPath() . 'feedback', $name, 'public');
             $item->attachments()->create([
                 'path' => $path,
                 'original_name' => $file->getClientOriginalName(),
@@ -384,6 +387,45 @@ class FeedbackController extends Controller
 
         return redirect()->route('feedback.sa_show', $feedback->id)
             ->with('flash_success', 'Reply saved — the reporter can now see it in My Feedback.');
+    }
+
+    /**
+     * Owner ask 2026-10-25: closing reports one by one on the detail
+     * page is a long manual process. From the list, the SA ticks
+     * reports (or one row's Close button) and closes them all at once
+     * — marked Fixed, no detail page needed. A reply still needs the
+     * detail page, because a reply is per-report words. Only FORWARDED
+     * items ever close here: the SA never touches raw school feedback,
+     * so ids that are not forwarded are silently ignored, never closed.
+     */
+    public function saBulkClose(Request $request)
+    {
+        $this->mustBeSuperAdmin();
+
+        $ids = collect($request->input('ids', []))
+            ->map(function ($id) { return (int) $id; })
+            ->filter(function ($id) { return $id > 0; })
+            ->unique()->values();
+
+        if ($ids->isEmpty()) {
+            return redirect()->route('feedback.sa_index')
+                ->with('flash_danger', 'Select at least one report to close.');
+        }
+
+        $items = FeedbackItem::forwarded()->whereIn('id', $ids)->get();
+        foreach ($items as $item) {
+            $item->update(['sa_status' => 'fixed']);
+            Audit::log('feedback.sa_closed', $item,
+                'Super Admin closed feedback #' . $item->id . ' from the list (marked Fixed).');
+        }
+
+        if ($items->isEmpty()) {
+            return redirect()->route('feedback.sa_index')
+                ->with('flash_danger', 'No forwarded reports matched the selection.');
+        }
+
+        return redirect()->route('feedback.sa_index')
+            ->with('flash_success', $items->count() . ' report(s) closed (marked Fixed).');
     }
 
     /* ----------------------------------------------------------------

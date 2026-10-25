@@ -84,6 +84,14 @@ php artisan config:cache || true
 php artisan route:cache || true
 php artisan view:cache || true
 
+# Owner fix 2026-10-25 (feedback attachments 500 on live): the
+# seeders above run as root, so any storage directory they create
+# (e.g. storage/app/public/uploads for the seeded logo) ends up
+# root-owned — then Apache's www-data cannot create subdirectories
+# inside it, and uploads into those paths fail. Hand the whole tree
+# back to www-data after seeding, before Apache starts.
+chown -R www-data:www-data storage bootstrap/cache || true
+
 # mod_php needs exactly one MPM (prefork) — guard against AH00534.
 a2dismod mpm_event mpm_worker >/dev/null 2>&1 || true
 a2enmod mpm_prefork >/dev/null 2>&1 || true

@@ -14,5 +14,7 @@ services:
         value: "false"
       - key: SESSION_DRIVER
         value: cookie
+      - key: SESSION_LIFETIME
+        value: "480"
       - key: APP_KEY
         sync: false # set once in the Render dashboard (never commit a real key)

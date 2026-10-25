@@ -38,7 +38,7 @@
             </div>
         </div>
 
-        <div class="card pat-card">
+        <div class="card pat-card l93-search-card">
             <div class="card-body">
                 <div class="l93-search-head">
                     <span class="l93-search-icon"><i class="icon-search4"></i></span>

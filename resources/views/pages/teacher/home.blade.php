@@ -76,6 +76,7 @@
     </div>
 
     <div class="t10-main">
+        <div class="t10-leftcol">
         {{-- Today's Timetable — this teacher's real periods for today's
              weekday; status from submitted registers (Loop 79). --}}
         <section class="t10-panel">
@@ -115,6 +116,87 @@
                 </table>
             </div>
         </section>
+
+        {{-- Attendance charts — in the left column under the
+             timetable (owner ask 2026-10-25): the old charts row
+             below the grid left a hole under a short left
+             column. Same period rule for both panels. --}}
+            <section class="t10-panel">
+                <div class="t10-panel-head">
+                    <div class="t10-panel-title">
+                        <span class="t10-panel-icon t10-tone-green"><i class="icon-stats-bars"></i></span>
+                        <div>
+                            <h5>Attendance Overview <span class="t10-head-note">(This Month)</span></h5>
+                        </div>
+                    </div>
+                    <a href="{{ route('attendance.periods.report') }}" class="t10-view-all">View Report <i class="icon-arrow-right7"></i></a>
+                </div>
+                @php $chart_rows = $attendance_overview->filter(function ($r) { return $r['pct'] !== null; }); @endphp
+                @include('partials.charts.bar', [
+                    'labels' => $chart_rows->pluck('class_name')->all(),
+                    'values' => $chart_rows->pluck('pct')->all(),
+                    'chartUnit' => '%',
+                    'chartTitle' => 'Attendance percentage by class for ' . $month_label,
+                ])
+                @foreach($attendance_overview as $row)
+                    @if($row['pct'] === null)
+                        <p class="t10-note">{{ $row['class_name'] }} — no marked periods yet in {{ $month_label }}.</p>
+                    @endif
+                @endforeach
+            </section>
+
+            <section class="t10-panel">
+                <div class="t10-panel-head">
+                    <div class="t10-panel-title">
+                        <span class="t10-panel-icon t10-tone-lavender"><i class="icon-pie-chart"></i></span>
+                        <div>
+                            <h5>Student Attendance Status</h5>
+                        </div>
+                    </div>
+                    <a href="{{ route('attendance.defaulters') }}" class="t10-view-all">View Details <i class="icon-arrow-right7"></i></a>
+                </div>
+                @php
+                    $dist_total = (int) $attendance_distribution['with_records'];
+                    $circ = 2 * pi() * 42;
+                    $acc = 0.0;
+                @endphp
+                @if($dist_total > 0)
+                    <div class="t10-donut-wrap">
+                        <svg class="t10-donut" viewBox="0 0 120 120" width="132" height="132" role="img" aria-label="Student attendance distribution for {{ $month_label }}">
+                            <circle class="t10-donut-track" cx="60" cy="60" r="42" fill="none" stroke-width="15"></circle>
+                            @foreach($attendance_distribution['buckets'] as $bucket)
+                                @if($bucket['count'] > 0)
+                                    @php
+                                        $seg = ($bucket['count'] / $dist_total) * $circ;
+                                        $seg_offset = -$acc;
+                                        $acc += $seg;
+                                    @endphp
+                                    <circle cx="60" cy="60" r="42" fill="none" stroke="{{ $bucket['color'] }}" stroke-width="15"
+                                            stroke-dasharray="{{ round($seg, 2) }} {{ round($circ, 2) }}"
+                                            stroke-dashoffset="{{ round($seg_offset, 2) }}"
+                                            transform="rotate(-90 60 60)">
+                                        <title>{{ $bucket['label'] }}: {{ $bucket['count'] }}</title>
+                                    </circle>
+                                @endif
+                            @endforeach
+                            <text x="60" y="58" text-anchor="middle" class="t10-donut-num">{{ $dist_total }}</text>
+                            <text x="60" y="74" text-anchor="middle" class="t10-donut-cap">Students</text>
+                        </svg>
+                        <ul class="t10-legend">
+                            @foreach($attendance_distribution['buckets'] as $bucket)
+                                <li>
+                                    <span class="t10-legend-dot" style="background:{{ $bucket['color'] }}"></span>
+                                    <span class="t10-legend-label">{{ $bucket['label'] }}</span>
+                                    <strong>{{ $bucket['count'] }}</strong>
+                                </li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @else
+                    <div class="t10-caught-up"><i class="icon-pie-chart"></i> No attendance records for your classes in {{ $month_label }} yet.</div>
+                @endif
+            </section>
+        </div>
 
         {{-- Right rail: Quick Actions, Today's Tasks, Notifications --}}
         <div class="t10-rail">
@@ -217,83 +299,4 @@
         </div>
     </div>
 
-    {{-- Charts row — this month's attendance, same period and the
-         same (present + late) / marked rule for both panels. --}}
-    <div class="t10-charts">
-        <section class="t10-panel">
-            <div class="t10-panel-head">
-                <div class="t10-panel-title">
-                    <span class="t10-panel-icon t10-tone-green"><i class="icon-stats-bars"></i></span>
-                    <div>
-                        <h5>Attendance Overview <span class="t10-head-note">(This Month)</span></h5>
-                    </div>
-                </div>
-                <a href="{{ route('attendance.periods.report') }}" class="t10-view-all">View Report <i class="icon-arrow-right7"></i></a>
-            </div>
-            @php $chart_rows = $attendance_overview->filter(function ($r) { return $r['pct'] !== null; }); @endphp
-            @include('partials.charts.bar', [
-                'labels' => $chart_rows->pluck('class_name')->all(),
-                'values' => $chart_rows->pluck('pct')->all(),
-                'chartUnit' => '%',
-                'chartTitle' => 'Attendance percentage by class for ' . $month_label,
-            ])
-            @foreach($attendance_overview as $row)
-                @if($row['pct'] === null)
-                    <p class="t10-note">{{ $row['class_name'] }} — no marked periods yet in {{ $month_label }}.</p>
-                @endif
-            @endforeach
-        </section>
-
-        <section class="t10-panel">
-            <div class="t10-panel-head">
-                <div class="t10-panel-title">
-                    <span class="t10-panel-icon t10-tone-lavender"><i class="icon-pie-chart"></i></span>
-                    <div>
-                        <h5>Student Attendance Status</h5>
-                    </div>
-                </div>
-                <a href="{{ route('attendance.defaulters') }}" class="t10-view-all">View Details <i class="icon-arrow-right7"></i></a>
-            </div>
-            @php
-                $dist_total = (int) $attendance_distribution['with_records'];
-                $circ = 2 * pi() * 42;
-                $acc = 0.0;
-            @endphp
-            @if($dist_total > 0)
-                <div class="t10-donut-wrap">
-                    <svg class="t10-donut" viewBox="0 0 120 120" width="132" height="132" role="img" aria-label="Student attendance distribution for {{ $month_label }}">
-                        <circle class="t10-donut-track" cx="60" cy="60" r="42" fill="none" stroke-width="15"></circle>
-                        @foreach($attendance_distribution['buckets'] as $bucket)
-                            @if($bucket['count'] > 0)
-                                @php
-                                    $seg = ($bucket['count'] / $dist_total) * $circ;
-                                    $seg_offset = -$acc;
-                                    $acc += $seg;
-                                @endphp
-                                <circle cx="60" cy="60" r="42" fill="none" stroke="{{ $bucket['color'] }}" stroke-width="15"
-                                        stroke-dasharray="{{ round($seg, 2) }} {{ round($circ, 2) }}"
-                                        stroke-dashoffset="{{ round($seg_offset, 2) }}"
-                                        transform="rotate(-90 60 60)">
-                                    <title>{{ $bucket['label'] }}: {{ $bucket['count'] }}</title>
-                                </circle>
-                            @endif
-                        @endforeach
-                        <text x="60" y="58" text-anchor="middle" class="t10-donut-num">{{ $dist_total }}</text>
-                        <text x="60" y="74" text-anchor="middle" class="t10-donut-cap">Students</text>
-                    </svg>
-                    <ul class="t10-legend">
-                        @foreach($attendance_distribution['buckets'] as $bucket)
-                            <li>
-                                <span class="t10-legend-dot" style="background:{{ $bucket['color'] }}"></span>
-                                <span class="t10-legend-label">{{ $bucket['label'] }}</span>
-                                <strong>{{ $bucket['count'] }}</strong>
-                            </li>
-                        @endforeach
-                    </ul>
-                </div>
-            @else
-                <div class="t10-caught-up"><i class="icon-pie-chart"></i> No attendance records for your classes in {{ $month_label }} yet.</div>
-            @endif
-        </section>
-    </div>
 @endsection

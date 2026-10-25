@@ -79,11 +79,24 @@
             </form>
         @endslot
 
+        {{-- Owner ask 2026-10-25: closing reports one by one on the
+             detail page is a long manual process. Tick rows (or one
+             row's Close button) and close them all at once — marked
+             Fixed, no detail page needed. A reply still needs the
+             detail page, because a reply is per-report words. --}}
+        <form id="fb-bulk-form" method="post" action="{{ route('feedback.sa_bulk_close') }}" class="pat-filter-form" style="margin-bottom:14px">
+            @csrf
+            <span class="text-muted" style="align-self:center"><span id="fb-bulk-count">0</span> selected</span>
+            <button class="btn btn-primary" type="submit" id="fb-bulk-close-btn" disabled>Close selected</button>
+            <span class="text-muted" style="align-self:center">Closes the ticked reports (marked Fixed). Replies still go through the detail page.</span>
+        </form>
+
         <table class="table">
-            <thead><tr><th>Report</th><th>Reporter</th><th>Handling</th><th>Forwarded</th><th></th></tr></thead>
+            <thead><tr><th style="width:32px"><input type="checkbox" id="fb-select-all" title="Select all"></th><th>Report</th><th>Reporter</th><th>Handling</th><th>Forwarded</th><th></th></tr></thead>
             <tbody>
             @forelse($items as $item)
                 <tr>
+                    <td><input type="checkbox" class="fb-bulk-check" value="{{ $item->id }}" title="Select report #{{ $item->id }}"></td>
                     <td>
                         <a class="fb-report-title" href="{{ route('feedback.sa_show', $item->id) }}">#{{ $item->id }} {{ $item->title }}</a>
                         <span class="text-muted">· {{ $item->typeLabel() }}</span>
@@ -95,14 +108,49 @@
                     <td>{{ $item->reporter_name }}<div class="text-muted">{{ ucwords(str_replace('_', ' ', $item->reporter_role)) }}</div></td>
                     <td>@include('pages.support_team.feedback._chips', ['item' => $item])</td>
                     <td style="white-space:nowrap">{{ $item->forwarded_at->format('d M Y') }}</td>
-                    <td><a href="{{ route('feedback.sa_show', $item->id) }}" class="btn btn-light btn-sm">Open</a></td>
+                    <td style="white-space:nowrap"><a href="{{ route('feedback.sa_show', $item->id) }}" class="btn btn-light btn-sm">Open</a>
+                        <form method="post" action="{{ route('feedback.sa_bulk_close') }}" style="display:inline">
+                            @csrf
+                            <input type="hidden" name="ids[]" value="{{ $item->id }}">
+                            <button type="submit" class="btn btn-light btn-sm">Close</button>
+                        </form>
+                    </td>
                 </tr>
             @empty
-                <tr><td colspan="5" class="fb-empty text-muted">Nothing forwarded yet. School Admins forward compiled, de-duplicated reports here.</td></tr>
+                <tr><td colspan="6" class="fb-empty text-muted">Nothing forwarded yet. School Admins forward compiled, de-duplicated reports here.</td></tr>
             @endforelse
             </tbody>
         </table>
         {{ $items->links() }}
     @endcomponent
   </div>
+  <script>
+    (function () {
+        var selectAll = document.getElementById('fb-select-all');
+        var checks = document.querySelectorAll('.fb-bulk-check');
+        var count = document.getElementById('fb-bulk-count');
+        var btn = document.getElementById('fb-bulk-close-btn');
+        var form = document.getElementById('fb-bulk-form');
+        if (!selectAll || !form) { return; }
+        function refresh() {
+            var n = document.querySelectorAll('.fb-bulk-check:checked').length;
+            count.textContent = n;
+            btn.disabled = n === 0;
+            selectAll.checked = checks.length > 0 && n === checks.length;
+        }
+        selectAll.addEventListener('change', function () {
+            checks.forEach(function (c) { c.checked = selectAll.checked; });
+            refresh();
+        });
+        checks.forEach(function (c) { c.addEventListener('change', refresh); });
+        form.addEventListener('submit', function () {
+            document.querySelectorAll('.fb-bulk-check:checked').forEach(function (c) {
+                var h = document.createElement('input');
+                h.type = 'hidden'; h.name = 'ids[]'; h.value = c.value;
+                form.appendChild(h);
+            });
+        });
+        refresh();
+    })();
+  </script>
 @endsection

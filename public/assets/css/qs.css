@@ -4139,8 +4139,8 @@ a.t10-kpi:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(23,37,54,.
 
 
 .t10-main{display:grid;grid-template-columns:minmax(0,1.9fr) minmax(0,1fr);gap:20px;margin-bottom:20px;align-items:start}
+.t10-leftcol{display:flex;flex-direction:column;gap:20px;min-width:0}
 .t10-rail{display:flex;flex-direction:column;gap:20px;min-width:0}
-.t10-charts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
 .t10-panel{background:#fff;border:1px solid #e4eaf1;border-radius:12px;padding:18px 20px;min-width:0}
 .t10-panel-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
 .t10-panel-title{display:flex;align-items:center;gap:11px;min-width:0}
@@ -4294,7 +4294,6 @@ html.hk-dark .t10-legend strong{color:#f4f4f5}/* --- Responsive --- */
 }
 @media (max-width:1199px){
   .t10-main{grid-template-columns:minmax(0,1fr)}
-  .t10-charts{grid-template-columns:minmax(0,1fr)}
 }
 @media (max-width:767px){
   .t10-welcome{flex-direction:column}
@@ -5286,9 +5285,21 @@ html.hk-dark .l93-search-head h5{color:#f0f0f1}
 html.hk-dark .l93-search-head p{color:#c0c2c6}
 .l93-search-tools{margin-left:auto;flex:none}
 .l93-search-box{position:relative}
+/* Owner fix 2026-10-25: the app's own .content .card rule clips with
+   overflow:hidden, which cut the student-search dropdown off at the
+   search card's edge (only its top half showed). This card lets the
+   dropdown overflow, and sits above the following cards so the rows
+   paint over them. (Specificity must beat .content .card, 0,2,0.) */
+.content .card.l93-search-card,.content .card.l93-search-card .card-body{overflow:visible}
+.content .card.l93-search-card{position:relative;z-index:3}
 .l93-search-box .form-control{height:46px;padding-left:40px}
 .l93-search-box>i{color:#8496ab;font-size:1rem;left:14px;position:absolute;top:50%;transform:translateY(-50%);z-index:5}
 .l93-results{border-radius:10px;overflow:hidden}
+/* The dropdown container itself has a white background; in dark mode
+   it showed as a pale strip above the first (dark) row. Match the
+   container to the row background in each theme. */
+.l93-results{background:#fff}
+html.hk-dark .l93-results{background:#26272a}
 .l93-result{align-items:center;display:flex;gap:10px;padding:10px 14px}
 .l93-avatar-sm{align-items:center;background:#e8f0fe;border-radius:50%;color:#1a56db;display:inline-flex;flex:none;font-size:.8rem;font-weight:700;height:38px;justify-content:center;width:38px}
 html.hk-dark .l93-avatar-sm{background:#303235;color:#7db1f8}

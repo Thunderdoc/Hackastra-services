@@ -406,6 +406,7 @@ Route::group(['middleware' => 'auth'], function () {
         Route::get('feedback/inbox', 'FeedbackController@index')->name('feedback.index');
         Route::post('feedback/forward', 'FeedbackController@forward')->name('feedback.forward');
         Route::get('feedback/school', 'FeedbackController@saIndex')->name('feedback.sa_index');
+        Route::post('feedback/school/bulk-close', 'FeedbackController@saBulkClose')->name('feedback.sa_bulk_close');
         Route::get('feedback/school/{feedback}', 'FeedbackController@saShow')->name('feedback.sa_show');
         Route::patch('feedback/school/{feedback}', 'FeedbackController@saUpdate')->name('feedback.sa_update');
         Route::get('feedback/{feedback}', 'FeedbackController@show')->name('feedback.show');
