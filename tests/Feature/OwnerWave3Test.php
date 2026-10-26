@@ -137,9 +137,12 @@ class OwnerWave3Test extends TestCase
             'section_id' => null,
             'subject_id' => 1,
             'files' => [
-                UploadedFile::fake()->create('notes.pdf', 100, 'application/pdf'),
-                UploadedFile::fake()->create('slides.docx', 100, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'),
-                UploadedFile::fake()->create('diagram.png', 100, 'image/png'),
+                // Wave 19 rule: identical content is deduplicated, so
+                // the three probe files must differ in content to
+                // assert the multi-file → three-rows behaviour.
+                UploadedFile::fake()->createWithContent('notes.pdf', 'probe-notes-content'),
+                UploadedFile::fake()->createWithContent('slides.docx', 'probe-slides-content'),
+                UploadedFile::fake()->createWithContent('diagram.png', 'probe-diagram-content'),
             ],
         ]);
         $response->assertRedirect(route('materials.index'));

@@ -126,7 +126,7 @@
                     </ul>
                 </li>
                 <li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Examinations</div><i class="icon-menu" title="Examinations"></i></li>
-                <li class="nav-item nav-item-submenu {{ in_array(Route::currentRouteName(), ['marks.index', 'marks.manage']) ? 'nav-item-expanded nav-item-open' : '' }} ">
+                <li class="nav-item nav-item-submenu {{ in_array(Route::currentRouteName(), ['marks.index', 'marks.manage', 'exam_duties.my']) ? 'nav-item-expanded nav-item-open' : '' }} ">
                     <a href="#" class="nav-link"><i class="icon-books"></i> <span> Exams</span></a>
                     <ul class="nav nav-group-sub" data-submenu-title="Manage Exams">
                         <li class="nav-item">
@@ -136,6 +136,11 @@
                              2026-10-22): the teacher's scoped read view --}}
                         <li class="nav-item">
                             <a href="{{ route('exam_dates.index') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['exam_dates.index', 'exam_dates.show', 'exam_dates.print', 'exam_dates.pdf']) ? 'active' : '' }}">Exam Date Sheet</a>
+                        </li>
+                        {{-- Batch fix 2026-10-25: duties were invisible
+                             to teachers — the teacher's own list. --}}
+                        <li class="nav-item">
+                            <a href="{{ route('exam_duties.my') }}" class="nav-link {{ (Route::is('exam_duties.my')) ? 'active' : '' }}">My Duties</a>
                         </li>
                         {{-- Owner ruling 2026-10-22: Marksheet + Admit Cards
                              removed from the teacher menu — both are

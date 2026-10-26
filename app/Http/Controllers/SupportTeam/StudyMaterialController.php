@@ -10,6 +10,7 @@ use App\Models\StudentRecord;
 use App\Models\StudyMaterial;
 use App\Models\Subject;
 use App\Support\Audit;
+use App\Support\ShareTargets;
 use App\Support\TeacherScope;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -197,16 +198,41 @@ class StudyMaterialController extends Controller
         // "Title (3)"… so students can tell them apart. A pasted link
         // rides on the first row. With no files, the single link-only
         // row behaves exactly as before.
+        //
+        // Batch fix 2026-10-25: the same file twice used to create
+        // silent duplicate rows (DWD, DWD (2)…) — no good for an LMS.
+        // Files are now deduplicated by content hash, within the
+        // upload and against what is already a material for the same
+        // class + subject + section; skipped files are reported, and
+        // a double-submit can no longer duplicate anything either.
         $created = [];
+        $skipped = 0;
         if (!empty($uploaded)) {
-            foreach ($uploaded as $i => $file) {
+            $seen = [];
+            foreach ($uploaded as $file) {
+                $hash = md5_file($file->getRealPath());
+                if (in_array($hash, $seen, true)) {
+                    $skipped++;
+                    continue;
+                }
+                $seen[] = $hash;
+                $dup = StudyMaterial::where('my_class_id', $data['my_class_id'])
+                    ->where('subject_id', $data['subject_id'])
+                    ->where('section_id', $data['section_id'] ?? null)
+                    ->where('file_hash', $hash)
+                    ->exists();
+                if ($dup) {
+                    $skipped++;
+                    continue;
+                }
                 $row = $data;
-                if ($i > 0) {
-                    $row['title'] = $data['title'] . ' (' . ($i + 1) . ')';
+                if (count($created) > 0) {
+                    $row['title'] = $data['title'] . ' (' . (count($created) + 1) . ')';
                     // The pasted link belongs to the set once, on the
                     // first row — not duplicated onto every file.
                     unset($row['link_url']);
                 }
+                $row['file_hash'] = $hash;
                 $row['file_path'] = $file->store('materials', 'public');
                 $created[] = StudyMaterial::create($row);
             }
@@ -214,10 +240,21 @@ class StudyMaterialController extends Controller
             $created[] = StudyMaterial::create($data);
         }
 
+        if (empty($created)) {
+            return back()->with([
+                'pop_error' => 'All files were already uploaded for this class and subject — nothing new was added.',
+                'flash_danger' => 'All files were already uploaded for this class and subject — nothing new was added.',
+            ]);
+        }
+
         $first = $created[0];
         Audit::log('material.created', $first, 'Study material "' . $first->title . '" for class ' . $first->my_class_id . ', subject ' . $first->subject_id . (count($created) > 1 ? ' (' . count($created) . ' files)' : ''));
 
-        return redirect()->route('materials.index')->with(['pop_success' => __('msg.store_ok'), 'flash_success' => __('msg.store_ok')]);
+        $msg = __('msg.store_ok');
+        if ($skipped > 0) {
+            $msg .= ' ' . $skipped . ' duplicate file(s) skipped — already uploaded for this class and subject.';
+        }
+        return redirect()->route('materials.index')->with(['pop_success' => $msg, 'flash_success' => $msg]);
     }
 
     /** Teacher deletes own; Admin may moderate-delete any. SA never. */
@@ -240,6 +277,95 @@ class StudyMaterialController extends Controller
         Audit::log('material.deleted', null, 'Study material "' . $title . '" deleted by ' . $user->name);
 
         return redirect()->route('materials.index')->with(['pop_success' => __('msg.del_ok'), 'flash_success' => __('msg.del_ok')]);
+    }
+
+    /**
+     * Batch 2026-10-26 (share, owner ask): a teacher teaching the
+     * same subject in two sections (9-A and 9-C) shares one upload
+     * to the other section instead of uploading the file again.
+     * Seeded rows copy the file server-side (no new upload) and
+     * carry the same content hash, so the duplicate guard keeps
+     * working in the seeded section too.
+     */
+    public function share($material_id)
+    {
+        if (!Qs::userIsTeacher()) {
+            abort(403, __('msg.denied'));
+        }
+        $material = StudyMaterial::findOrFail($material_id);
+        if ($material->teacher_id != Auth::id()) {
+            abort(403, __('msg.denied'));
+        }
+        if (!$material->section_id) {
+            return redirect()->route('materials.index')->with(['pop_error' => 'Whole-class materials already reach every section — nothing to share.', 'flash_danger' => 'Whole-class materials already reach every section — nothing to share.']);
+        }
+        $subject = Subject::find($material->subject_id);
+        $targets = ShareTargets::forSubject(Auth::id(), $subject, $material->section_id);
+        $already = $this->sharedSectionIds($material);
+        $d = ['material' => $material, 'subject' => $subject, 'targets' => $targets, 'already' => $already];
+        return view('pages.support_team.materials.share', $d);
+    }
+
+    public function shareStore(Request $req, $material_id)
+    {
+        if (!Qs::userIsTeacher()) {
+            abort(403, __('msg.denied'));
+        }
+        $material = StudyMaterial::findOrFail($material_id);
+        if ($material->teacher_id != Auth::id()) {
+            abort(403, __('msg.denied'));
+        }
+        if (!$material->section_id) {
+            abort(422, 'Whole-class materials already reach every section.');
+        }
+        $data = $req->validate([
+            'section_ids' => 'required|array|min:1',
+            'section_ids.*' => 'integer|exists:sections,id',
+        ]);
+        $subject = Subject::find($material->subject_id);
+        $targets = ShareTargets::forSubject(Auth::id(), $subject, $material->section_id)->keyBy('id');
+        $shared = 0;
+        $skipped = 0;
+        foreach ($data['section_ids'] as $sid) {
+            if (!isset($targets[$sid])) {
+                abort(403, __('msg.denied'));
+            }
+            if (in_array((int) $sid, $this->sharedSectionIds($material), true)) {
+                $skipped++;
+                continue;
+            }
+            $row = $material->only(['teacher_id', 'my_class_id', 'subject_id', 'title', 'description', 'file_hash', 'link_url']);
+            $row['section_id'] = (int) $sid;
+            if ($material->file_path && Storage::disk('public')->exists($material->file_path)) {
+                $row['file_path'] = ShareTargets::copyPublicFile($material->file_path, 'materials');
+            } else {
+                $row['file_path'] = null;
+            }
+            StudyMaterial::create($row);
+            $shared++;
+        }
+        Audit::log('material.shared', $material, 'Study material "' . $material->title . '" shared to ' . $shared . ' section(s).');
+        $msg = 'Shared to ' . $shared . ' section(s) — no re-upload needed.';
+        if ($skipped > 0) {
+            $msg .= ' ' . $skipped . ' section(s) already had it.';
+        }
+        return redirect()->route('materials.index')->with(['pop_success' => $msg, 'flash_success' => $msg]);
+    }
+
+    /** Sections of this material's class+subject that already hold this file (or link). */
+    protected function sharedSectionIds(StudyMaterial $material): array
+    {
+        $query = StudyMaterial::where('my_class_id', $material->my_class_id)
+            ->where('subject_id', $material->subject_id)
+            ->whereNotNull('section_id');
+        if ($material->file_hash) {
+            $query->where('file_hash', $material->file_hash);
+        } elseif ($material->link_url) {
+            $query->where('link_url', $material->link_url);
+        } else {
+            return [];
+        }
+        return $query->pluck('section_id')->map(function ($id) { return (int) $id; })->all();
     }
 
     /**

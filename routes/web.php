@@ -333,6 +333,7 @@ Route::group(['middleware' => 'auth'], function () {
         Route::get('exams/duties', 'ExamDutyController@index')->name('exam_duties.index');
         Route::post('exams/duties/assign', 'ExamDutyController@assign')->name('exam_duties.assign');
         Route::post('exams/duties/auto', 'ExamDutyController@auto')->name('exam_duties.auto');
+        Route::get('exams/my-duties', 'ExamDutyController@myDuties')->name('exam_duties.my');
         Route::get('exam-dates/show', 'ExamDateController@show')->name('exam_dates.show');
         Route::get('exam-dates/print', 'ExamDateController@printSheet')->name('exam_dates.print');
         Route::get('exam-dates/pdf', 'ExamDateController@pdf')->name('exam_dates.pdf');
@@ -429,6 +430,8 @@ Route::group(['middleware' => 'auth'], function () {
             Route::get('{assignment}/internal/preview', 'AssignmentController@internalPreview')->name('assignments.internal_preview');
             Route::post('{assignment}/internal/push', 'AssignmentController@pushInternal')->name('assignments.push_internal');
             Route::get('{assignment}/download', 'AssignmentController@download')->name('assignments.download');
+            Route::get('{assignment}/share', 'AssignmentController@share')->name('assignments.share');
+            Route::post('{assignment}/share', 'AssignmentController@shareStore')->name('assignments.share.store');
             Route::get('{assignment}', 'AssignmentController@show')->name('assignments.show');
             Route::get('{assignment}/edit', 'AssignmentController@edit')->name('assignments.edit');
             Route::put('{assignment}', 'AssignmentController@update')->name('assignments.update');
@@ -442,6 +445,8 @@ Route::group(['middleware' => 'auth'], function () {
             Route::get('create', 'StudyMaterialController@create')->name('materials.create');
             Route::post('/', 'StudyMaterialController@store')->name('materials.store');
             Route::get('download/{material}', 'StudyMaterialController@download')->name('materials.download');
+            Route::get('{material}/share', 'StudyMaterialController@share')->name('materials.share');
+            Route::post('{material}/share', 'StudyMaterialController@shareStore')->name('materials.share.store');
             Route::delete('{material}', 'StudyMaterialController@destroy')->name('materials.destroy');
         });
         /*************** Feedback & Issues (Workstream CW) *****************/

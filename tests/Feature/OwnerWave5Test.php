@@ -33,9 +33,13 @@ class OwnerWave5Test extends TestCase
 
     public function test_teacher_can_print_marksheet_of_a_class_they_teach()
     {
-        // student@ (id 42, Aarav Sharma) is Prep (class 1) — Ananya teaches it.
+        // student@ (Aarav Sharma) is Prep (class 1) — Ananya teaches
+        // it. Resolved by email, never by id: teacher additions
+        // shift every student id (42 → 44 when commerce teachers
+        // were added), and hardcoded ids silently test the wrong user.
+        $studentId = User::where('email', 'student@hackstra.app')->first()->id;
         $this->actingAs($this->teacher())
-            ->get(route('marks.print', [Qs::hash(42), 1, '2026-2027']))
+            ->get(route('marks.print', [Qs::hash($studentId), 1, '2026-2027']))
             ->assertStatus(200);
     }
 
@@ -51,8 +55,9 @@ class OwnerWave5Test extends TestCase
 
     public function test_admin_print_still_works_after_gate_unification()
     {
+        $studentId = User::where('email', 'student@hackstra.app')->first()->id;
         $this->actingAs($this->admin())
-            ->get(route('marks.print', [Qs::hash(42), 1, '2026-2027']))
+            ->get(route('marks.print', [Qs::hash($studentId), 1, '2026-2027']))
             ->assertStatus(200);
     }
 
@@ -69,7 +74,7 @@ class OwnerWave5Test extends TestCase
             ->get(route('ttr.validate', $ttr->id))
             ->assertRedirect(route('login'));
 
-        $this->actingAs(User::find(42))
+        $this->actingAs(User::where('email', 'student@hackstra.app')->first())
             ->get(route('ttr.validate', $ttr->id))
             ->assertRedirect(route('login'));
     }

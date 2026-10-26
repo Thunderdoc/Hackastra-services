@@ -175,6 +175,9 @@
                                     @if($material->link_url)
                                         <a href="{{ $material->link_url }}" target="_blank" rel="noopener" class="btn btn-light btn-sm"><i class="icon-link mr-1"></i> Open Link</a>
                                     @endif
+                                    @if($isTeacher && $material->teacher_id == auth()->id() && $material->section_id)
+                                        <a href="{{ route('materials.share', $material->id) }}" class="btn btn-light btn-sm"><i class="icon-share2 mr-1"></i> Share</a>
+                                    @endif
                                     @if(($isTeacher && $material->teacher_id == auth()->id()) || $isAdmin)
                                         <form method="post" action="{{ route('materials.destroy', $material->id) }}" style="display:inline">@csrf @method('delete')<button type="submit" class="btn btn-light btn-sm text-danger" data-confirm="Delete this study material?" data-confirm-title="Delete Material" data-confirm-action="Delete" data-confirm-danger><i class="icon-trash mr-1"></i> Delete</button></form>
                                     @endif

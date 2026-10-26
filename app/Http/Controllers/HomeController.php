@@ -805,6 +805,21 @@ class HomeController extends Controller
                 ->orderByDesc('id')->take(5)->get();
         }
 
+        // Batch fix 2026-10-25: the teacher's upcoming invigilation
+        // duties for the home panel — duties existed but were
+        // invisible to teachers until now.
+        $my_duties = collect();
+        if (Schema::hasTable('exam_duties')) {
+            $my_duties = \App\Models\ExamDuty::with(['exam_date.exam', 'exam_date.my_class', 'exam_date.subject'])
+                ->where('teacher_id', $teacher_id)
+                ->whereHas('exam_date', function ($q) use ($now) {
+                    $q->whereDate('exam_date', '>=', $now->toDateString());
+                })->get()
+                ->sortBy(function ($duty) {
+                    return ($duty->exam_date->exam_date ?? '') . ' ' . ($duty->exam_date->start_time ?? '');
+                })->take(5)->values();
+        }
+
         /* ---------------------------------------------------------------
            Loop 79 — Teacher dashboard redesign data. Scope classes =
            the classes this teacher is attached to: subject classes
@@ -1022,6 +1037,7 @@ class HomeController extends Controller
         return [
             'lms_to_grade' => $lms_to_grade,
             'my_leave_requests' => $my_leave_requests,
+            'my_duties' => $my_duties,
             'my_subjects' => $subjects,
             'my_class_count' => $class_ids->count(),
             'first_class_id' => $class_ids->first(),

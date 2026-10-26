@@ -23,6 +23,7 @@ class SectionUpdate extends FormRequest
         return [
             'name' => 'required|string',
             'teacher_id' => 'sometimes|nullable|exists:users,id',
+            'stream' => 'nullable|in:pcm,pcb,commerce,arts',
         ];
     }
 

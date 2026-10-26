@@ -50,6 +50,7 @@
                 <div class="pat-field">
                     <label for="session2_time">Second paper starts at</label>
                     <input id="session2_time" name="session2_time" type="time" class="form-control" value="{{ old('session2_time', '13:00') }}">
+                    <small class="form-text text-muted">Primary (Prep–Class 5) and Secondary (Class 6–12) papers are automatically kept in separate sessions — they never share a day and session.</small>
                 </div>
                 <div class="pat-field">
                     <label for="venue">Venue (written on every paper)</label>

@@ -50,6 +50,9 @@
                     @endif
                     @if(Qs::userIsTeacher() && $assignment->teacher_id == auth()->id())
                         <a href="{{ route('assignments.edit', $assignment->id) }}" class="btn btn-light"><i class="icon-pencil7 mr-1"></i> Edit</a>
+                        @if($assignment->section_id)
+                        <a href="{{ route('assignments.share', $assignment->id) }}" class="btn btn-light"><i class="icon-share2 mr-1"></i> Share to other sections</a>
+                        @endif
                         <a href="{{ route('assignments.internal_preview', $assignment->id) }}" class="btn btn-primary"><i class="icon-stats-bars2 mr-1"></i> Use for Internal Marks</a>
                     @endif
                 </div>

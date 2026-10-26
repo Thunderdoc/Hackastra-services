@@ -60,6 +60,17 @@
                         <label class="form-check-label" for="needs_double">Needs one double (back-to-back) period each week</label>
                     </div>
                 </div>
+                <div class="pat-field">
+                    <label>Streams (Class 11/12)</label>
+                    @php $streamTags = $s->stream ? array_map('trim', explode(',', $s->stream)) : []; @endphp
+                    @foreach(\App\Support\Streams::ALL as $key => $label)
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="stream_tags[]" id="stream_{{ $key }}" value="{{ $key }}" {{ in_array($key, $streamTags) ? 'checked' : '' }}>
+                        <label class="form-check-label" for="stream_{{ $key }}">{{ $label }}</label>
+                    </div>
+                    @endforeach
+                    <small class="form-text text-muted">Leave all blank for a common subject (every stream). Tick streams for a stream subject — Physics and Chemistry belong to both PCM and PCB.</small>
+                </div>
             </div>
         </div>
     @endcomponent

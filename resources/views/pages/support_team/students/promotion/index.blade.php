@@ -18,7 +18,7 @@
         @endslot
 
         @if($selected)
-            <h6 class="font-weight-bold mb-3">Promote Students From <span class="text-teal">{{ $my_classes->where('id', $fc)->first()->name.' '.$sections->where('id', $fs)->first()->name }}</span> TO <span class="text-purple">{{ $my_classes->where('id', $tc)->first()->name.' '.$sections->where('id', $ts)->first()->name }}</span></h6>
+            <h6 class="font-weight-bold mb-3">Promote Students From <span class="text-teal">{{ $my_classes->where('id', $fc)->first()->name.' '.$sections->where('id', $fs)->first()->name }}</span> TO @if(($graduating ?? false))<span class="text-purple">Graduated</span>@elseif(($streamed ?? false))<span class="text-purple">{{ $my_classes->where('id', $tc)->first()->name }} (stream per student)</span>@else<span class="text-purple">{{ $my_classes->where('id', $tc)->first()->name.' '.$sections->where('id', $ts)->first()->name }}</span>@endif</h6>
             @include('pages.support_team.students.promotion.promote')
         @else
             @include('partials.patterns.empty_state', [

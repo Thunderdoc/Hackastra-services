@@ -70,24 +70,36 @@
 @endsection
 @section('scripts')
     <script>
-        // Keep the section list honest: only the chosen class's
-        // sections stay selectable (the server re-checks the pairing
-        // on submit, so a stale section can never leak through).
+        // Section cascade (batch fix 2026-10-25): the old version
+        // toggled option.disabled behind a native change listener —
+        // but the site-wide Select2 notifies via jQuery trigger,
+        // which never reaches vanilla listeners, so after picking a
+        // class every section stayed disabled and clicks did nothing
+        // (proven by CDP repro). This rebuilds the section options
+        // from a cached clone on every class change (the wave-8
+        // exam-filter precedent) and notifies Select2, so the
+        // dropdown shows ONLY the chosen class's sections — no dead
+        // options at all. With no class chosen, only "All Sections".
         (function () {
-            var classSel = document.getElementById('picker_class');
-            var sectionSel = document.getElementById('picker_section');
-            if (!classSel || !sectionSel) { return; }
-            var options = Array.prototype.slice.call(sectionSel.options);
+            var $classSel = jQuery('#picker_class');
+            var $sectionSel = jQuery('#picker_section');
+            if (!$classSel.length || !$sectionSel.length) { return; }
+            var all = $sectionSel.find('option').map(function () {
+                var $o = jQuery(this);
+                return { value: $o.val(), text: $o.text(), cid: $o.attr('data-class-id') };
+            }).get();
             function syncSections() {
-                var cid = classSel.value;
-                options.forEach(function (opt) {
-                    if (!opt.value) { return; }
-                    var match = opt.getAttribute('data-class-id') === cid;
-                    opt.disabled = !match;
-                    if (!match && opt.selected) { sectionSel.value = ''; }
+                var cid = $classSel.val();
+                $sectionSel.empty();
+                all.forEach(function (o) {
+                    if (!o.value || o.cid === cid) {
+                        $sectionSel.append(jQuery('<option>', { value: o.value, text: o.text, 'data-class-id': o.cid || '' }));
+                    }
                 });
+                $sectionSel.val('');
+                $sectionSel.trigger('change.select2');
             }
-            classSel.addEventListener('change', syncSections);
+            $classSel.on('change', syncSections);
             syncSections();
         })();
     </script>

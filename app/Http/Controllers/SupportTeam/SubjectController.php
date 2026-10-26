@@ -74,6 +74,8 @@ class SubjectController extends Controller
     public function store(SubjectCreate $req)
     {
         $data = $req->all();
+        // Stream tags post as checkboxes; the column stores CSV.
+        $data['stream'] = implode(',', array_filter((array) $req->input('stream_tags', []))) ?: null;
         // Slice A: an unchecked "needs double period" box posts
         // nothing — normalize it so create/update mean the same.
         $data['needs_double'] = $req->boolean('needs_double');
@@ -99,6 +101,7 @@ class SubjectController extends Controller
     public function update(SubjectUpdate $req, $id)
     {
         $data = $req->all();
+        $data['stream'] = implode(',', array_filter((array) $req->input('stream_tags', []))) ?: null;
         $data['needs_double'] = $req->boolean('needs_double');
         if (!empty($data['teacher_id'])) {
             $existing = $this->my_class->findSubject(Qs::resolveId($id));

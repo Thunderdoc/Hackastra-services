@@ -28,6 +28,8 @@ class SubjectCreate extends FormRequest
             'periods_per_week' => 'sometimes|nullable|integer|min:1|max:40',
             'subject_type' => 'sometimes|in:theory,practical',
             'needs_double' => 'sometimes|boolean',
+            'stream_tags' => 'nullable|array',
+            'stream_tags.*' => 'in:pcm,pcb,commerce,arts',
         ];
     }
 

@@ -72,7 +72,7 @@ class SectionController extends Controller
 
     public function update(SectionUpdate $req, $id)
     {
-        $data = $req->only(['name', 'teacher_id']);
+        $data = $req->only(['name', 'teacher_id', 'stream']);
         $this->my_class->updateSection(Qs::resolveId($id), $data);
 
         // Loop 112: post-save lands on the sections index (owner ruling).

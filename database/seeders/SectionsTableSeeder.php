@@ -40,12 +40,23 @@ class SectionsTableSeeder extends Seeder
         ];
 
         $data = [];
+        // Batch 2026-10-25 (streams): Class 11/12 sections carry
+        // stream tags — A=PCM, B=PCB, C=Commerce, D=Arts as ordered,
+        // later sections cycle the same pattern (Class 11 runs A–I,
+        // Class 12 A–M, so every section lands a stream).
+        $streamCycle = ['pcm', 'pcb', 'commerce', 'arts'];
         foreach ($plan as $className => $sections) {
             if (!isset($classIds[$className])) {
                 continue;
             }
-            foreach ($sections as $sec) {
-                $data[] = ['name' => $sec, 'my_class_id' => $classIds[$className], 'active' => 1];
+            foreach ($sections as $secIndex => $sec) {
+                // Bulk insert needs identical keys on every row:
+                // stream is null outside Class 11/12, never absent.
+                $row = ['name' => $sec, 'my_class_id' => $classIds[$className], 'active' => 1, 'stream' => null];
+                if (in_array($className, ['Class 11', 'Class 12'], true)) {
+                    $row['stream'] = $streamCycle[$secIndex % 4];
+                }
+                $data[] = $row;
             }
         }
 

@@ -27,7 +27,12 @@
         .admit-instructions ol { margin: 4px 0 0; padding-left: 16px; }
         .admit-instructions li { margin: 1px 0; }
         .admit-sign { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: .76rem; color: #44546a; }
-        .admit-sign td { padding-right: 22px; vertical-align: bottom; }
+        /* Batch fix 2026-10-25: the sign cells were bottom-aligned,
+           so the principal's name line (an extra row below the
+           label) lifted the principal's line above the teacher's.
+           Top alignment + the fixed 26px name/signature area above
+           each line keeps both lines on the same height. */
+        .admit-sign td { padding-right: 22px; vertical-align: top; }
         .sign-line { display: block; border-bottom: 1px solid #44546a; height: 26px; margin-bottom: 4px; }
         .admit-seal-cell { width: 118px; padding-right: 0 !important; text-align: right; }
         .admit-seal { display: inline-flex; align-items: center; justify-content: center; width: 104px; height: 64px; border: 1.5px dashed #9aa7b5; border-radius: 6px; color: #9aa7b5; font-size: .64rem; font-weight: 700; letter-spacing: .12em; }
@@ -62,8 +67,9 @@
         <span class="text-muted ml-2">{{ $students->count() }} card(s) — {{ $exam->name }}, {{ $my_class->name }}</span>
         @if($schedule_fallback)
             <div class="alert alert-warning mt-3 mb-0">
-                No exam timetable has been built for {{ $my_class->name }} in this exam yet, so the cards list the
-                class subjects without dates. Build the exam timetable (Timetables &rarr; Records) to print dated cards.
+                No exam timetable or date sheet has been built for {{ $my_class->name }} in this exam yet, so the cards list the
+                class subjects without dates. Build the exam timetable (Timetables &rarr; Records) or generate the date sheet
+                (Exams &rarr; Date Sheet) to print dated cards.
             </div>
         @endif
     </div>
@@ -79,7 +85,9 @@
     @else
         <div class="admit-sheet">
             @foreach($students as $sr)
-                @include('pages.support_team.exams.admit_card', ['sr' => $sr])
+                @include('pages.support_team.exams.admit_card', ['sr' => $sr,
+                    'schedule' => $sr->admit_schedule_rows ?? $schedule,
+                    'schedule_fallback' => $sr->admit_schedule_fallback ?? $schedule_fallback])
             @endforeach
         </div>
     @endif

@@ -53,7 +53,7 @@
             </div>
 
             @if($selected_teacher)
-                <div class="pat-form-section" style="margin-top: 1.5rem;">
+                <div class="pat-form-section" id="eligibility-form" style="margin-top: 1.5rem; scroll-margin-top: 70px;">
                     <div class="pat-form-section-title">Eligibility — {{ $selected_teacher->name }}</div>
                     <div class="pat-form-section-sub">Tick every subject this teacher is qualified to teach, in any class. Saving replaces the previous list.</div>
                     <form method="post" action="{{ route('planning.eligibility.save') }}">
@@ -72,6 +72,15 @@
                         <a href="{{ route('planning.eligibility') }}" class="btn btn-light">Cancel</a>
                     </form>
                 </div>
+                {{-- Batch fix 2026-10-25: Edit links land here — the
+                     form sits below a long table, so without this
+                     the click looks dead (page reloads at top). --}}
+                <script>
+                    (function () {
+                        var el = document.getElementById('eligibility-form');
+                        if (el) { el.scrollIntoView({ block: 'start' }); }
+                    })();
+                </script>
             @endif
         @endif
     @endcomponent

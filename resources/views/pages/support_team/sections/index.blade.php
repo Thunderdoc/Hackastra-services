@@ -120,6 +120,15 @@
                             @endforeach
                         </select>
                     </div>
+                    <div class="pat-field">
+                        <label for="stream">Stream (Class 11/12)</label>
+                        <select class="form-control select" name="stream" id="stream">
+                            <option value="">No stream (general section)</option>
+                            @foreach(\App\Support\Streams::ALL as $key => $label)
+                                <option {{ old('stream') === $key ? 'selected' : '' }} value="{{ $key }}">{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </div>
                 </div>
             </div>
         @endcomponent

@@ -20,6 +20,7 @@
             <div class="ttx-meta">
                 <span class="ttx-meta-item"><small>Timetable</small><strong>{{ $ttr->name }}</strong></span>
                 <span class="ttx-meta-item"><small>Class</small><strong>{{ $my_class->name }}</strong></span>
+                <span class="ttx-meta-item"><small>Section</small><strong>{{ $ttr->section_id ? (optional($ttr->section)->name ?: '—') : 'All Sections' }}</strong></span>
                 <span class="ttx-meta-item"><small>Type</small><strong>{{ ($ttr->exam_id) ? 'Exam TimeTable' : 'Class TimeTable' }}</strong></span>
                 <span class="ttx-meta-item"><small>Year</small><strong>{{ $ttr->year }}</strong></span>
             </div>

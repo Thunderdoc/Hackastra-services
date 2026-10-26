@@ -27,9 +27,30 @@ class ExamDutyController extends Controller
 
     public function __construct(ExamRepo $exam)
     {
-        $this->middleware('teamSA');
+        $this->middleware('teamSA', ['except' => ['myDuties']]);
         $this->middleware('teamSAWrite', ['only' => ['assign', 'auto']]);
         $this->exam = $exam;
+    }
+
+    /**
+     * Batch fix 2026-10-25: the teacher's own duties page. Duties
+     * were real rows but invisible to teachers (no page, no menu,
+     * no bell) — this is the page the bell and the home panel link
+     * to. Controller-guarded like leave.my: teachers only, every
+     * other role back to the dashboard.
+     */
+    public function myDuties()
+    {
+        if (!Qs::userIsTeacher()) {
+            return redirect()->route('dashboard');
+        }
+        $duties = ExamDuty::with(['exam_date.exam', 'exam_date.my_class', 'exam_date.subject'])
+            ->where('teacher_id', Auth::id())
+            ->get()
+            ->sortBy(function ($duty) {
+                return ($duty->exam_date->exam_date ?? '') . ' ' . ($duty->exam_date->start_time ?? '');
+            })->values();
+        return view('pages.support_team.exams.my_duties', ['duties' => $duties]);
     }
 
     public function index(Request $request)

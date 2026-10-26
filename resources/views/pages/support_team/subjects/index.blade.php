@@ -147,6 +147,16 @@
                             <label class="form-check-label" for="needs_double">Needs one double (back-to-back) period each week</label>
                         </div>
                     </div>
+                    <div class="pat-field">
+                        <label>Streams (Class 11/12)</label>
+                        @foreach(\App\Support\Streams::ALL as $key => $label)
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="stream_tags[]" id="stream_{{ $key }}" value="{{ $key }}" {{ in_array($key, (array) old('stream_tags', [])) ? 'checked' : '' }}>
+                            <label class="form-check-label" for="stream_{{ $key }}">{{ $label }}</label>
+                        </div>
+                        @endforeach
+                        <small class="form-text text-muted">Leave all blank for a common subject (every stream).</small>
+                    </div>
                 </div>
             </div>
         @endcomponent

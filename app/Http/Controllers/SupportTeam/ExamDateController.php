@@ -6,10 +6,12 @@ use App\Helpers\Qs;
 use App\Http\Controllers\Controller;
 use App\Models\ExamDate;
 use App\Models\MyClass;
+use App\Models\Section;
 use App\Repositories\ExamRepo;
 use App\Repositories\MyClassRepo;
 use App\Support\Audit;
 use App\Support\ExamDateSheet;
+use App\Support\SchoolLevel;
 use App\Support\TeacherScope;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -161,12 +163,28 @@ class ExamDateController extends Controller
                 $sinceGap = 0;
             }
         }
-        $slotsPerClass = count($days) * (int) $data['papers_per_day'];
         $times = [$data['session1_time'], $data['session2_time'] ?? '13:00'];
+        $ppd = (int) $data['papers_per_day'];
+        $totalSlots = count($days) * $ppd;
 
         $classes = $data['scope'] === 'one'
             ? MyClass::where('id', $data['class_id'])->get()
             : MyClass::orderBy('id')->get();
+
+        // Batch 2026-10-25 (session-level separation): Primary
+        // (Prep–Class 5) papers never share a (day, session) with
+        // Secondary/Senior (Class 6–12) papers. Every (date, time)
+        // slot remembers which level group already sits there —
+        // preloaded from this exam's existing rows so a later
+        // generate respects earlier sheets — and a class's papers
+        // skip slots held by the other group. Same-group classes
+        // still share a slot, as before.
+        $allLevels = SchoolLevel::levelsForClasses(MyClass::orderBy('id')->get());
+        $occupied = [];
+        foreach (ExamDate::where('exam_id', $exam->id)->get(['my_class_id', 'exam_date', 'start_time']) as $row) {
+            $key = $row->exam_date . '|' . substr((string) $row->start_time, 0, 5);
+            $occupied[$key][$allLevels[(int) $row->my_class_id] ?? 'secondary'] = true;
+        }
 
         $done = [];
         $skipped = [];
@@ -185,23 +203,34 @@ class ExamDateController extends Controller
                 continue;
             }
 
-            $position = 0;
+            $group = $allLevels[(int) $class->id] ?? 'secondary';
+            $slotIdx = 0;
             foreach ($subjects as $subject) {
-                if ($position >= $slotsPerClass) {
-                    $overflow[] = $class->name . ' — ' . $subject->name;
-                    continue;
+                $placed = false;
+                while ($slotIdx < $totalSlots) {
+                    $day = $days[intdiv($slotIdx, $ppd)];
+                    $sessionIdx = $slotIdx % $ppd;
+                    $key = $day->format('Y-m-d') . '|' . $times[$sessionIdx];
+                    $groups = $occupied[$key] ?? [];
+                    if (empty($groups) || (count($groups) === 1 && isset($groups[$group]))) {
+                        ExamDate::updateOrCreate(
+                            ['exam_id' => $exam->id, 'my_class_id' => $class->id, 'subject_id' => $subject->id],
+                            [
+                                'exam_date' => $day->format('Y-m-d'),
+                                'start_time' => $times[$sessionIdx] . ':00',
+                                'note' => !empty($data['venue']) ? $data['venue'] : null,
+                            ]
+                        );
+                        $occupied[$key][$group] = true;
+                        $slotIdx++;
+                        $placed = true;
+                        break;
+                    }
+                    $slotIdx++;
                 }
-                $day = $days[intdiv($position, (int) $data['papers_per_day'])];
-                $sessionIdx = $position % (int) $data['papers_per_day'];
-                ExamDate::updateOrCreate(
-                    ['exam_id' => $exam->id, 'my_class_id' => $class->id, 'subject_id' => $subject->id],
-                    [
-                        'exam_date' => $day->format('Y-m-d'),
-                        'start_time' => $times[$sessionIdx] . ':00',
-                        'note' => !empty($data['venue']) ? $data['venue'] : null,
-                    ]
-                );
-                $position++;
+                if (!$placed) {
+                    $overflow[] = $class->name . ' — ' . $subject->name;
+                }
             }
             $done[] = $class->name;
         }
@@ -359,6 +388,7 @@ class ExamDateController extends Controller
             'exams' => $exams,
             'exam' => $exam,
             'my_class' => null,
+            'class_teacher_name' => null,
             'rows' => collect(),
             'announced' => 0,
             'classes' => collect(),
@@ -366,6 +396,8 @@ class ExamDateController extends Controller
             'child' => null,
             'viewer' => $user->user_type,
             'scope_params' => [],
+            'section' => null,
+            'sections' => collect(),
         ];
 
         if (!$exam) {
@@ -432,6 +464,51 @@ class ExamDateController extends Controller
         $d['scope_params']['exam_id'] = $exam->id;
         $d['rows'] = ExamDateSheet::rows($exam->id, $d['my_class']->id);
         $d['announced'] = $d['rows']->filter(function ($r) { return $r['entry'] !== null; })->count();
+
+        /* Batch 2026-10-26 (streams): a streamed section reads
+           only its own subjects — a Class 12 PCM sheet used to
+           list all 12. The section decides: the student's own, the
+           parent's selected child, or an explicit ?section_id= for
+           teacher/admin. The unsectioned admin default stays
+           complete — it is the management view, and every subject
+           still needs its date. Print/PDF inherit the section
+           through scope_params. */
+        $section = null;
+        if ($d['child']) {
+            $section = $d['child']->section;
+        } elseif ($user->user_type === 'teacher' || Qs::userIsAdmin()) {
+            $sectionId = (int) $req->query('section_id');
+            if ($sectionId) {
+                $section = Section::where('my_class_id', $d['my_class']->id)->find($sectionId);
+            }
+        }
+        $d['section'] = $section;
+        if ($user->user_type === 'teacher' || Qs::userIsAdmin()) {
+            $d['sections'] = Section::where('my_class_id', $d['my_class']->id)->orderBy('id')->get();
+        }
+        if ($section && $section->stream) {
+            $d['rows'] = $d['rows']->filter(function ($r) use ($section) {
+                return \App\Support\Streams::appliesTo($r['subject'], $section->stream);
+            })->values();
+            $d['announced'] = $d['rows']->filter(function ($r) { return $r['entry'] !== null; })->count();
+            $d['scope_params']['section_id'] = $section->id;
+        }
+
+        /* Batch fix 2026-10-25: the date-sheet footer printed a
+           blank Class Teacher name by construction (hardcoded empty
+           div). The sheet is always one class's, so name its teacher
+           — but only when the class's sections agree on one teacher;
+           a class with different section teachers keeps the blank
+           signing line rather than a guessed name. */
+        $names = Section::where('my_class_id', $d['my_class']->id)
+            ->whereNotNull('teacher_id')
+            ->with('teacher')
+            ->get()
+            ->map(function ($s) { return optional($s->teacher)->name; })
+            ->filter()
+            ->unique()
+            ->values();
+        $d['class_teacher_name'] = $names->count() === 1 ? $names->first() : null;
 
         return $d;
     }

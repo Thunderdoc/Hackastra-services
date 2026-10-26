@@ -486,6 +486,10 @@ class DemoDataSeeder extends Seeder
 
         $subjectsByClass = DB::table('subjects')->orderBy('id')->get()->groupBy('my_class_id');
         $grades = DB::table('grades')->whereNull('class_type_id')->get();
+        // Batch 2026-10-25 (streams): section stream per id, so a
+        // Class 11/12 student gets marks only for the common subjects
+        // plus their own section's stream subjects.
+        $sectionStreams = DB::table('sections')->pluck('stream', 'id');
 
         /* Per-class processing (2026-10-24): the old version built ALL
            marks + records rows for every student in memory before
@@ -500,6 +504,12 @@ class DemoDataSeeder extends Seeder
         $totals = []; // student user_id => [total, count, section_id]
         foreach ($classStudents as $student) {
             $subjects = $subjectsByClass->get($classId) ?? collect();
+            $sectionStream = $sectionStreams[$student->section_id] ?? null;
+            if ($sectionStream) {
+                $subjects = $subjects->filter(function ($s) use ($sectionStream) {
+                    return \App\Support\Streams::appliesTo($s, $sectionStream);
+                })->values();
+            }
             $total = 0;
             foreach ($subjects as $subject) {
                 $seed = $this->hashOf($student->user_id . '|' . $subject->id . '|' . $examId);
@@ -787,6 +797,13 @@ class DemoDataSeeder extends Seeder
             return;
         }
 
+        // Batch 2026-10-26 (streams staffing): staff the senior
+        // section grids through per-section overrides BEFORE any
+        // grid is placed, so the placer below can resolve teachers
+        // override-aware instead of piling every section of a
+        // subject onto its one class-level teacher.
+        $this->seedSeniorSectionTeachers();
+
         $days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
         // [hour_from, min_from, meridian_from, hour_to, min_to, meridian_to]
         // Full day (school starts 9:00, owner order 2026-10-25):
@@ -818,14 +835,48 @@ class DemoDataSeeder extends Seeder
             }
         }
         $subjectTeacher = DB::table('subjects')->pluck('teacher_id', 'id');
-        foreach (DB::table('time_tables')->get(['ts_id', 'subject_id', 'day_num']) as $cell) {
-            $tid = $subjectTeacher[$cell->subject_id] ?? null;
+        // Section-aware preload: a cell in a section grid is taught
+        // by that section's override teacher, not the subject's
+        // class-level teacher (same resolution as
+        // SectionTeacher::teacherIdFor, inlined here for speed).
+        $recordSection = DB::table('time_table_records')->pluck('section_id', 'id');
+        $overrideMap = [];
+        if (Schema::hasTable('section_subject_teachers')) {
+            foreach (DB::table('section_subject_teachers')->get(['section_id', 'subject_id', 'teacher_id']) as $o) {
+                $overrideMap[$o->section_id . ':' . $o->subject_id] = $o->teacher_id;
+            }
+        }
+        foreach (DB::table('time_tables')->get(['ttr_id', 'ts_id', 'subject_id', 'day_num']) as $cell) {
+            $sec = $recordSection[$cell->ttr_id] ?? null;
+            $tid = ($sec && isset($overrideMap[$sec . ':' . $cell->subject_id]))
+                ? $overrideMap[$sec . ':' . $cell->subject_id]
+                : ($subjectTeacher[$cell->subject_id] ?? null);
             if ($tid && isset($slotIndexById[$cell->ts_id])) {
                 $busy[$tid][$cell->day_num . ':' . $slotIndexById[$cell->ts_id]] = true;
             }
         }
 
         foreach (DB::table('my_classes')->orderBy('id')->get() as $class) {
+            // Batch 2026-10-25 (streams): a class with streamed
+            // sections gets one grid per section (stream-filtered
+            // subjects) and no class grid — the section grid is what
+            // the timetable views prefer for that section's students.
+            $streamedSections = DB::table('sections')
+                ->where('my_class_id', $class->id)->whereNotNull('stream')->orderBy('id')->get();
+            if ($streamedSections->isNotEmpty()) {
+                foreach ($streamedSections as $section) {
+                    $subjects = DB::table('subjects')
+                        ->where('my_class_id', $class->id)->orderBy('id')->get()
+                        ->filter(function ($s) use ($section) {
+                            return \App\Support\Streams::appliesTo($s, $section->stream);
+                        })->values();
+                    if ($subjects->isEmpty()) {
+                        continue;
+                    }
+                    $this->seedClassTimetableFor($class, $subjects, $session, $days, $daySlots, $busy, $section);
+                }
+                continue;
+            }
             $subjects = DB::table('subjects')
                 ->where('my_class_id', $class->id)->orderBy('id')->get();
             if ($subjects->isEmpty()) {
@@ -835,27 +886,135 @@ class DemoDataSeeder extends Seeder
         }
     }
 
-    protected function seedClassTimetableFor($class, $subjects, string $session, array $days, array $daySlots, array &$busy): void
+    /** Staff streamed sections through per-section subject-teacher
+     * overrides, balanced by current load (batch 2026-10-26).
+     *
+     * Why: a streamed class's 22 sections each need 6 periods of
+     * every stream subject, but the class-level subject has ONE
+     * teacher — Ananya alone would owe 78 English periods a week
+     * across Prep–Class 12, and the seed placer (which respects the
+     * busy map) silently starved later sections down to zero cells.
+     * The fix rotates each subject's EXTENDED family (the class
+     * rotation's three specialists plus the batch 2026-10-26
+     * additions) across the sections, greedy least-loaded first,
+     * so every teacher lands near the family average and well under
+     * the 40-slot week. Classes with streamed sections contribute
+     * NO class-level load — their teaching comes only via these
+     * overrides — and the class-level rotation in
+     * SubjectsTableSeeder deliberately stays at three specialists
+     * so Prep–Class 10 assignments never move.
+     */
+    protected function seedSeniorSectionTeachers(): void
+    {
+        if (!Schema::hasTable('section_subject_teachers')) {
+            return;
+        }
+        $eng = ['teacher@hackstra.app', 'teacher1@teacher.com', 'teacher2@teacher.com',
+            'teacher20@teacher.com', 'teacher21@teacher.com', 'teacher22@teacher.com'];
+        $sci = ['teacher6@teacher.com', 'teacher7@teacher.com', 'teacher8@teacher.com',
+            'teacher26@teacher.com', 'teacher27@teacher.com', 'teacher28@teacher.com',
+            'teacher29@teacher.com'];
+        $soc = ['teacher9@teacher.com', 'teacher10@teacher.com', 'teacher11@teacher.com',
+            'teacher30@teacher.com', 'teacher31@teacher.com', 'teacher32@teacher.com'];
+        $hin = ['teacher12@teacher.com', 'teacher13@teacher.com', 'teacher14@teacher.com',
+            'teacher23@teacher.com', 'teacher24@teacher.com', 'teacher25@teacher.com'];
+        $math = ['teacher3@teacher.com', 'teacher4@teacher.com', 'teacher5@teacher.com'];
+        $cs = ['teacher15@teacher.com', 'teacher16@teacher.com', 'teacher17@teacher.com'];
+        $families = [
+            'English Language' => $eng, 'Hindi' => $hin, 'Mathematics' => $math,
+            'Science' => $sci, 'Physics' => $sci, 'Chemistry' => $sci, 'Biology' => $sci,
+            'Social Science' => $soc, 'Economics' => $soc, 'History' => $soc,
+            'Political Science' => $soc, 'Geography' => $soc,
+            'Accountancy' => ['teacher18@teacher.com'],
+            'Business Studies' => ['teacher19@teacher.com'],
+            'Computer Science' => $cs,
+        ];
+        $teacherIds = DB::table('users')->where('user_type', 'teacher')->pluck('id', 'email');
+
+        // Starting load: class-level periods for NON-streamed
+        // classes only (Prep–Class 10), so the greedy balance below
+        // starts from what each teacher already owes.
+        $streamedClassIds = DB::table('sections')->whereNotNull('stream')
+            ->distinct()->pluck('my_class_id')->all();
+        $load = [];
+        foreach (DB::table('subjects')->get() as $s) {
+            if (in_array($s->my_class_id, $streamedClassIds, true)) {
+                continue;
+            }
+            if ($s->teacher_id) {
+                $load[$s->teacher_id] = ($load[$s->teacher_id] ?? 0) + (int) $s->periods_per_week;
+            }
+        }
+
+        foreach (DB::table('my_classes')->orderBy('id')->get() as $class) {
+            $sections = DB::table('sections')
+                ->where('my_class_id', $class->id)->whereNotNull('stream')->orderBy('id')->get();
+            if ($sections->isEmpty()) {
+                continue;
+            }
+            $subjects = DB::table('subjects')->where('my_class_id', $class->id)->orderBy('id')->get();
+            foreach ($sections as $section) {
+                foreach ($subjects as $subject) {
+                    if (!\App\Support\Streams::appliesTo($subject, $section->stream)) {
+                        continue;
+                    }
+                    $family = $families[$subject->name] ?? null;
+                    if (!$family) {
+                        continue;
+                    }
+                    $best = null;
+                    $bestLoad = PHP_INT_MAX;
+                    foreach ($family as $email) {
+                        $tid = $teacherIds[$email] ?? null;
+                        if (!$tid) {
+                            continue;
+                        }
+                        $l = $load[$tid] ?? 0;
+                        if ($l < $bestLoad) {
+                            $bestLoad = $l;
+                            $best = $tid;
+                        }
+                    }
+                    if (!$best) {
+                        continue;
+                    }
+                    DB::table('section_subject_teachers')->updateOrInsert(
+                        ['section_id' => $section->id, 'subject_id' => $subject->id],
+                        ['teacher_id' => $best]
+                    );
+                    $load[$best] = $bestLoad + (int) $subject->periods_per_week;
+                }
+            }
+        }
+    }
+
+    protected function seedClassTimetableFor($class, $subjects, string $session, array $days, array $daySlots, array &$busy, $section = null): void
     {
         $classId = $class->id;
 
-        $ttr = DB::table('time_table_records')
+        $ttrQuery = DB::table('time_table_records')
             ->where('my_class_id', $classId)
             ->whereNull('exam_id')
-            ->where('year', $session)
-            ->first();
+            ->where('year', $session);
+        if ($section) {
+            $ttrQuery->where('section_id', $section->id);
+        } else {
+            $ttrQuery->whereNull('section_id');
+        }
+        $ttr = $ttrQuery->first();
 
         if ($ttr) {
             $ttrId = $ttr->id;
         } else {
             $className = $class->name ?: 'Class';
-            $name = $className . ' Timetable';
+            $name = $section ? $className . ' ' . $section->name . ' Timetable' : $className . ' Timetable';
             if (DB::table('time_table_records')->where('name', $name)->exists()) {
                 $name .= ' (' . $session . ')';
             }
             $ttrId = DB::table('time_table_records')->insertGetId([
                 'name' => $name,
                 'my_class_id' => $classId,
+                'section_id' => $section ? $section->id : null,
                 'exam_id' => null,
                 'year' => $session,
                 'created_at' => now(),
@@ -910,7 +1069,29 @@ class DemoDataSeeder extends Seeder
         // stops at its periods_per_week, each teacher never lands two
         // classes on the same (day, slot). Slots where every pending
         // subject is capped or its teacher is busy stay free periods.
+        // Batch 2026-10-26: a section grid's teacher is the section
+        // override (seedSeniorSectionTeachers), never the subject's
+        // class-level teacher — otherwise one specialist starves
+        // every later section of the same subject.
+        $teacherOf = [];
+        if ($section && Schema::hasTable('section_subject_teachers')) {
+            $teacherOf = DB::table('section_subject_teachers')
+                ->where('section_id', $section->id)->pluck('teacher_id', 'subject_id')->all();
+        }
         $subjectList = $pending->all();
+        // Most-constrained-first (batch 2026-10-26): sort subjects
+        // by their teacher's remaining free slots, scarcest first.
+        // Round-robin in id order starved the last subjects: 12-M
+        // Physics/Chemistry stuck at 3 of 6 while 16 grid slots sat
+        // empty, because English/Hindi/Math (abundant teachers) had
+        // already taken the scarce teachers' only free slots.
+        usort($subjectList, function ($a, $b) use ($teacherOf, $busy) {
+            $ta = $teacherOf[$a->id] ?? $a->teacher_id;
+            $tb = $teacherOf[$b->id] ?? $b->teacher_id;
+            $fa = 40 - count($busy[$ta] ?? []);
+            $fb = 40 - count($busy[$tb] ?? []);
+            return $fa <=> $fb ?: $a->id <=> $b->id;
+        });
         $demand = [];
         $placed = [];
         foreach ($subjectList as $s) {
@@ -927,7 +1108,8 @@ class DemoDataSeeder extends Seeder
                         continue;
                     }
                     $key = ($dayNum + 1) . ':' . $slotIndex;
-                    if (!empty($busy[$subject->teacher_id][$key])) {
+                    $tid = $teacherOf[$subject->id] ?? $subject->teacher_id;
+                    if (!empty($busy[$tid][$key])) {
                         continue;
                     }
                     $rows[] = [
@@ -942,7 +1124,7 @@ class DemoDataSeeder extends Seeder
                         'created_at' => now(),
                         'updated_at' => now(),
                     ];
-                    $busy[$subject->teacher_id][$key] = true;
+                    $busy[$tid][$key] = true;
                     $placed[$subject->id]++;
                     $ptr = ($ptr + $attempt + 1) % count($subjectList);
                     break;

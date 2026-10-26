@@ -5,6 +5,7 @@ namespace App\Http\Controllers\SupportTeam;
 use App\Helpers\Qs;
 use App\Http\Controllers\Controller;
 use App\Models\Exam;
+use App\Models\ExamDate;
 use App\Models\StudentRecord;
 use App\Models\Subject;
 use App\Models\TimeTable;
@@ -92,9 +93,27 @@ class AdmitCardController extends Controller
         $d['my_class'] = $class;
         $d['students'] = $students;
         $d['school'] = $this->schoolInfo();
-        $schedule = $this->buildSchedule($exam, $class_id);
-        $d['schedule'] = $schedule['rows'];
-        $d['schedule_fallback'] = $schedule['fallback'];
+        // Batch 2026-10-26 (streams): a bulk print used to give
+        // every student all 12 Class 11/12 subjects, including
+        // out-of-stream papers. Each streamed student now gets
+        // only their own stream's schedule (built once per stream
+        // and attached to the record); unstreamed students keep
+        // the full class schedule.
+        $base = $this->buildSchedule($exam, $class_id);
+        $d['schedule'] = $base['rows'];
+        $d['schedule_fallback'] = $base['fallback'];
+        $byStream = [];
+        foreach ($students as $sr) {
+            $stream = $sr->section->stream ?? null;
+            if (!$stream) {
+                continue;
+            }
+            if (!isset($byStream[$stream])) {
+                $byStream[$stream] = $this->buildSchedule($exam, $class_id, $stream);
+            }
+            $sr->setAttribute('admit_schedule_rows', $byStream[$stream]['rows']);
+            $sr->setAttribute('admit_schedule_fallback', $byStream[$stream]['fallback']);
+        }
 
         return view('pages.support_team.exams.admit_print', $d);
     }
@@ -179,7 +198,7 @@ class AdmitCardController extends Controller
         $d['my_class'] = $this->my_class->find($sr->my_class_id);
         $d['students'] = collect([$sr]);
         $d['school'] = $this->schoolInfo();
-        $schedule = $this->buildSchedule($exam, $sr->my_class_id);
+        $schedule = $this->buildSchedule($exam, $sr->my_class_id, $sr->section->stream ?? null);
         $d['schedule'] = $schedule['rows'];
         $d['schedule_fallback'] = $schedule['fallback'];
 
@@ -205,13 +224,17 @@ class AdmitCardController extends Controller
     }
 
     /**
-     * Subject schedule for an exam + class, from the exam timetable
-     * (time_table_records -> time_tables.exam_date + time_slots.full).
-     * When the school has not built an exam timetable for the class,
-     * fall back to the class's subject list with no dates — dates are
-     * never invented.
+     * Subject schedule for an exam + class. Sources, in order:
+     * (1) the exam timetable for the class (time_table_records ->
+     * time_tables.exam_date + time_slots.full); (2) the generated
+     * date sheet (exam_dates) — the admin's "Generate" run. Before
+     * this fix the card read ONLY source (1), so a generated date
+     * sheet never reached the card and it fell back to dateless
+     * subjects even though dates existed. When neither source has
+     * dates, fall back to the class's subject list with no dates —
+     * dates are never invented.
      */
-    protected function buildSchedule(Exam $exam, $class_id)
+    protected function buildSchedule(Exam $exam, $class_id, $stream = null)
     {
         $ttr = TimeTableRecord::where([
             'exam_id' => $exam->id,
@@ -221,6 +244,16 @@ class AdmitCardController extends Controller
 
         $rows = [];
 
+        // Batch 2026-10-26 (streams): with a stream, only that
+        // stream's subjects (common + own stream) reach the card
+        // — a PCM card used to list all 12 Class 11/12 subjects.
+        // The filter applies to every source below, including the
+        // dateless subject-list fallback, so a streamed card never
+        // falls back to the full class list.
+        $keep = function ($subject) use ($stream) {
+            return !$stream || \App\Support\Streams::appliesTo($subject, $stream);
+        };
+
         if ($ttr) {
             $entries = TimeTable::with(['subject', 'time_slot'])
                 ->where('ttr_id', $ttr->id)
@@ -229,7 +262,7 @@ class AdmitCardController extends Controller
                 ->get();
 
             foreach ($entries as $e) {
-                if (!$e->subject) {
+                if (!$e->subject || !$keep($e->subject)) {
                     continue;
                 }
                 $rows[] = [
@@ -245,16 +278,55 @@ class AdmitCardController extends Controller
             });
         }
 
+        if (empty($rows)) {
+            $sheet = ExamDate::with('subject')
+                ->where('exam_id', $exam->id)
+                ->where('my_class_id', $class_id)
+                ->whereNotNull('exam_date')
+                ->get();
+
+            foreach ($sheet as $e) {
+                if (!$e->subject || !$keep($e->subject)) {
+                    continue;
+                }
+                $rows[] = [
+                    'subject' => $e->subject->name,
+                    'date' => $this->formatExamDate($e->exam_date),
+                    'sort' => $this->dateSortKey($e->exam_date) . '|' . ($e->start_time ?: ''),
+                    'time' => $this->formatStartTime($e->start_time),
+                ];
+            }
+
+            usort($rows, function ($a, $b) {
+                return strcmp($a['sort'], $b['sort']);
+            });
+        }
+
         if (!empty($rows)) {
             return ['rows' => $rows, 'fallback' => false];
         }
 
         $subjects = Subject::where('my_class_id', $class_id)->orderBy('name')->get();
         foreach ($subjects as $s) {
+            if (!$keep($s)) {
+                continue;
+            }
             $rows[] = ['subject' => $s->name, 'date' => null, 'sort' => $s->name, 'time' => null];
         }
 
         return ['rows' => $rows, 'fallback' => true];
+    }
+
+    protected function formatStartTime($value)
+    {
+        if (!$value) {
+            return null;
+        }
+        try {
+            return Carbon::parse($value)->format('g:i A');
+        } catch (\Exception $e) {
+            return $value;
+        }
     }
 
     protected function formatExamDate($value)

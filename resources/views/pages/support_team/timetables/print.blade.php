@@ -100,7 +100,7 @@
             </tr>
         </table>
 
-        <div class="tt-titleband">Timetable for {{ strtoupper($my_class->name. ' ('.$ttr->year.')' ) }}</div>
+        <div class="tt-titleband">Timetable for {{ strtoupper($my_class->name . ($ttr->section_id ? ' - Section ' . optional($ttr->section)->name : ' - All Sections') . ' ('.$ttr->year.')' ) }}</div>
 
         @php
             // Aligned grid (Batch 11): one cell per time slot for every day,

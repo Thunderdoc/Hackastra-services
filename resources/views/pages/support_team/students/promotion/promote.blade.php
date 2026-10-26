@@ -14,9 +14,14 @@
             <label for="promo-set-all">Set all to</label>
             <select id="promo-set-all" class="form-control">
                 <option value="">Set all to&hellip;</option>
-                <option value="P">Promote</option>
-                <option value="D">Don't Promote</option>
-                <option value="G">Graduated</option>
+                @if(($graduating ?? false))
+                    <option value="G">Graduated</option>
+                    <option value="D">Don't Promote</option>
+                @else
+                    <option value="P">Promote</option>
+                    <option value="D">Don't Promote</option>
+                    <option value="G">Graduated</option>
+                @endif
             </select>
         </div>
         <div class="mb-2 text-muted"><span id="promo-count"></span></div>
@@ -30,6 +35,9 @@
             <th>Photo</th>
             <th>Name</th>
             <th>Current Session</th>
+            @if(($streamed ?? false))
+            <th>Stream</th>
+            @endif
             <th>Action</th>
         </tr>
         </thead>
@@ -40,11 +48,26 @@
                 <td data-label="Photo">@if(Qs::hasRealPhoto($sr->user->photo))<img class="rounded-circle" style="height: 30px; width: 30px;" src="{{ $sr->user->photo }}" alt="img">@else<span class="hk-ini" style="width:30px;height:30px;font-size:.7rem" aria-hidden="true">{{ Qs::initials($sr->user->name) }}</span>@endif</td>
                 <td data-label="Name">{{ $sr->user->name }}</td>
                 <td data-label="Current Session">{{ $sr->session }}</td>
+                @if(($streamed ?? false))
+                <td data-label="Stream">
+                    <select class="form-control select" name="s-{{$sr->id}}" id="s-{{$sr->id}}">
+                        <option value="">Choose stream</option>
+                        @foreach($target_streams as $streamKey)
+                            <option value="{{ $streamKey }}">{{ \App\Support\Streams::ALL[$streamKey] ?? $streamKey }}</option>
+                        @endforeach
+                    </select>
+                </td>
+                @endif
                 <td data-label="Action">
                     <select class="form-control select" name="p-{{$sr->id}}" id="p-{{$sr->id}}">
-                        <option value="P">Promote</option>
-                        <option value="D">Don't Promote</option>
-                        <option value="G">Graduated</option>
+                        @if(($graduating ?? false))
+                            <option value="G">Graduated</option>
+                            <option value="D">Don't Promote</option>
+                        @else
+                            <option value="P">Promote</option>
+                            <option value="D">Don't Promote</option>
+                            <option value="G">Graduated</option>
+                        @endif
                     </select>
                 </td>
             </tr>
@@ -55,7 +78,7 @@
          (pattern action placement). Form, table and per-student
          selects unchanged. --}}
     <div class="text-right mt-3">
-        <button class="btn btn-success"><i class="icon-stairs-up mr-2"></i> Promote Students</button>
+        <button class="btn btn-success"><i class="icon-stairs-up mr-2"></i> {{ ($graduating ?? false) ? 'Save Graduation' : 'Promote Students' }}</button>
     </div>
 </form>
 <script>

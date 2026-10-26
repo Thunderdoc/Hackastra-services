@@ -9,7 +9,7 @@ class StudyMaterial extends Eloquent
 {
     protected $fillable = [
         'teacher_id', 'my_class_id', 'section_id', 'subject_id', 'title',
-        'description', 'file_path', 'link_url',
+        'description', 'file_path', 'file_hash', 'link_url',
     ];
 
     public function teacher()

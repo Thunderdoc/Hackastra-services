@@ -16,6 +16,7 @@ use App\Support\Audit;
 use App\Support\MarkComputation;
 use App\Support\Notify;
 use App\Support\MarkScheme;
+use App\Support\ShareTargets;
 use App\Support\TeacherScope;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -378,6 +379,89 @@ class AssignmentController extends Controller
         Audit::log('assignment.deleted', null, 'Assignment "' . $title . '" deleted by ' . $user->name);
 
         return redirect()->route('assignments.index')->with($this->okFlash(__('msg.del_ok')));
+    }
+
+    /**
+     * Batch 2026-10-26 (share, owner ask): same as materials — a
+     * teacher teaching in 9-A and 9-C seeds the assignment to the
+     * other section instead of recreating it. The seeded copy
+     * starts with no submissions; the attachment is copied
+     * server-side, never re-uploaded.
+     */
+    public function share($assignment_id)
+    {
+        if (!Qs::userIsTeacher()) {
+            abort(403, __('msg.denied'));
+        }
+        $assignment = Assignment::findOrFail($assignment_id);
+        if ($assignment->teacher_id != Auth::id()) {
+            abort(403, __('msg.denied'));
+        }
+        if (!$assignment->section_id) {
+            return redirect()->route('assignments.index')->with($this->errFlash('Whole-class assignments already reach every section — nothing to share.'));
+        }
+        $subject = Subject::find($assignment->subject_id);
+        $targets = ShareTargets::forSubject(Auth::id(), $subject, $assignment->section_id);
+        $already = $this->sharedSectionIds($assignment);
+        $d = ['assignment' => $assignment, 'subject' => $subject, 'targets' => $targets, 'already' => $already];
+        return view('pages.support_team.assignments.share', $d);
+    }
+
+    public function shareStore(Request $req, $assignment_id)
+    {
+        if (!Qs::userIsTeacher()) {
+            abort(403, __('msg.denied'));
+        }
+        $assignment = Assignment::findOrFail($assignment_id);
+        if ($assignment->teacher_id != Auth::id()) {
+            abort(403, __('msg.denied'));
+        }
+        if (!$assignment->section_id) {
+            abort(422, 'Whole-class assignments already reach every section.');
+        }
+        $data = $req->validate([
+            'section_ids' => 'required|array|min:1',
+            'section_ids.*' => 'integer|exists:sections,id',
+        ]);
+        $subject = Subject::find($assignment->subject_id);
+        $targets = ShareTargets::forSubject(Auth::id(), $subject, $assignment->section_id)->keyBy('id');
+        $shared = 0;
+        $skipped = 0;
+        foreach ($data['section_ids'] as $sid) {
+            if (!isset($targets[$sid])) {
+                abort(403, __('msg.denied'));
+            }
+            if (in_array((int) $sid, $this->sharedSectionIds($assignment), true)) {
+                $skipped++;
+                continue;
+            }
+            $row = $assignment->only(['teacher_id', 'my_class_id', 'subject_id', 'title', 'description', 'max_marks', 'due_at', 'allow_late']);
+            $row['section_id'] = (int) $sid;
+            if ($assignment->attachment_path && Storage::disk('public')->exists($assignment->attachment_path)) {
+                $row['attachment_path'] = ShareTargets::copyPublicFile($assignment->attachment_path, 'assignments');
+            } else {
+                $row['attachment_path'] = null;
+            }
+            Assignment::create($row);
+            $shared++;
+        }
+        Audit::log('assignment.shared', $assignment, 'Assignment "' . $assignment->title . '" shared to ' . $shared . ' section(s).');
+        $msg = 'Shared to ' . $shared . ' section(s) — no need to recreate it.';
+        if ($skipped > 0) {
+            $msg .= ' ' . $skipped . ' section(s) already had it.';
+        }
+        return redirect()->route('assignments.index')->with($this->okFlash($msg));
+    }
+
+    /** Sections where this teacher already has same-title assignment for this class+subject. */
+    protected function sharedSectionIds(Assignment $assignment): array
+    {
+        return Assignment::where('teacher_id', $assignment->teacher_id)
+            ->where('my_class_id', $assignment->my_class_id)
+            ->where('subject_id', $assignment->subject_id)
+            ->where('title', $assignment->title)
+            ->whereNotNull('section_id')
+            ->pluck('section_id')->map(function ($id) { return (int) $id; })->all();
     }
 
     /*****************************************************************

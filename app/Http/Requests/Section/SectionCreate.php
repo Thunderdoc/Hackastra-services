@@ -24,6 +24,7 @@ class SectionCreate extends FormRequest
             'name' => 'required|string',
             'my_class_id' => 'required',
             'teacher_id' => 'sometimes|nullable|exists:users,id',
+            'stream' => 'nullable|in:pcm,pcb,commerce,arts',
         ];
     }
 

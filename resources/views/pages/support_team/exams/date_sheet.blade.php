@@ -61,6 +61,17 @@
                                     @endforeach
                                 </select>
                             </div>
+                            @if($sections->isNotEmpty())
+                                <div class="pat-field">
+                                    <label for="ds_section">Section</label>
+                                    <select id="ds_section" name="section_id" class="form-control" onchange="this.form.submit()">
+                                        <option value="">All sections</option>
+                                        @foreach($sections as $sec)
+                                            <option value="{{ $sec->id }}" {{ $section && $sec->id === $section->id ? 'selected' : '' }}>{{ $sec->name }}@if($sec->stream) ({{ strtoupper($sec->stream) }})@endif</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            @endif
                         @endif
                     </div>
                 </form>
@@ -70,6 +81,9 @@
                         <h5 class="mb-0">{{ $exam->name }}</h5>
                         <span class="text-muted">
                             Term {{ $exam->term }} &middot; {{ $exam->year }} &middot; Class: <strong>{{ $my_class->name }}</strong>
+                            @if($section)
+                                &middot; Section: <strong>{{ $section->name }}@if($section->stream) ({{ strtoupper($section->stream) }})@endif</strong>
+                            @endif
                             @if($child)
                                 &middot; {{ $viewer === 'parent' ? 'Child' : 'Student' }}: <strong>{{ $child->user->name }}</strong>
                             @endif

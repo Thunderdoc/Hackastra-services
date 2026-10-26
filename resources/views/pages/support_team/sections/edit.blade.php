@@ -33,6 +33,16 @@
                         @endforeach
                     </select>
                 </div>
+                <div class="pat-field">
+                    <label for="stream">Stream (Class 11/12)</label>
+                    <select class="form-control select" name="stream" id="stream">
+                        <option value="">No stream (general section)</option>
+                        @foreach(\App\Support\Streams::ALL as $key => $label)
+                            <option {{ $s->stream === $key ? 'selected' : '' }} value="{{ $key }}">{{ $label }}</option>
+                        @endforeach
+                    </select>
+                    <small class="form-text text-muted">For Class 11/12: the section's stream. Promotion and section timetables use it to pick the section's subjects.</small>
+                </div>
             </div>
         </div>
     @endcomponent

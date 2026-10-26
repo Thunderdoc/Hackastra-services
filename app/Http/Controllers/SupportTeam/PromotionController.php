@@ -5,8 +5,10 @@ namespace App\Http\Controllers\SupportTeam;
 use App\Helpers\Qs;
 use App\Http\Controllers\Controller;
 use App\Models\Mark;
+use App\Models\Section;
 use App\Repositories\MyClassRepo;
 use App\Repositories\StudentRepo;
+use App\Support\Streams;
 use Illuminate\Http\Request;
 
 class PromotionController extends Controller
@@ -33,12 +35,26 @@ class PromotionController extends Controller
         $d['sections'] = $this->my_class->getAllSections();
         $d['selected'] = false;
 
-        if($fc && $fs && $tc && $ts){
+        if($fc && $fs && ($tc === 'G' || ($tc && $ts))){
             $d['selected'] = true;
             $d['fc'] = $fc;
             $d['fs'] = $fs;
+            // Graduating mode (batch 2026-10-25): Class 12 has no
+            // next class, so no To Class/Section is needed — the
+            // graduates keep their own section in every URL/form.
+            $d['graduating'] = ($tc === 'G');
             $d['tc'] = $tc;
-            $d['ts'] = $ts;
+            $d['ts'] = $d['graduating'] ? $fs : $ts;
+            // Batch 2026-10-25 (streams): when the target class has
+            // streamed sections, each student picks a stream and the
+            // stream — not the URL's section — decides their section.
+            $d['streamed'] = false;
+            $d['target_streams'] = [];
+            if (!$d['graduating'] && $tc) {
+                $targetSections = Section::where('my_class_id', $tc)->orderBy('id')->get();
+                $d['target_streams'] = Streams::streamsOfClass($targetSections);
+                $d['streamed'] = !empty($d['target_streams']);
+            }
             $d['students'] = $sts = $this->student->getRecord(['my_class_id' => $fc, 'section_id' => $fs, 'session' => $d['old_year']])->get();
 
             if($sts->count() < 1){
@@ -65,12 +81,36 @@ class PromotionController extends Controller
             return redirect()->route('students.promotion')->with('flash_danger', __('msg.srnf'));
         }
 
+        // Batch 2026-10-25 (streams): when the target class has
+        // streamed sections, a Promote choice needs a per-student
+        // stream — the stream decides the section, not the URL's.
+        $streamed = false;
+        if ($tc !== 'G') {
+            $streamed = !empty(Streams::streamsOfClass(Section::where('my_class_id', $tc)->orderBy('id')->get()));
+        }
+        $skipped = [];
+
         foreach($students as $st){
+            $d = [];
             $p = 'p-'.$st->id;
             $p = $req->$p;
+            // Graduating mode has no destination class: a Promote
+            // choice cannot come from the UI here — skip it rather
+            // than writing a nonsense class id.
+            if($tc === 'G' && $p === 'P'){ continue; }
+            $destSection = $ts;
+            if($p === 'P' && $streamed){
+                $stream = $req->{'s-'.$st->id};
+                $section = $stream ? Section::where('my_class_id', $tc)->where('stream', $stream)->orderBy('id')->first() : null;
+                if(!$section){
+                    $skipped[] = optional($st->user)->name ?: ('#' . $st->id);
+                    continue;
+                }
+                $destSection = $section->id;
+            }
             if($p === 'P'){ // Promote
                 $d['my_class_id'] = $tc;
-                $d['section_id'] = $ts;
+                $d['section_id'] = $destSection;
                 $d['session'] = $ny;
             }
             if($p === 'D'){ // Don't Promote
@@ -92,7 +132,7 @@ class PromotionController extends Controller
             $promote['from_section'] = $fs;
             $promote['grad'] = ($p === 'G') ? 1 : 0;
             $promote['to_class'] = in_array($p, ['D', 'G']) ? $fc : $tc;
-            $promote['to_section'] = in_array($p, ['D', 'G']) ? $fs : $ts;
+            $promote['to_section'] = in_array($p, ['D', 'G']) ? $fs : $destSection;
             $promote['student_id'] = $st->user_id;
             $promote['from_session'] = $oy;
             $promote['to_session'] = $ny;
@@ -100,7 +140,11 @@ class PromotionController extends Controller
 
             $this->student->createPromotion($promote);
         }
-        return redirect()->route('students.promotion')->with('flash_success', __('msg.update_ok'));
+        $msg = __('msg.update_ok');
+        if(!empty($skipped)){
+            $msg .= ' Not promoted (no stream chosen): ' . implode(', ', $skipped) . '.';
+        }
+        return redirect()->route('students.promotion')->with('flash_success', $msg);
     }
 
     public function manage()

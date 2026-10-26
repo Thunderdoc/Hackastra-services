@@ -9,7 +9,7 @@
          warnings are planning gaps to close. --}}
     @component('partials.patterns.list_page')
         @slot('subtitle')
-            {{ $record->name }} · {{ $my_class->name }} · {{ $record->year }} — {{ $cells }} periods placed. Checked against every timetable of this session, not just this class.
+            {{ $record->name }} · {{ $my_class->name }} · {{ $record->section_id ? 'Section ' . optional($record->section)->name : 'All Sections' }} · {{ $record->year }} — {{ $cells }} periods placed. Checked against every timetable of this session, not just this class.
         @endslot
         @slot('action')
             <a href="{{ route('tt.index') }}" class="btn btn-light btn-sm"><i class="icon-arrow-left7 mr-1"></i> Manage Timetables</a>

@@ -71,16 +71,39 @@
                         <option value="latest" {{ $chosenMode === 'latest' ? 'selected' : '' }}>Average of latest N</option>
                     </select>
                 </div>
-                <div class="pat-filter-field" style="flex:0 1 130px">
+                <div class="pat-filter-field" id="avg_n_wrap" style="flex:0 1 130px">
                     <label for="avg_n">N (for Best / Latest)</label>
                     <input name="avg_n" id="avg_n" type="number" min="1" step="1" value="{{ $chosenN ?? '' }}" class="form-control" placeholder="e.g. 3">
-                    <span class="form-text text-muted">Any number — 3, 5, anything. Ignored for All.</span>
                 </div>
                 <div class="pat-filter-action">
                     <button type="submit" class="btn btn-primary"><i class="icon-search4 mr-1"></i> Load Preview</button>
                     <a href="{{ route('assignments.show', $assignment->id) }}" class="btn btn-light ml-1"><i class="icon-arrow-left13 mr-1"></i> Back to Submissions</a>
                 </div>
             </form>
+            <script>
+                // Batch fix 2026-10-25: N is meaningless for "All"
+                // (the server ignores it) yet it sat on the form,
+                // tall with its help text, shoving the other fields
+                // down via the filter row's bottom alignment. Hide
+                // it for All, show it only for Best / Latest.
+                // jQuery on purpose: this select is Select2-enhanced,
+                // and Select2 notifies via jQuery trigger, which a
+                // vanilla change listener never receives.
+                (function () {
+                    var mode = document.getElementById('mode');
+                    var wrap = document.getElementById('avg_n_wrap');
+                    var input = document.getElementById('avg_n');
+                    if (!mode || !wrap || !input) { return; }
+                    function syncN() {
+                        var show = mode.value === 'best' || mode.value === 'latest';
+                        wrap.style.display = show ? '' : 'none';
+                        input.disabled = !show;
+                    }
+                    if (window.jQuery) { jQuery(mode).on('change', syncN); }
+                    else { mode.addEventListener('change', syncN); }
+                    syncN();
+                })();
+            </script>
 
             @isset($preview)
                 <div class="table-responsive mt-3">

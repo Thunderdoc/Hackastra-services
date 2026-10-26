@@ -19,7 +19,9 @@ use App\Models\TimeTableRecord;
 use App\Repositories\ExamRepo;
 use App\Repositories\MyClassRepo;
 use App\Repositories\TimeTableRepo;
+use App\Support\SchoolLevel;
 use App\Support\SectionTeacher;
+use App\Support\Streams;
 use App\Support\TeacherScope;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
@@ -202,19 +204,57 @@ class TimeTableController extends Controller
         $d['preset_sections'] = $presetClassId
             ? Section::where('my_class_id', (int) $presetClassId)->orderBy('name')->get()
             : collect();
-        $d['defaults'] = [
-            'start_time' => '09:00', 'period_minutes' => 40,
-            'periods_per_day' => 8, 'lunch_after' => 4,
-            'lunch_minutes' => 45, 'break_after' => 2,
-            'break_minutes' => 15, 'days' => 5,
+        // Batch upgrade 2026-10-25: level presets (last-used values
+        // remembered) + the per-class subject picker. The single
+        // school-day defaults follow the preset class's level.
+        $d['level_defaults'] = [
+            'primary' => SchoolLevel::loadConfig('primary'),
+            'secondary' => SchoolLevel::loadConfig('secondary'),
         ];
+        $d['class_levels'] = SchoolLevel::levelsForClasses($d['my_classes']);
+        $level = $presetClassId ? SchoolLevel::levelForClassId((int) $presetClassId) : 'primary';
+        $d['defaults'] = $d['level_defaults'][$level];
+        $d['subject_groups'] = collect($d['my_classes'])->map(function ($c) {
+            return [
+                'class' => $c,
+                'subjects' => Subject::where('my_class_id', $c->id)->orderBy('id')->get(),
+            ];
+        });
 
         return view('pages.support_team.timetables.generate', $d);
     }
 
+    /**
+     * Build the teaching slots for one school-day config: teaching
+     * slots only; lunch and the short break simply move the clock
+     * forward. Returns [slots, runsPast930] — a day running past
+     * 9:30 PM is a form mistake, not a timetable.
+     */
+    protected function buildSlots(array $cfg): array
+    {
+        $cursor = Carbon::parse('2026-01-05 ' . $cfg['start_time']); // a Monday
+        $slots = [];
+        for ($i = 1; $i <= $cfg['periods_per_day']; $i++) {
+            $from = $cursor->copy();
+            $to = $cursor->copy()->addMinutes($cfg['period_minutes']);
+            $slots[] = ['from' => $from, 'to' => $to];
+            $cursor = $to->copy();
+            if ($i === (int) $cfg['lunch_after']) {
+                $cursor->addMinutes($cfg['lunch_minutes']);
+            }
+            if (!empty($cfg['break_after']) && $i === (int) $cfg['break_after']) {
+                $cursor->addMinutes($cfg['break_minutes'] ?? 15);
+            }
+        }
+        $lastSlot = end($slots);
+        $runsPast = $lastSlot && ($lastSlot['to']->format('Y-m-d') !== '2026-01-05'
+            || $lastSlot['to']->gt(Carbon::parse('2026-01-05 21:30')));
+        return [$slots, (bool) $runsPast];
+    }
+
     public function generate(Request $req)
     {
-        $data = $req->validate([
+        $rules = [
             'start_time' => 'required|date_format:H:i',
             'period_minutes' => 'required|integer|min:20|max:90',
             'periods_per_day' => 'required|integer|min:4|max:12',
@@ -227,8 +267,27 @@ class TimeTableController extends Controller
             'class_id' => 'nullable|integer',
             'section_id' => 'nullable|integer',
             'mode' => 'required|in:skip,replace',
-        ]);
-        foreach (['period_minutes', 'periods_per_day', 'lunch_after', 'lunch_minutes', 'break_after', 'break_minutes', 'days'] as $k) {
+            // Batch upgrade 2026-10-25: per-level day configs + the
+            // per-class subject picker (absent = old form post).
+            'subjects' => 'nullable|array',
+            'subjects.*' => 'array',
+            'subjects.*.*' => 'integer|exists:subjects,id',
+            'subjects_present' => 'nullable|array',
+        ];
+        foreach (['primary', 'secondary'] as $lv) {
+            $rules[$lv . '_start_time'] = 'nullable|date_format:H:i';
+            $rules[$lv . '_period_minutes'] = 'nullable|integer|min:20|max:90';
+            $rules[$lv . '_periods_per_day'] = 'nullable|integer|min:4|max:12';
+            $rules[$lv . '_lunch_after'] = 'nullable|integer|min:1|max:12';
+            $rules[$lv . '_lunch_minutes'] = 'nullable|integer|min:15|max:90';
+            $rules[$lv . '_break_after'] = 'nullable|integer|min:0|max:12';
+            $rules[$lv . '_break_minutes'] = 'nullable|integer|min:5|max:45';
+            $rules[$lv . '_days'] = 'nullable|integer|in:5,6';
+        }
+        $data = $req->validate($rules);
+        foreach (['period_minutes', 'periods_per_day', 'lunch_after', 'lunch_minutes', 'break_after', 'break_minutes', 'days',
+                  'primary_period_minutes', 'primary_periods_per_day', 'primary_lunch_after', 'primary_lunch_minutes', 'primary_break_after', 'primary_break_minutes', 'primary_days',
+                  'secondary_period_minutes', 'secondary_periods_per_day', 'secondary_lunch_after', 'secondary_lunch_minutes', 'secondary_break_after', 'secondary_break_minutes', 'secondary_days'] as $k) {
             if (isset($data[$k])) {
                 $data[$k] = (int) $data[$k];
             }
@@ -256,29 +315,32 @@ class TimeTableController extends Controller
             }
         }
 
-        // The school-day clock: teaching slots only; lunch and the
-        // short break simply move the clock forward.
-        $cursor = Carbon::parse('2026-01-05 ' . $data['start_time']); // a Monday
-        $slots = [];
-        for ($i = 1; $i <= $data['periods_per_day']; $i++) {
-            $from = $cursor->copy();
-            $to = $cursor->copy()->addMinutes($data['period_minutes']);
-            $slots[] = ['from' => $from, 'to' => $to];
-            $cursor = $to->copy();
-            if ($i === (int) $data['lunch_after']) {
-                $cursor->addMinutes($data['lunch_minutes']);
+        // Batch upgrade 2026-10-25: one school-day config per level
+        // for scope=all (each level's own form block; a missing
+        // block falls back to the single fields, so old posts keep
+        // working). Scope=one keeps the single config exactly.
+        $singleCfg = [
+            'start_time' => $data['start_time'], 'period_minutes' => $data['period_minutes'],
+            'periods_per_day' => $data['periods_per_day'], 'lunch_after' => $data['lunch_after'],
+            'lunch_minutes' => $data['lunch_minutes'], 'break_after' => $data['break_after'] ?? 0,
+            'break_minutes' => $data['break_minutes'] ?? 15, 'days' => $data['days'],
+        ];
+        $levelCfgs = [];
+        foreach (['primary', 'secondary'] as $lv) {
+            $cfg = [];
+            foreach ($singleCfg as $k => $v) {
+                $cfg[$k] = $data[$lv . '_' . $k] ?? $v;
             }
-            if (!empty($data['break_after']) && $i === (int) $data['break_after']) {
-                $cursor->addMinutes($data['break_minutes'] ?? 15);
-            }
+            $levelCfgs[$lv] = $cfg;
         }
         // Sanity clamp (break-it pass, 2026-10-23): a school day that
         // runs past 9:30 PM is a form mistake, not a timetable —
         // refuse it instead of generating a nonsense grid.
-        $lastSlot = end($slots);
-        if ($lastSlot && ($lastSlot['to']->format('Y-m-d') !== '2026-01-05'
-            || $lastSlot['to']->gt(Carbon::parse('2026-01-05 21:30')))) {
-            return back()->with('flash_danger', 'That school day would run past 9:30 PM — reduce the periods, shorten them, or start earlier.')->withInput();
+        foreach (array_merge([$singleCfg], array_values($levelCfgs)) as $cfg) {
+            [, $runsPast] = $this->buildSlots($cfg);
+            if ($runsPast) {
+                return back()->with('flash_danger', 'That school day would run past 9:30 PM — reduce the periods, shorten them, or start earlier.')->withInput();
+            }
         }
         $dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -286,19 +348,54 @@ class TimeTableController extends Controller
             ? MyClass::where('id', $data['class_id'])->get()
             : MyClass::orderBy('id')->get();
 
-        // Generation targets: (class, section?) pairs. A section
-        // target builds only that section's grid; every other target
-        // builds the whole-class grid as before.
+        // Generation targets: (class, section?) pairs, each with
+        // its own day config + slots. A section target builds only
+        // that section's grid; every other target builds the
+        // whole-class grid as before.
         $targets = [];
+        $classLevels = SchoolLevel::levelsForClasses($classes);
         foreach ($classes as $c) {
+            $cfg = $data['scope'] === 'one' ? $singleCfg : $levelCfgs[$classLevels[$c->id]];
+            [$targetSlots, ] = $this->buildSlots($cfg);
+            // Batch 2026-10-26: scope=all must EXPAND a streamed
+            // class into section targets — a class grid for Class
+            // 11/12 would mix every stream's subjects (and, in skip
+            // mode, the old code skipped nothing because streamed
+            // classes have no class grid at all, so it built bogus
+            // mixed grids). A fully-streamed class yields section
+            // targets only; a mixed class yields its section
+            // targets first (they generate first, so their cells
+            // then block the fallback class grid for shared
+            // teachers) plus the class target for untagged sections.
+            if ($data['scope'] === 'all') {
+                $streamed = Section::where('my_class_id', $c->id)
+                    ->whereNotNull('stream')->orderBy('id')->get();
+                if ($streamed->isNotEmpty()) {
+                    foreach ($streamed as $sec) {
+                        $targets[] = [
+                            'class' => $c, 'section_id' => $sec->id, 'section' => $sec,
+                            'cfg' => $cfg, 'slots' => $targetSlots,
+                        ];
+                    }
+                    $allSections = Section::where('my_class_id', $c->id)->count();
+                    if ($streamed->count() < $allSections) {
+                        $targets[] = [
+                            'class' => $c, 'section_id' => null, 'section' => null,
+                            'cfg' => $cfg, 'slots' => $targetSlots,
+                        ];
+                    }
+                    continue;
+                }
+            }
             $targets[] = [
                 'class' => $c,
                 'section_id' => ($data['scope'] === 'one' ? $sectionId : null),
                 'section' => ($data['scope'] === 'one' ? $section : null),
+                'cfg' => $cfg,
+                'slots' => $targetSlots,
             ];
         }
 
-        $teacherBusy = []; // [day][slot][teacher_id] = true, across ALL classes
         /* Slice D follow-up (2026-10-23, found by the validator):
            the busy map must also respect timetables that already
            exist and are NOT being regenerated in this run — a
@@ -358,14 +455,31 @@ class TimeTableController extends Controller
                 }
             }
         }
-        $summary = ['generated' => [], 'skipped' => [], 'no_subjects' => [], 'locked' => [], 'placed' => 0, 'empty' => 0, 'free' => 0, 'shortfalls' => []];
+        $summary = ['generated' => [], 'skipped' => [], 'no_subjects' => [], 'locked' => [], 'placed' => 0, 'empty' => 0, 'free' => 0, 'shortfalls' => [], 'unassigned' => []];
 
         foreach ($targets as $target) {
             $class = $target['class'];
             $targetSectionId = $target['section_id'];
             $targetSection = $target['section'];
+            $targetSlots = $target['slots'];
+            $targetCfg = $target['cfg'];
             $displayName = $targetSection ? $class->name . ' ' . $targetSection->name : $class->name;
             $subjects = Subject::where('my_class_id', $class->id)->orderBy('id')->get();
+            // Batch upgrade 2026-10-25: per-class subject choice.
+            // A rendered class posts subjects_present, so its posted
+            // selection (possibly empty) wins. No marker = an old
+            // form post: all subjects, as before.
+            if (isset($data['subjects_present'][$class->id])) {
+                $sel = array_map('intval', (array) ($data['subjects'][$class->id] ?? []));
+                $subjects = $subjects->whereIn('id', $sel)->values();
+            }
+            // Batch 2026-10-25 (streams): a section grid places only
+            // the section's stream subjects (common + own stream).
+            if ($targetSection && !empty($targetSection->stream)) {
+                $subjects = $subjects->filter(function ($s) use ($targetSection) {
+                    return Streams::appliesTo($s, $targetSection->stream);
+                })->values();
+            }
             if ($subjects->isEmpty()) {
                 $summary['no_subjects'][] = $displayName;
                 continue;
@@ -399,7 +513,7 @@ class TimeTableController extends Controller
                 }
             }
 
-            DB::transaction(function () use ($record, $class, $targetSectionId, $displayName, $subjects, $slots, $dayNames, $data, &$teacherBusy, &$busyByTime, &$summary) {
+            DB::transaction(function () use ($record, $class, $targetSectionId, $displayName, $subjects, $targetSlots, $targetCfg, $dayNames, $data, &$busyByTime, &$summary) {
                 if ($record) {
                     TimeTable::where('ttr_id', $record->id)->delete();
                     TimeSlot::where('ttr_id', $record->id)->delete();
@@ -414,7 +528,7 @@ class TimeTableController extends Controller
                 }
 
                 $slotModels = [];
-                foreach ($slots as $slot) {
+                foreach ($targetSlots as $slot) {
                     $slotModels[] = TimeSlot::create([
                         'ttr_id' => $record->id,
                         'hour_from' => $slot['from']->format('g'),
@@ -455,7 +569,16 @@ class TimeTableController extends Controller
                 foreach ($subjects as $s) {
                     $teacherOf[$s->id] = SectionTeacher::teacherIdFor($targetSectionId, $s);
                 }
-                for ($day = 1; $day <= $data['days']; $day++) {
+                // Batch upgrade 2026-10-25 (pre-flight): subjects
+                // with no teacher are a warning in the summary, never
+                // a blocker — their periods simply stay empty until
+                // a teacher is assigned on Subjects.
+                foreach ($subjects as $s) {
+                    if (!$teacherOf[$s->id]) {
+                        $summary['unassigned'][] = $displayName . ' — ' . $s->name;
+                    }
+                }
+                for ($day = 1; $day <= $targetCfg['days']; $day++) {
                     $dayCount = $subjects->mapWithKeys(function ($s) { return [$s->id => 0]; })->all();
                     $prevSubjectId = null;
                     foreach ($slotModels as $slotIdx => $slotModel) {
@@ -467,11 +590,13 @@ class TimeTableController extends Controller
                             return $doubleBoost + ($weekCount[$s->id] * 100) + ($dayCount[$s->id] * 10);
                         })->values();
                         $chosen = null;
-                        $slotMinute = (int) $slots[$slotIdx]['from']->format('H') * 60 + (int) $slots[$slotIdx]['from']->format('i');
+                        $slotMinute = (int) $targetSlots[$slotIdx]['from']->format('H') * 60 + (int) $targetSlots[$slotIdx]['from']->format('i');
                         foreach ($candidates as $cand) {
+                            // Busy is tracked by start minute (not
+                            // slot index) so levels with different
+                            // day lengths can never false-clash.
                             if (!$teacherOf[$cand->id]
-                                || (empty($teacherBusy[$day][$slotIdx][$teacherOf[$cand->id]])
-                                    && empty($busyByTime[$day][$slotMinute][$teacherOf[$cand->id]]))) {
+                                || empty($busyByTime[$day][$slotMinute][$teacherOf[$cand->id]])) {
                                 $chosen = $cand;
                                 break;
                             }
@@ -500,7 +625,6 @@ class TimeTableController extends Controller
                         }
                         $prevSubjectId = $chosen->id;
                         if ($teacherOf[$chosen->id]) {
-                            $teacherBusy[$day][$slotIdx][$teacherOf[$chosen->id]] = true;
                             $busyByTime[$day][$slotMinute][$teacherOf[$chosen->id]] = true;
                         }
                         $weekCount[$chosen->id]++;
@@ -544,7 +668,17 @@ class TimeTableController extends Controller
             . ($summary['skipped'] ? '. Skipped (already have one): ' . implode(', ', $summary['skipped']) : '')
             . (!empty($summary['locked']) ? '. Kept (attendance already submitted, timetable locked this session): ' . implode(', ', $summary['locked']) : '')
             . ($summary['no_subjects'] ? '. No subjects yet: ' . implode(', ', $summary['no_subjects']) : '')
+            . (!empty($summary['unassigned']) ? '. No teacher assigned (those periods may stay empty): ' . implode('; ', array_slice($summary['unassigned'], 0, 4)) . (count($summary['unassigned']) > 4 ? '; and ' . (count($summary['unassigned']) - 4) . ' more' : '') : '')
             . '.';
+        }
+
+        // Batch upgrade 2026-10-25: remember the used day configs
+        // so the next generate opens pre-filled.
+        if ($data['scope'] === 'all') {
+            SchoolLevel::saveConfig('primary', $levelCfgs['primary']);
+            SchoolLevel::saveConfig('secondary', $levelCfgs['secondary']);
+        } elseif (!empty($data['class_id'])) {
+            SchoolLevel::saveConfig(SchoolLevel::levelForClassId((int) $data['class_id']), $singleCfg);
         }
 
         return redirect()->route('tt.index')->with('flash_success', $msg);

@@ -45,8 +45,14 @@
         .ds-signatures { position: relative; margin-top: 34px; }
         .ds-stamp { position: absolute; right: 40px; bottom: 0; width: 110px; height: 110px; object-fit: contain; transform: rotate(-10deg); opacity: .95; z-index: 2; }
         .ds-sign-table { width: 100%; border-collapse: collapse; }
-        .ds-sign-cell { width: 50%; padding: 0 30px; text-align: center; vertical-align: bottom; }
-        .ds-sign-img { display: block; margin: 0 auto; max-height: 44px; max-width: 180px; object-fit: contain; }
+        /* Batch fix 2026-10-25: the cells were bottom-aligned, so
+           the principal's signature image (44px) lifted the
+           principal's line above the teacher's. Top alignment +
+           a fixed 44px top area on both sides keeps both lines on
+           the same height whether a signature is uploaded or not. */
+        .ds-sign-cell { width: 50%; padding: 0 30px; text-align: center; vertical-align: top; }
+        .ds-sign-top { height: 44px; display: flex; align-items: flex-end; justify-content: center; }
+        .ds-sign-img { display: block; max-height: 44px; max-width: 180px; object-fit: contain; }
         .ds-sign-line { border-bottom: 1.5px solid #10263b; height: 40px; }
         .ds-sign-role { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: #46586c; margin-top: 6px; }
         .ds-sign-name { font-size: 13px; font-weight: bold; color: #10263b; }
@@ -91,6 +97,9 @@
             Term: <strong>{{ $exam->term }}</strong> &middot;
             Session: <strong>{{ $exam->year }}</strong> &middot;
             Class: <strong>{{ $my_class->name }}</strong>
+            @if($section)
+                &middot; Section: <strong>{{ $section->name }}@if($section->stream) ({{ strtoupper($section->stream) }})@endif</strong>
+            @endif
             @if($child)
                 <br/>{{ $viewer === 'parent' ? 'Child' : 'Student' }}: <strong>{{ $child->user->name }}</strong>
                 @if($child->adm_no) &middot; Admission No: <strong>{{ $child->adm_no }}</strong> @endif
@@ -136,14 +145,17 @@
             <table class="ds-sign-table">
                 <tr>
                     <td class="ds-sign-cell">
+                        <div class="ds-sign-top"></div>
                         <div class="ds-sign-line"></div>
                         <div class="ds-sign-role">Class Teacher</div>
-                        <div class="ds-sign-name"></div>
+                        <div class="ds-sign-name">{{ $class_teacher_name ?? '' }}</div>
                     </td>
                     <td class="ds-sign-cell">
-                        @if(!empty($school['principal_signature']))
-                            <img class="ds-sign-img" src="{{ $school['principal_signature'] }}" alt="Principal's signature">
-                        @endif
+                        <div class="ds-sign-top">
+                            @if(!empty($school['principal_signature']))
+                                <img class="ds-sign-img" src="{{ $school['principal_signature'] }}" alt="Principal's signature">
+                            @endif
+                        </div>
                         <div class="ds-sign-line"></div>
                         <div class="ds-sign-role">Principal</div>
                         <div class="ds-sign-name">{{ $school['principal_name'] ?: '' }}</div>

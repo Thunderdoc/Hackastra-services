@@ -30,7 +30,24 @@
             <input name="files[]" id="files" type="file" multiple class="form-control @error('files') is-invalid @enderror @error('files.*') is-invalid @enderror">
             @include('partials.errors.field', ['field' => 'files'])
             @include('partials.errors.field', ['field' => 'files.*'])
-            <span class="form-text text-muted">Select as many files as you like — each one becomes its own material under this title, up to 200 MB per file. Or paste a link below instead (or as well).</span>
+            <span class="form-text text-muted">Select as many files as you like — each one becomes its own material under this title, up to 200 MB per file. The same file twice is uploaded only once: duplicates for this class and subject are skipped automatically. Or paste a link below instead (or as well).</span>
+            <div id="files_preview" class="form-text text-muted"></div>
+            <script>
+                // Batch fix 2026-10-25: show what is actually about
+                // to be uploaded, so a 6-file multi-pick never
+                // surprises the teacher with 6 materials.
+                (function () {
+                    var input = document.getElementById('files');
+                    var preview = document.getElementById('files_preview');
+                    if (!input || !preview) { return; }
+                    input.addEventListener('change', function () {
+                        var names = Array.prototype.map.call(input.files, function (f) { return f.name; });
+                        if (!names.length) { preview.textContent = ''; return; }
+                        var text = names.length + ' file(s) selected: ' + names.join(', ');
+                        preview.textContent = text.length > 160 ? text.slice(0, 160) + '…' : text;
+                    });
+                })();
+            </script>
         </div>
 
         <div class="pat-field pat-field-wide">

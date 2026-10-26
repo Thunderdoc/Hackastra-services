@@ -17,7 +17,7 @@
         @endslot
 
         <div class="pat-form-section">
-            <p class="text-muted">Tell the system how your school day runs — it will build the timetable for every class itself. No teacher is placed in two classes in the same period. Afterwards you can edit any period from a timetable's <strong>Manage</strong> page.</p>
+            <p class="text-muted">Tell the system how your school day runs — it will build the timetable for every class itself. No teacher is placed in two classes in the same period. Afterwards you can edit any period from a timetable's <strong>Manage</strong> page. The fields below apply to "One class only". For "All classes", each level uses its own block further down.</p>
             <div class="pat-fields">
                 <div class="pat-field">
                     <label for="start_time">School starts at <span class="text-danger">*</span></label>
@@ -88,6 +88,72 @@
                     </select>
                 </div>
             </div>
+        </div>
+
+        <div class="pat-form-section">
+            <div class="pat-form-section-title">Level presets (when "All classes")</div>
+            <p class="text-muted">Primary (Prep – Class 5) ends around 2:00 PM with 6 periods; Secondary (Class 6 – 12) ends at 3:20 PM with 8 periods. Both start at 9:00. Change any number — the last-used values are remembered for next time.</p>
+            @foreach(['primary' => 'Primary (Prep – Class 5)', 'secondary' => 'Secondary (Class 6 – 12)'] as $lv => $lvLabel)
+            <div class="pat-fields">
+                <div class="pat-field pat-field-wide"><strong>{{ $lvLabel }}</strong></div>
+                <div class="pat-field">
+                    <label>School starts at</label>
+                    <input name="{{ $lv }}_start_time" type="time" class="form-control" value="{{ old($lv . '_start_time', $level_defaults[$lv]['start_time']) }}">
+                </div>
+                <div class="pat-field">
+                    <label>One period is (minutes)</label>
+                    <input name="{{ $lv }}_period_minutes" type="number" min="20" max="90" class="form-control" value="{{ old($lv . '_period_minutes', $level_defaults[$lv]['period_minutes']) }}">
+                </div>
+                <div class="pat-field">
+                    <label>Periods per day</label>
+                    <input name="{{ $lv }}_periods_per_day" type="number" min="4" max="12" class="form-control" value="{{ old($lv . '_periods_per_day', $level_defaults[$lv]['periods_per_day']) }}">
+                </div>
+                <div class="pat-field">
+                    <label>School days per week</label>
+                    <select name="{{ $lv }}_days" class="form-control">
+                        <option value="5" {{ old($lv . '_days', $level_defaults[$lv]['days']) == 5 ? 'selected' : '' }}>5 days (Mon – Fri)</option>
+                        <option value="6" {{ old($lv . '_days', $level_defaults[$lv]['days']) == 6 ? 'selected' : '' }}>6 days (Mon – Sat)</option>
+                    </select>
+                </div>
+                <div class="pat-field">
+                    <label>Lunch after period</label>
+                    <input name="{{ $lv }}_lunch_after" type="number" min="1" max="12" class="form-control" value="{{ old($lv . '_lunch_after', $level_defaults[$lv]['lunch_after']) }}">
+                </div>
+                <div class="pat-field">
+                    <label>Lunch break (minutes)</label>
+                    <input name="{{ $lv }}_lunch_minutes" type="number" min="15" max="90" class="form-control" value="{{ old($lv . '_lunch_minutes', $level_defaults[$lv]['lunch_minutes']) }}">
+                </div>
+                <div class="pat-field">
+                    <label>Short break after period (0 = none)</label>
+                    <input name="{{ $lv }}_break_after" type="number" min="0" max="12" class="form-control" value="{{ old($lv . '_break_after', $level_defaults[$lv]['break_after']) }}">
+                </div>
+                <div class="pat-field">
+                    <label>Short break (minutes)</label>
+                    <input name="{{ $lv }}_break_minutes" type="number" min="5" max="45" class="form-control" value="{{ old($lv . '_break_minutes', $level_defaults[$lv]['break_minutes']) }}">
+                </div>
+            </div>
+            @endforeach
+        </div>
+
+        <div class="pat-form-section">
+            <div class="pat-form-section-title">Subjects to include</div>
+            <p class="text-muted">Uncheck subjects to leave them out of the generated grids. All subjects are included by default. Subjects with no teacher are marked — their periods may stay empty until a teacher is assigned.</p>
+            @php $subjectsSubmitted = old('subjects_present') !== null; @endphp
+            @foreach($subject_groups as $group)
+                @if($group['subjects']->isNotEmpty())
+                <details @if($loop->first) open @endif style="margin-bottom: 8px;">
+                    <summary>{{ $group['class']->name }} — {{ ($class_levels[$group['class']->id] ?? 'secondary') === 'primary' ? 'Primary' : 'Secondary' }} ({{ $group['subjects']->count() }} subjects)</summary>
+                    <input type="hidden" name="subjects_present[{{ $group['class']->id }}]" value="1">
+                    @foreach($group['subjects'] as $sub)
+                        @php $checked = $subjectsSubmitted ? in_array($sub->id, (array) old('subjects.' . $group['class']->id, [])) : true; @endphp
+                        <label style="display: inline-block; margin: 2px 12px 2px 0;">
+                            <input type="checkbox" name="subjects[{{ $group['class']->id }}][]" value="{{ $sub->id }}" {{ $checked ? 'checked' : '' }}>
+                            {{ $sub->name }}@if(!$sub->teacher_id) <span class="text-danger">(no teacher)</span>@endif
+                        </label>
+                    @endforeach
+                </details>
+                @endif
+            @endforeach
         </div>
     @endcomponent
 

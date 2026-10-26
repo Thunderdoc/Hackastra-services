@@ -101,7 +101,16 @@
                         credentials: 'same-origin',
                         headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-TOKEN': meta ? meta.getAttribute('content') : '' },
                         body: 'theme=' + (dark ? 'dark' : 'light')
-                    }).catch(function () {});
+                    }).then(function (r) { if (!r.ok) { throw new Error('theme save failed'); } }).catch(function () {
+                        // Batch fix 2026-10-25: the save did not stick
+                        // (expired session on a long-open tab, network
+                        // drop) — roll the screen back instead of
+                        // leaving a theme the next page load flips
+                        // back from. That flip-flop is exactly what
+                        // reads as "changing by itself".
+                        root.classList.toggle('hk-dark', !dark);
+                        syncMirror();
+                    });
                 });
             })();
         </script>

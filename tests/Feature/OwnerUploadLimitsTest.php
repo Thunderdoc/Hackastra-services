@@ -37,7 +37,7 @@ class OwnerUploadLimitsTest extends TestCase
 
     public function test_student_submission_above_2mb_fails()
     {
-        $student = User::find(42); // student@, Prep Section A
+        $student = User::where('email', 'student@hackstra.app')->first(); // Prep Section A
         $response = $this->actingAs($student)->post(route('assignments.submit', 1), [
             'attachment' => UploadedFile::fake()->create('big.pdf', 3000, 'application/pdf'),
         ]);
@@ -46,7 +46,7 @@ class OwnerUploadLimitsTest extends TestCase
 
     public function test_student_submission_small_file_passes()
     {
-        $student = User::find(42);
+        $student = User::where('email', 'student@hackstra.app')->first();
         $response = $this->actingAs($student)->post(route('assignments.submit', 1), [
             'attachment' => UploadedFile::fake()->create('small.pdf', 1000, 'application/pdf'),
             'text_answer' => 'Probe answer',

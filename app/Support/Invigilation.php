@@ -47,6 +47,23 @@ class Invigilation
     }
 
     /**
+     * Batch fix 2026-10-25: duties were invisible to teachers. Every
+     * new or changed duty now rings the teacher's bell (the topbar
+     * already renders per-user notifications for every role, and
+     * opening the bell marks them read) with a link to My Duties.
+     */
+    public static function notifyDuty(ExamDate $sitting, int $teacherId): void
+    {
+        $class = optional($sitting->my_class)->name ?: 'a class';
+        $subject = optional($sitting->subject)->name ?: 'an exam';
+        $time = substr((string) $sitting->start_time, 0, 5);
+        Notify::toUser($teacherId, 'duty_assigned',
+            'Invigilation duty assigned',
+            "You are on invigilation duty for {$class} — {$subject} on {$sitting->exam_date} at {$time}.",
+            route('exam_duties.my'));
+    }
+
+    /**
      * Assign/replace a duty with the clash rule enforced.
      * Returns [ok, message].
      */
@@ -61,10 +78,16 @@ class Invigilation
             }
         }
 
+        $existing = ExamDuty::where('exam_date_id', $sitting->id)->first();
         ExamDuty::updateOrCreate(
             ['exam_date_id' => $sitting->id],
             ['teacher_id' => $teacherId, 'assigned_by' => $actorId]
         );
+        // A no-op re-save to the same teacher rings no bell; a new
+        // duty or a changed teacher does.
+        if (!$existing || (int) $existing->teacher_id !== $teacherId) {
+            self::notifyDuty($sitting->fresh(['my_class', 'subject']), $teacherId);
+        }
 
         return [true, 'Invigilator saved.'];
     }
@@ -112,6 +135,7 @@ class Invigilation
                 'teacher_id' => $best->id,
                 'assigned_by' => $actorId,
             ]);
+            self::notifyDuty($sitting->load(['my_class', 'subject']), $best->id);
             $counts[$best->id] = ($counts[$best->id] ?? 0) + 1;
             $assigned++;
         }

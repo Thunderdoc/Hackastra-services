@@ -147,6 +147,36 @@
             </div>
         </section>
 
+        {{-- Batch fix 2026-10-25: duties were invisible to teachers.
+             Upcoming duties panel, same pattern as My Leave above. --}}
+        <section class="t10-panel">
+            <div class="t10-panel-head">
+                <div class="t10-panel-title">
+                    <span class="t10-panel-icon t10-tone-blue"><i class="icon-clipboard3"></i></span>
+                    <div>
+                        <h5>My Invigilation Duties</h5>
+                        <p class="t10-panel-sub">Your upcoming exam duties</p>
+                    </div>
+                </div>
+                <a href="{{ route('exam_duties.my') }}" class="t10-view-all">View All <i class="icon-arrow-right7"></i></a>
+            </div>
+            <div class="t10-table-wrap">
+                <table class="t10-table">
+                    <tbody>
+                    @forelse($my_duties as $duty)
+                        <tr>
+                            <td>{{ $duty->exam_date->exam_date ?? '—' }} · {{ substr((string) ($duty->exam_date->start_time ?? ''), 0, 5) ?: '—' }}</td>
+                            <td>{{ optional($duty->exam_date->my_class)->name ?? '—' }} — {{ optional($duty->exam_date->subject)->name ?? '—' }}</td>
+                            <td>{{ optional($duty->exam_date->exam)->name ?? '—' }}</td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="3" class="t10-empty"><i class="icon-clipboard3"></i> No upcoming duties assigned.</td></tr>
+                    @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
         {{-- Attendance charts — in the left column under the
              timetable (owner ask 2026-10-25): the old charts row
              below the grid left a hole under a short left

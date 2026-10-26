@@ -29,7 +29,15 @@ class UsersTableSeeder extends Seeder
         // SubjectsTableSeeder's specialist rotation. Teacher-only
         // (unlike createManyUsers, which adds every type), so the
         // admin/accountant/parent counts — and the SA users list —
-        // do not bloat with them.
+        // do not bloat with them. Batch 2026-10-25 (streams) adds
+        // two commerce specialists (18-19), taking the room to 20.
+        // Batch 2026-10-26 (streams staffing) adds thirteen more
+        // (20-32), taking the room to 33: senior section grids are
+        // staffed through per-section overrides (DemoDataSeeder),
+        // and the extended families below are what those overrides
+        // rotate — the class-level rotation in SubjectsTableSeeder
+        // deliberately stays at three specialists so Prep–Class 10
+        // assignments never move.
         $this->createMoreTeachers();
     }
 
@@ -40,6 +48,20 @@ class UsersTableSeeder extends Seeder
             10 => 'Divya Menon', 11 => 'Rohit Shetty', 12 => 'Pooja Desai',
             13 => 'Arjun Mehta', 14 => 'Sneha Kulkarni', 15 => 'Karan Singh',
             16 => 'Anjali Gupta', 17 => 'Varun Nair',
+            // Batch 2026-10-25 (streams): commerce specialists for
+            // the Class 11/12 Accountancy + Business Studies rows.
+            18 => 'Suresh Iyer', 19 => 'Meera Joshi',
+            // Batch 2026-10-26 (streams staffing): a school with 22
+            // senior sections cannot staff full 6-period section
+            // grids with 20 teachers — one teacher would need 78+
+            // periods a week. Thirteen more specialists take the
+            // room to 33 so every section grid fills without any
+            // teacher passing 40 periods.
+            20 => 'Ritu Sharma', 21 => 'Nikhil Rao', 22 => 'Farah Khan',
+            23 => 'Deepak Yadav', 24 => 'Meera Nair', 25 => 'Sanjay Verma',
+            26 => 'Asha Patil', 27 => 'Ravi Kumar', 28 => 'Kavita Singh',
+            29 => 'Mohit Jain', 30 => 'Lakshmi Iyer', 31 => 'Vikash Gupta',
+            32 => 'Neha Sharma',
         ];
         $data = [];
         foreach ($names as $i => $name) {
