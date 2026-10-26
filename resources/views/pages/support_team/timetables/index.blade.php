@@ -21,7 +21,23 @@
 
     <p class="ma-intro">View and manage class timetables for the current academic session.</p>
 
-    <div class="row dashboard-stats">
+    {{-- Batch 2026-10-26 (admin phone UX): on a phone the four
+         summary cards stacked into a full screen of stats before
+         a single timetable appeared — the list is the page, not
+         the stats. Phones get one slim strip with the same four
+         numbers; desktops keep the cards unchanged. --}}
+    <style>
+        .tt-stats-strip { display: none; }
+        @media (max-width: 767px) {
+            .tt-index-stats { display: none; }
+            .tt-stats-strip { display: block; }
+        }
+    </style>
+    <div class="card tt-stats-strip"><div class="card-body py-2">
+        <span class="text-muted">{{ $stats['total'] }} timetables &middot; {{ $stats['active'] }} active &middot; {{ $stats['classes'] }} classes &middot; {{ $stats['session'] }}</span>
+    </div></div>
+
+    <div class="row dashboard-stats tt-index-stats">
         @foreach([
             ['label' => 'Total Timetables', 'value' => $stats['total'], 'sub' => '', 'icon' => 'icon-table2', 'tone' => 'blue'],
             ['label' => 'Active Timetables', 'value' => $stats['active'], 'sub' => '', 'icon' => 'icon-checkmark-circle2', 'tone' => 'green'],

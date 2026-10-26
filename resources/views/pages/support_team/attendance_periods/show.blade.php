@@ -100,7 +100,7 @@
                 <table class="table ma-table" id="rg-table">
                     <thead>
                     <tr>
-                        <th>#</th>
+                        <th>Roll No</th>
                         <th>Student Name</th>
                         <th>Section</th>
                         <th>Admission No</th>
@@ -111,7 +111,7 @@
                     @foreach($entries as $entry)
                         @php $studentUser = optional(optional($entry->student_record)->user); @endphp
                         <tr data-search="{{ strtolower(($studentUser->name ?? '') . ' ' . (optional($entry->student_record)->adm_no ?? '')) }}">
-                            <td>{{ $loop->iteration }}</td>
+                            <td>{{ optional($entry->student_record)->roll_no ?? '—' }}</td>
                             <td>
                                 <div class="ma-teacher">
                                     <span class="ma-avatar" aria-hidden="true">{{ strtoupper(substr($studentUser->name ?? '?', 0, 1)) }}@if($studentUser->name && \App\Helpers\Qs::hasRealPhoto($studentUser->photo))<img src="{{ $studentUser->photo }}" alt="" onerror="this.remove()">@endif</span>

@@ -53,23 +53,45 @@ class SectionTeacher
 
     /**
      * Constrain a TimeTable query to cells taught by a teacher —
-     * either as the subject's class teacher OR as a section
-     * override for the cell's record section. Used by the teacher
-     * week grid, the dashboard's today periods and period
-     * attendance, so all three agree on what "my periods" means.
+     * the cell's EFFECTIVE teacher (SectionTeacher::teacherIdFor):
+     * the section override wins, the subject's class teacher only
+     * when no override exists for that section+subject. The old
+     * filter matched every cell of a subject the teacher owned at
+     * class level, so a class-level English teacher was shown all
+     * 22 senior-section English grids even where an override
+     * teacher actually teaches them (Ananya: 100 "periods", 76
+     * slot columns, 31 same-time collisions on her week grid).
+     * Used by the teacher week grid, the dashboard's today periods
+     * and period attendance, so all three agree on "my periods".
      */
     public static function applyTeacherFilter($query, int $userId): void
     {
         $query->where(function ($q) use ($userId) {
-            $q->whereHas('subject', function ($sq) use ($userId) {
-                $sq->where('teacher_id', $userId);
-            })->orWhereExists(function ($sq) use ($userId) {
+            // Override cells: this teacher is the section's override
+            // teacher for the cell's subject.
+            $q->orWhereExists(function ($sq) use ($userId) {
                 $sq->select(DB::raw('1'))
                     ->from('section_subject_teachers')
                     ->join('time_table_records', 'time_table_records.id', '=', 'time_tables.ttr_id')
                     ->whereColumn('section_subject_teachers.section_id', 'time_table_records.section_id')
                     ->whereColumn('section_subject_teachers.subject_id', 'time_tables.subject_id')
                     ->where('section_subject_teachers.teacher_id', $userId);
+            });
+            // Subject-teacher cells, EXCEPT section-grid cells that
+            // have an override (any teacher): those belong to the
+            // override teacher, not the class-level subject teacher.
+            // Class grids have a NULL record section, so the
+            // whereNotExists below is trivially true for them.
+            $q->orWhere(function ($q2) use ($userId) {
+                $q2->whereHas('subject', function ($sq) use ($userId) {
+                    $sq->where('teacher_id', $userId);
+                })->whereNotExists(function ($sq) {
+                    $sq->select(DB::raw('1'))
+                        ->from('section_subject_teachers')
+                        ->join('time_table_records', 'time_table_records.id', '=', 'time_tables.ttr_id')
+                        ->whereColumn('section_subject_teachers.section_id', 'time_table_records.section_id')
+                        ->whereColumn('section_subject_teachers.subject_id', 'time_tables.subject_id');
+                });
             });
         });
     }

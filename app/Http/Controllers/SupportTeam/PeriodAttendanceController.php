@@ -202,7 +202,15 @@ class PeriodAttendanceController extends Controller
 
         $d['period'] = $period;
         $d['date'] = $date;
-        $d['students'] = $this->roster($period['class']->id, optional($period['section'])->id ?? null);
+        // System roll numbers: the roster is admission-ordered, so
+        // the row position IS the roll number — allocated by the
+        // system, never typed in, identical on the page and in
+        // every export/print of this roster.
+        $students = $this->roster($period['class']->id, optional($period['section'])->id ?? null);
+        $students->each(function ($student, $index) {
+            $student->setAttribute('roll_no', $index + 1);
+        });
+        $d['students'] = $students;
 
         return view('pages.support_team.attendance_periods.take', $d);
     }
@@ -369,8 +377,10 @@ class PeriodAttendanceController extends Controller
         $d = $this->registerData($request, $session_id);
         $session = $d['session'];
 
-        $rows = $d['entries']->map(function ($entry) {
+        $rolls = $this->rollMap($session->my_class_id, $session->section_id);
+        $rows = $d['entries']->map(function ($entry) use ($rolls) {
             return [
+                $rolls[$entry->student_record_id] ?? '—',
                 optional(optional($entry->student_record)->user)->name,
                 optional(optional($entry->student_record)->section)->name,
                 optional($entry->student_record)->adm_no,
@@ -383,7 +393,89 @@ class PeriodAttendanceController extends Controller
             . Str::slug(optional($session->subject)->name ?: 'period') . '-'
             . $session->date->format('Y-m-d') . '.csv';
 
-        return CsvExport::download($filename, ['Student', 'Section', 'Admission No', 'Status'], $rows);
+        return CsvExport::download($filename, ['Roll No', 'Student', 'Section', 'Admission No', 'Status'], $rows);
+    }
+
+    /**
+     * System roll numbers for a class (or one section): the
+     * admission-ordered roster position, 1-based. One definition
+     * shared by the take page, the submitted register and every
+     * roster export/print, so the number never disagrees.
+     */
+    protected function rollMap(int $classId, $sectionId = null): array
+    {
+        $map = [];
+        foreach ($this->roster($classId, $sectionId) as $index => $student) {
+            $map[$student->id] = $index + 1;
+        }
+        return $map;
+    }
+
+    /**
+     * Roster outputs (take-page export/PDF): a teacher opens only
+     * periods they teach; Admin / Super Admin oversight may open
+     * any roster, like the submitted-register views.
+     */
+    protected function guardCanViewRoster(Request $request, array $period): void
+    {
+        if (Qs::userIsTeacher() && (int) optional($period['teacher'])->id !== (int) $request->user()->id) {
+            abort(403, 'You can only export the roster of periods you teach.');
+        }
+    }
+
+    /** The take-page roster as CSV — same rows and roll numbers as the page. */
+    public function rosterExport(Request $request, $tt_id)
+    {
+        $period = $this->resolvePeriod((int) $tt_id);
+        $this->guardCanViewRoster($request, $period);
+
+        $students = $this->roster($period['class']->id, optional($period['section'])->id ?? null);
+        $rows = $students->map(function ($student, $index) {
+            return [
+                $index + 1,
+                optional($student->user)->name,
+                optional($student->section)->name ?: '—',
+                $student->adm_no ?: '—',
+            ];
+        })->all();
+
+        $filename = 'class-roster-'
+            . Str::slug(optional($period['class'])->name ?: 'class') . '-'
+            . Str::slug(optional($period['subject'])->name ?: 'period') . '.csv';
+
+        return CsvExport::download($filename, ['Roll No', 'Student', 'Section', 'Admission No'], $rows);
+    }
+
+    /** The take-page roster as a PDF (dompdf) — blank P/A/L boxes
+     * for manual classroom use, with the same system roll numbers
+     * as the page. */
+    public function rosterPdf(Request $request, $tt_id)
+    {
+        $period = $this->resolvePeriod((int) $tt_id);
+        $this->guardCanViewRoster($request, $period);
+
+        $students = $this->roster($period['class']->id, optional($period['section'])->id ?? null);
+        $students->each(function ($student, $index) {
+            $student->setAttribute('roll_no', $index + 1);
+        });
+
+        $d['period'] = $period;
+        $d['students'] = $students;
+        $d['date'] = $this->dateFromRequest($request);
+        $d['for_pdf'] = true;
+        $d['s'] = Setting::all()->flatMap(function ($s) {
+            return [$s->type => $s->description];
+        });
+        if (!empty($d['s']['logo'])) {
+            $d['s']['logo'] = $this->pdfImageDataUri($d['s']['logo']);
+        }
+
+        $pdf_name = 'Class_Roster_'
+            . Str::slug(optional($period['class'])->name ?: 'class') . '_'
+            . Str::slug(optional($period['subject'])->name ?: 'period') . '.pdf';
+
+        return \Barryvdh\DomPDF\Facade\Pdf::loadView('pages.support_team.attendance_periods.roster_print', $d)
+            ->download($pdf_name);
     }
 
     /**
@@ -408,6 +500,14 @@ class PeriodAttendanceController extends Controller
         $d['entries'] = $session->entries->sortBy(function ($entry) {
             return strtolower(optional(optional($entry->student_record)->user)->name ?? '');
         })->values();
+        // Same system roll numbers as the take page, even though
+        // this view sorts by name for reading.
+        $rolls = $this->rollMap($session->my_class_id, $session->section_id);
+        foreach ($d['entries'] as $entry) {
+            if ($entry->student_record) {
+                $entry->student_record->setAttribute('roll_no', $rolls[$entry->student_record_id] ?? null);
+            }
+        }
         $d['counts'] = [
             'present' => $session->countByStatus(AttendanceSessionEntry::STATUS_PRESENT),
             'absent' => $session->countByStatus(AttendanceSessionEntry::STATUS_ABSENT),

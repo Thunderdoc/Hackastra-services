@@ -2603,6 +2603,11 @@ html.hk-dark .circ-doc-foot{border-top-color:#36383c}
 .reg-id{display:flex;flex-direction:column;min-width:0}
 .reg-name{font-weight:600;font-size:var(--qs-font-base);color:var(--qs-ink);line-height:1.3}
 .reg-meta{font-size:var(--qs-font-caption);color:var(--qs-meta);line-height:1.35;word-break:break-word}
+.reg-who{display:flex;align-items:center;gap:12px;min-width:0}
+.reg-roll{flex:0 0 auto;width:38px;height:38px;display:inline-flex;align-items:center;justify-content:center;border-radius:10px;background:#eef2f7;color:#10263b;font-weight:700;font-size:15px}
+.reg-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:12px 0;padding:10px 14px;background:#f7f9fb;border:1px solid #e2e8f0;border-radius:10px}
+.reg-toolbar-note{font-size:var(--qs-font-caption);color:var(--qs-meta)}
+.reg-toolbar-btns{display:flex;gap:8px;flex-wrap:wrap}
 .reg-seg{display:inline-flex;flex:none;background:#edf1f5;border:1px solid #dde4ec;border-radius:10px;padding:3px;gap:3px}
 .reg-seg-item{display:inline-flex;margin:0}
 .reg-radio{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden}
@@ -2640,6 +2645,8 @@ html.hk-dark .circ-doc-foot{border-top-color:#36383c}
    chosen states reuse the dark alert tints with bright text. */
 
 html.hk-dark .reg-row{border-bottom-color:#36383c}
+html.hk-dark .reg-roll{background:#2a2d31;color:#e8eaed}
+html.hk-dark .reg-toolbar{background:#24262a;border-color:#36383c}
 html.hk-dark .reg-row[data-status="absent"]{background:rgba(192,57,43,.07)}
 html.hk-dark .reg-row[data-status="late"]{background:rgba(217,154,38,.06)}
 html.hk-dark .reg-row[data-status="unmarked"]{background:#3a3016}

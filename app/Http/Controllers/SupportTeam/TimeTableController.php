@@ -761,7 +761,12 @@ class TimeTableController extends Controller
         $periods = $periods->get();
 
         $d = ['mode' => 'teacher', 'map' => []];
-        $d['slots'] = $periods->pluck('time_slot')->filter()->unique('id')
+        // Slots are per-record rows: the same clock time exists once
+        // per record a teacher teaches in, so dedupe by the clock
+        // interval, not by row id — otherwise the week grid repeats
+        // every time once per record (Ananya: 76 columns for 8
+        // times, the 2:40 PM group alone filling PERIOD 69-76).
+        $d['slots'] = $periods->pluck('time_slot')->filter()->unique('full')
             ->sortBy(function ($slot) { return (int) $slot->timestamp_from; })->values();
         $d['period_count'] = $periods->count();
 

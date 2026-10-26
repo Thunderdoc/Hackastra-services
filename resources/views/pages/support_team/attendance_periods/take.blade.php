@@ -5,7 +5,7 @@
         <div class="card-header header-elements-inline">
             <h6 class="card-title">
                 {{ $period['subject']->name }} — {{ $period['class']->name }}
-                <span class="text-muted font-size-sm ml-2">{{ $period['time_label'] }} · {{ $date->format('l, d M Y') }}</span>
+                <span class="text-muted font-size-sm ml-2">{{ $period['time_label'] }} · {{ $date->format('l, d M Y') }} · {{ $students->count() }} students</span>
             </h6>
             {!! Qs::getPanelOptions() !!}
         </div>
@@ -22,6 +22,14 @@
                 <i class="icon-lock2 mr-1"></i>
                 <strong>Submission is final.</strong> Once you submit, this register is locked for
                 {{ $period['subject']->name }} on {{ $date->format('d M Y') }} and cannot be edited or taken again.
+            </div>
+
+            <div class="reg-toolbar">
+                <span class="reg-toolbar-note"><i class="icon-info22 mr-1"></i> Roll numbers are allocated by the system in admission order — the same numbers appear in the roster exports.</span>
+                <span class="reg-toolbar-btns">
+                    <a href="{{ route('attendance.periods.roster_export', $period['tt']->id) }}" class="btn btn-light btn-sm"><i class="icon-file-spreadsheet mr-1"></i> Export roster (Excel)</a>
+                    <a href="{{ route('attendance.periods.roster_pdf', [$period['tt']->id, 'date' => $date->format('Y-m-d')]) }}" target="_blank" class="btn btn-light btn-sm"><i class="icon-file-pdf mr-1"></i> Print roster (PDF)</a>
+                </span>
             </div>
 
             @if($students->isEmpty())
@@ -45,9 +53,12 @@
                         @foreach($students as $student)
                             @php($current = old('statuses.' . $student->id, 'present'))
                             <div class="reg-row" data-reg-row data-status="{{ $current }}">
-                                <div class="reg-id">
-                                    <span class="reg-name">{{ optional($student->user)->name }}</span>
-                                    <span class="reg-meta">{{ optional($student->section)->name ?: '—' }} · {{ $student->adm_no ?: '—' }}</span>
+                                <div class="reg-who">
+                                    <span class="reg-roll">{{ $student->roll_no ?? $loop->iteration }}</span>
+                                    <div class="reg-id">
+                                        <span class="reg-name">{{ optional($student->user)->name }}</span>
+                                        <span class="reg-meta">{{ optional($student->section)->name ?: '—' }} · {{ $student->adm_no ?: '—' }}</span>
+                                    </div>
                                 </div>
                                 <div class="reg-seg" role="radiogroup" aria-label="Attendance — {{ optional($student->user)->name }}">
                                     @foreach(['present' => 'Present', 'absent' => 'Absent', 'late' => 'Late'] as $value => $label)

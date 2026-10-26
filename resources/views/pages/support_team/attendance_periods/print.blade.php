@@ -164,7 +164,7 @@
         <table class="items">
             <thead>
             <tr>
-                <th style="width:36px">#</th>
+                <th style="width:64px">Roll No</th>
                 <th>Student</th>
                 <th>Section</th>
                 <th>Admission No</th>
@@ -174,7 +174,7 @@
             <tbody>
             @foreach($entries as $entry)
                 <tr>
-                    <td>{{ $loop->iteration }}</td>
+                    <td>{{ optional($entry->student_record)->roll_no ?? '—' }}</td>
                     <td>{{ optional(optional($entry->student_record)->user)->name }}</td>
                     <td>{{ optional(optional($entry->student_record)->section)->name ?: '—' }}</td>
                     <td>{{ optional($entry->student_record)->adm_no ?: '—' }}</td>

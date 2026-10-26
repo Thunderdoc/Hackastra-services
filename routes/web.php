@@ -399,6 +399,12 @@ Route::group(['middleware' => 'auth'], function () {
         Route::get('attendance/periods/session/{session_id}/export', 'PeriodAttendanceController@exportRegister')->name('attendance.periods.export_register');
         Route::get('attendance/periods/{tt_id}/take', 'PeriodAttendanceController@take')->name('attendance.periods.take');
         Route::post('attendance/periods/{tt_id}', 'PeriodAttendanceController@store')->name('attendance.periods.store');
+        /* Take-page roster outputs: the same admission-ordered
+           roster + system roll numbers as the take page, for the
+           teacher's own classroom use (CSV opens in Excel, PDF
+           prints with blank P/A/L boxes for manual marking). */
+        Route::get('attendance/periods/{tt_id}/roster-export', 'PeriodAttendanceController@rosterExport')->name('attendance.periods.roster_export');
+        Route::get('attendance/periods/{tt_id}/roster-pdf', 'PeriodAttendanceController@rosterPdf')->name('attendance.periods.roster_pdf');
 
         /*************** School Events *****************/
         Route::resource('events', 'SchoolEventController');
