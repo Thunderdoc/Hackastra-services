@@ -2,6 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Receipt_{{ $pr->ref_no.'_'.$sr->user->name }}</title>
     {{-- Self-contained styles: this view is rendered both in the browser and
          by dompdf (PDF download). dompdf cannot fetch remote stylesheets, so
@@ -35,8 +36,8 @@
         .section { padding: 14px 22px 4px; }
         .section h3 { margin: 0 0 8px; font-size: 12px; letter-spacing: .08em; color: #10263b; text-transform: uppercase; }
         table.info, table.items { width: 100%; border-collapse: collapse; }
-        table.info td { padding: 5px 8px; font-size: 13px; vertical-align: top; }
-        table.info td.k { color: #718096; width: 110px; font-weight: bold; }
+        table.info td { padding: 5px 8px; font-size: 13px; vertical-align: top; overflow-wrap: anywhere; }
+        table.info td.k { color: #718096; width: 92px; font-weight: bold; }
         table.items th { background: #eef2f7; border: 1px solid #b9c6d4; padding: 8px; font-size: 12px; text-align: left; color: #10263b; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         table.items td { border: 1px solid #b9c6d4; padding: 8px; font-size: 13px; }
         table.items td.num, table.items th.num { text-align: right; }
