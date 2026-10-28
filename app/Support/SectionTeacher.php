@@ -22,6 +22,54 @@ use Illuminate\Support\Facades\Schema;
 class SectionTeacher
 {
     /**
+     * Actual weekly teaching load per teacher id, counted from
+     * PLACED timetable cells through the same precedence as
+     * teacherIdFor (override first, else subject teacher) — one
+     * preload of the override map, one pass over cells, never one
+     * query per cell. This is the load the planning surfaces must
+     * use: the old class-level periods_per_week sum ignored
+     * overrides entirely, so an override-only teacher showed a
+     * load of 0 while teaching ~30 periods, and the allocation
+     * engine could recommend MORE work to an already-overloaded
+     * override teacher.
+     *
+     * Placed cells ONLY, deliberately: the planned requirement
+     * (periods_per_week) stays visible in Staffing's per-subject
+     * demand section. Counting unplaced plan here would let
+     * scratch/orphan subjects (a test class with requirements
+     * but no timetable) inflate a real teacher's load.
+     */
+    public static function effectiveLoads(): array
+    {
+        $overrides = DB::table('section_subject_teachers')->get()
+            ->groupBy('section_id')
+            ->map(function ($rows) {
+                return $rows->pluck('teacher_id', 'subject_id')
+                    ->map(function ($t) { return (int) $t; })->all();
+            })->all();
+        $subjectTeachers = Subject::pluck('teacher_id', 'id');
+        $loads = [];
+        $cells = DB::table('time_tables')
+            ->join('time_table_records', 'time_table_records.id', '=', 'time_tables.ttr_id')
+            ->select('time_tables.subject_id', 'time_table_records.section_id')
+            ->get();
+        foreach ($cells as $cell) {
+            $teacherId = null;
+            if ($cell->section_id && isset($overrides[$cell->section_id][$cell->subject_id])) {
+                $teacherId = $overrides[$cell->section_id][$cell->subject_id];
+            } else {
+                $st = $subjectTeachers[$cell->subject_id] ?? null;
+                $teacherId = $st ? (int) $st : null;
+            }
+            if ($teacherId) {
+                $loads[$teacherId] = ($loads[$teacherId] ?? 0) + 1;
+            }
+        }
+
+        return $loads;
+    }
+
+    /**
      * The teacher of a subject inside a section: the section's
      * override when one exists, else the subject's class teacher.
      * A null section (whole-class grid) always yields the subject's

@@ -25,6 +25,6 @@
 <span class="badge badge-light">{{ $item->categoryLabel() }}</span>
 <span class="badge {{ $fbPriorityBadges[$item->priority] ?? 'badge-info' }}">{{ $item->priorityLabel() }}</span>
 <span class="badge {{ $fbStatusBadges[$item->status] ?? 'badge-light' }}">{{ $item->statusLabel() }}</span>
-@if($item->isForwarded())
+@if($item->isForwarded() && empty($hide_sa))
     <span class="badge {{ $fbSaBadges[$item->sa_status] ?? 'badge-info' }}">SA: {{ $item->saStatusLabel() }}</span>
 @endif

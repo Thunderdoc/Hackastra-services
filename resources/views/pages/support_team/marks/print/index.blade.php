@@ -9,6 +9,15 @@
         @page { size: auto; margin: 10mm; }
         html { background: #fff; }
         body { margin: 0; font-family: "Segoe UI", Arial, sans-serif; }
+        /* B round 7: on phone screens the marks table (681px wide at
+           360px) pushed the whole document sideways — a FIT-rule
+           violation. Screen-only: the card itself becomes the inner
+           scrollport (the accepted wide-table pattern); print
+           geometry is untouched, and the dompdf blades (bulk_pdf)
+           never include this blade, so no PDF surface moves. */
+        @media screen {
+            .report-card { overflow-x: auto; max-width: 100%; }
+        }
     </style>
 </head>
 <body>

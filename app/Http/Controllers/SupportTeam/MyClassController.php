@@ -17,7 +17,9 @@ class MyClassController extends Controller
     {
         // Workstream CM: reads (index/show) stay teamSA — SA keeps
         // oversight; every write goes to the Admin write team.
-        $this->middleware('teamSA', ['only' => ['index', 'show']]);
+        // Limited principal role (owner order 2026-10-28): reads
+        // are also open to the principal (school-wide monitoring).
+        $this->middleware('teamOrPrincipal:SA', ['only' => ['index', 'show']]);
         $this->middleware('teamSAWrite', ['except' => ['index', 'show']]);
 
         $this->my_class = $my_class;

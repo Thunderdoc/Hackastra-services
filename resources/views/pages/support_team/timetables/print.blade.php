@@ -28,6 +28,13 @@
         .tt-titleband { background: #10263b; color: #fff; text-align: center; padding: 7px 8px; margin: 12px 0 4px; font-size: 15px; font-weight: bold; text-transform: uppercase; letter-spacing: .6px; }
 
         .tt-wrap { position: relative; }
+        /* B round 6: same screen-only inner-scroll fix as the
+           teacher week print — at 360px the wide grid pushed the
+           whole document sideways (~787px). Print geometry
+           untouched. */
+        @media screen {
+            .tt-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; max-width: 100%; }
+        }
         .tt-wm { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 280px; max-height: 340px; opacity: .06; z-index: 0; filter: grayscale(1); }
         .tt-wm-mono { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-18deg); font-size: 150px; font-weight: 800; letter-spacing: .05em; line-height: 1; color: #10263b; opacity: .055; z-index: 0; white-space: nowrap; }
 

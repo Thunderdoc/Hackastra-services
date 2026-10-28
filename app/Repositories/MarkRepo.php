@@ -66,7 +66,9 @@ class MarkRepo
 
         $mk = Mark::where($d)->where($tex, '>', 0);
         $avg = $mk->select($tex)->avg($tex);
-        return round($avg, 1);
+        // Wave 32: avg() over an empty set is NULL; round(NULL) is a
+        // deprecation on PHP 8.1+ and a fake 0 would corrupt the card.
+        return $avg === null ? null : round($avg, 1);
 
         /*unset($d['exam_id']);
         $mk = Mark::where($d); $count = 0;
@@ -108,7 +110,8 @@ class MarkRepo
         $d = [ 'exam_id' => $exam->id, 'my_class_id' => $class_id, 'subject_id' => $sub_id, 'student_id' => $st_id, 'year' => $year ];
         $tex = 'tex'.$exam->term;
 
-        return Mark::where($d)->select($tex)->get()->first()->$tex;
+        // Missing subject mark reads as NULL (no row) instead of crashing.
+        return Mark::where($d)->select($tex)->get()->first()?->$tex;
     }
 
     public function getSubPos($st_id, $exam, $class_id, $sub_id, $year)
@@ -138,7 +141,8 @@ class MarkRepo
         $tex = 'tex'.$exam->term;
 
         $avg = Mark::where($d)->select($tex)->avg($tex);
-        return round($avg, 1);
+        // Wave 32: see getExamAvgTerm — NULL stays NULL, never a fake 0.
+        return $avg === null ? null : round($avg, 1);
     }
 
     public function getPos($st_id, $exam, $class_id, $sec_id, $year)

@@ -16,10 +16,11 @@ use App\Support\Audit;
 use App\Support\MarkComputation;
 use App\Support\Notify;
 use App\Support\MarkScheme;
+use App\Support\SectionTeacher;
 use App\Support\ShareTargets;
-use App\Support\TeacherScope;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 /**
@@ -717,11 +718,28 @@ class AssignmentController extends Controller
             return back()->with($this->errFlash('Please choose an exam.'));
         }
 
-        // The teacher must actually teach this subject in this class.
-        $teaches = Subject::where('id', $assignment->subject_id)
-            ->where('my_class_id', $assignment->my_class_id)
-            ->where('teacher_id', Auth::id())->exists();
-        if (!$teaches || !TeacherScope::canTeachClass(Auth::user(), $assignment->my_class_id)) {
+        // Allotment round 26 (F-R26-1): the caller above is PROVEN
+        // to be the assignment's owner, and a push acts on that
+        // EXISTING row only — its target is always the assignment's
+        // own class/section/subject, and the averaged population is
+        // always the owner's own assignments (siblingAssignments
+        // keys on source->teacher_id, never on the caller). So the
+        // push gains no new teaching surface, and the
+        // effective-teacher + scope legs are exempt for the owner —
+        // exactly the round-18 non-retarget exemption applied to
+        // assignment edits. Without this, removing an override
+        // FROZE the bridge: the owner could still open the preview
+        // (ownership-only) but every push was refused, while the
+        // new subject teacher could not push either (ownership
+        // 403) and admin cannot push at all (teacher-only entry).
+        // The subject-exists + subject/class integrity check STAYS:
+        // a subject moved to another class still refuses, as before.
+        // (The old round-6 comment below described the pre-26 rule:
+        // the teacherIdFor leg refused an override teacher's push
+        // until round 6 fixed it to effective-teacher; round 26
+        // now exempts the owner entirely for the reason above.)
+        $subject = Subject::find($assignment->subject_id);
+        if (!$subject || (int) $subject->my_class_id !== (int) $assignment->my_class_id) {
             return back()->with($this->errFlash('You do not teach this subject for this class.'));
         }
 
@@ -857,8 +875,17 @@ class AssignmentController extends Controller
     /** Form data shared by create/edit. */
     protected function formData(): array
     {
+        // Subjects the teacher teaches: class-wide subject teacher
+        // PLUS any section where they hold an override (round-6
+        // allotment fix — the old raw-only list hid override subjects
+        // from the create/edit pickers entirely).
+        $direct = Subject::where('teacher_id', Auth::id())->pluck('id');
+        $override = DB::table('section_subject_teachers')
+            ->where('teacher_id', Auth::id())
+            ->pluck('subject_id');
         $subjects = Subject::with('my_class')
-            ->where('teacher_id', Auth::id())->get();
+            ->whereIn('id', $direct->merge($override)->unique()->values())
+            ->get();
         $classIds = $subjects->pluck('my_class_id')->unique();
 
         return [
@@ -883,9 +910,13 @@ class AssignmentController extends Controller
             'attachment' => 'nullable|' . $this->fileRules,
         ]);
 
-        // The subject row is class-bound and must be THIS teacher's.
-        $subject = Subject::where('id', $data['subject_id'])
-            ->where('teacher_id', Auth::id())->first();
+        // The subject row is class-bound and must be taught by THIS
+        // teacher: the section override wins for a section-scoped
+        // assignment, else the class-wide subject teacher
+        // (SectionTeacher::teacherIdFor — round-6 allotment fix; the
+        // old raw subjects.teacher_id check refused override-only
+        // teachers for their own override sections).
+        $subject = Subject::find($data['subject_id']);
         if (!$subject || $subject->my_class_id != $data['my_class_id']) {
             abort(403, 'You do not teach this subject for this class.');
         }
@@ -895,6 +926,25 @@ class AssignmentController extends Controller
             if (!$ok) {
                 abort(422, 'The chosen section does not belong to this class.');
             }
+        }
+        // Allotment round 18 (F-R18-1): an UPDATE that does not
+        // retarget the assignment (same class/section/subject as
+        // the existing row) gains no new teaching surface — the
+        // owner only edits their own existing row — so it is
+        // exempt from the effective-teacher check. Without this,
+        // removing an override FROZE the teacher's own
+        // assignments: edit opens (ownership-only) but every save
+        // 403s, while the new subject teacher cannot edit them
+        // either (ownership gate) and admin can only delete.
+        // A retarget to a subject the teacher does not teach is
+        // still refused below; creates ($existing null) always
+        // check.
+        $retargeted = !$existing
+            || (int) $data['my_class_id'] !== (int) $existing->my_class_id
+            || (int) ($data['section_id'] ?? 0) !== (int) ($existing->section_id ?? 0)
+            || (int) $data['subject_id'] !== (int) $existing->subject_id;
+        if ($retargeted && (int) SectionTeacher::teacherIdFor($data['section_id'] ?? null, $subject) !== (int) Auth::id()) {
+            abort(403, 'You do not teach this subject for this class.');
         }
 
         $data['allow_late'] = $req->boolean('allow_late');

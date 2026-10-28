@@ -36,7 +36,7 @@
                     <div class="media-body">
                         <div class="media-title font-weight-semibold">{{ Auth::user()->name }}</div>
                         <div class="font-size-xs opacity-50">
-                            <i class="icon-user font-size-sm"></i> &nbsp;{{ ucwords(str_replace('_', ' ', Auth::user()->user_type)) }}
+                            <i class="icon-user font-size-sm"></i> &nbsp;@if(Qs::userIsPrincipal())Principal@else{{ ucwords(str_replace('_', ' ', Auth::user()->user_type)) }}@endif
                         </div>
                     </div>
 
@@ -51,7 +51,9 @@
 
         <!-- Main navigation -->
         <div class="card card-sidebar-mobile">
-            <ul class="nav nav-sidebar" data-nav-type="accordion">@if(Qs::userIsTeacher())
+            <ul class="nav nav-sidebar" data-nav-type="accordion">@if(Qs::userIsPrincipal())
+                @include('pages.principal.menu')
+            @elseif(Qs::userIsTeacher())
                 <li class="nav-item">
                     <a href="{{ route('dashboard') }}" class="nav-link {{ (Route::is('dashboard')) ? 'active' : '' }}">
                         <i class="icon-home4"></i>
@@ -123,6 +125,9 @@
                         <li class="nav-item">
                             <a href="{{ route('students.list') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['students.list', 'students.edit', 'students.show']) ? 'active' : '' }}">Student Information</a>
                         </li>
+                        <li class="nav-item">
+                            <a href="{{ route('students.id_cards.bulk') }}" class="nav-link {{ (Route::is('students.id_cards.*')) ? 'active' : '' }}">Bulk ID Cards</a>
+                        </li>
                     </ul>
                 </li>
                 <li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Examinations</div><i class="icon-menu" title="Examinations"></i></li>
@@ -148,6 +153,84 @@
                              now refuse the teacher role server-side too. --}}
                     </ul>
                 </li>
+                <li class="nav-item">
+                    <a href="{{ route('reports.builder') }}" class="nav-link {{ (Route::is('reports.*')) ? 'active' : '' }}">
+                        <i class="icon-file-text2"></i>
+                        <span>Reports & PDF Builder</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('analytics.index') }}" class="nav-link {{ (Route::is('analytics.*')) ? 'active' : '' }}">
+                        <i class="icon-stats-bars"></i>
+                        <span>Analytics Dashboard</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('quizzes.index') }}" class="nav-link {{ (Route::is('quizzes.*')) ? 'active' : '' }}">
+                        <i class="icon-file-text2"></i>
+                        <span>Quizzes</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('lesson_plans.index') }}" class="nav-link {{ (Route::is('lesson_plans.*')) ? 'active' : '' }}">
+                        <i class="icon-book"></i>
+                        <span>Lesson Plans</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('homework_tracker.index') }}" class="nav-link {{ (Route::is('homework_tracker.*')) ? 'active' : '' }}">
+                        <i class="icon-history"></i>
+                        <span>Homework Tracker</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('substitutions.index') }}" class="nav-link {{ (Route::is('substitutions.*')) ? 'active' : '' }}">
+                        <i class="icon-users"></i>
+                        <span>Substitutions</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('class_overview.index') }}" class="nav-link {{ (Route::is('class_overview.*')) ? 'active' : '' }}">
+                        <i class="icon-watch"></i>
+                        <span>Class Overview</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('question_bank.index') }}" class="nav-link {{ (Route::is('question_bank.*')) ? 'active' : '' }}">
+                        <i class="icon-book"></i>
+                        <span>Question Bank</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('parent_messages.index') }}" class="nav-link {{ (Route::is('parent_messages.*')) ? 'active' : '' }}">
+                        <i class="icon-file-text2"></i>
+                        <span>Parent Messages</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('ptm.index') }}" class="nav-link {{ (Route::is('ptm.*')) ? 'active' : '' }}">
+                        <i class="icon-calendar3"></i>
+                        <span>PTM Meetings</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('health_records.index') }}" class="nav-link {{ (Route::is('health_records.*')) ? 'active' : '' }}">
+                        <i class="icon-users"></i>
+                        <span>Health Records</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('discipline_records.index') }}" class="nav-link {{ (Route::is('discipline_records.*')) ? 'active' : '' }}">
+                        <i class="icon-file-text2"></i>
+                        <span>Discipline Records</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('leave.student_requests') }}" class="nav-link {{ (Route::is('leave.student_requests') || Route::is('leave.decide')) ? 'active' : '' }}">
+                        <i class="icon-calendar2"></i>
+                        <span>Student Leave Requests</span>
+                    </a>
+                </li>
                 <li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Account</div><i class="icon-menu" title="Account"></i></li>
                 <li class="nav-item">
                     <a href="{{ route('my_account') }}" class="nav-link {{ (Route::is('my_account')) ? 'active' : '' }}">
@@ -165,6 +248,15 @@
                     <a href="{{ route('my_payslips.index') }}" class="nav-link {{ (Route::is('my_payslips.*')) ? 'active' : '' }}">
                         <i class="icon-coin-dollar"></i>
                         <span>My Payslips</span>
+                    </a>
+                </li>
+                {{-- Break-it fix 2026-10-28: teachers never saw My Leave —
+                     the only My Leave item lived in the non-teacher
+                     branch, which the teacher branch never reaches. --}}
+                <li class="nav-item">
+                    <a href="{{ route('leave.my') }}" class="nav-link {{ (Route::is('leave.my') || Route::is('leave.store')) ? 'active' : '' }}">
+                        <i class="icon-calendar2"></i>
+                        <span>My Leave</span>
                     </a>
                 </li>
                 {{-- Feedback (Workstream CW): report to the school Admin + own list --}}
@@ -273,6 +365,14 @@
                     </a>
                 </li>
                 @endif
+                @if(auth()->user()->user_type === 'accountant')
+                <li class="nav-item">
+                    <a href="{{ route('reports.builder') }}" class="nav-link {{ (Route::is('reports.*')) ? 'active' : '' }}">
+                        <i class="icon-file-text2"></i>
+                        <span>Reports & PDF Builder</span>
+                    </a>
+                </li>
+                @endif
 
                 <li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Communication</div><i class="icon-menu" title="Communication"></i></li>
                 @if(Qs::userIsTeamSA())
@@ -308,25 +408,29 @@
                 {{--Administrative--}}
                 @if(Qs::userIsAdministrative())
                     <li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Administration</div><i class="icon-menu" title="Administration"></i></li>
-                    <li class="nav-item nav-item-submenu {{ in_array(Route::currentRouteName(), ['payments.index', 'payments.create', 'payments.invoice', 'payments.receipts', 'payments.edit', 'payments.manage', 'payments.show', 'payments.defaulters', 'payments.collection', 'payroll.index', 'payroll.payslip',]) ? 'nav-item-expanded nav-item-open' : '' }} ">
+                    <li class="nav-item nav-item-submenu {{ in_array(Route::currentRouteName(), ['payments.index', 'payments.create', 'payments.invoice', 'payments.receipts', 'payments.edit', 'payments.manage', 'payments.show', 'payments.defaulters', 'payments.collection', 'payroll.index', 'payroll.payslip', 'expenses.index', 'expenses.create', 'expenses.edit', 'expenses.report', 'fee_structure.index',]) ? 'nav-item-expanded nav-item-open' : '' }} ">
                         <a href="#" class="nav-link"><i class="icon-office"></i> <span> Administrative</span></a>
 
                         <ul class="nav nav-group-sub" data-submenu-title="Administrative">
 
                             {{--Payments--}}
                             @if(Qs::userIsTeamAccount())
-                            <li class="nav-item nav-item-submenu {{ in_array(Route::currentRouteName(), ['payments.index', 'payments.create', 'payments.edit', 'payments.manage', 'payments.show', 'payments.invoice', 'payments.defaulters', 'payments.collection', 'payroll.index', 'payroll.payslip']) ? 'nav-item-expanded' : '' }}">
+                            <li class="nav-item nav-item-submenu {{ in_array(Route::currentRouteName(), ['payments.index', 'payments.create', 'payments.edit', 'payments.manage', 'payments.show', 'payments.invoice', 'payments.defaulters', 'payments.collection', 'payroll.index', 'payroll.payslip', 'expenses.index', 'expenses.create', 'expenses.edit', 'expenses.report', 'fee_structure.index']) ? 'nav-item-expanded' : '' }}">
 
-                                <a href="#" class="nav-link {{ in_array(Route::currentRouteName(), ['payments.index', 'payments.edit', 'payments.create', 'payments.manage', 'payments.show', 'payments.invoice', 'payments.defaulters', 'payments.collection', 'payroll.index', 'payroll.payslip']) ? 'active' : '' }}">Payments</a>
+                                <a href="#" class="nav-link {{ in_array(Route::currentRouteName(), ['payments.index', 'payments.edit', 'payments.create', 'payments.manage', 'payments.show', 'payments.invoice', 'payments.defaulters', 'payments.collection', 'payroll.index', 'payroll.payslip', 'expenses.index', 'expenses.create', 'expenses.edit', 'expenses.report', 'fee_structure.index']) ? 'active' : '' }}">Payments</a>
 
                                 <ul class="nav nav-group-sub">
                                     @if(Qs::userIsTeamAccountWrite())
                                     <li class="nav-item"><a href="{{ route('payments.create') }}" class="nav-link {{ Route::is('payments.create') ? 'active' : '' }}">Create Payment</a></li>
                                     @endif
                                     <li class="nav-item"><a href="{{ route('payments.index') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['payments.index', 'payments.edit', 'payments.show']) ? 'active' : '' }}">Manage Payments</a></li>
+                                    @if(Qs::userIsTeamSA())
+                                    <li class="nav-item"><a href="{{ route('fee_structure.index') }}" class="nav-link {{ Route::is('fee_structure.*') ? 'active' : '' }}">Fee Structure Builder</a></li>
+                                    @endif
                                     <li class="nav-item"><a href="{{ route('payments.manage') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['payments.manage', 'payments.invoice', 'payments.receipts']) ? 'active' : '' }}">Student Payments</a></li>
                                     <li class="nav-item"><a href="{{ route('payments.defaulters') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['payments.defaulters']) ? 'active' : '' }}">Fee Defaulters</a></li>
                                     <li class="nav-item"><a href="{{ route('payments.collection') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['payments.collection']) ? 'active' : '' }}">Collection Report</a></li>
+                                    <li class="nav-item"><a href="{{ route('expenses.index') }}" class="nav-link {{ Route::is('expenses.*') ? 'active' : '' }}">Expenses</a></li>
                                     @if(Qs::userIsTeamSA())
                                     <li class="nav-item"><a href="{{ route('payroll.index') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['payroll.index', 'payroll.payslip']) ? 'active' : '' }}">Payroll</a></li>
                                     @endif
@@ -377,6 +481,12 @@
                             <li class="nav-item">
                                 <a href="{{ route('students.list') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['students.list', 'students.edit', 'students.show']) ? 'active' : '' }}">Student Information</a>
                             </li>
+
+                            @if(Qs::userIsAdmin())
+                            <li class="nav-item">
+                                <a href="{{ route('students.id_cards.bulk') }}" class="nav-link {{ (Route::is('students.id_cards.*')) ? 'active' : '' }}">Bulk ID Cards</a>
+                            </li>
+                            @endif
 
                             @if(Qs::userIsTeamSA())
 
@@ -431,6 +541,19 @@
                         <a href="{{ route('dorms.index') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['dorms.index','dorms.edit']) ? 'active' : '' }}"><i class="icon-home9"></i> <span> Dormitories</span></a>
                     </li>
 
+                    {{--Wave 2: Hostel, Transport, Inventory (admin-only, like their route gates)--}}
+                    @if(Qs::userIsTeamSA())
+                    <li class="nav-item">
+                        <a href="{{ route('hostel.rooms.index') }}" class="nav-link {{ (Route::is('hostel.*')) ? 'active' : '' }}"><i class="icon-home9"></i> <span> Hostel</span></a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ route('transport.index') }}" class="nav-link {{ (Route::is('transport.*')) ? 'active' : '' }}"><i class="icon-bus"></i> <span> Transport</span></a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ route('inventory.index') }}" class="nav-link {{ (Route::is('inventory.*')) ? 'active' : '' }}"><i class="icon-box"></i> <span> Inventory / Store</span></a>
+                    </li>
+                    @endif
+
                     {{--Manage Sections--}}
                     <li class="nav-item">
                         <a href="{{ route('sections.index') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['sections.index','sections.edit',]) ? 'active' : '' }}"><i class="icon-fence"></i> <span>Sections</span></a>
@@ -464,6 +587,9 @@
                     @if(Qs::userIsAdmin())
                     <li class="nav-item">
                         <a href="{{ route('feedback.index') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['feedback.index', 'feedback.show']) ? 'active' : '' }}"><i class="icon-bubbles"></i> <span>Feedback Inbox</span></a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ route('backup.index') }}" class="nav-link {{ (Route::is('backup.*')) ? 'active' : '' }}"><i class="icon-database"></i> <span>Backup & Monitoring</span></a>
                     </li>
                     @endif
                     @if(Qs::userIsSuperAdmin())

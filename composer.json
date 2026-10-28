@@ -15,6 +15,7 @@
         "guzzlehttp/guzzle": "^7.8",
         "hashids/hashids": "^4.1.0",
         "laravel/framework": "^12.0",
+        "laravel/sanctum": "^4.3",
         "laravel/tinker": "^2.9",
         "laravel/ui": "^4.0",
         "razorpay/razorpay": "^2.9",

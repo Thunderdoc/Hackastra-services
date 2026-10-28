@@ -104,6 +104,13 @@ class ExamDutyController extends Controller
         $note = Invigilation::isOwnSubject($teacherId, $sitting)
             ? ' Note: this is the teacher\'s own subject for this class.'
             : '';
+        // Batch 2026-10-28 (exam-timetable round 6): manual
+        // assignment of an on-leave teacher stays allowed for
+        // deliberate record-keeping, but it must not pass silently
+        // — warn exactly like the own-subject note above.
+        $note .= Invigilation::isOnApprovedLeave($teacherId, $sitting->exam_date)
+            ? ' Note: this teacher is on approved leave covering this date.'
+            : '';
 
         return back()->with('flash_success', 'Invigilator saved.' . $note);
     }
@@ -118,6 +125,16 @@ class ExamDutyController extends Controller
             . (count($result['unfilled']) ? ' — unfilled: ' . implode('; ', $result['unfilled']) : ''));
 
         $message = 'Auto-assignment complete: ' . $result['assigned'] . ' sitting(s) got an invigilator.';
+        if (!empty($result['skipped_past'])) {
+            $message .= ' ' . $result['skipped_past'] . ' past sitting(s) skipped — their papers already happened.';
+        }
+        // Batch 2026-10-28 (exam-timetable round 6): name leave
+        // whenever it shaped a filled sitting — appended before the
+        // unfilled branch so it shows on both flash kinds, and
+        // silent when the count is 0.
+        if (!empty($result['filled_despite_leave'])) {
+            $message .= ' ' . $result['filled_despite_leave'] . ' sitting(s) filled while other teachers were on approved leave.';
+        }
         if (!empty($result['unfilled'])) {
             $message .= ' Could not fill: ' . implode('; ', $result['unfilled']);
             return back()->with('flash_danger', $message);

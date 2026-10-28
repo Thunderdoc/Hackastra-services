@@ -55,6 +55,10 @@
                     <input id="break_minutes" name="break_minutes" type="number" min="5" max="45" class="form-control" value="{{ old('break_minutes', $defaults['break_minutes']) }}">
                 </div>
                 <div class="pat-field">
+                    <label for="max_teacher_periods_per_day">Max periods per teacher per day (empty = no cap)</label>
+                    <input id="max_teacher_periods_per_day" name="max_teacher_periods_per_day" type="number" min="1" max="12" class="form-control" value="{{ old('max_teacher_periods_per_day') }}" placeholder="e.g. 6 — capped periods stay free for the teacher">
+                </div>
+                <div class="pat-field">
                     <label for="scope">Generate for <span class="text-danger">*</span></label>
                     <select id="scope" name="scope" class="form-control">
                         <option value="all" {{ old('scope', !empty($preset_class) ? 'one' : 'all') === 'all' ? 'selected' : '' }}>All classes</option>
@@ -78,7 +82,7 @@
                             <option value="{{ $sec->id }}" {{ old('section_id') == $sec->id ? 'selected' : '' }}>{{ $sec->name }}</option>
                         @endforeach
                     </select>
-                    <small class="text-muted">Leave blank for the whole-class grid. Pick a section to generate that section's own grid, with its own teachers and timings.</small>
+                    <small class="text-muted">Leave blank for the whole-class grid. Pick a section to generate that section's own grid, with its own teachers and timings. Fully-streamed classes (every section has a stream) have no whole-class grid — pick a section.</small>
                 </div>
                 <div class="pat-field">
                     <label for="mode">Classes that already have a timetable <span class="text-danger">*</span></label>
@@ -135,26 +139,161 @@
             @endforeach
         </div>
 
-        <div class="pat-form-section">
+        <div class="pat-form-section" id="tt-subjects">
             <div class="pat-form-section-title">Subjects to include</div>
-            <p class="text-muted">Uncheck subjects to leave them out of the generated grids. All subjects are included by default. Subjects with no teacher are marked — their periods may stay empty until a teacher is assigned.</p>
-            @php $subjectsSubmitted = old('subjects_present') !== null; @endphp
-            @foreach($subject_groups as $group)
-                @if($group['subjects']->isNotEmpty())
-                <details @if($loop->first) open @endif style="margin-bottom: 8px;">
-                    <summary>{{ $group['class']->name }} — {{ ($class_levels[$group['class']->id] ?? 'secondary') === 'primary' ? 'Primary' : 'Secondary' }} ({{ $group['subjects']->count() }} subjects)</summary>
-                    <input type="hidden" name="subjects_present[{{ $group['class']->id }}]" value="1">
-                    @foreach($group['subjects'] as $sub)
-                        @php $checked = $subjectsSubmitted ? in_array($sub->id, (array) old('subjects.' . $group['class']->id, [])) : true; @endphp
-                        <label style="display: inline-block; margin: 2px 12px 2px 0;">
-                            <input type="checkbox" name="subjects[{{ $group['class']->id }}][]" value="{{ $sub->id }}" {{ $checked ? 'checked' : '' }}>
-                            {{ $sub->name }}@if(!$sub->teacher_id) <span class="text-danger">(no teacher)</span>@endif
-                        </label>
-                    @endforeach
-                </details>
+            <p class="text-muted">Classes run in order (Prep, Class 1 … Class 12), grouped by school stage — Primary (Prep – Class 5) and Secondary (Class 6 – 12). For Classes 11–12 the subjects are grouped by CBSE stream: Common, PCM, PCB, shared PCM &amp; PCB, Commerce and Arts. Uncheck subjects to leave them out of the generated grids. All subjects are included by default. Subjects with no teacher are marked — their periods may stay empty until a teacher is assigned. <span id="tt-subject-count"></span></p>
+            <p class="text-muted" id="tt-scope-note"></p>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">
+                <input type="text" id="tt-subject-filter" class="form-control" style="max-width: 320px;" placeholder="Filter subjects… e.g. Physics">
+                <button type="button" class="btn btn-light btn-sm" id="tt-expand-all">Expand all classes</button>
+                <button type="button" class="btn btn-light btn-sm" id="tt-collapse-all">Collapse all classes</button>
+                <button type="button" class="btn btn-light btn-sm" id="tt-select-all-subjects">Select all subjects</button>
+                <button type="button" class="btn btn-light btn-sm" id="tt-clear-all-subjects">Clear all subjects</button>
+            </div>
+            @php
+                $subjectsSubmitted = old('subjects_present') !== null;
+                $stageGroups = ['primary' => [], 'secondary' => []];
+                foreach ($subject_groups as $group) {
+                    if ($group['subjects']->isEmpty()) continue;
+                    $stage = ($class_levels[$group['class']->id] ?? 'secondary') === 'primary' ? 'primary' : 'secondary';
+                    $stageGroups[$stage][] = $group;
+                }
+                $firstGroup = true;
+            @endphp
+            @foreach(['primary' => 'Primary — Prep to Class 5', 'secondary' => 'Secondary — Class 6 to Class 12'] as $stageKey => $stageLabel)
+                @if(!empty($stageGroups[$stageKey]))
+                <div style="margin: 16px 0 4px; font-weight: 700; font-size: 15px;">{{ $stageLabel }}</div>
+                @foreach($stageGroups[$stageKey] as $group)
+                    @php
+                        $openFirst = $firstGroup; $firstGroup = false;
+                        $checkedCount = 0;
+                        foreach ($group['subjects'] as $sub) {
+                            if ($subjectsSubmitted ? in_array($sub->id, (array) old('subjects.' . $group['class']->id, [])) : true) $checkedCount++;
+                        }
+                        $streamGroups = \App\Support\Streams::groupForDisplay($group['subjects']);
+                    @endphp
+                    <details class="tt-class-group" data-class-id="{{ $group['class']->id }}" @if($openFirst) open @endif style="margin-bottom: 10px; border: 1px solid #e5e7eb; border-radius: 8px; padding: 8px 12px;">
+                        <summary style="cursor: pointer; font-weight: 600;">{{ $group['class']->name }} — {{ $stageKey === 'primary' ? 'Primary' : 'Secondary' }} ({{ $group['subjects']->count() }} subjects) · <span class="tt-class-count">{{ $checkedCount }} of {{ $group['subjects']->count() }} selected</span></summary>
+                        <div style="margin: 8px 0;">
+                            <button type="button" class="btn btn-light btn-sm tt-toggle" data-scope="class" data-check="1">All</button>
+                            <button type="button" class="btn btn-light btn-sm tt-toggle" data-scope="class" data-check="0">None</button>
+                        </div>
+                        <input type="hidden" name="subjects_present[{{ $group['class']->id }}]" value="1">
+                        @foreach($streamGroups as $streamGroup)
+                            @if(count($streamGroups) > 1)
+                            <div class="tt-stream" style="margin-top: 10px;">
+                                <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 4px;">
+                                    <strong>{{ $streamGroup['label'] }}</strong>
+                                    <button type="button" class="btn btn-light btn-sm tt-toggle" data-scope="stream" data-check="1">All</button>
+                                    <button type="button" class="btn btn-light btn-sm tt-toggle" data-scope="stream" data-check="0">None</button>
+                                </div>
+                            @else
+                            <div class="tt-stream" style="margin-top: 6px;">
+                            @endif
+                                @foreach($streamGroup['subjects'] as $sub)
+                                    @php $checked = $subjectsSubmitted ? in_array($sub->id, (array) old('subjects.' . $group['class']->id, [])) : true; @endphp
+                                    <label class="tt-subject-label" style="display: inline-block; margin: 2px 12px 2px 0;">
+                                        <input type="checkbox" class="tt-subject-check" name="subjects[{{ $group['class']->id }}][]" value="{{ $sub->id }}" {{ $checked ? 'checked' : '' }}>
+                                        {{ $sub->name }}@if(!$sub->teacher_id) <span class="text-danger">(no teacher)</span>@endif
+                                    </label>
+                                @endforeach
+                            </div>
+                        @endforeach
+                    </details>
+                @endforeach
                 @endif
             @endforeach
         </div>
     @endcomponent
 
+@endsection
+
+@section('scripts')
+    <script>
+        (function () {
+            var root = document.getElementById('tt-subjects');
+            if (!root) return;
+
+            function updateCounts() {
+                var totalChecked = 0, total = 0;
+                root.querySelectorAll('.tt-class-group').forEach(function (g) {
+                    var checks = g.querySelectorAll('.tt-subject-check');
+                    var checked = g.querySelectorAll('.tt-subject-check:checked').length;
+                    var span = g.querySelector('.tt-class-count');
+                    if (span) span.textContent = checked + ' of ' + checks.length + ' selected';
+                    totalChecked += checked; total += checks.length;
+                });
+                var totalSpan = document.getElementById('tt-subject-count');
+                if (totalSpan) totalSpan.textContent = totalChecked + ' of ' + total + ' subjects selected.';
+            }
+
+            function updateScopeNote() {
+                var scope = document.getElementById('scope');
+                var classSel = document.getElementById('class_id');
+                var note = document.getElementById('tt-scope-note');
+                if (!scope || !note) return;
+                if (scope.value === 'one') {
+                    var name = (classSel && classSel.value) ? classSel.options[classSel.selectedIndex].text : '';
+                    note.textContent = name
+                        ? 'One class only: only ' + name + ' subjects below will be used.'
+                        : 'One class only: pick a class above — only that class’s subjects will be used.';
+                } else {
+                    note.textContent = 'All classes: every class’s subjects below are used.';
+                }
+            }
+
+            root.addEventListener('change', function (e) {
+                if (e.target.classList && e.target.classList.contains('tt-subject-check')) updateCounts();
+            });
+
+            root.addEventListener('click', function (e) {
+                var btn = e.target.closest ? e.target.closest('.tt-toggle') : null;
+                if (!btn) return;
+                var container = btn.dataset.scope === 'stream' ? btn.closest('.tt-stream') : btn.closest('.tt-class-group');
+                if (!container) return;
+                var check = btn.dataset.check === '1';
+                container.querySelectorAll('.tt-subject-check').forEach(function (c) { c.checked = check; });
+                updateCounts();
+            });
+
+            function setAll(check) {
+                root.querySelectorAll('.tt-subject-check').forEach(function (c) { c.checked = check; });
+                updateCounts();
+            }
+            document.getElementById('tt-select-all-subjects').addEventListener('click', function () { setAll(true); });
+            document.getElementById('tt-clear-all-subjects').addEventListener('click', function () { setAll(false); });
+            document.getElementById('tt-expand-all').addEventListener('click', function () {
+                root.querySelectorAll('.tt-class-group').forEach(function (g) { g.open = true; });
+            });
+            document.getElementById('tt-collapse-all').addEventListener('click', function () {
+                root.querySelectorAll('.tt-class-group').forEach(function (g) { g.open = false; });
+            });
+
+            var filter = document.getElementById('tt-subject-filter');
+            if (filter) {
+                filter.addEventListener('keydown', function (e) { if (e.key === 'Enter') e.preventDefault(); });
+                filter.addEventListener('input', function () {
+                    var q = filter.value.trim().toLowerCase();
+                    root.querySelectorAll('.tt-subject-label').forEach(function (label) {
+                        label.style.display = (!q || label.textContent.toLowerCase().indexOf(q) !== -1) ? 'inline-block' : 'none';
+                    });
+                    root.querySelectorAll('.tt-stream').forEach(function (stream) {
+                        var visible = Array.prototype.filter.call(stream.querySelectorAll('.tt-subject-label'), function (l) { return l.style.display !== 'none'; }).length;
+                        stream.style.display = visible ? '' : 'none';
+                    });
+                    root.querySelectorAll('.tt-class-group').forEach(function (g) {
+                        var visible = Array.prototype.filter.call(g.querySelectorAll('.tt-subject-label'), function (l) { return l.style.display !== 'none'; }).length;
+                        g.style.display = visible ? '' : 'none';
+                    });
+                });
+            }
+
+            var scope = document.getElementById('scope');
+            var classSel = document.getElementById('class_id');
+            if (scope) scope.addEventListener('change', updateScopeNote);
+            if (classSel) classSel.addEventListener('change', updateScopeNote);
+            updateCounts();
+            updateScopeNote();
+        })();
+    </script>
 @endsection

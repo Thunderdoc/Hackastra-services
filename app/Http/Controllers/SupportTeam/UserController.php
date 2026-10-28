@@ -28,7 +28,13 @@ class UserController extends Controller
         // check) — the constructor gate alone cannot express it.
         // ('create' joins the gated list: it previously rendered the
         // account form to any authenticated user who guessed the URL.)
-        $this->middleware('teamSA', ['only' => ['index', 'create', 'store', 'edit', 'update'] ]);
+        // Limited principal role (owner order 2026-10-28): the
+        // staff LIST is readable by the principal (monitoring);
+        // every write stays teamSA — the index buttons are
+        // userIsAdmin/userIsSuperAdmin-gated in the blade, so a
+        // principal viewer sees no action buttons by construction.
+        $this->middleware('teamSA', ['only' => ['create', 'store', 'edit', 'update'] ]);
+        $this->middleware('teamOrPrincipal:SA', ['only' => ['index'] ]);
         $this->middleware('teamSA', ['only' => ['reset_pass','destroy','suspend','activate','terminate'] ]);
 
         $this->user = $user;
@@ -69,10 +75,20 @@ class UserController extends Controller
            in their own surfaces (Students list, parent portal).
            Scoped server-side like the SA rule above, so a tampered
            ?user_type=parent cannot reveal them — the role filter only
-           offers roles the viewer may see. */
+           offers roles the viewer may see.
+           Limited principal role (owner order 2026-10-28): the
+           principal reads the same staff list as the Admin — and
+           never platform accounts: without this branch a principal
+           viewer would get the unfiltered list (super_admin rows
+           included), since neither the SA nor the Admin branch
+           applies to the new type. */
         if (Qs::userIsAdmin()) {
             $d['user_types'] = $ut2->whereNotIn('title', ['student', 'parent'])->values();
-            $d['users'] = $d['users']->whereNotIn('user_type', ['student', 'parent'])->values();
+            $d['users'] = $d['users']->whereNotIn('user_type', ['student', 'parent', 'super_admin'])->values();
+        }
+        if (Qs::userIsPrincipal()) {
+            $d['user_types'] = $ut2->whereNotIn('title', ['student', 'parent'])->values();
+            $d['users'] = $d['users']->whereNotIn('user_type', ['student', 'parent', 'super_admin'])->values();
         }
         $d['nationals'] = $this->loc->getAllNationals();
         $d['blood_groups'] = $this->user->getBloodGroups();
@@ -425,6 +441,16 @@ class UserController extends Controller
             return back()->with('pop_error', __('msg.del_teacher'));
         }
 
+        /* Allotment guard (parent, 2026-10-28, agent F's F8 gap):
+           a teacher who leads sections or holds per-section subject
+           overrides must not be deletable either — otherwise the
+           section/override rows orphan onto a deleted id (the
+           subject-teacher guard above covers only subjects.teacher_id).
+           The Admin removes the assignments first, then deletes. */
+        if($user->user_type == 'teacher' && $this->userHasTeachingAttachments($user)) {
+            return back()->with('pop_error', 'This teacher still leads sections or holds section subject overrides. Remove those assignments first, then delete.');
+        }
+
         $path = Qs::getUploadPath($user->user_type).$user->code;
         Storage::exists($path) ? Storage::deleteDirectory($path) : true;
         $this->user->delete($user->id);
@@ -436,6 +462,14 @@ class UserController extends Controller
     {
         $subjects = $this->my_class->findSubjectByTeacher($user->id);
         return ($subjects->count() > 0) ? true : false;
+    }
+
+    protected function userHasTeachingAttachments($user)
+    {
+        if (\App\Models\Section::where('teacher_id', $user->id)->exists()) {
+            return true;
+        }
+        return \Illuminate\Support\Facades\DB::table('section_subject_teachers')->where('teacher_id', $user->id)->exists();
     }
 
 

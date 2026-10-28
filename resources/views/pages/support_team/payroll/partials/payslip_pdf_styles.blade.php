@@ -6,7 +6,7 @@
 --}}
 <style>
     @page { margin: 42px 46px; }
-    body { font-family: Arial, Helvetica, sans-serif; color: #172536; font-size: 12.5px; }
+    body { font-family: "DejaVu Sans", Arial, Helvetica, sans-serif; color: #172536; font-size: 12.5px; }
     .psdoc { position: relative; }
     .psdoc-watermark { position: absolute; top: 300px; left: 0; width: 100%; text-align: center; font-size: 120px; font-weight: 800; letter-spacing: .04em; color: #10263b; opacity: .055; }
     .psdoc-watermark-img { position: absolute; top: 260px; left: 50%; margin-left: -170px; width: 340px; opacity: .10; }

@@ -20,6 +20,7 @@ use App\Support\Audit;
 use App\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 
@@ -239,6 +240,17 @@ class MyAccountController extends Controller
         switch ($me->user_type) {
             case 'teacher':
                 $subjects = Subject::where('teacher_id', $me->id)->get();
+                // Allotment audit 2026-10-28 (same family as the
+                // HomeController F2 fix): override subjects are real
+                // assignments — without them an override-only teacher
+                // showed 0 subjects / 0 students on their own page.
+                $overrideSubjectIds = DB::table('section_subject_teachers')
+                    ->where('teacher_id', $me->id)->distinct()->pluck('subject_id');
+                if ($overrideSubjectIds->isNotEmpty()) {
+                    $subjects = $subjects->merge(
+                        Subject::whereIn('id', $overrideSubjectIds)->get()
+                    )->unique('id')->values();
+                }
                 $classIds = $subjects->pluck('my_class_id')->filter()->unique()->values();
                 $students = $classIds->isEmpty()
                     ? 0
@@ -303,7 +315,11 @@ class MyAccountController extends Controller
         $chips = [];
 
         if ($me->user_type === 'teacher') {
-            $subjectNames = Subject::where('teacher_id', $me->id)->pluck('name')->unique()->take(3)->all();
+            $subjectIds = Subject::where('teacher_id', $me->id)->pluck('id');
+            $overrideSubjectIds = DB::table('section_subject_teachers')
+                ->where('teacher_id', $me->id)->distinct()->pluck('subject_id');
+            $subjectNames = Subject::whereIn('id', $subjectIds->merge($overrideSubjectIds)->unique())
+                ->pluck('name')->unique()->take(3)->all();
             foreach ($subjectNames as $name) {
                 $chips[] = $name;
             }

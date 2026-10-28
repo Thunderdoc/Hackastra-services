@@ -33,7 +33,6 @@
                     ['label' => 'Teaching Staff', 'value' => $teacher_count, 'sub' => 'Active teachers', 'icon' => 'icon-user-tie', 'tone' => 'green', 'delta' => $stat_deltas['teachers'], 'link' => route('users.index')],
                     ['label' => 'Administrators', 'value' => $administrator_count, 'sub' => 'System administrators', 'icon' => 'icon-shield-check', 'tone' => 'orange', 'delta' => $stat_deltas['administrators'], 'link' => route('users.index')],
                     ['label' => 'Parents', 'value' => $parent_count, 'sub' => 'Registered parents', 'icon' => 'icon-users2', 'tone' => 'purple', 'delta' => $stat_deltas['parents'], 'link' => route('users.index')],
-                    ['label' => 'New Enquiries', 'value' => $new_enquiry_count, 'sub' => 'Awaiting first contact', 'icon' => 'icon-envelop', 'tone' => 'red', 'delta' => $stat_deltas['enquiries'], 'link' => route('admissions.index')],
                 ] as $stat)
                     <div class="col-sm-6 col-xl-3">
                         <a href="{{ $stat['link'] }}" class="dashboard-stat-card dashboard-stat-{{ $stat['tone'] }}">
@@ -104,6 +103,27 @@
                     </div>
                 </div>
             </section>
+
+            {{-- New Enquiries lives under the calendar (owner ask
+                 2026-10-28): as the 5th stat it wrapped alone onto a
+                 second row of the KPI grid, leaving a gap in the
+                 left column. In the right rail it keeps its exact
+                 card width and the KPI row stays a clean four. --}}
+            <a href="{{ route('admissions.index') }}" class="dashboard-stat-card dashboard-stat-red mb-4">
+                <span class="dashboard-stat-top">
+                    <span class="dashboard-stat-icon"><i class="icon-envelop"></i></span>
+                    @if($stat_deltas['enquiries'] !== null)
+                        <span class="dashboard-delta {{ $stat_deltas['enquiries'] > 0 ? 'delta-up' : ($stat_deltas['enquiries'] < 0 ? 'delta-down' : 'delta-flat') }}">
+                            {{ $stat_deltas['enquiries'] > 0 ? '↑' : ($stat_deltas['enquiries'] < 0 ? '↓' : '') }} {{ abs($stat_deltas['enquiries']) }}%
+                        </span>
+                    @endif
+                </span>
+                <span class="dashboard-stat-copy">
+                    <span class="dashboard-stat-label">New Enquiries</span>
+                    <strong>{{ number_format($new_enquiry_count) }}</strong>
+                    <small>Awaiting first contact</small>
+                </span>
+            </a>
         </div>
     </div>
 

@@ -45,6 +45,11 @@
     <a href="{{ route('id_card.mine') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['id_card.mine']) ? 'active' : '' }}" title="ID Cards"><i class="icon-vcard"></i> <span>ID Cards</span></a>
 </li>
 
+{{--My Children's Transport (Wave 2)--}}
+<li class="nav-item">
+    <a href="{{ route('transport.mine') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['transport.mine']) ? 'active' : '' }}" title="My Children's Transport"><i class="icon-bus"></i> <span>My Children's Transport</span></a>
+</li>
+
 {{--Assignments — Workstream CS2 (LMS, owner-ordered module): new
      item only; read-only status + marks for their children. --}}
 <li class="nav-item">
@@ -52,3 +57,23 @@
 </li>
 
 {{-- Circulars lives once in the shared sidebar (partials/menu) — Batch 6 (D13) removed the duplicate that used to sit here. --}}
+
+{{-- Wave 3: new items only, appended after every existing item. --}}
+<li class="nav-item">
+    <a href="{{ route('parent_messages.index') }}" class="nav-link {{ (Route::is('parent_messages.*')) ? 'active' : '' }}" title="Messages"><i class="icon-file-text2"></i> <span>Messages</span></a>
+</li>
+<li class="nav-item">
+    <a href="{{ route('ptm.index') }}" class="nav-link {{ (Route::is('ptm.*')) ? 'active' : '' }}" title="PTM Meetings"><i class="icon-calendar3"></i> <span>PTM Meetings</span></a>
+</li>
+<li class="nav-item">
+    <a href="{{ route('library_reservations.index') }}" class="nav-link {{ (Route::is('library_reservations.*')) ? 'active' : '' }}" title="Library Reservations"><i class="icon-books"></i> <span>Library Reservations</span></a>
+</li>
+<li class="nav-item">
+    <a href="{{ route('health_records.index') }}" class="nav-link {{ (Route::is('health_records.*')) ? 'active' : '' }}" title="Health Records"><i class="icon-users"></i> <span>Health Records</span></a>
+</li>
+<li class="nav-item">
+    <a href="{{ route('discipline_records.index') }}" class="nav-link {{ (Route::is('discipline_records.*')) ? 'active' : '' }}" title="Discipline Records"><i class="icon-file-text2"></i> <span>Discipline Records</span></a>
+</li>
+<li class="nav-item">
+    <a href="{{ route('documents.index') }}" class="nav-link {{ (Route::is('documents.*')) ? 'active' : '' }}" title="Documents"><i class="icon-book"></i> <span>Documents</span></a>
+</li>

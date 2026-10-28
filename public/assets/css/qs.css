@@ -3529,9 +3529,11 @@ html.hk-dark .qs-tab-pos-n{background:#2a2c2f;color:#a5a8ad}
      it on every sheet; content wrappers sit above it and the
      (white-on-paper) pattern cards let it show through. */
   
-  .print-doc-watermark,.print-doc-watermark-mono{display:block!important;position:fixed;top:50%;left:50%;z-index:0;pointer-events:none}
-  .print-doc-watermark{transform:translate(-50%,-50%);width:430px;max-height:560px;object-fit:contain;opacity:.10}
-  .print-doc-watermark-mono{transform:translate(-50%,-50%) rotate(-18deg);font-size:170px;font-weight:800;letter-spacing:.05em;line-height:1;color:#10263b;opacity:.055;white-space:nowrap}
+  /* No transform here: a transformed fixed element prints on page 1
+     only in Chrome. Offsets + margin:auto center it AND repeat it. */
+  .print-doc-watermark,.print-doc-watermark-mono{display:block!important;position:fixed;top:0;left:0;right:0;bottom:0;margin:auto;z-index:0;pointer-events:none}
+  .print-doc-watermark{width:430px;height:430px;object-fit:contain;opacity:.10}
+  .print-doc-watermark-mono{height:170px;line-height:170px;text-align:center;font-size:170px;font-weight:800;letter-spacing:.05em;color:#10263b;opacity:.055;white-space:nowrap}
   .pat-list{position:relative;z-index:1}/* Specificity must clear the dark-mode print rescue
      (html.hk-dark .card{background:#fff!important}) — hence the
      doubled class; with the card face transparent the watermark
@@ -4687,6 +4689,11 @@ html.hk-dark .l83-pagination{border-top-color:#36383c}
 html.hk-dark .l83-pagination-info{color:#a5a8ad}
 @media print{
   .l83-wrap .pat-toolbar,.l83-wrap .pat-filters,.l83-wrap .dashboard-stats,.l83-toolbar,.l83-pagination{display:none!important}
+  /* Owner fix 2026-10-28: the roster card holds the whole table,
+     and the print rule "tr,img,.card{break-inside:avoid}" made
+     Chrome push the entire card to page 2 (page 1 = header only).
+     Let this card break naturally; rows still never split. */
+  .l83-wrap .pat-card{break-inside:auto!important;page-break-inside:auto!important}
 }/* Loop 91 repair: this @media block was never closed; every later loop nested inside it and never applied on screen. *//* ============================================================
    Loop 78 — Low Attendance premium uplift (2026-10-22). The
    page stays on the shared list_page pattern; this loop adds
@@ -7118,8 +7125,10 @@ html.hk-dark .ma-pager-stat-pending strong{color:#ffb84d}/* ====================
 
 
 .hk-sidebar-backdrop{display:none}
-@media (max-width:767.98px){
+@media (max-width:991.98px){
   body.sidebar-mobile-main .hk-sidebar-backdrop{display:block;position:fixed;inset:0;top:0;background:rgba(4,10,18,.55);z-index:1030}
+}
+@media (max-width:767.98px){
   .lav-search kbd{display:none}
   .lav-clock{display:none}
   .lav-session-label{display:none}

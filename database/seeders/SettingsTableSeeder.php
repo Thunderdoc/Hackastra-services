@@ -28,7 +28,6 @@ class SettingsTableSeeder extends Seeder
             ['type' => 'alt_email', 'description' => ''],
             ['type' => 'email_host', 'description' => ''],
             ['type' => 'email_pass', 'description' => ''],
-            ['type' => 'lock_exam', 'description' => 0],
             ['type' => 'ai_enabled', 'description' => 0],
             ['type' => 'ai_provider', 'description' => 'gemini'],
             ['type' => 'ai_model', 'description' => 'gemini-2.5-flash'],
