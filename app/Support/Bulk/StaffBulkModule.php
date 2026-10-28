@@ -578,6 +578,14 @@ class StaffBulkModule
             if (Section::where('teacher_id', $userId)->exists()) {
                 throw new \RuntimeException('Staff member is a class teacher — rollback would orphan sections.');
             }
+            // Round-9 allotment fix: the single-delete guard refuses
+            // override holders (UserController@destroy), but this
+            // bulk path did not — and section_subject_teachers has
+            // NO foreign keys, so the delete orphaned the override
+            // rows (dead teacher ids that still "look staffed").
+            if (DB::table('section_subject_teachers')->where('teacher_id', $userId)->exists()) {
+                throw new \RuntimeException('Staff member holds section subject overrides — rollback would orphan overrides.');
+            }
         }
 
         DB::transaction(function () use ($userId, $user) {

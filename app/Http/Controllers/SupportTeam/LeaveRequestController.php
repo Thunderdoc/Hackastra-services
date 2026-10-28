@@ -4,14 +4,20 @@ namespace App\Http\Controllers\SupportTeam;
 
 use App\Http\Controllers\Controller;
 use App\Models\LeaveRequest;
+use App\Models\StudentRecord;
+use App\Support\LeaveCover;
+use App\Support\Notify;
+use App\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class LeaveRequestController extends Controller
 {
-    /** Staff roles that may apply for leave (everyone except
-     *  students, parents and the platform Super Admin). */
-    public const APPLICANTS = ['teacher', 'accountant', 'librarian', 'admin'];
+    /** Roles that may apply for leave. Students apply too
+     *  (owner order 2026-10-28) — their class teacher decides,
+     *  not the Admin. Parents and the platform Super Admin never
+     *  apply. */
+    public const APPLICANTS = ['teacher', 'accountant', 'librarian', 'admin', 'student', 'principal'];
 
     protected function mustBeApplicant()
     {
@@ -21,14 +27,23 @@ class LeaveRequestController extends Controller
         return null;
     }
 
-    /** The staff member's own requests + the apply form. */
+    /** The applicant's own requests + the apply form. */
     public function myIndex()
     {
         if ($r = $this->mustBeApplicant()) {
             return $r;
         }
+        $approverName = null;
+        if (Auth::user()->user_type === 'student') {
+            $record = \App\Models\StudentRecord::where('user_id', Auth::id())
+                ->where('grad', 0)->orderByDesc('id')->first();
+            $approverName = $record && $record->section
+                ? optional($record->section->teacher)->name
+                : null;
+        }
         return view('pages.support_team.leave.my', [
             'requests' => LeaveRequest::where('user_id', Auth::id())->orderByDesc('id')->paginate(25),
+            'approver_name' => $approverName,
         ]);
     }
 
@@ -41,32 +56,139 @@ class LeaveRequestController extends Controller
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
             'reason' => 'required|string|max:1000',
+            // The form always sends this; older callers default to
+            // normal so existing flows never break on the new field.
+            'leave_type' => 'nullable|in:normal,emergency',
         ]);
+        $isEmergency = ($data['leave_type'] ?? 'normal') === 'emergency';
         LeaveRequest::create([
             'user_id' => Auth::id(),
             'start_date' => $data['start_date'],
             'end_date' => $data['end_date'],
             'reason' => $data['reason'],
-            'status' => 'pending',
+            'leave_type' => $data['leave_type'] ?? 'normal',
+            // Owner order 2026-10-28: emergency is auto-approved
+            // within seconds — synchronously at submit, so no
+            // worker or cron is involved (free Render runs none).
+            // decided_by stays null: no human decided it.
+            'status' => $isEmergency ? 'approved' : 'pending',
+            'decided_at' => $isEmergency ? now() : null,
+            'decision_note' => $isEmergency ? 'Auto-approved (emergency).' : null,
         ]);
-        return back()->with('flash_success', 'Leave request submitted — the Admin will approve or reject it.');
+        if ($isEmergency) {
+            // Inform, don't ask: the approver who would have
+            // decided gets a bell item so the absence is visible.
+            $me = Auth::user();
+            $title = 'Emergency leave: ' . $me->name;
+            $body = $me->name . ' is on emergency leave from ' . $data['start_date'] . ' to ' . $data['end_date'] . '. Reason: ' . $data['reason'];
+            if ($me->user_type === 'student') {
+                $record = StudentRecord::where('user_id', $me->id)
+                    ->where('grad', 0)->orderByDesc('id')->first();
+                if ($record && $record->section && $record->section->teacher_id) {
+                    Notify::toUser($record->section->teacher_id, 'leave_emergency', $title, $body, route('leave.student_requests'));
+                }
+            } else {
+                // Staff emergency: notify everyone who could have
+                // decided it — admins AND the principal (designated
+                // approver). Fixed by parent 2026-10-28 (C round-5
+                // finding: the loop previously covered admins only).
+                foreach (User::whereIn('user_type', ['admin', 'principal'])->pluck('id') as $adminId) {
+                    Notify::toUser($adminId, 'leave_emergency', $title, $body, route('leave.index'));
+                }
+            }
+            return back()->with('flash_success', 'Emergency leave auto-approved.');
+        }
+        $approver = Auth::user()->user_type === 'student'
+            ? 'your class teacher will approve or reject it.'
+            : 'the Admin will approve or reject it.';
+        return back()->with('flash_success', 'Leave request submitted — ' . $approver);
+        $approver = Auth::user()->user_type === 'student'
+            ? 'your class teacher will approve or reject it.'
+            : 'the Admin will approve or reject it.';
+        return back()->with('flash_success', 'Leave request submitted — ' . $approver);
     }
 
-    /** Admin review queue: pending first. */
+    /** Admin review queue: emergency pending first, then other
+     *  pending, then decided. */
     public function index()
     {
-        if (!\App\Helpers\Qs::userIsTeamSAWrite()) {
+        // Limited principal role (owner order 2026-10-28): the
+        // approval queue is the principal's Approval Center.
+        if (!\App\Helpers\Qs::userIsTeamSAWrite() && !\App\Helpers\Qs::userIsPrincipal()) {
             return redirect()->route('dashboard');
         }
         return view('pages.support_team.leave.index', [
-            'requests' => LeaveRequest::with('user')->orderByRaw("CASE WHEN status = 'pending' THEN 0 ELSE 1 END")->orderByDesc('id')->paginate(25),
+            'requests' => $this->attachCoverInfo(LeaveRequest::with('user')->orderByRaw("CASE WHEN status = 'pending' AND leave_type = 'emergency' THEN 0 WHEN status = 'pending' THEN 1 ELSE 2 END")->orderByDesc('id')->paginate(25)),
         ]);
     }
 
-    /** Admin decision. Only a pending request can be decided. */
+    /**
+     * Leave-queue display enrichment (roles agent C, wired by parent
+     * 2026-10-28 after the principal-role change landed): per row,
+     * the applicant's allocated classes + the count of their periods
+     * inside the leave dates with no substitute. The blade renders
+     * these as "Allocated Classes" / "Uncovered Periods" columns and
+     * degrades to dashes when the attributes are absent. Memoised
+     * per user per page; non-teachers and rejected leaves get null
+     * (no cover owed).
+     */
+    protected function attachCoverInfo($requests)
+    {
+        $allocCache = [];
+        foreach ($requests as $r) {
+            $user = $r->user;
+            if (!$user) { $r->allocation_lines = []; $r->uncovered_periods = null; continue; }
+            $allocCache[$user->id] ??= LeaveCover::allocationLines($user);
+            $r->allocation_lines = $allocCache[$user->id];
+            $r->uncovered_periods = ($user->user_type === 'teacher' && in_array($r->status, ['pending', 'approved'], true))
+                ? LeaveCover::uncoveredCount($user->id, $r->start_date, $r->end_date) : null;
+        }
+        return $requests;
+    }
+
+    /**
+     * Teacher queue: pending student leaves for sections the
+     * teacher teaches (sections.teacher_id). Reuses the admin
+     * queue view — same table, same decide forms. Admins keep
+     * their own full queue above; this page is teacher-only.
+     */
+    public function studentRequests()
+    {
+        if (!\App\Helpers\Qs::userIsTeacher()) {
+            return redirect()->route('dashboard');
+        }
+        $sectionIds = \App\Models\Section::where('teacher_id', Auth::id())->pluck('id')->all();
+        $studentIds = \App\Models\StudentRecord::whereIn('section_id', $sectionIds)->pluck('user_id')->all();
+        return view('pages.support_team.leave.index', [
+            'requests' => $this->attachCoverInfo(LeaveRequest::with('user')->whereIn('user_id', $studentIds)
+                ->orderByRaw("CASE WHEN status = 'pending' AND leave_type = 'emergency' THEN 0 WHEN status = 'pending' THEN 1 ELSE 2 END")->orderByDesc('id')->paginate(25)),
+        ]);
+    }
+
+    /**
+     * Decision. Admins decide anything (except their own).
+     * Teachers decide ONLY student leaves for sections they
+     * teach. Anyone else is bounced to the dashboard.
+     */
     public function decide(Request $request, LeaveRequest $leave)
     {
-        if (!\App\Helpers\Qs::userIsTeamSAWrite()) {
+        $isAdmin = \App\Helpers\Qs::userIsTeamSAWrite();
+        // Limited principal role (owner order 2026-10-28): leave
+        // decisions are a designated principal approval — any
+        // leave, staff or student. The self-decision ban below
+        // still applies to principals.
+        $isPrincipal = \App\Helpers\Qs::userIsPrincipal();
+        $canDecideAsTeacher = false;
+        if (!$isAdmin && \App\Helpers\Qs::userIsTeacher()) {
+            $applicant = \App\User::find($leave->user_id);
+            if ($applicant && $applicant->user_type === 'student') {
+                $record = \App\Models\StudentRecord::where('user_id', $applicant->id)
+                    ->orderByDesc('id')->first();
+                $canDecideAsTeacher = $record && $record->section_id
+                    && (int) optional($record->section)->teacher_id === (int) Auth::id();
+            }
+        }
+        if (!$isAdmin && !$canDecideAsTeacher && !$isPrincipal) {
             return redirect()->route('dashboard');
         }
         $data = $request->validate([

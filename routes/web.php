@@ -1,6 +1,10 @@
 <?php
 
-Auth::routes();
+// Public registration is CLOSED (break-it fix 2026-10-28): the stock
+// RegisterController never set users.code, so POST /register 500'd
+// with no user created. School accounts are Admin-created only;
+// re-enable by dropping the ['register' => false] option.
+Auth::routes(['register' => false]);
 
 Route::get('/privacy-policy', 'HomeController@privacy_policy')->name('privacy_policy');
 Route::get('/terms-of-use', 'HomeController@terms_of_use')->name('terms_of_use');
@@ -48,7 +52,7 @@ Route::group(['middleware' => 'auth'], function () {
             /* Owner ruling 2026-10-22: {class_id} is optional — with no
                class this URL is the Student Information landing
                (class/section picker in listByClass). */
-            Route::get('list/{class_id?}', 'StudentRecordController@listByClass')->name('students.list')->middleware('teamSAT');
+            Route::get('list/{class_id?}', 'StudentRecordController@listByClass')->name('students.list')->middleware('teamOrPrincipal:SAT');
             Route::get('export/{class_id}/{section_id?}', 'StudentRecordController@export')->name('students.export')->middleware('teamSAT');
 
             /* Bulk operations — CSV import + bulk delete (Workstream AA).
@@ -117,8 +121,9 @@ Route::group(['middleware' => 'auth'], function () {
         Route::group(['prefix' => 'leave'], function(){
             Route::get('my', 'LeaveRequestController@myIndex')->name('leave.my');
             Route::post('my', 'LeaveRequestController@store')->name('leave.store');
-            Route::get('/', 'LeaveRequestController@index')->name('leave.index')->middleware('teamSAWrite');
-            Route::post('{leave}/decide', 'LeaveRequestController@decide')->name('leave.decide')->middleware('teamSAWrite');
+            Route::get('/', 'LeaveRequestController@index')->name('leave.index')->middleware('teamOrPrincipal:SAWrite');
+            Route::get('student-requests', 'LeaveRequestController@studentRequests')->name('leave.student_requests');
+            Route::post('{leave}/decide', 'LeaveRequestController@decide')->name('leave.decide');
         });
 
         /*************** Certificates (Wave 14) ***************/
@@ -253,7 +258,9 @@ Route::group(['middleware' => 'auth'], function () {
            // since the owner grant of 2026-10-25 (assigned class
            // teachers read their own students' sheets, scoped in
            // MarkController@tabulation; print stays teamSA-only).
-            Route::group(['middleware' => 'teamSA'], function(){
+           // Limited principal role (owner order 2026-10-28): the
+           // print/bulk documents are school-wide monitoring reads.
+            Route::group(['middleware' => 'teamOrPrincipal:SA'], function(){
                 Route::get('tabulation/print/{exam}/{class}/{sec_id}', 'MarkController@print_tabulation')->name('marks.print_tabulation');
 
                 /* Marksheet (bulk class sheet) — owner ruling
@@ -271,7 +278,8 @@ Route::group(['middleware' => 'auth'], function () {
 
             // FOR teamSAT — the tabulation sheet view + its selector
             // POST (which only redirects into that view).
-            Route::group(['middleware' => 'teamSAT'], function(){
+            // Limited principal role: same read for the principal.
+            Route::group(['middleware' => 'teamOrPrincipal:SAT'], function(){
                 Route::get('tabulation/{exam?}/{class?}/{sec_id?}', 'MarkController@tabulation')->name('marks.tabulation');
                 Route::post('tabulation', 'MarkController@tabulation_select')->name('marks.tabulation_select');
             });
@@ -392,8 +400,9 @@ Route::group(['middleware' => 'auth'], function () {
         Route::get('attendance/periods/session/{session_id}', 'PeriodAttendanceController@show')->name('attendance.periods.show');
         /* Read-only outputs of a submitted register (Loop 77): the
            print view + PDF share one v2 document blade, the CSV
-           follows the report export pattern. All three reuse the
-           show action's scoping — a teacher opens only own registers. */
+           follows the report export pattern. Owner rule: submitted
+           registers are gone from the teacher's end — Admin /
+           Super Admin oversight only. */
         Route::get('attendance/periods/session/{session_id}/print', 'PeriodAttendanceController@printRegister')->name('attendance.periods.print');
         Route::get('attendance/periods/session/{session_id}/pdf', 'PeriodAttendanceController@pdfRegister')->name('attendance.periods.pdf');
         Route::get('attendance/periods/session/{session_id}/export', 'PeriodAttendanceController@exportRegister')->name('attendance.periods.export_register');
@@ -405,6 +414,169 @@ Route::group(['middleware' => 'auth'], function () {
            prints with blank P/A/L boxes for manual marking). */
         Route::get('attendance/periods/{tt_id}/roster-export', 'PeriodAttendanceController@rosterExport')->name('attendance.periods.roster_export');
         Route::get('attendance/periods/{tt_id}/roster-pdf', 'PeriodAttendanceController@rosterPdf')->name('attendance.periods.roster_pdf');
+
+        /*************** Reports & PDF Builder (wave 31b) *****************/
+        Route::group(['prefix' => 'reports'], function() {
+            Route::get('/', 'ReportsController@builder')->name('reports.builder');
+            Route::post('preview', 'ReportsController@preview')->name('reports.preview');
+            Route::post('pdf', 'ReportsController@pdf')->name('reports.pdf');
+            Route::post('templates', 'ReportsController@storeTemplate')->name('reports.templates.store');
+            Route::put('templates/{template}', 'ReportsController@updateTemplate')->name('reports.templates.update');
+            Route::delete('templates/{template}', 'ReportsController@destroyTemplate')->name('reports.templates.destroy');
+            Route::post('templates/{template}/duplicate', 'ReportsController@duplicateTemplate')->name('reports.templates.duplicate');
+        });
+
+        /*************** Wave 1: teacher/classroom features *****************/
+        /* Controller-guarded (no team middleware): students must reach
+           quiz attempts, so each controller gates its own actions.
+           Super Admin reaches none of these (not PlatformOnly-listed).
+           Route params are NOT {id}, so no hash binding applies. */
+        Route::group(['prefix' => 'quizzes'], function() {
+            Route::get('/', 'QuizController@index')->name('quizzes.index');
+            Route::get('create', 'QuizController@create')->name('quizzes.create');
+            Route::post('/', 'QuizController@store')->name('quizzes.store');
+            Route::get('{quiz}', 'QuizController@show')->name('quizzes.show');
+            Route::get('{quiz}/attempt', 'QuizController@attempt')->name('quizzes.attempt');
+            Route::post('{quiz}/attempt', 'QuizController@submitAttempt')->name('quizzes.submit');
+            Route::get('{quiz}/results', 'QuizController@results')->name('quizzes.results');
+            Route::get('{quiz}/review', 'QuizController@review')->name('quizzes.review');
+            Route::post('{quiz}/questions', 'QuizController@storeQuestion')->name('quizzes.questions.store');
+            Route::put('{quiz}/questions/{question}', 'QuizController@updateQuestion')->name('quizzes.questions.update');
+            Route::delete('{quiz}/questions/{question}', 'QuizController@destroyQuestion')->name('quizzes.questions.destroy');
+            Route::post('{quiz}/publish', 'QuizController@publish')->name('quizzes.publish');
+            Route::post('{quiz}/unpublish', 'QuizController@unpublish')->name('quizzes.unpublish');
+            Route::post('{quiz}/push-internal', 'QuizController@pushInternal')->name('quizzes.push_internal');
+        });
+        Route::group(['prefix' => 'lesson-plans'], function() {
+            Route::get('/', 'LessonPlanController@index')->name('lesson_plans.index');
+            Route::get('create', 'LessonPlanController@create')->name('lesson_plans.create');
+            Route::post('/', 'LessonPlanController@store')->name('lesson_plans.store');
+            Route::get('{lesson}', 'LessonPlanController@show')->name('lesson_plans.show');
+            Route::delete('{lesson}', 'LessonPlanController@destroy')->name('lesson_plans.destroy');
+        });
+        Route::group(['prefix' => 'homework-tracker'], function() {
+            Route::get('/', 'HomeworkTrackerController@index')->name('homework_tracker.index');
+        });
+        Route::group(['prefix' => 'substitutions'], function() {
+            Route::get('/', 'SubstitutionController@index')->name('substitutions.index');
+            Route::get('create', 'SubstitutionController@create')->name('substitutions.create');
+            Route::post('/', 'SubstitutionController@store')->name('substitutions.store');
+            Route::delete('{substitution}', 'SubstitutionController@destroy')->name('substitutions.destroy');
+        });
+        Route::group(['prefix' => 'class-overview'], function() {
+            Route::get('/', 'ClassOverviewController@index')->name('class_overview.index');
+        });
+        Route::group(['prefix' => 'question-bank'], function() {
+            Route::get('/', 'QuestionBankController@index')->name('question_bank.index');
+            Route::get('picker', 'QuestionBankController@picker')->name('question_bank.picker');
+            Route::get('create', 'QuestionBankController@create')->name('question_bank.create');
+            Route::post('/', 'QuestionBankController@store')->name('question_bank.store');
+            Route::get('{question}/edit', 'QuestionBankController@edit')->name('question_bank.edit');
+            Route::put('{question}', 'QuestionBankController@update')->name('question_bank.update');
+            Route::delete('{question}', 'QuestionBankController@destroy')->name('question_bank.destroy');
+        });
+
+        /*************** Wave 2: admin/operations features *****************/
+        /* Analytics Dashboard: live aggregates only, CSS bars, no JS deps. */
+        Route::get('analytics', 'AnalyticsController@index')->name('analytics.index')->middleware('teamSAT');
+
+        /*************** Transport (Wave 2) *****************/
+        Route::group(['prefix' => 'transport'], function() {
+            Route::get('/', 'TransportController@index')->name('transport.index')->middleware('teamOrPrincipal:SA');
+            Route::get('routes/create', 'TransportController@routeCreate')->name('transport.routes.create')->middleware('teamSAWrite');
+            Route::post('routes', 'TransportController@routeStore')->name('transport.routes.store')->middleware('teamSAWrite');
+            Route::get('routes/{transport_route}/edit', 'TransportController@routeEdit')->name('transport.routes.edit')->middleware('teamSAWrite');
+            Route::put('routes/{transport_route}', 'TransportController@routeUpdate')->name('transport.routes.update')->middleware('teamSAWrite');
+            Route::delete('routes/{transport_route}', 'TransportController@routeDestroy')->name('transport.routes.destroy')->middleware('teamSAWrite');
+            Route::post('routes/{transport_route}/stops', 'TransportController@stopStore')->name('transport.stops.store')->middleware('teamSAWrite');
+            Route::delete('stops/{transport_stop}', 'TransportController@stopDestroy')->name('transport.stops.destroy')->middleware('teamSAWrite');
+            Route::get('vehicles/create', 'TransportController@vehicleCreate')->name('transport.vehicles.create')->middleware('teamSAWrite');
+            Route::post('vehicles', 'TransportController@vehicleStore')->name('transport.vehicles.store')->middleware('teamSAWrite');
+            Route::get('vehicles/{transport_vehicle}/edit', 'TransportController@vehicleEdit')->name('transport.vehicles.edit')->middleware('teamSAWrite');
+            Route::put('vehicles/{transport_vehicle}', 'TransportController@vehicleUpdate')->name('transport.vehicles.update')->middleware('teamSAWrite');
+            Route::delete('vehicles/{transport_vehicle}', 'TransportController@vehicleDestroy')->name('transport.vehicles.destroy')->middleware('teamSAWrite');
+            Route::get('assignments', 'TransportController@assignments')->name('transport.assignments')->middleware('teamSA');
+            Route::post('assignments', 'TransportController@assignmentStore')->name('transport.assignments.store')->middleware('teamSAWrite');
+            Route::delete('assignments/{transport_assignment}', 'TransportController@assignmentDestroy')->name('transport.assignments.destroy')->middleware('teamSAWrite');
+            Route::get('fees', 'TransportController@fees')->name('transport.fees')->middleware('teamSA');
+            Route::post('fees', 'TransportController@feeStore')->name('transport.fees.store')->middleware('teamSAWrite');
+            Route::post('fees/{transport_fee}/mark-paid', 'TransportController@feeMarkPaid')->name('transport.fees.mark_paid')->middleware('teamSAWrite');
+            Route::get('mine', 'TransportController@mine')->name('transport.mine');
+        });
+
+        /*************** Hostel (Wave 2) *****************/
+        Route::group(['prefix' => 'hostel'], function() {
+            Route::get('dorms', 'HostelController@dormsIndex')->name('hostel.dorms.index')->middleware('teamSA');
+            Route::post('dorms', 'HostelController@dormsStore')->name('hostel.dorms.store')->middleware('teamSAWrite');
+            Route::get('dorms/{hostel_dorm}/edit', 'HostelController@dormsEdit')->name('hostel.dorms.edit')->middleware('teamSAWrite');
+            Route::put('dorms/{hostel_dorm}', 'HostelController@dormsUpdate')->name('hostel.dorms.update')->middleware('teamSAWrite');
+            Route::delete('dorms/{hostel_dorm}', 'HostelController@dormsDestroy')->name('hostel.dorms.destroy')->middleware('teamSAWrite');
+            Route::get('rooms', 'HostelController@roomsIndex')->name('hostel.rooms.index')->middleware('teamSA');
+            Route::post('rooms', 'HostelController@roomsStore')->name('hostel.rooms.store')->middleware('teamSAWrite');
+            Route::get('rooms/{hostel_room}/edit', 'HostelController@roomsEdit')->name('hostel.rooms.edit')->middleware('teamSAWrite');
+            Route::put('rooms/{hostel_room}', 'HostelController@roomsUpdate')->name('hostel.rooms.update')->middleware('teamSAWrite');
+            Route::delete('rooms/{hostel_room}', 'HostelController@roomsDestroy')->name('hostel.rooms.destroy')->middleware('teamSAWrite');
+            Route::get('allocations', 'HostelController@allocationsIndex')->name('hostel.allocations.index')->middleware('teamSA');
+            Route::get('allocations/create', 'HostelController@allocationCreate')->name('hostel.allocations.create')->middleware('teamSA');
+            Route::post('allocations', 'HostelController@allocationStore')->name('hostel.allocations.store')->middleware('teamSAWrite');
+            Route::delete('allocations/{hostel_record}', 'HostelController@allocationDestroy')->name('hostel.allocations.destroy')->middleware('teamSAWrite');
+            Route::get('my', 'HostelController@myAllocation')->name('hostel.my');
+        });
+
+        /*************** Fee Structure Builder (Wave 2) *****************/
+        Route::group(['prefix' => 'fee-structure'], function(){
+            Route::get('/', 'FeeStructureController@index')->name('fee_structure.index')->middleware('teamSA');
+            Route::get('/create', 'FeeStructureController@create')->name('fee_structure.create')->middleware('teamSAWrite');
+            Route::post('/', 'FeeStructureController@store')->name('fee_structure.store')->middleware('teamSAWrite');
+            Route::get('/concessions/create', 'FeeStructureController@concessionCreate')->name('fee_structure.concessions.create')->middleware('teamSAWrite');
+            Route::post('/concessions', 'FeeStructureController@concessionStore')->name('fee_structure.concessions.store')->middleware('teamSAWrite');
+            Route::get('/concessions/{concession}/edit', 'FeeStructureController@concessionEdit')->name('fee_structure.concessions.edit')->middleware('teamSAWrite');
+            Route::put('/concessions/{concession}', 'FeeStructureController@concessionUpdate')->name('fee_structure.concessions.update')->middleware('teamSAWrite');
+            Route::delete('/concessions/{concession}', 'FeeStructureController@concessionDestroy')->name('fee_structure.concessions.destroy')->middleware('teamSAWrite');
+            Route::get('/net', 'FeeStructureController@netIndex')->name('fee_structure.net.index')->middleware('teamSA');
+            Route::get('/net/{student_record}', 'FeeStructureController@net')->name('fee_structure.net')->middleware('teamSA');
+            Route::get('/{fee_head}', 'FeeStructureController@show')->name('fee_structure.show')->middleware('teamSA');
+            Route::get('/{fee_head}/edit', 'FeeStructureController@edit')->name('fee_structure.edit')->middleware('teamSAWrite');
+            Route::put('/{fee_head}', 'FeeStructureController@update')->name('fee_structure.update')->middleware('teamSAWrite');
+            Route::delete('/{fee_head}', 'FeeStructureController@destroy')->name('fee_structure.destroy')->middleware('teamSAWrite');
+            Route::post('/{fee_head}/installments', 'FeeStructureController@installmentStore')->name('fee_structure.installments.store')->middleware('teamSAWrite');
+            Route::put('/{fee_head}/installments/{installment}', 'FeeStructureController@installmentUpdate')->name('fee_structure.installments.update')->middleware('teamSAWrite');
+            Route::delete('/{fee_head}/installments/{installment}', 'FeeStructureController@installmentDestroy')->name('fee_structure.installments.destroy')->middleware('teamSAWrite');
+            Route::post('/{fee_head}/apply', 'FeeStructureController@apply')->name('fee_structure.apply')->middleware('teamSAWrite');
+        });
+
+        /*************** Bulk ID Cards (Wave 2) *****************/
+        Route::get('students/id_cards/bulk', 'IdCardController@bulkSelector')->name('students.id_cards.bulk')->middleware('teamSAT');
+        Route::get('students/id_cards/bulk/pdf', 'IdCardController@bulk')->name('students.id_cards.bulk.pdf')->middleware('teamSAT');
+
+        /*************** Inventory / Store (Wave 2) *****************/
+        Route::group(['prefix' => 'inventory'], function(){
+            Route::get('/', 'InventoryController@index')->name('inventory.index')->middleware('teamSA');
+            Route::get('create', 'InventoryController@create')->name('inventory.create')->middleware('teamSAWrite');
+            Route::post('/', 'InventoryController@store')->name('inventory.store')->middleware('teamSAWrite');
+            Route::get('{inventory_item}', 'InventoryController@show')->name('inventory.show')->middleware('teamSA');
+            Route::get('{inventory_item}/edit', 'InventoryController@edit')->name('inventory.edit')->middleware('teamSAWrite');
+            Route::put('{inventory_item}', 'InventoryController@update')->name('inventory.update')->middleware('teamSAWrite');
+            Route::delete('{inventory_item}', 'InventoryController@destroy')->name('inventory.destroy')->middleware('teamSAWrite');
+            Route::post('{inventory_item}/movements', 'InventoryController@storeMovement')->name('inventory.movements.store')->middleware('teamSAWrite');
+        });
+
+        /*************** Expenses (Wave 2) *****************/
+        Route::group(['prefix' => 'expenses'], function(){
+            Route::get('/', 'ExpenseController@index')->name('expenses.index');
+            Route::get('create', 'ExpenseController@create')->name('expenses.create');
+            Route::post('/', 'ExpenseController@store')->name('expenses.store');
+            Route::get('report', 'ExpenseController@report')->name('expenses.report');
+            Route::get('{expense}/edit', 'ExpenseController@edit')->name('expenses.edit');
+            Route::put('{expense}', 'ExpenseController@update')->name('expenses.update');
+            Route::delete('{expense}', 'ExpenseController@destroy')->name('expenses.destroy');
+        });
+
+        /*************** Backup & Monitoring (Wave 2) *****************/
+        Route::group(['prefix' => 'backup', 'middleware' => 'teamSA'], function(){
+            Route::get('/', 'BackupController@index')->name('backup.index');
+            Route::post('/refresh', 'BackupController@refresh')->name('backup.refresh');
+        });
 
         /*************** School Events *****************/
         Route::resource('events', 'SchoolEventController');
@@ -496,6 +668,67 @@ Route::group(['middleware' => 'auth'], function () {
         Route::get('library/fines', 'LibraryFineController@index')->name('library_fines.index');
         Route::post('library/fines/{id}/waive', 'LibraryFineController@waive')->name('library_fines.waive');
 
+        /*************** Wave 3: parents/students/communication *****************/
+        /* Controller-guarded (no team middleware): students and parents
+           must reach several of these, so each controller gates its
+           own actions. Super Admin reaches none of these (not
+           PlatformOnly-listed). Route params are NOT {id}, so no
+           hash binding applies. */
+        Route::group(['prefix' => 'parent-messages'], function() {
+            Route::get('/', 'ParentMessageController@index')->name('parent_messages.index');
+            Route::get('create', 'ParentMessageController@create')->name('parent_messages.create');
+            Route::post('/', 'ParentMessageController@store')->name('parent_messages.store');
+            Route::get('{message}', 'ParentMessageController@show')->name('parent_messages.show');
+        });
+        Route::group(['prefix' => 'ptm'], function() {
+            Route::get('/', 'PtmController@index')->name('ptm.index');
+            Route::get('create', 'PtmController@create')->name('ptm.create');
+            Route::post('/', 'PtmController@store')->name('ptm.store');
+            Route::post('{slot}/book', 'PtmController@book')->name('ptm.book');
+            Route::delete('{booking}/cancel', 'PtmController@cancel')->name('ptm.cancel');
+        });
+        Route::group(['prefix' => 'library-reservations'], function() {
+            Route::get('/', 'LibraryReservationController@index')->name('library_reservations.index');
+            Route::post('/', 'LibraryReservationController@store')->name('library_reservations.store');
+            Route::delete('{reservation}/cancel', 'LibraryReservationController@cancel')->name('library_reservations.cancel');
+        Route::post('{reservation}/collect', 'LibraryReservationController@collect')->name('library_reservations.collect');
+        });
+        Route::group(['prefix' => 'health-records'], function() {
+            Route::get('/', 'HealthRecordController@index')->name('health_records.index');
+            Route::get('create', 'HealthRecordController@create')->name('health_records.create');
+            Route::post('/', 'HealthRecordController@store')->name('health_records.store');
+            Route::get('{health}', 'HealthRecordController@show')->name('health_records.show');
+        });
+        Route::group(['prefix' => 'discipline-records'], function() {
+            Route::get('/', 'DisciplineRecordController@index')->name('discipline_records.index');
+            Route::get('create', 'DisciplineRecordController@create')->name('discipline_records.create');
+            Route::post('/', 'DisciplineRecordController@store')->name('discipline_records.store');
+            Route::get('{discipline}', 'DisciplineRecordController@show')->name('discipline_records.show');
+        });
+        Route::group(['prefix' => 'documents'], function() {
+            Route::get('/', 'StudentDocumentController@index')->name('documents.index');
+            Route::get('create', 'StudentDocumentController@create')->name('documents.create');
+            Route::post('/', 'StudentDocumentController@store')->name('documents.store');
+            Route::get('{document}/download', 'StudentDocumentController@download')->name('documents.download');
+            Route::delete('{document}', 'StudentDocumentController@destroy')->name('documents.destroy');
+        });
+        Route::group(['prefix' => 'alumni'], function() {
+            Route::get('/', 'AlumniController@index')->name('alumni.index');
+            Route::get('{alumnus}', 'AlumniController@show')->name('alumni.show');
+        });
+        Route::group(['prefix' => 'electives'], function() {
+            Route::get('/', 'ElectiveChoiceController@index')->name('electives.index');
+            Route::post('/', 'ElectiveChoiceController@store')->name('electives.store');
+            Route::post('{elective}/approve', 'ElectiveChoiceController@approve')->name('electives.approve');
+            Route::post('{elective}/reject', 'ElectiveChoiceController@reject')->name('electives.reject');
+        });
+        Route::group(['prefix' => 'role-permissions'], function() {
+            Route::get('/', 'RolePermissionController@index')->name('role_permissions.index');
+            Route::get('create', 'RolePermissionController@create')->name('role_permissions.create');
+            Route::post('/', 'RolePermissionController@store')->name('role_permissions.store');
+            Route::delete('{grant}', 'RolePermissionController@destroy')->name('role_permissions.destroy');
+        });
+
     });
 
     /************************ AJAX ****************************/
@@ -533,7 +766,7 @@ Route::group(['namespace' => 'SuperAdmin','middleware' => 'teamSA', 'prefix' => 
 /* The school Admin gains a read of the school's trail (owner ruling):
    the controller scopes Admin to entries NOT acted by a super_admin —
    the company's own platform activity stays Super-Admin-only. */
-Route::group(['namespace' => 'SuperAdmin','middleware' => 'teamSA', 'prefix' => 'super_admin'], function(){
+Route::group(['namespace' => 'SuperAdmin','middleware' => 'teamOrPrincipal:SA', 'prefix' => 'super_admin'], function(){
 
     Route::get('/audit-logs', 'AuditLogController@index')->name('audit_logs.index');
 

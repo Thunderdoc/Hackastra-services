@@ -233,6 +233,7 @@
                                 <td>
                                     <div class="ma-subject">{{ optional($row['subject'])->name }}</div>
                                     @if(optional($row['subject'])->slug)<span class="ma-code-chip">{{ $row['subject']->slug }}</span>@endif
+                                    @if(!empty($row['substitution']) && optional($row['substitution']->substitute)->name)<div class="ma-sub">Sub: {{ $row['substitution']->substitute->name }}</div>@endif
                                 </td>
                                 @if($is_teacher)
                                     <td>{{ optional($row['class'])->name }}@if(optional($row['section'])->name) — {{ $row['section']->name }}@endif</td>
@@ -279,7 +280,11 @@
                                 @endif
                                 <td class="text-right ma-action">
                                     @if($row['session'])
-                                        <a href="{{ route('attendance.periods.show', $row['session']->id) }}" class="btn btn-light btn-sm"><i class="icon-eye mr-1"></i> View</a>
+                                        @if($is_teacher)
+                                            <span class="badge badge-success">Submitted</span>
+                                        @else
+                                            <a href="{{ route('attendance.periods.show', $row['session']->id) }}" class="btn btn-light btn-sm"><i class="icon-eye mr-1"></i> View</a>
+                                        @endif
                                     @elseif($is_teacher)
                                         <a href="{{ route('attendance.periods.take', [$row['tt']->id, 'date' => $date->format('Y-m-d')]) }}" class="btn btn-primary btn-sm"><i class="icon-pencil7 mr-1"></i> Take Attendance</a>
                                     @else

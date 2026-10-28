@@ -11,6 +11,7 @@ use App\Support\Readiness;
 use App\Support\Staffing;
 use App\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Scheduling Engine Slice A (2026-10-23): teacher eligibility —
@@ -106,14 +107,26 @@ class PlanningController extends Controller
         $previous = $subject->teacher_id;
         $subject->update(['teacher_id' => $teacher->id]);
 
+        // Allotment audit 2026-10-28 (pass 2): moving the class
+        // teacher does NOT move section overrides — those sections
+        // deliberately keep their own teacher. The old flash hid
+        // that, so an admin could believe the whole class moved.
+        // Say it plainly in the confirmation and the audit note.
+        $overrideSections = DB::table('section_subject_teachers')
+            ->where('subject_id', $subject->id)->count();
+        $overrideNote = $overrideSections > 0
+            ? ' Note: ' . $overrideSections . ' section(s) keep their override teacher(s).'
+            : '';
+
         $note = 'Allocated ' . $subject->name . ' (' . $subject->my_class->name . ') to ' . $teacher->name
             . ($previous ? ' (was teacher ' . $previous . ')' : ' (was unassigned)');
         if ($subject->periods_per_week && $projected > $cap) {
             $note .= ' — OVER weekly cap (' . $projected . '/' . $cap . '), override reason: ' . ($data['override_reason'] ?? '');
         }
+        $note .= $overrideNote;
         Audit::log('planning.allocation_applied', $subject, $note);
 
-        return back()->with('flash_success', $subject->name . ' (' . $subject->my_class->name . ') is now taught by ' . $teacher->name . '.');
+        return back()->with('flash_success', $subject->name . ' (' . $subject->my_class->name . ') is now taught by ' . $teacher->name . '.' . $overrideNote);
     }
 
     /** School Readiness (Phase 8): live setup checks with fixes. */

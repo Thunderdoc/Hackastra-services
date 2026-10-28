@@ -19,6 +19,17 @@ use App\Models\Setting;
  * Secondary ends 3:20 PM (8 periods). Every number is editable
  * on the generate form, and the last-used values are remembered
  * in the settings table (tt_gen_primary / tt_gen_secondary).
+ *
+ * Batch 2026-10-28 (exam-timetable same-sheet bug): the id-order
+ * rule alone misclassifies a class created AFTER the seed — a
+ * school that adds UKG/Nursery/LKG later gets a high id, so the
+ * early-years class counted as Secondary and its exam papers
+ * shared sessions with seniors (Class 10's exact slots). A class
+ * whose NAME marks it as early years is therefore Primary
+ * regardless of id; the id-order rule stays as the fallback for
+ * every other name. Seeded classes are unchanged by this:
+ * Prep matches the name rule, Class 1–5 stay Primary by id,
+ * Class 6–12 stay Secondary by id.
  */
 class SchoolLevel
 {
@@ -37,8 +48,27 @@ class SchoolLevel
         ];
     }
 
+    /**
+     * Early-years class names: Nursery, LKG, UKG, KG, Prep and
+     * their pre-primary variants, as whole words — so "UKG-Test"
+     * and "KG-1" match, while "Class 10" or "Preparatory Course"
+     * do not (word boundaries keep KG out of UKG's shadow: UKG
+     * is listed on its own, and \bkg\b never matches inside it).
+     */
+    public static function isEarlyYearsName(?string $name): bool
+    {
+        if (!$name) {
+            return false;
+        }
+        return (bool) preg_match('/\b(nursery|lkg|ukg|kg|prep|playgroup|kindergarten|montessori|pre-?kg|pre-?nursery|pre-?primary|reception)\b/i', $name);
+    }
+
     public static function levelForClassId(int $classId): string
     {
+        $class = MyClass::find($classId);
+        if ($class && self::isEarlyYearsName($class->name)) {
+            return 'primary';
+        }
         $ids = MyClass::orderBy('id')->pluck('id')->all();
         $pos = array_search($classId, $ids, true);
         return ($pos !== false && $pos < self::PRIMARY_COUNT) ? 'primary' : 'secondary';
@@ -49,6 +79,10 @@ class SchoolLevel
         $ids = MyClass::orderBy('id')->pluck('id')->all();
         $levels = [];
         foreach ($classes as $class) {
+            if (self::isEarlyYearsName($class->name ?? null)) {
+                $levels[(int) $class->id] = 'primary';
+                continue;
+            }
             $pos = array_search((int) $class->id, $ids, true);
             $levels[(int) $class->id] = ($pos !== false && $pos < self::PRIMARY_COUNT) ? 'primary' : 'secondary';
         }

@@ -52,6 +52,18 @@ class AdmissionController extends Controller
      */
     public function convert(Admission $admission)
     {
+        // R31-1 (roles audit round 31): convert is the approved ->
+        // converted transition. Pre-fix it accepted ANY status, so
+        // a REJECTED enquiry could be converted and admitted, and
+        // a 'converted' enquiry could be re-converted. Only the
+        // approved state converts; anything else bounces back to
+        // the board with the current state named. (Manual board
+        // moves stay jump-allowed by design — this guard is on the
+        // convert action only, not on updateStatus.)
+        if ($admission->status !== 'approved') {
+            return back()->with('flash_danger', 'Only approved enquiries can be converted — this enquiry is ' . Admission::STATUS_LABELS[$admission->status] . '.');
+        }
+
         return redirect()->route('students.create')->withInput([
             'name' => $admission->name,
             'phone' => $admission->phone,

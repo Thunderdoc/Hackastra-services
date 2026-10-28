@@ -53,6 +53,8 @@
                     <th>Name</th>
                     <th>Class</th>
                     <th>Teacher</th>
+                    <th>Overrides</th>
+                    <th>Unassigned</th>
                     <th>Action</th>
                 </tr>
                 </thead>
@@ -62,11 +64,28 @@
                         <td data-label="S/N">{{ $loop->iteration }}</td>
                         <td data-label="Name">{{ $s->name }} @if($s->active)<i class="icon-check"></i>@endif</td>
                         <td data-label="Class">{{ $s->my_class->name }}</td>
-                        @if($s->teacher_id)
-                            <td data-label="Teacher"><a target="_blank" href="{{ route('users.show', Qs::hash($s->teacher_id)) }}">{{ $s->teacher->name }}</a></td>
+                        @if($s->teacher)
+                            <td data-label="Teacher"><a target="_blank" href="{{ route('users.show', Qs::hash($s->teacher_id)) }}">{{ $s->teacher->name }}</a>@if(!($liveTeacherIds ?? collect())->has((int) $s->teacher_id)) <span class="text-danger">(not an active teacher)</span>@endif</td>
+                        @elseif($s->teacher_id)
+                            <td data-label="Teacher">Vacant</td>
                         @else
                             <td data-label="Teacher"> - </td>
                         @endif
+                        <td data-label="Overrides">
+                            @if(($overrideCounts[$s->id] ?? 0) > 0)
+                                <a href="{{ route('sections.edit', $s->id) }}">{{ $overrideCounts[$s->id] }} override{{ $overrideCounts[$s->id] > 1 ? 's' : '' }}</a>
+                            @else
+                                -
+                            @endif
+                        </td>
+                        <td data-label="Unassigned">
+                            @php $un = $unresolvedSubjects[$s->id] ?? []; @endphp
+                            @if(count($un) > 0)
+                                <span class="text-danger" title="No teacher for: {{ implode(', ', $un) }}">{{ count($un) }} unassigned: {{ implode(', ', $un) }}</span>
+                            @else
+                                <span class="text-muted">All staffed</span>
+                            @endif
+                        </td>
                         <td class="text-center" data-label="Action">
                             @if(Qs::userIsTeamSAWrite())
                                 <a href="{{ route('sections.edit', $s->id) }}" class="btn btn-sm btn-primary"><i class="icon-pencil"></i> Edit</a>

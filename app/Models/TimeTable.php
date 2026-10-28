@@ -6,7 +6,11 @@ use Eloquent;
 
 class TimeTable extends Eloquent
 {
-    protected $fillable = ['ttr_id', 'ts_id', 'exam_date', 'day', 'timestamp_from', 'timestamp_to', 'subject_id',];
+    /* Agent D round 2: day_num is the weekday number the validator
+       and the generator's busy map key on. It was missing here, so
+       manually added cells (Manage store/update) silently stored
+       NULL and never blocked generation or clashed correctly. */
+    protected $fillable = ['ttr_id', 'ts_id', 'exam_date', 'day', 'day_num', 'timestamp_from', 'timestamp_to', 'subject_id',];
 
     public function time_slot()
     {

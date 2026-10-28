@@ -16,8 +16,12 @@ class ExamController extends Controller
     {
         // Workstream CM: reads (index/show) stay teamSA — SA keeps
         // oversight; every write goes to the Admin write team.
-        $this->middleware('teamSA', ['only' => ['index', 'show']]);
-        $this->middleware('teamSAWrite', ['except' => ['index', 'show']]);
+        // Limited principal role (owner order 2026-10-28): reads
+        // open to the principal, and result publication is a
+        // designated principal approval (not other writes).
+        $this->middleware('teamOrPrincipal:SA', ['only' => ['index', 'show']]);
+        $this->middleware('teamSAWrite', ['except' => ['index', 'show', 'publishResults', 'unpublishResults']]);
+        $this->middleware('teamOrPrincipal:SAWrite', ['only' => ['publishResults', 'unpublishResults']]);
 
         $this->exam = $exam;
     }

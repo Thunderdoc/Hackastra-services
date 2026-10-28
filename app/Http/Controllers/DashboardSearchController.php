@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Helpers\Qs;
 use App\Models\MyClass;
 use App\Models\Payment;
+use App\Support\TeacherScope;
 use App\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 /**
  * Permission-aware global search for the top bar (audit §9).
@@ -18,7 +20,9 @@ class DashboardSearchController extends Controller
 {
     public function __invoke(Request $request)
     {
-        abort_unless(Qs::userIsTeamSAT(), 403);
+        // Limited principal role (owner order 2026-10-28): the
+        // principal searches school-wide like the school team.
+        abort_unless(Qs::userIsTeamSAT() || Qs::userIsPrincipal(), 403);
 
         $term = trim((string) $request->query('q', ''));
 
@@ -56,11 +60,25 @@ class DashboardSearchController extends Controller
                 ->where(function ($q) use ($like) {
                     $q->where('name', 'like', $like)->orWhere('email', 'like', $like);
                 })
+                // Roles audit round 18: a teacher sees only their
+                // assigned students (TeacherScope rule) — the search
+                // must not hand them every class's roster. Admin and
+                // principal search school-wide by design.
+                ->when(Qs::userIsTeacher(), function ($q) {
+                    $q->whereHas('student_record', function ($sq) {
+                        $sq->whereIn('my_class_id', TeacherScope::classIds(Auth::user()));
+                    });
+                })
                 ->with('student_record.my_class', 'student_record.section')
                 ->take(10)
                 ->get();
 
-            $data['staff'] = User::whereIn('user_type', ['teacher', 'admin', 'super_admin', 'accountant', 'librarian'])
+            // Roles audit round 18: the platform boundary holds both
+            // ways — school roles never see the platform account in
+            // search (the SA users list already hides school roles
+            // from the SA side). 'super_admin' stays in the SA's own
+            // branch above, which is platform-only by design.
+            $data['staff'] = User::whereIn('user_type', ['teacher', 'admin', 'accountant', 'librarian', 'principal'])
                 ->where(function ($q) use ($like) {
                     $q->where('name', 'like', $like)->orWhere('email', 'like', $like);
                 })

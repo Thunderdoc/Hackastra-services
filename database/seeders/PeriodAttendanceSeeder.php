@@ -171,8 +171,12 @@ class PeriodAttendanceSeeder extends Seeder
             return;
         }
 
+        $sectionId = optional($period->tt_record)->section_id;
         $students = DB::table('student_records')
             ->where('my_class_id', $classId)
+            ->when($sectionId, function ($q) use ($sectionId) {
+                $q->where('section_id', $sectionId);
+            })
             ->where('grad', 0)
             ->orderBy('id')
             ->get();
@@ -193,7 +197,7 @@ class PeriodAttendanceSeeder extends Seeder
             'date' => $dateStr,
             'time_table_id' => $period->id,
             'my_class_id' => $classId,
-            'section_id' => null,
+            'section_id' => $sectionId,
             'subject_id' => $subject->id,
             'teacher_id' => $subject->teacher_id,
             'topic' => $this->topicFor($subject->name, $subject->id, $period->id, $dateStr),

@@ -34,6 +34,29 @@
             foreach ($slots as $i => $slot) {
                 $l81SlotIndex[$slot->full] = $i + 1;
             }
+            // Owner fix 2026-10-28: clock gaps between consecutive
+            // slots render as their own columns — 30+ minutes is
+            // Lunch, shorter is Break — exactly like the shared
+            // record grid, so lunch is visible instead of hidden
+            // in the jump between slot times. Period numbers count
+            // TEACHING slots only; gaps are never periods.
+            $l81Cols = [];
+            $l81Prev = null;
+            foreach (collect($slots)->sortBy(function ($s) { return strtotime($s->time_from); })->values() as $l81Slot) {
+                if ($l81Prev) {
+                    $l81Gap = (strtotime($l81Slot->time_from) - strtotime($l81Prev->time_to)) / 60;
+                    if ($l81Gap > 0) {
+                        $l81Cols[] = ['gap' => true, 'label' => $l81Gap >= 30 ? 'Lunch' : 'Break', 'range' => $l81Prev->time_to . ' – ' . $l81Slot->time_from];
+                    }
+                }
+                $l81Cols[] = ['gap' => false, 'slot' => $l81Slot];
+                $l81Prev = $l81Slot;
+            }
+            $l81PeriodNo = [];
+            $l81N = 0;
+            foreach ($l81Cols as $l81Col) {
+                if (!$l81Col['gap']) { $l81N++; $l81PeriodNo[$l81Col['slot']->full] = $l81N; }
+            }
         @endphp
 
         <p class="ma-intro">View your weekly teaching schedule for the current academic session.</p>
@@ -81,11 +104,15 @@
                                 <thead>
                                 <tr>
                                     <th class="ttx-day-col">Day</th>
-                                    @foreach($slots as $slot)
-                                        <th>
-                                            <span class="l81-slot-time">{{ $slot->full }}</span>
-                                            <span class="l81-slot-period">Period {{ $loop->iteration }}</span>
-                                        </th>
+                                    @foreach($l81Cols as $l81Col)
+                                        @if($l81Col['gap'])
+                                            <th class="ttx-gap-col"><span class="ttx-gap-label">{{ $l81Col['label'] }}</span><span class="ttx-gap-range">{{ $l81Col['range'] }}</span></th>
+                                        @else
+                                            <th>
+                                                <span class="l81-slot-time">{{ $l81Col['slot']->full }}</span>
+                                                <span class="l81-slot-period">Period {{ $l81PeriodNo[$l81Col['slot']->full] }}</span>
+                                            </th>
+                                        @endif
                                     @endforeach
                                 </tr>
                                 </thead>
@@ -93,15 +120,19 @@
                                 @foreach($days as $day)
                                     <tr>
                                         <td class="ttx-day-col"><strong>{{ $day }}</strong></td>
-                                        @foreach($slots as $slot)
-                                            @php $cell = $map[$day][$slot->full] ?? null; @endphp
-                                            @if($cell && !empty($cell['title']))
-                                                <td class="l81-cell l81-tint-{{ $l81Tints[$cell['title']] ?? 0 }}">
-                                                    <span class="ttx-cell-title">{{ $cell['title'] }}</span>
-                                                    @if(!empty($cell['sub']))<span class="ttx-cell-sub">{{ $cell['sub'] }}</span>@endif
-                                                </td>
+                                        @foreach($l81Cols as $l81Col)
+                                            @if($l81Col['gap'])
+                                                <td class="ttx-gap-col"><span class="ttx-gap-label">{{ $l81Col['label'] }}</span></td>
                                             @else
-                                                <td class="l81-cell l81-free"><span class="l81-free-label">Free</span></td>
+                                                @php $cell = $map[$day][$l81Col['slot']->full] ?? null; @endphp
+                                                @if($cell && !empty($cell['title']))
+                                                    <td class="l81-cell l81-tint-{{ $l81Tints[$cell['title']] ?? 0 }}">
+                                                        <span class="ttx-cell-title">{{ $cell['title'] }}</span>
+                                                        @if(!empty($cell['sub']))<span class="ttx-cell-sub">{{ $cell['sub'] }}</span>@endif
+                                                    </td>
+                                                @else
+                                                    <td class="l81-cell l81-free"><span class="l81-free-label">Free</span></td>
+                                                @endif
                                             @endif
                                         @endforeach
                                     </tr>
@@ -166,10 +197,10 @@
                         </div>
                     @endif
                     @if($child)
-                        <p class="ttx-lead">{{ $child->user->name }} &middot; {{ $child->my_class->name }}@if($child->section) &middot; {{ $child->section->name }}@endif</p>
+                        <p class="ttx-lead">{{ $child->user->name }} &middot; {{ optional($child->my_class)->name ?: 'Deleted class' }}@if($child->section) &middot; {{ $child->section->name }}@endif</p>
                     @endif
                 @elseif($mode === 'student' && $child)
-                    <p class="ttx-lead">{{ $child->my_class->name }}@if($child->section) &middot; Section {{ $child->section->name }}@endif</p>
+                    <p class="ttx-lead">{{ optional($child->my_class)->name ?: 'Deleted class' }}@if($child->section) &middot; Section {{ $child->section->name }}@endif</p>
                 @endif
 
                 @if($slots->isEmpty())

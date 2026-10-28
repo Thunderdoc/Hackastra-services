@@ -25,7 +25,7 @@
             Update System Settings
         @endslot
         @slot('subtitle')
-            School profile, calendar, fees and exam security for the whole school.
+            School profile, calendar and fees for the whole school.
         @endslot
 
         {{-- ======================= School Profile ======================= --}}
@@ -90,6 +90,38 @@
             </div>
         </div>
 
+        {{-- ======================= Admission Numbers ======================= --}}
+        <div class="pat-form-section">
+            <div class="pat-form-section-title">Admission Numbers</div>
+            <div class="pat-form-section-sub">How the school's admission numbers are generated for every new student — the Admit Student form, Quick Admit and bulk import all follow this. A typed admission number becomes the suffix of the same format.</div>
+            <div class="pat-fields">
+                <div class="pat-field">
+                    <label for="adm_no_format">Admission Number Format</label>
+                    <select name="adm_no_format" id="adm_no_format" class="form-control @error('adm_no_format') is-invalid @enderror">
+                        <option value="code_class_year_serial" {{ ($s['adm_no_format'] ?? 'code_class_year_serial') === 'code_class_year_serial' ? 'selected' : '' }}>School code / Class / Year / Serial (e.g. HA/PN/2026/1001)</option>
+                        <option value="code_year_serial" {{ ($s['adm_no_format'] ?? '') === 'code_year_serial' ? 'selected' : '' }}>School code / Year / Serial (e.g. HA/2026/1001)</option>
+                        <option value="class_year_serial" {{ ($s['adm_no_format'] ?? '') === 'class_year_serial' ? 'selected' : '' }}>Class / Year / Serial (e.g. PN/2026/1001)</option>
+                        <option value="code_serial" {{ ($s['adm_no_format'] ?? '') === 'code_serial' ? 'selected' : '' }}>School code / Serial (e.g. HA/1001)</option>
+                        <option value="year_serial" {{ ($s['adm_no_format'] ?? '') === 'year_serial' ? 'selected' : '' }}>Year / Serial (e.g. 2026/1001)</option>
+                    </select>
+                    @include('partials.errors.field', ['field' => 'adm_no_format'])
+                    <small class="form-text text-muted">Changing the format starts a fresh series — old admission numbers never change.</small>
+                </div>
+                <div class="pat-field">
+                    <label for="adm_no_serial_start">First Number of a Fresh Series</label>
+                    <input name="adm_no_serial_start" id="adm_no_serial_start" value="{{ $s['adm_no_serial_start'] ?? '' }}" type="number" min="1" max="999999" class="form-control @error('adm_no_serial_start') is-invalid @enderror" placeholder="Default 1000">
+                    @include('partials.errors.field', ['field' => 'adm_no_serial_start'])
+                    <small class="form-text text-muted">A series already started keeps counting from its last number — this never renumbers existing students.</small>
+                </div>
+                <div class="pat-field">
+                    <label for="adm_no_serial_width">Leading Zeros (Serial Width)</label>
+                    <input name="adm_no_serial_width" id="adm_no_serial_width" value="{{ $s['adm_no_serial_width'] ?? '' }}" type="number" min="0" max="6" class="form-control @error('adm_no_serial_width') is-invalid @enderror" placeholder="0 = no padding">
+                    @include('partials.errors.field', ['field' => 'adm_no_serial_width'])
+                    <small class="form-text text-muted">Width 4 turns 1 into 0001. Leave 0 for plain numbers.</small>
+                </div>
+            </div>
+        </div>
+
         {{-- ===================== Academic Calendar ===================== --}}
         <div class="pat-form-section">
             <div class="pat-form-section-title">Academic Calendar</div>
@@ -103,7 +135,7 @@
                 </div>
                 <div class="pat-field">
                     <label for="term_begins">Next Term Begins</label>
-                    <input name="term_begins" id="term_begins" value="{{ $s['term_begins'] }}" type="text" class="form-control date-pick @error('term_begins') is-invalid @enderror" placeholder="Date Term Ends">
+                    <input name="term_begins" id="term_begins" value="{{ $s['term_begins'] }}" type="text" class="form-control date-pick @error('term_begins') is-invalid @enderror" placeholder="Date Next Term Begins">
                     @include('partials.errors.field', ['field' => 'term_begins'])
                     <small class="form-text text-muted">M-D-Y or M/D/Y format.</small>
                 </div>
@@ -148,22 +180,6 @@
             </div>
         </div>
 
-        {{-- ======================= Exam Security ======================= --}}
-        <div class="pat-form-section">
-            <div class="pat-form-section-title">Exam Security</div>
-            <div class="pat-fields">
-                <div class="pat-field">
-                    <label for="lock_exam">Lock Exam</label>
-                    <select class="form-control select @error('lock_exam') is-invalid @enderror" name="lock_exam" id="lock_exam">
-                        <option {{ $s['lock_exam'] ? 'selected' : '' }} value="1">Yes</option>
-                        <option {{ $s['lock_exam'] ?: 'selected' }} value="0">No</option>
-                    </select>
-                    @include('partials.errors.field', ['field' => 'lock_exam'])
-                    <small class="form-text text-muted">{{ __('msg.lock_exam') }}.</small>
-                </div>
-            </div>
-        </div>
-
         {{-- ======================= Online Fee Payments (Workstream CU) ======================= --}}
         <div class="pat-form-section">
             <div class="pat-form-section-title">Online Fee Payments (Razorpay)</div>
@@ -195,6 +211,10 @@
                     <input name="razorpay_webhook_secret" id="razorpay_webhook_secret" value="" type="password" class="form-control @error('razorpay_webhook_secret') is-invalid @enderror" placeholder="{{ !empty($s['razorpay_webhook_secret']) ? '•••••••••• (saved — leave blank to keep)' : 'Not saved yet' }}" autocomplete="new-password">
                     @include('partials.errors.field', ['field' => 'razorpay_webhook_secret'])
                     <small class="form-text text-muted">The secret you set on the Razorpay webhook. Used to verify every webhook call. Write-only, like the key secret.</small>
+                </div>
+            </div>
+        </div>
+
         {{-- ======================= AI Assistant ======================= --}}
         {{-- Workstream CX: AI Assist v1. The API key is write-only — the
              field always renders empty; a saved key shows only a status
@@ -343,21 +363,21 @@
                 <fieldset {{ Qs::userIsSuperAdmin() ? '' : 'disabled="disabled"' }}>
                     <div class="row">
                         <div class="form-group col-md-3">
-                            <label for="ai_enabled">AI Features</label>
-                            <select class="form-control" name="ai_enabled" id="ai_enabled">
+                            <label for="ai_enabled_dh">AI Features</label>
+                            <select class="form-control" name="ai_enabled" id="ai_enabled_dh">
                                 <option {{ ($s['ai_enabled'] ?? 0) ? 'selected' : '' }} value="1">On</option>
                                 <option {{ ($s['ai_enabled'] ?? 0) ?: 'selected' }} value="0">Off</option>
                             </select>
                         </div>
                         <div class="form-group col-md-3">
-                            <label for="ai_provider">Provider</label>
-                            <select class="form-control" name="ai_provider" id="ai_provider">
+                            <label for="ai_provider_dh">Provider</label>
+                            <select class="form-control" name="ai_provider" id="ai_provider_dh">
                                 <option value="gemini" {{ ($s['ai_provider'] ?? 'gemini') == 'gemini' ? 'selected' : '' }}>Google Gemini (free tier)</option>
                             </select>
                         </div>
                         <div class="form-group col-md-3">
-                            <label for="ai_model">Answer Model</label>
-                            <input name="ai_model" id="ai_model" value="{{ $s['ai_model'] ?? 'gemini-2.5-flash' }}" type="text" class="form-control" placeholder="gemini-2.5-flash">
+                            <label for="ai_model_dh">Answer Model</label>
+                            <input name="ai_model" id="ai_model_dh" value="{{ $s['ai_model'] ?? 'gemini-2.5-flash' }}" type="text" class="form-control" placeholder="gemini-2.5-flash">
                         </div>
                         <div class="form-group col-md-3">
                             <label for="ai_embedding_model">Embedding Model</label>
@@ -365,8 +385,8 @@
                             <small class="form-text text-muted">Changing this re-embeds the whole index on the next rebuild.</small>
                         </div>
                         <div class="form-group col-md-6">
-                            <label for="ai_api_key">Gemini API Key</label>
-                            <input name="ai_api_key" id="ai_api_key" value="" type="password" autocomplete="new-password" class="form-control" placeholder="{{ !empty($s['ai_api_key']) ? 'Key saved — paste a new key only to replace it' : 'Paste your free Gemini API key' }}">
+                            <label for="ai_api_key_dh">Gemini API Key</label>
+                            <input name="ai_api_key" id="ai_api_key_dh" value="" type="password" autocomplete="new-password" class="form-control" placeholder="{{ !empty($s['ai_api_key']) ? 'Key saved — paste a new key only to replace it' : 'Paste your free Gemini API key' }}">
                             <small class="form-text text-muted">
                                 @if(!empty($s['ai_api_key']))
                                     A key is saved. It is never shown here — leave this blank to keep it, or paste a new key to replace it.

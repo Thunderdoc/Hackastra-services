@@ -210,18 +210,17 @@ class FeedbackItem extends Eloquent
     }
 
     /**
-     * The status a reporter should read for this item: a duplicate
-     * follows its canonical item's live status (school-side, and the
-     * Super Admin's once the canonical item has been forwarded).
+     * The status a reporter should read for this item — SCHOOL side
+     * only, always (owner redesign 2026-10-28: teachers and students
+     * never see Super Admin content). A duplicate follows its
+     * canonical item's SCHOOL status; a forwarded item shows the
+     * school status the Admin set — Resolved once the SA fix lands,
+     * because saUpdate auto-resolves the school side then.
      */
     public function effectiveStatusLabel(): string
     {
         if ($this->isDuplicate() && $this->duplicateOf) {
             return $this->duplicateOf->effectiveStatusLabel();
-        }
-
-        if ($this->isForwarded() && $this->sa_status) {
-            return 'Super Admin: ' . $this->saStatusLabel();
         }
 
         return $this->statusLabel();

@@ -59,7 +59,7 @@ class StudentRecordCreate extends FormRequest
 
     /**
      * ADM-01 companion (2026-10-23): a typed admission number is only
-     * the SUFFIX of the stored composite (APPCODE/TYPE/YEAR/SUFFIX),
+     * the SUFFIX of the stored composite (Qs::admNoPrefix + suffix),
      * so the old unique:student_records rule compared unlike values
      * and never fired — a duplicate typed number reached the DB
      * unique index and 500'd. Build the composite exactly as the
@@ -79,7 +79,7 @@ class StudentRecordCreate extends FormRequest
             if (!$type) {
                 return;
             }
-            $composite = strtoupper(Qs::getAppCode() . '/' . $type->code . '/' . trim((string) $year) . '/' . $admNo);
+            $composite = Qs::admNoPrefix($type->code, $year) . strtoupper($admNo);
             if (StudentRecord::where('adm_no', $composite)->exists()) {
                 $validator->errors()->add('adm_no', "Admission number {$composite} already exists.");
             }

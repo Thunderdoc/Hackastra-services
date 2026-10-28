@@ -106,15 +106,16 @@ class UsersTableSeeder extends Seeder
 
             /* Principal demo login (owner ask, 2026-10-23): the
                school head's view of the product for client demos.
-               The principal IS the school's Admin in Hackstra's
-               role model, so this account carries admin rights —
-               a clean, shareable credential separate from the
-               operator's own admin@ login. */
+               Limited principal role (owner order 2026-10-28):
+               'principal' is its own user_type — school-wide read
+               + designated approvals, NOT an admin account, so no
+               settings, user writes, fee writes, or timetable edits
+               ever pass for this login. */
             ['name' => 'Rajesh Iyer',
             'email' => 'principal@hackstra.app',
                 'phone' => '+91 98110 00009',
             'password' => $password,
-            'user_type' => 'admin',
+            'user_type' => 'principal',
             'username' => 'principal',
             'code' => strtoupper(Str::random(10)),
             'remember_token' => Str::random(10),

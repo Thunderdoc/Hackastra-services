@@ -122,10 +122,14 @@
                 <div class="card">
                     <div class="card-header"><h6 class="card-title">Forward to Super Admin</h6></div>
                     <div class="card-body">
-                        <p class="text-muted">Send this compiled report up. The Super Admin sees forwarded reports only — never the raw inbox.</p>
+                        <p class="text-muted">Only platform problems go up — app glitches, UI/UX bugs and the like. School issues (facilities, fees, transport…) are sorted by the school alone and never leave this inbox.</p>
                         <form method="post" action="{{ route('feedback.forward') }}">
                             @csrf
                             <input type="hidden" name="id" value="{{ $item->id }}">
+                            <div class="form-check mb-2">
+                                <input type="checkbox" name="platform_issue" value="1" class="form-check-input" id="platform_issue" {{ $item->category === 'app_bug' ? 'checked' : '' }}>
+                                <label class="form-check-label" for="platform_issue">This is a platform problem (not a school issue)</label>
+                            </div>
                             <button type="submit" class="btn btn-primary" data-confirm="Forward this report to the Super Admin?" data-confirm-title="Forward to Super Admin" data-confirm-action="Forward">
                                 <i class="icon-share2 mr-1"></i> Forward this report
                             </button>

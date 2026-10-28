@@ -9,7 +9,7 @@
          warnings are planning gaps to close. --}}
     @component('partials.patterns.list_page')
         @slot('subtitle')
-            {{ $record->name }} · {{ $my_class->name }} · {{ $record->section_id ? 'Section ' . optional($record->section)->name : 'All Sections' }} · {{ $record->year }} — {{ $cells }} periods placed. Checked against every timetable of this session, not just this class.
+            {{ $record->name }} · {{ optional($my_class)->name ?: 'Deleted class' }} · {{ $record->section_id ? 'Section ' . optional($record->section)->name : 'All Sections' }} · {{ $record->year }} — {{ $cells }} periods placed. Checked against every timetable of this session, not just this class.
         @endslot
         @slot('action')
             <a href="{{ route('tt.index') }}" class="btn btn-light btn-sm"><i class="icon-arrow-left7 mr-1"></i> Manage Timetables</a>
@@ -58,7 +58,7 @@
             </ul>
         @endif
 
-        <h5 class="mt-4 mb-2">Requirement Coverage — {{ $my_class->name }}</h5>
+        <h5 class="mt-4 mb-2">Requirement Coverage — {{ optional($my_class)->name ?: 'Deleted class' }}</h5>
         <div class="table-responsive">
             <table class="table">
                 <thead><tr><th>Subject</th><th>Teacher</th><th>Required / Wk</th><th>Placed</th><th>Status</th></tr></thead>
