@@ -12,6 +12,16 @@
         * { box-sizing: border-box; }
         body { font-family: 'DejaVu Sans', Arial, Helvetica, sans-serif; color: #172536; margin: 0; padding: 24px; font-size: 13px; }
         .doc { position: relative; max-width: 820px; margin: 0 auto; border: 1px solid #b9c6d4; overflow: hidden; }
+        /* B round 7: on phone screens the register table (413px at
+           360px) was cut off by .doc's overflow:hidden — 124px of
+           columns unreachable, no swipe. Screen-only: .doc becomes
+           the inner scrollport (same pattern as the timetable print
+           fix). Print keeps overflow:hidden (A4 fits the table), and
+           the dompdf PDF is unaffected: at PDF width the table fits
+           inside .doc, so auto creates no scroll either way. */
+        @media screen {
+            .doc { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        }
         .wm { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 340px; max-height: 420px; opacity: .10; z-index: 0; }
         .wm-mono { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-18deg); font-size: 128px; font-weight: 800; letter-spacing: .04em; line-height: 1; color: #10263b; opacity: .055; z-index: 0; white-space: nowrap; }
         .doc > *:not(.wm):not(.wm-mono) { position: relative; z-index: 1; }
@@ -40,7 +50,7 @@
         table.totals .absent .tv { color: #c0392b; }
         table.totals .late .tv { color: #b7791f; }
         table.items th { background: #eef2f7; border: 1px solid #b9c6d4; padding: 8px; font-size: 12px; text-align: left; color: #10263b; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-        table.items td { border: 1px solid #b9c6d4; padding: 8px; font-size: 13px; }
+        table.items td { border: 1px solid #b9c6d4; padding: 6px 8px; font-size: 13px; }
         .status { font-weight: bold; }
         .status-present { color: #188b66; }
         .status-absent { color: #c0392b; }
@@ -50,17 +60,34 @@
         .footer td { padding: 0 22px 18px; font-size: 11px; color: #718096; vertical-align: bottom; }
         .sign { text-align: right; color: #172536; }
         .sign .line { display: inline-block; width: 180px; border-top: 1px solid #172536; margin-top: 34px; padding-top: 4px; font-size: 12px; }
-        @media print { body { padding: 0; } .doc { border: none; } .noprint { display: none; } }
+        @media print { body { padding: 0; } .doc { border: none; } .noprint { display: none; } .footer { margin-top: 14px; } .footer td { padding-bottom: 10px; } .sign .line { margin-top: 22px; }
+            /* Orphan-page fix: the signature block alone spilled
+               onto page 3 while pages 1-2 were full. The tightening
+               above reclaims the ~90px it needs on page 2. Watermark
+               repeats on every page: a transformed fixed element
+               prints on page 1 only in Chrome, so centre with
+               top/left/right/bottom 0 + margin:auto, no transform
+               (same rule as the student-list print fix). */
+            .wm { position: fixed; top: 0; left: 0; right: 0; bottom: 0; margin: auto; height: 420px; object-fit: contain; transform: none; }
+            .wm-mono { position: fixed; top: 0; left: 0; right: 0; bottom: 0; margin: auto; height: 128px; line-height: 128px; text-align: center; transform: none; }
+        }
         .printbar { max-width: 820px; margin: 0 auto 14px; text-align: right; }
         .printbar button { font: inherit; padding: 8px 18px; border: 1px solid #10263b; background: #10263b; color: #fff; border-radius: 6px; cursor: pointer; }
         @if(!empty($for_pdf))
         /* Documents Premium pass (dompdf only): tighter vertical
-           rhythm so the signatory block stays on page 1 with the
-           register table instead of spilling onto a second page. */
+           rhythm so the signatory block stays on the last data page
+           instead of spilling onto a page of its own. dompdf
+           paginates tighter than Chrome here: after the shared
+           6px row padding pulled all 40 rows onto pages 1-2, the
+           ~90px closing block still spilled to page 3, so the PDF
+           path goes denser still (4px rows, 8px footer gap). The
+           browser path keeps 6px rows — it already fits in 2. */
         body { padding: 10px; }
-        .footer { margin-top: 14px; }
-        .footer td { padding-bottom: 10px; }
-        .sign .line { margin-top: 22px; }
+        table.items td { padding: 4px 8px; }
+        table.items th { padding: 5px 8px; }
+        .footer { margin-top: 8px; }
+        .footer td { padding-bottom: 6px; }
+        .sign .line { margin-top: 14px; }
         @endif
     </style>
 </head>

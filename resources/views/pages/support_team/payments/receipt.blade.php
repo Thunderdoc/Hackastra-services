@@ -57,6 +57,15 @@
         .stamp.due { border-color: #c0392b; color: #c0392b; }
         @page { size: A4 portrait; margin: 8mm; }
         @media print { body { padding: 0; } .receipt { border: none; } }
+        /* B round 18: narrow phones — the fixed 300px summary and the
+           180px sign line overflow .receipt (overflow:hidden) below ~355px
+           and clip the amount column + signature. Screen-only (dompdf width
+           ~595 never matches max-width 480px), print/PDF untouched. */
+        @media screen and (max-width: 480px) {
+            .summary { width: 100%; }
+            .footer, .footer tbody, .footer tr, .footer td { display: block; width: 100%; }
+            .footer td.sign { text-align: right; }
+        }
         table.items tr, .summary, .words, .footer { page-break-inside: avoid; }
     </style>
 </head>

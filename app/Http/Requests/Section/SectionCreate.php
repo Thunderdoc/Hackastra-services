@@ -4,6 +4,7 @@ namespace App\Http\Requests\Section;
 
 use App\Helpers\Qs;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class SectionCreate extends FormRequest
 {
@@ -23,7 +24,10 @@ class SectionCreate extends FormRequest
         return [
             'name' => 'required|string',
             'my_class_id' => 'required',
-            'teacher_id' => 'sometimes|nullable|exists:users,id',
+            // Allotment audit 2026-10-28: exists:users,id alone let a crafted
+            // POST name a student/parent/admin as a teacher. The teacher_id
+            // here is already hash-decoded above, so this checks the row.
+            'teacher_id' => ['sometimes', 'nullable', Rule::exists('users', 'id')->where(function ($q) { $q->where('user_type', 'teacher'); })],
             'stream' => 'nullable|in:pcm,pcb,commerce,arts',
         ];
     }

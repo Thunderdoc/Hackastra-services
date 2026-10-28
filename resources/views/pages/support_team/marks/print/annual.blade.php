@@ -8,6 +8,13 @@
         @page { size: auto; margin: 10mm; }
         html { background: #fff; }
         body { margin: 0; font-family: "Segoe UI", Arial, sans-serif; }
+        /* B round 7: same screen-only inner-scroll fix as the term
+           marksheet — the annual info table (463px at 360px) pushed
+           the document sideways. Print geometry untouched; the
+           dompdf annual_pdf blade never includes this blade. */
+        @media screen {
+            .report-card { overflow-x: auto; max-width: 100%; }
+        }
     </style>
 </head>
 <body>

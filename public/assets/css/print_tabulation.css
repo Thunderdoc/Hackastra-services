@@ -101,14 +101,55 @@ body {
 .tab-genline { text-align: center; color: #718096; font-size: 9.5px; letter-spacing: .16em; text-transform: uppercase; margin-top: 16px; }
 
 @media print {
-    .tab-marks th, .tab-marks td { padding: 2px 3px; font-size: 12px; }
+    .tab-marks th, .tab-marks td { padding: 1px 3px; font-size: 12px; }
+    .tab-marks { margin: 4px auto; }
     .tab-marks thead { display: table-header-group; }
     .tab-marks tr { page-break-inside: avoid; }
-    /* Last-page slack (owner ask 2026-10-25): a full last page
-       (header + 19 rows + summary + signatures) filled the page
-       exactly, spilling only the generated-by line onto page 3.
-       These tightenings reclaim ~32px so the whole last page fits. */
-    .tab-sign { margin-top: 10px; }
-    .tab-sign-line { height: 30px; }
-    .tab-genline { margin-top: 8px; }
+    .tab-marks thead .tab-hd-school td { padding-bottom: 4px; }
+    .tab-marks thead .tab-hd-title td { padding: 4px 8px; }
+    .tab-marks thead .tab-hd-ctx td { padding: 3px 6px; }
+    .tab-summary { margin-top: 2px; }
+    .tab-summary td { padding: 3px 6px; }
+    /* Last-page slack (owner ask 2026-10-25, re-verified 2026-10-28):
+       a full last page (header + 19 rows + summary + signatures)
+       filled the page exactly, spilling the whole signature block
+       alone onto page 3. These tightenings reclaim ~75px so the
+       whole last page fits on one page. */
+    .tab-sign { margin-top: 6px; }
+    .tab-sign-line { height: 22px; }
+    .tab-genline { margin-top: 4px; }
+}
+
+/* Phone preview (agent B round 3): the sheet is a landscape-A4
+   print document, but the owner opens it on his phone before
+   printing — at 360/390px the marks table measured 532px wide
+   (right columns cut off on screen). These SCREEN-ONLY rules
+   shrink fonts/padding so the preview fits without horizontal
+   scrolling. Print is untouched: browsers never apply @media
+   screen rules to print output, and the 2-page pagination was
+   re-verified after this block landed. */
+@media screen and (max-width: 480px) {
+    .tab-school { font-size: 18px; }
+    .tab-addr { font-size: 11px; }
+    .tab-contact { font-size: 10px; }
+    .tab-title { font-size: 13px; }
+    .tab-subtitle { font-size: 11px; }
+    .tab-context td { font-size: 11px; padding: 3px 4px; }
+    .tab-marks th, .tab-marks td { font-size: 10px; padding: 2px 2px; }
+    .tab-marks td.tab-name { padding-left: 3px; }
+    /* The SECTION ctx cell sits in a single subject column, so its
+       label + 6px padding alone forced that column to 66px. */
+    .tab-marks thead .tab-hd-ctx td { padding: 2px 3px; }
+    .tab-ctx-label { font-size: 9px; }
+    .tab-summary td { font-size: 11px; padding: 3px 4px; }
+    .tab-summary .tab-sum-value { font-size: 12px; }
+    .tab-sign td { padding: 0 8px 0 4px; }
+    .tab-watermark { width: 300px; }
+    .tab-watermark-mono { font-size: 96px !important; }
+    /* A 6-subject sheet now measures ~410px; a 12-subject sheet is
+       wider still, and no legible font fits either in 360px. So the
+       wide table scrolls INSIDE .tab-body on phones (the accepted
+       inner-scrollport pattern) instead of pushing the window
+       sideways — the window itself never scrolls horizontally. */
+    .tab-body { overflow-x: auto; }
 }

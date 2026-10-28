@@ -15,8 +15,13 @@ class LeaveRequest extends Model
 {
     public const STATUSES = ['pending', 'approved', 'rejected'];
 
+    /** Apply-time types (owner order 2026-10-28). Emergency is
+     *  auto-approved at submit (within seconds, synchronously);
+     *  normal goes through the usual approver. */
+    public const TYPES = ['normal', 'emergency'];
+
     protected $fillable = [
-        'user_id', 'start_date', 'end_date', 'reason', 'status',
+        'user_id', 'start_date', 'end_date', 'reason', 'leave_type', 'status',
         'decided_by', 'decided_at', 'decision_note',
     ];
 

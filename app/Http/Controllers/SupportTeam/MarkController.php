@@ -7,6 +7,7 @@ use App\Support\Audit;
 use App\Support\MarkComputation;
 use App\Support\MarkScheme;
 use App\Support\ReportCard;
+use App\Support\SectionTeacher;
 use App\Support\TeacherScope;
 use App\Models\Section;
 use App\Models\Subject;
@@ -21,6 +22,7 @@ use App\Http\Controllers\Controller;
 use App\Repositories\StudentRepo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class MarkController extends Controller
 {
@@ -506,12 +508,35 @@ class MarkController extends Controller
         return $d;
     }
 
+    /**
+     * Agent C round 24 — marks entry is EFFECTIVE-TEACHER scoped, on
+     * top of the Batch S class scope: a teacher may enter marks only
+     * for a subject that belongs to the class AND whose effective
+     * teacher for this section (override wins, else the subject's
+     * direct teacher) is herself. Class scope alone used to let a
+     * teacher enter marks for ANY subject of an in-scope class —
+     * including a colleague's subject and a class she only leads.
+     * Admins are unaffected (non-teachers always pass).
+     */
+    protected function denyUnlessEffectiveTeacher($classId, $sectionId, $subjectId)
+    {
+        if (!Qs::userIsTeacher()) {
+            return;
+        }
+        $subject = Subject::find($subjectId);
+        if (!$subject || (int) $subject->my_class_id !== (int) $classId
+            || (int) SectionTeacher::teacherIdFor($sectionId, $subject) !== (int) Auth::user()->id) {
+            abort(403, 'You can only manage marks for subjects you teach in this section.');
+        }
+    }
+
     public function selector(MarkSelector $req)
     {
         // Batch S: marks entry is scoped to a teacher's assigned classes.
         if(Qs::userIsTeacher() && !TeacherScope::canTeachClass(Auth::user(), $req->my_class_id)){
             abort(403, 'You can only manage marks for your assigned classes.');
         }
+        $this->denyUnlessEffectiveTeacher($req->my_class_id, $req->section_id, $req->subject_id);
 
         /* Wave 8 — class-scoped exams (wave 2) belong to exactly
            one class, but the picker lists every session exam. A
@@ -549,6 +574,7 @@ class MarkController extends Controller
         if(Qs::userIsTeacher() && !TeacherScope::canTeachClass(Auth::user(), $class_id)){
             abort(403, 'You can only manage marks for your assigned classes.');
         }
+        $this->denyUnlessEffectiveTeacher($class_id, $section_id, $subject_id);
 
         // Wave 8: same exam-scope guard as selector() — a direct
         // URL with another class's scoped exam must not render an
@@ -594,6 +620,7 @@ class MarkController extends Controller
         if(Qs::userIsTeacher() && !TeacherScope::canTeachClass(Auth::user(), $class_id)){
             abort(403, 'You can only manage marks for your assigned classes.');
         }
+        $this->denyUnlessEffectiveTeacher($class_id, $section_id, $subject_id);
 
         $p = ['exam_id' => $exam_id, 'my_class_id' => $class_id, 'section_id' => $section_id, 'subject_id' => $subject_id, 'year' => $this->year];
 
@@ -604,6 +631,7 @@ class MarkController extends Controller
         if (!$exam || ((int) $exam->my_class_id !== 0 && (int) $exam->my_class_id !== (int) $class_id)) {
             abort(404);
         }
+
         $marks = $this->exam->getMark($p);
 
         /* Batch 114 (Part A audit): snapshot the stored scores BEFORE
@@ -632,9 +660,13 @@ class MarkController extends Controller
            means "not entered" (stored NULL); 0 is a real score. The
            FormRequest has already proven every cell is a whole number
            within its component's max — invalid saves are rejected,
-           never silently wiped (the legacy >100 wipe is deleted). */
+           never silently wiped (the legacy >100 wipe is deleted).
+           Wave 32: the save and both recomputes run in ONE
+           transaction, so a recompute failure can no longer leave
+           component scores saved with stale totals behind it. */
         $changes = [];
         $fmtVal = function($v){ return $v === NULL ? 'blank' : (string) $v; };
+        DB::transaction(function () use ($marks, $req, $exam_id, $subject_id, $exam, $class_id, $section_id, $oldScores, $fmtVal, &$changes) {
         if(MarkScheme::isConfigured($exam_id, $subject_id)){
             $components = MarkScheme::configuredComponents($exam_id, $subject_id);
 
@@ -645,7 +677,7 @@ class MarkController extends Controller
                     $scores[$comp->id] = ($v === NULL || $v === '') ? NULL : (int) $v;
                     $old = $oldScores[$mk->id][$comp->id] ?? NULL;
                     if($old !== $scores[$comp->id]){
-                        $changes[] = $mk->user->name.' — '.$comp->name.': '.$fmtVal($old).' -> '.$fmtVal($scores[$comp->id]);
+                        $changes[] = (optional($mk->user)->name ?? 'Student').' — '.$comp->name.': '.$fmtVal($old).' -> '.$fmtVal($scores[$comp->id]);
                     }
                 }
                 MarkScheme::saveComponentScores($mk, $scores);
@@ -660,7 +692,7 @@ class MarkController extends Controller
                     $d[$field] = ($v === NULL || $v === '') ? NULL : (int) $v;
                     $old = $oldScores[$mk->id][$field] ?? NULL;
                     if($old !== $d[$field]){
-                        $changes[] = $mk->user->name.' — '.$legacyNames[$field].': '.$fmtVal($old).' -> '.$fmtVal($d[$field]);
+                        $changes[] = (optional($mk->user)->name ?? 'Student').' — '.$legacyNames[$field].': '.$fmtVal($old).' -> '.$fmtVal($d[$field]);
                     }
                 }
                 $d['tca'] = ($d['t1'] === NULL && $d['t2'] === NULL) ? NULL : (int) $d['t1'] + (int) $d['t2'];
@@ -673,6 +705,7 @@ class MarkController extends Controller
            through the one computation pipeline (dual-write of tex). */
         MarkComputation::recomputeSubject($exam, $class_id, $section_id, $subject_id, $this->year);
         MarkComputation::recomputeRecords($exam, $class_id, $section_id, $this->year);
+        });
 
         $auditMsg = 'Marks updated: exam '.$exam_id.', class '.$class_id.', subject '.$subject_id;
         if($changes){
@@ -844,7 +877,19 @@ class MarkController extends Controller
         $classIds = $classId ? [(int) $classId] : TeacherScope::classIds($user);
         $ids = [];
         foreach ($classIds as $cid) {
-            $teachesSubject = Subject::where('my_class_id', $cid)->where('teacher_id', $user->id)->exists();
+            // Round-8 allotment fix: a teacher counts as a subject
+            // teacher for the class when they hold a direct subject
+            // OR any section override in that class. The old raw-only
+            // check gave an override-only teacher ZERO sections, so
+            // tabulation() 403'd her out of the sheet for her own
+            // override section — even though marks entry (manage(),
+            // class-level gate) lets her enter those very marks.
+            $teachesSubject = Subject::where('my_class_id', $cid)->where('teacher_id', $user->id)->exists()
+                || DB::table('section_subject_teachers')
+                    ->join('sections', 'sections.id', '=', 'section_subject_teachers.section_id')
+                    ->where('section_subject_teachers.teacher_id', $user->id)
+                    ->where('sections.my_class_id', $cid)
+                    ->exists();
             $q = Section::where('my_class_id', $cid);
             if (!$teachesSubject) {
                 $q->where('teacher_id', $user->id);

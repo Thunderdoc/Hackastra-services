@@ -9,6 +9,7 @@ use App\Http\Requests\TimeTable\TTRequest;
 use App\Http\Requests\TimeTable\UseTimeSlotRequest;
 use App\Models\AttendanceSession;
 use App\Support\TimetableValidator;
+use App\Models\Exam;
 use App\Models\MyClass;
 use App\Models\Section;
 use App\Models\Setting;
@@ -64,7 +65,7 @@ class TimeTableController extends Controller
     {
         $user = Auth::user();
 
-        if (Qs::userIsTeamSA()) {
+        if (Qs::userIsTeamSA() || Qs::userIsPrincipal()) {
             return null;
         }
 
@@ -167,10 +168,16 @@ class TimeTableController extends Controller
         $d['sections_by_class'] = Section::orderBy('name')
             ->get()->groupBy('my_class_id');
         $d['record_stats'] = [];
-        foreach (TimeTable::select('ttr_id', 'subject_id')->get()->groupBy('ttr_id') as $ttrId => $cells) {
+        $slotCounts = TimeSlot::select('ttr_id')->get()->groupBy('ttr_id')->map->count();
+        foreach (TimeTable::select('ttr_id', 'subject_id', 'day')->get()->groupBy('ttr_id') as $ttrId => $cells) {
+            // Free = grid capacity minus placed cells: the record's
+            // own slots × its days, so the admin sees allocation
+            // quality (empty periods) right on the card.
+            $capacity = ($slotCounts[$ttrId] ?? 0) * $cells->pluck('day')->unique()->count();
             $d['record_stats'][$ttrId] = [
                 'periods' => $cells->count(),
                 'subjects' => $cells->pluck('subject_id')->unique()->count(),
+                'free' => max(0, $capacity - $cells->count()),
             ];
         }
 
@@ -263,9 +270,16 @@ class TimeTableController extends Controller
             'break_after' => 'nullable|integer|min:0|max:12',
             'break_minutes' => 'nullable|integer|min:5|max:45',
             'days' => 'required|integer|in:5,6',
+            // Owner order 2026-10-28: a teacher must get free slots
+            // — the admin may cap teaching periods per teacher per
+            // day (empty = no cap, as before). A capped period stays
+            // empty and is reported, never silently filled.
+            'max_teacher_periods_per_day' => 'nullable|integer|min:1|max:12',
             'scope' => 'required|in:all,one',
-            'class_id' => 'nullable|integer',
-            'section_id' => 'nullable|integer',
+            /* Agent D round 2: a nonexistent class used to sail
+               through and report "0 classes, 0 periods". */
+            'class_id' => 'nullable|integer|exists:my_classes,id',
+            'section_id' => 'nullable|integer|exists:sections,id',
             'mode' => 'required|in:skip,replace',
             // Batch upgrade 2026-10-25: per-level day configs + the
             // per-class subject picker (absent = old form post).
@@ -287,7 +301,8 @@ class TimeTableController extends Controller
         $data = $req->validate($rules);
         foreach (['period_minutes', 'periods_per_day', 'lunch_after', 'lunch_minutes', 'break_after', 'break_minutes', 'days',
                   'primary_period_minutes', 'primary_periods_per_day', 'primary_lunch_after', 'primary_lunch_minutes', 'primary_break_after', 'primary_break_minutes', 'primary_days',
-                  'secondary_period_minutes', 'secondary_periods_per_day', 'secondary_lunch_after', 'secondary_lunch_minutes', 'secondary_break_after', 'secondary_break_minutes', 'secondary_days'] as $k) {
+                  'secondary_period_minutes', 'secondary_periods_per_day', 'secondary_lunch_after', 'secondary_lunch_minutes', 'secondary_break_after', 'secondary_break_minutes', 'secondary_days',
+                  'max_teacher_periods_per_day'] as $k) {
             if (isset($data[$k])) {
                 $data[$k] = (int) $data[$k];
             }
@@ -312,6 +327,30 @@ class TimeTableController extends Controller
             $section = Section::find($sectionId);
             if (!$section || (int) $section->my_class_id !== (int) $data['class_id']) {
                 return back()->with('flash_danger', 'That section does not belong to the chosen class.')->withInput();
+            }
+        }
+
+        /* Agent D round 2: posted subjects must belong to their
+           class — a crafted post could otherwise plant another
+           class's subject (and teacher) into this grid. */
+        foreach (($data['subjects'] ?? []) as $postedClassId => $postedSubjectIds) {
+            if (!empty($postedSubjectIds)
+                && Subject::whereIn('id', array_map('intval', (array) $postedSubjectIds))
+                    ->where('my_class_id', '!=', (int) $postedClassId)->exists()) {
+                return back()->with('flash_danger', 'The chosen subjects must belong to their class — a subject from another class cannot be placed here.')->withInput();
+            }
+        }
+
+        /* Agent D round 2: a FULLY-streamed class has no whole-class
+           grid to build — generating one without a section would
+           mix every stream's subjects (the exact bug fixed for
+           scope=all in 2026-10-26). Refuse and point at the section
+           picker. A mixed class keeps its class grid for untagged
+           sections, and a section-less class is unaffected. */
+        if ($data['scope'] === 'one' && !$sectionId && !empty($data['class_id'])) {
+            $clsSections = Section::where('my_class_id', (int) $data['class_id'])->get();
+            if ($clsSections->isNotEmpty() && $clsSections->every(function ($sec) { return !empty($sec->stream); })) {
+                return back()->with('flash_danger', 'This class is fully streamed — choose a section to generate its grid. A whole-class grid would mix every stream\'s subjects.')->withInput();
             }
         }
 
@@ -340,6 +379,16 @@ class TimeTableController extends Controller
             [, $runsPast] = $this->buildSlots($cfg);
             if ($runsPast) {
                 return back()->with('flash_danger', 'That school day would run past 9:30 PM — reduce the periods, shorten them, or start earlier.')->withInput();
+            }
+            /* Agent D round 2: lunch/break AFTER the last period
+               builds a gap with no following slot, so the grid
+               shows no Lunch/Break column at all — silently. A
+               break must fall inside the day to be visible. */
+            if ((int) $cfg['lunch_after'] >= (int) $cfg['periods_per_day']) {
+                return back()->with('flash_danger', 'Lunch must fall inside the school day — lunch_after must be less than periods_per_day.')->withInput();
+            }
+            if (!empty($cfg['break_after']) && (int) $cfg['break_after'] >= (int) $cfg['periods_per_day']) {
+                return back()->with('flash_danger', 'The short break must fall inside the school day — break_after must be less than periods_per_day.')->withInput();
             }
         }
         $dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -402,39 +451,51 @@ class TimeTableController extends Controller
            single-class regeneration used to be blind to every other
            class's record and could double-book their teachers.
            Kept records (out of scope, skip mode, or attendance-
-           locked) preload a by-time busy map; placement checks both
-           maps. Records with a different period grid are matched by
-           slot start time — the validator remains the final check.
-           Section build (2026-10-25): only the records actually
-           being rebuilt are excluded from the preload — a class
-           grid stays blocking when a section grid is generated,
-           and section grids stay blocking when a class grid is
-           regenerated, because a teacher cannot teach both at once.
-           Kept cells resolve their teacher through the record's
-           section, so section overrides count as busy. */
-        $busyByTime = []; // [day][startMinute][teacher_id] = true
+           locked) preload an interval busy map; placement checks
+           it. Agent D round 2: intervals, not start minutes —
+           levels with different period lengths overlap without
+           sharing a start (9:00-9:40 vs 9:30-10:00), and the old
+           start-minute map let those through. The validator
+           remains the final check. Section build (2026-10-25):
+           only the records actually being rebuilt are excluded
+           from the preload — section grids stay blocking when a
+           class grid is regenerated, because a teacher cannot
+           teach both at once. Kept cells resolve their teacher
+           through the record's section, so section overrides count
+           as busy. */
+        $busyIntervals = []; // [teacher_id][day] = [[fromMinute, toMinute], ...]
         $targetKeys = [];
         foreach ($targets as $t) {
             $targetKeys[$t['class']->id . ':' . ($t['section_id'] ?? '')] = true;
         }
-        // Section supersede (2026-10-25): a section grid REPLACES
-        // the class grid for that section, so the same class's class
+        // Section supersede (2026-10-25, extended agent D round 2
+        // to EVERY section target): a section grid REPLACES the
+        // class grid for that section, so the same class's class
         // grid must not block the section's own generation — the
         // section's teachers would otherwise never be placeable
         // (the class grid already books them at every slot). The
-        // class grid stays live for the OTHER sections, and the
-        // validator flags any resulting double-booking, so the
+        // old code did this only for scope=one, so a scope=all
+        // skip run over a mixed class starved every section grid.
+        // The class grid stays live for the OTHER sections, and
+        // the validator flags any resulting double-booking, so the
         // admin sees it and generates those sections too (or
         // deletes the class grid once every section has its own).
         $supersededIds = [];
-        if ($data['scope'] === 'one' && $sectionId) {
-            $classGrid = TimeTableRecord::where('my_class_id', $data['class_id'])
-                ->whereNull('section_id')->whereNull('exam_id')->where('year', $this->year)->first();
-            if ($classGrid) {
-                $supersededIds[$classGrid->id] = true;
+        foreach ($targets as $t) {
+            if ($t['section_id']) {
+                $classGrid = TimeTableRecord::where('my_class_id', $t['class']->id)
+                    ->whereNull('section_id')->whereNull('exam_id')->where('year', $this->year)->first();
+                if ($classGrid) {
+                    $supersededIds[$classGrid->id] = true;
+                }
             }
         }
         $existingRecords = TimeTableRecord::whereNull('exam_id')->where('year', $this->year)->get();
+        // Teacher day load, preloaded from the same kept cells:
+        // the placer spreads a teacher's periods across days (and
+        // the daily cap below counts kept periods too, so a cap is
+        // real load, not just this run's load).
+        $teacherDayCount = [];
         foreach ($existingRecords as $existing) {
             if (isset($supersededIds[$existing->id])) {
                 continue; // superseded by the section grid being built
@@ -450,13 +511,45 @@ class TimeTableController extends Controller
             foreach (TimeTable::where('ttr_id', $existing->id)->with('subject')->get() as $cell) {
                 $teacherId = SectionTeacher::teacherIdFor($existing->section_id ?? null, $cell->subject);
                 if ($cell->subject && $teacherId) {
-                    $minute = (int) date('H', (int) $cell->timestamp_from) * 60 + (int) date('i', (int) $cell->timestamp_from);
-                    $busyByTime[$cell->day_num][$minute][$teacherId] = true;
+                    /* Agent D round 2: the weekday comes from the
+                       day NAME when day_num is NULL (legacy manual
+                       cells) — the old code keyed the busy map on
+                       raw day_num, so a NULL cell landed on a
+                       phantom '' day and never blocked anything,
+                       while the day-count below DID count it. */
+                    $dayIdx = array_search($cell->day, $dayNames);
+                    $cellDay = $cell->day_num ?: ($dayIdx !== false ? $dayIdx + 1 : null);
+                    if ($cellDay) {
+                        $fromMin = (int) date('H', (int) $cell->timestamp_from) * 60 + (int) date('i', (int) $cell->timestamp_from);
+                        $toMin = (int) date('H', (int) $cell->timestamp_to) * 60 + (int) date('i', (int) $cell->timestamp_to);
+                        $busyIntervals[$teacherId][$cellDay][] = [$fromMin, $toMin];
+                        $teacherDayCount[$teacherId][$cellDay] = ($teacherDayCount[$teacherId][$cellDay] ?? 0) + 1;
+                    }
                 }
             }
         }
-        $summary = ['generated' => [], 'skipped' => [], 'no_subjects' => [], 'locked' => [], 'placed' => 0, 'empty' => 0, 'free' => 0, 'shortfalls' => [], 'unassigned' => []];
+        $summary = ['generated' => [], 'generated_section_count' => 0, 'skipped' => [], 'no_subjects' => [], 'locked' => [], 'placed' => 0, 'empty' => 0, 'free' => 0, 'capped' => 0, 'no_teacher' => 0, 'shortfalls' => [], 'unassigned' => [], 'double_warnings' => []];
 
+        /* Agent D round 6 — whole-run atomicity: the per-target
+           DB::transaction below makes each target atomic, but a
+           mid-run failure (DB exception, lock, timeout) used to
+           leave earlier targets rebuilt, later targets stale, and
+           the admin staring at a bare 500 with no summary (proven
+           pre-fix: a throw on the 2nd target left target 1 with 6
+           cells committed). The outer transaction makes the whole
+           run atomic: inner transactions become savepoints, so an
+           inner failure rolls back to its savepoint and rethrows,
+           and the catch below rolls back everything. The run
+           writes at most ~35 targets × ~50 rows, so one
+           transaction for the run is cheap on MariaDB row locks;
+           per-target atomicity alone cannot fix a partial run.
+           Validation refusals above all return before this point,
+           and SchoolLevel::saveConfig below runs only on the
+           success path. NOTE: the loop body keeps its original
+           indentation to keep this diff reviewable; it runs
+           inside the try. */
+        try {
+            DB::beginTransaction();
         foreach ($targets as $target) {
             $class = $target['class'];
             $targetSectionId = $target['section_id'];
@@ -513,7 +606,7 @@ class TimeTableController extends Controller
                 }
             }
 
-            DB::transaction(function () use ($record, $class, $targetSectionId, $displayName, $subjects, $targetSlots, $targetCfg, $dayNames, $data, &$busyByTime, &$summary) {
+            DB::transaction(function () use ($record, $class, $targetSectionId, $displayName, $subjects, $targetSlots, $targetCfg, $dayNames, $data, &$busyIntervals, &$teacherDayCount, &$summary) {
                 if ($record) {
                     TimeTable::where('ttr_id', $record->id)->delete();
                     TimeSlot::where('ttr_id', $record->id)->delete();
@@ -571,47 +664,139 @@ class TimeTableController extends Controller
                 }
                 // Batch upgrade 2026-10-25 (pre-flight): subjects
                 // with no teacher are a warning in the summary, never
-                // a blocker — their periods simply stay empty until
-                // a teacher is assigned on Subjects.
+                // a blocker — the placer skips them (agent D round
+                // 2: they used to be PLACED, so the grid looked
+                // complete but the validator flagged every one of
+                // their periods as teacher-less), and their periods
+                // stay empty until a teacher is assigned on Subjects.
                 foreach ($subjects as $s) {
                     if (!$teacherOf[$s->id]) {
                         $summary['unassigned'][] = $displayName . ' — ' . $s->name;
                     }
+                    /* Agent D round 2: needs_double with fewer than
+                       2 weekly periods can never form a pair, yet
+                       the old code reported nothing (placed ==
+                       target, so no shortfall fired). Warn plainly. */
+                    if ($s->needs_double && $s->periods_per_week !== null && (int) $s->periods_per_week < 2) {
+                        $summary['double_warnings'][] = $displayName . ' — ' . $s->name
+                            . ' (needs a double period but only ' . (int) $s->periods_per_week . ' period/week is set)';
+                    }
                 }
+                /* Rotation (agent D round 2): identical subject
+                   structures used to produce identical grids for
+                   every class — subjects arrive in id order and the
+                   placement sort is stable, so ties always broke the
+                   same way (Prep = Class 1 = Class 2 on the demo
+                   seed, teachers differing but days copy-pasted).
+                   Each target now starts its rotation one subject
+                   later than the previous target id, and each day
+                   rotates one further. This is ONLY the final
+                   tiebreaker: it never overrides the weekly target,
+                   the day spread, the daily cap or the busy map, so
+                   balance, cap, load spreading, overrides and
+                   clash-freedom are unchanged, and re-generating
+                   the same class gives the same grid. Only N
+                   rotations exist for N subjects, so targets N apart
+                   share one by pigeonhole — neighbours differ. */
+                $subjectOrder = $subjects->values()->mapWithKeys(function ($s, $i) { return [$s->id => $i]; })->all();
+                $subjectCount = count($subjectOrder);
+                $rotSeed = $targetSectionId ?? $class->id;
+                $rotBase = $subjectCount > 0 ? (($rotSeed - 1) % $subjectCount) : 0;
                 for ($day = 1; $day <= $targetCfg['days']; $day++) {
                     $dayCount = $subjects->mapWithKeys(function ($s) { return [$s->id => 0]; })->all();
                     $prevSubjectId = null;
                     foreach ($slotModels as $slotIdx => $slotModel) {
                         $candidates = $subjects->filter(function ($s) use ($targets, $weekCount) {
                             return $targets[$s->id] === null || $weekCount[$s->id] < (int) $targets[$s->id];
-                        })->sortBy(function ($s) use ($weekCount, $dayCount, $prevSubjectId, $doubled, $targets) {
+                        })->sortBy(function ($s) use ($weekCount, $dayCount, $prevSubjectId, $doubled, $targets, $teacherOf, $teacherDayCount, $day, $subjectOrder, $subjectCount, $rotBase) {
                             $doubleBoost = ($prevSubjectId === $s->id && $s->needs_double && !$doubled[$s->id]
                                 && ($targets[$s->id] === null || $weekCount[$s->id] < (int) $targets[$s->id])) ? -1000 : 0;
-                            return $doubleBoost + ($weekCount[$s->id] * 100) + ($dayCount[$s->id] * 10);
+                            // Load tiebreaker (capped at 9, below the
+                            // dayCount step of 10): among equal
+                            // subjects, the teacher with fewer
+                            // periods already that day wins, so one
+                            // teacher's days stop being solid walls.
+                            $teacherLoad = $teacherOf[$s->id]
+                                ? min($teacherDayCount[$teacherOf[$s->id]][$day] ?? 0, 9)
+                                : 0;
+                            // Rotation tiebreaker (last): only breaks
+                            // exact score ties, so it can never
+                            // overturn a target, spread, cap or load
+                            // decision. Array sort: score first, then
+                            // rotated position.
+                            $rot = $subjectCount > 0
+                                ? (($subjectOrder[$s->id] + $rotBase + ($day - 1)) % $subjectCount)
+                                : 0;
+                            return [$doubleBoost + ($weekCount[$s->id] * 100) + ($dayCount[$s->id] * 10) + $teacherLoad, $rot];
                         })->values();
                         $chosen = null;
                         $slotMinute = (int) $targetSlots[$slotIdx]['from']->format('H') * 60 + (int) $targetSlots[$slotIdx]['from']->format('i');
+                        $slotToMinute = (int) $targetSlots[$slotIdx]['to']->format('H') * 60 + (int) $targetSlots[$slotIdx]['to']->format('i');
+                        $cap = $data['max_teacher_periods_per_day'] ?? null;
+                        $cappedSkip = false;
+                        $noTeacherSkip = false;
                         foreach ($candidates as $cand) {
-                            // Busy is tracked by start minute (not
-                            // slot index) so levels with different
-                            // day lengths can never false-clash.
-                            if (!$teacherOf[$cand->id]
-                                || empty($busyByTime[$day][$slotMinute][$teacherOf[$cand->id]])) {
-                                $chosen = $cand;
-                                break;
+                            $candTeacher = $teacherOf[$cand->id] ?? null;
+                            /* Agent D round 2: a teacher-less subject
+                               is never placed — its periods stay
+                               empty and are reported as no-teacher
+                               empties, not hidden inside a grid. */
+                            if (!$candTeacher) {
+                                $noTeacherSkip = true;
+                                continue;
                             }
+                            if ($cap !== null && ($teacherDayCount[$candTeacher][$day] ?? 0) >= (int) $cap) {
+                                $cappedSkip = true;
+                                continue;
+                            }
+                            // Busy is tracked by INTERVAL overlap
+                            // (not slot index or start minute) so
+                            // levels with different day lengths can
+                            // neither false-clash nor truly clash.
+                            $busy = false;
+                            foreach (($busyIntervals[$candTeacher][$day] ?? []) as [$f, $t]) {
+                                if ($slotMinute < $t && $f < $slotToMinute) {
+                                    $busy = true;
+                                    break;
+                                }
+                            }
+                            if ($busy) {
+                                continue;
+                            }
+                            $chosen = $cand;
+                            break;
                         }
                         if (!$chosen) {
                             $allMet = collect($targets)->every(function ($t, $sid) use ($weekCount) {
                                 return $t === null || $weekCount[$sid] >= (int) $t;
                             });
-                            // $allMet with every target satisfied and
-                            // only untargeted subjects left unplaced
-                            // cannot happen (untargeted are always
-                            // candidates); a null here with all
-                            // targets set+met means a genuinely free
-                            // period, otherwise teachers were busy.
-                            if (collect($targets)->every(function ($t) { return $t !== null; })
+                            // A null here with all targets set+met
+                            // means a genuinely free period (any
+                            // untargeted subject would have been a
+                            // candidate); otherwise teachers were
+                            // busy.
+                            // Cause order matters for honesty: cap
+                            // first (its message always offers a
+                            // working lever — raise the cap, or add
+                            // teachers when the capped teacher is
+                            // also busy), then no-teacher, then
+                            // free, then busy. Agent D round 4: a
+                            // cell mixing a teacher-less subject
+                            // with busy teachers used to bucket as
+                            // "every teacher busy", which is false
+                            // for the subject with no teacher at
+                            // all — and placing the busy teacher on
+                            // Manage would clash. Assigning a
+                            // teacher is the only clean lever, so
+                            // the mix buckets as no-teacher; the
+                            // busy bucket is now literally true
+                            // (no teacher-less, no capped
+                            // candidate in it).
+                            if ($cappedSkip) {
+                                $summary['capped'] = ($summary['capped'] ?? 0) + 1;
+                            } elseif ($noTeacherSkip) {
+                                $summary['no_teacher'] = ($summary['no_teacher'] ?? 0) + 1;
+                            } elseif (collect($targets)->every(function ($t) { return $t !== null; })
                                 && $allMet) {
                                 $summary['free'] = ($summary['free'] ?? 0) + 1;
                             } else {
@@ -625,21 +810,38 @@ class TimeTableController extends Controller
                         }
                         $prevSubjectId = $chosen->id;
                         if ($teacherOf[$chosen->id]) {
-                            $busyByTime[$day][$slotMinute][$teacherOf[$chosen->id]] = true;
+                            $busyIntervals[$teacherOf[$chosen->id]][$day][] = [$slotMinute, $slotToMinute];
+                            $teacherDayCount[$teacherOf[$chosen->id]][$day] = ($teacherDayCount[$teacherOf[$chosen->id]][$day] ?? 0) + 1;
                         }
                         $weekCount[$chosen->id]++;
                         $dayCount[$chosen->id]++;
-                        $cell = TimeTable::create([
+                        TimeTable::create([
                             'ttr_id' => $record->id,
                             'ts_id' => $slotModel->id,
                             'subject_id' => $chosen->id,
                             'day' => $dayNames[$day - 1],
+                            'day_num' => $day,
                             'timestamp_from' => $slotModel->timestamp_from + (($day - 1) * 86400),
                             'timestamp_to' => $slotModel->timestamp_to + (($day - 1) * 86400),
                         ]);
-                        $cell->day_num = $day; // not in TimeTable::$fillable
-                        $cell->save();
                         $summary['placed']++;
+                    }
+                }
+                /* Agent D round 18: cap × double honesty — a
+                   needs_double subject whose pair never formed
+                   (cap 1 forbids 2 cells in a day for one teacher;
+                   busy days and day-final placements can do the
+                   same) used to degrade to singles with no word in
+                   the flash, while its target still showed met.
+                   Name it in double_warnings so the admin sees the
+                   double did not happen. The pre-flight warning
+                   above already covers targets < 2; this covers the
+                   placed-but-unpaired case only. */
+                foreach ($subjects as $s) {
+                    if ($s->needs_double && $s->periods_per_week !== null
+                        && (int) $s->periods_per_week >= 2 && !$doubled[$s->id]) {
+                        $summary['double_warnings'][] = $displayName . ' — ' . $s->name
+                            . ' (double period could not be formed)';
                     }
                 }
                 foreach ($subjects as $s) {
@@ -649,7 +851,22 @@ class TimeTableController extends Controller
                     }
                 }
                 $summary['generated'][] = $displayName;
+                /* Agent D round 7: scope=all mixes class targets and
+                   section targets (streamed classes expand into
+                   sections), but the flash used to report every
+                   generated target as a "class" — 2 section grids
+                   read as "2 class(es)". Count section targets
+                   separately so the headline states what was built. */
+                if ($targetSectionId) {
+                    $summary['generated_section_count']++;
+                }
             });
+        }
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            report($e);
+            return back()->with('flash_danger', 'Timetable generation failed — nothing was changed. Please try again.')->withInput();
         }
 
         /* Skip-all reads as failure ("0 classes, 0 periods") when every
@@ -659,16 +876,49 @@ class TimeTableController extends Controller
             $msg = 'No new timetables: every class already has one for ' . $this->year
                 . ' — nothing was generated. Use “Replace theirs with a fresh generated one” to rebuild, or generate for a different session year.'
                 . ' Skipped: ' . implode(', ', $summary['skipped']) . '.';
+            /* Agent D round 7: the skip-all message used to drop the
+               no-subjects targets entirely — a class with no
+               subjects at all vanished from the report (locked
+               targets cannot coexist here: locks only fire in
+               replace mode, which never skips). Name them too. */
+            if (!empty($summary['no_subjects'])) {
+                $msg .= ' No subjects yet: ' . implode(', ', $summary['no_subjects']) . '.';
+            }
         } else {
-        $msg = 'Timetables generated for ' . count($summary['generated']) . ' ' . ($sectionId ? 'section(s)' : 'class(es)') . ': '
+        /* Agent D round 7: scope=all headline splits class vs
+           section targets (scope=one keeps its old wording, so
+           existing assertions on it are untouched). A run that
+           generated nothing here has no skipped list either (else
+           the branch above fired), so the fallback is 0 classes. */
+        if ($data['scope'] === 'all') {
+            $genSections = $summary['generated_section_count'] ?? 0;
+            $genClasses = count($summary['generated']) - $genSections;
+            $genParts = [];
+            if ($genClasses > 0) {
+                $genParts[] = $genClasses . ' class(es)';
+            }
+            if ($genSections > 0) {
+                $genParts[] = $genSections . ' section(s)';
+            }
+            if (empty($genParts)) {
+                $genParts[] = '0 class(es)';
+            }
+            $generatedPhrase = implode(' and ', $genParts);
+        } else {
+            $generatedPhrase = count($summary['generated']) . ' ' . ($sectionId ? 'section(s)' : 'class(es)');
+        }
+        $msg = 'Timetables generated for ' . $generatedPhrase . ': '
             . $summary['placed'] . ' periods placed'
             . ($summary['empty'] ? ', ' . $summary['empty'] . ' period(s) left empty (every teacher busy) — fill them on the Manage page' : '')
+            . (!empty($summary['capped']) ? ', ' . $summary['capped'] . ' period(s) left empty (teacher daily cap reached — raise the cap or add teachers on Subjects)' : '')
+            . (!empty($summary['no_teacher']) ? ', ' . $summary['no_teacher'] . ' period(s) left empty (no teacher assigned — assign one on Subjects)' : '')
             . (!empty($summary['free']) ? ', ' . $summary['free'] . ' free period(s) (all subject requirements met)' : '')
             . (!empty($summary['shortfalls']) ? '. REQUIREMENTS NOT FULLY MET — ' . implode('; ', array_slice($summary['shortfalls'], 0, 4)) . (count($summary['shortfalls']) > 4 ? '; and ' . (count($summary['shortfalls']) - 4) . ' more' : '') . ' — add periods to the week or lower the requirement on Subjects' : '')
             . ($summary['skipped'] ? '. Skipped (already have one): ' . implode(', ', $summary['skipped']) : '')
             . (!empty($summary['locked']) ? '. Kept (attendance already submitted, timetable locked this session): ' . implode(', ', $summary['locked']) : '')
             . ($summary['no_subjects'] ? '. No subjects yet: ' . implode(', ', $summary['no_subjects']) : '')
             . (!empty($summary['unassigned']) ? '. No teacher assigned (those periods may stay empty): ' . implode('; ', array_slice($summary['unassigned'], 0, 4)) . (count($summary['unassigned']) > 4 ? '; and ' . (count($summary['unassigned']) - 4) . ' more' : '') : '')
+            . (!empty($summary['double_warnings']) ? '. Double period not possible: ' . implode('; ', array_slice($summary['double_warnings'], 0, 4)) . (count($summary['double_warnings']) > 4 ? '; and ' . (count($summary['double_warnings']) - 4) . ' more' : '') : '')
             . '.';
         }
 
@@ -755,7 +1005,7 @@ class TimeTableController extends Controller
      */
     protected function teacherWeekData($user)
     {
-        $periods = TimeTable::with(['subject.my_class', 'time_slot', 'tt_record.my_class'])
+        $periods = TimeTable::with(['subject.my_class', 'time_slot', 'tt_record.my_class', 'tt_record.section'])
             ->whereNotNull('day');
         SectionTeacher::applyTeacherFilter($periods, (int) $user->id);
         $periods = $periods->get();
@@ -770,27 +1020,34 @@ class TimeTableController extends Controller
             ->sortBy(function ($slot) { return (int) $slot->timestamp_from; })->values();
         $d['period_count'] = $periods->count();
 
+        // Owner fix 2026-10-28: the cell names the SECTION too —
+        // "Class 12" alone hides which of 13 sections the period is
+        // for. Section comes from the period's own record.
+        $sectionSub = function ($p) {
+            $class = optional($p->tt_record)->my_class ?: optional($p->subject)->my_class;
+            $section = optional(optional($p->tt_record)->section)->name;
+            return $class ? $class->name . ($section ? ' — ' . $section : '') : '';
+        };
+
         foreach ($periods as $p) {
             if (!$p->time_slot) {
                 continue;
             }
-            $class = optional($p->tt_record)->my_class ?: optional($p->subject)->my_class;
             $d['map'][$p->day][$p->time_slot->full] = [
                 'title' => optional($p->subject)->name ?: '—',
-                'sub'   => $class ? $class->name : '',
+                'sub'   => $sectionSub($p),
             ];
         }
 
         $dayOrder = array_flip(Qs::getDaysOfTheWeek());
         $entries = $periods->filter(function ($p) { return $p->time_slot; })
-            ->map(function ($p) {
-                $class = optional($p->tt_record)->my_class ?: optional($p->subject)->my_class;
+            ->map(function ($p) use ($sectionSub) {
                 return [
                     'day'     => $p->day,
                     'slot'    => $p->time_slot->full,
                     'from'    => (int) $p->time_slot->timestamp_from,
                     'subject' => optional($p->subject)->name ?: '—',
-                    'class'   => $class ? $class->name : '',
+                    'class'   => $sectionSub($p),
                 ];
             })
             ->sortBy(function ($e) use ($dayOrder) {
@@ -850,6 +1107,27 @@ class TimeTableController extends Controller
         }
 
         return SectionTeacher::recordForClassSection($child->my_class_id, $child->section_id ?? null, $this->year);
+    }
+
+    /**
+     * Mobile API access to the teacher week dataset (Loop 81 single
+     * source). Thin public wrapper — the dataset itself is still
+     * built only by teacherWeekData(), so screen, print, PDF and API
+     * can never drift apart.
+     */
+    public function apiTeacherWeek($user)
+    {
+        return $this->teacherWeekData($user);
+    }
+
+    /**
+     * Mobile API access to a class/section record's week grid.
+     * Thin public wrapper over recordWeekGrid() — same grid the
+     * student/parent My Timetable screen renders.
+     */
+    public function apiRecordGrid(TimeTableRecord $ttr)
+    {
+        return $this->recordWeekGrid($ttr);
     }
 
     /**
@@ -991,7 +1269,17 @@ class TimeTableController extends Controller
         $d['ttr'] = $ttr = $this->tt->findRecord($ttr_id);
         $d['time_slots'] = $this->tt->getTimeSlotByTTR($ttr_id);
         $d['ts_existing'] = $this->tt->getExistingTS($ttr_id);
-        $d['subjects'] = $this->my_class->getSubject(['my_class_id' => $ttr->my_class_id])->get();
+        /* Agent D round 9: the add/edit forms offered every class
+           subject, so a streamed section's grid could gain an
+           out-of-stream subject in one careless click (the
+           generator would never place it). Filter to the section's
+           stream — the same rule the generator, the readiness
+           check and section subject lists use. Unstreamed
+           sections and whole-class grids still see every subject. */
+        $d['subjects'] = Streams::subjectsForSection(
+            $this->my_class->getSubject(['my_class_id' => $ttr->my_class_id])->get(),
+            $ttr->section
+        );
         $d['my_class'] = $this->my_class->find($ttr->my_class_id);
 
         if($ttr->exam_id){
@@ -1001,7 +1289,65 @@ class TimeTableController extends Controller
 
         $d['tts'] = $this->tt->getTimeTable(['ttr_id' => $ttr_id]);
 
+        /* Agent D round 3: broken-cell flags for the Manage grid —
+           exactly the validator's definition (see
+           TimetableValidator::isBrokenCell), so the grid and the
+           Validate page never disagree about which periods are
+           broken. The edit tab renders these rows flagged. */
+        $d['broken_tt_ids'] = $d['tts']->filter(fn($tt) => TimetableValidator::isBrokenCell($tt))->pluck('id')->all();
+
         return view('pages.support_team.timetables.manage', $d);
+    }
+
+    /* Agent D round 2: a weekly cell's weekday number is derived
+       from its day name here (exam cells carry no day, so they keep
+       day_num unset). Without this, manual cells stored NULL and
+       the validator's day grouping + the generator's busy map
+       silently missed them. */
+    protected function dayNumFromRequest(TTRequest $req): ?int
+    {
+        if (!$req->day) {
+            return null;
+        }
+        $idx = array_search($req->day, ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'], true);
+        return $idx !== false ? $idx + 1 : null;
+    }
+
+    /**
+     * Agent D round 2: time_tables carries UNIQUE(ttr_id, ts_id,
+     * day), UNIQUE(ttr_id, ts_id, exam_date) and UNIQUE(from, to,
+     * ttr_id) — posting the same slot twice used to die with a
+     * 500 QueryException (the AJAX 500 handler even apologised
+     * for "Duplicate entry"). Refuse gracefully instead: same
+     * record + same slot on the same day/exam date, or same
+     * record + identical timestamps (same-time slot definitions),
+     * is a duplicate. Timestamps encode their date, so the
+     * timestamp check cannot false-positive across days.
+     */
+    protected function duplicateCellExists(TTRequest $req, $from, $to, $excludeId = null): bool
+    {
+        $q = TimeTable::where('ttr_id', $req->ttr_id);
+        if ($excludeId) {
+            $q->where('id', '!=', $excludeId);
+        }
+        return $q->where(function ($w) use ($req, $from, $to) {
+            // Slot branch only when the post names its day or
+            // exam date — a post naming neither must not match
+            // every day the slot is used on.
+            if ($req->exam_date || $req->day) {
+                $w->where(function ($s) use ($req) {
+                    $s->where('ts_id', $req->ts_id);
+                    if ($req->exam_date) {
+                        $s->where('exam_date', $req->exam_date);
+                    } else {
+                        $s->where('day', $req->day);
+                    }
+                });
+            }
+            $w->orWhere(function ($s) use ($from, $to) {
+                $s->where('timestamp_from', $from)->where('timestamp_to', $to);
+            });
+        })->exists();
     }
 
     public function store(TTRequest $req)
@@ -1011,6 +1357,12 @@ class TimeTableController extends Controller
         $d_date = $req->exam_date ?? $req->day;
         $data['timestamp_from'] = strtotime($d_date.' '.$tms->time_from);
         $data['timestamp_to'] = strtotime($d_date.' '.$tms->time_to);
+        if (($dayNum = $this->dayNumFromRequest($req)) !== null) {
+            $data['day_num'] = $dayNum;
+        }
+        if ($this->duplicateCellExists($req, $data['timestamp_from'], $data['timestamp_to'])) {
+            return Qs::json('This slot already has a period on ' . ($req->exam_date ?? $req->day) . ' — pick a free slot instead.', false);
+        }
 
         $this->tt->create($data);
 
@@ -1024,6 +1376,12 @@ class TimeTableController extends Controller
         $d_date = $req->exam_date ?? $req->day;
         $data['timestamp_from'] = strtotime($d_date.' '.$tms->time_from);
         $data['timestamp_to'] = strtotime($d_date.' '.$tms->time_to);
+        if (($dayNum = $this->dayNumFromRequest($req)) !== null) {
+            $data['day_num'] = $dayNum;
+        }
+        if ($this->duplicateCellExists($req, $data['timestamp_from'], $data['timestamp_to'], $tt_id)) {
+            return back()->with('flash_danger', 'This slot already has a period on ' . ($req->exam_date ?? $req->day) . ' — pick a free slot instead.');
+        }
 
         $this->tt->update($tt_id, $data);
 
@@ -1057,7 +1415,12 @@ class TimeTableController extends Controller
         $data['timestamp_to'] = strtotime($tt);
         $data['full'] = $tf.' - '.$tt;
 
-        if($tf == $tt){
+        /* Agent D round 3: equal times were refused, but inverted
+           times (10:00 AM - 9:00 AM) slipped through — and the slot
+           edit sync below would then stamp broken timestamps onto
+           every cell using the slot. Refuse any end at or before
+           the start, same message and shape as before. */
+        if(strtotime($tt) <= strtotime($tf)){
             return response()->json(['msg' => __('msg.invalid_time_slot'), 'ok' => FALSE]);
         }
 
@@ -1107,34 +1470,63 @@ class TimeTableController extends Controller
         $data['timestamp_to'] = strtotime($tt);
         $data['full'] = $tf.' - '.$tt;
 
-        if($tf == $tt){
+        /* Agent D round 3: same inverted-times guard as slot
+           creation — an inverted edit would otherwise stamp broken
+           timestamps onto every cell using this slot. */
+        if(strtotime($tt) <= strtotime($tf)){
             return back()->with('flash_danger', __('msg.invalid_time_slot'));
         }
 
-        $this->tt->updateTimeSlot($ts_id, $data);
+        /* Agent D round 5 (parent decision, same class as the exam
+           generate/save transactions): the slot-row update + the
+           cell sync loop below are ONE atomic unit. A mid-loop
+           failure used to leave a partially synced record (slot row
+           new times, some cells new, the rest old) plus a 500. Now
+           everything rolls back and the admin gets back + a danger
+           flash instead — strictly better than the 500, and the
+           behavior change is accepted deliberately. */
+        DB::beginTransaction();
+        try {
+            $this->tt->updateTimeSlot($ts_id, $data);
 
-        /* TT-02 residual (2026-10-23): placed cells snapshot the
-           slot's time-of-day into their own timestamps at placement
-           (generator: slot timestamp + day offset; manual entry:
-           cell date + slot time string), and the clash validator
-           keys off the CELL timestamps. Without this sync, editing
-           a slot's times left every placed period reporting the old
-           times to the validator. Recompose each cell's timestamps
-           from its own date part + the slot's new times, preserving
-           the day/date each cell belongs to. Attendance sessions
-           point at cells, not timestamps, so locked registers stay
-           attached to their periods. */
-        TimeTable::where('ts_id', $ts_id)->get()->each(function ($cell) use ($tf, $tt) {
-            /* Cell timestamps arrive as unix integers from the
-               generator/manual flows, but nothing casts the columns
-               — normalize datetime strings too before reading the
-               date part, or an (int) cast would eat the year. */
-            $fromTs = is_numeric($cell->timestamp_from) ? (int) $cell->timestamp_from : strtotime($cell->timestamp_from);
-            $toTs = is_numeric($cell->timestamp_to) ? (int) $cell->timestamp_to : strtotime($cell->timestamp_to);
-            $cell->timestamp_from = strtotime(date('Y-m-d', $fromTs) . ' ' . $tf);
-            $cell->timestamp_to = strtotime(date('Y-m-d', $toTs) . ' ' . $tt);
-            $cell->save();
-        });
+            /* TT-02 residual (2026-10-23): placed cells snapshot the
+               slot's time-of-day into their own timestamps at placement
+               (generator: slot timestamp + day offset; manual entry:
+               cell date + slot time string), and the clash validator
+               keys off the CELL timestamps. Without this sync, editing
+               a slot's times left every placed period reporting the old
+               times to the validator. Recompose each cell's timestamps
+               from its own date part + the slot's new times, preserving
+               the day/date each cell belongs to. Attendance sessions
+               point at cells, not timestamps, so locked registers stay
+               attached to their periods. */
+            TimeTable::where('ts_id', $ts_id)->get()->each(function ($cell) use ($tf, $tt) {
+                /* Cell timestamps arrive as unix integers from the
+                   generator/manual flows, but nothing casts the columns
+                   — normalize datetime strings too before reading the
+                   date part, or an (int) cast would eat the year. */
+                $fromTs = is_numeric($cell->timestamp_from) ? (int) $cell->timestamp_from : strtotime($cell->timestamp_from);
+                $toTs = is_numeric($cell->timestamp_to) ? (int) $cell->timestamp_to : strtotime($cell->timestamp_to);
+                /* Agent D round 4: unparseable timestamps (legacy empty
+                   strings) must be left alone — strtotime('') is false
+                   and date('Y-m-d', false) would stamp 1970-01-01 onto
+                   the cell. Such cells stay visible via the Manage
+                   broken-cell flag instead of being silently rewritten. */
+                if ($fromTs === false || $toTs === false) {
+                    return;
+                }
+                $cell->timestamp_from = strtotime(date('Y-m-d', $fromTs) . ' ' . $tf);
+                $cell->timestamp_to = strtotime(date('Y-m-d', $toTs) . ' ' . $tt);
+                $cell->save();
+            });
+
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            report($e);
+
+            return back()->with('flash_danger', 'Time slot update failed — nothing was changed. Please try again.')->withInput();
+        }
 
         return redirect()->route('ttr.manage', $req->ttr_id)->with('flash_success', __('msg.update_ok'));
     }
@@ -1300,6 +1692,38 @@ class TimeTableController extends Controller
         return $d;
     }
 
+    /**
+     * Round 30 scope guard: mirrors agent E round 31's
+     * scopeMismatchMessage in ExamDateController::generate()/save()
+     * (identical text, identical scope test: !empty($exam->my_class_id)
+     * = scoped). A grid naming an exam scoped to class X cannot be
+     * created/updated for class Y. Global exams (my_class_id 0) and
+     * exam-less class grids always pass; a dead exam_id passes the
+     * guard (no scope to enforce) — existence validation is separate.
+     */
+    protected function scopeMismatchMessage($exam, $classId)
+    {
+        $scopedClass = MyClass::find($exam->my_class_id);
+        $targetClass = MyClass::find($classId);
+        return 'This exam is scoped to ' . ($scopedClass ? $scopedClass->name : 'one class')
+            . ' — it cannot carry dates for ' . ($targetClass ? $targetClass->name : 'this class') . '.';
+    }
+
+    protected function recordScopeMismatch($data)
+    {
+        if (empty($data['exam_id'])) {
+            return null;
+        }
+        $exam = Exam::find($data['exam_id']);
+        if (!$exam || empty($exam->my_class_id)) {
+            return null;
+        }
+        if ((int) $exam->my_class_id === (int) ($data['my_class_id'] ?? 0)) {
+            return null;
+        }
+        return $this->scopeMismatchMessage($exam, (int) $data['my_class_id']);
+    }
+
     public function store_record(TTRecordRequest $req)
     {
         $data = $req->all();
@@ -1307,6 +1731,9 @@ class TimeTableController extends Controller
         $data['section_id'] = $this->cleanRecordSection($data);
         if ($data['section_id'] === false) {
             return back()->with('flash_danger', 'That section does not belong to the chosen class.');
+        }
+        if ($msg = $this->recordScopeMismatch($data)) {
+            return back()->with('flash_danger', $msg);
         }
         $this->tt->createRecord($data);
 
@@ -1319,6 +1746,9 @@ class TimeTableController extends Controller
         $data['section_id'] = $this->cleanRecordSection($data);
         if ($data['section_id'] === false) {
             return back()->with('flash_danger', 'That section does not belong to the chosen class.');
+        }
+        if ($msg = $this->recordScopeMismatch($data)) {
+            return back()->with('flash_danger', $msg);
         }
         $this->tt->updateRecord($id, $data);
 
@@ -1337,7 +1767,22 @@ class TimeTableController extends Controller
             TimeTable::where('ttr_id', $ttr_id)->pluck('id'))->exists()) {
             return back()->with('flash_danger', 'This timetable cannot be deleted — attendance has already been submitted on its periods. Submitted attendance is locked history.');
         }
-        $this->tt->deleteRecord($ttr_id);
+        /* Agent D round 33 (F-R33-1): deleteRecord removed only the
+           record row, orphaning its cells + slots — and the deleted
+           grid's periods kept rendering in the direct teacher's
+           week view (period aggregation has no record-existence
+           check) even though students correctly fell back to the
+           class grid. Delete the grid with its record, in one
+           transaction. Safe by construction: the guard above
+           refuses whenever any cell carries a submitted session,
+           so no session can point at a cell deleted here. This
+           mirrors generate()'s replace path, which already deletes
+           a rebuilt record's cells + slots together. */
+        DB::transaction(function () use ($ttr_id) {
+            TimeTable::where('ttr_id', $ttr_id)->delete();
+            TimeSlot::where('ttr_id', $ttr_id)->delete();
+            $this->tt->deleteRecord($ttr_id);
+        });
         return back()->with('flash_success', __('msg.delete_ok'));
     }
 }

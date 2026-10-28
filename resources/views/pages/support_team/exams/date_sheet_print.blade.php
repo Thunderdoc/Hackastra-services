@@ -23,7 +23,7 @@
         .ds-brand-cell { width: 110px; text-align: left; }
         .ds-main-cell { text-align: center; }
         .ds-tile { display: block; width: 64px; height: 64px; background: #10263b; color: #fff; font-size: 20px; font-weight: 800; text-align: center; line-height: 64px; border-radius: 8px; }
-        .ds-logo { max-height: 90px; max-width: 150px; }
+        .ds-logo { height: 84px; width: auto; max-width: 150px; object-fit: contain; }
         .ds-school { color: #10263b; font-size: 25px; font-weight: bold; text-transform: uppercase; letter-spacing: .2px; }
         .ds-addr { color: #000; font-size: 15px; font-style: italic; }
         .ds-contact { color: #000; font-size: 12.5px; font-style: italic; }
@@ -41,9 +41,14 @@
 
         /* Signatures + seal: same digital-docs contract as the report
            card — the stamp and the principal's signature render only
-           while uploaded in Settings; otherwise blank lines print. */
+           while uploaded in Settings; otherwise blank lines print.
+           Owner fix 2026-10-28: the seal used to sit at bottom:0,
+           i.e. ON the principal's name/role text. It now floats
+           above that text (bottom:48px clears role + name) over the
+           empty signature-line zone only — a stamp over a line is
+           natural, a stamp over a name is not. */
         .ds-signatures { position: relative; margin-top: 34px; }
-        .ds-stamp { position: absolute; right: 40px; bottom: 0; width: 110px; height: 110px; object-fit: contain; transform: rotate(-10deg); opacity: .95; z-index: 2; }
+        .ds-stamp { position: absolute; right: 30px; bottom: 48px; width: 96px; height: 96px; object-fit: contain; transform: rotate(-10deg); opacity: .95; z-index: 2; }
         .ds-sign-table { width: 100%; border-collapse: collapse; }
         /* Batch fix 2026-10-25: the cells were bottom-aligned, so
            the principal's signature image (44px) lifted the
@@ -106,7 +111,9 @@
             @endif
         </p>
 
-        @if($announced === 0)
+        @if($rows->isEmpty())
+            <p class="ds-empty-note">No subjects are configured for this class yet, so there is no date sheet to publish.</p>
+        @elseif($announced === 0)
             <p class="ds-empty-note">Dates for this exam have not been announced yet. The subjects below will carry their dates here as soon as the school office publishes them.</p>
         @endif
 

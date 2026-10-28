@@ -16,7 +16,6 @@
     <div class="t10-welcome">
         <div class="t10-welcome-main">
             <h2>{{ $greeting }}, {{ Auth::user()->name }} <span aria-hidden="true">👋</span></h2>
-            <p>Here&rsquo;s your teaching overview for today. Keep up the great work!</p>
             <a href="{{ route('attendance.periods.index') }}" class="t10-take-btn"><i class="icon-calendar52"></i> Take Attendance</a>
         </div>
         <aside class="t10-quote">
@@ -32,7 +31,6 @@
             <span class="t10-kpi-copy">
                 <span class="t10-kpi-label">My Subjects</span>
                 <strong>{{ number_format($my_subjects->count()) }}</strong>
-                <small>Subjects you teach</small>
             </span>
         </div>
         <a href="{{ route('tt.mine') }}" class="t10-kpi t10-kpi-green">
@@ -40,7 +38,6 @@
             <span class="t10-kpi-copy">
                 <span class="t10-kpi-label">My Assignments</span>
                 <strong>{{ number_format($my_assignment_count) }}</strong>
-                <small>Sections led + classes taught</small>
             </span>
             <i class="icon-arrow-right7 t10-kpi-chev"></i>
         </a>
@@ -50,7 +47,6 @@
                 <span class="t10-kpi-copy">
                     <span class="t10-kpi-label">Total Students</span>
                     <strong>{{ number_format($my_student_count) }}</strong>
-                    <small>Across your classes</small>
                 </span>
                 <i class="icon-arrow-right7 t10-kpi-chev"></i>
             </a>
@@ -60,7 +56,6 @@
                 <span class="t10-kpi-copy">
                     <span class="t10-kpi-label">Total Students</span>
                     <strong>{{ number_format($my_student_count) }}</strong>
-                    <small>Across your classes</small>
                 </span>
             </div>
         @endif
@@ -69,11 +64,37 @@
             <span class="t10-kpi-copy">
                 <span class="t10-kpi-label">Today&rsquo;s Periods</span>
                 <strong>{{ number_format($today_periods->count()) }}</strong>
-                <small>Scheduled for today</small>
             </span>
             <i class="icon-arrow-right7 t10-kpi-chev"></i>
         </a>
     </div>
+
+    @if($untaken_periods_today->count() > 0 || $ungraded_assignments->count() > 0)
+        <section class="t10-panel" style="margin-bottom: 16px; border-left: 4px solid #d64545;">
+            <div class="t10-panel-head">
+                <div class="t10-panel-title">
+                    <span class="t10-panel-icon" style="background: #fdecec; color: #d64545;"><i class="icon-alarm"></i></span>
+                    <div>
+                        <h5>Needs attention</h5>
+                        <p class="t10-panel-sub">Work still open for you today — nothing here is estimated.</p>
+                    </div>
+                </div>
+            </div>
+            <div style="padding: 0 16px 16px;">
+                @if($untaken_periods_today->count() > 0)
+                    <p style="margin: 0 0 8px;"><strong>{{ number_format($untaken_periods_today->count()) }}</strong> {{ $untaken_periods_today->count() === 1 ? 'period' : 'periods' }} today still {{ $untaken_periods_today->count() === 1 ? 'needs' : 'need' }} attendance
+                    — untaken periods: {{ $untaken_periods_today->map(function ($row) { return $row['subject_name'] . ' (' . $row['class_name'] . ')'; })->implode(', ') }}.
+                    <a href="{{ route('attendance.periods.index') }}">Take attendance</a></p>
+                @endif
+                @if($ungraded_assignments->count() > 0)
+                    <p style="margin: 0;">{{ number_format($ungraded_assignments->count()) }} {{ $ungraded_assignments->count() === 1 ? 'assignment has' : 'assignments have' }} ungraded submissions
+                    ({{ number_format($ungraded_assignments->sum('ungraded_count')) }} {{ $ungraded_assignments->sum('ungraded_count') === 1 ? 'submission' : 'submissions' }} awaiting marks):
+                    {{ $ungraded_assignments->take(5)->map(function ($assignment) { return $assignment->title . ' (' . $assignment->ungraded_count . ')'; })->implode(', ') }}.
+                    <a href="{{ route('assignments.index') }}">Grade submissions</a></p>
+                @endif
+            </div>
+        </section>
+    @endif
 
     <div class="t10-main">
         <div class="t10-leftcol">
@@ -103,7 +124,7 @@
                             <td><span class="t10-status t10-status-{{ $row['status'] }}">{{ $row['status_label'] }}</span></td>
                             <td>
                                 @if(!empty($row['session_id']))
-                                    <a href="{{ route('attendance.periods.show', $row['session_id']) }}" class="t10-btn t10-btn-view">View</a>
+                                    <span class="text-muted">Submitted</span>
                                 @else
                                     <a href="{{ route('attendance.periods.take', $row['tt_id']) }}" class="t10-btn t10-btn-take">Take</a>
                                 @endif

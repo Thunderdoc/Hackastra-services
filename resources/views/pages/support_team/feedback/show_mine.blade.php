@@ -16,7 +16,7 @@
         </div>
         <div class="card-body">
             <div class="mb-2">
-                @include('pages.support_team.feedback._chips', ['item' => $item])
+                @include('pages.support_team.feedback._chips', ['item' => $item, 'hide_sa' => true])
                 <span class="text-muted ml-2">{{ $item->typeLabel() }}</span>
             </div>
 
@@ -54,12 +54,7 @@
                 <div class="col-md-6">
                     <div class="font-weight-semibold mb-1">Progress</div>
                     <div>School Admin status: <strong>{{ $item->statusLabel() }}</strong></div>
-                    @if($item->isForwarded())
-                        <div class="text-muted">Forwarded to the Super Admin on {{ $item->forwarded_at->format('d M Y, h:i A') }}.</div>
-                        <div class="mt-1">Super Admin status: <strong>{{ $item->saStatusLabel() }}</strong></div>
-                    @else
-                        <div class="text-muted">Not forwarded — the school Admin forwards compiled reports to the Super Admin.</div>
-                    @endif
+                    <div class="text-muted">Handled by the school.</div>
                 </div>
                 <div class="col-md-6">
                     <div class="font-weight-semibold mb-1">Administrator Response</div>
@@ -68,14 +63,7 @@
                             <div class="l87-response-by"><i class="icon-user-check mr-1"></i> School Admin</div>
                             <div style="white-space:pre-wrap">{{ $item->admin_note }}</div>
                         </div>
-                    @endif
-                    @if($item->sa_reply)
-                        <div class="l87-response">
-                            <div class="l87-response-by"><i class="icon-user-check mr-1"></i> Super Admin</div>
-                            <div style="white-space:pre-wrap">{{ $item->sa_reply }}</div>
-                        </div>
-                    @endif
-                    @if(!$item->admin_note && !$item->sa_reply)
+                    @else
                         <p class="text-muted mb-0">Your report has been received. No administrator response is available yet.</p>
                     @endif
                 </div>

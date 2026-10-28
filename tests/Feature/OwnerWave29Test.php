@@ -25,6 +25,11 @@ class OwnerWave29Test extends TestCase
         return User::where('email', 'teacher@hackstra.app')->first();
     }
 
+    protected function admin()
+    {
+        return User::where('email', 'admin@hackstra.app')->first();
+    }
+
     protected function otherTeacher()
     {
         return User::where('user_type', 'teacher')->where('id', '!=', $this->teacher()->id)->first();
@@ -138,7 +143,11 @@ class OwnerWave29Test extends TestCase
     {
         [$session, $students] = $this->makeSession();
 
-        $response = $this->actingAs($this->teacher())->get(route('attendance.periods.show', $session->id));
+        // Owner rule change: submitted registers are gone from the
+        // teacher's end, so roll-number coverage now runs as admin
+        // (oversight keeps full view); teacher-403 is covered by
+        // OwnerAttendanceTeacherViewTest.
+        $response = $this->actingAs($this->admin())->get(route('attendance.periods.show', $session->id));
         $response->assertOk();
         $response->assertSee('Roll No');
 
@@ -155,7 +164,8 @@ class OwnerWave29Test extends TestCase
     {
         [$session] = $this->makeSession();
 
-        $response = $this->actingAs($this->teacher())->get(route('attendance.periods.export_register', $session->id));
+        // Same owner-rule change as above: CSV coverage runs as admin.
+        $response = $this->actingAs($this->admin())->get(route('attendance.periods.export_register', $session->id));
         $response->assertOk();
         $response->assertDownload();
         $lines = array_values(array_filter(explode("\n", trim(preg_replace('/^\xEF\xBB\xBF/', '', $response->streamedContent())))));

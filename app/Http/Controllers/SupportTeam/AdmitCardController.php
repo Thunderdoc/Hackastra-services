@@ -62,8 +62,18 @@ class AdmitCardController extends Controller
         }
 
         if ($d['exam_id'] && $d['class_id']) {
-            $d['selected'] = true;
             $d['exam'] = $this->exam->find($d['exam_id']);
+            // Round 9 (2026-10-28): selected used to go true on the
+            // mere presence of both params, so a stale/tampered
+            // exam_id reached the blade with $exam = null and died
+            // with a 500 at `{{ $exam->name }}`. Only select when
+            // the exam resolves — a dead exam renders the plain
+            // picker, the same clean empty state Manage already
+            // used for bad ids.
+            if (!$d['exam']) {
+                return view('pages.support_team.exams.admit_cards', $d);
+            }
+            $d['selected'] = true;
             if ($d['section_id'] && !$d['sections']->contains('id', (int) $d['section_id'])) {
                 $d['students'] = collect();
             } else {
@@ -83,6 +93,17 @@ class AdmitCardController extends Controller
         $exam = $this->exam->find($exam_id) ?: abort(404);
         $class = $this->my_class->find($class_id) ?: abort(404);
 
+        /* Batch 2026-10-28 (exam-timetable round 32): same scope
+           rule as the date sheet (F-R31-1 writes, F-R32-1 reads).
+           buildSchedule() reads exam_dates for (exam, class) with
+           no scope check, so a legacy mismatched row printed a
+           wrong-scope card for the whole class. Refuse before
+           any schedule is built. */
+        if (!empty($exam->my_class_id) && (int) $exam->my_class_id !== (int) $class->id) {
+            return redirect()->route('admit_cards.index')
+                ->with('flash_danger', $this->scopeMismatchMessage($exam, $class->id));
+        }
+
         $students = $this->roster($class_id, $req->query('section_id'));
 
         if ($req->query('student')) {
@@ -99,7 +120,11 @@ class AdmitCardController extends Controller
         // only their own stream's schedule (built once per stream
         // and attached to the record); unstreamed students keep
         // the full class schedule.
-        $base = $this->buildSchedule($exam, $class_id);
+        // The section filter (if any) picks the exam grid too:
+        // a section-filtered bulk print must not read another
+        // section's exam timetable (batch 2026-10-28).
+        $sectionFilter = $req->query('section_id');
+        $base = $this->buildSchedule($exam, $class_id, null, $sectionFilter);
         $d['schedule'] = $base['rows'];
         $d['schedule_fallback'] = $base['fallback'];
         $byStream = [];
@@ -109,7 +134,7 @@ class AdmitCardController extends Controller
                 continue;
             }
             if (!isset($byStream[$stream])) {
-                $byStream[$stream] = $this->buildSchedule($exam, $class_id, $stream);
+                $byStream[$stream] = $this->buildSchedule($exam, $class_id, $stream, $sectionFilter);
             }
             $sr->setAttribute('admit_schedule_rows', $byStream[$stream]['rows']);
             $sr->setAttribute('admit_schedule_fallback', $byStream[$stream]['fallback']);
@@ -172,6 +197,15 @@ class AdmitCardController extends Controller
         $exam = $this->exam->find($exam_id) ?: abort(404);
         $sr = $this->student->getRecord(['user_id' => $student_id])->first() ?: abort(404);
 
+        /* Batch 2026-10-28 (exam-timetable round 32): scope check
+           before the fee block — a scoped exam for another class
+           is not this student's exam at all, so the scope refusal
+           (not the fee block) is the truthful response. */
+        if (!empty($exam->my_class_id) && (int) $exam->my_class_id !== (int) $sr->my_class_id) {
+            return redirect()->route('admit_cards.my')
+                ->with('flash_danger', $this->scopeMismatchMessage($exam, $sr->my_class_id));
+        }
+
         /* Fee-defaulter document block (owner ruling 2026-10-22): a
            student whose current-session fees are outstanding — or
            their parent — cannot generate the admit card until the
@@ -198,7 +232,7 @@ class AdmitCardController extends Controller
         $d['my_class'] = $this->my_class->find($sr->my_class_id);
         $d['students'] = collect([$sr]);
         $d['school'] = $this->schoolInfo();
-        $schedule = $this->buildSchedule($exam, $sr->my_class_id, $sr->section->stream ?? null);
+        $schedule = $this->buildSchedule($exam, $sr->my_class_id, $sr->section->stream ?? null, $sr->section_id);
         $d['schedule'] = $schedule['rows'];
         $d['schedule_fallback'] = $schedule['fallback'];
 
@@ -224,6 +258,20 @@ class AdmitCardController extends Controller
     }
 
     /**
+     * Round 32 scope message, mirroring ExamDateController's
+     * R31 wording so the refusal reads identically on the date
+     * sheet and on the admit card: "This exam is scoped to {X}
+     * — it cannot carry dates for {Y}."
+     */
+    protected function scopeMismatchMessage($exam, $classId)
+    {
+        $scopedClass = $this->my_class->find($exam->my_class_id);
+        $targetClass = $this->my_class->find($classId);
+        return 'This exam is scoped to ' . ($scopedClass ? $scopedClass->name : 'one class')
+            . ' — it cannot carry dates for ' . ($targetClass ? $targetClass->name : 'this class') . '.';
+    }
+
+    /**
      * Subject schedule for an exam + class. Sources, in order:
      * (1) the exam timetable for the class (time_table_records ->
      * time_tables.exam_date + time_slots.full); (2) the generated
@@ -234,13 +282,28 @@ class AdmitCardController extends Controller
      * dates, fall back to the class's subject list with no dates —
      * dates are never invented.
      */
-    protected function buildSchedule(Exam $exam, $class_id, $stream = null)
+    protected function buildSchedule(Exam $exam, $class_id, $stream = null, $section_id = null)
     {
-        $ttr = TimeTableRecord::where([
+        // Batch 2026-10-28 (exam-timetable audit): the lookup used
+        // to take whichever exam timetable row came first — for a
+        // class with section exam grids that could be another
+        // section's grid. Prefer the requested section's grid,
+        // then the whole-class grid, then any grid for the class.
+        $ttrQuery = TimeTableRecord::where([
             'exam_id' => $exam->id,
             'my_class_id' => $class_id,
             'year' => $exam->year,
-        ])->first();
+        ]);
+        $ttr = null;
+        if ($section_id) {
+            $ttr = (clone $ttrQuery)->where('section_id', $section_id)->first();
+        }
+        if (!$ttr) {
+            $ttr = (clone $ttrQuery)->whereNull('section_id')->first();
+        }
+        if (!$ttr) {
+            $ttr = $ttrQuery->first();
+        }
 
         $rows = [];
 
@@ -303,6 +366,28 @@ class AdmitCardController extends Controller
         }
 
         if (!empty($rows)) {
+            // Batch 2026-10-28 (exam-timetable round 2): a
+            // partially dated sheet used to HIDE its undated
+            // subjects — one dated paper made the whole card list
+            // only that paper (a single stray date row exposed it:
+            // Prep's card showed only Computer Science). Union the
+            // class's remaining subjects (stream-filtered, so a
+            // streamed card never gains out-of-stream papers) with
+            // null dates; the blade renders those as "—".
+            // fallback stays false: a sheet exists, it is just
+            // incomplete — the "will be announced" note is only for
+            // the fully dateless list below.
+            $present = [];
+            foreach ($rows as $r) {
+                $present[$r['subject']] = true;
+            }
+            $missing = Subject::where('my_class_id', $class_id)->orderBy('name')->get();
+            foreach ($missing as $s) {
+                if (!$keep($s) || isset($present[$s->name])) {
+                    continue;
+                }
+                $rows[] = ['subject' => $s->name, 'date' => null, 'sort' => $s->name, 'time' => null];
+            }
             return ['rows' => $rows, 'fallback' => false];
         }
 

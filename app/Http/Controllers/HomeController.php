@@ -3,16 +3,27 @@
 namespace App\Http\Controllers;
 
 use App\Helpers\Qs;
+use App\Models\AttendanceSession;
 use App\Models\AttendanceSessionEntry;
 use App\Models\AuditLog;
+use App\Models\DisciplineRecord;
+use App\Models\ExamDate;
+use App\Models\ExamRecord;
+use App\Models\Expense;
+use App\Models\LeaveRequest;
+use App\Models\LessonPlan;
 use App\Models\Mark;
+use App\Models\MyClass;
 use App\Models\PaymentRecord;
 use App\Models\SchoolEvent;
 use App\Models\Section;
 use App\Models\StudentRecord;
 use App\Models\Subject;
+use App\Models\Substitution;
 use App\Models\TimeTable;
 use App\Repositories\UserRepo;
+use App\Support\TimetableValidator;
+use App\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -147,6 +158,14 @@ class HomeController extends Controller
             return view('pages.super_admin.platform_home', array_merge($d, $this->platformHomeData($now)));
         }
 
+        // Principal role (owner order 2026-10-28, limited role):
+        // 'principal' is its own user_type — school-wide read +
+        // designated approvals — NOT an admin account. The admin
+        // board stays reachable via dashboard.school for admins.
+        if ($user_type === 'principal') {
+            return view('pages.principal.home', array_merge($d, $this->principalHomeData($now)));
+        }
+
         return $this->schoolDashboardView($d, $now);
     }
 
@@ -178,6 +197,196 @@ class HomeController extends Controller
             'current_session' => Qs::getCurrentSession(),
             'greeting' => $hour < 12 ? 'Good morning' : ($hour < 17 ? 'Good afternoon' : 'Good evening'),
         ];
+    }
+
+    /**
+     * Principal Command Center (owner order 2026-10-28, Hybrid +
+     * School Command Center). Every figure is a real record query —
+     * no invented safety incidents, refunds, or syllabus percentages:
+     * modules the app does not have simply do not appear as figures.
+     * Attention items carry a real owner role and a real link.
+     */
+    protected function principalHomeData(Carbon $now): array
+    {
+        $today = $now->toDateString();
+        $todayName = $now->format('l');
+        $sessionYear = Qs::getCurrentSession();
+        $monthAgo = $now->copy()->subDays(30)->toDateString();
+
+        // --- Executive overview ---
+        $d['pr_students'] = StudentRecord::where('grad', 0)->count();
+        $d['pr_teachers'] = User::where('user_type', 'teacher')->count();
+
+        $todaySessionIds = AttendanceSession::whereDate('date', $today)->pluck('id');
+        $todayEntries = $todaySessionIds->isNotEmpty()
+            ? AttendanceSessionEntry::whereIn('session_id', $todaySessionIds)->get()
+            : collect();
+        $todayMarked = $todayEntries->count();
+        $todayPresent = $todayEntries->whereIn('status', ['present', 'late'])->count();
+        $d['pr_attendance_today'] = [
+            'percent' => $todayMarked > 0 ? (int) round(($todayPresent / $todayMarked) * 100) : 0,
+            'present' => $todayEntries->where('status', 'present')->count(),
+            'absent' => $todayEntries->where('status', 'absent')->count(),
+            'late' => $todayEntries->where('status', 'late')->count(),
+            'total' => $todayMarked,
+            'recorded' => $todayMarked > 0,
+        ];
+
+        $sessionExams = Exam::where('year', $sessionYear)->get();
+        $d['pr_exams_total'] = $sessionExams->count();
+        $d['pr_exams_published'] = $sessionExams->where('results_published', true)->count();
+
+        // --- Needs your attention (real items only) ---
+        $attention = [];
+
+        $clashCount = count(TimetableValidator::clashes($sessionYear));
+        if ($clashCount > 0) {
+            $attention[] = [
+                'tone' => 'red', 'title' => $clashCount . ' timetable clash' . ($clashCount > 1 ? 'es' : ''),
+                'detail' => 'Clashing periods in the current session timetable.',
+                'meta' => 'Owner: School Admin',
+                'link' => route('tt.index'), 'link_label' => 'Review timetables',
+            ];
+        }
+
+        $periodsToday = TimeTable::where('day', $todayName)->count();
+        $submittedToday = AttendanceSession::whereDate('date', $today)
+            ->distinct('time_table_id')->count('time_table_id');
+        $unsubmitted = max(0, $periodsToday - $submittedToday);
+        if ($unsubmitted > 0) {
+            $attention[] = [
+                'tone' => 'red', 'title' => $unsubmitted . ' period register' . ($unsubmitted > 1 ? 's' : '') . ' not submitted today',
+                'detail' => $submittedToday . ' of ' . $periodsToday . ' periods have a submitted register.',
+                'meta' => 'Owner: Class teachers · Due: Today',
+                'link' => route('attendance.periods.index'), 'link_label' => 'View periods',
+            ];
+        }
+
+        $uncoveredToday = Substitution::whereDate('date', $today)
+            ->whereNull('substitute_teacher_id')->count();
+        if ($uncoveredToday > 0) {
+            $attention[] = [
+                'tone' => 'red', 'title' => $uncoveredToday . ' uncovered substitution' . ($uncoveredToday > 1 ? 's' : '') . ' today',
+                'detail' => 'An absent teacher has no substitute assigned yet.',
+                'meta' => 'Owner: School Admin · Due: Today',
+                'link' => route('substitutions.index'), 'link_label' => 'Assign cover',
+            ];
+        }
+
+        $overdueLeaves = LeaveRequest::where('status', 'pending')
+            ->where('created_at', '<', $now->copy()->subDays(3))->count();
+        if ($overdueLeaves > 0) {
+            $attention[] = [
+                'tone' => 'amber', 'title' => $overdueLeaves . ' leave approval' . ($overdueLeaves > 1 ? 's' : '') . ' overdue',
+                'detail' => 'Pending for more than 3 days.',
+                'meta' => 'Owner: School Admin',
+                'link' => route('leave.index'), 'link_label' => 'Decide now',
+            ];
+        }
+
+        $weekStart = $now->copy()->startOfWeek()->toDateString();
+        $disciplineWeek = DisciplineRecord::where('incident_date', '>=', $weekStart)->count();
+        if ($disciplineWeek > 0) {
+            $attention[] = [
+                'tone' => 'amber', 'title' => $disciplineWeek . ' discipline incident' . ($disciplineWeek > 1 ? 's' : '') . ' this week',
+                'detail' => 'Student discipline records filed since ' . $weekStart . '.',
+                'meta' => 'Owner: Class teachers',
+                'link' => route('discipline_records.index'), 'link_label' => 'Review incidents',
+            ];
+        }
+        $d['pr_attention'] = $attention;
+
+        // --- Today's operations ---
+        $d['pr_ops'] = [
+            'periods' => $periodsToday,
+            'registers_submitted' => $submittedToday,
+            'registers_pending' => $unsubmitted,
+            'exams_today' => ExamDate::where('exam_date', $today)->count(),
+            'events_today' => SchoolEvent::whereDate('starts_at', $today)->count(),
+            'substitutions_today' => Substitution::whereDate('date', $today)->count(),
+            'substitutions_uncovered' => $uncoveredToday,
+            'events_list' => SchoolEvent::whereDate('starts_at', $today)->orderBy('starts_at')->take(3)->get(),
+        ];
+
+        // --- Approval inbox: real pending leave decisions ---
+        $d['pr_pending_leaves'] = LeaveRequest::with('user')
+            ->where('status', 'pending')->latest()->take(8)->get();
+        $d['pr_pending_leaves_count'] = LeaveRequest::where('status', 'pending')->count();
+
+        // --- Academic analytics (Term 1 = earliest term-1 exam, if any) ---
+        $term1 = Exam::where('term', 1)->orderBy('id')->first();
+        $d['pr_term_exam'] = $term1;
+
+        $classAttendance = [];
+        if ($term1) {
+            $rows = DB::table('attendance_sessions')
+                ->join('attendance_session_entries', 'attendance_sessions.id', '=', 'attendance_session_entries.session_id')
+                ->join('my_classes', 'my_classes.id', '=', 'attendance_sessions.my_class_id')
+                ->where('attendance_sessions.date', '>=', $monthAgo)
+                ->select('my_classes.name as class_name',
+                    DB::raw("SUM(CASE WHEN attendance_session_entries.status IN ('present','late') THEN 1 ELSE 0 END) as present"),
+                    DB::raw('COUNT(*) as total'))
+                ->groupBy('attendance_sessions.my_class_id', 'my_classes.name')
+                ->orderBy('my_classes.name')->get();
+            foreach ($rows as $row) {
+                $classAttendance[] = [
+                    'class' => $row->class_name,
+                    'percent' => $row->total > 0 ? (int) round(($row->present / $row->total) * 100) : 0,
+                ];
+            }
+            $d['pr_class_attendance'] = $classAttendance;
+
+            $texCol = 'tex' . $term1->term;
+            $subjectRows = Mark::where('exam_id', $term1->id)
+                ->select('subject_id', DB::raw("AVG($texCol) as avg"))
+                ->whereNotNull($texCol)
+                ->groupBy('subject_id')->orderByDesc('avg')->take(8)->get();
+            $subjectNames = Subject::whereIn('id', $subjectRows->pluck('subject_id'))->pluck('name', 'id');
+            $d['pr_subject_avgs'] = $subjectRows->map(function ($row) use ($subjectNames) {
+                return ['subject' => $subjectNames[$row->subject_id] ?? ('Subject ' . $row->subject_id), 'avg' => round((float) $row->avg, 1)];
+            })->all();
+
+            $classAvgRows = ExamRecord::where('exam_id', $term1->id)
+                ->join('student_records', 'student_records.user_id', '=', 'exam_records.student_id')
+                ->whereNotNull('exam_records.ave')->where('exam_records.ave', '!=', '')
+                ->select('student_records.my_class_id', DB::raw('AVG(CAST(exam_records.ave AS DECIMAL(10,2))) as avg'))
+                ->groupBy('student_records.my_class_id')->get();
+            $classNames = MyClass::whereIn('id', $classAvgRows->pluck('my_class_id'))->pluck('name', 'id');
+            $d['pr_class_avgs'] = $classAvgRows->map(function ($row) use ($classNames) {
+                return ['class' => $classNames[$row->my_class_id] ?? ('Class ' . $row->my_class_id), 'avg' => round((float) $row->avg, 1)];
+            })->all();
+
+            $d['pr_support_count'] = ExamRecord::where('exam_id', $term1->id)
+                ->whereNotNull('ave')->where('ave', '!=', '')
+                ->whereRaw('CAST(ave AS DECIMAL(10,2)) < 50')->count();
+        } else {
+            $d['pr_class_attendance'] = [];
+            $d['pr_subject_avgs'] = [];
+            $d['pr_class_avgs'] = [];
+            $d['pr_support_count'] = 0;
+        }
+        $d['pr_lesson_plans'] = LessonPlan::count();
+
+        // --- Teacher workload: most registers submitted, last 30 days ---
+        $workRows = AttendanceSession::where('date', '>=', $monthAgo)
+            ->select('teacher_id', DB::raw('COUNT(*) as c'))
+            ->groupBy('teacher_id')->orderByDesc('c')->take(5)->get();
+        $teacherNames = User::whereIn('id', $workRows->pluck('teacher_id'))->pluck('name', 'id');
+        $d['pr_workload'] = $workRows->map(function ($row) use ($teacherNames) {
+            return ['teacher' => $teacherNames[$row->teacher_id] ?? ('Teacher ' . $row->teacher_id), 'registers' => (int) $row->c];
+        })->all();
+
+        // --- Finance summary (current calendar year, authorized totals only) ---
+        $d['pr_fees_total'] = (int) DB::table('payment_records')
+            ->join('payments', 'payments.id', '=', 'payment_records.payment_id')
+            ->whereYear('payment_records.updated_at', $now->year)->sum('payments.amount');
+        $d['pr_fees_collected'] = (int) DB::table('payment_records')
+            ->whereYear('updated_at', $now->year)->sum('amt_paid');
+        $d['pr_fees_pending'] = max(0, $d['pr_fees_total'] - $d['pr_fees_collected']);
+        $d['pr_expenses'] = (int) Expense::whereYear('expense_date', $now->year)->sum('amount');
+        $d['pr_expenses_count'] = Expense::whereYear('expense_date', $now->year)->count();
+
+        return $d;
     }
 
     /** The original school-operations dashboard, verbatim. */
@@ -605,6 +814,21 @@ class HomeController extends Controller
         $teacher_id = Auth::id();
 
         $subjects = Subject::with('my_class')->where('teacher_id', $teacher_id)->get();
+        // Allotment audit 2026-10-28: a teacher who teaches ONLY
+        // through section overrides previously showed My Subjects 0,
+        // Total Students 0 and no first class on this home, while
+        // Today's Periods (effective-teacher filter) correctly
+        // listed their periods. Override subjects are real
+        // assignments, so they join the subject list — every
+        // aggregate below (class ids, scope, assignment keys,
+        // student overview) then follows automatically.
+        $overrideSubjectIds = DB::table('section_subject_teachers')
+            ->where('teacher_id', $teacher_id)->distinct()->pluck('subject_id');
+        if ($overrideSubjectIds->isNotEmpty()) {
+            $subjects = $subjects->merge(
+                Subject::with('my_class')->whereIn('id', $overrideSubjectIds)->get()
+            )->unique('id')->values();
+        }
         $class_ids = $subjects->pluck('my_class_id')->filter()->unique()->values();
         $sections_led = Section::with('my_class')->where('teacher_id', $teacher_id)->get();
 
@@ -850,7 +1074,17 @@ class HomeController extends Controller
                 $assignment_keys->push('class:' . $cid);
             }
         }
-        $my_assignment_count = $assignment_keys->unique()->count();
+        // Allotment audit 2026-10-28: $assignment_keys is an
+        // ELOQUENT collection when $sections_led is empty (map
+        // over an empty Eloquent collection stays Eloquent), and
+        // Eloquent unique() calls getKey() on every item — fatal
+        // on these 'sec:'/'class:' strings. It only ever worked
+        // for section-leading teachers (non-empty map returns a
+        // base collection). Any teacher with subjects but no led
+        // sections — 13 seeded subject teachers, plus every
+        // override-only teacher once their classes count — got a
+        // dashboard 500. collect() to a base collection first.
+        $my_assignment_count = collect($assignment_keys->all())->unique()->count();
 
         // This month's period attendance, from submitted registers
         // only. Percentages follow the school rule — (present + late)
@@ -1034,7 +1268,33 @@ class HomeController extends Controller
         }
         $teacher_notifications = array_slice($teacher_notifications, 0, 5);
 
+        // Wave 1 feature 5 — Needs attention strip (additive only).
+        // Untaken periods today: today's periods (same SectionTeacher
+        // scope as $today_periods) with no submitted session today.
+        $untaken_periods_today = $today_periods->filter(function ($row) {
+            return empty($row['session_id']);
+        })->values();
+        // Ungraded assignments: this teacher's assignments that have
+        // at least one submission with no marks awarded yet (the
+        // graded flag is AssignmentSubmission::isGraded(), i.e.
+        // marks_awarded !== null), each carrying its ungraded count.
+        $ungraded_assignments = collect();
+        if (Schema::hasTable('assignments') && Schema::hasTable('assignment_submissions')) {
+            $ungraded_assignments = \App\Models\Assignment::with(['my_class', 'subject'])
+                ->where('teacher_id', $teacher_id)
+                ->whereHas('submissions', function ($q) {
+                    $q->whereNull('marks_awarded');
+                })
+                ->withCount(['submissions as ungraded_count' => function ($q) {
+                    $q->whereNull('marks_awarded');
+                }])
+                ->orderBy('title')
+                ->get();
+        }
+
         return [
+            'untaken_periods_today' => $untaken_periods_today,
+            'ungraded_assignments' => $ungraded_assignments,
             'lms_to_grade' => $lms_to_grade,
             'my_leave_requests' => $my_leave_requests,
             'my_duties' => $my_duties,

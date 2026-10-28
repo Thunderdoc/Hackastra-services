@@ -29,6 +29,14 @@
         .tt-meta strong { color: #10263b; }
 
         .tt-wrap { position: relative; }
+        /* B round 6: on screens narrower than the grid, the wide
+           week table scrolls INSIDE its wrap (the accepted
+           .l7-table-scroll pattern) instead of pushing the whole
+           document sideways — at 360px the page scrolled to ~787px.
+           Screen-only: print geometry is untouched. */
+        @media screen {
+            .tt-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; max-width: 100%; }
+        }
         .tt-wm { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 280px; max-height: 340px; opacity: .06; z-index: 0; filter: grayscale(1); }
         .tt-wm-mono { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-18deg); font-size: 150px; font-weight: 800; letter-spacing: .05em; line-height: 1; color: #10263b; opacity: .055; z-index: 0; white-space: nowrap; }
 
@@ -114,8 +122,31 @@
                 <thead>
                 <tr>
                     <th class="tt-day">Day</th>
-                    @foreach($slots as $slot)
-                        <th>{{ $slot->full }}<span class="tt-period">Period {{ $loop->iteration }}</span></th>
+                    @php
+                        $ttCols = [];
+                        $ttPrev = null;
+                        foreach (collect($slots)->sortBy(function ($s) { return strtotime($s->time_from); })->values() as $ttSlot) {
+                            if ($ttPrev) {
+                                $ttGap = (strtotime($ttSlot->time_from) - strtotime($ttPrev->time_to)) / 60;
+                                if ($ttGap > 0) {
+                                    $ttCols[] = ['gap' => true, 'label' => $ttGap >= 30 ? 'Lunch' : 'Break', 'range' => $ttPrev->time_to . ' – ' . $ttSlot->time_from];
+                                }
+                            }
+                            $ttCols[] = ['gap' => false, 'slot' => $ttSlot];
+                            $ttPrev = $ttSlot;
+                        }
+                        $ttPeriodNo = [];
+                        $ttN = 0;
+                        foreach ($ttCols as $ttCol) {
+                            if (!$ttCol['gap']) { $ttN++; $ttPeriodNo[$ttCol['slot']->full] = $ttN; }
+                        }
+                    @endphp
+                    @foreach($ttCols as $ttCol)
+                        @if($ttCol['gap'])
+                            <th>{{ $ttCol['label'] }}<span class="tt-period">{{ $ttCol['range'] }}</span></th>
+                        @else
+                            <th>{{ $ttCol['slot']->full }}<span class="tt-period">Period {{ $ttPeriodNo[$ttCol['slot']->full] }}</span></th>
+                        @endif
                     @endforeach
                 </tr>
                 </thead>
@@ -123,12 +154,16 @@
                 @foreach($days as $day)
                     <tr>
                         <td class="tt-day"><strong>{{ $day }}</strong></td>
-                        @foreach($slots as $slot)
-                            @php $cell = $map[$day][$slot->full] ?? null; @endphp
-                            @if($cell && !empty($cell['title']))
-                                <td>{{ $cell['title'] }}@if(!empty($cell['sub']))<span class="tt-cell-sub">{{ $cell['sub'] }}</span>@endif</td>
+                        @foreach($ttCols as $ttCol)
+                            @if($ttCol['gap'])
+                                <td class="tt-empty">{{ $ttCol['label'] }}</td>
                             @else
-                                <td class="tt-empty">Free</td>
+                                @php $cell = $map[$day][$ttCol['slot']->full] ?? null; @endphp
+                                @if($cell && !empty($cell['title']))
+                                    <td>{{ $cell['title'] }}@if(!empty($cell['sub']))<span class="tt-cell-sub">{{ $cell['sub'] }}</span>@endif</td>
+                                @else
+                                    <td class="tt-empty">Free</td>
+                                @endif
                             @endif
                         @endforeach
                     </tr>

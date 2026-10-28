@@ -26,7 +26,7 @@
                     @if($s['stamp'])<img src="{{ $s['stamp'] }}" alt="School stamp" style="max-height: 90px;">@endif
                 </div>
                 <div class="text-center">
-                    @if($s['signature'])<img src="{{ $s['signature'] }}" alt="Principal signature" style="max-height: 60px;"><br>@endif
+                    @if($s['signature'])<img src="{{ $s['signature'] }}" alt="Principal signature" style="max-height: 60px; max-width: 320px;"><br>@endif
                     <strong>{{ $s['principal'] ?? 'Principal' }}</strong><br>
                     <span class="text-muted">Principal</span>
                 </div>
