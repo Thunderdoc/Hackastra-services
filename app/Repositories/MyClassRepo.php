@@ -10,9 +10,22 @@ use App\Models\Subject;
 class MyClassRepo
 {
 
+    /**
+     * Every class list in the app, in CLASS ORDER (Prep, Class 1 …
+     * Class 12) — not string order, which sorts "Class 10" before
+     * "Class 2" and "Prep" last. Names without a number (Prep) sort
+     * first; ties fall back to the name. The key is a zero-padded
+     * string so the sort is numeric on the class number.
+     */
     public function all()
     {
-        return MyClass::orderBy('name', 'asc')->with('class_type')->get();
+        return MyClass::orderBy('name', 'asc')->with('class_type')->get()->sortBy(function ($c) {
+            if (preg_match('/(\d+)/', $c->name, $m)) {
+                return sprintf('%05d-%s', (int) $m[1], $c->name);
+            }
+
+            return sprintf('00000-%s', $c->name);
+        })->values();
     }
 
     public function getMC($data)

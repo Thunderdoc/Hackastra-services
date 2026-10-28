@@ -103,7 +103,7 @@ class StudentRecordController extends Controller
         $data['photo'] = Qs::getDefaultUserImage();
         $adm_no = $req->adm_no;
         $data['username'] = $adm_no
-            ? strtoupper(Qs::getAppCode().'/'.$ct.'/'.$sr['year_admitted'].'/'.$adm_no)
+            ? Qs::admNoPrefix($ct, $sr['year_admitted']).strtoupper($adm_no)
             : Qs::generateAdmNo($ct, $sr['year_admitted']);
 
         if($req->hasFile('photo')) {
@@ -186,7 +186,7 @@ class StudentRecordController extends Controller
         ];
         $adm_no = $req->q_adm_no;
         $data['username'] = $adm_no
-            ? strtoupper(Qs::getAppCode().'/'.$ct.'/'.$req->q_year_admitted.'/'.$adm_no)
+            ? Qs::admNoPrefix($ct, $req->q_year_admitted).strtoupper($adm_no)
             : Qs::generateAdmNo($ct, $req->q_year_admitted);
 
         $sr = [

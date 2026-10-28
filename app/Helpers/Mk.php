@@ -10,11 +10,6 @@ use Illuminate\Database\Eloquent\Collection;
 
 class Mk extends Qs
 {
-    public static function examIsLocked()
-    {
-        return self::getSetting('lock_exam');
-    }
-
     public static function getRemarks()
     {
         return ['Average', 'Credit', 'Distinction', 'Excellent', 'Fail', 'Fair', 'Good', 'Pass', 'Poor', 'Very Good', 'Very Poor'];

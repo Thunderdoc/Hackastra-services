@@ -280,8 +280,14 @@ class FeedbackController extends Controller
     }
 
     /**
-     * Compile & forward: Admin forwards canonical items to the Super
-     * Admin. Accepts ids[] (bulk select on the inbox) or a single id
+     * Compile & forward — PLATFORM ISSUES ONLY (owner redesign
+     * 2026-10-28): the Super Admin sees only app glitches, UI/UX
+     * problems and the like; everything else is sorted by the
+     * school alone and never leaves the inbox. An item forwards
+     * when its category is App / Software Issue, or when the Admin
+     * explicitly attests it is a platform issue (platform_issue
+     * flag — covers reports filed under the wrong category).
+     * Accepts ids[] (bulk select on the inbox) or a single id
      * (the Forward button on the detail page). Duplicates and items
      * already forwarded are skipped — dedupe happens BEFORE forward.
      */
@@ -299,12 +305,18 @@ class FeedbackController extends Controller
             return back()->with('pop_error', 'Select at least one report to forward.');
         }
 
+        $platformAttested = $request->boolean('platform_issue');
+
         $items = FeedbackItem::whereIn('id', $ids)
             ->whereNull('duplicate_of_id')
             ->whereNull('forwarded_at')
             ->get();
 
-        foreach ($items as $item) {
+        $forwardable = $items->filter(function ($item) use ($platformAttested) {
+            return $item->category === 'app_bug' || $platformAttested;
+        });
+
+        foreach ($forwardable as $item) {
             $item->update([
                 'forwarded_at' => now(),
                 'forwarded_by' => Auth::id(),
@@ -315,10 +327,14 @@ class FeedbackController extends Controller
                 'Forwarded feedback #' . $item->id . ' ("' . $item->title . '", ' . $item->categoryLabel() . ') to Super Admin');
         }
 
-        $skipped = count($ids) - $items->count();
-        $msg = $items->count() . ' item' . ($items->count() === 1 ? '' : 's') . ' forwarded to the Super Admin.';
-        if ($skipped > 0) {
-            $msg .= ' ' . $skipped . ' skipped (duplicate or already forwarded).';
+        $skippedDedupe = count($ids) - $items->count();
+        $skippedPlatform = $items->count() - $forwardable->count();
+        $msg = $forwardable->count() . ' item' . ($forwardable->count() === 1 ? '' : 's') . ' forwarded to the Super Admin.';
+        if ($skippedPlatform > 0) {
+            $msg .= ' ' . $skippedPlatform . ' skipped (not a platform issue — the school handles those).';
+        }
+        if ($skippedDedupe > 0) {
+            $msg .= ' ' . $skippedDedupe . ' skipped (duplicate or already forwarded).';
         }
 
         return back()->with('flash_success', $msg);
@@ -375,11 +391,16 @@ class FeedbackController extends Controller
         return view('pages.support_team.feedback.sa_show', $d);
     }
 
-    /** SA records the handling status + a reply the reporter will see.
+    /** SA records the handling status + a platform-side note.
+     *  Owner redesign 2026-10-28: the note is NEVER shown to the
+     *  reporter — they see only the school-side status. When the SA
+     *  newly marks an item Fixed, the school side auto-resolves
+     *  with it, so the reporter reads "Resolved" with no Super
+     *  Admin content at all.
      *  Wave 16: a closed (Fixed) report cannot be reopened by the SA
      *  — changing its status away from Fixed is refused here even if
-     *  the disabled UI control is bypassed. Saving a reply on a
-     *  closed report is still allowed (replies go through the detail
+     *  the disabled UI control is bypassed. Saving a note on a
+     *  closed report is still allowed (notes go through the detail
      *  page by design). */
     public function saUpdate(Request $request, FeedbackItem $feedback)
     {
@@ -395,14 +416,20 @@ class FeedbackController extends Controller
             return back()->with('pop_error', 'This report is closed — the Super Admin cannot reopen it. Only the school Admin can reopen it from the school side.');
         }
 
+        $wasFixed = $feedback->isClosedForSa();
+        if (!$wasFixed && $data['sa_status'] === 'fixed') {
+            $data['status'] = 'resolved';
+        }
+
         $feedback->update($data);
 
         Audit::log('feedback.sa_updated', $feedback,
             'Super Admin set feedback #' . $feedback->id . ' to "' . $feedback->saStatusLabel() . '"'
-            . ($data['sa_reply'] ? ' with a reply to the reporter' : ''));
+            . (($data['sa_reply'] ?? null) ? ' with a platform-side note' : '')
+            . (!$wasFixed && $data['sa_status'] === 'fixed' ? '; school status auto-resolved for the reporter' : ''));
 
         return redirect()->route('feedback.sa_show', $feedback->id)
-            ->with('flash_success', 'Reply saved — the reporter can now see it in My Feedback.');
+            ->with('flash_success', 'Saved — the reporter sees only the school-side status.');
     }
 
     /**
@@ -434,7 +461,10 @@ class FeedbackController extends Controller
         // duplicate audit noise) — they are simply skipped.
         $items = $items->reject(function ($item) { return $item->isClosedForSa(); });
         foreach ($items as $item) {
-            $item->update(['sa_status' => 'fixed']);
+            // Redesign 2026-10-28: a bulk close resolves the school
+            // side too, so the reporter reads "Resolved" with no
+            // Super Admin content.
+            $item->update(['sa_status' => 'fixed', 'status' => 'resolved']);
             Audit::log('feedback.sa_closed', $item,
                 'Super Admin closed feedback #' . $item->id . ' from the list (marked Fixed).');
         }
@@ -457,9 +487,11 @@ class FeedbackController extends Controller
      * School Admin reopens a closed report (Wave 16 ticket rule):
      * the ONLY way a Fixed report comes back — it returns to
      * Received on the Super Admin's board, i.e. a re-escalation.
-     * The school-side status is deliberately untouched: the Admin
-     * controls that separately on this same page. Non-closed and
-     * non-forwarded items cannot be "reopened".
+     * Redesign 2026-10-28: the school side returns to In Progress
+     * with it — the auto-resolve from the SA fix must not keep
+     * telling the reporter "Resolved" for an open issue. The Admin
+     * can still set any school status afterwards on the detail page.
+     * Non-closed and non-forwarded items cannot be "reopened".
      */
     public function reopen(FeedbackItem $feedback)
     {
@@ -470,7 +502,7 @@ class FeedbackController extends Controller
             return back()->with('pop_error', 'Only a closed (Fixed) report can be reopened.');
         }
 
-        $feedback->update(['sa_status' => 'received']);
+        $feedback->update(['sa_status' => 'received', 'status' => 'in_progress']);
         Audit::log('feedback.reopened', $feedback,
             'School Admin reopened feedback #' . $feedback->id . ' — back to Received for the Super Admin.');
 

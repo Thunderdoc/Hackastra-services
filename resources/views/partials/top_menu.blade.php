@@ -236,6 +236,12 @@
                         </a>
                     @empty
                     @endforelse
+                    {{-- Roles audit 2026-10-28: students.show denies
+                         accountants, so the admitted-student rows are
+                         SAT-only — otherwise an accountant's bell
+                         carried links to a denial page. Receipt rows
+                         above stay for every branch viewer. --}}
+                    @if(Qs::userIsTeamSAT())
                     @forelse($lavRecentStudents as $lavStudent)
                         <a class="dropdown-item lav-notif-item" href="{{ route('students.show', Qs::hash($lavStudent->id)) }}">
                             <i class="icon-user-plus"></i>
@@ -243,7 +249,8 @@
                         </a>
                     @empty
                     @endforelse
-                    @if($lavRecentPayments->isEmpty() && $lavRecentStudents->isEmpty())
+                    @endif
+                    @if($lavRecentPayments->isEmpty() && (!Qs::userIsTeamSAT() || $lavRecentStudents->isEmpty()))
                         <span class="dropdown-item text-muted">No recent activity yet.</span>
                     @endif
                 </div>

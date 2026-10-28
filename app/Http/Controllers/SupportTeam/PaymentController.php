@@ -37,10 +37,12 @@ class PaymentController extends Controller
         $this->year = Qs::getCurrentSession();
         $this->student = $student;
 
-        $this->middleware('teamAccount');
+        $this->middleware('teamOrPrincipal:Account');
         // Workstream CM: fee writes (record payment, reset, fee CRUD)
         // belong to the school's Admin + Accountant. SA keeps every
         // read/document above (index, invoice, receipts, exports).
+        // Limited principal role: reads open to the principal;
+        // every write below stays teamAccountWrite.
         $this->middleware('teamAccountWrite', ['only' => ['create', 'store', 'edit', 'update', 'destroy', 'pay_now', 'reset_record']]);
     }
 

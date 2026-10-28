@@ -38,7 +38,6 @@ class SettingUpdate extends FormRequest
             'current_session' => 'required|string',
             'address' => 'required|string|min:8',
             'system_email' => 'sometimes|nullable|email',
-            'lock_exam' => 'required',
             /* Loop 106: svg admitted for the LOGO only — the bundled
                school mark is an SVG and the logo is rendered via
                <img> (script-inert context). The content sniff in
@@ -56,6 +55,9 @@ class SettingUpdate extends FormRequest
             'school_stamp' => 'sometimes|nullable|image|mimes:jpeg,gif,png,jpg,webp|max:2048',
             'principal_signature' => 'sometimes|nullable|image|mimes:jpeg,gif,png,jpg,webp|max:2048',
             'teacher_max_periods_day' => 'sometimes|nullable|integer|min:1|max:14',
+            'adm_no_format' => 'sometimes|nullable|in:code_class_year_serial,code_year_serial,class_year_serial,code_serial,year_serial',
+            'adm_no_serial_start' => 'sometimes|nullable|integer|min:1|max:999999',
+            'adm_no_serial_width' => 'sometimes|nullable|integer|min:0|max:6',
             'teacher_max_periods_week' => 'sometimes|nullable|integer|min:1|max:70',
             'library_fine_per_day' => 'sometimes|nullable|integer|min:0|max:1000',
             'ai_enabled' => 'sometimes|nullable|in:0,1',

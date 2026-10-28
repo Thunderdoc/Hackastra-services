@@ -1,7 +1,7 @@
 <html>
 <head>
     <title>Tabulation Sheet - {{ $my_class->name.' '.$section->name.' - '.$ex->name.' ('.$year.')' }}</title>
-    <link rel="stylesheet" type="text/css" href="{{ asset('assets/css/print_tabulation.css') }}" />
+    <link rel="stylesheet" type="text/css" href="{{ asset('assets/css/print_tabulation.css') }}?v={{ @filemtime(public_path('assets/css/print_tabulation.css')) ?: 1 }}" />
 </head>
 <body>
 {{-- Document Design v2 (Workstream DA, applying Workstream CY's

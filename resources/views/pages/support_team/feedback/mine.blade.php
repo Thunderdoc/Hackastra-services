@@ -134,9 +134,6 @@
                     </td>
                     <td>
                         <span class="badge {{ ['new' => 'badge-warning', 'acknowledged' => 'badge-info', 'in_progress' => 'badge-primary', 'resolved' => 'badge-success', 'wont_fix' => 'badge-secondary', 'duplicate' => 'badge-light'][$item->status] ?? 'badge-light' }}">{{ $item->statusLabel() }}</span>
-                        @if($item->isForwarded())
-                            <span class="badge {{ ['received' => 'badge-info', 'in_progress' => 'badge-primary', 'fixed' => 'badge-success', 'declined' => 'badge-danger'][$item->sa_status] ?? 'badge-info' }}">SA: {{ $item->saStatusLabel() }}</span>
-                        @endif
                         @if($item->isDuplicate())
                             <div class="text-muted mt-1" style="font-size:.85em">
                                 Merged with a similar report{{ $item->duplicateOf ? ' (#' . $item->duplicateOf->id . ')' : '' }} —
@@ -146,10 +143,7 @@
                     </td>
                     <td style="white-space:nowrap">{{ $item->created_at->format('d M Y') }}<div class="text-muted">{{ $item->created_at->format('h:i A') }}</div></td>
                     <td>
-                        @if($item->sa_reply)
-                            <span class="l87-resp-yes"><i class="icon-checkmark-circle2 mr-1"></i>Super Admin replied</span>
-                            <div class="text-muted">{{ \Illuminate\Support\Str::limit($item->sa_reply, 70) }}</div>
-                        @elseif($item->admin_note)
+                        @if($item->admin_note)
                             <span class="l87-resp-yes"><i class="icon-checkmark-circle2 mr-1"></i>Admin responded</span>
                             <div class="text-muted">{{ \Illuminate\Support\Str::limit($item->admin_note, 70) }}</div>
                         @else

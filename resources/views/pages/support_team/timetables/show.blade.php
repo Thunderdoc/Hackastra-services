@@ -7,7 +7,7 @@
      and the shared aligned grid (modernised in Loop 71) carry the
      page. Routes, data and the grid contract are unchanged. --}}
 @section('page_breadcrumb')
-    <a href="{{ route('tt.index') }}">Timetables</a> &middot; {{ $my_class->name }}
+    <a href="{{ route('tt.index') }}">Timetables</a> &middot; {{ optional($my_class)->name ?: 'Deleted class' }}
 @endsection
 @section('page_actions')
     <a href="{{ route('tt.index') }}" class="btn btn-light btn-sm"><i class="icon-arrow-left7 mr-1"></i> Back</a>
@@ -19,7 +19,7 @@
         <div class="card-body">
             <div class="ttx-meta">
                 <span class="ttx-meta-item"><small>Timetable</small><strong>{{ $ttr->name }}</strong></span>
-                <span class="ttx-meta-item"><small>Class</small><strong>{{ $my_class->name }}</strong></span>
+                <span class="ttx-meta-item"><small>Class</small><strong>{{ optional($my_class)->name ?: 'Deleted class' }}</strong></span>
                 <span class="ttx-meta-item"><small>Section</small><strong>{{ $ttr->section_id ? (optional($ttr->section)->name ?: '—') : 'All Sections' }}</strong></span>
                 <span class="ttx-meta-item"><small>Type</small><strong>{{ ($ttr->exam_id) ? 'Exam TimeTable' : 'Class TimeTable' }}</strong></span>
                 <span class="ttx-meta-item"><small>Year</small><strong>{{ $ttr->year }}</strong></span>

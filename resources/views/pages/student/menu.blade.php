@@ -73,3 +73,20 @@
 <li class="nav-item">
     <a href="{{ route('student.events') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['student.events']) ? 'active' : '' }}" title="School Events"><i class="icon-calendar3"></i> <span>School Events</span></a>
 </li>
+
+{{-- Wave 3: new items only, appended after every existing item. --}}
+<li class="nav-item">
+    <a href="{{ route('library_reservations.index') }}" class="nav-link {{ (Route::is('library_reservations.*')) ? 'active' : '' }}" title="Book Search & Reserve"><i class="icon-books"></i> <span>Book Search &amp; Reserve</span></a>
+</li>
+<li class="nav-item">
+    <a href="{{ route('documents.index') }}" class="nav-link {{ (Route::is('documents.*')) ? 'active' : '' }}" title="My Documents"><i class="icon-book"></i> <span>My Documents</span></a>
+</li>
+<li class="nav-item">
+    <a href="{{ route('electives.index') }}" class="nav-link {{ (Route::is('electives.*')) ? 'active' : '' }}" title="Elective Choices"><i class="icon-book"></i> <span>Elective Choices</span></a>
+</li>
+
+{{-- Student leave (owner order 2026-10-28): students apply, their
+     class teacher approves. Appended last, nothing moved. --}}
+<li class="nav-item">
+    <a href="{{ route('leave.my') }}" class="nav-link {{ (Route::is('leave.my') || Route::is('leave.store')) ? 'active' : '' }}" title="My Leave"><i class="icon-calendar2"></i> <span>My Leave</span></a>
+</li>

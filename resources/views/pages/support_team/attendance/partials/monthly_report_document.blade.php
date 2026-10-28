@@ -44,17 +44,17 @@
     .mar-contact{color:#44546a;font-size:11.5px;margin-top:2px;}
     .mar-logo-tile{display:block;width:62px;height:62px;line-height:62px;text-align:center;background:#10263b;color:#fff;font-size:20px;font-weight:800;letter-spacing:.03em;border-radius:8px;}
     .mar-logo-img{max-height:64px;max-width:100px;}
-    .mar-title{text-align:center;margin:8px 0 2px;color:#10263b;font-size:20px;font-weight:800;}
-    .mar-subtitle{text-align:center;color:#44546a;font-size:13px;margin-bottom:8px;}
-    .mar-meta{width:100%;margin-bottom:8px;}
+    .mar-title{text-align:center;margin:4px 0 2px;color:#10263b;font-size:20px;font-weight:800;}
+    .mar-subtitle{text-align:center;color:#44546a;font-size:13px;margin-bottom:6px;}
+    .mar-meta{width:100%;margin-bottom:6px;}
     .mar-meta-label{color:#718096;font-size:9.5px;font-weight:700;}
     .mar-meta-value{color:#10263b;font-size:13px;font-weight:700;}
     .mar-meta-box{background:#eef2f7;padding:8px 14px;border-radius:6px;}
-    .mar-chips{width:100%;margin-bottom:9px;}
+    .mar-chips{width:100%;margin-bottom:7px;}
     .mar-chips td{width:20%;padding:0 4px;vertical-align:top;}
     .mar-chips td:first-child{padding-left:0;}
     .mar-chips td:last-child{padding-right:0;}
-    .mar-chip{border-radius:8px;padding:8px 12px;}
+    .mar-chip{border-radius:8px;padding:6px 12px;}
     .mar-chip-num{font-size:22px;font-weight:800;color:#10263b;line-height:1.1;}
     .mar-chip-label{font-size:11px;font-weight:700;color:#172536;margin-top:1px;}
     .mar-chip-cap{font-size:9.5px;color:#718096;margin-top:1px;}
@@ -64,7 +64,7 @@
     .mar-chip-periods{background:#e8effc;}
     .mar-chip-registers{background:#efe9fd;}
     .mar-table{width:100%;border:1px solid #b9c6d4;table-layout:fixed;}
-    .mar-table th,.mar-table td{border-bottom:1px solid #e2e8f0;padding:4px 7px;font-size:12px;text-align:center;overflow:hidden;}
+    .mar-table th,.mar-table td{border-bottom:1px solid #e2e8f0;padding:3px 7px;font-size:12px;text-align:center;overflow:hidden;}
     .mar-table thead th{background:#eef2f7;color:#10263b;font-size:11px;letter-spacing:.05em;text-transform:uppercase;border-bottom:1.5px solid #b9c6d4;}
     .mar-table thead{display:table-header-group;}
     .mar-table tbody tr{page-break-inside:avoid;}
@@ -89,30 +89,51 @@
     .mar-pill-critical{background:#fdecec;color:#c53030;}
     .mar-pill-none{background:#eef2f7;color:#718096;}
     .mar-policy{color:#718096;font-size:10.5px;margin-top:5px;}
-    .mar-panels{width:100%;margin-top:8px;}
+    .mar-panels{width:100%;margin-top:6px;}
     .mar-panels>tbody>tr>td{width:50%;vertical-align:top;}
     .mar-panels>tbody>tr>td:first-child{padding-right:7px;}
     .mar-panels>tbody>tr>td:last-child{padding-left:7px;}
-    .mar-panel{border:1px solid #d7e0ec;background:#f7fafc;padding:9px 13px;border-radius:6px;}
+    .mar-panel{border:1px solid #d7e0ec;background:#f7fafc;padding:7px 13px;border-radius:6px;}
     .mar-panel-title{color:#10263b;font-size:12px;font-weight:800;margin-bottom:5px;}
     .mar-panel p{margin:0;color:#44546a;font-size:11.5px;line-height:1.55;}
     .mar-summary-grid{width:100%;}
     .mar-summary-grid td{width:50%;padding:5px 4px;vertical-align:top;}
     .mar-summary-num{font-size:17px;font-weight:800;color:#10263b;}
     .mar-summary-label{font-size:10.5px;color:#44546a;}
-    .mar-sign{width:100%;margin-top:12px;}
+    .mar-sign{width:100%;margin-top:8px;}
     .mar-sign-line{border-bottom:1.5px solid #172536;height:22px;width:230px;}
     .mar-sign-role{font-weight:800;color:#10263b;font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;margin-top:6px;}
     .mar-sign-name{font-size:12.5px;color:#172536;margin-top:2px;min-height:15px;}
     .mar-stamp-img{max-height:88px;max-width:150px;}
     .mar-foot-meta{text-align:right;color:#44546a;font-size:11px;line-height:1.6;}
     .mar-foot-meta strong{color:#10263b;}
-    .mar-genline{text-align:center;color:#718096;font-size:9px;letter-spacing:.16em;text-transform:uppercase;margin-top:10px;}
+    .mar-genline{text-align:center;color:#718096;font-size:9px;letter-spacing:.16em;text-transform:uppercase;margin-top:6px;}
     .mar-watermark{position:absolute;top:40%;left:0;width:100%;text-align:center;font-size:150px;font-weight:800;letter-spacing:.04em;color:#10263b;opacity:.045;z-index:0;pointer-events:none;}
     .mar-body{position:relative;z-index:1;}
     .mar-empty{color:#718096;text-align:center;padding:18px 8px;font-size:12.5px;}
     @media print{
         .mar-doc{padding:0;}
+    }
+    @media screen and (max-width:594px){
+        /* Phone screens squeeze the fixed table until the Status pill
+           (60-100px) and the % bar+pct (~106px) no longer fit their
+           ~38px columns and clip inside overflow:hidden cells.
+           B round 9: the round-8 block stopped at 480px, but the clip
+           window runs to ~615px — at 481px the "No Records" pill (72px)
+           overhung its cell by 21px, at 600px still by 2px, at 620px
+           clean. The breakpoint is 594px ON PURPOSE, not 767px: dompdf
+           evaluates @media screen max-width against the A4 paper width
+           (~595pt), so 767px leaked into dompdf and ballooned the
+           whole-class PDF from 12 to 20 pages with wrapped pills,
+           while 480px stayed invisible to it. 594px stays under that
+           threshold (whole-class dompdf re-proven 12p) and covers the
+           clip window except a <=2px pill-background nick at 595-615px
+           (pill text itself stays fully visible there).
+           Auto layout lets columns size to content and the doc
+           scrolls the widened table internally; print keeps the
+           fixed layout and its 2-page/12-page geometry. */
+        .mar-table { table-layout: auto; }
+        .mar-doc { overflow-x: auto; }
     }
 </style>
 
@@ -202,7 +223,13 @@
             </tr>
         </table>
 
-        {{-- Student table --}}
+        {{-- Student table: dompdf's Cellmap exhausts the stock 128M
+             on a single 520-row table (whole-Class-12 PDF 500s),
+             so the PDF renders the roster as 100-row tables with
+             repeated headers and continuous numbering; browser
+             print keeps one table, which browsers paginate fine. --}}
+        @php($marChunks = ($marPdf && count($rows) > 100) ? ($rows instanceof \Illuminate\Support\Collection ? $rows->chunk(100) : collect(array_chunk($rows, 100))) : collect([$rows]))
+        @foreach($marChunks as $marChunk)
         <table class="mar-table">
             <colgroup>
                 <col style="width:4%"><col style="width:24%"><col style="width:9%">
@@ -211,22 +238,37 @@
             </colgroup>
             <thead>
             <tr>
-                <th>#</th>
-                <th class="mar-student">Student Name</th>
-                <th>Section</th>
-                <th>Present</th>
-                <th>Absent</th>
-                <th>Late</th>
-                <th>Periods</th>
-                <th style="text-align:left;">Attendance %</th>
-                <th>Status</th>
+                <th style="width:4%;">#</th>
+                <th class="mar-student" style="width:29%;">Student Name</th>
+                <th style="width:8%;">Section</th>
+                <th style="width:7%;">Present</th>
+                <th style="width:7%;">Absent</th>
+                <th style="width:6%;">Late</th>
+                <th style="width:7%;">Periods</th>
+                <th style="width:18%;text-align:left;font-size:10px;letter-spacing:0;">Attendance %</th>
+                <th style="width:14%;">Status</th>
             </tr>
             </thead>
             <tbody>
-            @forelse($rows as $row)
+            @forelse($marChunk as $row)
                 <tr>
-                    <td>{{ $loop->iteration }}</td>
-                    <td class="mar-student"><span class="mar-avatar" style="background:{{ $marPalette[$loop->index % count($marPalette)] }}" aria-hidden="true">{{ $marInitialsOf(optional($row['student']->user)->name) }}</span><span class="mar-name">{{ optional($row['student']->user)->name }}</span></td>
+                    <td>{{ $loop->parent->index * 100 + $loop->iteration }}</td>
+                    @if($marPdf)
+                    {{-- Lean PDF row: dompdf keeps a style object per
+                         inline frame, so the avatar/bar/pill spans
+                         that browsers render cheaply blow the 128M
+                         budget at 520 rows. Text-only cells carry
+                         the same data at a fraction of the weight. --}}
+                    <td class="mar-student"><span class="mar-name">{{ optional($row['student']->user)->name }}</span></td>
+                    <td>{{ optional($row['student']->section)->name ?: '—' }}</td>
+                    <td>{{ $row['present'] }}</td>
+                    <td>{{ $row['absent'] }}</td>
+                    <td>{{ $row['late'] }}</td>
+                    <td>{{ $row['marked'] }}</td>
+                    <td style="text-align:left;">{{ $row['percent'] === null ? '—' : $row['percent'] . '%' }}</td>
+                    <td>{{ $row['status_label'] }}</td>
+                    @else
+                    <td class="mar-student"><span class="mar-avatar" style="background:{{ $marPalette[($loop->parent->index * 100 + $loop->iteration - 1) % count($marPalette)] }}" aria-hidden="true">{{ $marInitialsOf(optional($row['student']->user)->name) }}</span><span class="mar-name">{{ optional($row['student']->user)->name }}</span></td>
                     <td>{{ optional($row['student']->section)->name ?: '—' }}</td>
                     <td>{{ $row['present'] }}</td>
                     <td>@if($row['absent'] > 0)<span class="mar-absent-bad">{{ $row['absent'] }}</span>@else{{ $row['absent'] }}@endif</td>
@@ -240,12 +282,14 @@
                         @endif
                     </td>
                     <td><span class="mar-pill mar-pill-{{ $row['status_band'] }}">{{ $row['status_label'] }}</span></td>
+                    @endif
                 </tr>
             @empty
                 <tr><td colspan="9" class="mar-empty">No active students in this class yet.</td></tr>
             @endforelse
             </tbody>
         </table>
+        @endforeach
         <div class="mar-policy">Status policy: <strong>Excellent</strong> 90% and above &middot; <strong>Good</strong> 75&ndash;89% &middot; <strong>Needs Attention</strong> 50&ndash;74% &middot; <strong>Critical</strong> below 50%.</div>
 
         {{-- Summary note + class summary --}}

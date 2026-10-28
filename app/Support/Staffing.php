@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Helpers\Qs;
 use App\Models\Subject;
 use App\Models\TeacherEligibility;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Staffing foundation (Scheduling Engine, 2026-10-23): the shared
@@ -84,13 +85,39 @@ class Staffing
     {
         $capWeek = self::maxPeriodsPerWeek();
         $subjects = Subject::with('teacher')->get();
+        $sectionsByClass = \App\Models\Section::all()->groupBy('my_class_id');
         $byName = [];
         foreach (self::subjectNames() as $name) {
-            $rows = $subjects->where('name', $name);
+            // Round 13: same offered-only universe as Allocation
+            // — a subject no section of its class offers carries
+            // no demand here either, or the two surfaces would
+            // disagree about the same subject.
+            $rows = $subjects->where('name', $name)->filter(function ($r) use ($sectionsByClass) {
+                return Streams::offeredInClass($r, $sectionsByClass->get($r->my_class_id, collect()));
+            });
+            // Round 14: a name with NO offered row anywhere is not
+            // part of the staffing universe at all — previously it
+            // still rendered as a zero row ("0 classes, Covered")
+            // on the staffing page, and its eligible-teacher
+            // capacity inflated the totals. Dropping it keeps the
+            // page, the totals and the allocation surface in exact
+            // agreement. (Readiness only reads teachers, so it is
+            // unaffected; a name with offered rows but no weekly
+            // requirement still renders as "Requirement incomplete".)
+            if ($rows->isEmpty()) {
+                continue;
+            }
             $eligible = self::eligibleTeacherIds($name);
             $demand = (int) $rows->sum(function ($r) { return (int) ($r->periods_per_week ?? 0); });
-            $committed = (int) $rows->filter(function ($r) { return $r->teacher_id && $r->periods_per_week; })
-                ->sum(function ($r) { return (int) $r->periods_per_week; });
+            // Round 3: COMMITTED counts only LIVE teachers
+            // (active teacher row). A ghost id (deleted row) or
+            // a demoted/suspended teacher used to count as
+            // committed, hiding demand that needs a teacher.
+            $committed = (int) $rows->filter(function ($r) {
+                return $r->teacher_id && $r->periods_per_week && $r->teacher
+                    && $r->teacher->user_type === 'teacher'
+                    && (!$r->teacher->getAttribute('status') || $r->teacher->getAttribute('status') === 'active');
+            })->sum(function ($r) { return (int) $r->periods_per_week; });
             $capacity = count($eligible) * $capWeek;
             $byName[$name] = [
                 'classes' => $rows->count(),
@@ -106,9 +133,28 @@ class Staffing
         }
 
         $teachers = [];
+        // Allotment audit 2026-10-28: committed load is the
+        // override-aware placed-cell count (SectionTeacher::
+        // effectiveLoads), and a teacher's subject list must
+        // include their override subjects — otherwise an
+        // override-only teacher displayed 0 classes, 0 subjects
+        // and 0 committed periods while teaching a full week.
+        $loads = SectionTeacher::effectiveLoads();
+        $overrideSubjectIds = DB::table('section_subject_teachers')->get()
+            ->groupBy('teacher_id')
+            ->map(function ($rows) {
+                return $rows->pluck('subject_id')->unique()->values()->all();
+            })->all();
+        $overrideSubjects = $overrideSubjectIds
+            ? $subjects->whereIn('id', collect($overrideSubjectIds)->flatten()->unique()->values()->all())
+            : collect();
         foreach (\App\User::where('user_type', 'teacher')->orderBy('name')->get() as $t) {
             $mine = $subjects->where('teacher_id', $t->id);
-            $committed = (int) $mine->sum(function ($r) { return (int) ($r->periods_per_week ?? 0); });
+            if (!empty($overrideSubjectIds[$t->id])) {
+                $mine = $mine->merge($overrideSubjects->whereIn('id', $overrideSubjectIds[$t->id]))
+                    ->unique('id')->values();
+            }
+            $committed = (int) ($loads[$t->id] ?? 0);
             $teachers[] = [
                 'teacher' => $t,
                 'classes' => $mine->count(),

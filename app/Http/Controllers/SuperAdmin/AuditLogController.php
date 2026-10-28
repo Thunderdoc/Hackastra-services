@@ -17,8 +17,11 @@ class AuditLogController extends Controller
            sees the SCHOOL trail — every entry except those acted by a
            super_admin (the company's own activity stays platform-side).
            Actor-less entries (e.g. failed logins) are school security
-           events and stay visible to the Admin. */
-        if (Qs::userIsAdmin()) {
+           events and stay visible to the Admin. Round 4: the
+           principal reads the SAME school trail as the Admin — the
+           route was widened to principals without widening this
+           scope, so principals briefly saw super_admin-acted rows. */
+        if (Qs::userIsAdmin() || Qs::userIsPrincipal()) {
             $query->where(function ($q) {
                 $q->whereNull('user_id')
                   ->orWhereHas('user', function ($u) {

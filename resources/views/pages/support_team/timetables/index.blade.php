@@ -146,11 +146,11 @@
                     @endif
                     <div class="ttc-records">
                     @forelse($records as $ttr)
-                        @php $rs = $record_stats[$ttr->id] ?? ['periods' => 0, 'subjects' => 0]; @endphp
+                        @php $rs = $record_stats[$ttr->id] ?? ['periods' => 0, 'subjects' => 0, 'free' => 0]; @endphp
                         <div class="ttc-record">
                             <div class="ttc-record-copy">
                                 <strong>{{ $ttr->name }}</strong>
-                                <span class="ttc-record-meta">@if($ttr->section_id) Section {{ $ttr->section->name ?? '' }} · @endif{{ $ttr->exam_id ? $ttr->exam->name : 'Class TimeTable' }} · {{ $ttr->year }} · {{ $rs['periods'] }} periods · {{ $rs['subjects'] }} subjects</span>
+                                <span class="ttc-record-meta">@if($ttr->section_id) Section {{ $ttr->section->name ?? '' }} · @endif{{ $ttr->exam_id ? $ttr->exam->name : 'Class TimeTable' }} · {{ $ttr->year }} · {{ $rs['periods'] }} periods · {{ $rs['subjects'] }} subjects · {{ $rs['free'] }} free</span>
                             </div>
                             @if($ttr->year === $stats['session'])
                                 <span class="l81-status l81-status-active"><span class="l81-dot"></span> Active</span>

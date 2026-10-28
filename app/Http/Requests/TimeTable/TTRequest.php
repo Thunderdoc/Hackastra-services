@@ -20,7 +20,10 @@ class TTRequest extends FormRequest
     {
         return [
             'exam_date' => 'sometimes|required|string|min:8',
-            'day' => 'sometimes|required|string|min:6',
+            /* Agent D round 2: the old min:6 let a typo'd weekday
+               ('Mondyy') through and create a cell no grid, day
+               number or validator could place. */
+            'day' => 'sometimes|required|in:Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday',
             'subject_id' => 'required|exists:subjects,id',
             'ttr_id' => 'required|exists:time_table_records,id',
             'ts_id' => 'required|exists:time_slots,id',

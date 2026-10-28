@@ -47,7 +47,14 @@ class AttendanceController extends Controller
     {
         // Everything here is staff tooling except the student's /
         // parent's own read-only view of their own records.
-        $this->middleware('teamSAT')->except('my');
+        // Limited principal role (owner order 2026-10-28): the
+        // monthly report + defaulters reads are school-wide
+        // monitoring for the principal; day-wise entry stays
+        // teamSAT. NOTE: both middlewares run (AND), so the
+        // report methods must be EXCLUDED from teamSAT here —
+        // otherwise teamSAT alone would still refuse principals.
+        $this->middleware('teamSAT')->except(['my', 'report', 'export', 'reportPrint', 'reportPdf', 'defaulters', 'defaultersExport', 'defaultersPdf']);
+        $this->middleware('teamOrPrincipal:SAT')->only(['report', 'export', 'reportPrint', 'reportPdf', 'defaulters', 'defaultersExport', 'defaultersPdf']);
     }
 
     /**
@@ -162,6 +169,17 @@ class AttendanceController extends Controller
                 ->with('flash_danger', 'No class available to download.');
         }
 
+        /* Whole-class PDFs are bulk documents (Class 12 = 520
+           students): the stock 128M limit dies mid-render even
+           with the chunked, lean-row tables below, so this
+           request — and only this request — gets the same 512M /
+           300s budget the bulk marksheet, bulk ID-card and report
+           builder PDFs already use. Chunking + lean rows keep the
+           peak far from that ceiling; the limit is a backstop,
+           not the fix. */
+        ini_set('memory_limit', '512M');
+        set_time_limit(300);
+
         $filename = 'attendance-report-'
             . Str::slug($d['class_label']) . '-'
             . Str::slug(strtolower($d['range_label'])) . '.pdf';
@@ -226,6 +244,20 @@ class AttendanceController extends Controller
             : ($request->query('class_id')
                 ? $d['classes']->firstWhere('id', (int) $request->query('class_id'))
                 : $d['classes']->first());
+        /* Section filter (owner order 2026-10-28, "section wise"):
+           only for a single selected class — in all-classes mode
+           the filter is ignored. A section from another class falls
+           back to All sections, never an empty report. Teacher
+           scope stays class-level via visibleClasses(); the filter
+           only narrows what the teacher already sees. */
+        $d['sections'] = collect();
+        $d['selected_section'] = null;
+        if (!$d['all_classes'] && $d['selected_class']) {
+            $d['sections'] = Section::where('my_class_id', $d['selected_class']->id)->orderBy('id')->get();
+            if ($request->query('section_id')) {
+                $d['selected_section'] = $d['sections']->firstWhere('id', (int) $request->query('section_id'));
+            }
+        }
         $d['month'] = $this->monthFromRequest($request);
         $d['months'] = max(1, min(12, (int) $request->query('months', 1)));
         $rangeFrom = $d['month']->copy()->subMonths($d['months'] - 1)->startOfMonth();
@@ -235,7 +267,9 @@ class AttendanceController extends Controller
             : $rangeFrom->format('F Y') . ' – ' . $rangeTo->format('F Y');
         $d['class_label'] = $d['all_classes']
             ? 'All Classes'
-            : ($d['selected_class'] ? $d['selected_class']->name : '');
+            : ($d['selected_class']
+                ? $d['selected_class']->name . ($d['selected_section'] ? ' — ' . $d['selected_section']->name : '')
+                : '');
         $d['rows'] = collect();
         $d['totals'] = ['present' => 0, 'absent' => 0, 'late' => 0, 'marked' => 0];
         $d['sessions_held'] = 0;
@@ -253,14 +287,25 @@ class AttendanceController extends Controller
             $students = StudentRecord::with('user', 'section')
                 ->where('my_class_id', $reportClass->id)
                 ->where('grad', 0)
+                ->when($d['selected_section'], function ($q) use ($d) {
+                    $q->where('section_id', $d['selected_section']->id);
+                })
                 ->orderBy('id')
                 ->get();
             $totalStudents += $students->count();
 
-            $stats = $this->statusCounts($students->pluck('id')->all(), $rangeFrom, $rangeTo);
+            $stats = $this->statusCounts(
+                $students->pluck('id')->all(),
+                $rangeFrom,
+                $rangeTo,
+                $d['selected_section'] ? $d['selected_section']->id : null
+            );
 
             $d['sessions_held'] += AttendanceSession::forClass($reportClass->id)
                 ->betweenDates($rangeFrom, $rangeTo)
+                ->when($d['selected_section'], function ($q) use ($d) {
+                    $q->forEffectiveSection($d['selected_section']->id);
+                })
                 ->count();
 
             foreach ($students as $student) {
@@ -670,15 +715,18 @@ class AttendanceController extends Controller
      * in the range) — the day-wise attendances table is retired and
      * is never read here.
      */
-    private function statusCounts(array $studentIds, Carbon $from, Carbon $to): array
+    private function statusCounts(array $studentIds, Carbon $from, Carbon $to, $sectionId = null): array
     {
         if (empty($studentIds)) {
             return [];
         }
 
         $rows = AttendanceSessionEntry::whereIn('student_record_id', $studentIds)
-            ->whereHas('session', function ($q) use ($from, $to) {
+            ->whereHas('session', function ($q) use ($from, $to, $sectionId) {
                 $q->betweenDates($from, $to);
+                if ($sectionId) {
+                    $q->forEffectiveSection($sectionId);
+                }
             })
             ->select('student_record_id', 'status', DB::raw('COUNT(*) as total'))
             ->groupBy('student_record_id', 'status')
