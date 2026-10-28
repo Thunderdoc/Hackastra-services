@@ -25,8 +25,9 @@ class SettingController extends Controller
     public const SCHOOL_FIELDS = [
         'system_name', 'system_title', 'current_session', 'address',
         'phone', 'system_email', 'alt_email', 'term_begins', 'term_ends',
-        'lock_exam', 'principal_name', 'logo', 'school_stamp',
+        'principal_name', 'logo', 'school_stamp',
         'principal_signature',
+        'adm_no_format', 'adm_no_serial_start', 'adm_no_serial_width',
     ];
 
     public const PLATFORM_FIELDS = [
@@ -34,6 +35,36 @@ class SettingController extends Controller
         // public sign-in page. Platform-level (the domain belongs to the
         // platform, not to any one school), so the Super Admin owns it.
         'google_site_verification',
+    ];
+
+    /*
+     * Agent G round 1 (F-G1-3): settings.update previously wrote EVERY
+     * posted key (SettingRepo::update is updateOrCreate), so a crafted
+     * save could create arbitrary settings rows — including the
+     * timetable generator presets (tt_gen_primary/secondary), which
+     * SchoolLevel::loadConfig silently falls back to defaults on bad
+     * JSON. The endpoint now accepts only known keys: the school
+     * fields, the platform fields, the school form's operational keys
+     * (gateway, AI drafting section as posted by the main form,
+     * teaching-load/library caps) and the dynamic next_term_fees_*
+     * keys. Anything else is refused whole, same shape as the
+     * field-ownership refusal. NOTE: ai_* stay writable here because
+     * the main school form posts them (F-G1-1 design conflict — the
+     * DH card's "platform-owned" claim vs the main form — is an owner
+     * call, not silently changed by this list).
+     */
+    public const ALLOWED_FIELDS = [
+        'system_name', 'system_title', 'current_session', 'address',
+        'phone', 'system_email', 'alt_email', 'term_begins', 'term_ends',
+        'principal_name', 'logo', 'school_stamp',
+        'principal_signature',
+        'google_site_verification',
+        'gateway_enabled', 'razorpay_key_id', 'razorpay_key_secret',
+        'razorpay_webhook_secret',
+        'ai_enabled', 'ai_provider', 'ai_model', 'ai_api_key',
+        'teacher_max_periods_day', 'teacher_max_periods_week',
+        'library_fine_per_day',
+        'adm_no_format', 'adm_no_serial_start', 'adm_no_serial_width',
     ];
 
     protected $setting, $my_class;
@@ -87,14 +118,17 @@ class SettingController extends Controller
             return back()->with('flash_danger', __('msg.denied'));
         }
 
-        $sets = $req->except('_token', '_method', 'logo', 'school_stamp', 'school_stamp_remove', 'principal_signature', 'principal_signature_remove');
-        // Only touch lock_exam when it was actually posted: a platform-only
-        // save (Super Admin, PLATFORM_FIELDS) must not rewrite school keys
-        // it never carried. (Workstream DG — previously this line added
-        // lock_exam=0 to every save that omitted the field.)
-        if (array_key_exists('lock_exam', $sets)) {
-            $sets['lock_exam'] = $sets['lock_exam'] == 1 ? 1 : 0;
+        /* Agent G round 1 (F-G1-3): refuse unknown keys whole — the
+           endpoint must not mint arbitrary settings rows. */
+        $unknown = array_filter($posted, function ($k) {
+            return !in_array($k, self::ALLOWED_FIELDS, true)
+                && strpos($k, 'next_term_fees_') !== 0;
+        });
+        if ($unknown) {
+            return back()->with('flash_danger', __('msg.denied'));
         }
+
+        $sets = $req->except('_token', '_method', 'logo', 'school_stamp', 'school_stamp_remove', 'principal_signature', 'principal_signature_remove');
 
         /* Workstream CU: gateway secrets are write-only in the form
            (the stored value is never rendered back), so a blank field

@@ -79,6 +79,26 @@ class AttendanceSession extends Eloquent
         ]);
     }
 
+    /**
+     * Effective-section scope — the SAME rule the submitted-register
+     * view uses: a session belongs to a section when its own
+     * section_id is set, else when its timetable record carries
+     * that section. Class-grid sessions (record section NULL)
+     * match no section filter.
+     */
+    public function scopeForEffectiveSection($query, $sectionId)
+    {
+        return $query->where(function ($q) use ($sectionId) {
+            $q->where('section_id', $sectionId)
+                ->orWhere(function ($q2) use ($sectionId) {
+                    $q2->whereNull('section_id')
+                        ->whereHas('time_table.tt_record', function ($q3) use ($sectionId) {
+                            $q3->where('section_id', $sectionId);
+                        });
+                });
+        });
+    }
+
     /** Count of entries with the given status (present/absent/late). */
     public function countByStatus(string $status): int
     {

@@ -34,37 +34,118 @@ class Qs
     protected static $admNoSeq = [];
 
     /**
+     * Admission-number formats the school Admin picks in Settings
+     * ("Admission Numbers"). The segments are: code = school acronym
+     * (system_title), class = class-type code, year = year admitted.
+     * The serial is always last. Changing the format starts a FRESH
+     * series under the new prefix — old numbers never change, and a
+     * series already started keeps counting from its last number
+     * (adm_no_serial_start is the FIRST number of a fresh series
+     * only — it never jumps a started series).
+     */
+    public const ADM_NO_FORMATS = [
+        'code_class_year_serial' => ['code', 'class', 'year'],
+        'code_year_serial' => ['code', 'year'],
+        'class_year_serial' => ['class', 'year'],
+        'code_serial' => ['code'],
+        'year_serial' => ['year'],
+    ];
+
+    /**
+     * The admission-number PREFIX for one (class type, year) under the
+     * school's chosen format, trailing slash included, uppercased.
+     * Every composite admission number in the app — system-minted AND
+     * admin-typed (Admit Student, Quick Admit, both validators) — is
+     * built from this one helper, so the stored shape can never drift
+     * from the format the Admin picked.
+     */
+    public static function admNoPrefix($classTypeCode, $yearAdmitted)
+    {
+        $format = self::getSetting('adm_no_format') ?: 'code_class_year_serial';
+        $segments = self::ADM_NO_FORMATS[$format] ?? self::ADM_NO_FORMATS['code_class_year_serial'];
+        $values = [
+            'code' => self::getAppCode(),
+            'class' => $classTypeCode,
+            'year' => trim((string) $yearAdmitted),
+        ];
+        $parts = [];
+        foreach ($segments as $segment) {
+            $parts[] = $values[$segment];
+        }
+
+        return strtoupper(implode('/', $parts) . '/');
+    }
+
+    /** First serial of a fresh series (Settings; default 1000). */
+    public static function admNoSerialStart()
+    {
+        $start = (int) (self::getSetting('adm_no_serial_start') ?: 1000);
+        if ($start < 1) {
+            $start = 1;
+        }
+        if ($start > 999999) {
+            $start = 999999;
+        }
+
+        return $start;
+    }
+
+    /** Leading-zero width for newly minted serials (Settings; 0 = none). */
+    public static function admNoSerialWidth()
+    {
+        $width = (int) (self::getSetting('adm_no_serial_width') ?: 0);
+        if ($width < 0) {
+            $width = 0;
+        }
+        if ($width > 6) {
+            $width = 6;
+        }
+
+        return $width;
+    }
+
+    /**
      * The ONE admission-number generator for the whole app (Loop 111):
-     * APPCODE / CLASS-TYPE / YEAR-ADMITTED / SERIAL, where SERIAL is the
-     * next number in sequence for that prefix — never random, never
-     * taken from user input. Bulk imports, the Admit Student form and
-     * Quick Admit all mint numbers here, so a number means the same
-     * thing however the student arrived. The sequence continues from
-     * the highest numeric suffix already issued under the prefix
-     * (historic numbers were random 4–5 digit suffixes; the floor of
-     * 1000 keeps the 4-digit shape for a school's first student).
-     * Numbers burned by a row that later fails are simply skipped —
-     * a gap from a failure, never a duplicate.
+     * <chosen format> / SERIAL, where SERIAL is the next number in
+     * sequence for that prefix — never random, never taken from user
+     * input. Bulk imports, the Admit Student form and Quick Admit all
+     * mint numbers here, so a number means the same thing however the
+     * student arrived. A started series continues from the highest
+     * numeric suffix already issued under the prefix (historic numbers
+     * were random 4–5 digit suffixes; the default start of 1000 keeps
+     * the 4-digit shape for a school's first student) — the configured
+     * start applies ONLY when no numeric serial exists under the
+     * prefix yet, so raising it can never jump a live series.
+     * Numbers burned by a row that later fails are simply skipped — a
+     * gap from a failure, never a duplicate. With no settings saved,
+     * the format is exactly the historic APPCODE / CLASS-TYPE / YEAR /
+     * SERIAL.
      */
     public static function generateAdmNo($classTypeCode, $yearAdmitted)
     {
-        $prefix = strtoupper(self::getAppCode() . '/' . $classTypeCode . '/' . trim((string) $yearAdmitted) . '/');
+        $prefix = self::admNoPrefix($classTypeCode, $yearAdmitted);
 
         if (!isset(self::$admNoSeq[$prefix])) {
-            $max = 999;
+            $max = null;
             $existing = StudentRecord::where('adm_no', 'like', $prefix . '%')->pluck('adm_no');
             foreach ($existing as $adm) {
                 $suffix = substr((string) $adm, strlen($prefix));
                 if (ctype_digit($suffix)) {
-                    $max = max($max, (int) $suffix);
+                    $max = $max === null ? (int) $suffix : max($max, (int) $suffix);
                 }
             }
-            self::$admNoSeq[$prefix] = $max;
+            self::$admNoSeq[$prefix] = $max === null ? self::admNoSerialStart() - 1 : $max;
         }
 
         self::$admNoSeq[$prefix]++;
 
-        return $prefix . self::$admNoSeq[$prefix];
+        $serial = (string) self::$admNoSeq[$prefix];
+        $width = self::admNoSerialWidth();
+        if ($width > 0) {
+            $serial = str_pad($serial, $width, '0', STR_PAD_LEFT);
+        }
+
+        return $prefix . $serial;
     }
 
     /**
@@ -364,6 +445,20 @@ class Qs
     public static function userIsAdmin()
     {
         return Auth::user()->user_type == 'admin';
+    }
+
+    /**
+     * Limited principal role (owner order 2026-10-28): 'principal'
+     * is its own user_type — school-wide read + designated
+     * approvals only. It is deliberately NOT in any team array, so
+     * no team gate ever passes for a principal unless a route
+     * explicitly uses teamOrPrincipal or a controller guard names
+     * the role. An un-migrated install has no such users, so this
+     * is false there by construction.
+     */
+    public static function userIsPrincipal()
+    {
+        return Auth::check() && Auth::user()->user_type == 'principal';
     }
 
     public static function getUserType()

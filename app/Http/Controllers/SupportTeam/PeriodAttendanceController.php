@@ -7,9 +7,11 @@ use App\Http\Controllers\Controller;
 use App\Models\AttendanceSession;
 use App\Models\AttendanceSessionEntry;
 use App\Models\MyClass;
+use App\Models\Section;
 use App\Models\Setting;
 use App\Models\StudentRecord;
 use App\Models\Subject;
+use App\Models\Substitution;
 use App\Models\TimeTable;
 use App\Support\CsvExport;
 use App\Support\SectionTeacher;
@@ -42,7 +44,14 @@ class PeriodAttendanceController extends Controller
     {
         // Staff only: Super Admin / Admin (oversight, read-only) and
         // teachers (they take their own periods).
-        $this->middleware('teamSAT');
+        // Limited principal role (owner order 2026-10-28): the
+        // register READS (index/report/export/show/print/pdf) are
+        // school-wide monitoring for the principal; take/store and
+        // the teacher roster outputs stay teamSAT — a principal
+        // never takes attendance, and the take/store guards would
+        // redirect a non-teacher anyway.
+        $this->middleware('teamSAT')->except(['index', 'report', 'export', 'show', 'printRegister', 'pdfRegister', 'exportRegister']);
+        $this->middleware('teamOrPrincipal:SAT')->only(['index', 'report', 'export', 'show', 'printRegister', 'pdfRegister', 'exportRegister']);
     }
 
     /**
@@ -136,7 +145,8 @@ class PeriodAttendanceController extends Controller
 
     /**
      * Per-row student figures for the schedule's Students column
-     * (Loop 77): the class roster size for every row, and the marked
+     * (Loop 77): the roster size for every row — the section size on
+     * section rows, the class size otherwise — and the marked
      * count (saved entries) for rows whose register was submitted.
      * Two grouped queries regardless of row count; read-only.
      */
@@ -154,6 +164,18 @@ class PeriodAttendanceController extends Controller
                 ->pluck('c', 'my_class_id')
             : collect();
 
+        // A section period's Students column counts that section
+        // only — the class total on a section row misled teachers
+        // into expecting the whole class in the register.
+        $sectionCounts = $classIds
+            ? StudentRecord::whereIn('my_class_id', $classIds)
+                ->where('grad', 0)
+                ->whereNotNull('section_id')
+                ->selectRaw('section_id, COUNT(*) as c')
+                ->groupBy('section_id')
+                ->pluck('c', 'section_id')
+            : collect();
+
         $sessionIds = $periods->filter(function ($row) {
             return !empty($row['session']);
         })->map(function ($row) {
@@ -167,8 +189,11 @@ class PeriodAttendanceController extends Controller
                 ->pluck('c', 'session_id')
             : collect();
 
-        return $periods->map(function ($row) use ($rosterCounts, $entryCounts) {
-            $row['students_total'] = (int) ($rosterCounts[optional($row['class'])->id] ?? 0);
+        return $periods->map(function ($row) use ($rosterCounts, $sectionCounts, $entryCounts) {
+            $sectionId = optional($row['section'])->id;
+            $row['students_total'] = $sectionId
+                ? (int) ($sectionCounts[$sectionId] ?? 0)
+                : (int) ($rosterCounts[optional($row['class'])->id] ?? 0);
             $row['students_marked'] = $row['session']
                 ? (int) ($entryCounts[$row['session']->id] ?? 0)
                 : null;
@@ -178,10 +203,11 @@ class PeriodAttendanceController extends Controller
     }
 
     /**
-     * The take-attendance page for one period on one date. A period
-     * that already has a submitted session goes straight to the
-     * locked record — this page only ever renders for an untaken
-     * period and only for that period's own teacher.
+     * The take-attendance page for one period on one date. This page
+     * only ever renders for an untaken period and only for that
+     * period's own teacher; an already-submitted period redirects
+     * to the index — submitted registers are gone from the
+     * teacher's end (owner rule).
      */
     public function take(Request $request, $tt_id)
     {
@@ -191,6 +217,12 @@ class PeriodAttendanceController extends Controller
 
         $existing = $this->existingSession($date, $period['tt']->id);
         if ($existing) {
+            // Owner rule: submitted registers are gone from the
+            // teacher's end — no view-back, just the index.
+            if (Qs::userIsTeacher()) {
+                return redirect()->route('attendance.periods.index', ['date' => $date->format('Y-m-d')])
+                    ->with('flash_success', 'Attendance for this period was already submitted.');
+            }
             return redirect()->route('attendance.periods.show', $existing->id)
                 ->with('flash_success', 'Attendance for this period was already submitted — the record is locked.');
         }
@@ -248,7 +280,7 @@ class PeriodAttendanceController extends Controller
 
         $existing = $this->existingSession($date, $period['tt']->id);
         if ($existing) {
-            return redirect()->route('attendance.periods.show', $existing->id)
+            return redirect()->route('attendance.periods.index', ['date' => $date->toDateString()])
                 ->with('flash_danger', 'Attendance for this period was already submitted and is locked — it cannot be taken again.');
         }
 
@@ -295,7 +327,7 @@ class PeriodAttendanceController extends Controller
             // for this period already exists (double submit / race).
             $existing = $this->existingSession($date, $period['tt']->id);
             if ($existing) {
-                return redirect()->route('attendance.periods.show', $existing->id)
+                return redirect()->route('attendance.periods.index', ['date' => $date->toDateString()])
                     ->with('flash_danger', 'Attendance for this period was already submitted and is locked — it cannot be taken again.');
             }
             throw $e;
@@ -377,7 +409,9 @@ class PeriodAttendanceController extends Controller
         $d = $this->registerData($request, $session_id);
         $session = $d['session'];
 
-        $rolls = $this->rollMap($session->my_class_id, $session->section_id);
+        // registerData already attached the effective section (the
+        // period's own section for legacy NULL-section sessions).
+        $rolls = $this->rollMap($session->my_class_id, optional($session->section)->id ?? $session->section_id);
         $rows = $d['entries']->map(function ($entry) use ($rolls) {
             return [
                 $rolls[$entry->student_record_id] ?? '—',
@@ -474,8 +508,12 @@ class PeriodAttendanceController extends Controller
             . Str::slug(optional($period['class'])->name ?: 'class') . '_'
             . Str::slug(optional($period['subject'])->name ?: 'period') . '.pdf';
 
-        return \Barryvdh\DomPDF\Facade\Pdf::loadView('pages.support_team.attendance_periods.roster_print', $d)
-            ->download($pdf_name);
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pages.support_team.attendance_periods.roster_print', $d);
+        // "Page X of Y" via canvas (dompdf renders the CSS pages
+        // counter as 0 — see App\Support\PdfFooter).
+        \App\Support\PdfFooter::stampPageNumbers($pdf, 'portrait');
+
+        return $pdf->download($pdf_name);
     }
 
     /**
@@ -492,27 +530,49 @@ class PeriodAttendanceController extends Controller
             'entries.student_record.user', 'entries.student_record.section',
         ])->findOrFail($session_id);
 
-        if (Qs::userIsTeacher() && (int) $session->teacher_id !== (int) $request->user()->id) {
-            abort(403, 'You can only view period attendance that you submitted.');
+        // Owner rule: submitted registers are gone from the
+        // teacher's end — once submitted, a teacher cannot view
+        // them back, not even their own. Admin / Super Admin
+        // oversight keeps full view access. This single guard
+        // covers show, print, PDF and CSV, which all read through
+        // registerData.
+        if (Qs::userIsTeacher()) {
+            abort(403, 'Submitted attendance registers are not available on teacher accounts.');
         }
 
         $d['session'] = $session;
-        $d['entries'] = $session->entries->sortBy(function ($entry) {
+        // A section period's register lists only that section — even
+        // for sessions seeded before the seeder learned sections
+        // (section_id NULL, entries covering the whole class). The
+        // period's own section is the fallback, and its name is
+        // attached so the header names it too.
+        $effectiveSectionId = $session->section_id
+            ?? optional(optional($session->time_table)->tt_record)->section_id;
+        if (!$session->section && $effectiveSectionId) {
+            $session->setRelation('section', Section::find($effectiveSectionId));
+        }
+        $entries = $session->entries;
+        if ($effectiveSectionId) {
+            $entries = $entries->filter(function ($entry) use ($effectiveSectionId) {
+                return (int) optional($entry->student_record)->section_id === (int) $effectiveSectionId;
+            });
+        }
+        $d['entries'] = $entries->sortBy(function ($entry) {
             return strtolower(optional(optional($entry->student_record)->user)->name ?? '');
         })->values();
         // Same system roll numbers as the take page, even though
         // this view sorts by name for reading.
-        $rolls = $this->rollMap($session->my_class_id, $session->section_id);
+        $rolls = $this->rollMap($session->my_class_id, $effectiveSectionId);
         foreach ($d['entries'] as $entry) {
             if ($entry->student_record) {
                 $entry->student_record->setAttribute('roll_no', $rolls[$entry->student_record_id] ?? null);
             }
         }
         $d['counts'] = [
-            'present' => $session->countByStatus(AttendanceSessionEntry::STATUS_PRESENT),
-            'absent' => $session->countByStatus(AttendanceSessionEntry::STATUS_ABSENT),
-            'late' => $session->countByStatus(AttendanceSessionEntry::STATUS_LATE),
-            'total' => $session->entries->count(),
+            'present' => $d['entries']->where('status', AttendanceSessionEntry::STATUS_PRESENT)->count(),
+            'absent' => $d['entries']->where('status', AttendanceSessionEntry::STATUS_ABSENT)->count(),
+            'late' => $d['entries']->where('status', AttendanceSessionEntry::STATUS_LATE)->count(),
+            'total' => $d['entries']->count(),
         ];
         $slot = optional($session->time_table)->time_slot;
         $d['time_label'] = optional($slot)->full ?: '—';
@@ -727,23 +787,40 @@ class PeriodAttendanceController extends Controller
             ->get()
             ->keyBy('time_table_id');
 
+        // Wave 1 feature 4 (Substitution, additive only): attach the
+        // day's substitution per period, if the table exists yet.
+        $subs = collect();
+        if (\Illuminate\Support\Facades\Schema::hasTable('substitutions')) {
+            $subs = Substitution::with('substitute')
+                ->whereDate('date', $date->toDateString())
+                ->whereIn('time_table_id', $periods->pluck('id')->all())
+                ->get()
+                ->keyBy('time_table_id');
+        }
+
         return $periods
-            ->map(function (TimeTable $tt) use ($sessions, $date) {
+            ->map(function (TimeTable $tt) use ($sessions, $subs, $date) {
                 $slot = $tt->time_slot;
                 $class = optional($tt->tt_record)->my_class ?: optional($tt->subject)->my_class;
                 $start = ($slot && $slot->time_from)
                     ? Carbon::parse($date->toDateString() . ' ' . $slot->time_from)
                     : null;
+                $teacher = SectionTeacher::teacherFor(optional($tt->tt_record)->section_id ?? null, $tt->subject);
+                $substitution = $subs->get($tt->id);
 
                 return [
                     'tt' => $tt,
                     'subject' => $tt->subject,
                     'class' => $class,
                     'section' => optional($tt->tt_record)->section,
-                    'teacher' => SectionTeacher::teacherFor(optional($tt->tt_record)->section_id ?? null, $tt->subject),
+                    'teacher' => $teacher,
                     'time_label' => optional($slot)->full ?: '—',
                     'sort' => $start ? $start->format('H:i') : '99:99',
                     'session' => $sessions->get($tt->id),
+                    'substitution' => $substitution,
+                    'effective_teacher' => $substitution && $substitution->substitute
+                        ? $substitution->substitute
+                        : $teacher,
                 ];
             })
             ->filter(function ($row) {

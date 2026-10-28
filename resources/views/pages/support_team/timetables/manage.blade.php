@@ -11,7 +11,7 @@
              nav-tabs-highlight rendering was the old light style);
              tabs, panes and the Edit Subjects modal flow unchanged. --}}
         <div class="card-header header-elements-inline">
-            <h6 class="card-title font-weight-bold">{{ $ttr->name.' ('.$my_class->name.')'.' '.$ttr->year }}</h6>
+            <h6 class="card-title font-weight-bold">{{ $ttr->name.' ('.(optional($my_class)->name ?: 'Deleted class').')'.' '.$ttr->year }}</h6>
         </div>
 
         <div class="card-body">

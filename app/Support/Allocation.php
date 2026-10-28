@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\Section;
 use App\Models\Subject;
 
 /**
@@ -19,21 +20,24 @@ use App\Models\Subject;
  */
 class Allocation
 {
-    /** Committed weekly periods per teacher id (configured requirements only). */
+    /** Committed weekly periods per teacher id — ACTUAL placed
+     * cells through the override-aware precedence (see
+     * SectionTeacher::effectiveLoads), NOT the old class-level
+     * periods_per_week sum, which credited override teachers
+     * with 0. Planned requirements stay visible in Staffing's
+     * per-subject demand section. */
     public static function teacherLoads(): array
     {
-        $loads = [];
-        foreach (Subject::whereNotNull('teacher_id')->whereNotNull('periods_per_week')->get() as $s) {
-            $loads[$s->teacher_id] = ($loads[$s->teacher_id] ?? 0) + (int) $s->periods_per_week;
-        }
-
-        return $loads;
+        return SectionTeacher::effectiveLoads();
     }
 
     /**
      * One row per class-subject needing attention:
      * [subject, issue, recommended_id, reason, eligible_count].
-     * issue: 'unassigned' | 'overloaded'.
+     * issue: 'unassigned' | 'overloaded'. 'Unassigned' covers no
+     * teacher id AND a non-live teacher (ghost id, demoted or
+     * suspended user — round 3): the subject genuinely needs a
+     * teacher, and the engine used to skip it silently.
      */
     public static function recommendations(): array
     {
@@ -43,10 +47,22 @@ class Allocation
 
         $subjects = Subject::with(['my_class', 'teacher'])
             ->orderBy('my_class_id')->orderBy('name')->get();
+        $sectionsByClass = Section::all()->groupBy('my_class_id');
 
         foreach ($subjects as $s) {
+            // Round 13: a subject no section of its class offers
+            // is not staffing demand — the generator, the
+            // readiness check and the Manage lists all ignore it,
+            // so flagging it here sent admins to staff a subject
+            // nobody takes. (A class with no sections teaches
+            // whole-class, so everything still counts there.)
+            if (!Streams::offeredInClass($s, $sectionsByClass->get($s->my_class_id, collect()))) {
+                continue;
+            }
             $issue = null;
-            if (!$s->teacher_id) {
+            $teacherLive = $s->teacher && $s->teacher->user_type === 'teacher'
+                && (!$s->teacher->getAttribute('status') || $s->teacher->getAttribute('status') === 'active');
+            if (!$s->teacher_id || !$teacherLive) {
                 $issue = 'unassigned';
             } elseif ($s->periods_per_week && ($loads[$s->teacher_id] ?? 0) > $cap) {
                 $issue = 'overloaded';

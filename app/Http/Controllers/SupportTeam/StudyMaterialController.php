@@ -10,10 +10,12 @@ use App\Models\StudentRecord;
 use App\Models\StudyMaterial;
 use App\Models\Subject;
 use App\Support\Audit;
+use App\Support\SectionTeacher;
 use App\Support\ShareTargets;
 use App\Support\TeacherScope;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 /**
@@ -47,7 +49,16 @@ class StudyMaterialController extends Controller
 
         if (Qs::userIsTeacher()) {
             $query->where('teacher_id', $user->id);
-            $scopeSubjects = Subject::where('teacher_id', $user->id)->orderBy('name')->get();
+            // Same taught-subject universe as the create picker:
+            // class-wide subjects plus override subjects, so the
+            // grouped page renders empty groups for override subjects
+            // too (round-6 allotment fix).
+            $direct = Subject::where('teacher_id', $user->id)->pluck('id');
+            $override = DB::table('section_subject_teachers')
+                ->where('teacher_id', $user->id)
+                ->pluck('subject_id');
+            $scopeSubjects = Subject::whereIn('id', $direct->merge($override)->unique()->values())
+                ->orderBy('name')->get();
         } elseif (Qs::userIsTeamSA()) {
             // Admin + Super Admin read everything (SA read-only).
             // Their universe is the whole school — no empty groups.
@@ -145,7 +156,17 @@ class StudyMaterialController extends Controller
             return $this->deny();
         }
 
-        $subjects = Subject::with('my_class')->where('teacher_id', Auth::id())->get();
+        // Subjects the teacher teaches: class-wide subject teacher
+        // PLUS any section where they hold an override (round-6
+        // allotment fix — the old raw-only list hid override subjects
+        // from the create picker entirely).
+        $direct = Subject::where('teacher_id', Auth::id())->pluck('id');
+        $override = DB::table('section_subject_teachers')
+            ->where('teacher_id', Auth::id())
+            ->pluck('subject_id');
+        $subjects = Subject::with('my_class')
+            ->whereIn('id', $direct->merge($override)->unique()->values())
+            ->get();
         $classIds = $subjects->pluck('my_class_id')->unique();
 
         $d = [
@@ -174,14 +195,22 @@ class StudyMaterialController extends Controller
             'files.*' => $this->fileRules,
         ]);
 
-        $subject = Subject::where('id', $data['subject_id'])
-            ->where('teacher_id', Auth::id())->first();
+        // The subject must belong to the class and be taught by THIS
+        // teacher: the section override wins for a section-scoped
+        // material, else the class-wide subject teacher
+        // (SectionTeacher::teacherIdFor — round-6 allotment fix; the
+        // old raw subjects.teacher_id check refused override-only
+        // teachers for their own override sections).
+        $subject = Subject::find($data['subject_id']);
         if (!$subject || $subject->my_class_id != $data['my_class_id']) {
             abort(403, 'You do not teach this subject for this class.');
         }
         if (!empty($data['section_id'])
             && !Section::where('id', $data['section_id'])->where('my_class_id', $data['my_class_id'])->exists()) {
             abort(422, 'The chosen section does not belong to this class.');
+        }
+        if ((int) SectionTeacher::teacherIdFor($data['section_id'] ?? null, $subject) !== (int) Auth::id()) {
+            abort(403, 'You do not teach this subject for this class.');
         }
 
         $uploaded = array_values(array_filter((array) $req->file('files')));

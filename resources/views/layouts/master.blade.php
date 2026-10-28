@@ -7,6 +7,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <meta id="csrf-token" name="csrf-token" content="{{ csrf_token() }}">
     <meta name="author" content="{{ Qs::getSystemName() }}">
+    <meta name="theme-color" content="#171819">
+    <link rel="manifest" href="/manifest.webmanifest">
 
     <title> @yield('page_title') | {{ Qs::getAppCode() }} </title>
 
@@ -49,5 +51,12 @@
 @include('partials.confirm_modal')
 @include('partials.inc_bottom')
 @yield('scripts')
+<script>
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+        navigator.serviceWorker.register('/sw.js');
+    });
+}
+</script>
 </body>
 </html>

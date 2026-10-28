@@ -39,6 +39,13 @@ class CertificateController extends Controller
             $srId = Qs::decodeHash($request->get('student'));
             $preselected = $srId ? StudentRecord::with(['user', 'my_class', 'section'])->find($srId) : null;
         }
+        if (!$preselected && $request->filled('adm_no')) {
+            // Find-by-admission-no: stored numbers are always uppercased
+            // (generated and typed alike), so normalise the lookup too.
+            $preselected = StudentRecord::with(['user', 'my_class', 'section'])
+                ->where('adm_no', strtoupper(trim((string) $request->get('adm_no'))))
+                ->first();
+        }
         $students = StudentRecord::with(['user', 'my_class', 'section'])
             ->where('grad', 0)->orderBy('id')->get();
         if ($preselected && !$students->contains('id', $preselected->id)) {
@@ -102,7 +109,7 @@ class CertificateController extends Controller
             'phone' => Qs::getSetting('phone'),
             'principal' => Qs::getSetting('principal_name'),
             'logo' => $this->settingImage('logo'),
-            'stamp' => $this->settingImage('stamp'),
+            'stamp' => $this->settingImage('school_stamp'),
             'signature' => $this->settingImage('principal_signature'),
         ];
         $view = $certificate->type === 'transfer'
@@ -121,6 +128,18 @@ class CertificateController extends Controller
             return null;
         }
         $path = ltrim((string) $path, '/');
+        // Absolute URLs whose path is /storage/... (a value saved
+        // with its origin, e.g. a local http://127.0.0.1:8993 URL):
+        // use just the path part so the on-disk check below works
+        // and the certificate still carries the school's logo.
+        // Truly external URLs keep returning null — the print page
+        // never fetches remote branding.
+        if (preg_match('#^https?://#', $path)) {
+            $urlPath = parse_url($path, PHP_URL_PATH);
+            if ($urlPath) {
+                $path = ltrim($urlPath, '/');
+            }
+        }
         if (str_starts_with($path, 'storage/')) {
             $diskPath = substr($path, strlen('storage/'));
             return Storage::disk('public')->exists($diskPath) ? '/' . $path : null;

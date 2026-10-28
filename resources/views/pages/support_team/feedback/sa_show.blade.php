@@ -77,7 +77,7 @@
                     </div>
                     <div class="col-md-8">
                         <div class="form-group">
-                            <label for="sa_reply">Reply to the reporter (what was fixed / the decision)</label>
+                            <label for="sa_reply">Platform-side note (the reporter never sees this — they see only the school-side status)</label>
                             <textarea name="sa_reply" id="sa_reply" rows="3" class="form-control" placeholder="Eg. Fixed in this week's update — the cooler has been replaced.">{{ old('sa_reply', $item->sa_reply) }}</textarea>
                         </div>
                     </div>

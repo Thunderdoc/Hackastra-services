@@ -32,6 +32,9 @@
                             <option {{ $s->teacher_id == $t->id ? 'selected' : '' }} value="{{ Qs::hash($t->id) }}">{{ $t->name }}</option>
                         @endforeach
                     </select>
+                    @if($s->teacher_id && !($liveTeacherIds ?? collect())->has((int) $s->teacher_id))
+                        <small class="form-text text-danger">Current section teacher is no longer an active teacher — choose a replacement.</small>
+                    @endif
                 </div>
                 <div class="pat-field">
                     <label for="stream">Stream (Class 11/12)</label>
@@ -61,9 +64,9 @@
                 <thead><tr><th>Subject</th><th>Class teacher</th><th>{{ $s->name }} teacher</th></tr></thead>
                 <tbody>
                 @foreach($subjects as $sub)
-                    @php $ov = $overrides[$sub->id] ?? null; @endphp
+                    @php $ov = $overrides[$sub->id] ?? null; $eff = $ov ?? $sub->teacher_id; $effLive = !$eff || ($liveTeacherIds ?? collect())->has((int) $eff); @endphp
                     <tr>
-                        <td>{{ $sub->name }}</td>
+                        <td>{{ $sub->name }} @if(!$effLive)<span class="text-danger"> — No live teacher assigned</span>@elseif(!$sub->teacher_id && !$ov)<span class="text-danger"> — No teacher assigned</span>@endif</td>
                         <td>{{ $sub->teacher->name ?? 'Vacant' }}</td>
                         <td>
                             <select name="teachers[{{ $sub->id }}]" class="form-control select-search" data-placeholder="Use class teacher">
@@ -77,6 +80,17 @@
                 @endforeach
                 </tbody>
             </table></div>
+            @if(isset($staleOverrides) && $staleOverrides->count())
+            <div class="alert alert-warning mt-3">
+                <strong>Stale overrides:</strong> these subject teachers belong to subjects {{ $s->my_class->name }} does not offer, so they never apply to this section — but they still count in the Overrides total. Tick to remove them with this save:
+                @foreach($staleOverrides as $st)
+                    <div class="form-check mt-1">
+                        <input class="form-check-input" type="checkbox" name="clear_stale[]" value="{{ $st->subject_id }}" id="stale-{{ $st->subject_id }}">
+                        <label class="form-check-label" for="stale-{{ $st->subject_id }}">{{ $st->subject_name }} — {{ $st->teacher_name ?? 'unknown teacher' }}</label>
+                    </div>
+                @endforeach
+            </div>
+            @endif
             <button type="submit" class="btn btn-primary">Save subject teachers</button>
         </form>
     </div></div>

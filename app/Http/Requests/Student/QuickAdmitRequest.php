@@ -76,14 +76,14 @@ class QuickAdmitRequest extends FormRequest
 
             // A supplied admission number becomes the suffix of the
             // composite admission number store() generates
-            // (APPCODE/TYPE/YEAR/SUFFIX, stored in student_records.adm_no).
+            // (Qs::admNoPrefix + suffix, stored in student_records.adm_no).
             // Refuse when that composite already exists — the same check
             // the importer runs per row.
             $admNo = trim((string) $this->input('q_adm_no'));
             if ($admNo !== '' && $classId && $this->input('q_year_admitted')) {
                 $type = app(MyClassRepo::class)->findTypeByClass($classId);
                 if ($type) {
-                    $composite = strtoupper(Qs::getAppCode() . '/' . $type->code . '/' . trim($this->input('q_year_admitted')) . '/' . $admNo);
+                    $composite = Qs::admNoPrefix($type->code, $this->input('q_year_admitted')) . strtoupper($admNo);
                     if (StudentRecord::where('adm_no', $composite)->exists()) {
                         $validator->errors()->add('q_adm_no', "Admission number {$composite} already exists.");
                     }

@@ -49,6 +49,12 @@ class PlatformOnly
         // Topbar search endpoint — DashboardSearchController scopes
         // Super Admin results to platform accounts only.
         'dashboard.search',
+        // Reports & PDF Builder (wave 31b) — the controller still
+        // denies the Super Admin every school source; only the
+        // platform source renders for it.
+        'reports.builder', 'reports.preview', 'reports.pdf',
+        'reports.templates.store', 'reports.templates.update',
+        'reports.templates.destroy', 'reports.templates.duplicate',
         // Location helper used by the Users module's own forms
         // (state -> LGA select); returns location lists, not school data.
         'get_lga',

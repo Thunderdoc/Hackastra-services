@@ -16,6 +16,11 @@
     @php
         $marxPalette = ['#e8effc', '#e6f6ec', '#fdf3e0', '#efe9fd', '#fdecec', '#e0f2f1'];
         $marxParams = ['class_id' => !empty($all_classes) ? 'all' : ($selected_class ? $selected_class->id : ''), 'month' => $month->format('Y-m'), 'months' => $months ?? 1];
+        // Section filter rides the toolbar links only when one is
+        // selected — an empty section_id must never be emitted.
+        if (!empty($selected_section)) {
+            $marxParams['section_id'] = $selected_section->id;
+        }
     @endphp
 
     @component('partials.patterns.list_page')
@@ -44,6 +49,17 @@
                     <label for="ar_month">Month</label>
                     <input type="month" name="month" id="ar_month" class="form-control" value="{{ $month->format('Y-m') }}" onchange="this.form.submit()">
                 </div>
+                @if($selected_class && $sections->isNotEmpty())
+                    <div class="pat-filter-field">
+                        <label for="ar_section_id">Section</label>
+                        <select name="section_id" id="ar_section_id" class="form-control" onchange="this.form.submit()">
+                            <option value="" {{ empty($selected_section) ? 'selected' : '' }}>All sections</option>
+                            @foreach($sections as $section)
+                                <option value="{{ $section->id }}" {{ $selected_section && $selected_section->id === $section->id ? 'selected' : '' }}>{{ $section->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                @endif
                 <div class="pat-filter-field">
                     <label for="ar_months">Period</label>
                     <select name="months" id="ar_months" class="form-control" onchange="this.form.submit()">

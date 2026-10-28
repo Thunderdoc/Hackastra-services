@@ -18,6 +18,13 @@ class UserTypesTableSeeder extends Seeder
             ['title' => 'parent', 'name' => 'Parent', 'level' => 4],
             ['title' => 'teacher', 'name' => 'Teacher', 'level' => 3],
             ['title' => 'admin', 'name' => 'Admin', 'level' => 2],
+            /* Limited principal role (owner order 2026-10-28):
+               level 2 like Admin, so the school Admin provisions
+               principal accounts (level gate: type level must not
+               be below the actor's) and sees them in the staff
+               list — but the role's powers come from its own
+               gates, never from team membership. */
+            ['title' => 'principal', 'name' => 'Principal', 'level' => 2],
             ['title' => 'super_admin', 'name' => 'Super Admin', 'level' => 1],
             /* Audit R-15 (2026-10-23): this row shipped commented out,
                which made the Librarian role un-creatable from Manage

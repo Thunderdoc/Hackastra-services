@@ -67,10 +67,10 @@
                     $l86Pct = ($l86Total === null || !$scheme['max_total']) ? null : round($l86Total / $scheme['max_total'] * 100, 1);
                     $l86Grade = $l86GradeFor($l86Total);
                 @endphp
-                <tr class="l86-row" data-search="{{ strtolower($mk->user->name.' '.$mk->user->student_record->adm_no) }}">
+                <tr class="l86-row" data-search="{{ strtolower((optional($mk->user)->name ?? '—').' '.(optional(optional($mk->user)->student_record)->adm_no ?? '—')) }}">
                     <td>{{ $loop->iteration }}</td>
-                    <td>{{ $mk->user->name }} </td>
-                    <td>{{ $mk->user->student_record->adm_no }}</td>
+                    <td>{{ optional($mk->user)->name ?? '—' }} </td>
+                    <td>{{ optional(optional($mk->user)->student_record)->adm_no ?? '—' }}</td>
                     @foreach($scheme['components'] as $comp)
                         <td><span class="l115-mwrap"><input title="{{ $comp['name'] }}" min="0" max="{{ $comp['max_marks'] }}" class="form-control text-center l76-mark-input" name="comp_{{ $mk->id }}_{{ $comp['id'] }}" value="{{ \App\Support\MarkScheme::scoreFor($mk, $comp) }}" type="number"><span class="l115-mmax" aria-hidden="true">/ {{ $comp['max_marks'] }}</span></span></td>
                     @endforeach
@@ -118,10 +118,10 @@
                     $l86Pct = ($l86Total === null || !$scheme['max_total']) ? null : round($l86Total / $scheme['max_total'] * 100, 1);
                     $l86Grade = $l86GradeFor($l86Total);
                 @endphp
-                <tr class="l86-row" data-search="{{ strtolower($mk->user->name.' '.$mk->user->student_record->adm_no) }}">
+                <tr class="l86-row" data-search="{{ strtolower((optional($mk->user)->name ?? '—').' '.(optional(optional($mk->user)->student_record)->adm_no ?? '—')) }}">
                     <td>{{ $loop->iteration }}</td>
-                    <td>{{ $mk->user->name }} </td>
-                    <td>{{ $mk->user->student_record->adm_no }}</td>
+                    <td>{{ optional($mk->user)->name ?? '—' }} </td>
+                    <td>{{ optional(optional($mk->user)->student_record)->adm_no ?? '—' }}</td>
 
     {{--                CA AND EXAMS --}}
                     <td><span class="l115-mwrap"><input title="1ST CA" min="0" max="20" class="form-control text-center l76-mark-input" name="t1_{{ $mk->id }}" value="{{ $mk->t1 }}" type="number"><span class="l115-mmax" aria-hidden="true">/ 20</span></span></td>

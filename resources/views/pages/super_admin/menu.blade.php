@@ -33,3 +33,6 @@
 <li class="nav-item">
     <a href="{{ route('platform_mail.index') }}" class="nav-link {{ (Route::is('platform_mail.index')) ? 'active' : '' }}"><i class="icon-mail-read"></i> <span>Sent Mail</span></a>
 </li>
+<li class="nav-item">
+    <a href="{{ route('reports.builder') }}" class="nav-link {{ (Route::is('reports.*')) ? 'active' : '' }}"><i class="icon-file-text2"></i> <span>Reports &amp; PDF Builder</span></a>
+</li>

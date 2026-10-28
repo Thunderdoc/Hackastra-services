@@ -1,6 +1,11 @@
 <div class="tab-pane fade" id="edit-subs">
     {{--If TimeTables Exist--}}
     @if($tts->count())
+        @if(count($broken_tt_ids ?? []))
+            <div class="alert alert-danger">
+                <strong>{{ count($broken_tt_ids) }} broken period(s) in this record</strong> — the period ends at or before it starts, so it can never be taught. Edit a flagged row to a valid time slot, or delete it.
+            </div>
+        @endif
         <div class="l7-table-scroll">
             <table class="table ttx-table">
                 <thead>
@@ -14,10 +19,10 @@
                 </thead>
                 <tbody>
                 @foreach($tts as $tt)
-                    <tr>
+                    <tr @if(in_array($tt->id, $broken_tt_ids ?? [])) class="table-danger" @endif>
                         <td><strong>{{ ($tt->exam_date ? date('D, d/m/Y', strtotime($tt->exam_date)) : $tt->day) }}</strong></td>
-                        <td>{{ $tt->time_slot->full }}</td>
-                        <td>{{ $tt->subject->name }}</td>
+                        <td>{{ $tt->time_slot->full }} @if(in_array($tt->id, $broken_tt_ids ?? [])) <span class="badge badge-danger" title="This period ends at or before it starts">Broken period</span> @endif</td>
+                        <td>{{ optional($tt->subject)->name ?: '—' }}</td>
                         <td>{{ optional(optional($tt->subject)->teacher)->name ?: '—' }}</td>
                         <td>
                             <div class="ttx-actions">
