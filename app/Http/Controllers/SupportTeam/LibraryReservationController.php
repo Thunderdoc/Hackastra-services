@@ -15,10 +15,15 @@ use Illuminate\Support\Facades\Auth;
  * reach them), so every action gates on Auth::user()->user_type.
  * Students reserve for themselves; parents reserve only for their
  * own child (student_records.my_parent_id must equal the parent's
- * user id); librarians and admins see every reservation, may
- * cancel any, and may mark a reserved book collected (staff-only:
- * collection is the librarian handing the book over, never a
- * self-service action). Reservations are their own
+ * user id); librarians see every reservation, may cancel any,
+ * and may mark a reserved book collected (staff-only: collection
+ * is the librarian handing the book over, never a self-service
+ * action). The school Admin is NOT a library role: the owner's
+ * 2026-10-25 ruling removed the library from the Admin panel
+ * completely, and his 2026-10-29 correction ("library ye sab
+ * admin ko kyu de raha hai") closed this reservations carve-out
+ * too — admins now get the same 403 as every other non-library
+ * role. Reservations are their own
  * table — BookRequest (issued/returned only) and the issue/return
  * flow are never touched, and no Book counter is changed here:
  * reservability is total_copies > issued_copies, so a cancellation
@@ -26,7 +31,7 @@ use Illuminate\Support\Facades\Auth;
  */
 class LibraryReservationController extends Controller
 {
-    private const ALLOWED_TYPES = ['student', 'parent', 'admin', 'librarian'];
+    private const ALLOWED_TYPES = ['student', 'parent', 'librarian'];
 
     private function user()
     {
@@ -44,7 +49,7 @@ class LibraryReservationController extends Controller
 
     private function isStaff($user): bool
     {
-        return in_array($user->user_type, ['admin', 'librarian'], true);
+        return $user->user_type === 'librarian';
     }
 
     public function index(Request $request)

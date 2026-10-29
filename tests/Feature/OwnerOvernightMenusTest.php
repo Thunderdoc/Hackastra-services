@@ -86,20 +86,23 @@ class OwnerOvernightMenusTest extends TestCase
     {
         $response = $this->actingAs($this->admin())->get(route('dashboard'));
         $response->assertOk();
-        // Live admin sidebar: no Hostel, Transport, Inventory or
-        // Reports & PDF Builder link remains.
+        // Live admin sidebar: no Hostel, Transport or Inventory
+        // link remains. The Reports & PDF Builder link was out in
+        // the item-7 pass and is BACK on the owner's correction
+        // (2026-10-29 evening — he uses the builder as Admin).
         $response->assertDontSee(route('hostel.rooms.index'), false);
         $response->assertDontSee(route('transport.index'), false);
         $response->assertDontSee(route('inventory.index'), false);
-        $response->assertDontSee(route('reports.builder'), false);
+        $response->assertSee(route('reports.builder'), false);
 
-        // Unused pages/admin/menu blade: the listed LINKS are gone
+        // pages/admin/menu blade: the listed LINKS are gone
         // (asserted by route name — the removal comments may still
         // name the items for history); the kept items stay.
         $blade = $this->adminMenuBlade();
-        foreach (['documents.index', 'alumni.index', 'electives.index', 'role_permissions.index', 'discipline_records.index', 'parent_messages.index', 'reports.builder'] as $gone) {
+        foreach (['documents.index', 'alumni.index', 'electives.index', 'role_permissions.index', 'discipline_records.index', 'parent_messages.index'] as $gone) {
             $this->assertStringNotContainsString($gone, $blade, $gone . ' must be out of the admin menu');
         }
+        $this->assertStringContainsString('reports.builder', $blade, 'reports.builder is back in the admin menu (owner correction)');
         foreach (['Settings', 'Substitutions', 'PTM Meetings'] as $kept) {
             $this->assertStringContainsString($kept, $blade, $kept . ' stays in the admin menu');
         }

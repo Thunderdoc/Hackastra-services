@@ -352,8 +352,11 @@ class OwnerLibrarianPortalRound21Test extends TestCase
 
     public function test_reservation_index_role_shape()
     {
+        // Owner correction 2026-10-29: the reservations carve-out
+        // for admin is closed — the library is the Librarian's
+        // alone (2026-10-25 ruling), so admin now 403s here too.
         $this->actingAs($this->admin())->get(route('library_reservations.index'))
-            ->assertOk()->assertSee('All reservations');
+            ->assertForbidden();
         $this->actingAs($this->librarian())->get(route('library_reservations.index'))
             ->assertOk()->assertSee('All reservations');
         $this->actingAs($this->superAdmin())->get(route('library_reservations.index'))

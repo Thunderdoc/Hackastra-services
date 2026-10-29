@@ -91,15 +91,20 @@ class OwnerAuditOvernightRolesTest extends TestCase
 
     /* ---------------- Item 7: builder gate ---------------- */
 
-    public function test_item7_admin_refused_on_every_builder_route()
+    public function test_item7_admin_allowed_on_every_builder_route()
     {
+        // Owner correction 2026-10-29 evening: the overnight
+        // teacher+principal-only gate is reversed for admin — he
+        // works in the builder as Admin himself.
         $admin = $this->userByEmail('admin@hackstra.app');
-        $this->actingAs($admin)->get(route('reports.builder'))->assertForbidden();
-        $this->actingAs($admin)->post(route('reports.preview'), ['config' => $this->blankConfig()])->assertForbidden();
-        $this->actingAs($admin)->post(route('reports.pdf'), ['config' => $this->blankConfig()])->assertForbidden();
+        $this->actingAs($admin)->get(route('reports.builder'))->assertOk();
+        $this->actingAs($admin)->post(route('reports.preview'), ['config' => $this->blankConfig()])->assertOk();
+        $response = $this->actingAs($admin)->post(route('reports.pdf'), ['config' => $this->blankConfig()]);
+        $response->assertOk();
+        $this->assertStringContainsString('application/pdf', (string) $response->headers->get('Content-Type'));
         $this->actingAs($admin)->from(route('reports.builder'))
             ->post(route('reports.templates.store'), ['name' => 'Audit Admin Tpl', 'config' => $this->blankConfig()])
-            ->assertForbidden();
+            ->assertRedirect();
     }
 
     public function test_item7_teacher_and_principal_allowed_on_builder()
@@ -117,11 +122,14 @@ class OwnerAuditOvernightRolesTest extends TestCase
         }
     }
 
-    public function test_item7_admin_menu_has_no_builder_link_and_accountant_link_removed()
+    public function test_item7_admin_menu_has_builder_link_and_accountant_link_removed()
     {
-        // Admin menu: builder link removed (item 7 menu half).
+        // Admin menu: builder link restored (owner correction —
+        // see test_item7_admin_allowed_on_every_builder_route).
+        // The needle carries a raw & — assertSee must not escape
+        // it, or the check passes/fails vacuously.
         $this->actingAs($this->userByEmail('admin@hackstra.app'))->get(route('dashboard'))
-            ->assertOk()->assertDontSee('Reports & PDF Builder');
+            ->assertOk()->assertSee('Reports & PDF Builder', false);
         // Accountant menu no longer links the builder at all (overnight
         // menus stream removed the dead clean-403 link; better than stale).
         // The link text is written with a raw & in partials/menu, so the
