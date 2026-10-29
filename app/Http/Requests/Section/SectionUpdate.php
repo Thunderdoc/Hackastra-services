@@ -28,6 +28,7 @@ class SectionUpdate extends FormRequest
             // here is already hash-decoded above, so this checks the row.
             'teacher_id' => ['sometimes', 'nullable', Rule::exists('users', 'id')->where(function ($q) { $q->where('user_type', 'teacher'); })],
             'stream' => 'nullable|in:pcm,pcb,commerce,arts',
+            'capacity' => 'nullable|integer|min:0|max:1000',
         ];
     }
 

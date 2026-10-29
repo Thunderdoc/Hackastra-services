@@ -136,7 +136,7 @@ class SectionController extends Controller
         // — a crafted POST could create a hidden inactive section.
         // The update path already whitelists with only(); store
         // now matches it.
-        $data = $req->only(['name', 'my_class_id', 'teacher_id', 'stream']);
+        $data = $req->only(['name', 'my_class_id', 'teacher_id', 'stream', 'capacity']);
         if ($refusal = $this->livenessRefusal($data['teacher_id'] ?? null)) {
             return $refusal;
         }
@@ -185,7 +185,7 @@ class SectionController extends Controller
 
     public function update(SectionUpdate $req, $id)
     {
-        $data = $req->only(['name', 'teacher_id', 'stream']);
+        $data = $req->only(['name', 'teacher_id', 'stream', 'capacity']);
         if ($refusal = $this->livenessRefusal($data['teacher_id'] ?? null)) {
             return $refusal;
         }

@@ -46,6 +46,12 @@
                     </select>
                     <small class="form-text text-muted">For Class 11/12: the section's stream. Promotion and section timetables use it to pick the section's subjects.</small>
                 </div>
+
+                <div class="form-group col-md-6">
+                    <label for="capacity">Section capacity (seats)</label>
+                    <input type="number" name="capacity" id="capacity" min="0" max="1000" class="form-control" placeholder="Empty = no limit" value="{{ old('capacity', $s->capacity) }}">
+                    <small class="form-text text-muted">Students now: {{ \App\Support\SectionCapacity::strength($s->id) }}. When the section fills up, new admissions are automatically placed in the next section with room.</small>
+                </div>
             </div>
         </div>
     @endcomponent

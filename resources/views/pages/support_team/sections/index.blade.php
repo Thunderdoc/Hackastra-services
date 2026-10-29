@@ -53,6 +53,7 @@
                     <th>Name</th>
                     <th>Class</th>
                     <th>Teacher</th>
+                    <th>Students</th>
                     <th>Overrides</th>
                     <th>Unassigned</th>
                     <th>Action</th>
@@ -71,6 +72,7 @@
                         @else
                             <td data-label="Teacher"> - </td>
                         @endif
+                        <td data-label="Students">{{ \App\Support\SectionCapacity::strength($s->id) }}@if($s->capacity) / {{ $s->capacity }}@endif</td>
                         <td data-label="Overrides">
                             @if(($overrideCounts[$s->id] ?? 0) > 0)
                                 <a href="{{ route('sections.edit', $s->id) }}">{{ $overrideCounts[$s->id] }} override{{ $overrideCounts[$s->id] > 1 ? 's' : '' }}</a>
@@ -147,6 +149,12 @@
                                 <option {{ old('stream') === $key ? 'selected' : '' }} value="{{ $key }}">{{ $label }}</option>
                             @endforeach
                         </select>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="capacity">Section capacity (seats)</label>
+                        <input type="number" name="capacity" id="capacity" min="0" max="1000" class="form-control" placeholder="e.g. 60 — empty = no limit" value="{{ old('capacity') }}">
+                        <small class="form-text text-muted">When this section fills up, new admissions are automatically placed in the next section with room.</small>
                     </div>
                 </div>
             </div>

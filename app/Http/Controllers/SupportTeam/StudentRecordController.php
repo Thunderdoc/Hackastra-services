@@ -121,6 +121,22 @@ class StudentRecordController extends Controller
            (and orphaning the login). An admin-typed number is used
            exactly as given — a collision there must surface, never
            silently renumber the student. */
+        /* Section capacity (owner order 2026-10-29): a full
+           section never silently overflows — the student is
+           allotted the next section of the class with room and
+           the admin is told; if the whole class is full the
+           admission is refused with the reason. */
+        $placement = \App\Support\SectionCapacity::resolve((int) $sr['my_class_id'], (int) $sr['section_id']);
+        if ($placement['all_full']) {
+            $className = optional($this->my_class->find($sr['my_class_id']))->name ?? 'that class';
+            return back()->withInput()->with('flash_danger', \App\Support\SectionCapacity::allFullMessage($className));
+        }
+        $movedNote = '';
+        if ($placement['moved']) {
+            $sr['section_id'] = $placement['section_id'];
+            $movedNote = ' ' . \App\Support\SectionCapacity::movedMessage($placement['from'], $placement['to']);
+        }
+
         $sr['session'] = Qs::getSetting('current_session');
         $createStudent = function ($username) use ($data, $sr) {
             $data['username'] = $username;
@@ -139,7 +155,8 @@ class StudentRecordController extends Controller
         // Loop 112: post-save lands on the student's class list (owner
         // ruling) — was Qs::jsonStoreOk() (a raw JSON response to a
         // plain form POST).
-        return redirect()->route('students.list', $req->my_class_id)->with('flash_success', __('msg.store_ok'));
+        return redirect()->route('students.list', $req->my_class_id)
+            ->with('flash_success', __('msg.store_ok') . $movedNote);
     }
 
     /**
@@ -202,6 +219,21 @@ class StudentRecordController extends Controller
             'session' => Qs::getSetting('current_session'),
         ];
 
+        /* Section capacity (owner order 2026-10-29): same rule as
+           the full admission form — a full section moves the
+           student to the next section with room (and the receipt
+           says so); a fully-full class refuses the admission. */
+        $placement = \App\Support\SectionCapacity::resolve((int) $sr['my_class_id'], (int) $sr['section_id']);
+        if ($placement['all_full']) {
+            $className = optional($this->my_class->find($sr['my_class_id']))->name ?? 'that class';
+            return back()->withInput()->with('flash_danger', \App\Support\SectionCapacity::allFullMessage($className));
+        }
+        $movedNote = '';
+        if ($placement['moved']) {
+            $sr['section_id'] = $placement['section_id'];
+            $movedNote = ' ' . \App\Support\SectionCapacity::movedMessage($placement['from'], $placement['to']);
+        }
+
         /* ADM-01 companion: a system-minted number is allocated via
            Qs::mintStudent (collision retry); an admin-typed number is
            attempted exactly once, as given. */
@@ -222,7 +254,7 @@ class StudentRecordController extends Controller
             'Quick-admitted ' . $data['name'] . ' (' . $data['username'] . ') — profile details pending completion.');
 
         return redirect()->route('students.create')
-            ->with('flash_success', 'Student admitted successfully. Admission Number: ' . $data['username'])
+            ->with('flash_success', 'Student admitted successfully. Admission Number: ' . $data['username'] . $movedNote)
             ->with('quick_admitted', [
                 'name' => $data['name'],
                 'adm_no' => $data['username'],
