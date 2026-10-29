@@ -88,7 +88,13 @@ class ReportEngine
             }
             $width = (int) ($col['width'] ?? 10);
             $width = max(1, min(100, $width));
-            $columns[] = ['key' => $key, 'label' => $label, 'type' => $colType, 'width' => $width];
+            // Alignment (builder v3): left/center/right, or null
+            // for the type default (numbers/currency right, the
+            // rest left). Anything else falls back to the default
+            // rather than refusing the whole report.
+            $align = strtolower((string) ($col['align'] ?? ''));
+            $align = in_array($align, ['left', 'center', 'right'], true) ? $align : null;
+            $columns[] = ['key' => $key, 'label' => $label, 'type' => $colType, 'width' => $width, 'align' => $align];
         }
 
         $filters = is_array($config['filters'] ?? null) ? $config['filters'] : [];

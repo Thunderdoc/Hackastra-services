@@ -110,7 +110,7 @@
         <thead>
             <tr>
                 @foreach($doc['columns'] as $col)
-                    <th style="width: {{ $col['width_pct'] }}%">{{ $col['label'] }}</th>
+                    <th style="width: {{ $col['width_pct'] }}%{{ !empty($col['align']) ? '; text-align: ' . $col['align'] : '' }}">{{ $col['label'] }}</th>
                 @endforeach
             </tr>
         </thead>
@@ -118,7 +118,7 @@
             @foreach($doc['rows'] as $row)
                 <tr>
                     @foreach($doc['columns'] as $col)
-                        @php $cellType = $col['type']; $cellVal = $row['cells'][$col['key']] ?? ''; @endphp
+                        @php $cellType = $col['type']; $cellVal = $row['cells'][$col['key']] ?? ''; $cellAlign = !empty($col['align']) ? ' style="text-align: ' . $col['align'] . '"' : ''; @endphp
                         @if($cellType === 'checkbox' || $cellType === 'box')
                             <td class="box"><span class="tick"></span></td>
                         @elseif($cellType === 'yes_no')
@@ -126,9 +126,9 @@
                         @elseif($cellType === 'signature')
                             <td class="sig"></td>
                         @elseif($cellType === 'number' || $cellType === 'currency')
-                            <td class="num">{{ $cellVal }}</td>
+                            <td class="num"{!! $cellAlign !!}>{{ $cellVal }}</td>
                         @else
-                            <td>{{ $cellVal }}</td>
+                            <td{!! $cellAlign !!}>{{ $cellVal }}</td>
                         @endif
                     @endforeach
                 </tr>
@@ -143,7 +143,7 @@
                                  Keep the label and append the value when present. --}}
                             <td>Total{{ isset($doc['totals_formatted'][$col['key']]) ? ' — ' . $doc['totals_formatted'][$col['key']] : '' }}</td>
                         @elseif(isset($doc['totals_formatted'][$col['key']]))
-                            <td class="num">{{ $doc['totals_formatted'][$col['key']] }}</td>
+                            <td class="num"@if(!empty($col['align'])) style="text-align: {{ $col['align'] }}"@endif>{{ $doc['totals_formatted'][$col['key']] }}</td>
                         @else
                             <td></td>
                         @endif

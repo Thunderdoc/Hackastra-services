@@ -3,6 +3,7 @@
 @section('page_breadcrumb')
     <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Reports &amp; PDF Builder
 @endsection
+@section('page_subtitle', 'Generate and print important school documents with ready-made templates, or create a custom report.')
 @section('content')
 <style>
     /* Builder v2 (owner order 2026-10-29 night — "report and pdf
@@ -34,7 +35,58 @@
     .rb2-adv summary { cursor: pointer; font-weight: 600; color: #10263b; outline: none; }
     @media (min-width: 992px) { .rb2-preview-card { position: sticky; top: 20px; } }
     @media (max-width: 991px) { #previewFrame { height: 480px; } }
+    /* Builder v3 (owner reference, 2026-10-29 night): the
+       category shortcut bar across the top — every category is
+       computed from the sources THIS role may actually use, so a
+       category that would be empty for the viewer never renders. */
+    .rb3-cats { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 10px; margin-bottom: 16px; }
+    .rb3-cat { display: flex; align-items: center; gap: 10px; border: 1.5px solid #dfe8f3; background: #fff; border-radius: 12px; padding: 10px 12px; text-align: left; cursor: pointer; width: 100%; }
+    .rb3-cat:hover { border-color: #9db9e8; }
+    .rb3-cat.active { border-color: #1765f5; box-shadow: 0 0 0 1px #1765f5 inset; }
+    .rb3-cat .rb3-cat-icon { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 9px; font-size: 16px; flex: 0 0 auto; }
+    .rb3-cat .rb3-cat-label { display: block; font-weight: 600; color: #10263b; font-size: 13.5px; line-height: 1.2; }
+    .rb3-cat .rb3-cat-desc { display: block; color: #718096; font-size: 11.5px; margin-top: 2px; }
+    .rb3-tint-blue { background: #e8f0fe; color: #1765f5; } .rb3-tint-green { background: #e6f7ec; color: #12805c; }
+    .rb3-tint-amber { background: #fdf1e0; color: #b26a00; } .rb3-tint-violet { background: #f0eafd; color: #6d3bd1; }
+    .rb3-tint-rose { background: #fdebee; color: #c2255c; } .rb3-tint-teal { background: #e2f5f2; color: #0f766e; }
+    .rb3-tint-indigo { background: #e7eafa; color: #3949ab; } .rb3-tint-slate { background: #edf1f5; color: #47596b; }
 </style>
+
+@php
+    // Category map over the REAL sources (builder v3). A source
+    // belongs to exactly one category; categories with no source
+    // available to this role are not rendered at all — the same
+    // honest-buttons rule as everywhere else in the app.
+    $rbCategories = [
+        'student' => ['label' => 'Student Reports', 'desc' => 'Lists, Attendance, Summaries', 'icon' => 'icon-users2', 'tint' => 'rb3-tint-blue', 'sources' => ['students', 'attendance', 'attendance_summary']],
+        'fees' => ['label' => 'Fee Reports', 'desc' => 'Receipts, Defaulters, Summaries', 'icon' => 'icon-coin-dollar', 'tint' => 'rb3-tint-green', 'sources' => ['fees', 'defaulters', 'fee_summary']],
+        'exam' => ['label' => 'Exam Reports', 'desc' => 'Results, Marks, Timetables', 'icon' => 'icon-file-text2', 'tint' => 'rb3-tint-amber', 'sources' => ['marks', 'results_summary', 'timetables']],
+        'staff' => ['label' => 'Staff Reports', 'desc' => 'Directory, Assignments', 'icon' => 'icon-user-tie', 'tint' => 'rb3-tint-violet', 'sources' => ['staff', 'assignments']],
+        'library' => ['label' => 'Library Reports', 'desc' => 'Books, Issues, Fines', 'icon' => 'icon-books', 'tint' => 'rb3-tint-rose', 'sources' => ['books', 'issues', 'fines', 'library_summary']],
+        'certificates' => ['label' => 'Certificates', 'desc' => 'Bonafide, Transfer', 'icon' => 'icon-certificate', 'tint' => 'rb3-tint-teal', 'sources' => ['certificates']],
+        'notices' => ['label' => 'Notices & Letters', 'desc' => 'Circulars', 'icon' => 'icon-bubbles4', 'tint' => 'rb3-tint-indigo', 'sources' => ['circulars']],
+        'more' => ['label' => 'More Reports', 'desc' => 'Classes, Admissions, Blank', 'icon' => 'icon-stack', 'tint' => 'rb3-tint-slate', 'sources' => ['classes', 'admissions', 'platform', 'blank']],
+    ];
+    $rbSourceCategory = [];
+    foreach ($rbCategories as $catKey => $catDef) {
+        foreach ($catDef['sources'] as $srcKey) { $rbSourceCategory[$srcKey] = $catKey; }
+    }
+@endphp
+<div class="rb3-cats" id="rbCatBar">
+    <button type="button" class="rb3-cat active" data-category="">
+        <span class="rb3-cat-icon rb3-tint-blue"><i class="icon-grid6"></i></span>
+        <span><span class="rb3-cat-label">All Reports</span><span class="rb3-cat-desc">Every source &amp; template</span></span>
+    </button>
+    @foreach($rbCategories as $catKey => $catDef)
+        @php $catSources = array_intersect($catDef['sources'], array_keys($sources)); @endphp
+        @if(count($catSources))
+            <button type="button" class="rb3-cat" data-category="{{ $catKey }}">
+                <span class="rb3-cat-icon {{ $catDef['tint'] }}"><i class="{{ $catDef['icon'] }}"></i></span>
+                <span><span class="rb3-cat-label">{{ $catDef['label'] }}</span><span class="rb3-cat-desc">{{ $catDef['desc'] }}</span></span>
+            </button>
+        @endif
+    @endforeach
+</div>
 
 <div class="row">
     <div class="col-lg-5 rb2-settings" id="rbSettings">
@@ -51,7 +103,7 @@
                     <label>Start from a ready template</label>
                     <div>
                         @foreach($presets as $preset)
-                            <button type="button" class="rb2-chip rb2-preset-chip" data-key="{{ $preset['key'] }}">{{ $preset['label'] }}</button>
+                            <button type="button" class="rb2-chip rb2-preset-chip" data-key="{{ $preset['key'] }}" data-category="{{ $rbSourceCategory[$preset['config']['source'] ?? ''] ?? '' }}">{{ $preset['label'] }}</button>
                         @endforeach
                     </div>
                     <select id="rbPreset" class="d-none" aria-hidden="true" tabindex="-1">
@@ -66,7 +118,7 @@
                     <label>Data source *</label>
                     <div class="rb2-source-grid" id="rbSourceGrid">
                         @foreach($sources as $srcKey => $srcDef)
-                            <button type="button" class="rb2-source-tile" data-source="{{ $srcKey }}">
+                            <button type="button" class="rb2-source-tile" data-source="{{ $srcKey }}" data-category="{{ $rbSourceCategory[$srcKey] ?? '' }}">
                                 <span class="rb2-src-label">{{ $srcDef['label'] }}</span>
                                 <span class="rb2-src-meta">{{ count($srcDef['columns']) }} columns</span>
                             </button>
@@ -201,7 +253,7 @@
             <div class="card-body">
                 <div class="table-responsive">
                     <table class="table table-sm">
-                        <thead><tr><th>Label</th><th>Type</th><th>Width</th><th></th></tr></thead>
+                        <thead><tr><th>Label</th><th>Type</th><th>Width</th><th>Align</th><th>Show</th><th></th></tr></thead>
                         <tbody id="rbColBody"></tbody>
                     </table>
                 </div>
@@ -295,6 +347,7 @@
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="card-title mb-0">Live preview</h5>
                 <span>
+                    <button type="button" id="rbPrintBtn" class="btn btn-light btn-sm"><i class="icon-printer mr-1"></i> Print</button>
                     <button type="button" id="rbPreviewBtn" class="btn btn-light btn-sm">Refresh preview</button>
                 </span>
             </div>
@@ -319,6 +372,10 @@
 <form id="rbPdfForm" method="POST" action="{{ route('reports.pdf') }}" style="display:none;">
     @csrf
     <input type="hidden" name="config" id="rbPdfConfig">
+</form>
+<form id="rbPrintForm" method="POST" action="{{ route('reports.pdf') }}" target="_blank" style="display:none;">
+    @csrf
+    <input type="hidden" name="config" id="rbPrintConfig">
 </form>
 <form id="rbSaveForm" method="POST" action="{{ route('reports.templates.store') }}" style="display:none;">
     @csrf
@@ -527,6 +584,24 @@
             winp.value = col.width;
             winp.addEventListener('input', function () { col.width = parseInt(winp.value, 10) || 10; schedulePreview(); });
             tdWidth.appendChild(winp);
+            var tdAlign = document.createElement('td');
+            var asel = document.createElement('select');
+            asel.className = 'form-control form-control-sm';
+            [['', 'Auto'], ['left', 'Left'], ['center', 'Center'], ['right', 'Right']].forEach(function (pair) {
+                var o = document.createElement('option');
+                o.value = pair[0];
+                o.textContent = pair[1];
+                if ((col.align || '') === pair[0]) { o.selected = true; }
+                asel.appendChild(o);
+            });
+            asel.addEventListener('change', function () { col.align = asel.value; schedulePreview(); });
+            tdAlign.appendChild(asel);
+            var tdShow = document.createElement('td');
+            var chk = document.createElement('input');
+            chk.type = 'checkbox';
+            chk.checked = !col.hidden;
+            chk.addEventListener('change', function () { col.hidden = !chk.checked; schedulePreview(); });
+            tdShow.appendChild(chk);
             var tdAct = document.createElement('td');
             tdAct.style.whiteSpace = 'nowrap';
             var up = document.createElement('button');
@@ -567,6 +642,8 @@
             tr.appendChild(tdLabel);
             tr.appendChild(tdType);
             tr.appendChild(tdWidth);
+            tr.appendChild(tdAlign);
+            tr.appendChild(tdShow);
             tr.appendChild(tdAct);
             body.appendChild(tr);
         });
@@ -667,6 +744,7 @@
         var srcKeys = {};
         (srcDef.columns || []).forEach(function (c) { srcKeys[c.key] = true; });
         var cleanColumns = columns.filter(function (c) {
+            if (c.hidden) { return false; }
             return srcKeys[c.key] || /^custom_\d+$/.test(c.key) || /^comp_\d+$/.test(c.key);
         });
         return {
@@ -696,7 +774,7 @@
         applyFilterVisibility();
         columns = [];
         sourceCols().forEach(function (c) {
-            columns.push({ key: c.key, label: c.label, type: c.type, width: 12 });
+            columns.push({ key: c.key, label: c.label, type: c.type, width: 12, align: c.align || '', hidden: !!c.hidden });
         });
         totals = {};
         sortKey = '';
@@ -864,6 +942,28 @@
             sel.dispatchEvent(new Event('change', { bubbles: true }));
         });
     });
+    var rbPrintBtn = el('rbPrintBtn');
+    if (rbPrintBtn) {
+        rbPrintBtn.addEventListener('click', function () {
+            var cfg = collectConfig();
+            if (!validForSubmit(cfg)) { return; }
+            el('rbPrintConfig').value = JSON.stringify(cfg);
+            el('rbPrintForm').submit();
+        });
+    }
+    document.querySelectorAll('.rb3-cat').forEach(function (catBtn) {
+        catBtn.addEventListener('click', function () {
+            var cat = catBtn.getAttribute('data-category');
+            document.querySelectorAll('.rb3-cat').forEach(function (b) { b.classList.toggle('active', b === catBtn); });
+            document.querySelectorAll('.rb2-source-tile').forEach(function (tile) {
+                tile.style.display = (!cat || tile.getAttribute('data-category') === cat) ? '' : 'none';
+            });
+            document.querySelectorAll('.rb2-preset-chip').forEach(function (chip) {
+                chip.style.display = (!cat || chip.getAttribute('data-category') === cat) ? '' : 'none';
+            });
+        });
+    });
+
     document.querySelectorAll('.rb2-preset-chip').forEach(function (chip) {
         chip.addEventListener('click', function () {
             var sel = el('rbPreset');

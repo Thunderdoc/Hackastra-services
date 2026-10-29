@@ -231,4 +231,36 @@ class OwnerOvernightBuilderTest extends TestCase
         $response->assertSee('schedulePreview', false);
         $response->assertSee('Live preview', false);
     }
+
+    public function test_builder_v3_categories_are_role_filtered_and_column_alignment_works()
+    {
+        // Builder v3 (owner reference design, 2026-10-29 night):
+        // the category shortcut bar is computed from the sources
+        // the role may actually use. The Admin lost every library
+        // surface tonight, so Admin sees NO Library category;
+        // the Principal (whose builder keeps the library sources)
+        // does. Column alignment is honoured by the engine and a
+        // bogus alignment falls back instead of refusing the PDF.
+        $admin = $this->userByEmail('admin@hackstra.app');
+        $page = $this->actingAs($admin)->get(route('reports.builder'));
+        $page->assertOk();
+        $page->assertSee('rb3-cats', false);
+        $page->assertSee('Student Reports', false);
+        $page->assertSee('Fee Reports', false);
+        $page->assertDontSee('Library Reports', false);
+
+        $principal = $this->userByEmail('principal@hackstra.app');
+        $page = $this->actingAs($principal)->get(route('reports.builder'));
+        $page->assertOk();
+        $page->assertSee('Library Reports', false);
+
+        $aligned = $this->classesConfig();
+        $aligned['columns'][1]['align'] = 'center';
+        $aligned['columns'][2]['align'] = 'left';
+        $this->assertPdfResponse($this->actingAs($admin)->post(route('reports.pdf'), ['config' => json_encode($aligned)]));
+
+        $bogus = $this->classesConfig();
+        $bogus['columns'][0]['align'] = 'sideways';
+        $this->assertPdfResponse($this->actingAs($admin)->post(route('reports.pdf'), ['config' => json_encode($bogus)]));
+    }
 }
