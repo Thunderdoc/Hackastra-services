@@ -161,6 +161,12 @@ class OwnerLeaveWorkflowRound32Test extends TestCase
     public function test_teacher_leave_cover_recomputes_uncovered_count()
     {
         $teacher = $this->teacher();
+        // Baseline BEFORE the submit: with no cover rows at all,
+        // every Monday period Ananya teaches counts as uncovered.
+        $total = LeaveCover::uncoveredCount($teacher->id, '2026-11-02', '2026-11-02');
+        $this->assertNotNull($total);
+        $this->assertGreaterThan(0, $total);
+
         $this->actingAs($teacher)->post(route('leave.store'), [
             'start_date' => '2026-11-02',
             'end_date' => '2026-11-02',
@@ -171,47 +177,60 @@ class OwnerLeaveWorkflowRound32Test extends TestCase
             ->where('reason', 'R32 teacher chain')->firstOrFail();
         $this->assertSame('pending', $leave->status);
 
-        // P10: admin queue count EQUALS the helper count (not a stale
-        // number), and is positive — Ananya teaches on Mondays.
+        // Owner order 2026-10-29 (night) supersedes this test's
+        // original "pending = nothing arranged" premise: the system
+        // prepares the cover plan AT SUBMIT, so the queue already
+        // shows the allocation. P10 still holds — the queue count
+        // EQUALS the live helper count (no stale number, no drift),
+        // and planned + uncovered balance against the baseline.
         $expected = LeaveCover::uncoveredCount($teacher->id, '2026-11-02', '2026-11-02');
         $this->assertNotNull($expected);
-        $this->assertGreaterThan(0, $expected);
         $queue = $this->actingAs($this->admin())->get(route('leave.index'));
         $queue->assertOk();
         $row = $this->queueRow($queue, $leave->id);
         $this->assertSame($expected, $row->uncovered_periods);
         $this->assertNotEmpty($row->allocation_lines);
+        $this->assertSame($total - $expected, (int) $row->planned_periods);
+        $this->assertGreaterThan(0, (int) $row->planned_periods);
 
-        // Manual arrange BEFORE approval still works exactly as
-        // before: the admin covers one Monday period by hand.
+        // Admin adjustment BEFORE approval still works: the admin
+        // switches the planned substitute on one Monday period to a
+        // teacher of their own choosing (the plan row is pending,
+        // so the switch is the board's pre-approval edit path).
         $cell = $this->ananyaMondayCell();
         $substitute = $this->freshUser('sub', 'teacher');
-        $store = $this->actingAs($this->admin())->post(route('substitutions.store'), [
-            'date' => '2026-11-02',
-            'time_table_id' => $cell->id,
+        $planRow = Substitution::where('time_table_id', $cell->id)
+            ->whereDate('date', '2026-11-02')
+            ->where('absent_teacher_id', $teacher->id)->firstOrFail();
+        $this->assertSame('pending', $planRow->status);
+        $switch = $this->actingAs($this->admin())->post(route('substitutions.switch', $planRow->id), [
             'substitute_teacher_id' => $substitute->id,
-            'reason' => 'R32 cover',
         ]);
-        $store->assertRedirect(route('substitutions.index'));
+        $switch->assertRedirect();
         $sub = Substitution::where('time_table_id', $cell->id)
             ->whereDate('date', '2026-11-02')->firstOrFail();
         $this->assertSame((int) $teacher->id, (int) $sub->absent_teacher_id);
         $this->assertSame((int) $substitute->id, (int) $sub->substitute_teacher_id);
-        $this->assertTrue(UserNotification::where('user_id', $substitute->id)
+        // A switch inside an unsubmitted plan rings no bell yet —
+        // the substitute is belled only when the plan is submitted.
+        $this->assertFalse(UserNotification::where('user_id', $substitute->id)
             ->where('type', 'substitution_assigned')->exists());
 
-        // P10 again: the queue count RECOMPUTES — drops by exactly 1,
-        // and still equals the helper (no static count, no drift).
+        // P10 again: the queue count RECOMPUTES from the live data —
+        // a switch changes WHO covers, not how much is covered, so
+        // the count still equals the helper exactly.
         $afterManual = LeaveCover::uncoveredCount($teacher->id, '2026-11-02', '2026-11-02');
-        $this->assertSame($expected - 1, $afterManual);
+        $this->assertSame($expected, $afterManual);
         $queue2 = $this->actingAs($this->admin())->get(route('leave.index'));
         $row2 = $this->queueRow($queue2, $leave->id);
         $this->assertSame($afterManual, $row2->uncovered_periods);
+        $this->assertSame($total - $expected, (int) $row2->planned_periods);
 
         // Owner order 2026-10-29 (auto-cover, supersedes this test's
         // original "approving creates NO substitutions" premise):
-        // approving the leave makes the SYSTEM arrange the remaining
-        // periods itself. The books must balance exactly — every
+        // the plan was prepared at submit; approving reconciles it
+        // (fills any gap, drops stale picks, duplicates nothing).
+        // The books must balance exactly — every
         // period is either covered by a row or still counted
         // uncovered — and the manual row is neither duplicated nor
         // replaced.
@@ -223,11 +242,11 @@ class OwnerLeaveWorkflowRound32Test extends TestCase
         $this->assertSame((int) $this->admin()->id, (int) $leave->decided_by);
         $rowsAfter = Substitution::where('absent_teacher_id', $teacher->id)->count();
         $uncoveredAfter = LeaveCover::uncoveredCount($teacher->id, '2026-11-02', '2026-11-02');
-        $this->assertSame($expected, $rowsAfter + $uncoveredAfter);
+        $this->assertSame($total, $rowsAfter + $uncoveredAfter);
         $manualRow = Substitution::where('time_table_id', $cell->id)
             ->whereDate('date', '2026-11-02')->firstOrFail();
         $this->assertSame((int) $substitute->id, (int) $manualRow->substitute_teacher_id);
-        $this->assertSame('R32 cover', $manualRow->reason);
+        $this->assertSame('Auto-arranged (leave)', $manualRow->reason);
         if ($rowsAfter > 1) {
             $this->assertTrue(Substitution::where('absent_teacher_id', $teacher->id)
                 ->where('reason', 'Auto-arranged (leave)')->exists());

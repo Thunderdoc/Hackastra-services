@@ -136,7 +136,7 @@ class LeaveRequestController extends Controller
             // periods alert admins + principal from inside the
             // arranger. A cover failure must never 500 the submit.
             try {
-                LeaveAutoCover::arrange($leave, null);
+                LeaveAutoCover::arrange($leave, null, true, false);
             } catch (\Throwable $e) {
                 // Cover is best-effort here; the queue still shows
                 // the uncovered count for manual arranging.
@@ -145,6 +145,14 @@ class LeaveRequestController extends Controller
             // teacher was holding for others move on as well.
             try {
                 LeaveAutoCover::reassignForAbsentSubstitute($leave, null);
+            } catch (\Throwable $e) {
+                // The auto-approval stands regardless.
+            }
+            // Owner order 2026-10-29 (night): the plan goes LIVE
+            // right here — an emergency has no approval step, so
+            // there is nothing left to submit anywhere else.
+            try {
+                LeaveAutoCover::confirmPlanFor($leave, null);
             } catch (\Throwable $e) {
                 // The auto-approval stands regardless.
             }
@@ -181,6 +189,21 @@ class LeaveRequestController extends Controller
             }
         } catch (\Throwable $e) {
             // Bell only — the submission stands regardless.
+        }
+        // Owner order 2026-10-29 (night, live queue screenshot):
+        // "yahi pe toh system allocate karega" — the cover plan
+        // must already exist when the Admin opens this queue, not
+        // appear only after the approval. Prepare it now, quietly:
+        // the plan's rows are 'pending', they grant no access and
+        // ring no bells until the leave is approved and the Admin
+        // submits the plan on the board; a rejection deletes the
+        // plan again (see decide()). The arranger no-ops for
+        // non-teachers. Best-effort — a planning failure must
+        // never 500 the submission.
+        try {
+            LeaveAutoCover::arrange($leave, null, false);
+        } catch (\Throwable $e) {
+            // The queue still shows the uncovered count.
         }
         $approver = Auth::user()->user_type === 'student'
             ? 'your class teacher will approve or reject it.'
@@ -238,21 +261,57 @@ class LeaveRequestController extends Controller
                 // of the distinct substitutes standing in for this
                 // teacher inside the leave window.
                 $r->cover_names = [];
+                $r->planned_periods = null;
+                $r->plan_rows = collect();
+                $r->plan_free_options = [];
                 if ($user->user_type === 'teacher' && in_array($r->status, ['pending', 'approved'], true)) {
-                    $r->cover_names = \App\Models\Substitution::with('substitute')
+                    $coverRows = \App\Models\Substitution::with([
+                            'substitute',
+                            'time_table.subject', 'time_table.time_slot',
+                            'time_table.tt_record.my_class', 'time_table.tt_record.section',
+                        ])
                         ->where('absent_teacher_id', $user->id)
                         ->whereDate('date', '>=', \Carbon\Carbon::parse($r->start_date)->toDateString())
                         ->whereDate('date', '<=', \Carbon\Carbon::parse($r->end_date)->toDateString())
-                        ->get()
+                        ->get();
+                    $r->cover_names = $coverRows
                         ->map(function ($sub) {
                             return optional($sub->substitute)->name;
                         })
                         ->filter()->unique()->values()->all();
+                    // How many periods already carry a system plan /
+                    // cover row — the queue renders a pending leave
+                    // with a plan as "Plan ready", not as a failure.
+                    $r->planned_periods = $coverRows->count();
+                    // Owner order 2026-10-29 (night): the plan
+                    // itself renders on THIS page — every prepared
+                    // row with its switch options (teachers free at
+                    // that slot, computed by the board's own helper
+                    // so the two pages can never disagree). The
+                    // leave page is where the plan is managed; the
+                    // Substitutions board is only the record.
+                    if ($r->status === 'pending') {
+                        $r->plan_rows = $coverRows->where('status', 'pending')->values();
+                        if ($r->plan_rows->isNotEmpty()) {
+                            $board = new \App\Http\Controllers\SupportTeam\SubstitutionController();
+                            // Built locally, then assigned whole —
+                            // offset-writing a magic model property
+                            // is an indirect modification and throws.
+                            $freeOptions = [];
+                            foreach ($r->plan_rows as $planRow) {
+                                $freeOptions[$planRow->id] = $board->freeTeachersFor($planRow);
+                            }
+                            $r->plan_free_options = $freeOptions;
+                        }
+                    }
                 }
             } catch (\Throwable $e) {
                 $r->allocation_lines = [];
                 $r->uncovered_periods = null;
                 $r->cover_names = [];
+                $r->planned_periods = null;
+                $r->plan_rows = collect();
+                $r->plan_free_options = [];
             }
         }
         return $requests;
@@ -327,7 +386,7 @@ class LeaveRequestController extends Controller
         // no periods, so the arranger simply no-ops for them.
         if ($data['status'] === 'approved') {
             try {
-                LeaveAutoCover::arrange($leave, (int) Auth::id());
+                LeaveAutoCover::arrange($leave, (int) Auth::id(), true, false);
             } catch (\Throwable $e) {
                 // The decision stands; uncovered periods remain
                 // visible in the queue for manual arranging.
@@ -337,6 +396,32 @@ class LeaveRequestController extends Controller
             // those covers move to the next free teacher now.
             try {
                 LeaveAutoCover::reassignForAbsentSubstitute($leave, (int) Auth::id());
+            } catch (\Throwable $e) {
+                // The decision stands regardless.
+            }
+            // Owner order 2026-10-29 (night): approving the leave
+            // on THIS page also makes its cover plan live — the
+            // Substitutions board is a record, not a second
+            // workplace with its own submit step.
+            try {
+                LeaveAutoCover::confirmPlanFor($leave, (int) Auth::id());
+            } catch (\Throwable $e) {
+                // The decision stands regardless.
+            }
+        }
+        if ($data['status'] === 'rejected') {
+            // The provisional plan prepared at submit dies with
+            // the rejection — the teacher is not absent, so no
+            // period may stay arranged for those dates. Only
+            // still-pending rows are removed: a cover the Admin
+            // already submitted on the board is their deliberate
+            // act and stays theirs to remove.
+            try {
+                \App\Models\Substitution::where('absent_teacher_id', $leave->user_id)
+                    ->where('status', 'pending')
+                    ->whereDate('date', '>=', \Carbon\Carbon::parse($leave->start_date)->toDateString())
+                    ->whereDate('date', '<=', \Carbon\Carbon::parse($leave->end_date)->toDateString())
+                    ->delete();
             } catch (\Throwable $e) {
                 // The decision stands regardless.
             }

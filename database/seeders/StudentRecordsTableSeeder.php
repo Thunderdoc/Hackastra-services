@@ -93,6 +93,18 @@ class StudentRecordsTableSeeder extends Seeder
                     'username' => $admNo,
                     'password' => $password,
                     'user_type' => 'student',
+                    // Deterministic gender + date of birth (NO
+                    // faker draws — the name/email sequence other
+                    // anchors depend on must not shift). Without
+                    // these, every student report prints two
+                    // permanently blank columns (owner: the PDFs
+                    // look bekar). Age follows the class: Prep is
+                    // 5, each higher class one year older.
+                    'gender' => (($section->id + $i) % 2 === 0) ? 'Male' : 'Female',
+                    'dob' => sprintf('%04d-%02d-%02d',
+                        (int) date('Y') - (4 + (int) $section->my_class_id),
+                        ($i % 12) + 1,
+                        ($i % 28) + 1),
                     'code' => strtoupper(Str::random(10)),
                     'remember_token' => Str::random(10),
                     'created_at' => $now,
@@ -142,6 +154,8 @@ class StudentRecordsTableSeeder extends Seeder
             'username' => 'student',
             'password' => Hash::make('hackstra'),
             'email' => 'student@hackstra.app',
+            'gender' => 'Male',
+            'dob' => '2020-08-17',
 
         ]);
 

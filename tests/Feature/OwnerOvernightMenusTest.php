@@ -180,7 +180,10 @@ class OwnerOvernightMenusTest extends TestCase
 
         $adminView = $this->actingAs($this->admin())->get(route('substitutions.index'));
         $adminView->assertOk();
-        $adminView->assertSee('Arrange Substitution');
+        // Owner order 2026-10-29 (night): the board is a record —
+        // NOBODY gets a create action there any more; cover is
+        // arranged from the leave flow.
+        $adminView->assertDontSee('Arrange Substitution');
 
         $principalView = $this->actingAs($this->principal())->get(route('substitutions.index'));
         $principalView->assertOk();

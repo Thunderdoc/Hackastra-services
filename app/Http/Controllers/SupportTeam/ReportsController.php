@@ -123,6 +123,30 @@ class ReportsController extends Controller
             's' => $this->settingsForPrint(),
         ]);
         $pdf->setPaper('a4', $config['options']['orientation']);
+        // Page numbers (PDF polish, owner 2026-10-29 night):
+        // dompdf's CSS has no per-page counter, so the canvas
+        // draws "Page X of Y" into the footer's empty right zone
+        // on every page, in the footer's own grey. dompdf 3.1's
+        // CPDF adapter runs page callbacks against the pages that
+        // exist AT REGISTRATION TIME — registering before the
+        // render stamps only page 1, with a count of 1 — so the
+        // document is rendered first (the wrapper's callers reuse
+        // that render) and the text is stamped afterwards, when
+        // every page exists and the count is true.
+        if ($config['options']['show_footer']) {
+            $pdf->render();
+            $dompdf = $pdf->getDomPDF();
+            $canvas = $dompdf->getCanvas();
+            $metrics = $dompdf->getFontMetrics();
+            $font = $metrics->getFont('DejaVu Sans', 'normal');
+            $probeWidth = $metrics->getTextWidth('Page 99 of 99', $font, 8);
+            $canvas->page_text(
+                $canvas->get_width() - $probeWidth - $config['options']['margin_mm'] * 2.83465,
+                $canvas->get_height() - 30,
+                'Page {PAGE_NUM} of {PAGE_COUNT}',
+                $font, 8, [0.443, 0.502, 0.588]
+            );
+        }
         return [$pdf, $config, $doc];
     }
 

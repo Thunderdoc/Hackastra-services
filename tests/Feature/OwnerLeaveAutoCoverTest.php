@@ -16,11 +16,13 @@ use Tests\TestCase;
  *
  * The owner settled the auto-cover question: the SYSTEM arranges
  * substitutes for a teacher's leave — emergency leave immediately
- * at submit, normal leave when the Admin/Principal approves it
- * (the admin still approves the leave itself). Uncoverable periods
- * raise an urgent bell to admins + principal instead of vanishing.
- * These tests pin that behaviour end-to-end on the seeded demo
- * timetable (Ananya — teacher@ — teaches on Mondays).
+ * at submit, and for normal leave the plan is PREPARED at submit
+ * (quiet, provisional) and reconciled + announced at approval
+ * (owner, 2026-10-29 night: the queue itself must show the
+ * allocation). Uncoverable periods raise an urgent bell to admins
+ * + principal instead of vanishing. These tests pin that
+ * behaviour end-to-end on the seeded demo timetable (Ananya —
+ * teacher@ — teaches on Mondays).
  */
 class OwnerLeaveAutoCoverTest extends TestCase
 {
@@ -79,26 +81,19 @@ class OwnerLeaveAutoCoverTest extends TestCase
             $this->assertNull($row->created_by);
             $this->assertNotSame((int) $teacher->id, (int) $row->substitute_teacher_id);
         }
-        // Owner order 2026-10-29 (full-auto flow): the arrangement
-        // is a pending PLAN — the rows are 'pending', substitutes
-        // are NOT belled yet, and the Admin holds a plan-ready bell.
+        // Owner order 2026-10-29 (night — everything happens on
+        // the leave page; the board is a record): an emergency has
+        // no approval step, so its plan goes LIVE at submit — rows
+        // confirmed, substitutes belled immediately, and no
+        // plan-ready bell (there is nothing left to submit).
         foreach ($rows as $row) {
-            $this->assertSame('pending', $row->status);
+            $this->assertSame('confirmed', $row->status);
         }
-        $this->assertFalse(UserNotification::where('type', 'substitution_assigned')
-            ->whereIn('user_id', $rows->pluck('substitute_teacher_id')->all())
-            ->exists());
-        $this->assertTrue(UserNotification::where('user_id', $this->admin()->id)
-            ->where('type', 'substitution_plan_ready')->exists());
-
-        // The Admin submits the plan — NOW the substitutes are
-        // belled and the rows go live.
-        $this->actingAs($this->admin())->post(route('substitutions.confirm'), [
-            'absent_teacher_id' => $teacher->id, 'date' => '2026-11-02',
-        ])->assertRedirect();
         $this->assertTrue(UserNotification::where('type', 'substitution_assigned')
             ->whereIn('user_id', $rows->pluck('substitute_teacher_id')->all())
             ->exists());
+        $this->assertFalse(UserNotification::where('user_id', $this->admin()->id)
+            ->where('type', 'substitution_plan_ready')->exists());
         $this->assertSame(0, Substitution::where('absent_teacher_id', $teacher->id)
             ->whereDate('date', '2026-11-02')->where('status', 'pending')->count());
     }
@@ -118,8 +113,21 @@ class OwnerLeaveAutoCoverTest extends TestCase
         $leave = LeaveRequest::where('user_id', $teacher->id)
             ->where('reason', 'AutoCover normal')->firstOrFail();
         $this->assertSame('pending', $leave->status);
-        // Pending: nothing arranged yet — the admin still decides first.
-        $this->assertSame(0, Substitution::where('absent_teacher_id', $teacher->id)->count());
+        // Owner order 2026-10-29 (night): the plan is PREPARED at
+        // submit so the queue already shows the allocation — quiet
+        // rows, all pending, and no plan-ready bell before the
+        // leave itself is approved.
+        $plan = Substitution::where('absent_teacher_id', $teacher->id)
+            ->whereDate('date', '2026-11-09')->get();
+        $atSubmit = LeaveCover::uncoveredCount($teacher->id, '2026-11-09', '2026-11-09');
+        $this->assertSame($expected, $plan->count() + $atSubmit);
+        $this->assertGreaterThan(0, $plan->count());
+        foreach ($plan as $row) {
+            $this->assertSame('pending', $row->status);
+            $this->assertNull($row->created_by);
+        }
+        $this->assertFalse(UserNotification::where('user_id', $this->admin()->id)
+            ->where('type', 'substitution_plan_ready')->exists());
 
         $this->actingAs($this->admin())->post(route('leave.decide', $leave->id), [
             'status' => 'approved',
@@ -128,17 +136,29 @@ class OwnerLeaveAutoCoverTest extends TestCase
             ->whereDate('date', '2026-11-09')->count();
         $after = LeaveCover::uncoveredCount($teacher->id, '2026-11-09', '2026-11-09');
         $this->assertSame($expected, $rows + $after);
+        // Approval reconciles the prepared plan — it must not
+        // duplicate a single row.
+        $this->assertSame($plan->count(), $rows);
         $this->assertGreaterThan(0, $rows);
-        $this->assertSame((int) $this->admin()->id, (int) Substitution::where('absent_teacher_id', $teacher->id)
-            ->whereDate('date', '2026-11-09')->first()->created_by);
+        // Owner order 2026-10-29 (night): the approval itself made
+        // the plan live — every row confirmed, substitutes belled,
+        // and NO plan-ready bell (nothing waits anywhere now).
+        $this->assertSame(0, Substitution::where('absent_teacher_id', $teacher->id)
+            ->whereDate('date', '2026-11-09')->where('status', 'pending')->count());
+        $this->assertTrue(UserNotification::where('type', 'substitution_assigned')
+            ->whereIn('user_id', $plan->pluck('substitute_teacher_id')->all())->exists());
+        $this->assertFalse(UserNotification::where('user_id', $this->admin()->id)
+            ->where('type', 'substitution_plan_ready')->exists());
 
-        // Rejection arranges nothing.
+        // Rejection deletes the plan prepared at submit.
         $this->actingAs($teacher)->post(route('leave.store'), [
             'start_date' => '2026-11-16',
             'end_date' => '2026-11-16',
             'reason' => 'AutoCover rejected',
             'leave_type' => 'normal',
         ])->assertRedirect();
+        $this->assertGreaterThan(0, Substitution::where('absent_teacher_id', $teacher->id)
+            ->whereDate('date', '2026-11-16')->count());
         $leave2 = LeaveRequest::where('user_id', $teacher->id)
             ->where('reason', 'AutoCover rejected')->firstOrFail();
         $this->actingAs($this->admin())->post(route('leave.decide', $leave2->id), [

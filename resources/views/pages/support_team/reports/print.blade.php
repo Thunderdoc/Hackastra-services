@@ -3,6 +3,14 @@
 <head>
     <meta charset="utf-8">
     <title>{{ $doc['title'] }}</title>
+    @php
+        // Wide reports shrink one or two steps so narrow columns
+        // stop breaking words mid-way (PDF polish, 2026-10-29).
+        $colCount = count($doc['columns']);
+        $fsBase = $doc['options']['font_size'];
+        $fsBody = $colCount > 8 ? max(8, $fsBase - 2) : $fsBase;
+        $fsHead = max(8, $fsBody - 1);
+    @endphp
     <style>
         * { box-sizing: border-box; }
         body { font-family: 'DejaVu Sans', Arial, Helvetica, sans-serif; color: #172536; margin: 0; padding: 0; font-size: {{ $doc['options']['font_size'] }}px; }
@@ -33,8 +41,15 @@
         table.items { width: 100%; border-collapse: collapse; table-layout: fixed; }
         table.items thead { display: table-header-group; }
         table.items tr { page-break-inside: avoid; }
-        table.items th { background: #eef2f7; border: 1px solid #b9c6d4; padding: 4px 7px; font-size: {{ $doc['options']['font_size'] }}px; text-align: left; color: #10263b; overflow-wrap: break-word; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-        table.items td { border: 1px solid #b9c6d4; padding: 4px 7px; font-size: {{ $doc['options']['font_size'] }}px; overflow-wrap: break-word; vertical-align: top; }
+        /* PDF polish (owner, 2026-10-29 night — "sab bekar hai"):
+           the column header now wears the school's navy like the
+           band above it (white text), one step smaller and tighter
+           so words like "Section" stop breaking mid-word in narrow
+           columns, and body rows alternate a faint tint so a long
+           table reads as designed, not as a spreadsheet dump. */
+        table.items th { background: #10263b; border: 1px solid #10263b; padding: 4px 5px; font-size: {{ $fsHead }}px; text-align: left; color: #ffffff; overflow-wrap: break-word; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        table.items td { border: 1px solid #b9c6d4; padding: 4px 6px; font-size: {{ $fsBody }}px; overflow-wrap: break-word; vertical-align: top; }
+        table.items tr.alt td { background: #f4f7fb; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         table.items td.num { text-align: right; }
         table.items td.box, table.items td.center { text-align: center; }
         table.items td.sig { height: 30px; }
@@ -116,7 +131,7 @@
         </thead>
         <tbody>
             @foreach($doc['rows'] as $row)
-                <tr>
+                <tr @if($loop->even) class="alt" @endif>
                     @foreach($doc['columns'] as $col)
                         @php $cellType = $col['type']; $cellVal = $row['cells'][$col['key']] ?? ''; $cellAlign = !empty($col['align']) ? ' style="text-align: ' . $col['align'] . '"' : ''; @endphp
                         @if($cellType === 'checkbox' || $cellType === 'box')

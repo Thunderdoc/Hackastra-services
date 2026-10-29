@@ -101,7 +101,12 @@ class SubstitutionController extends Controller
         return view('pages.support_team.substitutions.index', $d);
     }
 
-    /** Form: admin picks any period. Teachers get no access. */
+    /** Owner order 2026-10-29 (night): substitutions are NOT
+     *  created from this board any more — the system arranges the
+     *  cover automatically from the leave request, and everything
+     *  (review, switch, going live) happens on the Leave Requests
+     *  page. This board is the record. Anyone following an old
+     *  link lands on the record with the pointer below. */
     public function create(Request $request)
     {
         $user = $request->user();
@@ -109,16 +114,8 @@ class SubstitutionController extends Controller
             abort(403, 'Substitutions are managed by administrators.');
         }
 
-        $d['periods'] = $this->periodOptions($user);
-        $d['teachers'] = User::where('user_type', 'teacher')
-            ->where(function ($q) {
-                $q->whereNull('status')->orWhere('status', User::STATUS_ACTIVE);
-            })
-            ->orderBy('name')->get();
-        $d['selected_date'] = $request->query('date');
-        $d['selected_period'] = $request->query('time_table_id');
-
-        return view('pages.support_team.substitutions.create', $d);
+        return redirect()->route('substitutions.index')
+            ->with('flash_danger', 'Substitutions are not arranged here any more. The system prepares the cover plan automatically when a leave is submitted — open Leave Requests to see the plan, switch a teacher, and approve the leave to make the plan live.');
     }
 
     public function store(Request $request)
@@ -285,7 +282,11 @@ class SubstitutionController extends Controller
     public function switchSubstitute(Request $request, Substitution $substitution)
     {
         $user = $request->user();
-        if (!$user || !Qs::userIsAdmin()) {
+        // Admin OR Principal since 2026-10-29 (night): the switch
+        // now lives on the leave queue, which both leave deciders
+        // work from — a decider who can approve the leave can also
+        // adjust who covers a period before approving it.
+        if (!$user || !(Qs::userIsAdmin() || Qs::userIsPrincipal())) {
             abort(403, 'Substitutions are managed by administrators.');
         }
         if (!$substitution->isPending()) {
@@ -389,7 +390,11 @@ class SubstitutionController extends Controller
      * This is the list the review section renders (owner order
      * 2026-10-29: the system shows the free slots itself).
      */
-    protected function freeTeachersFor(Substitution $row)
+    /** Public since 2026-10-29 (night): the leave queue renders
+     *  each pending plan row's switch options through this same
+     *  helper, so the board and the leave page can never disagree
+     *  about who is free at a slot. */
+    public function freeTeachersFor(Substitution $row)
     {
         $row->loadMissing(['time_table.subject', 'time_table.time_slot']);
         $cell = $row->time_table;

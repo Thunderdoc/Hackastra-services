@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\LeaveRequest;
+use App\Models\StudentRecord;
 use App\Models\Substitution;
 use App\Models\TimeTable;
 use App\User;
@@ -14,10 +15,15 @@ use Illuminate\Support\Carbon;
  * The owner settled the long-open auto-cover question: the SYSTEM
  * arranges substitutes for a teacher's leave — for emergency leave
  * immediately at submit (nobody approves an emergency), and for
- * normal leave the moment the Admin/Principal approves it (the
- * admin still approves the leave itself). Before this, approving a
- * leave created no substitutions at all and an admin had to arrange
- * every period by hand on the substitutions board.
+ * normal leave the plan is PREPARED at submit so the leave queue
+ * already shows who covers each period ("yahi pe toh system
+ * allocate karega" — owner, 2026-10-29 night). The prepared plan
+ * is provisional: its rows are 'pending', they grant no access
+ * and ring no bells, and a rejection deletes them again. Approval
+ * reconciles the plan (stale picks dropped, gaps filled) and only
+ * then are the Admins belled that a plan is waiting on the board.
+ * Before all this, approving a leave created no substitutions at
+ * all and an admin had to arrange every period by hand.
  *
  * Eligibility mirrors the manual board exactly (SubstitutionController):
  * the substitute must be a live teacher (user_type teacher, status
@@ -48,9 +54,22 @@ class LeaveAutoCover
      * earlier run) are skipped. Never throws for a single bad
      * period — that period simply counts as uncovered.
      *
+     * $announce separates the two call shapes: at SUBMIT time the
+     * plan is prepared quietly (false — no plan-ready bell, no
+     * uncovered alert; the leave is not approved yet), while at
+     * APPROVAL / emergency time the run reconciles stale picks
+     * and announces the waiting plan (true).
+     *
+     * $planReadyBell exists for the legacy board flow, where a
+     * submitted-by-hand plan still waited for review. The leave
+     * page flow (owner order 2026-10-29 night — everything happens
+     * on the leave page) confirms the plan inside the approval
+     * itself via confirmPlanFor(), so its callers pass false: a
+     * "review and submit the plan" bell would be a lie there.
+     *
      * @return array{periods:int, arranged:int, uncovered:int}
      */
-    public static function arrange(LeaveRequest $leave, ?int $createdBy): array
+    public static function arrange(LeaveRequest $leave, ?int $createdBy, bool $announce = true, bool $planReadyBell = true): array
     {
         $result = ['periods' => 0, 'arranged' => 0, 'uncovered' => 0];
 
@@ -67,6 +86,10 @@ class LeaveAutoCover
         }
         if ($end->lt($start)) {
             return $result;
+        }
+
+        if ($announce) {
+            static::dropStalePendingPicks($absent, $start, $end);
         }
 
         // Candidate pool: live teachers, not the absent teacher, not
@@ -92,7 +115,9 @@ class LeaveAutoCover
         if ($pool->isEmpty()) {
             $result['uncovered'] = LeaveCover::uncoveredCount($absent->id, $start, $end, $window) ?? 0;
             $result['periods'] = $result['uncovered'];
-            static::alertUncovered($absent, $leave, $result['uncovered'], $start, $end);
+            if ($announce) {
+                static::alertUncovered($absent, $leave, $result['uncovered'], $start, $end);
+            }
             return $result;
         }
         $poolIds = $pool->map(function ($u) {
@@ -290,14 +315,228 @@ class LeaveAutoCover
             }
         }
 
-        if ($result['arranged'] > 0) {
-            static::alertPlanReady($absent, $leave, $result['arranged'], $start, $end);
-        }
-        if ($result['uncovered'] > 0) {
-            static::alertUncovered($absent, $leave, $result['uncovered'], $start, $end);
+        if ($announce) {
+            // Bell the Admins with the size of the plan now waiting
+            // on the board — newly arranged in this run, or prepared
+            // earlier at submit and made real by this approval (in
+            // that case this run arranged nothing itself, but the
+            // plan is exactly what the Admin must go and submit).
+            $pendingTotal = (int) Substitution::where('absent_teacher_id', $absent->id)
+                ->where('status', 'pending')
+                ->whereDate('date', '>=', $start->toDateString())
+                ->whereDate('date', '<=', $end->toDateString())
+                ->count();
+            if ($pendingTotal > 0 && $planReadyBell) {
+                static::alertPlanReady($absent, $leave, $pendingTotal, $start, $end);
+            }
+            if ($result['uncovered'] > 0) {
+                static::alertUncovered($absent, $leave, $result['uncovered'], $start, $end);
+            }
         }
 
         return $result;
+    }
+
+    /**
+     * Approval-time reconcile: a plan prepared at submit can name
+     * a substitute who has since come onto APPROVED leave through
+     * a path that never ran the cover chain (a data-level approval,
+     * or a chain that failed silently — failures are swallowed by
+     * design at the call sites). Such a pick can never serve: drop
+     * the still-pending row so the arrange run re-picks the period
+     * honestly. Confirmed rows are the Admin's deliberate act and
+     * are never touched here.
+     */
+    protected static function dropStalePendingPicks(User $absent, Carbon $start, Carbon $end): void
+    {
+        try {
+            $rows = Substitution::where('absent_teacher_id', $absent->id)
+                ->where('status', 'pending')
+                ->whereDate('date', '>=', $start->toDateString())
+                ->whereDate('date', '<=', $end->toDateString())
+                ->get();
+            foreach ($rows as $row) {
+                $d = $row->date instanceof Carbon ? $row->date->toDateString() : (string) $row->date;
+                $onLeave = LeaveRequest::where('status', 'approved')
+                    ->where('user_id', $row->substitute_teacher_id)
+                    ->whereDate('start_date', '<=', $d)
+                    ->whereDate('end_date', '>=', $d)
+                    ->exists();
+                if ($onLeave) {
+                    $row->delete();
+                }
+            }
+        } catch (\Throwable $e) {
+            // Reconcile is best-effort; the arrange run still proceeds.
+        }
+    }
+
+    /**
+     * Make this leave's prepared plan LIVE (owner order
+     * 2026-10-29 night: everything happens on the leave page —
+     * the Substitutions board is a record, not a workplace).
+     * Called the moment the leave becomes real: on approval in
+     * decide(), and at submit for an emergency (already
+     * auto-approved). Flips the leave's pending rows to
+     * 'confirmed', bells every substitute (with the shared
+     * 'Substitution assigned' title the board's destroy cleanup
+     * matches on), bells each covered period's students, and
+     * bells the students of periods nobody could cover that the
+     * period is free. Returns how many rows went live.
+     */
+    public static function confirmPlanFor(LeaveRequest $leave, ?int $actorId): int
+    {
+        $absent = $leave->user;
+        if (!$absent || $absent->user_type !== 'teacher') {
+            return 0;
+        }
+        try {
+            $start = Carbon::parse($leave->start_date)->startOfDay();
+            $end = Carbon::parse($leave->end_date)->startOfDay();
+        } catch (\Throwable $e) {
+            return 0;
+        }
+        if ($end->lt($start)) {
+            return 0;
+        }
+
+        $rows = Substitution::with([
+            'time_table.subject', 'time_table.tt_record.my_class', 'time_table.tt_record.section',
+            'substitute', 'absent_teacher',
+        ])->pending()
+            ->where('absent_teacher_id', $absent->id)
+            ->whereDate('date', '>=', $start->toDateString())
+            ->whereDate('date', '<=', $end->toDateString())
+            ->get();
+
+        foreach ($rows as $row) {
+            $row->update(['status' => 'confirmed']);
+        }
+
+        foreach ($rows as $row) {
+            $date = $row->date instanceof Carbon ? $row->date->copy() : Carbon::parse((string) $row->date);
+            $cell = $row->time_table;
+            if (!$cell || !$cell->subject) {
+                continue;
+            }
+            try {
+                Notify::toUser(
+                    (int) $row->substitute_teacher_id,
+                    'substitution_assigned',
+                    // Same title shape as
+                    // SubstitutionController::bellTitle — the
+                    // board's destroy cleanup finds bells by it.
+                    'Substitution assigned: ' . $cell->subject->name . ' on ' . $date->format('d M Y'),
+                    'You cover ' . optional(optional($cell->tt_record)->my_class)->name . ' — ' . $cell->subject->name . ' on ' . $date->format('d M Y') . '.',
+                    route('attendance.periods.index')
+                );
+            } catch (\Throwable $e) {
+                // Bell only — the confirmation itself stands.
+            }
+            static::bellStudentsForCell($cell, 'period_substitute',
+                'Substitute teacher: ' . $cell->subject->name . ' on ' . $date->format('d M Y'),
+                optional($row->substitute)->name . ' will take your ' . $cell->subject->name
+                . ' period on ' . $date->format('d M Y') . ' (' . $absent->name . ' is on leave).');
+        }
+        // Free-period bells for EVERY date of the leave — a date
+        // where nothing could be arranged has no rows above, but
+        // its students still must hear the period is free.
+        for ($d = $start->copy(); $d->lte($end); $d->addDay()) {
+            static::bellFreePeriods($absent, $d->copy(), $leave);
+        }
+
+        if ($rows->isNotEmpty()) {
+            try {
+                Audit::log('substitution.plan_submitted', null,
+                    'Substitution plan for ' . $absent->name . ' (' . $start->format('d M Y') . ' - ' . $end->format('d M Y')
+                    . ') went live with the leave ' . ($actorId ? 'approval' : 'auto-approval') . ' - ' . $rows->count() . ' period(s).');
+            } catch (\Throwable $e) {
+                // Audit only.
+            }
+        }
+
+        return $rows->count();
+    }
+
+    /** Bell every student of a period's class/section. Bell-only:
+     *  any failure is swallowed. Mirrors the board confirm's
+     *  helper so students hear the same story on both paths. */
+    protected static function bellStudentsForCell(TimeTable $cell, string $type, string $title, string $body): void
+    {
+        try {
+            $record = $cell->tt_record;
+            if (!$record) {
+                return;
+            }
+            $q = StudentRecord::where('grad', 0);
+            if ($record->section_id) {
+                $q->where('section_id', $record->section_id);
+            } else {
+                $q->where('my_class_id', $record->my_class_id);
+            }
+            foreach ($q->pluck('user_id') as $uid) {
+                Notify::toUser((int) $uid, $type, $title, $body, route('tt.mine'));
+            }
+        } catch (\Throwable $e) {
+            // Bell only.
+        }
+    }
+
+    /** Students of periods still without a substitute hear the
+     *  period is free. Day-type doctrine matches arrange(): a
+     *  non-teaching day expects no registers at all, and a half
+     *  day narrows the window. */
+    protected static function bellFreePeriods(User $absent, Carbon $date, LeaveRequest $leave): void
+    {
+        try {
+            if (!DayType::isTeachingDay($date)) {
+                return;
+            }
+            $dayName = $date->format('l');
+            $query = TimeTable::with(['subject', 'tt_record.my_class', 'tt_record.section'])
+                ->whereNotNull('subject_id')->where('day', $dayName);
+            SectionTeacher::applyTeacherFilter($query, (int) $absent->id);
+            $cells = $query->get();
+            if ($cells->isEmpty()) {
+                return;
+            }
+
+            $window = $leave->periodWindow();
+            $dtWindow = DayType::windowFor($date);
+            if ($dtWindow !== null) {
+                $window = $window === null ? $dtWindow
+                    : [max($window[0], $dtWindow[0]), min($window[1], $dtWindow[1])];
+                if ($window[0] > $window[1]) {
+                    return;
+                }
+            }
+            if ($window !== null) {
+                $indexMap = LeaveCover::periodIndexMap(
+                    $cells->pluck('ttr_id')->unique()->map(function ($i) { return (int) $i; })->all(),
+                    $dayName
+                );
+                $cells = $cells->filter(function ($c) use ($indexMap, $window) {
+                    $n = $indexMap[(int) $c->id] ?? null;
+                    return $n !== null && $n >= $window[0] && $n <= $window[1];
+                });
+            }
+
+            $coveredIds = Substitution::where('absent_teacher_id', $absent->id)
+                ->whereDate('date', $date->toDateString())
+                ->pluck('time_table_id')->map(function ($i) { return (int) $i; })->all();
+
+            foreach ($cells as $cell) {
+                if (in_array((int) $cell->id, $coveredIds, true) || !$cell->subject) {
+                    continue;
+                }
+                static::bellStudentsForCell($cell, 'period_free',
+                    'Free period: ' . $cell->subject->name . ' on ' . $date->format('d M Y'),
+                    'No substitute is available for your ' . $cell->subject->name
+                    . ' period on ' . $date->format('d M Y') . ' — it is a free period.');
+            }
+        } catch (\Throwable $e) {
+            // Bell only.
+        }
     }
 
     /** Bell to every Admin (owner order 2026-10-29): a system plan

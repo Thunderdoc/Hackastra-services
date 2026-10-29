@@ -12,13 +12,15 @@ use Tests\TestCase;
 /**
  * Full-auto substitution flow (owner order 2026-10-29).
  *
- * The system arranges cover for an approved/emergency leave by
- * itself and SAVES it as a pending plan — no access, no bells.
- * The Admin reviews the plan on the board (the system itself lists
- * which teachers are free for each slot), switches picks if he
- * wants, and submits; only then do substitutes gain access and
- * get belled, and the affected students hear about covered
- * periods — and about free periods where no cover exists.
+ * The system arranges cover for a teacher's leave by itself and
+ * SAVES it as a pending plan — no access, no bells. Under the
+ * 2026-10-29 night order the plan is managed from the LEAVE page
+ * and goes live when the leave is approved (or at submit for an
+ * emergency); the Substitutions board is the record. These tests
+ * pin the plan machinery itself — the pending state, the switch
+ * endpoint's free-teacher rule, and the (still admin-only)
+ * confirm endpoint's student bells — which the leave-page flow
+ * is built on.
  */
 class OwnerSubstitutionAutoPlanTest extends TestCase
 {
@@ -39,37 +41,45 @@ class OwnerSubstitutionAutoPlanTest extends TestCase
         return User::where('email', 'teacher@hackstra.app')->firstOrFail();
     }
 
-    /** Ananya's emergency leave on Mon 2026-11-02 (8 Monday periods). */
+    /** Ananya's NORMAL leave on Mon 2026-11-02 (8 Monday periods):
+     *  the plan is prepared at submit and stays pending until the
+     *  leave is approved. (An emergency would go live at submit —
+     *  owner order 2026-10-29 night — leaving nothing pending to
+     *  exercise here.) */
     protected function arrangePlan(): void
     {
         $this->actingAs($this->ananya())->post(route('leave.store'), [
             'start_date' => '2026-11-02',
             'end_date' => '2026-11-02',
             'reason' => 'AutoPlan probe',
-            'leave_type' => 'emergency',
+            'leave_type' => 'normal',
         ])->assertRedirect();
         $this->assertGreaterThan(0, Substitution::pending()
             ->where('absent_teacher_id', $this->ananya()->id)
             ->whereDate('date', '2026-11-02')->count(), 'fixture: the system must have arranged a pending plan');
     }
 
-    public function test_board_shows_the_pending_plan_and_principal_cannot_submit()
+    public function test_board_shows_the_pending_plan_as_a_record_and_confirm_stays_admin_only()
     {
         $this->arrangePlan();
 
+        // The board shows the plan as a RECORD (owner order
+        // 2026-10-29 night): no submit button, no switch controls,
+        // for the Admin either — the leave page is the workplace.
         $page = $this->actingAs($this->admin())->get(route('substitutions.index'));
         $page->assertOk();
-        $page->assertSee('waiting for your review');
-        $page->assertSee('Not submitted yet');
-        $page->assertSee('Submit this plan');
+        $page->assertSee('System-arranged plans — record');
+        $page->assertSee('goes live when the leave is approved');
+        $page->assertDontSee('Submit this plan');
+        $page->assertDontSee('Switch to a free teacher');
 
-        // The Principal monitors the same plan but holds no controls.
         $principalPage = $this->actingAs($this->principal())->get(route('substitutions.index'));
         $principalPage->assertOk();
-        $principalPage->assertSee('Not submitted yet');
+        $principalPage->assertSee('goes live when the leave is approved');
         $principalPage->assertDontSee('Submit this plan');
 
-        // Only the Admin submits: principal and teacher are refused.
+        // The confirm endpoint itself remains Admin-only machinery:
+        // principal and teacher are refused.
         $this->actingAs($this->principal())->post(route('substitutions.confirm'), [
             'absent_teacher_id' => $this->ananya()->id, 'date' => '2026-11-02',
         ])->assertForbidden();

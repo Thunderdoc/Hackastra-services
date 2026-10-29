@@ -76,30 +76,32 @@ class OwnerSubstitutionAccessChainTest extends TestCase
         $page->assertSee($subs->first()->substitute->name);
     }
 
-    /** Submit the pending plan for (absent teacher, date) as the
-     *  Admin — under the full-auto flow (owner order 2026-10-29)
-     *  access and bells exist only after this step. */
-    protected function confirmPlan(int $absentId, string $date): void
+    /** Make a pending plan live the way the product now does it
+     *  (owner order 2026-10-29 night — everything happens on the
+     *  leave page): the Admin approves the leave, and the approval
+     *  itself confirms the plan. Access and bells exist only
+     *  after this step. */
+    protected function approveLeave(LeaveRequest $leave): void
     {
-        $this->actingAs($this->admin())->post(route('substitutions.confirm'), [
-            'absent_teacher_id' => $absentId, 'date' => $date,
+        $this->actingAs($this->admin())->post(route('leave.decide', $leave->id), [
+            'status' => 'approved',
         ])->assertRedirect();
     }
 
     public function test_substitute_sees_and_takes_the_covered_period_only()
     {
-        $this->submitLeave($this->ananya(), '2026-11-02', '2026-11-02');
+        $leave = $this->submitLeave($this->ananya(), '2026-11-02', '2026-11-02', 'normal');
         $sub = Substitution::where('absent_teacher_id', $this->ananya()->id)
             ->whereDate('date', '2026-11-02')->firstOrFail();
         $substitute = User::findOrFail($sub->substitute_teacher_id);
 
-        // While the plan is unsubmitted the substitute has NO
-        // access — the period is not theirs yet.
+        // While the plan is pending (leave not yet approved) the
+        // substitute has NO access — the period is not theirs yet.
         $this->actingAs($substitute)
             ->get(route('attendance.periods.take', ['tt_id' => $sub->time_table_id, 'date' => '2026-11-02']))
             ->assertForbidden();
 
-        $this->confirmPlan($this->ananya()->id, '2026-11-02');
+        $this->approveLeave($leave);
         $sub = $sub->fresh();
         $substitute = User::findOrFail($sub->substitute_teacher_id);
 
@@ -136,7 +138,7 @@ class OwnerSubstitutionAccessChainTest extends TestCase
 
     public function test_cover_chains_when_the_substitute_goes_on_leave()
     {
-        $this->submitLeave($this->ananya(), '2026-11-02', '2026-11-02');
+        $leave = $this->submitLeave($this->ananya(), '2026-11-02', '2026-11-02', 'normal');
         $row = Substitution::where('absent_teacher_id', $this->ananya()->id)
             ->whereDate('date', '2026-11-02')->firstOrFail();
         $firstSubstitute = User::findOrFail($row->substitute_teacher_id);
@@ -149,13 +151,13 @@ class OwnerSubstitutionAccessChainTest extends TestCase
             $this->assertNotSame((int) $firstSubstitute->id, (int) $after->substitute_teacher_id,
                 'The cover must move off the absent substitute');
             $this->assertNotSame((int) $this->ananya()->id, (int) $after->substitute_teacher_id);
-            // The row is still a pending plan (Ananya's leave was
-            // never submitted), so the move was silent — the new
-            // substitute is belled only when the Admin submits
-            // Ananya's plan (owner order 2026-10-29).
+            // The row is still a pending plan (Ananya's leave is
+            // not approved yet), so the move was silent — the new
+            // substitute is belled only when the leave approval
+            // makes the plan live (owner order 2026-10-29 night).
             $this->assertSame(0, UserNotification::where('user_id', $after->substitute_teacher_id)
                 ->where('type', 'substitution_assigned')->count());
-            $this->confirmPlan($this->ananya()->id, '2026-11-02');
+            $this->approveLeave($leave);
             $this->assertGreaterThan(0, UserNotification::where('user_id', $after->substitute_teacher_id)
                 ->where('type', 'substitution_assigned')->count());
         } else {
