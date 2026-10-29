@@ -5,43 +5,74 @@
 @endsection
 @section('content')
 <style>
-    /* Builder redesign 2026-10-29: simple premium SaaS look, scoped
-       to this page only — no shared component is touched. White
-       cards, subtle blue accents (#1765f5 / #10213f), soft
-       #dfe8f3 borders, 12px radii. Two-panel desktop layout
-       (settings left, live A4 preview right); stacked on mobile. */
-    .rb-settings .card, .rb-preview .card { background: #fff; border: 1px solid #dfe8f3; border-radius: 12px; box-shadow: none; }
-    .rb-settings .card-header, .rb-preview .card-header { background: #fff; border-bottom: 1px solid #dfe8f3; border-radius: 12px 12px 0 0; }
-    .rb-col-row td { vertical-align: middle; }
-    .rb-col-row input[type="text"], .rb-col-row input[type="number"], .rb-col-row select { width: 100%; }
-    .rb-preview-wrap { background: #f4f8fd; border: 1px solid #dfe8f3; border-radius: 12px; padding: 12px; }
+    /* Builder v2 (owner order 2026-10-29 night — "report and pdf
+       builder we have to develop from scratch"): a guided 4-step
+       flow — 1 Data, 2 Filters, 3 Columns, 4 Finish — with the
+       live A4 preview beside it. Same engine, sources, routes and
+       config contract as before; the page itself is rebuilt.
+       Scoped styles (rb2-) — no shared component is touched. */
+    .rb2-settings .card, .rb2-preview .card { background: #fff; border: 1px solid #dfe8f3; border-radius: 12px; box-shadow: none; }
+    .rb2-settings .card-header, .rb2-preview .card-header { background: #fff; border-bottom: 1px solid #dfe8f3; border-radius: 12px 12px 0 0; }
+    .rb2-step-badge { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%; background: #1765f5; color: #fff; font-weight: 700; font-size: 13px; margin-right: 8px; flex: 0 0 auto; }
+    .rb2-step-title { display: flex; align-items: center; }
+    .rb2-step-sub { color: #718096; font-size: 12.5px; margin-left: 32px; }
+    .rb2-source-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 8px; }
+    .rb2-source-tile { border: 1.5px solid #dfe8f3; background: #fbfdff; border-radius: 10px; padding: 10px 8px; text-align: left; cursor: pointer; width: 100%; }
+    .rb2-source-tile:hover { border-color: #9db9e8; }
+    .rb2-source-tile.active { border-color: #1765f5; background: #eef4ff; box-shadow: 0 0 0 1px #1765f5 inset; }
+    .rb2-source-tile .rb2-src-label { display: block; font-weight: 600; color: #10263b; font-size: 13.5px; line-height: 1.25; }
+    .rb2-source-tile .rb2-src-meta { display: block; color: #718096; font-size: 11.5px; margin-top: 3px; }
+    .rb2-chip { border: 1px solid #dfe8f3; background: #fff; border-radius: 999px; padding: 5px 12px; font-size: 12.5px; cursor: pointer; margin: 0 6px 6px 0; color: #10263b; }
+    .rb2-chip:hover { border-color: #1765f5; color: #1765f5; }
+    .rb2-col-row td { vertical-align: middle; }
+    .rb2-col-row input[type="text"], .rb2-col-row input[type="number"], .rb2-col-row select { width: 100%; }
+    .rb2-preview-wrap { background: #f4f8fd; border: 1px solid #dfe8f3; border-radius: 12px; padding: 12px; }
     #previewFrame { width: 100%; height: 720px; border: 1px solid #dfe8f3; border-radius: 8px; background: #fff; display: block; }
-    .rb-status { font-size: 13px; color: #4a5a6e; margin: 0 0 10px; line-height: 1.5; }
-    .rb-status.rb-status-error { color: #b42318; }
-    .rb-loading { font-size: 13px; color: #1765f5; margin: 0 0 10px; }
-    .rb-adv summary { cursor: pointer; font-weight: 600; color: #10263b; outline: none; }
-    .rb-adv summary::-webkit-details-marker { color: #718096; }
-    @media (min-width: 992px) { .rb-preview-card { position: sticky; top: 20px; } }
+    .rb2-status { font-size: 13px; color: #4a5a6e; margin: 0 0 10px; line-height: 1.5; }
+    .rb2-status.rb2-status-error { color: #b42318; }
+    .rb2-loading { font-size: 13px; color: #1765f5; margin: 0 0 10px; }
+    .rb2-adv summary { cursor: pointer; font-weight: 600; color: #10263b; outline: none; }
+    @media (min-width: 992px) { .rb2-preview-card { position: sticky; top: 20px; } }
     @media (max-width: 991px) { #previewFrame { height: 480px; } }
 </style>
 
 <div class="row">
-    <div class="col-lg-5 rb-settings" id="rbSettings">
+    <div class="col-lg-5 rb2-settings" id="rbSettings">
+
+        {{-- STEP 1 — DATA --}}
         <div class="card">
-            <div class="card-header"><h5 class="card-title mb-0">Build your report</h5></div>
+            <div class="card-header">
+                <h5 class="card-title mb-0 rb2-step-title"><span class="rb2-step-badge">1</span> Build your report</h5>
+                <div class="rb2-step-sub">Pick a ready template or a data source, then name the report.</div>
+            </div>
             <div class="card-body">
+                @if($presets)
                 <div class="form-group">
-                    <label>Start from a template</label>
-                    <select id="rbPreset" class="form-control">
+                    <label>Start from a ready template</label>
+                    <div>
+                        @foreach($presets as $preset)
+                            <button type="button" class="rb2-chip rb2-preset-chip" data-key="{{ $preset['key'] }}">{{ $preset['label'] }}</button>
+                        @endforeach
+                    </div>
+                    <select id="rbPreset" class="d-none" aria-hidden="true" tabindex="-1">
                         <option value="">— Custom (blank) —</option>
                         @foreach($presets as $preset)
                             <option value="{{ $preset['key'] }}">{{ $preset['label'] }}</option>
                         @endforeach
                     </select>
                 </div>
+                @endif
                 <div class="form-group">
                     <label>Data source *</label>
-                    <select id="rbSource" class="form-control">
+                    <div class="rb2-source-grid" id="rbSourceGrid">
+                        @foreach($sources as $srcKey => $srcDef)
+                            <button type="button" class="rb2-source-tile" data-source="{{ $srcKey }}">
+                                <span class="rb2-src-label">{{ $srcDef['label'] }}</span>
+                                <span class="rb2-src-meta">{{ count($srcDef['columns']) }} columns</span>
+                            </button>
+                        @endforeach
+                    </div>
+                    <select id="rbSource" class="d-none" aria-hidden="true" tabindex="-1">
                         @foreach($sources as $srcKey => $srcDef)
                             <option value="{{ $srcKey }}">{{ $srcDef['label'] }}</option>
                         @endforeach
@@ -55,12 +86,50 @@
                     <label>Report title *</label>
                     <input type="text" id="rbTitle" class="form-control" maxlength="120" placeholder="e.g. Class Roster — Prep A">
                 </div>
-                <div class="form-group">
+                <div class="form-group mb-0">
                     <label>Subtitle</label>
                     <input type="text" id="rbSubtitle" class="form-control" maxlength="200" placeholder="Optional line under the title">
                 </div>
+            </div>
+        </div>
+
+        @if($templates->count())
+        <div class="card">
+            <div class="card-header"><h5 class="card-title mb-0">My saved templates</h5></div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    @foreach($templates as $template)
+                    <tr>
+                        <td>{{ $template->name }}</td>
+                        <td class="text-right" style="white-space: nowrap;">
+                            <button type="button" class="btn btn-sm btn-light rb-load-template" data-template-id="{{ $template->id }}">Load</button>
+                            <form method="POST" action="{{ route('reports.templates.duplicate', [$template->id]) }}" style="display:inline;">
+                                @csrf
+                                <button type="submit" class="btn btn-sm btn-light">Duplicate</button>
+                            </form>
+                            <form method="POST" action="{{ route('reports.templates.destroy', [$template->id]) }}" style="display:inline;" onsubmit="return confirm('Delete this template?');">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="btn btn-sm btn-light">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                    @endforeach
+                </table>
+            </div>
+        </div>
+        @endif
+
+        {{-- STEP 2 — FILTERS --}}
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0 rb2-step-title"><span class="rb2-step-badge">2</span> Filters</h5>
+                <div class="rb2-step-sub">Only the filters this data source actually uses are shown.</div>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-0" id="rbNoFilters" style="display:none;">This source has no filters — the report covers everything it holds.</p>
                 <div class="form-row">
-                    <div class="form-group col-md-4">
+                    <div class="form-group col-md-6 rb2-filter" data-filter-group="class">
                         <label>Class</label>
                         <select id="rbClass" class="form-control">
                             <option value="">All classes</option>
@@ -69,7 +138,7 @@
                             @endforeach
                         </select>
                     </div>
-                    <div class="form-group col-md-4">
+                    <div class="form-group col-md-6 rb2-filter" data-filter-group="section">
                         <label>Section</label>
                         <select id="rbSection" class="form-control">
                             <option value="">All sections</option>
@@ -78,13 +147,9 @@
                             @endforeach
                         </select>
                     </div>
-                    <div class="form-group col-md-4">
-                        <label>Session</label>
-                        <input type="text" id="rbYear" class="form-control" value="{{ $currentSession }}">
-                    </div>
                 </div>
                 <div class="form-row">
-                    <div class="form-group col-md-6">
+                    <div class="form-group col-md-6 rb2-filter" data-filter-group="subject">
                         <label>Subject</label>
                         <select id="rbSubject" class="form-control">
                             <option value="">All subjects</option>
@@ -93,7 +158,7 @@
                             @endforeach
                         </select>
                     </div>
-                    <div class="form-group col-md-6">
+                    <div class="form-group col-md-6 rb2-filter" data-filter-group="exam">
                         <label>Exam</label>
                         <select id="rbExam" class="form-control">
                             <option value="">All exams</option>
@@ -103,26 +168,36 @@
                         </select>
                     </div>
                 </div>
-                <div class="form-row">
-                    <div class="form-group col-md-4">
+                <div class="form-row rb2-filter" data-filter-group="dates">
+                    <div class="form-group col-md-6">
                         <label>From date</label>
                         <input type="date" id="rbDateFrom" class="form-control">
                     </div>
-                    <div class="form-group col-md-4">
+                    <div class="form-group col-md-6">
                         <label>To date</label>
                         <input type="date" id="rbDateTo" class="form-control">
                     </div>
-                    <div class="form-group col-md-4">
+                </div>
+                <div class="form-row">
+                    <div class="form-group col-md-6 rb2-filter" data-filter-group="status">
                         <label>Status filter</label>
                         <input type="text" id="rbStatus" class="form-control" placeholder="e.g. overdue">
                         <small class="form-text text-muted">Source-specific: overdue, issued, partial, …</small>
+                    </div>
+                    <div class="form-group col-md-6 rb2-filter" data-filter-group="session">
+                        <label>Session</label>
+                        <input type="text" id="rbYear" class="form-control" value="{{ $currentSession }}">
                     </div>
                 </div>
             </div>
         </div>
 
+        {{-- STEP 3 — COLUMNS --}}
         <div class="card">
-            <div class="card-header"><h5 class="card-title mb-0">Columns</h5></div>
+            <div class="card-header">
+                <h5 class="card-title mb-0 rb2-step-title"><span class="rb2-step-badge">3</span> Columns</h5>
+                <div class="rb2-step-sub">Rename, resize, reorder or drop columns; add totals and sorting.</div>
+            </div>
             <div class="card-body">
                 <div class="table-responsive">
                     <table class="table table-sm">
@@ -159,109 +234,78 @@
             </div>
         </div>
 
+        {{-- STEP 4 — FINISH --}}
         <div class="card">
-            <div class="card-header"><h5 class="card-title mb-0">Options</h5></div>
+            <div class="card-header">
+                <h5 class="card-title mb-0 rb2-step-title"><span class="rb2-step-badge">4</span> Finish</h5>
+                <div class="rb2-step-sub">Layout and print options, then generate the PDF or save the design as a template.</div>
+            </div>
             <div class="card-body">
-                <details class="rb-adv">
-                    <summary>More options — layout, print &amp; instructions</summary>
+                <details class="rb2-adv">
+                    <summary>Layout, print &amp; instructions</summary>
                     <div class="mt-3">
-                <div class="form-row">
-                    <div class="form-group col-md-4">
-                        <label>Orientation</label>
-                        <select id="rbOrientation" class="form-control">
-                            <option value="portrait">Portrait (A4)</option>
-                            <option value="landscape">Landscape (A4)</option>
-                        </select>
-                    </div>
-                    <div class="form-group col-md-4">
-                        <label>Side margin (mm)</label>
-                        <input type="number" id="rbMargin" class="form-control" min="5" max="25" value="10">
-                    </div>
-                    <div class="form-group col-md-4">
-                        <label>Font size</label>
-                        <input type="number" id="rbFontSize" class="form-control" min="8" max="14" value="11">
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Blank rows (manual writing space)</label>
-                    <input type="number" id="rbBlankRows" class="form-control" min="0" max="200" value="0">
-                </div>
-                <div class="form-check"><input type="checkbox" id="rbShowHeader" class="form-check-input" checked> <label class="form-check-label" for="rbShowHeader">Include school header</label></div>
-                <div class="form-check"><input type="checkbox" id="rbShowMeta" class="form-check-input" checked> <label class="form-check-label" for="rbShowMeta">Include class / subject details</label></div>
-                <div class="form-check"><input type="checkbox" id="rbShowFooter" class="form-check-input" checked> <label class="form-check-label" for="rbShowFooter">Include generation date + page numbers</label></div>
-                <div class="form-check"><input type="checkbox" id="rbShowSignatures" class="form-check-input"> <label class="form-check-label" for="rbShowSignatures">Include signature lines</label></div>
-                <div class="form-group mt-3">
-                    <label>Instructions (printed at the top of the document)</label>
-                    <textarea id="rbInstructions" class="form-control" rows="2" maxlength="500"></textarea>
-                </div>
+                        <div class="form-row">
+                            <div class="form-group col-md-4">
+                                <label>Orientation</label>
+                                <select id="rbOrientation" class="form-control">
+                                    <option value="portrait">Portrait (A4)</option>
+                                    <option value="landscape">Landscape (A4)</option>
+                                </select>
+                            </div>
+                            <div class="form-group col-md-4">
+                                <label>Side margin (mm)</label>
+                                <input type="number" id="rbMargin" class="form-control" min="5" max="25" value="10">
+                            </div>
+                            <div class="form-group col-md-4">
+                                <label>Font size</label>
+                                <input type="number" id="rbFontSize" class="form-control" min="8" max="14" value="11">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Blank rows (manual writing space)</label>
+                            <input type="number" id="rbBlankRows" class="form-control" min="0" max="200" value="0">
+                        </div>
+                        <div class="form-check"><input type="checkbox" id="rbShowHeader" class="form-check-input" checked> <label class="form-check-label" for="rbShowHeader">Include school header</label></div>
+                        <div class="form-check"><input type="checkbox" id="rbShowMeta" class="form-check-input" checked> <label class="form-check-label" for="rbShowMeta">Include class / subject details</label></div>
+                        <div class="form-check"><input type="checkbox" id="rbShowFooter" class="form-check-input" checked> <label class="form-check-label" for="rbShowFooter">Include generation date + page numbers</label></div>
+                        <div class="form-check"><input type="checkbox" id="rbShowSignatures" class="form-check-input"> <label class="form-check-label" for="rbShowSignatures">Include signature lines</label></div>
+                        <div class="form-group mt-3">
+                            <label>Instructions (printed at the top of the document)</label>
+                            <textarea id="rbInstructions" class="form-control" rows="2" maxlength="500"></textarea>
+                        </div>
                     </div>
                 </details>
                 <hr>
-                <div class="form-row align-items-end">
-                    <div class="form-group col-8">
+                <button type="button" id="rbPdfBtn" class="btn btn-primary btn-block btn-lg"><i class="icon-file-pdf mr-2"></i> Generate PDF</button>
+                <div class="form-row align-items-end mt-3">
+                    <div class="form-group col-8 mb-0">
                         <label>Save as my template</label>
                         <input type="text" id="rbTemplateName" class="form-control" maxlength="80" placeholder="Template name">
                     </div>
-                    <div class="form-group col-4">
+                    <div class="form-group col-4 mb-0">
                         <button type="button" id="rbSaveBtn" class="btn btn-light btn-block">Save Template</button>
                     </div>
                 </div>
             </div>
         </div>
-
-        @if($templates->count())
-        <div class="card">
-            <div class="card-header"><h5 class="card-title mb-0">My Custom Templates</h5></div>
-            <div class="card-body p-0">
-                <table class="table table-sm mb-0">
-                    @foreach($templates as $template)
-                    <tr>
-                        <td>{{ $template->name }}</td>
-                        <td class="text-right" style="white-space: nowrap;">
-                            <button type="button" class="btn btn-sm btn-light rb-load-template" data-template-id="{{ $template->id }}">Load</button>
-                            <form method="POST" action="{{ route('reports.templates.duplicate', [$template->id]) }}" style="display:inline;">
-                                @csrf
-                                <button type="submit" class="btn btn-sm btn-light">Duplicate</button>
-                            </form>
-                            <form method="POST" action="{{ route('reports.templates.destroy', [$template->id]) }}" style="display:inline;" onsubmit="return confirm('Delete this template?');">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="btn btn-sm btn-light">Delete</button>
-                            </form>
-                        </td>
-                    </tr>
-                    @endforeach
-                </table>
-            </div>
-        </div>
-        @endif
     </div>
 
-    <div class="col-lg-7 rb-preview">
-        <div class="card rb-preview-card">
+    <div class="col-lg-7 rb2-preview">
+        <div class="card rb2-preview-card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="card-title mb-0">Live preview</h5>
                 <span>
-                    <button type="button" id="rbPreviewBtn" class="btn btn-light btn-sm mr-2">Preview</button>
-                    <button type="button" id="rbPdfBtn" class="btn btn-primary btn-sm">Generate PDF</button>
+                    <button type="button" id="rbPreviewBtn" class="btn btn-light btn-sm">Refresh preview</button>
                 </span>
             </div>
             <div class="card-body">
                 <p class="text-muted">Preview shows the real PDF — the exact document the download produces, with true pagination.</p>
-                {{-- Live preview states (builder redesign 2026-10-29):
-                     status line (ready / draft problem / error),
-                     loading indicator while the PDF loads, then the
-                     frame itself. The preview loads on its own when
-                     the page opens (owner order 2026-10-29: no click
-                     needed) — the title starts pre-filled with the
-                     selected list's name, so the first draft is
-                     already valid; typing a title takes over. --}}
-                <p id="rbPreviewStatus" class="rb-status" role="status">Loading the live preview…</p>
-                <p id="rbPreviewLoading" class="rb-loading" style="display:none;">Updating preview…</p>
-                <div class="rb-preview-wrap">
+                <p id="rbPreviewStatus" class="rb2-status" role="status">Loading the live preview…</p>
+                <p id="rbPreviewLoading" class="rb2-loading" style="display:none;">Updating preview…</p>
+                <div class="rb2-preview-wrap">
                     <iframe id="previewFrame" name="previewFrame" src="about:blank"></iframe>
                 </div>
-                <p class="text-muted mt-2 mb-0">The preview updates on its own as you type or change any setting — no click needed. If there are no rows for the selected filters, the preview document itself says so — no sample records are ever shown.</p>
+                <p class="text-muted mt-2 mb-0">The preview updates on its own as you change any step — no click needed. If there are no rows for the selected filters, the preview document itself says so — no sample records are ever shown.</p>
             </div>
         </div>
     </div>
@@ -290,6 +334,47 @@
     var SUBJECTS = @json($subjectsMap);
     var TEMPLATES = @json($templatesMap);
     var COL_TYPES = ['text', 'number', 'currency', 'date', 'checkbox', 'box', 'dropdown', 'yes_no', 'signature', 'remarks', 'blank'];
+
+    /* Builder v2: which filter groups each source actually reads
+       (grounded in ReportSources' row builders). Step 2 shows
+       exactly these groups and hides the rest, so nobody fills a
+       filter the report silently ignores. */
+    var FILTER_MAP = {
+        students: ['class', 'section'],
+        marks: ['class', 'section', 'subject', 'exam'],
+        attendance: ['class', 'section', 'subject', 'dates'],
+        assignments: ['class', 'section', 'subject', 'dates'],
+        fees: ['class', 'section', 'dates', 'session'],
+        defaulters: ['class', 'section', 'status', 'session'],
+        fines: ['status'],
+        books: ['class'],
+        issues: ['status'],
+        staff: [],
+        admissions: ['class', 'status', 'session'],
+        certificates: ['status'],
+        circulars: ['status'],
+        classes: [],
+        timetables: ['class', 'section'],
+        fee_summary: ['class', 'session'],
+        attendance_summary: ['class', 'subject', 'dates'],
+        results_summary: ['class', 'exam'],
+        library_summary: [],
+        platform: [],
+        blank: []
+    };
+    function applyFilterVisibility() {
+        var groups = FILTER_MAP[el('rbSource').value] || [];
+        document.querySelectorAll('.rb2-filter').forEach(function (node) {
+            node.style.display = groups.indexOf(node.getAttribute('data-filter-group')) !== -1 ? '' : 'none';
+        });
+        el('rbNoFilters').style.display = groups.length ? 'none' : '';
+    }
+    function syncSourceTiles() {
+        var current = el('rbSource').value;
+        document.querySelectorAll('.rb2-source-tile').forEach(function (tile) {
+            tile.classList.toggle('active', tile.getAttribute('data-source') === current);
+        });
+    }
 
     var columns = [];
     var totals = {};
@@ -340,7 +425,7 @@
     function setPreviewStatus(text, isError) {
         var s = el('rbPreviewStatus');
         s.textContent = text;
-        s.className = isError ? 'rb-status rb-status-error' : 'rb-status';
+        s.className = isError ? 'rb2-status rb2-status-error' : 'rb2-status';
     }
     function setPreviewLoading(on) {
         el('rbPreviewLoading').style.display = on ? '' : 'none';
@@ -408,7 +493,7 @@
         body.innerHTML = '';
         columns.forEach(function (col, idx) {
             var tr = document.createElement('tr');
-            tr.className = 'rb-col-row';
+            tr.className = 'rb2-col-row';
             var tdLabel = document.createElement('td');
             var inp = document.createElement('input');
             inp.type = 'text';
@@ -607,6 +692,8 @@
         return true;
     }
     function applySourceColumns(sourceKey) {
+        syncSourceTiles();
+        applyFilterVisibility();
         columns = [];
         sourceCols().forEach(function (c) {
             columns.push({ key: c.key, label: c.label, type: c.type, width: 12 });
@@ -618,6 +705,8 @@
     function applyConfig(cfg) {
         if (!cfg) { return; }
         if (cfg.source && SOURCES[cfg.source]) { el('rbSource').value = cfg.source; }
+        syncSourceTiles();
+        applyFilterVisibility();
         el('rbTitle').value = cfg.title || '';
         titleTouched = !!el('rbTitle').value.trim();
         autoTitle = '';
@@ -764,6 +853,22 @@
         btn.addEventListener('click', function () {
             var cfg = TEMPLATES[btn.getAttribute('data-template-id')];
             if (cfg) { applyConfig(cfg); }
+        });
+    });
+
+    document.querySelectorAll('.rb2-source-tile').forEach(function (tile) {
+        tile.addEventListener('click', function () {
+            var sel = el('rbSource');
+            if (sel.value === tile.getAttribute('data-source')) { return; }
+            sel.value = tile.getAttribute('data-source');
+            sel.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+    });
+    document.querySelectorAll('.rb2-preset-chip').forEach(function (chip) {
+        chip.addEventListener('click', function () {
+            var sel = el('rbPreset');
+            sel.value = chip.getAttribute('data-key');
+            sel.dispatchEvent(new Event('change', { bubbles: true }));
         });
     });
 

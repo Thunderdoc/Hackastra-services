@@ -214,10 +214,18 @@ class OwnerOvernightBuilderTest extends TestCase
 
     public function test_builder_page_is_two_panel_with_live_preview_states()
     {
+        // Builder v2 (2026-10-29 night, owner order — rebuilt from
+        // scratch): the two panels are rb2-settings / rb2-preview,
+        // and the settings side is a 4-step flow (Data, Filters,
+        // Columns, Finish) with source tiles and per-source
+        // filter groups.
         $response = $this->actingAs($this->userByEmail('teacher@hackstra.app'))->get(route('reports.builder'));
         $response->assertOk();
-        $response->assertSee('rb-settings', false);
-        $response->assertSee('rb-preview', false);
+        $response->assertSee('rb2-settings', false);
+        $response->assertSee('rb2-preview', false);
+        $response->assertSee('rb2-source-tile', false);
+        $response->assertSee('data-filter-group', false);
+        $response->assertSee('FILTER_MAP', false);
         $response->assertSee('rbPreviewStatus', false);
         $response->assertSee('preview_frame', false);
         $response->assertSee('schedulePreview', false);
