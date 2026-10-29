@@ -82,15 +82,20 @@ class OwnerOvernightBuilderTest extends TestCase
         $this->assertGreaterThan(1000, strlen($response->getContent()));
     }
 
-    // ---- Item 7: server gate, teacher + principal only ----
+    // ---- Item 7: server gate — teacher + principal, and ADMIN
+    // too since the owner's same-evening correction (he works in
+    // the builder as Admin himself; the overnight teacher+
+    // principal-only gate is reversed for admin). ----
 
-    public function test_admin_is_refused_on_every_builder_route()
+    public function test_admin_is_allowed_on_every_builder_route()
     {
         $admin = $this->userByEmail('admin@hackstra.app');
-        $this->actingAs($admin)->get(route('reports.builder'))->assertForbidden();
-        $this->actingAs($admin)->post(route('reports.preview'), ['config' => json_encode($this->blankConfig())])->assertForbidden();
-        $this->actingAs($admin)->post(route('reports.pdf'), ['config' => json_encode($this->blankConfig())])->assertForbidden();
-        $this->actingAs($admin)->post(route('reports.templates.store'), ['config' => json_encode($this->blankConfig()), 'name' => 'Nope'])->assertForbidden();
+        $this->actingAs($admin)->get(route('reports.builder'))->assertOk();
+        $this->actingAs($admin)->post(route('reports.preview'), ['config' => json_encode($this->blankConfig())])->assertOk();
+        $this->assertPdfResponse($this->actingAs($admin)->post(route('reports.pdf'), ['config' => json_encode($this->blankConfig())]));
+        $this->actingAs($admin)->from(route('reports.builder'))
+            ->post(route('reports.templates.store'), ['config' => json_encode($this->blankConfig()), 'name' => 'Admin Tpl'])
+            ->assertRedirect();
     }
 
     public function test_non_teacher_principal_roles_are_refused_on_builder()
@@ -104,7 +109,17 @@ class OwnerOvernightBuilderTest extends TestCase
     {
         $this->actingAs($this->userByEmail('teacher@hackstra.app'))->get(route('reports.builder'))->assertOk();
         $this->actingAs($this->userByEmail('principal@hackstra.app'))->get(route('reports.builder'))->assertOk();
-        $this->assertSame(ReportSources::allowedFor('admin'), ReportSources::allowedFor('principal'));
+        // Principal maps to the admin set PLUS the library sources
+        // the Admin lost in the 2026-10-29 library purge (the
+        // purge was about the Admin panel; the mapping is intact).
+        $this->assertEqualsCanonicalizing(
+            array_merge(ReportSources::allowedFor('admin'), ReportSources::LIBRARY_SOURCES),
+            ReportSources::allowedFor('principal')
+        );
+        $this->assertEqualsCanonicalizing(
+            ReportSources::LIBRARY_SOURCES,
+            array_values(array_diff(ReportSources::allowedFor('principal'), ReportSources::allowedFor('admin')))
+        );
         $this->assertNotContains('platform', ReportSources::allowedFor('principal'));
     }
 

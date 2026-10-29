@@ -5,16 +5,23 @@
      a dead link would only bounce to login). Every item points
      at a real route; there is no Safety module in the app, so
      Safety & Incidents points at the discipline records, the
-     school's actual incident records. --}}
+     school's actual incident records.
+     Grouping headers added 2026-10-29 night (owner order —
+     the approved sidebar grouping plan): Overview / Academics /
+     People / Exams / Approvals / School / Insights / Account.
+     Headers only — no item name, link or order changed. --}}
+<li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Overview</div><i class="icon-menu" title="Overview"></i></li>
 <li class="nav-item">
     <a href="{{ route('dashboard') }}" class="nav-link {{ Route::is('dashboard') ? 'active' : '' }}"><i class="icon-home4"></i> <span>Dashboard</span></a>
 </li>
+<li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Academics</div><i class="icon-menu" title="Academics"></i></li>
 <li class="nav-item">
     <a href="{{ route('classes.index') }}" class="nav-link {{ Route::is('classes.*') ? 'active' : '' }}"><i class="icon-windows2"></i> <span>Academics &amp; Curriculum</span></a>
 </li>
 <li class="nav-item">
     <a href="{{ route('tt.index') }}" class="nav-link {{ Route::is('tt.*') ? 'active' : '' }}"><i class="icon-calendar3"></i> <span>Timetable &amp; Staffing</span></a>
 </li>
+<li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">People</div><i class="icon-menu" title="People"></i></li>
 <li class="nav-item">
     <a href="{{ route('students.list', optional(App\Models\MyClass::first())->id) }}" class="nav-link {{ Route::is('students.*') ? 'active' : '' }}"><i class="icon-users4"></i> <span>Students</span></a>
 </li>
@@ -24,15 +31,18 @@
 <li class="nav-item">
     <a href="{{ route('attendance.periods.index') }}" class="nav-link {{ Route::is('attendance.*') ? 'active' : '' }}"><i class="icon-calendar52"></i> <span>Attendance</span></a>
 </li>
+<li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Exams</div><i class="icon-menu" title="Exams"></i></li>
 <li class="nav-item">
     <a href="{{ route('exams.index') }}" class="nav-link {{ Route::is('exams.*') ? 'active' : '' }}"><i class="icon-book"></i> <span>Exams &amp; Results</span></a>
 </li>
+<li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Approvals</div><i class="icon-menu" title="Approvals"></i></li>
 <li class="nav-item">
     <a href="{{ route('leave.index') }}" class="nav-link {{ Route::is('leave.*') ? 'active' : '' }}"><i class="icon-clipboard"></i> <span>Approvals &amp; Requests</span></a>
 </li>
 <li class="nav-item">
     <a href="{{ route('exam_dates.approvals') }}" class="nav-link {{ Route::is('exam_dates.approvals') ? 'active' : '' }}"><i class="icon-calendar3"></i> <span>Date Sheet Approvals</span></a>
 </li>
+<li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">School</div><i class="icon-menu" title="School"></i></li>
 <li class="nav-item">
     <a href="{{ route('payments.manage') }}" class="nav-link {{ Route::is('payments.*') ? 'active' : '' }}"><i class="icon-wallet"></i> <span>Fees &amp; Finance</span></a>
 </li>
@@ -45,6 +55,7 @@
 <li class="nav-item">
     <a href="{{ route('discipline_records.index') }}" class="nav-link {{ Route::is('discipline_records.*') ? 'active' : '' }}"><i class="icon-shield-check"></i> <span>Safety &amp; Incidents</span></a>
 </li>
+<li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Insights</div><i class="icon-menu" title="Insights"></i></li>
 <li class="nav-item">
     <a href="{{ route('reports.builder') }}" class="nav-link {{ Route::is('reports.*') ? 'active' : '' }}"><i class="icon-stats-bars"></i> <span>Reports &amp; Analytics</span></a>
 </li>

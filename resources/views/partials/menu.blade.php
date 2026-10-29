@@ -153,6 +153,12 @@
                              now refuse the teacher role server-side too. --}}
                     </ul>
                 </li>
+                {{-- Sidebar grouping (owner order 2026-10-29 night —
+                     the approved grouping plan): the seven items that
+                     used to hang under Examinations with no header of
+                     their own now sit under Reports and Classroom.
+                     Headers only — no name, link or order changed. --}}
+                <li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Reports</div><i class="icon-menu" title="Reports"></i></li>
                 <li class="nav-item">
                     <a href="{{ route('reports.builder') }}" class="nav-link {{ (Route::is('reports.*')) ? 'active' : '' }}">
                         <i class="icon-file-text2"></i>
@@ -173,6 +179,7 @@
                      removals — routes/controllers/views stay, so
                      each restores by re-adding its line. Parent
                      Messages and Discipline Records stay. --}}
+                <li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Classroom</div><i class="icon-menu" title="Classroom"></i></li>
                 <li class="nav-item">
                     <a href="{{ route('class_overview.index') }}" class="nav-link {{ (Route::is('class_overview.*')) ? 'active' : '' }}">
                         <i class="icon-watch"></i>
@@ -541,8 +548,14 @@
 
                     {{--Teacher Eligibility (Scheduling Engine Slice A):
                          which subjects each teacher is qualified to
-                         teach — the pool the allocation engine uses. --}}
+                         teach — the pool the allocation engine uses.
+                         Sidebar grouping (owner order 2026-10-29
+                         night — the approved grouping plan): the four
+                         planning tools get their own Planning header
+                         instead of sitting unlabelled inside
+                         Management. Header only — nothing moved. --}}
                     @if(Qs::userIsTeamSA())
+                    <li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Planning</div><i class="icon-menu" title="Planning"></i></li>
                     <li class="nav-item">
                         <a href="{{ route('planning.readiness') }}" class="nav-link {{ (Route::is('planning.readiness')) ? 'active' : '' }}"><i class="icon-clipboard3"></i> <span>School Readiness</span></a>
                     </li>
