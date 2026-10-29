@@ -123,6 +123,37 @@ class LeaveRequestController extends Controller
             }
             return back()->with('flash_success', 'Emergency leave auto-approved.');
         }
+        // Owner order 2026-10-29 (live report): a NORMAL leave
+        // submission belled nobody — the teacher applied and the
+        // Admin saw nothing. Bell everyone who can decide this
+        // leave: for a student, the section teacher plus Admin and
+        // Principal; for staff, Admin and Principal (never the
+        // applicant themself). Same swallow rule as the emergency
+        // path: a bell failure must never 500 the submission.
+        try {
+            $me = Auth::user();
+            $title = 'New leave request: ' . $me->name;
+            $body = $me->name . ' applied for leave from '
+                . \Carbon\Carbon::parse($data['start_date'])->format('d/m/Y')
+                . ' to ' . \Carbon\Carbon::parse($data['end_date'])->format('d/m/Y')
+                . '. Reason: ' . $data['reason'];
+            if ($me->user_type === 'student') {
+                $record = StudentRecord::where('user_id', $me->id)
+                    ->where('grad', 0)->orderByDesc('id')->first();
+                if ($record && $record->section && $record->section->teacher_id) {
+                    Notify::toUser($record->section->teacher_id, 'leave_submitted', $title, $body, route('leave.student_requests'));
+                }
+                foreach (User::whereIn('user_type', ['admin', 'principal'])->pluck('id') as $adminId) {
+                    Notify::toUser($adminId, 'leave_submitted', $title, $body, route('leave.index'));
+                }
+            } else {
+                foreach (User::whereIn('user_type', ['admin', 'principal'])->where('id', '!=', $me->id)->pluck('id') as $adminId) {
+                    Notify::toUser($adminId, 'leave_submitted', $title, $body, route('leave.index'));
+                }
+            }
+        } catch (\Throwable $e) {
+            // Bell only — the submission stands regardless.
+        }
         $approver = Auth::user()->user_type === 'student'
             ? 'your class teacher will approve or reject it.'
             : 'the Admin will approve or reject it.';

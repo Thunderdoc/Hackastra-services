@@ -189,9 +189,27 @@
                 $lavRecentPayments = \App\Models\PaymentRecord::with('payment')->latest()->take(4)->get();
                 $lavRecentStudents = \App\Models\StudentRecord::with('user')->latest()->take(4)->get();
             @endphp
-            <div class="nav-item dropdown">
-                <button type="button" class="lav-topbar-icon" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="Recent activity" title="Recent activity"><i class="icon-bell2"></i>@if($lavBellBadge > 0)<span class="lav-bell-badge">{{ $lavBellBadge }}</span>@endif</button>
+            <div class="nav-item dropdown" id="lavNotifBell">
+                <button type="button" class="lav-topbar-icon" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="Recent activity" title="Recent activity" data-lav-badge-base="{{ $lavBellBadge - $lavUnreadNotifs }}"><i class="icon-bell2"></i>@if($lavBellBadge > 0)<span class="lav-bell-badge">{{ $lavBellBadge }}</span>@endif</button>
                 <div class="dropdown-menu dropdown-menu-right lav-notif-menu">
+                    {{-- Owner order 2026-10-29: the staff bell never
+                         listed the caller's OWN per-user notifications
+                         (leave requests, decisions, cover alerts) --
+                         the badge counted them but the menu showed
+                         only the school-wide events/activity feed, so
+                         staff could neither see nor clear them. Same
+                         list markup as the circulars branch. --}}
+                    @if($lavNotifications->isNotEmpty())
+                        <div class="dropdown-header">Notifications</div>
+                        @foreach($lavNotifications as $lavNotif)
+                            <a class="dropdown-item lav-notif-item" href="{{ $lavNotif->link ?: '#' }}">
+                                <i class="icon-file-text2"></i>
+                                <span>@if($lavNotif->isUnread())<strong>{{ $lavNotif->title }}</strong>@else{{ $lavNotif->title }}@endif<small>{{ $lavNotif->created_at->diffForHumans() }}@if($lavNotif->body) &middot; {{ \Illuminate\Support\Str::limit($lavNotif->body, 60) }}@endif</small></span>
+                                @if($lavNotif->isUnread())<span class="lav-event-tag">New</span>@endif
+                            </a>
+                        @endforeach
+                        <div class="dropdown-divider"></div>
+                    @endif
                     {{-- LOOP31-FIX10-REMINDERS-LIST (start): the teacher's
                          derived reminders, rendered distinctly with a
                          Reminder tag, above the recent-activity feed.
@@ -255,12 +273,39 @@
                     @endif
                 </div>
             </div>
+            @if($lavUnreadNotifs > 0)
+            <script>
+                // Owner order 2026-10-29: same clear rule as the
+                // circulars branch -- opening the staff bell marks the
+                // caller's own notifications read and the badge falls
+                // back to its non-notification base (today's events
+                // plus any feedback counts).
+                (function () {
+                    var wrap = document.getElementById('lavNotifBell');
+                    if (!wrap || !window.jQuery) { return; }
+                    window.jQuery(wrap).on('show.bs.dropdown', function () {
+                        var meta = document.querySelector('meta[name="csrf-token"]');
+                        fetch('{{ route('notifications.read') }}', {
+                            method: 'POST',
+                            credentials: 'same-origin',
+                            headers: { 'X-CSRF-TOKEN': meta ? meta.getAttribute('content') : '' }
+                        }).then(function () {
+                            var btn = wrap.querySelector('[data-lav-badge-base]');
+                            var badge = wrap.querySelector('.lav-bell-badge');
+                            if (!badge) { return; }
+                            var left = btn ? parseInt(btn.getAttribute('data-lav-badge-base') || '0', 10) : 0;
+                            if (left > 0) { badge.textContent = left; } else { badge.remove(); }
+                        }).catch(function () {});
+                    });
+                })();
+            </script>
+            @endif
         @else
             @php
                 $lavCirculars = \App\Models\Circular::published()->forAudience(Auth::user()->user_type)->latest()->take(4)->get();
             @endphp
             <div class="nav-item dropdown" id="lavNotifBell">
-                <button type="button" class="lav-topbar-icon" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="Circulars" title="Circulars" data-lav-events-today="{{ $lavEventsToday }}"><i class="icon-bell2"></i>@if($lavBellBadge > 0)<span class="lav-bell-badge">{{ $lavBellBadge }}</span>@endif</button>
+                <button type="button" class="lav-topbar-icon" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="Circulars" title="Circulars" data-lav-events-today="{{ $lavEventsToday }}" data-lav-badge-base="{{ $lavBellBadge - $lavUnreadNotifs }}"><i class="icon-bell2"></i>@if($lavBellBadge > 0)<span class="lav-bell-badge">{{ $lavBellBadge }}</span>@endif</button>
                 <div class="dropdown-menu dropdown-menu-right lav-notif-menu">
                     {{-- Workstream CZ (LMS): the caller's own
                          notifications (grades + internal pushes for
@@ -319,10 +364,10 @@
                             credentials: 'same-origin',
                             headers: { 'X-CSRF-TOKEN': meta ? meta.getAttribute('content') : '' }
                         }).then(function () {
-                            var btn = wrap.querySelector('[data-lav-events-today]');
+                            var btn = wrap.querySelector('[data-lav-badge-base]') || wrap.querySelector('[data-lav-events-today]');
                             var badge = wrap.querySelector('.lav-bell-badge');
                             if (!badge) { return; }
-                            var left = btn ? parseInt(btn.getAttribute('data-lav-events-today') || '0', 10) : 0;
+                            var left = btn ? parseInt(btn.getAttribute('data-lav-badge-base') || btn.getAttribute('data-lav-events-today') || '0', 10) : 0;
                             if (left > 0) { badge.textContent = left; } else { badge.remove(); }
                         }).catch(function () {});
                     });
