@@ -1277,6 +1277,9 @@ class TimeTableController extends Controller
                 // T3: the teacher's week also names the room —
                 // they need to know where to go, not just when.
                 'sub'   => trim($sectionSub($p) . ($p->room ? ' · ' . $p->room->name : '')),
+                // Signature documents: the subject's colour chip,
+                // the same identity the class print uses.
+                'color' => \App\Support\SubjectColor::forName(optional($p->subject)->name),
             ];
         }
 
@@ -2190,15 +2193,37 @@ class TimeTableController extends Controller
             $d_date = 'day';
         }
 
+        // Rooms for the whole record in ONE query (the print is
+        // the last document still missing them — the screen grid
+        // has named rooms since T3). Bulk map, never a lazy load
+        // per cell.
+        $roomNames = [];
+        $roomIds = $tts->pluck('room_id')->filter()->unique()->all();
+        if ($roomIds && \Illuminate\Support\Facades\Schema::hasTable('rooms')) {
+            $roomNames = \App\Models\Room::whereIn('id', $roomIds)->pluck('name', 'id')->all();
+        }
+
         foreach ($days as $day) {
             foreach ($tms as $tm) {
                 $cell = $tts->where('ts_id', $tm->id)->where($d_date, $day)->first();
                 $teacher = ($cell && $cell->subject) ? optional(SectionTeacher::teacherFor($ttr->section_id ?? null, $cell->subject))->name : null;
-                $d_time[] = ['day' => $day, 'time' => $tm->full, 'subject' => $cell->subject->name ?? null, 'teacher' => $teacher];
+                $subjectName = $cell->subject->name ?? null;
+                $d_time[] = [
+                    'day' => $day, 'time' => $tm->full, 'subject' => $subjectName, 'teacher' => $teacher,
+                    'room' => ($cell && $cell->room_id) ? ($roomNames[$cell->room_id] ?? null) : null,
+                    'color' => $subjectName ? \App\Support\SubjectColor::forName($subjectName) : null,
+                ];
             }
         }
 
         $d['d_time'] = collect($d_time);
+        // The class teacher of the record's section (sections carry
+        // their class teacher) — notice-board copies name them.
+        $d['class_teacher'] = null;
+        if ($ttr->section_id) {
+            $ttr->loadMissing('section.teacher');
+            $d['class_teacher'] = optional(optional($ttr->section)->teacher)->name;
+        }
         $d['s'] = Setting::all()->flatMap(function($s){
             return [$s->type => $s->description];
         });

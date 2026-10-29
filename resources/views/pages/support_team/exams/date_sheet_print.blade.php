@@ -45,6 +45,14 @@
         .ds-date { font-weight: bold; color: #10263b; white-space: nowrap; }
         .ds-na { color: #8a94a6; font-style: italic; }
         .ds-empty-note { text-align: center; color: #46586c; font-size: 13px; margin: 14px 0 2px; }
+        .ds-summary { text-align: center; color: #10263b; font-size: 13px; margin: 2px 0 0; }
+        /* Exam-day instructions (signature furniture, owner
+           2026-10-29): generic, true for every school — reporting
+           time, admit card, answer-sheet basics. Deliberately no
+           school-specific rules; the office's own rules ride the
+           Note column per subject. */
+        .ds-instructions { border: 1px solid #b9c6d4; background: #f4f7fb; padding: 10px 14px; margin-top: 16px; font-size: 12px; color: #33475e; line-height: 1.55; }
+        .ds-instructions strong { color: #10263b; text-transform: uppercase; letter-spacing: .08em; font-size: 11px; }
 
         /* Signatures + seal: same digital-docs contract as the report
            card — the stamp and the principal's signature render only
@@ -122,6 +130,17 @@
             <p class="ds-empty-note">No subjects are configured for this class yet, so there is no date sheet to publish.</p>
         @elseif($announced === 0)
             <p class="ds-empty-note">Dates for this exam have not been announced yet. The subjects below will carry their dates here as soon as the school office publishes them.</p>
+        @else
+            @php
+                $dsDated = $rows->filter(function ($r) { return !empty($r['entry']); })->values();
+                $dsFirst = $dsDated->first();
+                $dsLast = $dsDated->count() > 1 ? $dsDated->last() : null;
+            @endphp
+            <p class="ds-summary">
+                Papers: <strong>{{ $announced }}</strong>
+                @if($dsFirst) &middot; First exam: <strong>{{ $dsFirst['date_label'] }}</strong>@endif
+                @if($dsLast) &middot; Last exam: <strong>{{ $dsLast['date_label'] }}</strong>@endif
+            </p>
         @endif
 
         <div class="ds-wrap">
@@ -169,6 +188,15 @@
             </tbody>
         </table>
         </div>
+
+        @if($announced > 0)
+            <div class="ds-instructions">
+                <strong>Instructions</strong><br/>
+                Reach your exam room 15 minutes before the start time and carry your admit card.
+                Write your name, class, section and roll number on the answer sheet before you begin.
+                Use only the materials your teacher has allowed for that paper.
+            </div>
+        @endif
 
         <div class="ds-signatures">
             @if(!empty($school['stamp']))

@@ -52,16 +52,22 @@ class ReportSources
                 'label' => 'Students',
                 'roles' => ['teacher', 'admin'],
                 'columns' => [
-                    'roll_no' => ['Roll No', 'number', 8],
-                    'student' => ['Student', 'text', 26],
-                    'adm_no' => ['Admission No', 'text', 16],
-                    'class' => ['Class', 'text', 12],
-                    'section' => ['Section', 'text', 10],
-                    'gender' => ['Gender', 'text', 10],
-                    'dob' => ['Date of Birth', 'date', 12],
-                    'phone' => ['Phone', 'text', 14],
-                    'parent' => ['Parent/Guardian', 'text', 20],
-                    'house' => ['House', 'text', 10],
+                    // Shares rebalanced (owner screenshot, 2026-10-29):
+                    // "HA/PN/2026/42211" and "+91 98…" broke mid-token
+                    // and the "Roll No" header squeezed — long-token
+                    // columns (admission no, phone, DOB) get the room
+                    // from Student/Parent/House, whose text wraps
+                    // gracefully at spaces instead.
+                    'roll_no' => ['Roll No', 'number', 9],
+                    'student' => ['Student', 'text', 21],
+                    'adm_no' => ['Admission No', 'text', 21],
+                    'class' => ['Class', 'text', 9],
+                    'section' => ['Section', 'text', 9],
+                    'gender' => ['Gender', 'text', 9],
+                    'dob' => ['Date of Birth', 'date', 16],
+                    'phone' => ['Phone', 'text', 20],
+                    'parent' => ['Parent / Guardian', 'text', 15],
+                    'house' => ['House', 'text', 8],
                 ],
             ],
             'marks' => [

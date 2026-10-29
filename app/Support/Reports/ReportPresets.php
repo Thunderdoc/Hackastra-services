@@ -107,7 +107,7 @@ class ReportPresets
                         ['key' => 'class', 'label' => 'Class', 'type' => 'text', 'width' => 12],
                         ['key' => 'section', 'label' => 'Section', 'type' => 'text', 'width' => 8],
                         ['key' => 'phone', 'label' => 'Phone', 'type' => 'text', 'width' => 16],
-                        ['key' => 'parent', 'label' => 'Parent/Guardian', 'type' => 'text', 'width' => 22],
+                        ['key' => 'parent', 'label' => 'Parent / Guardian', 'type' => 'text', 'width' => 22],
                     ],
                     'options' => $std,
                     'instructions' => '',

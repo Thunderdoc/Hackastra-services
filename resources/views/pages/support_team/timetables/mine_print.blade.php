@@ -46,6 +46,7 @@
         td.tt-day, th.tt-day { text-align: left; white-space: nowrap; }
         .tt-empty { color: #999; }
         .tt-cell-sub { display: block; font-size: 11px; color: #5b6b7f; margin-top: 3px; }
+        .tt-chip { display: inline-block; width: 9px; height: 9px; border-radius: 3px; margin-right: 5px; vertical-align: baseline; }
         .tt-period { display: block; font-size: 10px; font-weight: normal; color: #5b6b7f; text-transform: uppercase; letter-spacing: .08em; margin-top: 2px; }
 
         .tt-genline { text-align: center; color: #718096; font-size: 9.5px; letter-spacing: .16em; text-transform: uppercase; margin-top: 14px; border-top: 1px solid #b9c6d4; padding-top: 8px; }
@@ -160,7 +161,7 @@
                             @else
                                 @php $cell = $map[$day][$ttCol['slot']->full] ?? null; @endphp
                                 @if($cell && !empty($cell['title']))
-                                    <td>{{ $cell['title'] }}@if(!empty($cell['sub']))<span class="tt-cell-sub">{{ $cell['sub'] }}</span>@endif</td>
+                                    <td>@if(!empty($cell['color']))<span class="tt-chip" style="background: {{ $cell['color'] }}"></span>@endif{{ $cell['title'] }}@if(!empty($cell['sub']))<span class="tt-cell-sub">{{ $cell['sub'] }}</span>@endif</td>
                                 @else
                                     <td class="tt-empty">Free</td>
                                 @endif

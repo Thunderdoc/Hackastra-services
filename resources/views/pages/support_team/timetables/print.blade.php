@@ -41,6 +41,17 @@
         table.tt { position: relative; z-index: 1; width: 100%; border-collapse: collapse; border: 1.5px solid #10263b; margin: 10px auto; }
         table.tt th, table.tt td { border: 1px solid #7d8fa6; padding: 20px 5px; text-align: center; font-size: 14px; }
         .tt-teacher { display: block; font-size: 11px; color: #5b6b80; font-weight: normal; margin-top: 3px; }
+        .tt-room { display: block; font-size: 11px; color: #5b6b80; font-weight: normal; }
+        /* Signature documents (owner, 2026-10-29): every subject
+           wears its own colour chip, identical on every document,
+           so a period is recognised at a glance from across the
+           staff room — and a subject legend + the class teacher's
+           name ride under the title band. */
+        .tt-chip { display: inline-block; width: 9px; height: 9px; border-radius: 3px; margin-right: 5px; vertical-align: baseline; }
+        .tt-metaline { width: 100%; border-collapse: collapse; margin: 2px 0 0; }
+        .tt-metaline td { vertical-align: top; padding: 2px 0; font-size: 11.5px; color: #46586c; }
+        .tt-metaline .tt-ct { text-align: right; white-space: nowrap; color: #10263b; }
+        .tt-legend-item { display: inline-block; margin-right: 12px; white-space: nowrap; }
         table.tt thead th { background: #eef2f7; color: #10263b; }
         td.tt-day, th.tt-day { text-align: left; white-space: nowrap; }
         table.tt th.tt-gap, table.tt td.tt-gap { background: #fdf6ec; font-weight: 700; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: #8a5a12; }
@@ -114,10 +125,29 @@
             // looked up from the controller's $d_time contract — a missing
             // entry prints "—" instead of shifting the row's cells left.
             $ttxMap = [];
+            $ttLegend = [];
             foreach ($d_time as $dt) {
-                $ttxMap[$dt['day']][$dt['time']] = ['subject' => $dt['subject'], 'teacher' => $dt['teacher'] ?? null];
+                $ttxMap[$dt['day']][$dt['time']] = ['subject' => $dt['subject'], 'teacher' => $dt['teacher'] ?? null, 'room' => $dt['room'] ?? null, 'color' => $dt['color'] ?? null];
+                if (!empty($dt['subject']) && !isset($ttLegend[$dt['subject']])) {
+                    $ttLegend[$dt['subject']] = $dt['color'] ?? null;
+                }
             }
         @endphp
+
+        @if($ttLegend || !empty($class_teacher))
+        <table class="tt-metaline">
+            <tr>
+                <td>
+                    @foreach($ttLegend as $ttSubjectName => $ttSubjectColor)
+                        <span class="tt-legend-item">@if($ttSubjectColor)<span class="tt-chip" style="background: {{ $ttSubjectColor }}"></span>@endif{{ $ttSubjectName }}</span>
+                    @endforeach
+                </td>
+                @if(!empty($class_teacher))
+                    <td class="tt-ct">Class Teacher: <strong>{{ $class_teacher }}</strong></td>
+                @endif
+            </tr>
+        </table>
+        @endif
 
         <div class="tt-wrap">
             {{-- Watermark (v2): uploaded logo, else the app-code monogram --}}
@@ -173,7 +203,7 @@
                             @else
                                 @php $cell = $ttxMap[$day][$ttPrintCol['slot']->full] ?? null; @endphp
                                 @if(!empty($cell['subject']))
-                                    <td>{{ $cell['subject'] }}@if(!empty($cell['teacher']))<span class="tt-teacher">{{ $cell['teacher'] }}</span>@endif</td>
+                                    <td>@if(!empty($cell['color']))<span class="tt-chip" style="background: {{ $cell['color'] }}"></span>@endif {{ $cell['subject'] }}@if(!empty($cell['teacher']))<span class="tt-teacher">{{ $cell['teacher'] }}</span>@endif @if(!empty($cell['room']))<span class="tt-room">{{ $cell['room'] }}</span>@endif</td>
                                 @else
                                     <td class="tt-empty">&mdash;</td>
                                 @endif

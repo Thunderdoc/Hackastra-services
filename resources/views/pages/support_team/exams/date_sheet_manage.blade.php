@@ -21,6 +21,25 @@
                 and save.</span>
             </div>
 
+            @if(!empty($selected) && !empty($sheet_health))
+                @if($sheet_health['clashes'] > 0)
+                    <div class="alert alert-danger border-0">
+                        <strong>Schedule needs attention:</strong>
+                        {{ $sheet_health['dated'] }} of {{ $sheet_health['total'] }} papers have dates
+                        @if($sheet_health['first']) ({{ $sheet_health['first'] }}@if($sheet_health['last'] && $sheet_health['last'] !== $sheet_health['first']) – {{ $sheet_health['last'] }}@endif)@endif
+                        — and <strong>{{ $sheet_health['clashes'] }} slot{{ $sheet_health['clashes'] === 1 ? '' : 's' }} hold{{ $sheet_health['clashes'] === 1 ? 's' : '' }} two papers at the same date and time</strong>. Change one paper's time in each shared slot before publishing.
+                    </div>
+                @elseif($sheet_health['dated'] > 0)
+                    <div class="alert alert-success border-0">
+                        <strong>Schedule looks clean:</strong>
+                        {{ $sheet_health['dated'] }} of {{ $sheet_health['total'] }} papers have dates
+                        @if($sheet_health['first']) ({{ $sheet_health['first'] }}@if($sheet_health['last'] && $sheet_health['last'] !== $sheet_health['first']) – {{ $sheet_health['last'] }}@endif)@endif
+                        and no two papers share a date and time.
+                        @if($sheet_health['dated'] < $sheet_health['total']) {{ $sheet_health['total'] - $sheet_health['dated'] }} paper(s) are still “Not announced”. @endif
+                    </div>
+                @endif
+            @endif
+
             {{-- Exam + class picker (GET, same pattern as Admit Cards) --}}
             <form method="get" action="{{ route('exam_dates.manage') }}">
                 <div class="pat-fields">

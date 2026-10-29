@@ -85,6 +85,24 @@ class ExamDateController extends Controller
                     });
                 $d['sheet_state'] = ExamDateSheetState::where('exam_id', $d['exam_id'])->where('my_class_id', $d['class_id'])->first();
                 $d['sheet_row_count'] = ExamDate::where('exam_id', $d['exam_id'])->where('my_class_id', $d['class_id'])->count();
+                // Schedule health line (signature pass, 2026-10-30):
+                // before anyone publishes, the Manage page itself
+                // says how complete and how clean the sheet is —
+                // dated count, the run of the exam, and any two
+                // papers sharing one date+time (the save refuses
+                // NEW clashes; ones saved earlier are reported
+                // here, never hidden).
+                $dated = $entries->values()->filter(function ($e) { return !empty($e->exam_date); });
+                $clashGroups = $dated->filter(function ($e) { return !empty($e->start_time); })
+                    ->groupBy(function ($e) { return $e->exam_date . '|' . substr((string) $e->start_time, 0, 5); })
+                    ->filter(function ($g) { return $g->count() > 1; });
+                $d['sheet_health'] = [
+                    'dated' => $dated->count(),
+                    'total' => $d['subjects']->count(),
+                    'first' => $dated->isEmpty() ? null : \Carbon\Carbon::parse($dated->min('exam_date'))->format('D, d M Y'),
+                    'last' => $dated->isEmpty() ? null : \Carbon\Carbon::parse($dated->max('exam_date'))->format('D, d M Y'),
+                    'clashes' => $clashGroups->count(),
+                ];
             }
         }
 
