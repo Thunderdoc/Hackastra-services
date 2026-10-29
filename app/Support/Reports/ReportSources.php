@@ -310,6 +310,14 @@ class ReportSources
         ];
     }
 
+    /** The library sources: the Librarian's domain. */
+    public const LIBRARY_SOURCES = ['books', 'issues', 'fines', 'library_summary'];
+
+    public static function isLibrarySource(string $source): bool
+    {
+        return in_array($source, self::LIBRARY_SOURCES, true);
+    }
+
     /** Source keys the given user type may use ([] for parent/student). */
     public static function allowedFor(string $userType): array
     {
@@ -321,6 +329,7 @@ class ReportSources
         // because no source listed 'principal' in its roles. The
         // platform source stays super_admin-only: its roles list is
         // untouched, and this mapping only renames the lookup key.
+        $isAdmin = $userType === 'admin';
         if ($userType === 'principal') {
             $userType = 'admin';
         }
@@ -329,6 +338,15 @@ class ReportSources
             if (in_array($userType, $def['roles'], true)) {
                 $out[] = $key;
             }
+        }
+        // Owner ruling (2026-10-25, completed 2026-10-29 evening —
+        // "library waha se pura hatao"): the library is the
+        // Librarian's alone, so the school Admin's builder loses
+        // the library sources too. The principal keeps the full
+        // admin-mapped set (the mapping above is deliberate and
+        // the ruling was about the Admin panel).
+        if ($isAdmin) {
+            $out = array_values(array_diff($out, self::LIBRARY_SOURCES));
         }
         return $out;
     }

@@ -124,10 +124,12 @@ class OwnerReportsRoleResweepRound28Test extends TestCase
         $this->actingAs($this->userByEmail('librarian@hackstra.app'))->get(route('reports.builder'))->assertForbidden();
         $this->actingAs($this->userByEmail('superadmin@hackstra.app'))->get(route('reports.builder'))->assertForbidden();
 
-        // Principal maps to admin exactly (ReportSources::allowedFor).
+        // Principal maps to admin (ReportSources::allowedFor) and
+        // additionally keeps the library sources the Admin lost in
+        // the 2026-10-29 library purge.
         $principalSources = $this->actingAs($this->userByEmail('principal@hackstra.app'))
             ->get(route('reports.builder'))->viewData('sources');
-        $this->assertEquals(ReportSources::allowedFor('admin'), array_keys($principalSources));
+        $this->assertEquals(ReportSources::allowedFor('principal'), array_keys($principalSources));
         $this->assertContains('students', array_keys($principalSources));
         $this->assertContains('staff', array_keys($principalSources));
         $this->assertContains('classes', array_keys($principalSources));

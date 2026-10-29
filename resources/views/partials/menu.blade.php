@@ -514,10 +514,13 @@
                         <a href="{{ route('classes.index') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['classes.index','classes.edit']) ? 'active' : '' }}"><i class="icon-windows2"></i> <span> Classes</span></a>
                     </li>
 
-                    {{--Manage Dorms--}}
-                    <li class="nav-item">
-                        <a href="{{ route('dorms.index') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['dorms.index','dorms.edit']) ? 'active' : '' }}"><i class="icon-home9"></i> <span> Dormitories</span></a>
-                    </li>
+                    {{-- Dormitories is out of the admin sidebar too
+                         (owner, 2026-10-29 evening: "jo bhi extra hai
+                         admin ke side usko bhi hatao") — the hostel
+                         belongs to the Hostel Warden, same as the
+                         Hostel/Transport/Inventory removals below.
+                         Link-only: the dorms routes stay for the
+                         student-record dorm fields. --}}
 
                     {{--Overnight menus (2026-10-29): Hostel, Transport
                         and Inventory are out of the admin sidebar —

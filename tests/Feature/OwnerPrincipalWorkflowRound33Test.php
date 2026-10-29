@@ -219,14 +219,19 @@ class OwnerPrincipalWorkflowRound33Test extends TestCase
             'config' => $this->classesConfig(),
         ]);
 
-        // Principal builder: same sources as admin (principal->admin
-        // mapping), platform absent. Admin has no builder HTTP surface
-        // since item 7, so the admin source list comes from the gate
-        // itself rather than an admin builder GET.
+        // Principal builder: the principal->admin mapping, platform
+        // absent — PLUS the library sources, which the Admin lost
+        // in the owner's 2026-10-29 library purge ("library waha
+        // se pura hatao" was about the Admin panel; the Principal
+        // keeps the full mapped set).
         $builder = $this->actingAs($principal)->get(route('reports.builder'))->assertOk();
         $adminSources = ReportSources::allowedFor('admin');
         $principalSources = $builder->viewData('sources');
-        $this->assertSame($adminSources, array_keys($principalSources));
+        $this->assertSame(ReportSources::allowedFor('principal'), array_keys($principalSources));
+        foreach (ReportSources::LIBRARY_SOURCES as $lib) {
+            $this->assertContains($lib, array_keys($principalSources));
+            $this->assertNotContains($lib, $adminSources);
+        }
         $this->assertNotContains('platform', array_keys($principalSources));
         $this->assertNotContains($adminTemplate->id, collect($builder->viewData('templates'))->pluck('id')->all());
 

@@ -542,6 +542,7 @@ class ReportPresets
         // Limited principal role (owner order 2026-10-28): the
         // principal sees the Admin's school presets (the platform
         // source stays super_admin-only in ReportSources).
+        $isAdmin = $userType === 'admin';
         if ($userType === 'principal') {
             $userType = 'admin';
         }
@@ -550,6 +551,15 @@ class ReportPresets
             if (in_array($userType, $preset['roles'], true)) {
                 $out[] = $preset;
             }
+        }
+        // Owner ruling (library out of Admin completely): the
+        // Admin's preset list drops the library-source presets,
+        // mirroring ReportSources::allowedFor. Principal keeps
+        // the full admin-mapped list.
+        if ($isAdmin) {
+            $out = array_values(array_filter($out, function ($preset) {
+                return !ReportSources::isLibrarySource($preset['source']);
+            }));
         }
         return $out;
     }

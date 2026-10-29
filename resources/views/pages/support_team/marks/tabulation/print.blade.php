@@ -67,6 +67,21 @@
     } else {
         $tabPages[] = $tabRest;
     }
+    // No orphan last page (owner ask 2026-10-29): the greedy
+    // split can leave the final page carrying a single student
+    // (41 students printed as 21 + 19 + 1), so the summary and
+    // the Examination Officer / Principal signatures sit almost
+    // alone on a near-empty page. When the last page is a stub,
+    // rebalance the last two pages so both end well-filled
+    // within their caps (21 for a plain page, 19 for the last).
+    $tabPageCount = count($tabPages);
+    if ($tabPageCount >= 2 && $tabPages[$tabPageCount - 1]->count() < 8) {
+        $tabCombined = $tabPages[$tabPageCount - 2]->concat($tabPages[$tabPageCount - 1])->values();
+        $tabLastSize = max((int) ceil($tabCombined->count() / 2), $tabCombined->count() - 21);
+        $tabLastSize = min(19, $tabLastSize);
+        $tabPages[$tabPageCount - 2] = $tabCombined->take($tabCombined->count() - $tabLastSize);
+        $tabPages[$tabPageCount - 1] = $tabCombined->slice($tabCombined->count() - $tabLastSize)->values();
+    }
     $tabRow = 0;
 @endphp
 <div class="tab-doc">
