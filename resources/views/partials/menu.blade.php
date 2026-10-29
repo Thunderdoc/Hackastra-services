@@ -96,9 +96,11 @@
                         <li class="nav-item"><a href="{{ route('tt.mine') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['tt.mine']) ? 'active' : '' }}">My Timetable</a></li>
                     </ul>
                 </li>
-                {{-- Workstream CS2 (LMS, owner-ordered module): new items
-                     only — nothing existing moved, renamed or removed. --}}
-                <li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Learning</div><i class="icon-menu" title="Learning"></i></li>
+                {{-- Workstream CS2 (LMS, owner-ordered module).
+                     Owner order 2026-10-29: the group is named LMS
+                     and Quizzes lives inside it with Assignments and
+                     Study Materials (moved from below, same route). --}}
+                <li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">LMS</div><i class="icon-menu" title="LMS"></i></li>
                 <li class="nav-item">
                     <a href="{{ route('assignments.index') }}" class="nav-link {{ (Route::is('assignments.*')) ? 'active' : '' }}">
                         <i class="icon-file-text2"></i>
@@ -109,6 +111,12 @@
                     <a href="{{ route('materials.index') }}" class="nav-link {{ (Route::is('materials.*')) ? 'active' : '' }}">
                         <i class="icon-book"></i>
                         <span>Study Materials</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('quizzes.index') }}" class="nav-link {{ (Route::is('quizzes.*')) ? 'active' : '' }}">
+                        <i class="icon-file-text2"></i>
+                        <span>Quizzes</span>
                     </a>
                 </li>
                 <li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Students</div><i class="icon-menu" title="Students"></i></li>
@@ -163,12 +171,6 @@
                     <a href="{{ route('analytics.index') }}" class="nav-link {{ (Route::is('analytics.*')) ? 'active' : '' }}">
                         <i class="icon-stats-bars"></i>
                         <span>Analytics Dashboard</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="{{ route('quizzes.index') }}" class="nav-link {{ (Route::is('quizzes.*')) ? 'active' : '' }}">
-                        <i class="icon-file-text2"></i>
-                        <span>Quizzes</span>
                     </a>
                 </li>
                 {{-- Overnight menus (2026-10-29): the teacher menu no

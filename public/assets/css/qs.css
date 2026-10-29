@@ -4731,6 +4731,7 @@ html.hk-dark .att-low-badge-risk{background:rgba(151,89,15,.28);color:#f3cd8d}
   .att-low-print-wrap{display:block!important}
   .att-low-print-table{font-size:11px!important}
   .att-low-print-table th,.att-low-print-table td{line-height:1.35!important;padding:4px 8px!important}
+  .att-low-print-table .att-low-band-row th{background:#fff!important;border:none!important;padding:0!important;text-align:left!important}
   .att-low-print-note{color:#44546a;font-size:10px!important;margin-top:8px}
 }/* Loop 91 repair: this @media block was never closed; every later loop nested inside it and never applied on screen. *//* ============================================================
    Loop 82 — Assignments + Study Materials redesign (LMS pass,

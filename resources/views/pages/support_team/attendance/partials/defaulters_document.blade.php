@@ -21,6 +21,7 @@
     .dfd-subtitle{text-align:center;color:#44546a;font-size:12.5px;margin-bottom:10px;}
     .dfd-table{width:100%;}
     .dfd-table th{background:#10263b;color:#fff;font-size:11px;text-align:left;padding:6px 8px;}
+    .dfd-table .dfd-band-row>th{background:#fff;color:#172536;font-size:12.5px;font-weight:400;padding:0;border:none;}
     .dfd-table td{border-bottom:1px solid #dbe3ec;padding:5px 8px;font-size:12px;}
     .dfd-foot{margin-top:14px;color:#718096;font-size:10.5px;text-align:center;}
     .dfd-pill{display:inline-block;padding:1px 8px;border-radius:20px;font-size:10.5px;font-weight:700;}
@@ -28,28 +29,33 @@
     .dfd-p-risk{background:#fdf3e0;color:#9a6a00;}
 </style>
 <div class="dfd-doc">
-    <table class="dfd-head">
-        <tr>
-            <td style="width:72px;vertical-align:middle">
-                @if($dfLogo)
-                    <img class="dfd-logo-img" src="{{ $dfLogo }}" alt="">
-                @else
-                    <span class="dfd-logo-tile">{{ $school['initials'] }}</span>
-                @endif
-            </td>
-            <td style="vertical-align:middle">
-                <div class="dfd-school">{{ $school['name'] }}</div>
-                @if($school['address'])<div class="dfd-addr">{{ $school['address'] }}</div>@endif
-                <div class="dfd-contact">{{ $school['phone'] }}@if($school['email']) · {{ $school['email'] }}@endif</div>
-            </td>
-        </tr>
-    </table>
-
-    <div class="dfd-title">Low Attendance Report</div>
-    <div class="dfd-subtitle">{{ $month->format('F Y') }} · Below {{ $threshold }}% · {{ $selected_class ? $selected_class->name : 'All Classes' }} · {{ $rows->count() }} student{{ $rows->count() === 1 ? '' : 's' }}</div>
-
     <table class="dfd-table">
-        <thead><tr><th>#</th><th>Student</th><th>Admission No</th><th>Class</th><th>Section</th><th>Present</th><th>Absent</th><th>Late</th><th>Periods</th><th>Attendance %</th><th>Status</th></tr></thead>
+        <thead>
+        {{-- Owner order 2026-10-29: the school band and the report
+             title ride the thead, so dompdf repeats them at the top
+             of EVERY page instead of page 1 only. --}}
+        <tr class="dfd-band-row"><th colspan="11">
+            <table class="dfd-head">
+                <tr>
+                    <td style="width:72px;vertical-align:middle">
+                        @if($dfLogo)
+                            <img class="dfd-logo-img" src="{{ $dfLogo }}" alt="">
+                        @else
+                            <span class="dfd-logo-tile">{{ $school['initials'] }}</span>
+                        @endif
+                    </td>
+                    <td style="vertical-align:middle">
+                        <div class="dfd-school">{{ $school['name'] }}</div>
+                        @if($school['address'])<div class="dfd-addr">{{ $school['address'] }}</div>@endif
+                        <div class="dfd-contact">{{ $school['phone'] }}@if($school['email']) · {{ $school['email'] }}@endif</div>
+                    </td>
+                </tr>
+            </table>
+            <div class="dfd-title">Low Attendance Report</div>
+            <div class="dfd-subtitle">{{ $month->format('F Y') }} · Below {{ $threshold }}% · {{ $selected_class ? $selected_class->name : 'All Classes' }} · {{ $rows->count() }} student{{ $rows->count() === 1 ? '' : 's' }}</div>
+        </th></tr>
+        <tr><th>#</th><th>Student</th><th>Admission No</th><th>Class</th><th>Section</th><th>Present</th><th>Absent</th><th>Late</th><th>Periods</th><th>Attendance %</th><th>Status</th></tr>
+        </thead>
         <tbody>
         @forelse($rows as $i => $row)
             <tr>

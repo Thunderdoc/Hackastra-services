@@ -32,6 +32,12 @@
         }
         if ($dbInitials === '') { $dbInitials = 'S'; }
     @endphp
+    {{-- Print band (owner order 2026-10-29: header on EVERY page).
+         With rows present, the band rides the print table's thead
+         (see the print table below), which the browser repeats on
+         every page; this standalone copy covers only the
+         empty-result print, where there is no table to carry it. --}}
+    @if($rows->isEmpty())
     <div class="print-doc-head">
         @if(Qs::getSetting('logo'))
             <img src="{{ Qs::getSetting('logo') }}" alt="">
@@ -43,6 +49,7 @@
             <p>Low Attendance (Below {{ $threshold }}%) &mdash; {{ $filterLine }} &middot; {{ $summary['below'] }} student(s) below the line &middot; {{ $summary['critical'] }} critical (below 50%) &middot; Average {{ $avgLabel }}</p>
         </div>
     </div>
+    @endif
     @if(Qs::getSetting('logo'))
         <img class="print-doc-watermark" src="{{ Qs::getSetting('logo') }}" alt="">
     @else
@@ -254,6 +261,25 @@
             <div class="att-low-print-wrap">
                 <table class="table att-low-print-table">
                     <thead>
+                    {{-- Owner order 2026-10-29: the school band rides
+                         the thead, so the browser repeats it (with
+                         the column row) at the top of EVERY printed
+                         page instead of page 1 only. --}}
+                    <tr class="att-low-band-row">
+                        <th colspan="11">
+                            <div class="print-doc-head">
+                                @if(Qs::getSetting('logo'))
+                                    <img src="{{ Qs::getSetting('logo') }}" alt="">
+                                @else
+                                    <span class="print-doc-mono" aria-hidden="true">{{ $dbInitials }}</span>
+                                @endif
+                                <div>
+                                    <h1>{{ Qs::getSystemName() }}</h1>
+                                    <p>Low Attendance (Below {{ $threshold }}%) &mdash; {{ $filterLine }} &middot; {{ $summary['below'] }} student(s) below the line &middot; {{ $summary['critical'] }} critical (below 50%) &middot; Average {{ $avgLabel }}</p>
+                                </div>
+                            </div>
+                        </th>
+                    </tr>
                     <tr>
                         <th style="width:34px">#</th>
                         <th>Student</th>

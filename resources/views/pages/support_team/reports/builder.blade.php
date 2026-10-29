@@ -19,6 +19,8 @@
     .rb-status { font-size: 13px; color: #4a5a6e; margin: 0 0 10px; line-height: 1.5; }
     .rb-status.rb-status-error { color: #b42318; }
     .rb-loading { font-size: 13px; color: #1765f5; margin: 0 0 10px; }
+    .rb-adv summary { cursor: pointer; font-weight: 600; color: #10263b; outline: none; }
+    .rb-adv summary::-webkit-details-marker { color: #718096; }
     @media (min-width: 992px) { .rb-preview-card { position: sticky; top: 20px; } }
     @media (max-width: 991px) { #previewFrame { height: 480px; } }
 </style>
@@ -116,10 +118,6 @@
                         <small class="form-text text-muted">Source-specific: overdue, issued, partial, …</small>
                     </div>
                 </div>
-                <div class="form-group">
-                    <label>Instructions (printed at the top of the document)</label>
-                    <textarea id="rbInstructions" class="form-control" rows="2" maxlength="500"></textarea>
-                </div>
             </div>
         </div>
 
@@ -162,8 +160,11 @@
         </div>
 
         <div class="card">
-            <div class="card-header"><h5 class="card-title mb-0">Layout &amp; options</h5></div>
+            <div class="card-header"><h5 class="card-title mb-0">Options</h5></div>
             <div class="card-body">
+                <details class="rb-adv">
+                    <summary>More options — layout, print &amp; instructions</summary>
+                    <div class="mt-3">
                 <div class="form-row">
                     <div class="form-group col-md-4">
                         <label>Orientation</label>
@@ -189,11 +190,13 @@
                 <div class="form-check"><input type="checkbox" id="rbShowMeta" class="form-check-input" checked> <label class="form-check-label" for="rbShowMeta">Include class / subject details</label></div>
                 <div class="form-check"><input type="checkbox" id="rbShowFooter" class="form-check-input" checked> <label class="form-check-label" for="rbShowFooter">Include generation date + page numbers</label></div>
                 <div class="form-check"><input type="checkbox" id="rbShowSignatures" class="form-check-input"> <label class="form-check-label" for="rbShowSignatures">Include signature lines</label></div>
-                <hr>
-                <div class="form-group">
-                    <button type="button" id="rbPreviewBtn" class="btn btn-light mr-2">Preview</button>
-                    <button type="button" id="rbPdfBtn" class="btn btn-primary">Generate PDF</button>
+                <div class="form-group mt-3">
+                    <label>Instructions (printed at the top of the document)</label>
+                    <textarea id="rbInstructions" class="form-control" rows="2" maxlength="500"></textarea>
                 </div>
+                    </div>
+                </details>
+                <hr>
                 <div class="form-row align-items-end">
                     <div class="form-group col-8">
                         <label>Save as my template</label>
@@ -236,21 +239,29 @@
 
     <div class="col-lg-7 rb-preview">
         <div class="card rb-preview-card">
-            <div class="card-header"><h5 class="card-title mb-0">Live preview</h5></div>
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Live preview</h5>
+                <span>
+                    <button type="button" id="rbPreviewBtn" class="btn btn-light btn-sm mr-2">Preview</button>
+                    <button type="button" id="rbPdfBtn" class="btn btn-primary btn-sm">Generate PDF</button>
+                </span>
+            </div>
             <div class="card-body">
                 <p class="text-muted">Preview shows the real PDF — the exact document the download produces, with true pagination.</p>
                 {{-- Live preview states (builder redesign 2026-10-29):
                      status line (ready / draft problem / error),
                      loading indicator while the PDF loads, then the
-                     frame itself. The frame starts blank on purpose:
-                     the default draft has no title yet, so there is
-                     nothing valid to preview until one is typed. --}}
-                <p id="rbPreviewStatus" class="rb-status" role="status">Enter a report title to start the live preview.</p>
+                     frame itself. The preview loads on its own when
+                     the page opens (owner order 2026-10-29: no click
+                     needed) — the title starts pre-filled with the
+                     selected list's name, so the first draft is
+                     already valid; typing a title takes over. --}}
+                <p id="rbPreviewStatus" class="rb-status" role="status">Loading the live preview…</p>
                 <p id="rbPreviewLoading" class="rb-loading" style="display:none;">Updating preview…</p>
                 <div class="rb-preview-wrap">
                     <iframe id="previewFrame" name="previewFrame" src="about:blank"></iframe>
                 </div>
-                <p class="text-muted mt-2 mb-0">The preview updates automatically as you change settings. If there are no rows for the selected filters, the preview document itself says so — no sample records are ever shown.</p>
+                <p class="text-muted mt-2 mb-0">The preview updates on its own as you type or change any setting — no click needed. If there are no rows for the selected filters, the preview document itself says so — no sample records are ever shown.</p>
             </div>
         </div>
     </div>
@@ -287,14 +298,34 @@
 
     /* Live preview (builder redesign 2026-10-29): the preview
        auto-updates from the SAME config as the download, debounced
-       600ms so typing does not hammer the server with a PDF render
-       per keystroke. Incomplete drafts never reach the server: the
-       panel above the frame explains what is missing instead of
-       showing a server error for a draft the user is still typing.
-       The manual Preview button still works as a fallback. */
+       350ms so typing does not hammer the server with a PDF render
+       per keystroke, while still feeling live as you type
+       (owner order 2026-10-29). Incomplete drafts never reach the
+       server: the panel above the frame explains what is missing
+       instead of showing a server error for a draft the user is
+       still typing. The manual Preview button still works as a
+       fallback. */
     var previewTimer = null;
     var previewRequested = false;
     var previewLoadGuard = null;
+    /* Auto title (owner order 2026-10-29: the preview must appear
+       without any click): the engine requires a title, so until the
+       user types their own, the title follows the selected source's
+       name and the first preview loads with the page. Typing in the
+       box takes over instantly; presets and templates set their own
+       title and are never overwritten. */
+    var autoTitle = '';
+    var titleTouched = false;
+    function sourceLabel() {
+        var s = SOURCES[el('rbSource').value];
+        return s ? s.label : 'Report';
+    }
+    function ensureAutoTitle() {
+        var t = el('rbTitle');
+        if (titleTouched && t.value.trim() && t.value !== autoTitle) { return; }
+        t.value = sourceLabel();
+        autoTitle = t.value;
+    }
     function previewDraftProblem(cfg) {
         if (!cfg.title.trim()) { return 'Enter a report title to start the live preview.'; }
         if (!cfg.columns.length) { return 'Add at least one column to start the live preview.'; }
@@ -316,7 +347,8 @@
     }
     function schedulePreview() {
         if (previewTimer) { clearTimeout(previewTimer); }
-        previewTimer = setTimeout(runPreview, 600);
+        setPreviewLoading(true);
+        previewTimer = setTimeout(runPreview, 350);
     }
     function runPreview() {
         previewTimer = null;
@@ -383,7 +415,7 @@
             inp.className = 'form-control form-control-sm';
             inp.value = col.label;
             inp.maxLength = 60;
-            inp.addEventListener('input', function () { col.label = inp.value; renderTotals(); renderSort(); });
+            inp.addEventListener('input', function () { col.label = inp.value; renderTotals(); renderSort(); schedulePreview(); });
             tdLabel.appendChild(inp);
             var tdType = document.createElement('td');
             if (isCustomKey(col.key)) {
@@ -396,7 +428,7 @@
                     if (t === col.type) { o.selected = true; }
                     sel.appendChild(o);
                 });
-                sel.addEventListener('change', function () { col.type = sel.value; renderTotals(); });
+                sel.addEventListener('change', function () { col.type = sel.value; renderTotals(); schedulePreview(); });
                 tdType.appendChild(sel);
             } else {
                 tdType.textContent = col.type;
@@ -408,7 +440,7 @@
             winp.min = 1;
             winp.max = 100;
             winp.value = col.width;
-            winp.addEventListener('input', function () { col.width = parseInt(winp.value, 10) || 10; });
+            winp.addEventListener('input', function () { col.width = parseInt(winp.value, 10) || 10; schedulePreview(); });
             tdWidth.appendChild(winp);
             var tdAct = document.createElement('td');
             tdAct.style.whiteSpace = 'nowrap';
@@ -486,6 +518,7 @@
             });
             sel.addEventListener('change', function () {
                 if (sel.value) { totals[col.key] = sel.value; } else { delete totals[col.key]; }
+                schedulePreview();
             });
             selWrap.appendChild(sel);
             row.appendChild(lab);
@@ -510,7 +543,7 @@
             sel.appendChild(o);
         });
         sortKey = sel.value;
-        sel.addEventListener('change', function () { sortKey = sel.value; });
+        sel.addEventListener('change', function () { sortKey = sel.value; schedulePreview(); });
     }
     function collectConfig() {
         var filters = {};
@@ -573,6 +606,9 @@
         if (!cfg) { return; }
         if (cfg.source && SOURCES[cfg.source]) { el('rbSource').value = cfg.source; }
         el('rbTitle').value = cfg.title || '';
+        titleTouched = !!el('rbTitle').value.trim();
+        autoTitle = '';
+        if (!titleTouched) { ensureAutoTitle(); }
         el('rbSubtitle').value = cfg.subtitle || '';
         el('rbInstructions').value = cfg.instructions || '';
         var f = cfg.filters || {};
@@ -617,8 +653,10 @@
         el('rbMarksHint').style.display = el('rbSource').value === 'marks' ? '' : 'none';
     }
 
+    el('rbTitle').addEventListener('input', function () { titleTouched = true; });
     el('rbSource').addEventListener('change', function () {
         updateMarksHint();
+        ensureAutoTitle();
         applySourceColumns(el('rbSource').value);
     });
     el('rbClass').addEventListener('change', function () {
@@ -717,6 +755,7 @@
     });
 
     updateMarksHint();
+    ensureAutoTitle();
     applySourceColumns(el('rbSource').value);
 })();
 </script>
