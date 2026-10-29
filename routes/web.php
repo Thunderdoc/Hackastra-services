@@ -119,6 +119,11 @@ Route::group(['middleware' => 'auth'], function () {
             Route::get('/', 'StaffAttendanceController@index')->name('staff_attendance.index');
             Route::post('/', 'StaffAttendanceController@store')->name('staff_attendance.store');
         });
+        /* Settings unlock requests — the two-stage approval page
+           shared by Admin (his requests), Principal (stage 1) and
+           Super Admin (stage 2, allowlisted in PlatformOnly). */
+        Route::get('settings-unlock-requests', 'SettingsLockController@index')->name('settings_unlock.index');
+        Route::post('settings-unlock-requests/{unlock_request}/decide', 'SettingsLockController@decide')->name('settings_unlock.decide');
         Route::group(['prefix' => 'leave'], function(){
             Route::get('my', 'LeaveRequestController@myIndex')->name('leave.my');
             Route::post('my', 'LeaveRequestController@store')->name('leave.store');
@@ -791,6 +796,11 @@ Route::group(['namespace' => 'SuperAdmin','middleware' => 'teamSA', 'prefix' => 
 
     Route::get('/settings', 'SettingController@index')->name('settings');
     Route::put('/settings', 'SettingController@update')->name('settings.update');
+    /* Settings lock (owner order 2026-10-29): the Admin locks the
+       settings and files the written unlock request from here;
+       the two-stage decision lives on the shared requests page. */
+    Route::post('/settings/lock', '\App\Http\Controllers\SupportTeam\SettingsLockController@lock')->name('settings.lock');
+    Route::post('/settings/unlock-request', '\App\Http\Controllers\SupportTeam\SettingsLockController@requestUnlock')->name('settings.unlock_request');
 
     /*************** AI Assistant + Knowledge Base (Workstream DH) *****************/
     /* The ai_* keys are platform configuration: AiSettingsController

@@ -94,11 +94,23 @@ class SettingController extends Controller
             'chunks' => \App\Models\RagChunk::count(),
         ];
 
+        /* Settings lock state for the lock card on the page. */
+        $d['settings_locked'] = \App\Support\SettingsLock::isLocked();
+        $d['settings_open_request'] = \App\Support\SettingsLock::openRequest();
+
         return view('pages.super_admin.settings', $d);
     }
 
     public function update(SettingUpdate $req)
     {
+        /* Settings lock (owner order 2026-10-29): once the Admin
+           locks the school settings, no settings save lands until
+           a written unlock request has been approved by the
+           Principal and then the Super Admin. The Super Admin's
+           own platform keys are not the school lock's business. */
+        if (\App\Support\SettingsLock::isLocked() && !Qs::userIsSuperAdmin()) {
+            return back()->with('flash_danger', \App\Support\SettingsLock::LOCKED_MESSAGE);
+        }
         /* Field-ownership split (see the constants above): an Admin's
            save may not carry platform keys; a Super Admin's save may
            not carry school keys (SA reads school settings, the school

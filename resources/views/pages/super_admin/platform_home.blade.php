@@ -37,6 +37,7 @@
             ['label' => 'Platform Accounts', 'value' => number_format($total_users), 'sub' => 'Super Admins + School Admins · ' . number_format($signed_in_this_week) . ' signed in this week' . (($suspended_users || $terminated_users) ? ' · ' . number_format($suspended_users) . ' suspended · ' . number_format($terminated_users) . ' terminated' : ''), 'icon' => 'icon-users4', 'tone' => 'blue', 'link' => route('users.index')],
             ['label' => 'Audit Entries Today', 'value' => number_format($audit_today), 'sub' => 'Recorded actions today', 'icon' => 'icon-shield-check', 'tone' => 'green', 'link' => route('audit_logs.index')],
             ['label' => 'Audit Entries This Week', 'value' => number_format($audit_week), 'sub' => 'Since ' . $audit_week_from->format('l, d M'), 'icon' => 'icon-stats-bars', 'tone' => 'orange', 'link' => route('audit_logs.index')],
+            ['label' => 'Settings Unlock Waiting', 'value' => number_format($settings_unlock_waiting ?? 0), 'sub' => 'School settings unlock requests the Principal has approved — your final decision', 'icon' => 'icon-lock2', 'tone' => 'orange', 'link' => route('settings_unlock.index')],
         ] as $stat)
             <div class="col-sm-6 col-xl-3">
                 @if($stat['link'])<a href="{{ $stat['link'] }}" class="dashboard-stat-card dashboard-stat-{{ $stat['tone'] }}">@else<div class="dashboard-stat-card dashboard-stat-{{ $stat['tone'] }}">@endif

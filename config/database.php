@@ -52,6 +52,13 @@ return [
             'prefix' => '',
             'strict' => true,
             'engine' => null,
+            /* TLS for external MySQL hosts that require it (e.g.
+               TiDB Cloud Serverless): DB_SSL_MODE=required in the
+               host dashboard turns it on; unset = plain connection
+               (the bundled demo database and local development). */
+            'options' => env('DB_SSL_MODE') === 'required' && extension_loaded('pdo_mysql')
+                ? [PDO::MYSQL_ATTR_SSL_CA => env('DB_SSL_CA', '/etc/ssl/certs/ca-certificates.crt')]
+                : [],
         ],
 
         'pgsql' => [

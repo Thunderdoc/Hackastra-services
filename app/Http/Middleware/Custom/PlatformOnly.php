@@ -39,6 +39,11 @@ class PlatformOnly
         // School Feedback inbox — forwarded reports only (Workstream
         // CW); the controller 404s anything not forwarded to the SA.
         'feedback.sa_index', 'feedback.sa_show', 'feedback.sa_update', 'feedback.sa_bulk_close',
+        // Settings unlock approvals (owner order 2026-10-29): the
+        // Super Admin is the FINAL approver of a school settings
+        // unlock — the requests page and its decide action are
+        // platform decisions, the same pattern as SA feedback.
+        'settings_unlock.index', 'settings_unlock.decide',
         // Platform Mail (Workstream DF): SA-to-users mail + sent log.
         'platform_mail.create', 'platform_mail.send', 'platform_mail.index',
         // User lifecycle actions (Workstream DF) — platform accounts.

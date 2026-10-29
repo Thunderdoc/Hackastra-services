@@ -15,6 +15,41 @@
     <div class="alert alert-info border-0">You are viewing the school's settings read-only. The school Admin manages these; platform administration lives on the Platform Overview.</div>
     <fieldset disabled="disabled">
     @endif
+
+    {{-- Settings lock (owner order 2026-10-29): the Admin locks the
+         school's configuration when it is final; editing reopens
+         only through a written request the Principal approves and
+         the Super Admin finally approves. --}}
+    @if(!Qs::userIsSuperAdmin())
+        @if(!empty($settings_locked))
+            <div class="alert alert-warning border-0">
+                <strong><i class="icon-lock2 mr-1"></i> Settings are locked.</strong>
+                Editing is closed. To make changes, send a written unlock request — the Principal will review it first, then the Super Admin takes the final decision. You will be notified when it is decided.
+                @if(!empty($settings_open_request))
+                    <div class="mt-2"><strong>Your request is {{ $settings_open_request->statusLabel() }}:</strong> “{{ $settings_open_request->changes }}”</div>
+                @else
+                    <form method="post" action="{{ route('settings.unlock_request') }}" class="mt-2">
+                        @csrf
+                        <div class="form-group">
+                            <label for="unlock_changes">What changes do you want to make, and why? <span class="text-danger">*</span></label>
+                            <textarea id="unlock_changes" name="changes" class="form-control" rows="3" maxlength="2000" required placeholder="e.g. Change the school phone number and the current session dates — the office number changed and the term starts a week earlier."></textarea>
+                        </div>
+                        <button class="btn btn-warning"><i class="icon-paperplane mr-1"></i> Send unlock request to the Principal</button>
+                    </form>
+                @endif
+            </div>
+            <fieldset disabled="disabled">
+        @else
+            <div class="alert alert-light border">
+                <strong><i class="icon-unlocked2 mr-1"></i> Settings are open for editing.</strong>
+                When the school's configuration is final, lock it — afterwards, changes need a written request approved by the Principal and the Super Admin.
+                <form method="post" action="{{ route('settings.lock') }}" class="mt-2" data-confirm="Lock the settings? Editing will close until an unlock request is approved by the Principal and the Super Admin." data-confirm-title="Lock Settings" data-confirm-action="Lock settings">
+                    @csrf
+                    <button class="btn btn-primary btn-sm"><i class="icon-lock2 mr-1"></i> Lock settings</button>
+                </form>
+            </div>
+        @endif
+    @endif
     @component('partials.patterns.form_page', [
         'form_action'  => route('settings.update'),
         'form_method'  => 'PUT',
@@ -365,6 +400,9 @@
     });
     </script>
     @if(Qs::userIsSuperAdmin())
+    </fieldset>
+    @endif
+    @if(!Qs::userIsSuperAdmin() && !empty($settings_locked))
     </fieldset>
     @endif
 

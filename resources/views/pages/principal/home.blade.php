@@ -165,7 +165,21 @@ html.hk-dark .pr-wrap .pr-card h5{color:#10263b}
                     </tbody>
                 </table>
             @endif
-            @if(count($pr_pending_leaves) === 0 && count($pr_pub_requests) === 0 && count($pr_tt_requests) === 0)
+            @if(isset($pr_unlock_requests) && count($pr_unlock_requests) > 0)
+                <table class="pr-table" style="margin-top:14px;">
+                    <thead><tr><th>Settings unlock requested</th><th>Changes</th><th></th></tr></thead>
+                    <tbody>
+                    @foreach($pr_unlock_requests as $unlockReq)
+                        <tr>
+                            <td><strong>{{ optional($unlockReq->requester)->name ?? 'Admin' }}</strong></td>
+                            <td>{{ \Illuminate\Support\Str::limit($unlockReq->changes, 90) }}</td>
+                            <td><a href="{{ route('settings_unlock.index') }}">Review &amp; approve</a></td>
+                        </tr>
+                    @endforeach
+                    </tbody>
+                </table>
+            @endif
+            @if(count($pr_pending_leaves) === 0 && count($pr_pub_requests) === 0 && count($pr_tt_requests) === 0 && (isset($pr_unlock_requests) ? count($pr_unlock_requests) === 0 : true))
                 <p>No pending approvals.</p>
             @endif
             <div class="pr-foot"><a href="{{ route('leave.index') }}">Open approval queue</a></div>

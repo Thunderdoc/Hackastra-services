@@ -35,3 +35,9 @@ services:
         sync: false
       - key: DB_PASSWORD
         sync: false
+      # Set DB_SSL_MODE=required (only) when the external host
+      # demands TLS, e.g. TiDB Cloud Serverless.
+      - key: DB_SSL_MODE
+        sync: false
+      - key: DB_SSL_CA
+        sync: false

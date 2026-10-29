@@ -326,6 +326,14 @@ class HomeController extends Controller
             ->where('approval_status', 'submitted')->orderBy('approval_submitted_at')->take(8)->get();
         $d['pr_tt_requests_count'] = \App\Models\TimeTableRecord::where('approval_status', 'submitted')->count();
 
+        // Settings unlock requests waiting on the Principal — the
+        // first of the two approvals (owner order 2026-10-29).
+        $d['pr_unlock_requests'] = \Illuminate\Support\Facades\Schema::hasTable('settings_unlock_requests')
+            ? \App\Models\SettingsUnlockRequest::with('requester')
+                ->where('status', 'pending_principal')->oldest()->take(8)->get()
+            : collect();
+        $d['pr_unlock_requests_count'] = $d['pr_unlock_requests']->count();
+
         // --- Academic analytics (Term 1 = earliest term-1 exam, if any) ---
         $term1 = Exam::where('term', 1)->orderBy('id')->first();
         $d['pr_term_exam'] = $term1;
@@ -595,6 +603,13 @@ class HomeController extends Controller
 
         return [
             'school_name' => Qs::getSetting('system_name'),
+            // Settings unlock requests at the Super Admin's stage
+            // (owner order 2026-10-29) — a count only, per the
+            // numbers-not-records rule; the decision page holds
+            // the request itself.
+            'settings_unlock_waiting' => Schema::hasTable('settings_unlock_requests')
+                ? \App\Models\SettingsUnlockRequest::where('status', 'pending_super_admin')->count()
+                : 0,
             'role_counts' => $role_counts,
             'total_users' => array_sum(array_column($role_counts, 'total')),
             'audit_today' => $audit_today,
