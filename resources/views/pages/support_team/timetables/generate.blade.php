@@ -10,6 +10,7 @@
          and edits any period on each timetable's Manage page. --}}
     @component('partials.patterns.form_page', [
         'form_action' => route('tt.generate'),
+        'back' => route('tt.index'),
         'submit_label' => 'Generate Timetables',
     ])
         @slot('title')

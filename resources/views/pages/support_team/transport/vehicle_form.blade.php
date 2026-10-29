@@ -5,6 +5,7 @@
         'form_action' => $vehicle ? route('transport.vehicles.update', ['transport_vehicle' => Qs::hash($vehicle->id)]) : route('transport.vehicles.store'),
         'form_method' => $vehicle ? 'PUT' : 'POST',
         'submit_label' => 'Save Vehicle',
+        'back' => route('transport.index'),
     ])
         @slot('title') {{ $vehicle ? 'Edit Vehicle' : 'New Vehicle' }} @endslot
         <div class="pat-form-section"><div class="pat-fields">

@@ -36,7 +36,7 @@
     @endcomponent
 
     @if(Qs::userIsTeamSAWrite())
-    @component('partials.patterns.form_page', ['form_action' => route('transport.assignments.store'), 'submit_label' => 'Assign Student'])
+    @component('partials.patterns.form_page', ['form_action' => route('transport.assignments.store'), 'submit_label' => 'Assign Student', 'back' => route('transport.index')])
         @slot('title') New Assignment @endslot
         <div class="pat-form-section"><div class="pat-fields">
             <div class="pat-field">

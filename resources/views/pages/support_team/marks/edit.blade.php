@@ -38,6 +38,13 @@
         'fallback' => $l86BandsFallback->map($l86BandMap)->values(),
     ]);
 @endphp
+{{-- Back-button doctrine (owner, 2026-10-29): back returns to
+     the section page the user came from — here the marks manage
+     page for this exact exam/class/section/subject — never
+     straight to the dashboard. --}}
+<div class="mb-3">
+    <a href="{{ route('marks.manage', [$exam_id, $my_class_id, $section_id, $subject_id]) }}" class="btn btn-light btn-sm"><i class="icon-arrow-left7 mr-1"></i> Back to Marks</a>
+</div>
 <form class="ajax-update" action="{{ route('marks.update', [$exam_id, $my_class_id, $section_id, $subject_id]) }}" method="post">
     @csrf @method('put')
 

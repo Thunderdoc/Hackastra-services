@@ -5,6 +5,7 @@
         'form_action' => $route ? route('transport.routes.update', ['transport_route' => Qs::hash($route->id)]) : route('transport.routes.store'),
         'form_method' => $route ? 'PUT' : 'POST',
         'submit_label' => 'Save Route',
+        'back' => route('transport.index'),
     ])
         @slot('title') {{ $route ? 'Edit Route' : 'New Route' }} @endslot
         <div class="pat-form-section"><div class="pat-fields">

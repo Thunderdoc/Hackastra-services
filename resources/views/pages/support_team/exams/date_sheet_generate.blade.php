@@ -10,6 +10,7 @@
          and re-times any paper on the Manage page. --}}
     @component('partials.patterns.form_page', [
         'form_action' => route('exam_dates.generate'),
+        'back' => route('exam_dates.manage'),
         'submit_label' => 'Generate Date Sheet',
     ])
         @slot('title')

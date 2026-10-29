@@ -13,6 +13,7 @@
 
     @component('partials.patterns.form_page', [
         'form_action' => route('platform_mail.send'),
+        'back' => route('platform_mail.index'),
     ])
         @slot('subtitle')
             Message platform accounts — a specific user, all School Admins, or everyone in a role

@@ -44,7 +44,7 @@
     @endcomponent
 
     @if(Qs::userIsTeamSAWrite())
-    @component('partials.patterns.form_page', ['form_action' => route('transport.fees.store'), 'submit_label' => 'Add Fee'])
+    @component('partials.patterns.form_page', ['form_action' => route('transport.fees.store'), 'submit_label' => 'Add Fee', 'back' => route('transport.index')])
         @slot('title') New Transport Fee @endslot
         <div class="pat-form-section"><div class="pat-fields">
             <div class="pat-field">
