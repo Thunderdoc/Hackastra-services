@@ -41,4 +41,27 @@ class LeaveRequest extends Model
     {
         return (int) ((strtotime($this->end_date) - strtotime($this->start_date)) / 86400) + 1;
     }
+
+    /** Display dates in the Indian format the owner ordered
+     *  (2026-10-29: DD/MM/YYYY everywhere). Deliberately
+     *  crash-proof: a corrupt stored date falls back to the raw
+     *  value instead of 500ing the page — the queue must survive
+     *  one bad row (overnight hardening contract). */
+    public function getStartDateDisplayAttribute(): string
+    {
+        try {
+            return \Carbon\Carbon::parse($this->start_date)->format('d/m/Y');
+        } catch (\Throwable $e) {
+            return (string) $this->start_date;
+        }
+    }
+
+    public function getEndDateDisplayAttribute(): string
+    {
+        try {
+            return \Carbon\Carbon::parse($this->end_date)->format('d/m/Y');
+        } catch (\Throwable $e) {
+            return (string) $this->end_date;
+        }
+    }
 }

@@ -5,9 +5,15 @@ namespace App\Http\Controllers\SupportTeam;
 use App\Helpers\Qs;
 use App\Http\Requests\Exam\ExamCreate;
 use App\Http\Requests\Exam\ExamUpdate;
+use App\Models\Exam;
 use App\Repositories\ExamRepo;
+use App\Support\Audit;
 use App\Support\Notify;
+use App\Support\PublicationReadiness;
+use App\User;
 use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class ExamController extends Controller
 {
@@ -19,9 +25,9 @@ class ExamController extends Controller
         // Limited principal role (owner order 2026-10-28): reads
         // open to the principal, and result publication is a
         // designated principal approval (not other writes).
-        $this->middleware('teamOrPrincipal:SA', ['only' => ['index', 'show']]);
-        $this->middleware('teamSAWrite', ['except' => ['index', 'show', 'publishResults', 'unpublishResults']]);
-        $this->middleware('teamOrPrincipal:SAWrite', ['only' => ['publishResults', 'unpublishResults']]);
+        $this->middleware('teamOrPrincipal:SA', ['only' => ['index', 'show', 'publication']]);
+        $this->middleware('teamSAWrite', ['except' => ['index', 'show', 'publishResults', 'unpublishResults', 'publication', 'notifyPending']]);
+        $this->middleware('teamOrPrincipal:SAWrite', ['only' => ['publishResults', 'unpublishResults', 'notifyPending']]);
 
         $this->exam = $exam;
     }
@@ -133,10 +139,116 @@ class ExamController extends Controller
      * never read the flag. teamSA gate: the constructor middleware
      * covers these actions exactly like the rest of exam management.
      */
+    /**
+     * Publication workflow (owner order 2026-10-29): publishing is
+     * the Principal's final act. The Admin prepares: this page shows
+     * exactly which teachers have not yet submitted their marks,
+     * lets the office remind them, and — once every unit is
+     * submitted — lets the Admin send the publication request. The
+     * Principal publishes from here (and sees requests in the
+     * Command Center's Approval Center).
+     */
+    public function publication($id)
+    {
+        $exam = $this->exam->find(Qs::resolveId($id));
+        if (!$exam) {
+            return redirect()->route('exams.index');
+        }
+        $d['exam'] = $exam;
+        $d['pending_units'] = PublicationReadiness::pendingUnits($exam);
+        $d['total_units'] = PublicationReadiness::totalUnits($exam);
+        $d['requester'] = $exam->publish_requested_by ? User::find($exam->publish_requested_by) : null;
+        return view('pages.support_team.exams.publication', $d);
+    }
+
+    /** Remind the teacher(s) whose marks are still unsubmitted. */
+    public function notifyPending(Request $req, $id)
+    {
+        $exam = $this->exam->find(Qs::resolveId($id));
+        if (!$exam) {
+            return redirect()->route('exams.index');
+        }
+        $pending = collect(PublicationReadiness::pendingUnits($exam));
+        if (!$req->boolean('all')) {
+            $pending = $pending->filter(function ($u) use ($req) {
+                return $u['section_id'] === (int) $req->input('section_id')
+                    && $u['subject_id'] === (int) $req->input('subject_id');
+            });
+        }
+        $sent = 0;
+        $unassigned = 0;
+        foreach ($pending as $u) {
+            if (!$u['teacher_id']) {
+                $unassigned++;
+                continue;
+            }
+            Notify::toUser(
+                $u['teacher_id'],
+                'marks_pending',
+                'Marks not submitted: ' . $u['subject_name'],
+                'Please enter and submit the ' . $u['subject_name'] . ' marks for '
+                    . $u['class_name'] . ' — ' . $u['section_name'] . ' (' . $exam->name . ') within 2 days, so the results can be published.',
+                route('marks.manage', [$exam->id, $u['my_class_id'], $u['section_id'], $u['subject_id']])
+            );
+            $sent++;
+        }
+        $msg = 'Reminder sent to ' . $sent . ' teacher' . ($sent === 1 ? '' : 's') . '.';
+        if ($unassigned > 0) {
+            $msg .= ' ' . $unassigned . ' pending subject' . ($unassigned === 1 ? '' : 's') . ' have no teacher assigned — assign a teacher first.';
+        }
+        return back()->with('flash_success', $msg);
+    }
+
+    /**
+     * Admin sends the publication request — allowed only when
+     * every unit's marks are submitted (owner order 2026-10-29).
+     */
+    public function requestPublication($id)
+    {
+        $exam = $this->exam->find(Qs::resolveId($id));
+        if (!$exam) {
+            return redirect()->route('exams.index');
+        }
+        if ($exam->results_published) {
+            return back()->with('pop_error', 'These results are already published.');
+        }
+        if ($exam->publish_requested_at) {
+            return back()->with('pop_error', 'A publication request is already waiting with the Principal.');
+        }
+        if (PublicationReadiness::totalUnits($exam) === 0) {
+            return back()->with('pop_error', 'No marks have been entered for this exam yet — there is nothing to publish.');
+        }
+        $pending = PublicationReadiness::pendingCount($exam);
+        if ($pending > 0) {
+            return back()->with('pop_error', $pending . ' subject' . ($pending === 1 ? '' : 's') . ' still have unsubmitted marks. Remind the teachers from this page and send the request once every subject is submitted.');
+        }
+        Exam::where('id', $exam->id)->update([
+            'publish_requested_by' => Auth::user()->id,
+            'publish_requested_at' => now(),
+        ]);
+        foreach (User::where('user_type', 'principal')->pluck('id') as $principalId) {
+            Notify::toUser(
+                $principalId,
+                'publication_requested',
+                'Result publication requested: ' . $exam->name,
+                'All marks for ' . $exam->name . ' are submitted. Please review and publish the results.',
+                route('exams.publication', $exam->id)
+            );
+        }
+        Audit::log('exams.publication_requested', null, 'Publication requested for exam ' . $exam->id . ' (' . $exam->name . ') by ' . Auth::user()->name);
+        return back()->with('flash_success', 'Publication request sent to the Principal. The results go live only when the Principal publishes them.');
+    }
+
     public function publishResults($id)
     {
+        // Owner order 2026-10-29: the Principal alone publishes.
+        // The Admin's path is the publication request above.
+        if (!Qs::userIsPrincipal()) {
+            abort(403, 'Only the Principal publishes results. When every subject\'s marks are submitted, send a publication request from the Publication page instead.');
+        }
         $examId = Qs::resolveId($id);
         $this->exam->update($examId, ['results_published' => true]);
+        Exam::where('id', $examId)->update(['publish_requested_by' => null, 'publish_requested_at' => null]);
         // Owner build 2026-10-25: publishing notifies everyone —
         // every active student of the session + linked parents.
         $exam = $this->exam->find($examId);
@@ -149,7 +261,12 @@ class ExamController extends Controller
 
     public function unpublishResults($id)
     {
-        $this->exam->update(Qs::resolveId($id), ['results_published' => false]);
+        if (!Qs::userIsPrincipal()) {
+            abort(403, 'Only the Principal unpublishes results.');
+        }
+        $examId = Qs::resolveId($id);
+        $this->exam->update($examId, ['results_published' => false]);
+        Exam::where('id', $examId)->update(['publish_requested_by' => null, 'publish_requested_at' => null]);
         return back()->with('flash_success', 'Results unpublished. Students and parents can no longer view results for this exam.');
     }
 

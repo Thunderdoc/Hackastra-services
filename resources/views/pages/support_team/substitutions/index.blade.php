@@ -53,7 +53,7 @@
                                     <td data-label="Absent Teacher">{{ optional($sub->absent_teacher)->name ?: '—' }}</td>
                                     <td data-label="Substitute">{{ optional($sub->substitute)->name ?: '—' }}</td>
                                     <td data-label="Reason">{{ $sub->reason ?: '—' }}</td>
-                                    <td data-label="Arranged By">{{ optional($sub->creator)->name ?: '—' }}</td>
+                                    <td data-label="Arranged By">{{ $sub->creator ? $sub->creator->name : 'System (auto)' }}</td>
                                     <td data-label="Action">
                                         @if($can_delete($sub))
                                             <form method="POST" action="{{ route('substitutions.destroy', $sub->id) }}" onsubmit="return confirm('Remove this substitution?')">

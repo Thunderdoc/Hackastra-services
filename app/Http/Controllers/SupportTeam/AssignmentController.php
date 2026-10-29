@@ -754,6 +754,16 @@ class AssignmentController extends Controller
 
         $avgChoice = $this->averageChoiceFromRequest($req);
         $rows = $this->computeAverages($assignment, $component, $avgChoice['mode'], $avgChoice['n']);
+
+        // Marks lifecycle (owner order 2026-10-29): a push is a
+        // marks write — it respects the submit lock and the
+        // exam-date gate for every section it would touch.
+        foreach (collect($rows)->pluck('section_id')->filter()->unique() as $sid) {
+            if ($reason = \App\Support\MarkLifecycle::blockReason($exam->id, $assignment->my_class_id, $sid, $assignment->subject_id)) {
+                return back()->with($this->errFlash($reason));
+            }
+        }
+
         $examRepo = app(ExamRepo::class);
         $written = 0;
         $sectionsTouched = [];

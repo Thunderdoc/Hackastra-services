@@ -5,6 +5,7 @@ namespace App\Http\Controllers\SupportTeam;
 use App\Http\Controllers\Controller;
 use App\Models\LeaveRequest;
 use App\Models\StudentRecord;
+use App\Support\LeaveAutoCover;
 use App\Support\LeaveCover;
 use App\Support\Notify;
 use App\User;
@@ -61,7 +62,14 @@ class LeaveRequestController extends Controller
             'leave_type' => 'nullable|in:normal,emergency',
         ]);
         $isEmergency = ($data['leave_type'] ?? 'normal') === 'emergency';
-        LeaveRequest::create([
+        // TEMPORARY LIVE DIAGNOSTIC (2026-10-29, remove once fixed):
+        // leave submit 500s ONLY on the live MariaDB/PHP 8.4 stack —
+        // local SQLite runs this code green and the container's log
+        // file is unreachable from outside. Until the cause is known,
+        // surface the real exception as the response body so it can
+        // be read off the page; then this catch comes out.
+        try {
+            $leave = LeaveRequest::create([
             'user_id' => Auth::id(),
             'start_date' => $data['start_date'],
             'end_date' => $data['end_date'],
@@ -74,7 +82,10 @@ class LeaveRequestController extends Controller
             'status' => $isEmergency ? 'approved' : 'pending',
             'decided_at' => $isEmergency ? now() : null,
             'decision_note' => $isEmergency ? 'Auto-approved (emergency).' : null,
-        ]);
+            ]);
+        } catch (\Throwable $e) {
+            return response('LEAVE-DIAG: ' . get_class($e) . ': ' . $e->getMessage(), 500);
+        }
         if ($isEmergency) {
             // Inform, don't ask: the approver who would have
             // decided gets a bell item so the absence is visible.
@@ -108,6 +119,17 @@ class LeaveRequestController extends Controller
                 }
             } catch (\Throwable $e) {
                 // Bell only — approval stands, no 500, no retry trap.
+            }
+            // Owner order 2026-10-29: emergency leave activates
+            // immediately, and the SYSTEM arranges cover for it at
+            // once — nobody waits for an approver. Unresolved
+            // periods alert admins + principal from inside the
+            // arranger. A cover failure must never 500 the submit.
+            try {
+                LeaveAutoCover::arrange($leave, null);
+            } catch (\Throwable $e) {
+                // Cover is best-effort here; the queue still shows
+                // the uncovered count for manual arranging.
             }
             return back()->with('flash_success', 'Emergency leave auto-approved.');
         }
@@ -232,6 +254,19 @@ class LeaveRequestController extends Controller
             'decided_at' => now(),
             'decision_note' => $data['decision_note'] ?? null,
         ]);
+        // Owner order 2026-10-29: on approval the SYSTEM arranges
+        // the substitute cover itself (the admin approves the leave;
+        // the system makes the arrangement). Emergency leave runs
+        // the same arranger at submit. Non-teacher applicants have
+        // no periods, so the arranger simply no-ops for them.
+        if ($data['status'] === 'approved') {
+            try {
+                LeaveAutoCover::arrange($leave, (int) Auth::id());
+            } catch (\Throwable $e) {
+                // The decision stands; uncovered periods remain
+                // visible in the queue for manual arranging.
+            }
+        }
         return back()->with('flash_success', 'Leave request ' . $data['status'] . '.');
     }
 }

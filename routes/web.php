@@ -153,6 +153,7 @@ Route::group(['middleware' => 'auth'], function () {
                 Route::post('generate', 'TimeTableController@generate')->name('tt.generate');
             });
             Route::get('mine', 'TimeTableController@mine')->name('tt.mine');
+            Route::get('approvals', 'TimeTableController@approvals')->name('tt.approvals');
             /* Loop 81: teacher's own weekly timetable — print + PDF */
             Route::get('mine/print', 'TimeTableController@mine_print')->name('tt.mine_print');
             Route::get('mine/pdf', 'TimeTableController@mine_pdf')->name('tt.mine_pdf');
@@ -179,7 +180,14 @@ Route::group(['middleware' => 'auth'], function () {
                        and teachers could open it for their classes.
                        Now admin-only at the route gate, like manage. */
                     Route::get('validate/{ttr}', 'TimeTableController@validateRecord')->name('ttr.validate');
+                    Route::post('submit-approval/{ttr}', 'TimeTableController@submitApproval')->name('ttr.submit_approval');
                 });
+
+                /* Timetable approval decisions are the Principal's
+                   (owner order 2026-10-29) — the methods themselves
+                   refuse every other role. */
+                Route::post('approve/{ttr}', 'TimeTableController@approveRecord')->name('ttr.approve');
+                Route::post('send-back/{ttr}', 'TimeTableController@sendBackRecord')->name('ttr.send_back');
 
                 Route::get('show/{ttr}', 'TimeTableController@show_record')->name('ttr.show');
                 Route::get('print/{ttr}', 'TimeTableController@print_record')->name('ttr.print');
@@ -297,6 +305,9 @@ Route::group(['middleware' => 'auth'], function () {
                 Route::get('/', 'MarkController@index')->name('marks.index');
                 Route::get('manage/{exam}/{class}/{section}/{subject}', 'MarkController@manage')->name('marks.manage');
                 Route::put('update/{exam}/{class}/{section}/{subject}', 'MarkController@update')->name('marks.update');
+                Route::post('submit/{exam}/{class}/{section}/{subject}', 'MarkController@submit')->name('marks.submit');
+                Route::post('import-internal/{exam}/{class}/{section}/{subject}', 'MarkController@importInternal')->name('marks.import_internal');
+                Route::post('reopen/{exam}/{class}/{section}/{subject}', 'MarkController@reopen')->name('marks.reopen');
                 Route::put('comment_update/{exr_id}', 'MarkController@comment_update')->name('marks.comment_update');
                 Route::put('skills_update/{skill}/{exr_id}', 'MarkController@skills_update')->name('marks.skills_update');
                 Route::post('selector', 'MarkController@selector')->name('marks.selector');
@@ -324,6 +335,9 @@ Route::group(['middleware' => 'auth'], function () {
            exams resource so the action names win cleanly. */
         Route::post('exams/{exam}/publish-results', 'ExamController@publishResults')->name('exams.publish_results');
         Route::post('exams/{exam}/unpublish-results', 'ExamController@unpublishResults')->name('exams.unpublish_results');
+        Route::get('exams/{exam}/publication', 'ExamController@publication')->name('exams.publication');
+        Route::post('exams/{exam}/notify-pending', 'ExamController@notifyPending')->name('exams.notify_pending');
+        Route::post('exams/{exam}/request-publication', 'ExamController@requestPublication')->name('exams.request_publication');
 
         /* Exam Date Sheet (owner-ordered 2026-10-22) — the Admin sets
            per-subject dates per exam + class; teachers, students and

@@ -12,7 +12,12 @@ use Tests\TestCase;
  * Roles audit round 16 — principal bell badge composition.
  *
  * top_menu.blade.php builds $lavBellBadge as:
- *   unreadCount(caller) + admin-only NEW-feedback count
+ *   school events happening TODAY (every non-SA role — the bell
+ *   is the circulars/events bell; premise repaired 2026-10-29:
+ *   the round-16 expectations originally omitted this component,
+ *   which made all four tests read exactly +1 against the seed's
+ *   one same-day event)
+ *   + unreadCount(caller) + admin-only NEW-feedback count
  *   + SA-only forwarded-received count
  *   + unseenUpdatesCountFor(caller) — the caller's OWN reports
  *     that changed since they last opened My Feedback.
@@ -59,6 +64,12 @@ class OwnerPrincipalBellBadgeRound16Test extends TestCase
         ]);
     }
 
+    /** The blade's events-today component, computed its way. */
+    protected function eventsToday(): int
+    {
+        return \App\Models\SchoolEvent::whereDate('starts_at', now()->toDateString())->count();
+    }
+
     protected function badgeSpans($html)
     {
         preg_match_all('/<span class="lav-bell-badge">(\d+)<\/span>/', $html, $m);
@@ -78,7 +89,11 @@ class OwnerPrincipalBellBadgeRound16Test extends TestCase
         // The bell itself renders (Circulars branch) — so an absent
         // badge is a real verdict, not a missing topbar.
         $this->assertStringContainsString('aria-label="Circulars"', $html);
-        $this->assertSame([], $this->badgeSpans($html));
+        // Verdict preserved: someone else's NEW feedback adds
+        // NOTHING for the principal — the badge is events-today
+        // alone (absent entirely when no event runs today).
+        $events = $this->eventsToday();
+        $this->assertSame($events > 0 ? [(string) $events] : [], $this->badgeSpans($html));
     }
 
     public function test_principal_badge_counts_own_unread_notification()
@@ -97,7 +112,7 @@ class OwnerPrincipalBellBadgeRound16Test extends TestCase
         $response = $this->actingAs($principal)->get(route('dashboard'));
         $response->assertOk();
 
-        $this->assertSame(['1'], $this->badgeSpans($response->getContent()));
+        $this->assertSame([(string) ($this->eventsToday() + 1)], $this->badgeSpans($response->getContent()));
     }
 
     public function test_principal_badge_counts_own_unseen_feedback_update()
@@ -119,21 +134,21 @@ class OwnerPrincipalBellBadgeRound16Test extends TestCase
         $response = $this->actingAs($principal)->get(route('dashboard'));
         $response->assertOk();
 
-        $this->assertSame(['1'], $this->badgeSpans($response->getContent()));
+        $this->assertSame([(string) ($this->eventsToday() + 1)], $this->badgeSpans($response->getContent()));
     }
 
     public function test_admin_badge_still_includes_new_feedback()
     {
         $this->newFeedbackFromSomeoneElse();
         $admin = $this->freshAdmin();
-        $expected = (string) FeedbackItem::where('status', 'new')->count();
+        $expected = (string) ($this->eventsToday() + FeedbackItem::where('status', 'new')->count());
         $this->assertGreaterThanOrEqual(1, (int) $expected);
 
         $response = $this->actingAs($admin)->get(route('dashboard'));
         $response->assertOk();
 
         // Admin unread notifications are 0 on the seed, so the badge
-        // is exactly the NEW-feedback count.
+        // is events-today plus exactly the NEW-feedback count.
         $this->assertSame([$expected], $this->badgeSpans($response->getContent()));
     }
 }

@@ -856,7 +856,10 @@ class PeriodAttendanceController extends Controller
 
         $query = TimeTable::with(['subject.my_class', 'subject.teacher', 'time_slot', 'tt_record.my_class', 'tt_record.section'])
             ->where('day', $date->format('l'))
-            ->whereNotNull('subject_id');
+            ->whereNotNull('subject_id')
+            // Timetable approval: periods exist for attendance only
+            // once their timetable is in force (Principal-approved).
+            ->whereHas('tt_record', function ($q) { $q->where('approval_status', 'approved'); });
 
         if ($teacherId !== null) {
             // Section build: a teacher's periods include cells they

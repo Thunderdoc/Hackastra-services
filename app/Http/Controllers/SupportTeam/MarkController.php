@@ -4,8 +4,13 @@ namespace App\Http\Controllers\SupportTeam;
 
 use App\Helpers\Qs;
 use App\Support\Audit;
+use App\Support\InternalMarksImporter;
 use App\Support\MarkComputation;
+use App\Support\MarkLifecycle;
 use App\Support\MarkScheme;
+use App\Models\Assignment;
+use App\Models\MarkSubmission;
+use App\Models\Quiz;
 use App\Support\ReportCard;
 use App\Support\SectionTeacher;
 use App\Support\TeacherScope;
@@ -611,6 +616,31 @@ class MarkController extends Controller
         $d['selected'] = true;
         $d['class_type'] = $this->my_class->findTypeByClass($class_id);
 
+        // Marks lifecycle (owner order 2026-10-29): the grid renders
+        // read-only before the subject's exam date and after the
+        // teacher submits; the blade reads the full state from here.
+        $d['lifecycle'] = MarkLifecycle::state($exam_id, $class_id, $section_id, $subject_id);
+
+        // Internal-marks importer (owner order 2026-10-29): when the
+        // scheme has an Internal component, the page offers to fill
+        // it from the effective teacher's assignments or quizzes.
+        $d['internal_component'] = $d['scheme']['configured']
+            ? InternalMarksImporter::internalComponent($exam_id, $subject_id)
+            : null;
+        $d['import_quizzes'] = collect();
+        $d['import_assignment_count'] = 0;
+        if ($d['internal_component']) {
+            $subject = Subject::find($subject_id);
+            $effectiveTeacherId = $subject ? SectionTeacher::teacherIdFor($section_id, $subject) : null;
+            if ($effectiveTeacherId) {
+                $d['import_quizzes'] = Quiz::where('teacher_id', $effectiveTeacherId)
+                    ->where('my_class_id', $class_id)->where('subject_id', $subject_id)
+                    ->orderBy('title')->get();
+                $d['import_assignment_count'] = Assignment::where('teacher_id', $effectiveTeacherId)
+                    ->where('my_class_id', $class_id)->where('subject_id', $subject_id)->count();
+            }
+        }
+
         return view('pages.support_team.marks.manage', $d);
     }
 
@@ -631,6 +661,11 @@ class MarkController extends Controller
         if (!$exam || ((int) $exam->my_class_id !== 0 && (int) $exam->my_class_id !== (int) $class_id)) {
             abort(404);
         }
+
+        // Marks lifecycle (owner order 2026-10-29): no saves before
+        // the subject's exam date, and no saves at all once the
+        // teacher has submitted this unit.
+        MarkLifecycle::guard($exam_id, $class_id, $section_id, $subject_id);
 
         $marks = $this->exam->getMark($p);
 
@@ -718,6 +753,155 @@ class MarkController extends Controller
         Audit::log('marks.updated', null, $auditMsg);
 
        return Qs::jsonUpdateOk();
+    }
+
+    /**
+     * Fill the Internal component from assignments or quizzes
+     * (owner order 2026-10-29). The teacher picks the source and
+     * the aggregation (average of all / best N / latest N — the
+     * InternalMarksImporter owns the maths); the write goes through
+     * the same component path, recompute and lifecycle gates as a
+     * typed save, so a submitted unit or a not-yet-open exam date
+     * refuses an import exactly like a save.
+     */
+    public function importInternal(Request $req, $exam_id, $class_id, $section_id, $subject_id)
+    {
+        if(Qs::userIsTeacher() && !TeacherScope::canTeachClass(Auth::user(), $class_id)){
+            abort(403, 'You can only manage marks for your assigned classes.');
+        }
+        $this->denyUnlessEffectiveTeacher($class_id, $section_id, $subject_id);
+
+        $exam = $this->exam->find($exam_id);
+        if (!$exam || ((int) $exam->my_class_id !== 0 && (int) $exam->my_class_id !== (int) $class_id)) {
+            abort(404);
+        }
+
+        MarkLifecycle::guard($exam_id, $class_id, $section_id, $subject_id);
+
+        $component = InternalMarksImporter::internalComponent($exam_id, $subject_id);
+        if (!$component) {
+            return back()->with('pop_error', 'This subject has no Internal component in its marking scheme — there is nothing to fill.');
+        }
+
+        $subject = Subject::find($subject_id);
+        $teacherId = $subject ? SectionTeacher::teacherIdFor($section_id, $subject) : null;
+        if (!$teacherId) {
+            return back()->with('pop_error', 'No teacher is assigned to this subject for this section.');
+        }
+
+        $kind = $req->input('source_kind') === 'quizzes' ? 'quizzes' : 'assignments';
+        if ($kind === 'assignments') {
+            $percents = InternalMarksImporter::assignmentPercents($teacherId, $class_id, $subject_id);
+            $sourceLabel = 'assignments';
+        } else {
+            $quizIds = collect((array) $req->input('quiz_ids', []))->map(function ($id) { return (int) $id; })->all();
+            $validIds = Quiz::where('teacher_id', $teacherId)
+                ->where('my_class_id', $class_id)->where('subject_id', $subject_id)
+                ->whereIn('id', $quizIds)->pluck('id')->all();
+            if (!$validIds) {
+                return back()->with('pop_error', 'Choose at least one of your quizzes for this class and subject.');
+            }
+            $percents = InternalMarksImporter::quizPercents($validIds);
+            $sourceLabel = 'quizzes';
+        }
+
+        $choice = InternalMarksImporter::modeFromRequest($req);
+        $marks = $this->exam->getMark(['exam_id' => $exam_id, 'my_class_id' => $class_id, 'section_id' => $section_id, 'subject_id' => $subject_id, 'year' => $this->year]);
+
+        $written = 0;
+        DB::transaction(function () use ($marks, $percents, $choice, $component, $exam, $class_id, $section_id, $subject_id, &$written) {
+            foreach ($marks as $mk) {
+                $entries = $percents[$mk->student_id] ?? null;
+                if (!$entries) {
+                    continue; // no graded work — the cell stays blank
+                }
+                $pct = InternalMarksImporter::aggregate($entries, $choice['mode'], $choice['n']);
+                if ($pct === null) {
+                    continue;
+                }
+                MarkScheme::saveComponentScores($mk, [$component['id'] => InternalMarksImporter::scaled($pct, $component)]);
+                $written++;
+            }
+            if ($written > 0) {
+                MarkComputation::recomputeSubject($exam, $class_id, $section_id, $subject_id, $this->year);
+                MarkComputation::recomputeRecords($exam, $class_id, $section_id, $this->year);
+            }
+        });
+
+        if ($written === 0) {
+            return back()->with('pop_error', 'No graded submissions or attempts were found in the chosen ' . $sourceLabel . ' — nothing was filled.');
+        }
+        $modeLabel = $choice['mode'] === 'all' ? 'average of all' : $choice['mode'] . ' ' . $choice['n'];
+        Audit::log('marks.internal_imported', null, 'Internal marks imported from ' . $sourceLabel . ' (' . $modeLabel . '): exam ' . $exam_id . ', class ' . $class_id . ', section ' . $section_id . ', subject ' . $subject_id . ', students written: ' . $written . ' by ' . Auth::user()->name);
+
+        return back()->with('flash_success', 'Internal marks filled for ' . $written . ' student' . ($written === 1 ? '' : 's') . ' from ' . $sourceLabel . ' (' . $modeLabel . '). Check the grid, save any other components, then submit when ready.');
+    }
+
+    /**
+     * Submit one (exam, class, section, subject) unit's marks
+     * (owner order 2026-10-29). Saving stays free-form draft work
+     * while entry is open; SUBMITTING is the point of no return for
+     * the teacher — the unit locks (see MarkLifecycle) until the
+     * school Admin reopens it. The effective-teacher scope is the
+     * same as the save endpoint's.
+     */
+    public function submit(Request $req, $exam_id, $class_id, $section_id, $subject_id)
+    {
+        if(Qs::userIsTeacher() && !TeacherScope::canTeachClass(Auth::user(), $class_id)){
+            abort(403, 'You can only manage marks for your assigned classes.');
+        }
+        $this->denyUnlessEffectiveTeacher($class_id, $section_id, $subject_id);
+
+        $exam = $this->exam->find($exam_id);
+        if (!$exam || ((int) $exam->my_class_id !== 0 && (int) $exam->my_class_id !== (int) $class_id)) {
+            abort(404);
+        }
+
+        $state = MarkLifecycle::state($exam_id, $class_id, $section_id, $subject_id);
+        if ($state['submitted']) {
+            return back()->with('pop_error', 'These marks have already been submitted.');
+        }
+        if (!$state['open']) {
+            abort(403, 'Marks entry for this subject opens on ' . $state['opens_on'] . ' — the day after the exam (' . $state['exam_date'] . ').');
+        }
+
+        MarkSubmission::create([
+            'exam_id' => $exam_id,
+            'my_class_id' => $class_id,
+            'section_id' => $section_id,
+            'subject_id' => $subject_id,
+            'submitted_by' => Auth::user()->id,
+        ]);
+        Audit::log('marks.submitted', null, 'Marks submitted: exam '.$exam_id.', class '.$class_id.', section '.$section_id.', subject '.$subject_id.' by '.Auth::user()->name);
+
+        return back()->with('flash_success', 'Marks submitted — this subject is now locked for editing.');
+    }
+
+    /**
+     * Reopen a submitted unit (school Admin only). The correction
+     * escape hatch for the submit lock: deleting the submission row
+     * returns the unit to draft, and the reopening is audited with
+     * the original submitter named.
+     */
+    public function reopen(Request $req, $exam_id, $class_id, $section_id, $subject_id)
+    {
+        if (!Qs::userIsAdmin()) {
+            abort(403, 'Only the school Admin can reopen submitted marks.');
+        }
+
+        $exam = $this->exam->find($exam_id);
+        if (!$exam || ((int) $exam->my_class_id !== 0 && (int) $exam->my_class_id !== (int) $class_id)) {
+            abort(404);
+        }
+
+        $submission = MarkSubmission::forUnit($exam_id, $section_id, $subject_id);
+        if ($submission) {
+            $submitter = optional($submission->submitter)->name ?? ('user '.$submission->submitted_by);
+            $submission->delete();
+            Audit::log('marks.reopened', null, 'Marks reopened: exam '.$exam_id.', class '.$class_id.', section '.$section_id.', subject '.$subject_id.' (submitted by '.$submitter.'), reopened by '.Auth::user()->name);
+        }
+
+        return back()->with('flash_success', 'Marks reopened — the teacher can edit and submit them again.');
     }
 
     /* batch_fix() / batch_update() removed 2026-10-23 (owner decision):

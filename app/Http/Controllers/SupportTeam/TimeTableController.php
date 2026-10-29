@@ -20,10 +20,13 @@ use App\Models\TimeTableRecord;
 use App\Repositories\ExamRepo;
 use App\Repositories\MyClassRepo;
 use App\Repositories\TimeTableRepo;
+use App\Support\Audit;
+use App\Support\Notify;
 use App\Support\SchoolLevel;
 use App\Support\SectionTeacher;
 use App\Support\Streams;
 use App\Support\TeacherScope;
+use App\User;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -121,6 +124,13 @@ class TimeTableController extends Controller
         if ($scope !== null) {
             $all = $all->whereIn('my_class_id', $scope)->values();
             $d['my_classes'] = $d['my_classes']->whereIn('id', $scope)->values();
+        }
+
+        /* Timetable approval (owner order 2026-10-29): only the
+           Admin and the Principal see draft / submitted timetables.
+           Everyone else sees timetables that are in force. */
+        if (!Qs::userIsAdmin() && !Qs::userIsPrincipal()) {
+            $all = $all->filter(function ($ttr) { return $ttr->isInForce(); })->values();
         }
 
         $d['tt_records_all'] = $all;
@@ -610,6 +620,17 @@ class TimeTableController extends Controller
                 if ($record) {
                     TimeTable::where('ttr_id', $record->id)->delete();
                     TimeSlot::where('ttr_id', $record->id)->delete();
+                    // Timetable approval (owner order 2026-10-29):
+                    // a regenerated grid is a NEW timetable — it
+                    // returns to draft and must be reviewed and
+                    // approved again before it is in force.
+                    $record->update([
+                        'approval_status' => 'draft',
+                        'approval_submitted_by' => null,
+                        'approval_submitted_at' => null,
+                        'approved_by' => null,
+                        'approved_at' => null,
+                    ]);
                 } else {
                     $record = TimeTableRecord::create([
                         'name' => $displayName . ' Timetable',
@@ -617,6 +638,7 @@ class TimeTableController extends Controller
                         'section_id' => $targetSectionId,
                         'exam_id' => null,
                         'year' => $this->year,
+                        'approval_status' => 'draft',
                     ]);
                 }
 
@@ -981,6 +1003,12 @@ class TimeTableController extends Controller
                 // latest year) — see SectionTeacher.
                 $ttr = SectionTeacher::recordForClassSection($child->my_class_id, $child->section_id ?? null, $this->year);
 
+                // Timetable approval: students/parents see only
+                // timetables that are in force (Principal-approved).
+                if ($ttr && !$ttr->isInForce()) {
+                    $ttr = null;
+                }
+
                 if ($ttr) {
                     $grid = $this->recordWeekGrid($ttr);
                     $d['ttr'] = $ttr;
@@ -1006,7 +1034,10 @@ class TimeTableController extends Controller
     protected function teacherWeekData($user)
     {
         $periods = TimeTable::with(['subject.my_class', 'time_slot', 'tt_record.my_class', 'tt_record.section'])
-            ->whereNotNull('day');
+            ->whereNotNull('day')
+            // Timetable approval: a teacher's week shows only
+            // timetables the Principal has approved (in force).
+            ->whereHas('tt_record', function ($q) { $q->where('approval_status', 'approved'); });
         SectionTeacher::applyTeacherFilter($periods, (int) $user->id);
         $periods = $periods->get();
 
@@ -1605,11 +1636,131 @@ class TimeTableController extends Controller
         return view('pages.support_team.timetables.validate', $d);
     }
 
+    /**
+     * Timetable approval gate for the read surfaces (owner order
+     * 2026-10-29): a draft or submitted timetable is visible only
+     * to the Admin (who reviews it) and the Principal (who approves
+     * it). Teachers, students and parents get it once it is in
+     * force.
+     */
+    protected function guardRecordApproval($ttr)
+    {
+        if ($ttr && !$ttr->isInForce() && !Qs::userIsAdmin() && !Qs::userIsPrincipal()) {
+            abort(403, 'This timetable has not been approved yet.');
+        }
+    }
+
+    /**
+     * Timetable approval (owner order 2026-10-29): the Admin
+     * reviews the generated grid HERE (manage page + Validate),
+     * and OKs it by submitting — the Principal then approves.
+     * Submission is refused while the validator reports problems.
+     */
+    public function submitApproval($ttr_id)
+    {
+        $ttr = $this->tt->findRecord($ttr_id);
+        if (!$ttr) {
+            return back()->with('pop_error', __('msg.rnf'));
+        }
+        if ($ttr->approval_status === 'submitted') {
+            return back()->with('pop_error', 'This timetable is already with the Principal for approval.');
+        }
+        if ($ttr->approval_status === 'approved') {
+            return back()->with('pop_error', 'This timetable is already approved and in force.');
+        }
+        $report = TimetableValidator::report($ttr);
+        if (!empty($report['errors'])) {
+            return back()->with('flash_danger', 'Fix the ' . count($report['errors']) . ' timetable problem(s) first — open Validate to see them, then submit.');
+        }
+        TimeTableRecord::where('id', $ttr->id)->update([
+            'approval_status' => 'submitted',
+            'approval_submitted_by' => Auth::user()->id,
+            'approval_submitted_at' => now(),
+        ]);
+        foreach (User::where('user_type', 'principal')->pluck('id') as $principalId) {
+            Notify::toUser($principalId, 'timetable_submitted',
+                'Timetable approval requested: ' . $ttr->name,
+                'The Admin has reviewed ' . $ttr->name . ' (' . $ttr->year . ') and sent it for your approval.',
+                route('tt.approvals'));
+        }
+        Audit::log('timetable.submitted_for_approval', null, 'Timetable ' . $ttr->id . ' (' . $ttr->name . ') submitted for principal approval by ' . Auth::user()->name);
+        return back()->with('flash_success', 'Timetable sent to the Principal for approval.');
+    }
+
+    /** The Principal's timetable approval queue. */
+    public function approvals()
+    {
+        if (!Qs::userIsPrincipal()) {
+            abort(403, 'The timetable approval queue belongs to the Principal.');
+        }
+        $d['records'] = TimeTableRecord::with(['my_class', 'section'])
+            ->where('approval_status', 'submitted')
+            ->orderBy('approval_submitted_at')->get();
+        $d['submitters'] = User::whereIn('id', $d['records']->pluck('approval_submitted_by')->filter()->unique())
+            ->get()->keyBy('id');
+        return view('pages.support_team.timetables.approvals', $d);
+    }
+
+    public function approveRecord($ttr_id)
+    {
+        if (!Qs::userIsPrincipal()) {
+            abort(403, 'Only the Principal approves timetables.');
+        }
+        $ttr = $this->tt->findRecord($ttr_id);
+        if (!$ttr) {
+            return back()->with('pop_error', __('msg.rnf'));
+        }
+        if ($ttr->approval_status !== 'submitted') {
+            return back()->with('pop_error', 'Only a submitted timetable can be approved.');
+        }
+        TimeTableRecord::where('id', $ttr->id)->update([
+            'approval_status' => 'approved',
+            'approved_by' => Auth::user()->id,
+            'approved_at' => now(),
+        ]);
+        if ($ttr->approval_submitted_by) {
+            Notify::toUser($ttr->approval_submitted_by, 'timetable_approved',
+                'Timetable approved: ' . $ttr->name,
+                'The Principal approved ' . $ttr->name . ' (' . $ttr->year . '). It is now in force for teachers and students.',
+                route('tt.index'));
+        }
+        Audit::log('timetable.approved', null, 'Timetable ' . $ttr->id . ' (' . $ttr->name . ') approved by ' . Auth::user()->name);
+        return back()->with('flash_success', 'Timetable approved — it is now in force.');
+    }
+
+    public function sendBackRecord($ttr_id)
+    {
+        if (!Qs::userIsPrincipal()) {
+            abort(403, 'Only the Principal can send a timetable back.');
+        }
+        $ttr = $this->tt->findRecord($ttr_id);
+        if (!$ttr) {
+            return back()->with('pop_error', __('msg.rnf'));
+        }
+        if ($ttr->approval_status !== 'submitted') {
+            return back()->with('pop_error', 'Only a submitted timetable can be sent back.');
+        }
+        TimeTableRecord::where('id', $ttr->id)->update([
+            'approval_status' => 'draft',
+            'approval_submitted_by' => null,
+            'approval_submitted_at' => null,
+        ]);
+        if ($ttr->approval_submitted_by) {
+            Notify::toUser($ttr->approval_submitted_by, 'timetable_sent_back',
+                'Timetable sent back: ' . $ttr->name,
+                'The Principal sent ' . $ttr->name . ' (' . $ttr->year . ') back for changes. Review it and submit it again.',
+                route('ttr.manage', $ttr->id));
+        }
+        Audit::log('timetable.sent_back', null, 'Timetable ' . $ttr->id . ' (' . $ttr->name . ') sent back by ' . Auth::user()->name);
+        return back()->with('flash_success', 'Timetable sent back to the Admin for changes.');
+    }
+
     public function show_record($ttr_id)
     {
         $d_time = [];
         $d['ttr'] = $ttr = $this->tt->findRecord($ttr_id);
         $this->guardRecordScope($ttr);
+        $this->guardRecordApproval($ttr);
         $d['ttr_id'] = $ttr_id;
         $d['my_class'] = $this->my_class->find($ttr->my_class_id);
 
@@ -1644,6 +1795,7 @@ class TimeTableController extends Controller
     {
         $d['ttr'] = $ttr = $this->tt->findRecord($ttr_id);
         $this->guardRecordScope($ttr);
+        $this->guardRecordApproval($ttr);
 
         return view('pages.support_team.timetables.print', $this->recordPrintData($ttr));
     }
@@ -1728,6 +1880,7 @@ class TimeTableController extends Controller
     {
         $data = $req->all();
         $data['year'] = $this->year;
+        $data['approval_status'] = 'draft';
         $data['section_id'] = $this->cleanRecordSection($data);
         if ($data['section_id'] === false) {
             return back()->with('flash_danger', 'That section does not belong to the chosen class.');

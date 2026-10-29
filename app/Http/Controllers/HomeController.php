@@ -313,6 +313,19 @@ class HomeController extends Controller
             ->where('status', 'pending')->latest()->take(8)->get();
         $d['pr_pending_leaves_count'] = LeaveRequest::where('status', 'pending')->count();
 
+        // Result publication requests (owner order 2026-10-29): the
+        // Admin requests once every subject's marks are submitted;
+        // the Principal's publish is the final act — they wait here.
+        $d['pr_pub_requests'] = \App\Models\Exam::whereNotNull('publish_requested_at')
+            ->where('results_published', 0)->latest('publish_requested_at')->take(8)->get();
+        $d['pr_pub_requests_count'] = \App\Models\Exam::whereNotNull('publish_requested_at')
+            ->where('results_published', 0)->count();
+
+        // Timetable approvals waiting (owner order 2026-10-29).
+        $d['pr_tt_requests'] = \App\Models\TimeTableRecord::with('my_class')
+            ->where('approval_status', 'submitted')->orderBy('approval_submitted_at')->take(8)->get();
+        $d['pr_tt_requests_count'] = \App\Models\TimeTableRecord::where('approval_status', 'submitted')->count();
+
         // --- Academic analytics (Term 1 = earliest term-1 exam, if any) ---
         $term1 = Exam::where('term', 1)->orderBy('id')->first();
         $d['pr_term_exam'] = $term1;

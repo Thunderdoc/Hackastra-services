@@ -97,27 +97,19 @@
                     </ul>
                 </li>
                 {{-- Workstream CS2 (LMS, owner-ordered module).
-                     Owner order 2026-10-29: the group is named LMS
+                     Owner orders 2026-10-29: the group is named LMS
                      and Quizzes lives inside it with Assignments and
-                     Study Materials (moved from below, same route). --}}
+                     Study Materials (moved from below, same route);
+                     the group is a collapsible submenu exactly like
+                     Academics above (owner screenshot + order). --}}
                 <li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">LMS</div><i class="icon-menu" title="LMS"></i></li>
-                <li class="nav-item">
-                    <a href="{{ route('assignments.index') }}" class="nav-link {{ (Route::is('assignments.*')) ? 'active' : '' }}">
-                        <i class="icon-file-text2"></i>
-                        <span>Assignments</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="{{ route('materials.index') }}" class="nav-link {{ (Route::is('materials.*')) ? 'active' : '' }}">
-                        <i class="icon-book"></i>
-                        <span>Study Materials</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="{{ route('quizzes.index') }}" class="nav-link {{ (Route::is('quizzes.*')) ? 'active' : '' }}">
-                        <i class="icon-file-text2"></i>
-                        <span>Quizzes</span>
-                    </a>
+                <li class="nav-item nav-item-submenu {{ (Route::is('assignments.*') || Route::is('materials.*') || Route::is('quizzes.*')) ? 'nav-item-expanded nav-item-open' : '' }} ">
+                    <a href="#" class="nav-link"><i class="icon-books"></i> <span> LMS</span></a>
+                    <ul class="nav nav-group-sub" data-submenu-title="Manage LMS">
+                        <li class="nav-item"><a href="{{ route('assignments.index') }}" class="nav-link {{ (Route::is('assignments.*')) ? 'active' : '' }}">Assignments</a></li>
+                        <li class="nav-item"><a href="{{ route('materials.index') }}" class="nav-link {{ (Route::is('materials.*')) ? 'active' : '' }}">Study Materials</a></li>
+                        <li class="nav-item"><a href="{{ route('quizzes.index') }}" class="nav-link {{ (Route::is('quizzes.*')) ? 'active' : '' }}">Quizzes</a></li>
+                    </ul>
                 </li>
                 <li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Students</div><i class="icon-menu" title="Students"></i></li>
                 <li class="nav-item nav-item-submenu {{ in_array(Route::currentRouteName(), ['students.create', 'students.list', 'students.edit', 'students.show', 'students.promotion', 'students.promotion_manage', 'students.graduated']) ? 'nav-item-expanded nav-item-open' : '' }} ">

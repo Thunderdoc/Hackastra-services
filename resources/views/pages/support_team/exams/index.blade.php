@@ -49,6 +49,8 @@
                         <td data-label="Results">
                             @if($ex->results_published)
                                 <span class="badge badge-success">Published</span>
+                            @elseif($ex->publish_requested_at)
+                                <span class="badge badge-warning">Publication requested</span>
                             @else
                                 <span class="badge badge-secondary">Not published</span>
                             @endif
@@ -69,8 +71,16 @@
                                  same teamSAWrite gating. --}}
                             <div class="l108-tools">
                                 <a href="{{ route('admit_cards.index', ['exam_id' => $ex->id]) }}" class="btn btn-light btn-sm"><i class="icon-profile mr-1"></i> Admit Cards</a>
+                                @if(Qs::userIsAdmin() || Qs::userIsPrincipal())
+                                <a href="{{ route('exams.publication', $ex->id) }}" class="btn btn-light btn-sm"><i class="icon-eye mr-1"></i> Publication</a>
+                                @endif
                                 @if(Qs::userIsTeamSAWrite())
                                 <a href="{{ route('exams.scheme', $ex->id) }}" class="btn btn-light btn-sm"><i class="icon-list mr-1"></i> Marking Scheme</a>
+                                <a href="{{ route('exams.edit', $ex->id) }}" class="btn btn-primary btn-sm"><i class="icon-pencil mr-1"></i> Edit</a>
+                                <button type="button" id="{{ $ex->id }}" onclick="confirmDelete(this.id)" class="btn btn-danger btn-sm"><i class="icon-trash mr-1"></i> Delete</button>
+                                <form method="post" id="item-delete-{{ $ex->id }}" action="{{ route('exams.destroy', $ex->id) }}" class="hidden">@csrf @method('delete')</form>
+                                @endif
+                                @if(Qs::userIsPrincipal())
                                 @if($ex->results_published)
                                 <form method="post" action="{{ route('exams.unpublish_results', $ex->id) }}" data-confirm="Unpublish results for {{ $ex->name }}? Students and parents will no longer be able to see these results." data-confirm-title="Unpublish Results" data-confirm-action="Unpublish" data-confirm-danger>
                                     @csrf
@@ -82,9 +92,6 @@
                                     <button type="submit" class="btn btn-light btn-sm"><i class="icon-eye mr-1"></i> Publish Results</button>
                                 </form>
                                 @endif
-                                <a href="{{ route('exams.edit', $ex->id) }}" class="btn btn-primary btn-sm"><i class="icon-pencil mr-1"></i> Edit</a>
-                                <button type="button" id="{{ $ex->id }}" onclick="confirmDelete(this.id)" class="btn btn-danger btn-sm"><i class="icon-trash mr-1"></i> Delete</button>
-                                <form method="post" id="item-delete-{{ $ex->id }}" action="{{ route('exams.destroy', $ex->id) }}" class="hidden">@csrf @method('delete')</form>
                                 @endif
                             </div>
                         </td>

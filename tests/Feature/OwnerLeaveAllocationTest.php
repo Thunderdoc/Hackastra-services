@@ -111,8 +111,13 @@ class OwnerLeaveAllocationTest extends TestCase
         $this->assertSame([], LeaveCover::allocationLines($accountant));
     }
 
-    public function test_approve_does_not_auto_create_substitutions()
+    public function test_approve_auto_creates_substitutions()
     {
+        // Owner order 2026-10-29 supersedes this test's original
+        // premise ("approve does not auto-create"): approval now
+        // makes the SYSTEM arrange the cover itself. Ananya has 8
+        // Monday periods (pinned above), and the seeded pool covers
+        // all of them.
         $teacher = $this->ananya();
         $leave = $this->makeLeave($teacher->id, '2026-11-02', '2026-11-02');
 
@@ -120,7 +125,13 @@ class OwnerLeaveAllocationTest extends TestCase
             ->post(route('leave.decide', $leave->id), ['status' => 'approved', 'decision_note' => 'probe']);
         $response->assertRedirect(route('leave.index'));
         $this->assertSame('approved', $leave->fresh()->status);
-        $this->assertSame(0, Substitution::where('absent_teacher_id', $teacher->id)
-            ->whereDate('date', '2026-11-02')->count());
+        $rows = Substitution::where('absent_teacher_id', $teacher->id)
+            ->whereDate('date', '2026-11-02')->get();
+        $this->assertSame(8, $rows->count());
+        $this->assertSame(0, LeaveCover::uncoveredCount($teacher->id, '2026-11-02', '2026-11-02'));
+        foreach ($rows as $row) {
+            $this->assertSame('Auto-arranged (leave)', $row->reason);
+            $this->assertSame((int) $this->admin()->id, (int) $row->created_by);
+        }
     }
 }

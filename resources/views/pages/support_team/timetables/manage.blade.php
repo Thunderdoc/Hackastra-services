@@ -14,6 +14,28 @@
             <h6 class="card-title font-weight-bold">{{ $ttr->name.' ('.(optional($my_class)->name ?: 'Deleted class').')'.' '.$ttr->year }}</h6>
         </div>
 
+        {{-- Timetable approval (owner order 2026-10-29): this page IS
+             the Admin's review step. A generated timetable starts as
+             a draft; the Admin checks the grid + Validate, then OKs
+             it to the Principal, whose approval puts it in force. --}}
+        @if(($ttr->approval_status ?? 'approved') === 'draft')
+            <div class="alert alert-warning border-0" style="margin: 12px 16px 0;">
+                <strong>Draft — not in force yet.</strong> Teachers and students cannot see this timetable. Review the grid and the Validate report; when everything looks right, send it to the Principal.
+                <form method="post" action="{{ route('ttr.submit_approval', $ttr->id) }}" class="mt-2">
+                    @csrf
+                    <button type="submit" class="btn btn-primary btn-sm"><i class="icon-checkmark3 mr-1"></i> OK — Send to Principal for Approval</button>
+                </form>
+            </div>
+        @elseif($ttr->approval_status === 'submitted')
+            <div class="alert alert-info border-0" style="margin: 12px 16px 0;">
+                <strong>With the Principal for approval</strong>@if($ttr->approval_submitted_at) — sent {{ \Illuminate\Support\Carbon::parse($ttr->approval_submitted_at)->format('d M Y, g:i A') }}@endif. It becomes visible to teachers and students only after the Principal approves it.
+            </div>
+        @else
+            <div class="alert alert-success border-0" style="margin: 12px 16px 0;">
+                <strong>Approved — in force.</strong> This timetable is live for teachers and students.@if($ttr->approved_at) Approved {{ \Illuminate\Support\Carbon::parse($ttr->approved_at)->format('d M Y') }}.@endif Regenerating it will return it to draft for a fresh review.
+            </div>
+        @endif
+
         <div class="card-body">
             <ul class="nav nav-tabs nav-tabs-highlight l108-tabs">
                 <li class="nav-item"><a href="#manage-ts" class="nav-link active" data-toggle="tab">Manage Time Slots</a></li>

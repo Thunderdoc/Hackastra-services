@@ -36,6 +36,14 @@ class OwnerExamDateSheetR7Test extends TestCase
         return User::where('email', 'admin@hackstra.app')->first();
     }
 
+    protected function principal()
+    {
+        // Owner order 2026-10-29: the Principal alone publishes
+        // results — the publish/unpublish mechanics are exercised
+        // as the Principal now (the Admin sends a request instead).
+        return User::where('email', 'principal@hackstra.app')->first();
+    }
+
     protected function freshExamWithClass($classId)
     {
         return Exam::create([
@@ -53,7 +61,7 @@ class OwnerExamDateSheetR7Test extends TestCase
         $exam = $this->freshExamWithClass($class->id);
         $this->assertSame(0, ExamDate::where('exam_id', $exam->id)->count());
 
-        $this->actingAs($this->admin());
+        $this->actingAs($this->principal());
         $this->post(route('exams.publish_results', $exam->id))->assertRedirect();
         $this->assertTrue((bool) $exam->fresh()->results_published);
 
@@ -80,7 +88,7 @@ class OwnerExamDateSheetR7Test extends TestCase
             'start_time' => '09:00:00',
         ]);
 
-        $this->actingAs($this->admin());
+        $this->actingAs($this->principal());
         $this->post(route('exams.publish_results', $exam->id))->assertRedirect();
         $this->assertTrue((bool) $exam->fresh()->results_published);
         // The date sheet is untouched by publishing.

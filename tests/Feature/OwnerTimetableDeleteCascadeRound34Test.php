@@ -126,6 +126,11 @@ class OwnerTimetableDeleteCascadeRound34Test extends TestCase
             'name' => 'R34 Grid ' . $u, 'my_class_id' => $class->id, 'section_id' => $section->id,
         ])->assertOk()->assertJson(['ok' => true]);
         $record = TimeTableRecord::where('name', 'R34 Grid ' . $u)->firstOrFail();
+        // Premise update (timetable approval, owner order
+        // 2026-10-29): new records start as drafts; this fixture's
+        // grids are exercised as in-force timetables.
+        TimeTableRecord::where('id', $record->id)->update(['approval_status' => 'approved']);
+        $record = $record->fresh();
         $slot = TimeSlot::create([
             'ttr_id' => $record->id, 'hour_from' => 9, 'min_from' => '00', 'meridian_from' => 'AM',
             'hour_to' => 9, 'min_to' => '40', 'meridian_to' => 'AM',

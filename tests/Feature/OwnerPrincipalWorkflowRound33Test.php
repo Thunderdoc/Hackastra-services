@@ -25,8 +25,10 @@ use Tests\TestCase;
  *  (a) teacher leave -> principal approves (decided_by = principal)
  *      -> teacher sees approved; principal's OWN leave -> own
  *      decide refused, stays pending -> admin decides -> approved;
- *      approving creates NO substitutions (auto-cover stays an
- *      owner call, deliberately not built);
+ *      decide refused, stays pending -> admin decides -> approved;
+ *      approving ARRANGES substitutions (auto-cover, owner order
+ *      2026-10-29 — supersedes this round's original no-cover
+ *      premise: cover is arranged at the moment of approval);
  *  (b) principal publishes an exam -> student + parent marksheet
  *      views flip to the real card, then unpublish -> the honest
  *      "Results Not Published Yet" view returns;
@@ -138,8 +140,12 @@ class OwnerPrincipalWorkflowRound33Test extends TestCase
         // Teacher sees the decision on My Leave.
         $this->actingAs($teacher)->get(route('leave.my'))->assertOk();
 
-        // Approving creates NO substitutions (auto-cover owner call).
-        $this->assertSame(0, Substitution::count());
+        // Auto-cover (owner order 2026-10-29): approving a normal
+        // leave arranges substitutes for the absent teacher's
+        // periods inside the leave window.
+        $this->assertGreaterThan(0, Substitution::where('absent_teacher_id', $teacher->id)
+            ->whereDate('date', '>=', '2026-12-01')
+            ->whereDate('date', '<=', '2026-12-03')->count());
 
         // (a2) Principal's OWN normal leave: own decide refused.
         $this->actingAs($principal)->post(route('leave.store'), [

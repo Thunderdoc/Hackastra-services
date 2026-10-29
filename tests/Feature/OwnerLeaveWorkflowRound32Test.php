@@ -17,8 +17,10 @@ use Tests\TestCase;
  * Roles audit round 32 — end-to-end LEAVE lifecycle workflow (P15
  * chain probe: per-link guards were proven separately, never as one
  * chain). One continuous chain through the REAL routes:
- * student apply -> teacher queue -> teacher approve -> (no
- * auto-cover) -> admin cover -> uncovered count recomputes;
+ * student apply -> teacher queue -> teacher approve (no periods, so
+ * no cover) -> manual cover -> uncovered count recomputes -> admin
+ * approval triggers the system's auto-cover for the rest
+ * (owner order 2026-10-29);
  * staff emergency auto-approves + bells admins AND principals;
  * self-decision bans; wrong-queue decisions; parent/accountant/
  * librarian negatives; re-decision refused.
@@ -151,8 +153,8 @@ class OwnerLeaveWorkflowRound32Test extends TestCase
         $mine->assertOk();
         $mine->assertSee('approved');
 
-        // Approving creates NO substitutions (auto-cover is an owner
-        // call, deliberately not built).
+        // A student has no periods, so even after the 2026-10-29
+        // auto-cover order an approval arranges nothing for them.
         $this->assertSame(0, Substitution::count());
     }
 
@@ -180,16 +182,8 @@ class OwnerLeaveWorkflowRound32Test extends TestCase
         $this->assertSame($expected, $row->uncovered_periods);
         $this->assertNotEmpty($row->allocation_lines);
 
-        // Admin approves: still no substitutions.
-        $this->actingAs($this->admin())->post(route('leave.decide', $leave->id), [
-            'status' => 'approved',
-        ])->assertRedirect();
-        $leave->refresh();
-        $this->assertSame('approved', $leave->status);
-        $this->assertSame((int) $this->admin()->id, (int) $leave->decided_by);
-        $this->assertSame(0, Substitution::count());
-
-        // Admin arranges cover for exactly one Monday period.
+        // Manual arrange BEFORE approval still works exactly as
+        // before: the admin covers one Monday period by hand.
         $cell = $this->ananyaMondayCell();
         $substitute = $this->freshUser('sub', 'teacher');
         $store = $this->actingAs($this->admin())->post(route('substitutions.store'), [
@@ -208,11 +202,36 @@ class OwnerLeaveWorkflowRound32Test extends TestCase
 
         // P10 again: the queue count RECOMPUTES — drops by exactly 1,
         // and still equals the helper (no static count, no drift).
-        $after = LeaveCover::uncoveredCount($teacher->id, '2026-11-02', '2026-11-02');
-        $this->assertSame($expected - 1, $after);
+        $afterManual = LeaveCover::uncoveredCount($teacher->id, '2026-11-02', '2026-11-02');
+        $this->assertSame($expected - 1, $afterManual);
         $queue2 = $this->actingAs($this->admin())->get(route('leave.index'));
         $row2 = $this->queueRow($queue2, $leave->id);
-        $this->assertSame($after, $row2->uncovered_periods);
+        $this->assertSame($afterManual, $row2->uncovered_periods);
+
+        // Owner order 2026-10-29 (auto-cover, supersedes this test's
+        // original "approving creates NO substitutions" premise):
+        // approving the leave makes the SYSTEM arrange the remaining
+        // periods itself. The books must balance exactly — every
+        // period is either covered by a row or still counted
+        // uncovered — and the manual row is neither duplicated nor
+        // replaced.
+        $this->actingAs($this->admin())->post(route('leave.decide', $leave->id), [
+            'status' => 'approved',
+        ])->assertRedirect();
+        $leave->refresh();
+        $this->assertSame('approved', $leave->status);
+        $this->assertSame((int) $this->admin()->id, (int) $leave->decided_by);
+        $rowsAfter = Substitution::where('absent_teacher_id', $teacher->id)->count();
+        $uncoveredAfter = LeaveCover::uncoveredCount($teacher->id, '2026-11-02', '2026-11-02');
+        $this->assertSame($expected, $rowsAfter + $uncoveredAfter);
+        $manualRow = Substitution::where('time_table_id', $cell->id)
+            ->whereDate('date', '2026-11-02')->firstOrFail();
+        $this->assertSame((int) $substitute->id, (int) $manualRow->substitute_teacher_id);
+        $this->assertSame('R32 cover', $manualRow->reason);
+        if ($rowsAfter > 1) {
+            $this->assertTrue(Substitution::where('absent_teacher_id', $teacher->id)
+                ->where('reason', 'Auto-arranged (leave)')->exists());
+        }
     }
 
     public function test_staff_emergency_auto_approves_and_bells_admins_and_principals()

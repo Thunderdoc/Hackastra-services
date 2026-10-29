@@ -1,6 +1,17 @@
 #!/bin/bash
-# Hackstra on Render (free demo): start the bundled MariaDB, prepare
-# Laravel (migrate + seed the demo on an empty database), then Apache.
+# Hackstra on Render: prepare Laravel, then Apache.
+#
+# DATABASE MODES (owner order 2026-10-29 — data must survive pushes):
+#  * Default (bundled demo): MariaDB runs INSIDE this container and
+#    every boot rebuilds + reseeds the demo dataset. The container
+#    filesystem is ephemeral on Render, so bundled data can never
+#    survive a deploy — that is a platform fact, not an app choice.
+#  * Persistent: when the Render dashboard provides a DB_HOST that
+#    points at an EXTERNAL MySQL/MariaDB (any hosted free/paid
+#    MySQL), the bundled database is skipped entirely. The external
+#    database is only MIGRATED (schema upgrades) — never wiped; the
+#    demo seed runs once, on the very first boot, when it is empty.
+#    School settings, users and records then survive every push.
 set -e
 
 cd /var/www/html
@@ -29,39 +40,84 @@ fi
 # before `config:cache` below so the cached config picks it up.
 export APP_TIMEZONE="${APP_TIMEZONE:-Asia/Kolkata}"
 
-# ---- Bundled MariaDB (demo data lives and dies with the container) ----
-export DB_CONNECTION=mysql
-export DB_HOST=127.0.0.1
-export DB_PORT=3306
-export DB_DATABASE="${DB_DATABASE:-hackstra}"
-export DB_USERNAME="${DB_USERNAME:-hackstra}"
-export DB_PASSWORD="${DB_PASSWORD:-hackstra-demo-pass}"
-
-mkdir -p /run/mysqld
-chown mysql:mysql /run/mysqld || true
-
-if [ ! -d /var/lib/mysql/mysql ]; then
-    echo "Initialising MariaDB data directory..."
-    mariadb-install-db --user=mysql --datadir=/var/lib/mysql --auth-root-authentication-method=normal >/dev/null 2>&1 || \
-    mysql_install_db --user=mysql --datadir=/var/lib/mysql >/dev/null 2>&1 || true
+# ---- Database mode selection ----
+if [ -n "$DB_HOST" ] && [ "$DB_HOST" != "127.0.0.1" ] && [ "$DB_HOST" != "localhost" ]; then
+    PERSISTENT_DB=1
+else
+    PERSISTENT_DB=0
 fi
 
-echo "Starting bundled MariaDB..."
-mysqld_safe --user=mysql >/dev/null 2>&1 &
+if [ "$PERSISTENT_DB" = "1" ]; then
+    # ---- External database (persistent across deploys) ----
+    export DB_CONNECTION="${DB_CONNECTION:-mysql}"
+    export DB_PORT="${DB_PORT:-3306}"
+    # DB_HOST / DB_DATABASE / DB_USERNAME / DB_PASSWORD all come from
+    # the Render dashboard env vars — nothing is hardcoded here.
 
-for i in $(seq 1 30); do
-    if mysqladmin --socket=/run/mysqld/mysqld.sock ping >/dev/null 2>&1; then
-        echo "MariaDB is up."
-        break
-    fi
-    if [ "$i" = "30" ]; then
-        echo "ERROR: MariaDB did not start in time."
-        exit 1
-    fi
-    sleep 2
-done
+    echo "External database configured (${DB_HOST}) - bundled MariaDB skipped."
+    echo "Waiting for the external database to accept connections..."
+    DB_UP=0
+    for i in $(seq 1 45); do
+        if mysqladmin -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USERNAME" -p"$DB_PASSWORD" ping >/dev/null 2>&1; then
+            echo "External database is up."
+            DB_UP=1
+            break
+        fi
+        sleep 2
+    done
 
-mysql --socket=/run/mysqld/mysqld.sock -uroot <<SQL || true
+    if [ "$DB_UP" = "1" ]; then
+        TABLE_COUNT="$(mysql -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USERNAME" -p"$DB_PASSWORD" -N -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='${DB_DATABASE}'" 2>/dev/null || true)"
+        if [ "$TABLE_COUNT" = "0" ]; then
+            # First boot against this database: create the schema and
+            # seed the demo dataset ONCE. Later boots never reseed.
+            echo "External database is empty - first boot: migrating and seeding once."
+            php artisan migrate --force || echo "WARNING: migrations failed - check logs."
+            php artisan db:seed --force || echo "WARNING: seeding failed - check logs."
+        elif [ -n "$TABLE_COUNT" ]; then
+            # Normal boot: schema upgrades only. Data is preserved.
+            echo "External database has ${TABLE_COUNT} tables - migrating only, data preserved."
+            php artisan migrate --force || echo "WARNING: migrations failed - check logs."
+        else
+            echo "WARNING: could not inspect the external database - skipping migrations."
+        fi
+    else
+        echo "WARNING: external database did not answer in time - skipping migrations."
+    fi
+else
+    # ---- Bundled MariaDB (demo data lives and dies with the container) ----
+    export DB_CONNECTION=mysql
+    export DB_HOST=127.0.0.1
+    export DB_PORT=3306
+    export DB_DATABASE="${DB_DATABASE:-hackstra}"
+    export DB_USERNAME="${DB_USERNAME:-hackstra}"
+    export DB_PASSWORD="${DB_PASSWORD:-hackstra-demo-pass}"
+
+    mkdir -p /run/mysqld
+    chown mysql:mysql /run/mysqld || true
+
+    if [ ! -d /var/lib/mysql/mysql ]; then
+        echo "Initialising MariaDB data directory..."
+        mariadb-install-db --user=mysql --datadir=/var/lib/mysql --auth-root-authentication-method=normal >/dev/null 2>&1 || \
+        mysql_install_db --user=mysql --datadir=/var/lib/mysql >/dev/null 2>&1 || true
+    fi
+
+    echo "Starting bundled MariaDB..."
+    mysqld_safe --user=mysql >/dev/null 2>&1 &
+
+    for i in $(seq 1 30); do
+        if mysqladmin --socket=/run/mysqld/mysqld.sock ping >/dev/null 2>&1; then
+            echo "MariaDB is up."
+            break
+        fi
+        if [ "$i" = "30" ]; then
+            echo "ERROR: MariaDB did not start in time."
+            exit 1
+        fi
+        sleep 2
+    done
+
+    mysql --socket=/run/mysqld/mysqld.sock -uroot <<SQL || true
 CREATE DATABASE IF NOT EXISTS \`${DB_DATABASE}\`;
 CREATE USER IF NOT EXISTS '${DB_USERNAME}'@'localhost' IDENTIFIED BY '${DB_PASSWORD}';
 CREATE USER IF NOT EXISTS '${DB_USERNAME}'@'127.0.0.1' IDENTIFIED BY '${DB_PASSWORD}';
@@ -70,14 +126,15 @@ GRANT ALL PRIVILEGES ON \`${DB_DATABASE}\`.* TO '${DB_USERNAME}'@'127.0.0.1';
 FLUSH PRIVILEGES;
 SQL
 
-# ---- Laravel ----
-# DEMO DEPLOYMENT: the database is ephemeral by design, so every boot
-# rebuilds it from scratch and seeds the complete demo dataset. This
-# guarantees the checking/demo site always shows full demo data and
-# never a half-seeded state.
-php artisan migrate:fresh --force || echo "WARNING: migrations failed - check logs."
-echo "Seeding demo data..."
-php artisan db:seed --force || echo "WARNING: seeding failed - check logs."
+    # ---- Laravel (bundled demo) ----
+    # DEMO DEPLOYMENT: the database is ephemeral by design, so every boot
+    # rebuilds it from scratch and seeds the complete demo dataset. This
+    # guarantees the checking/demo site always shows full demo data and
+    # never a half-seeded state.
+    php artisan migrate:fresh --force || echo "WARNING: migrations failed - check logs."
+    echo "Seeding demo data..."
+    php artisan db:seed --force || echo "WARNING: seeding failed - check logs."
+fi
 
 php artisan storage:link || true
 php artisan config:cache || true

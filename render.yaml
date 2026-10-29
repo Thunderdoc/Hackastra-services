@@ -1,6 +1,10 @@
 # Hackstra — Render Blueprint (free-tier DEMO).
-# The database is bundled inside the container (see Dockerfile.render),
-# so this is a single web service. Data re-seeds on every restart.
+# Database: bundled inside the container by default (data re-seeds on
+# every restart). PERSISTENT MODE: set the DB_* env vars below in the
+# Render dashboard to an external hosted MySQL/MariaDB and the app
+# switches automatically — the external database is migrated, never
+# wiped, and school data survives every deploy (see
+# docker/entrypoint.render.sh).
 services:
   - type: web
     name: hackastra
@@ -18,3 +22,16 @@ services:
         value: "480"
       - key: APP_KEY
         sync: false # set once in the Render dashboard (never commit a real key)
+      # Persistent database (optional): fill ALL of these in the
+      # dashboard with an external MySQL/MariaDB to make school data
+      # survive deploys. Leave them unset for the bundled demo DB.
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        sync: false
+      - key: DB_DATABASE
+        sync: false
+      - key: DB_USERNAME
+        sync: false
+      - key: DB_PASSWORD
+        sync: false

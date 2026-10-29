@@ -102,7 +102,12 @@ class OwnerTimetableSectionGridRound33Test extends TestCase
         $this->actingAs($this->admin())->post(route('ttr.store'), $payload)->assertOk()
             ->assertJson(['ok' => true]);
 
-        return TimeTableRecord::where('name', $name)->firstOrFail();
+        // Premise update (timetable approval, owner order
+        // 2026-10-29): new records now start as drafts; these
+        // fixtures exercise in-force grids, so approve them here.
+        $record = TimeTableRecord::where('name', $name)->firstOrFail();
+        TimeTableRecord::where('id', $record->id)->update(['approval_status' => 'approved']);
+        return $record->fresh();
     }
 
     /** Place one cell through the REAL tt.store (Manage add) route. */

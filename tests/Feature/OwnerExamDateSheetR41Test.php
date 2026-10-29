@@ -68,6 +68,12 @@ class OwnerExamDateSheetR41Test extends TestCase
         return User::where('email', 'admin@hackstra.app')->firstOrFail();
     }
 
+    protected function principal()
+    {
+        // Owner order 2026-10-29: the Principal alone publishes.
+        return User::where('email', 'principal@hackstra.app')->firstOrFail();
+    }
+
     protected function makeClass($name, array $subjects, $slugPrefix)
     {
         $class = MyClass::create(['name' => $name, 'class_type_id' => 4]);
@@ -264,7 +270,7 @@ class OwnerExamDateSheetR41Test extends TestCase
         $resp->assertViewIs('pages.support_team.marks.not_published');
         $resp->assertDontSee('R41 Chain Exam');
 
-        $this->actingAs($this->admin());
+        $this->actingAs($this->principal());
         $this->from(route('exams.index'));
         $resp = $this->post(route('exams.publish_results', ['exam' => $exam->id]));
         $resp->assertRedirect(route('exams.index'));
@@ -280,7 +286,7 @@ class OwnerExamDateSheetR41Test extends TestCase
 
         // Y's sheet renders (via published global G) but NEVER
         // lists the X exam — the scope partition through publish.
-        $this->actingAs($this->admin());
+        $this->actingAs($this->principal());
         $this->from(route('exams.index'));
         $resp = $this->post(route('exams.publish_results', ['exam' => $global->id]));
         $resp->assertRedirect(route('exams.index'));

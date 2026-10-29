@@ -14,6 +14,11 @@
      the summary + actions form one footer strip. The script below
      is byte-identical to Loop 86. --}}
 @php
+    /* Marks lifecycle (owner order 2026-10-29): a locked unit
+       (before its exam date, or after submission) renders its
+       inputs and save controls disabled — the server refuses the
+       save regardless; this is the honest visual state. */
+    $l86Locked = !empty($lifecycle['locked']);
     $l86BandsPrimary = \App\Models\Grade::where('class_type_id', $class_type->id)->orderBy('mark_from')->get();
     $l86BandsFallback = \App\Models\Grade::whereNull('class_type_id')->orderBy('mark_from')->get();
     $l86PickBand = function($bands, $total){ foreach($bands as $b){ if($total >= $b->mark_from && $total <= $b->mark_to) return $b->name; } return null; };
@@ -72,7 +77,7 @@
                     <td>{{ optional($mk->user)->name ?? '—' }} </td>
                     <td>{{ optional(optional($mk->user)->student_record)->adm_no ?? '—' }}</td>
                     @foreach($scheme['components'] as $comp)
-                        <td><span class="l115-mwrap"><input title="{{ $comp['name'] }}" min="0" max="{{ $comp['max_marks'] }}" class="form-control text-center l76-mark-input" name="comp_{{ $mk->id }}_{{ $comp['id'] }}" value="{{ \App\Support\MarkScheme::scoreFor($mk, $comp) }}" type="number"><span class="l115-mmax" aria-hidden="true">/ {{ $comp['max_marks'] }}</span></span></td>
+                        <td><span class="l115-mwrap"><input title="{{ $comp['name'] }}" min="0" max="{{ $comp['max_marks'] }}" class="form-control text-center l76-mark-input" name="comp_{{ $mk->id }}_{{ $comp['id'] }}" value="{{ \App\Support\MarkScheme::scoreFor($mk, $comp) }}" type="number"{{ $l86Locked ? ' disabled' : '' }}><span class="l115-mmax" aria-hidden="true">/ {{ $comp['max_marks'] }}</span></span></td>
                     @endforeach
                     <td><span class="l86-total l115-pill-total">{{ $l86Total ?? '—' }}</span></td>
                     <td><span class="l86-pct l115-pill-pct">{{ $l86Pct === null ? '—' : number_format($l86Pct, 1).'%' }}</span></td>
@@ -124,9 +129,9 @@
                     <td>{{ optional(optional($mk->user)->student_record)->adm_no ?? '—' }}</td>
 
     {{--                CA AND EXAMS --}}
-                    <td><span class="l115-mwrap"><input title="1ST CA" min="0" max="20" class="form-control text-center l76-mark-input" name="t1_{{ $mk->id }}" value="{{ $mk->t1 }}" type="number"><span class="l115-mmax" aria-hidden="true">/ 20</span></span></td>
-                    <td><span class="l115-mwrap"><input title="2ND CA" min="0" max="20" class="form-control text-center l76-mark-input" name="t2_{{ $mk->id }}" value="{{ $mk->t2 }}" type="number"><span class="l115-mmax" aria-hidden="true">/ 20</span></span></td>
-                    <td><span class="l115-mwrap"><input title="EXAM" min="0" max="60" class="form-control text-center l76-mark-input" name="exm_{{ $mk->id }}" value="{{ $mk->exm }}" type="number"><span class="l115-mmax" aria-hidden="true">/ 60</span></span></td>
+                    <td><span class="l115-mwrap"><input title="1ST CA" min="0" max="20" class="form-control text-center l76-mark-input" name="t1_{{ $mk->id }}" value="{{ $mk->t1 }}" type="number"{{ $l86Locked ? ' disabled' : '' }}><span class="l115-mmax" aria-hidden="true">/ 20</span></span></td>
+                    <td><span class="l115-mwrap"><input title="2ND CA" min="0" max="20" class="form-control text-center l76-mark-input" name="t2_{{ $mk->id }}" value="{{ $mk->t2 }}" type="number"{{ $l86Locked ? ' disabled' : '' }}><span class="l115-mmax" aria-hidden="true">/ 20</span></span></td>
+                    <td><span class="l115-mwrap"><input title="EXAM" min="0" max="60" class="form-control text-center l76-mark-input" name="exm_{{ $mk->id }}" value="{{ $mk->exm }}" type="number"{{ $l86Locked ? ' disabled' : '' }}><span class="l115-mmax" aria-hidden="true">/ 60</span></span></td>
 
                     <td><span class="l86-total l115-pill-total">{{ $l86Total ?? '—' }}</span></td>
                     <td><span class="l86-pct l115-pill-pct">{{ $l86Pct === null ? '—' : number_format($l86Pct, 1).'%' }}</span></td>
@@ -175,8 +180,8 @@
             </div>
         </div>
         <span class="l86-dirty-hint" id="l86-dirty" hidden><i class="icon-pencil7"></i> Unsaved changes</span>
-        <button type="button" class="btn btn-light l86-reset"><i class="icon-reset"></i> Reset</button>
-        <button type="submit" class="btn btn-primary">Update Marks <i class="icon-paperplane ml-2"></i></button>
+        <button type="button" class="btn btn-light l86-reset"{{ $l86Locked ? ' disabled' : '' }}><i class="icon-reset"></i> Reset</button>
+        <button type="submit" class="btn btn-primary"{{ $l86Locked ? ' disabled' : '' }}>Update Marks <i class="icon-paperplane ml-2"></i></button>
     </div>
 </form>
 

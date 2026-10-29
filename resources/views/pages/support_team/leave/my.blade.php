@@ -58,8 +58,8 @@
                     <tbody>
                     @forelse($requests as $r)
                         <tr>
-                            <td>{{ $r->start_date }}</td>
-                            <td>{{ $r->end_date }}</td>
+                            <td>{{ $r->start_date_display }}</td>
+                            <td>{{ $r->end_date_display }}</td>
                             <td>{{ $r->days }}</td>
                             <td>@if($r->leave_type === 'emergency')<span class="badge badge-danger">Emergency</span>@else<span class="badge badge-secondary">Normal</span>@endif</td>
                             <td>{{ $r->reason }}</td>

@@ -165,6 +165,17 @@
                             @if(Qs::userIsTeamSAWrite() && $ttr->year === $stats['session'] && in_array($ttr->id, $validated_ids ?? []))
                                 <span class="l81-status l81-status-validated"><i class="icon-checkmark-circle"></i> Validated</span>
                             @endif
+                            {{-- Timetable approval state (owner order
+                                 2026-10-29): only the office roles see
+                                 it — teachers/students only ever see
+                                 in-force timetables here at all. --}}
+                            @if((Qs::userIsAdmin() || Qs::userIsPrincipal()) && ($ttr->approval_status ?? 'approved') !== 'approved')
+                                @if($ttr->approval_status === 'submitted')
+                                    <span class="l81-status" style="background:#e8f0fe;color:#1a56db;"><i class="icon-hour-glass"></i> With Principal</span>
+                                @else
+                                    <span class="l81-status" style="background:#fef3c7;color:#92400e;"><i class="icon-pencil"></i> Draft</span>
+                                @endif
+                            @endif
                             <div class="ttx-actions l81-actions">
                                 <a href="{{ route('ttr.show', $ttr->id) }}" class="btn btn-light btn-sm"><i class="icon-eye mr-1"></i> View</a>
                                 <a target="_blank" href="{{ route('ttr.print', $ttr->id) }}" class="btn btn-light btn-sm"><i class="icon-printer mr-1"></i> Print</a>

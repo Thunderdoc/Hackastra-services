@@ -121,7 +121,7 @@ html.hk-dark .pr-wrap .pr-card h5{color:#10263b}
 
         <section class="pr-card">
             <h5>Approval Center</h5>
-            <p class="pr-sub">Pending leave decisions. Emergency leaves auto-approve per policy and never wait here.</p>
+            <p class="pr-sub">Pending leave decisions and result publication requests. Emergency leaves auto-approve per policy and never wait here.</p>
             @if(count($pr_pending_leaves) > 0)
                 <table class="pr-table">
                     <thead><tr><th>Applicant</th><th>Type</th><th>Dates</th><th></th></tr></thead>
@@ -136,7 +136,36 @@ html.hk-dark .pr-wrap .pr-card h5{color:#10263b}
                     @endforeach
                     </tbody>
                 </table>
-            @else
+            @endif
+            @if(count($pr_pub_requests) > 0)
+                <table class="pr-table" style="margin-top:14px;">
+                    <thead><tr><th>Result publication requested</th><th>Requested</th><th></th></tr></thead>
+                    <tbody>
+                    @foreach($pr_pub_requests as $pubExam)
+                        <tr>
+                            <td><strong>{{ $pubExam->name }}</strong></td>
+                            <td>{{ \Illuminate\Support\Carbon::parse($pubExam->publish_requested_at)->format('d M Y') }}</td>
+                            <td><a href="{{ route('exams.publication', $pubExam->id) }}">Review &amp; publish</a></td>
+                        </tr>
+                    @endforeach
+                    </tbody>
+                </table>
+            @endif
+            @if(count($pr_tt_requests) > 0)
+                <table class="pr-table" style="margin-top:14px;">
+                    <thead><tr><th>Timetable approval requested</th><th>Class</th><th></th></tr></thead>
+                    <tbody>
+                    @foreach($pr_tt_requests as $ttReq)
+                        <tr>
+                            <td><strong>{{ $ttReq->name }}</strong></td>
+                            <td>{{ optional($ttReq->my_class)->name ?? 'Deleted class' }}</td>
+                            <td><a href="{{ route('tt.approvals') }}">Review &amp; approve</a></td>
+                        </tr>
+                    @endforeach
+                    </tbody>
+                </table>
+            @endif
+            @if(count($pr_pending_leaves) === 0 && count($pr_pub_requests) === 0 && count($pr_tt_requests) === 0)
                 <p>No pending approvals.</p>
             @endif
             <div class="pr-foot"><a href="{{ route('leave.index') }}">Open approval queue</a></div>

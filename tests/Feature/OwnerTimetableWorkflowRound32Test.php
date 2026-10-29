@@ -101,6 +101,13 @@ class OwnerTimetableWorkflowRound32Test extends TestCase
             ]);
         $response->assertRedirect(route('tt.index'));
 
+        // Premise update (timetable approval, owner order
+        // 2026-10-29): generated records now start as drafts and a
+        // regeneration returns them to draft; this chain exercises
+        // in-force timetables, so approve the class's records here.
+        TimeTableRecord::where('my_class_id', $class->id)
+            ->update(['approval_status' => 'approved']);
+
         return $response;
     }
 
@@ -387,6 +394,9 @@ class OwnerTimetableWorkflowRound32Test extends TestCase
             ])->assertRedirect(route('tt.index'));
         $this->assertSame($recordS->id, $this->recordFor($classS->id)->id,
             'attendance-free record id is reused on replace');
+        // The regeneration returned the sibling to draft (approval
+        // flow); the remaining legs treat it as in force.
+        TimeTableRecord::where('id', $recordS->id)->update(['approval_status' => 'approved']);
         $cellsSAfter = TimeTable::where('ttr_id', $recordS->id)->orderBy('id')->pluck('id')->all();
         $this->assertSame(18, count($cellsSAfter), 'sibling grid keeps its 18 cells');
         $this->assertSame([], array_intersect($cellsSBefore, $cellsSAfter),

@@ -662,6 +662,16 @@ class QuizController extends Controller
         $written = 0;
         $sectionsTouched = [];
         $attempts = QuizAttempt::with('student_record')->where('quiz_id', $quiz->id)->get();
+
+        // Marks lifecycle (owner order 2026-10-29): a push is a
+        // marks write — it respects the submit lock and the
+        // exam-date gate for every section it would touch.
+        foreach ($attempts->map(function ($a) { return optional($a->student_record)->section_id; })->filter()->unique() as $sid) {
+            if ($reason = \App\Support\MarkLifecycle::blockReason($exam->id, $quiz->my_class_id, $sid, $quiz->subject_id)) {
+                return back()->with('flash_danger', $reason);
+            }
+        }
+
         foreach ($attempts as $attempt) {
             $record = $attempt->student_record;
             if (!$record || !$record->user_id || (int) $attempt->total <= 0) {
