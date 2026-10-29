@@ -20,10 +20,14 @@ use Tests\TestCase;
  * 'principal', status active) through to the principal Command
  * Center (GET /dashboard).
  *
- * Item 10 — Admin dashboard redesign (admin ONLY): the KPI stat
- * cards, Quick Actions and New Enquiries must be gone; the School
- * Calendar stays in the right-side column; greeting, Add Student
- * and all other panels stay. The brief's "move the main form below
+ * Item 10 — Admin dashboard (admin ONLY): the KPI stat cards
+ * and Quick Actions were removed on 2026-10-28, which left the
+ * top row holding only the School Calendar and a wide blank
+ * beside it. Owner correction 2026-10-29 evening ("ye blank
+ * space htao"): the cards + Quick Actions are restored into
+ * that row with their live figures; the School Calendar stays
+ * in the right-side column; greeting, Add Student and all
+ * other panels stay. The brief's "move the main form below
  * the calendar" is covered by the form-count test: this page has
  * NO main form — its only forms are the two year-select GET forms
  * on the Enrollment Trend and Fee Collection panels — so no form
@@ -164,17 +168,20 @@ class OwnerOvernightDashboardsTest extends TestCase
 
     // ---------- Item 10: Admin dashboard redesign ----------
 
-    public function test_item10_admin_dashboard_removes_kpi_quick_actions_enquiries()
+    public function test_item10_admin_dashboard_restores_kpi_and_quick_actions()
     {
         $response = $this->actingAs($this->admin())->get(route('dashboard'));
 
         $response->assertOk();
-        $response->assertDontSee('Total Students');
-        $response->assertDontSee('Teaching Staff');
-        $response->assertDontSee('Administrators');
-        $response->assertDontSee('Quick Actions');
-        $response->assertDontSee('Add Teacher');
-        $response->assertDontSee('New Enquiries');
+        // The blank-space fix: the four KPI cards and Quick
+        // Actions fill the top row beside the calendar again,
+        // with the live student total rendered.
+        $response->assertSee('Total Students');
+        $response->assertSee('Teaching Staff');
+        $response->assertSee('Administrators');
+        $response->assertSee('Parents');
+        $response->assertSee('Quick Actions');
+        $response->assertSee(number_format(\App\Models\StudentRecord::where('grad', 0)->count()));
     }
 
     public function test_item10_admin_dashboard_keeps_calendar_greeting_add_student_and_panels()

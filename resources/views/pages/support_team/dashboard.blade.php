@@ -24,17 +24,50 @@
         </div>
     </div>
 
-    {{-- Admin dashboard redesign 2026-10-28 (owner order): the four
-         KPI stat cards (Total Students, Teaching Staff,
-         Administrators, Parents) and the Quick Actions section are
-         removed from this page. They are view-only links — no routes,
-         controllers or other pages are touched, and the controller
-         still computes the same figures, so nothing else breaks.
-         The left column is gone with them; the calendar stays in
-         the right-side column, pushed right with ml-auto. --}}
+    {{-- Owner correction 2026-10-29 evening ("ye blank space htao"):
+         the 2026-10-28 removal of the KPI cards + Quick Actions
+         left this row holding only the calendar — a wide blank
+         beside it. The cards are restored into the row's left
+         column with the same live figures the controller has
+         always computed (counts + real 30-day deltas), and the
+         calendar keeps the right column. --}}
     <div class="row">
+        <div class="col-xl-9">
+            <div class="row">
+                @foreach([
+                    ['label' => 'Total Students', 'value' => number_format($student_count), 'delta' => $stat_deltas['students'] ?? null, 'icon' => 'icon-users4', 'tone' => 'blue', 'link' => route('students.list')],
+                    ['label' => 'Teaching Staff', 'value' => number_format($teacher_count), 'delta' => $stat_deltas['teachers'] ?? null, 'icon' => 'icon-user-tie', 'tone' => 'green', 'link' => route('users.index')],
+                    ['label' => 'Administrators', 'value' => number_format($administrator_count), 'delta' => $stat_deltas['administrators'] ?? null, 'icon' => 'icon-lock2', 'tone' => 'orange', 'link' => route('users.index')],
+                    ['label' => 'Parents', 'value' => number_format($parent_count), 'delta' => $stat_deltas['parents'] ?? null, 'icon' => 'icon-users2', 'tone' => 'purple', 'link' => route('users.index')],
+                ] as $stat)
+                    <div class="col-sm-6 mb-4">
+                        <a href="{{ $stat['link'] }}" class="dashboard-stat-card dashboard-stat-{{ $stat['tone'] }}">
+                            <span class="dashboard-stat-icon"><i class="{{ $stat['icon'] }}"></i></span>
+                            <span class="dashboard-stat-copy">
+                                <span class="dashboard-stat-label">{{ $stat['label'] }}</span>
+                                <strong>{{ $stat['value'] }}</strong>
+                                <small>@if($stat['delta'] === null)Current total @elseif($stat['delta'] >= 0)Up {{ $stat['delta'] }}% vs previous 30 days @else Down {{ abs($stat['delta']) }}% vs previous 30 days @endif</small>
+                            </span>
+                        </a>
+                    </div>
+                @endforeach
+            </div>
+
+            <section class="dashboard-panel mb-4">
+                <div class="dashboard-panel-heading">
+                    <div><h5 class="mb-1"><i class="icon-rocket text-blue mr-1"></i> Quick Actions</h5></div>
+                </div>
+                <div class="px-4 pb-4 d-flex flex-wrap" style="gap:10px">
+                    <a href="{{ route('students.create') }}" class="btn btn-light"><i class="icon-plus3 mr-1"></i> Add Student</a>
+                    <a href="{{ route('payments.create') }}" class="btn btn-light"><i class="icon-coin-dollar mr-1"></i> Record Payment</a>
+                    <a href="{{ route('tt.index') }}" class="btn btn-light"><i class="icon-calendar3 mr-1"></i> Timetables</a>
+                    <a href="{{ route('admissions.index') }}" class="btn btn-light"><i class="icon-phone2 mr-1"></i> Admission Enquiries @if($new_enquiry_count) <span class="badge badge-primary">{{ $new_enquiry_count }} new</span> @endif</a>
+                </div>
+            </section>
+        </div>
+
         {{-- School Calendar --}}
-        <div class="col-xl-3 ml-auto">
+        <div class="col-xl-3">
             <section class="dashboard-panel dashboard-calendar mb-4">
                 <div class="dashboard-panel-heading">
                     <div><h5 class="mb-1"><i class="icon-calendar3 text-blue mr-1"></i> School Calendar</h5></div>
