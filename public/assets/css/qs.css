@@ -7215,3 +7215,16 @@ html.hk-dark .evx-st-past{background:#26282c;color:#9aa0ab;}
 .evx-meta{font-size:12.5px;color:#8a919c;margin-top:5px;}
 .evx-actions{display:flex;gap:6px;flex:none;}
 @media (max-width:575px){.evx-card{flex-wrap:wrap;}.evx-actions{width:100%;}}
+
+/* --- Sidebar submenu tree flow (owner, 2026-10-29 night —
+   "circle wala part, do this flow for all"): every collapsible
+   group's submenu reads as one flowing tree — a vertical guide
+   line with a circle on every item; the circle lights up on
+   hover and on the active item. Expanded sidebar only; the
+   collapsed rail keeps its flyout look untouched. --- */
+body:not(.sidebar-xs) .sidebar-main .nav-group-sub{position:relative;border-left:none}
+body:not(.sidebar-xs) .sidebar-main .nav-group-sub::before{content:'';position:absolute;top:8px;bottom:8px;left:6px;width:1px;background:rgba(255,255,255,.18)}
+body:not(.sidebar-xs) .sidebar-main .nav-group-sub .nav-link{position:relative;padding-left:24px}
+body:not(.sidebar-xs) .sidebar-main .nav-group-sub .nav-link::before{content:'';position:absolute;left:3px;top:50%;width:7px;height:7px;margin-top:-3.5px;border-radius:50%;background:#5f7ea6;transition:background .15s,box-shadow .15s,transform .15s}
+body:not(.sidebar-xs) .sidebar-main .nav-group-sub .nav-link:hover::before{background:#a9c6f2;transform:scale(1.2)}
+body:not(.sidebar-xs) .sidebar-main .nav-group-sub .nav-link.active::before{background:#fff;box-shadow:0 0 0 3px rgba(255,255,255,.35);transform:scale(1.15)}
