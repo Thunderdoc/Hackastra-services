@@ -213,27 +213,25 @@ class OwnerAllotmentRound7Test extends TestCase
         ]);
     }
 
-    public function test_admin_create_form_lists_all_periods_teacher_form_refused()
+    public function test_create_form_is_retired_teacher_refused_admin_redirected()
     {
-        // Overnight menus 2026-10-29, item 19: period options
-        // are admin-only now, and the admin form lists EVERY
-        // period with a subject — the teacher-only filter is
-        // retired with teacher access. The teacher form itself
-        // is refused.
+        // Overnight menus 2026-10-29, item 19, built the admin
+        // create form with every period listed. Owner order
+        // 2026-10-29 (night) SUPERSEDES it: substitutions are not
+        // created from the board any more — the system arranges
+        // cover from the leave flow, and the board is the record.
+        // The teacher is still refused outright, and the Admin
+        // following the old link lands on the record with the
+        // pointer to Leave Requests.
         $ritu = $this->ritu();
-        $own = $this->ownCell($ritu);
-        $foreign = $this->foreignSectionCell();
 
         $this->actingAs($ritu)->get(route('substitutions.create'))->assertForbidden();
 
         $response = $this->actingAs($this->admin())->get(route('substitutions.create'));
-        $response->assertOk();
-        $block = $this->periodSelectBlock($response->getContent());
+        $response->assertRedirect(route('substitutions.index'));
+        $response->assertSessionHas('flash_danger');
 
-        $this->assertStringContainsString('value="' . $own->id . '"', $block,
-            'Ritu\'s override period must be offered in the admin picker');
-        $this->assertStringContainsString('value="' . $foreign->id . '"', $block,
-            'The admin picker lists every period, including another section\'s');
+        $this->actingAs($this->admin())->get(route('substitutions.index'))->assertOk();
     }
 
     public function test_override_teacher_cannot_create_for_foreign_section_period()
