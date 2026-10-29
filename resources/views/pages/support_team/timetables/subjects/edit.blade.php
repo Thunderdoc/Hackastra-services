@@ -31,6 +31,7 @@
                                         data-day="{{ $tt->day }}"
                                         data-exam="{{ $tt->exam_date }}"
                                         data-subject="{{ $tt->subject_id }}"
+                                        data-room="{{ $tt->room_id }}"
                                         data-ts="{{ $tt->ts_id }}">
                                     <i class="icon-pencil mr-1"></i> Edit
                                 </button>
@@ -98,6 +99,17 @@
                                         <option value=""></option>
                                         @foreach($time_slots as $tms)
                                             <option value="{{ $tms->id }}">{{ $tms->full }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+
+                                {{--ROOM (T3)--}}
+                                <div class="pat-field pat-field-wide">
+                                    <label>Room</label>
+                                    <select class="form-control" name="room_id">
+                                        <option value="">No room</option>
+                                        @foreach(\App\Models\Room::orderBy('kind')->orderBy('name')->get() as $room)
+                                            <option value="{{ $room->id }}">{{ $room->name }} ({{ $room->kind === 'lab' ? 'Lab' : 'Classroom' }}, seats {{ $room->capacity }})</option>
                                         @endforeach
                                     </select>
                                 </div>

@@ -14,12 +14,12 @@
                     @forelse($requests as $r)
                         <tr>
                             <td>{{ optional($r->user)->name }} <span class="text-muted">({{ ucfirst(optional($r->user)->user_type) }})</span></td>
-                            <td>@if(!empty($r->allocation_lines)) @foreach($r->allocation_lines as $line) {{ $line }} @if(!$loop->last) <br> @endif @endforeach @else <span class="text-muted">—</span> @endif</td>
+                            <td>@if(!empty($r->allocation_lines)) <div>{{ \Illuminate\Support\Str::limit($r->allocation_lines[0], 60) }}</div> @if(count($r->allocation_lines) > 1) <details><summary style="cursor:pointer" class="text-primary">Full allocation</summary><div class="mt-1">@foreach($r->allocation_lines as $line) {{ $line }} @if(!$loop->last) <br> @endif @endforeach</div></details> @endif @else <span class="text-muted">—</span> @endif</td>
                             <td>@if($r->leave_type === 'emergency')<span class="badge badge-danger">Emergency</span>@else<span class="badge badge-secondary">Normal</span>@endif</td>
                             <td>{{ $r->start_date_display }}</td>
                             <td>{{ $r->end_date_display }}</td>
-                            <td>{{ $r->days }}</td>
-                            <td>@if($r->uncovered_periods !== null) @if($r->uncovered_periods > 0) <a href="{{ route('substitutions.index') }}" class="badge badge-warning">{{ $r->uncovered_periods }} without cover</a> @else <span class="badge badge-success">Covered</span> @endif @else <span class="text-muted">—</span> @endif</td>
+                            <td>@if($r->partialLabel()){{ $r->partialLabel() }}@else{{ $r->days }}@endif</td>
+                            <td>@if($r->uncovered_periods !== null) @if($r->uncovered_periods > 0) <a href="{{ route('substitutions.index') }}" class="badge badge-warning">{{ $r->uncovered_periods }} without cover</a> @else <span class="badge badge-success">Covered</span> @endif @if(!empty($r->cover_names)) <div class="small text-muted mt-1">By: {{ implode(', ', array_slice($r->cover_names, 0, 2)) }}@if(count($r->cover_names) > 2) +{{ count($r->cover_names) - 2 }} more @endif</div> @endif @else <span class="text-muted">—</span> @endif</td>
                             <td>{{ $r->reason }}</td>
                             <td><span class="badge badge-{{ $r->status === 'approved' ? 'success' : ($r->status === 'rejected' ? 'danger' : 'warning') }}">{{ ucfirst($r->status) }}</span></td>
                             <td>

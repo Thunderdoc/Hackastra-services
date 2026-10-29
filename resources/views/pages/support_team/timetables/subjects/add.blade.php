@@ -47,6 +47,17 @@
                     @endforeach
                 </select>
             </div>
+
+            {{--ROOM (T3)--}}
+            <div class="pat-field">
+                <label for="room_id">Room</label>
+                <select class="form-control" name="room_id" id="room_id">
+                    <option value="">No room</option>
+                    @foreach(\App\Models\Room::orderBy('kind')->orderBy('name')->get() as $room)
+                        <option {{ old('room_id') == $room->id ? 'selected' : '' }} value="{{ $room->id }}">{{ $room->name }} ({{ $room->kind === 'lab' ? 'Lab' : 'Classroom' }}, seats {{ $room->capacity }})</option>
+                    @endforeach
+                </select>
+            </div>
         </div>
 
         <div class="text-right mt-3">

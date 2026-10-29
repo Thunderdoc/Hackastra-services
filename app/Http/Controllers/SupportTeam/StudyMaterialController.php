@@ -413,7 +413,8 @@ class StudyMaterialController extends Controller
 
         $allowed = Qs::userIsTeamSA()
             || $material->teacher_id == $user->id
-            || (Qs::userIsTeacher() && TeacherScope::canTeachClass($user, $material->my_class_id));
+            || (Qs::userIsTeacher() && TeacherScope::canTeachClass($user, $material->my_class_id))
+            || (Qs::userIsTeacher() && \App\Support\SubstitutionAccess::coversSubjectOn((int) $user->id, (int) $material->my_class_id, (int) $material->subject_id, now()));
 
         if (!$allowed && Qs::userIsStudent()) {
             $sr = Qs::getSRByUserID($user->id);

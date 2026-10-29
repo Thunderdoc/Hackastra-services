@@ -194,9 +194,18 @@ class OwnerAnalyticsTest extends TestCase
 
     public function test_empty_data_classes_and_months_render_without_errors()
     {
-        // Class 13 has fee + marks data but zero period-attendance
-        // sessions in the seed: the attendance block must render its
-        // empty state, not divide by zero.
+        // Class 13 has fee + marks data; with zero period-attendance
+        // sessions the attendance block must render its empty state,
+        // not divide by zero. The zero-session condition is CREATED
+        // here (owner CI fix 2026-10-29): the old test assumed the
+        // seed left class 13 session-free, which was true only in
+        // one dev database — a fresh seed gives it sessions and the
+        // precondition failed before the real assertions ran. The
+        // deletes roll back with the test transaction.
+        DB::table('attendance_session_entries')->whereIn('session_id',
+            DB::table('attendance_sessions')->where('my_class_id', 13)->pluck('id')
+        )->delete();
+        DB::table('attendance_sessions')->where('my_class_id', 13)->delete();
         $sessions = (int) DB::selectOne(
             "SELECT COUNT(*) AS c FROM attendance_sessions WHERE my_class_id = 13"
         )->c;

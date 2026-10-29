@@ -20,10 +20,13 @@ use Tests\TestCase;
  * her own override period, index shows absent + substitute rows,
  * delete own-only) and can appear as SUBSTITUTE in the index. What
  * was never proven is the take/submit side for an override teacher
- * AS SUBSTITUTE: the settled Wave 1 rule says a substitute CANNOT
- * take attendance (display only). This file locks that rule for the
- * override-substitute shape, plus the absent teacher's unchanged
- * access and the periods-index substitute marker.
+ * AS SUBSTITUTE. The Wave 1 rule (a substitute CANNOT take
+ * attendance, display only) was SUPERSEDED by the owner's order of
+ * 2026-10-29: for the substitution window the substitute gets the
+ * class's access — attendance included — for that period and date
+ * only. This file now locks the NEW rule for the override-
+ * substitute shape, plus the absent teacher's unchanged access and
+ * the periods-index substitute marker.
  *
  * Anchor (resolved dynamically, never hardcoded): Ananya Sharma
  * (teacher@, id 4) effectively teaches a Friday cell that Ritu
@@ -35,10 +38,9 @@ use Tests\TestCase;
  * the already-submitted redirect).
  *
  * Structural note: guardCanTake compares teacherIdFor(section,
- * subject) to the caller. A substitute is never the effective
- * teacher (store refuses substitute == absent), so the 403 below
- * is structural, not incidental — the test locks it against any
- * future "substitutes may take attendance" drift.
+ * subject) to the caller, and now also honours a Substitution row
+ * for (period, date, caller) — the row is the substitute's whole
+ * authority, and it ends with the date.
  */
 class OwnerAllotmentRound11Test extends TestCase
 {
@@ -215,21 +217,21 @@ class OwnerAllotmentRound11Test extends TestCase
         $this->actingAs($other)->get(route('substitutions.index'))->assertForbidden();
     }
 
-    public function test_override_substitute_cannot_take_period()
+    public function test_override_substitute_can_take_period_under_2026_10_29_order()
     {
         $cell = $this->freeCellForRitu();
         $this->makeSubstitution($cell);
 
+        // The named substitute for (period, date) steps into the
+        // absent teacher's shoes for that register — owner order
+        // 2026-10-29 supersedes the Wave 1 display-only rule.
         $response = $this->actingAs($this->ritu())
             ->get(route('attendance.periods.take', ['tt_id' => $cell->id, 'date' => $this->friday]));
 
-        $response->assertForbidden();
-        $this->assertSame(0, AttendanceSession::whereDate('date', $this->friday)
-            ->where('time_table_id', $cell->id)->count(),
-            'A refused take must not create a session');
+        $response->assertOk();
     }
 
-    public function test_override_substitute_cannot_submit_register()
+    public function test_override_substitute_can_submit_register_under_2026_10_29_order()
     {
         $cell = $this->freeCellForRitu();
         $this->makeSubstitution($cell);
@@ -251,16 +253,18 @@ class OwnerAllotmentRound11Test extends TestCase
             'statuses' => $statuses,
         ]);
 
-        $response->assertForbidden();
-        $this->assertSame(0, AttendanceSession::whereDate('date', $this->friday)
+        // Owner order 2026-10-29: the substitute submits the
+        // register for the covered period; the session is hers.
+        $response->assertRedirect();
+        $this->assertSame(1, AttendanceSession::whereDate('date', $this->friday)
             ->where('time_table_id', $cell->id)->count(),
-            'A refused submit must not create a session');
-        $this->assertSame(0, DB::table('attendance_session_entries')
+            'The substitute submit must create the session');
+        $this->assertGreaterThan(0, DB::table('attendance_session_entries')
             ->whereIn('session_id', function ($q) use ($cell) {
                 $q->select('id')->from('attendance_sessions')
                     ->whereDate('date', $this->friday)->where('time_table_id', $cell->id);
             })->count(),
-            'A refused submit must not write entries');
+            'The substitute submit must write the entries');
     }
 
     public function test_absent_teacher_keeps_take_access_and_periods_index_names_substitute()

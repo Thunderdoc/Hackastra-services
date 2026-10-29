@@ -37,6 +37,7 @@ Route::group(['middleware' => 'auth'], function () {
         Route::put('/change_password', 'MyAccountController@change_pass')->name('my_account.change_pass');
         Route::post('/preferences', 'MyAccountController@update_preferences')->name('my_account.preferences');
         Route::post('/theme', 'MyAccountController@update_theme')->name('my_account.theme');
+        Route::post('/bell-sound', 'MyAccountController@update_bell_sound')->name('my_account.bell_sound');
         Route::get('/download', 'MyAccountController@download_data')->name('my_account.download');
     });
 
@@ -188,6 +189,9 @@ Route::group(['middleware' => 'auth'], function () {
                    refuse every other role. */
                 Route::post('approve/{ttr}', 'TimeTableController@approveRecord')->name('ttr.approve');
                 Route::post('send-back/{ttr}', 'TimeTableController@sendBackRecord')->name('ttr.send_back');
+                /* T4: restore a grid snapshot as a new draft (the
+                   method itself refuses every non-Admin). */
+                Route::post('snapshots/{snapshot}/restore', 'TimeTableController@restoreSnapshot')->name('tt.snapshot.restore');
 
                 Route::get('show/{ttr}', 'TimeTableController@show_record')->name('ttr.show');
                 Route::get('print/{ttr}', 'TimeTableController@print_record')->name('ttr.print');
@@ -485,6 +489,8 @@ Route::group(['middleware' => 'auth'], function () {
             Route::get('/', 'SubstitutionController@index')->name('substitutions.index');
             Route::get('create', 'SubstitutionController@create')->name('substitutions.create');
             Route::post('/', 'SubstitutionController@store')->name('substitutions.store');
+            Route::post('confirm', 'SubstitutionController@confirm')->name('substitutions.confirm');
+            Route::post('{substitution}/switch', 'SubstitutionController@switchSubstitute')->name('substitutions.switch');
             Route::delete('{substitution}', 'SubstitutionController@destroy')->name('substitutions.destroy');
         });
         Route::group(['prefix' => 'class-overview'], function() {
@@ -609,6 +615,13 @@ Route::group(['middleware' => 'auth'], function () {
 
         /*************** School Events *****************/
         Route::resource('events', 'SchoolEventController');
+        /* T2 day types (master prompt): per-date kind that drives
+           attendance expectations + leave cover. Admin writes via
+           the controller's teamSAWrite middleware. */
+        Route::post('day-types', 'SchoolEventController@storeDayType')->name('day_types.store');
+        Route::delete('day-types/{day_type}', 'SchoolEventController@destroyDayType')->name('day_types.destroy');
+        /* T3 rooms & labs: physical spaces the generator assigns. */
+        Route::resource('rooms', 'RoomController')->only(['index', 'store', 'update', 'destroy']);
 
         /*************** Circulars *****************/
         Route::patch('circulars/{circular}/toggle-publish', 'CircularController@togglePublish')->name('circulars.toggle_publish');

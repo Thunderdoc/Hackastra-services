@@ -151,6 +151,21 @@ class MyAccountController extends Controller
     }
 
     /**
+     * Owner order 2026-10-29: the topbar bell plays a sound on
+     * click; a user who does not want it mutes it for their own
+     * account. Same per-user preference store and AJAX pattern as
+     * the theme toggle (key 'bell_sound', '1' = on, '0' = muted).
+     */
+    public function update_bell_sound(Request $req)
+    {
+        $req->validate(['bell_sound' => 'required|in:on,off']);
+
+        UserPreference::set(Auth::id(), 'bell_sound', $req->input('bell_sound') === 'on' ? '1' : '0');
+
+        return response()->json(['bell_sound' => $req->input('bell_sound')]);
+    }
+
+    /**
      * Batch 10: "Download My Data" — a JSON export of the signed-in
      * user's OWN account record, preferences and recent sign-ins.
      * Nothing about any other user is ever included.

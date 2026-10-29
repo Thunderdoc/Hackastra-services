@@ -190,8 +190,13 @@
                 $lavRecentStudents = \App\Models\StudentRecord::with('user')->latest()->take(4)->get();
             @endphp
             <div class="nav-item dropdown" id="lavNotifBell">
-                <button type="button" class="lav-topbar-icon" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="Recent activity" title="Recent activity" data-lav-badge-base="{{ $lavBellBadge - $lavUnreadNotifs }}"><i class="icon-bell2"></i>@if($lavBellBadge > 0)<span class="lav-bell-badge">{{ $lavBellBadge }}</span>@endif</button>
+                <button type="button" class="lav-topbar-icon" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="Recent activity" title="Recent activity" data-lav-badge-base="{{ $lavBellBadge - $lavUnreadNotifs }}" data-hk-bell="1" data-hk-bell-on="{{ \App\Models\UserPreference::enabled(Auth::id(), 'bell_sound') ? 1 : 0 }}"><i class="icon-bell2"></i>@if($lavBellBadge > 0)<span class="lav-bell-badge">{{ $lavBellBadge }}</span>@endif</button>
                 <div class="dropdown-menu dropdown-menu-right lav-notif-menu">
+                    <div class="dropdown-item lav-notif-item hk-bell-sound-row" role="button">
+                        <i class="icon-volume-medium"></i>
+                        <span>Bell sound: <strong class="hk-bell-sound-state">{{ \App\Models\UserPreference::enabled(Auth::id(), 'bell_sound') ? 'On' : 'Off' }}</strong><small>Tap to change — saved to your account</small></span>
+                    </div>
+                    <div class="dropdown-divider"></div>
                     {{-- Owner order 2026-10-29: the staff bell never
                          listed the caller's OWN per-user notifications
                          (leave requests, decisions, cover alerts) --
@@ -305,8 +310,13 @@
                 $lavCirculars = \App\Models\Circular::published()->forAudience(Auth::user()->user_type)->latest()->take(4)->get();
             @endphp
             <div class="nav-item dropdown" id="lavNotifBell">
-                <button type="button" class="lav-topbar-icon" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="Circulars" title="Circulars" data-lav-events-today="{{ $lavEventsToday }}" data-lav-badge-base="{{ $lavBellBadge - $lavUnreadNotifs }}"><i class="icon-bell2"></i>@if($lavBellBadge > 0)<span class="lav-bell-badge">{{ $lavBellBadge }}</span>@endif</button>
+                <button type="button" class="lav-topbar-icon" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="Circulars" title="Circulars" data-lav-events-today="{{ $lavEventsToday }}" data-lav-badge-base="{{ $lavBellBadge - $lavUnreadNotifs }}" data-hk-bell="1" data-hk-bell-on="{{ \App\Models\UserPreference::enabled(Auth::id(), 'bell_sound') ? 1 : 0 }}"><i class="icon-bell2"></i>@if($lavBellBadge > 0)<span class="lav-bell-badge">{{ $lavBellBadge }}</span>@endif</button>
                 <div class="dropdown-menu dropdown-menu-right lav-notif-menu">
+                    <div class="dropdown-item lav-notif-item hk-bell-sound-row" role="button">
+                        <i class="icon-volume-medium"></i>
+                        <span>Bell sound: <strong class="hk-bell-sound-state">{{ \App\Models\UserPreference::enabled(Auth::id(), 'bell_sound') ? 'On' : 'Off' }}</strong><small>Tap to change — saved to your account</small></span>
+                    </div>
+                    <div class="dropdown-divider"></div>
                     {{-- Workstream CZ (LMS): the caller's own
                          notifications (grades + internal pushes for
                          students/parents). Opening this dropdown marks
@@ -375,6 +385,64 @@
             </script>
             @endif
         @endif
+        <script>
+            // Owner order 2026-10-29: clicking the bell plays a short
+            // bell sound, unless the user muted it for their account
+            // (per-user preference 'bell_sound', toggled from the row
+            // at the top of the bell menu). No audio file: the chime
+            // is two decaying sine tones from WebAudio, created on
+            // the click itself so autoplay rules are satisfied.
+            (function () {
+                var wrap = document.getElementById('lavNotifBell');
+                if (!wrap) { return; }
+                var btn = wrap.querySelector('[data-hk-bell]');
+                if (!btn) { return; }
+                function hkChime() {
+                    try {
+                        var Ctx = window.AudioContext || window.webkitAudioContext;
+                        if (!Ctx) { return; }
+                        var ctx = hkChime.ctx || (hkChime.ctx = new Ctx());
+                        if (ctx.state === 'suspended') { ctx.resume(); }
+                        var t = ctx.currentTime;
+                        [[1318.5, 0], [987.8, 0.14]].forEach(function (note) {
+                            var osc = ctx.createOscillator(), gain = ctx.createGain();
+                            osc.type = 'sine';
+                            osc.frequency.value = note[0];
+                            gain.gain.setValueAtTime(0.0001, t + note[1]);
+                            gain.gain.exponentialRampToValueAtTime(0.22, t + note[1] + 0.015);
+                            gain.gain.exponentialRampToValueAtTime(0.0001, t + note[1] + 0.5);
+                            osc.connect(gain);
+                            gain.connect(ctx.destination);
+                            osc.start(t + note[1]);
+                            osc.stop(t + note[1] + 0.55);
+                        });
+                    } catch (e) {}
+                }
+                btn.addEventListener('click', function () {
+                    if (btn.getAttribute('data-hk-bell-on') === '1') { hkChime(); }
+                });
+                var row = wrap.querySelector('.hk-bell-sound-row');
+                if (row) {
+                    row.addEventListener('click', function (ev) {
+                        ev.preventDefault();
+                        ev.stopPropagation();
+                        var next = btn.getAttribute('data-hk-bell-on') === '1' ? 'off' : 'on';
+                        var meta = document.querySelector('meta[name="csrf-token"]');
+                        fetch('{{ route('my_account.bell_sound') }}', {
+                            method: 'POST',
+                            credentials: 'same-origin',
+                            headers: { 'X-CSRF-TOKEN': meta ? meta.getAttribute('content') : '', 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                            body: JSON.stringify({ bell_sound: next })
+                        }).then(function () {
+                            btn.setAttribute('data-hk-bell-on', next === 'on' ? '1' : '0');
+                            var state = row.querySelector('.hk-bell-sound-state');
+                            if (state) { state.textContent = next === 'on' ? 'On' : 'Off'; }
+                            if (next === 'on') { hkChime(); }
+                        }).catch(function () {});
+                    });
+                }
+            })();
+        </script>
         <div class="nav-item dropdown dropdown-user lav-profile">
             <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">
                 <span class="l7-avatar l7-avatar-sm" aria-hidden="true">{{ strtoupper(substr(Auth::user()->name, 0, 1)) }}@if(Qs::hasRealPhoto(Auth::user()->photo))<img src="{{ Auth::user()->photo }}" alt="" onerror="this.remove()">@endif</span>

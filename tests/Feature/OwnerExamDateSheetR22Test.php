@@ -78,11 +78,20 @@ class OwnerExamDateSheetR22Test extends TestCase
         $this->assertSame(40, substr_count($html, 'class="admit-card"'));
         $this->assertStringContainsString('40 card(s)', $html);
 
+        // Date/time counts are scoped to the CARDS region (owner CI
+        // fix 2026-10-29): the page chrome above the cards renders
+        // the school-events strip, and a seeded event (Annual Sports
+        // Day) can fall on an exam date — counting the needle across
+        // the whole page then reads 41 against 40 correct cards.
+        $cardsAt = strpos($html, 'class="admit-card"');
+        $this->assertNotFalse($cardsAt);
+        $cardsHtml = substr($html, $cardsAt);
+
         // Every dated pairing on every card (40 each, no swaps possible
         // at these counts: a swapped date would break two counts at once).
         foreach (['Mon, 02 Nov 2026', 'Tue, 03 Nov 2026', 'Wed, 04 Nov 2026',
                   '9:00 AM', '10:30 AM', '1:00 PM'] as $needle) {
-            $this->assertSame(40, substr_count($html, $needle), "Expected 40 × {$needle}.");
+            $this->assertSame(40, substr_count($cardsHtml, $needle), "Expected 40 × {$needle}.");
         }
 
         // Undated subjects render exactly two "—" cells each (date + time):

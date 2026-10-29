@@ -13,8 +13,12 @@ use App\Models\StudentRecord;
 use App\Models\Subject;
 use App\Models\Substitution;
 use App\Models\TimeTable;
+use App\User;
 use App\Support\CsvExport;
+use App\Support\DayType;
+use App\Support\LeaveCover;
 use App\Support\SectionTeacher;
+use App\Support\SubstitutionAccess;
 use App\Support\TeacherScope;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\QueryException;
@@ -70,6 +74,29 @@ class PeriodAttendanceController extends Controller
 
         if ($d['is_teacher']) {
             $d['periods'] = $this->periodsFor($d['date'], (int) $request->user()->id, null);
+            // Owner order 2026-10-29: periods this teacher is
+            // COVERING today (a substitution row names them) join
+            // their own list, flagged, so cover is actionable the
+            // moment it is assigned — the register for that period
+            // opens to them for that date only.
+            $coverIds = SubstitutionAccess::coveredPeriodIdsOn((int) $request->user()->id, $d['date']);
+            if ($coverIds) {
+                $ownIds = $d['periods']->map(function ($row) {
+                    return (int) $row['tt']->id;
+                })->all();
+                $extra = $this->periodsFor($d['date'], null, null)
+                    ->filter(function ($row) use ($coverIds, $ownIds) {
+                        return in_array((int) $row['tt']->id, $coverIds, true)
+                            && !in_array((int) $row['tt']->id, $ownIds, true);
+                    })
+                    ->map(function ($row) {
+                        $row['is_substitution'] = true;
+                        return $row;
+                    });
+                if ($extra->isNotEmpty()) {
+                    $d['periods'] = $d['periods']->concat($extra)->sortBy('sort')->values();
+                }
+            }
         } else {
             $d['classes'] = MyClass::orderBy('name')->get();
             $d['selected_class'] = $request->query('class_id')
@@ -78,6 +105,37 @@ class PeriodAttendanceController extends Controller
             $d['periods'] = $d['selected_class']
                 ? $this->periodsFor($d['date'], null, (int) $d['selected_class']->id)
                 : collect();
+        }
+
+        // Day types (T2, master prompt): the date's kind shapes
+        // what this page expects. A non-teaching day expects no
+        // new registers — the actionable list empties unless
+        // registers were already submitted that date (history is
+        // never hidden). A half day lists only the periods the
+        // school runs, plus any already-submitted ones beyond the
+        // window.
+        $d['day_type'] = DayType::forDate($d['date']);
+        $d['day_type_label'] = DayType::label($d['date']);
+        if (!DayType::isTeachingDay($d['date'])) {
+            $hasSessions = $d['periods']->contains(function ($row) {
+                return !empty($row['session']);
+            });
+            if (!$hasSessions) {
+                $d['periods'] = collect();
+            }
+        } elseif (($win = DayType::windowFor($d['date'])) !== null && $d['periods']->isNotEmpty()) {
+            $ttrIds = $d['periods']->map(function ($row) {
+                return (int) $row['tt']->ttr_id;
+            })->unique()->all();
+            $indexMap = LeaveCover::periodIndexMap($ttrIds, $d['date']->format('l'));
+            $d['periods'] = $d['periods']->filter(function ($row) use ($indexMap, $win) {
+                if (!empty($row['session'])) {
+                    return true;
+                }
+                $n = $indexMap[(int) $row['tt']->id] ?? null;
+
+                return $n === null || $n <= $win[1];
+            })->values();
         }
 
         $d['periods'] = $this->attachStudentCounts($d['periods']);
@@ -229,6 +287,24 @@ class PeriodAttendanceController extends Controller
                 ->with('flash_success', 'Attendance for this period was already submitted — the record is locked.');
         }
 
+        // Day types (T2): no new register opens on a non-teaching
+        // day, nor beyond a half day's running periods. (An
+        // existing session was already redirected above — history
+        // stays reachable for the roles that may view it.)
+        if (!DayType::isTeachingDay($date)) {
+            return redirect()->route('attendance.periods.index', ['date' => $date->format('Y-m-d')])
+                ->with('flash_danger', $date->format('d M Y') . ' is marked as ' . DayType::label($date) . ' in the school calendar — no period registers are taken on this day.');
+        }
+        $dayWindow = DayType::windowFor($date);
+        if ($dayWindow !== null) {
+            $indexMap = LeaveCover::periodIndexMap([(int) $period['tt']->ttr_id], $date->format('l'));
+            $n = $indexMap[(int) $period['tt']->id] ?? null;
+            if ($n !== null && $n > $dayWindow[1]) {
+                return redirect()->route('attendance.periods.index', ['date' => $date->format('Y-m-d')])
+                    ->with('flash_danger', 'This period does not run on ' . $date->format('d M Y') . ' — it is a half day and only the first ' . $dayWindow[1] . ' periods run.');
+            }
+        }
+
         $denied = $this->guardCanTake($request, $period);
         if ($denied) {
             return $denied;
@@ -236,6 +312,15 @@ class PeriodAttendanceController extends Controller
 
         $d['period'] = $period;
         $d['date'] = $date;
+        // Substitute labelling (owner order 2026-10-29): when the
+        // person taking this register is covering for a colleague,
+        // the page says so unmistakably at the top — whose class
+        // this is must be the first thing they see, not fine print.
+        $d['cover'] = Substitution::confirmed()
+            ->where('time_table_id', $period['tt']->id)
+            ->where('substitute_teacher_id', (int) $request->user()->id)
+            ->whereDate('date', $date->toDateString())
+            ->with('absent_teacher')->first();
         // System roll numbers: the roster is admission-ordered, so
         // the row position IS the roll number — allocated by the
         // system, never typed in, identical on the page and in
@@ -273,6 +358,25 @@ class PeriodAttendanceController extends Controller
             throw ValidationException::withMessages([
                 'date' => 'Attendance cannot be taken for a future date.',
             ]);
+        }
+
+        // Day types (T2): the submit path enforces the same rule
+        // as the take page — no register lands on a non-teaching
+        // day or beyond a half day's running periods.
+        if (!DayType::isTeachingDay($date)) {
+            throw ValidationException::withMessages([
+                'date' => $date->format('d M Y') . ' is marked as ' . DayType::label($date) . ' in the school calendar — no period registers are taken on this day.',
+            ]);
+        }
+        $dayWindow = DayType::windowFor($date);
+        if ($dayWindow !== null) {
+            $indexMap = LeaveCover::periodIndexMap([(int) $period['tt']->ttr_id], $date->format('l'));
+            $n = $indexMap[(int) $period['tt']->id] ?? null;
+            if ($n !== null && $n > $dayWindow[1]) {
+                throw ValidationException::withMessages([
+                    'date' => 'This period does not run on ' . $date->format('d M Y') . ' — it is a half day and only the first ' . $dayWindow[1] . ' periods run.',
+                ]);
+            }
         }
 
         $denied = $this->guardCanTake($request, $period);
@@ -455,7 +559,17 @@ class PeriodAttendanceController extends Controller
     protected function guardCanViewRoster(Request $request, array $period): void
     {
         if (Qs::userIsTeacher() && (int) optional($period['teacher'])->id !== (int) $request->user()->id) {
-            abort(403, 'You can only export the roster of periods you teach.');
+            // Cover holder exception (owner order 2026-10-29): a
+            // substitution row for this period on a current or
+            // upcoming date lets the substitute print the roster
+            // they are about to take.
+            $covers = Substitution::where('time_table_id', (int) $period['tt']->id)
+                ->where('substitute_teacher_id', (int) $request->user()->id)
+                ->whereDate('date', '>=', now()->toDateString())
+                ->exists();
+            if (!$covers) {
+                abort(403, 'You can only export the roster of periods you teach.');
+            }
         }
     }
 
@@ -558,6 +672,25 @@ class PeriodAttendanceController extends Controller
             $entries = $entries->filter(function ($entry) use ($effectiveSectionId) {
                 return (int) optional($entry->student_record)->section_id === (int) $effectiveSectionId;
             });
+        }
+        // Substitute labelling (owner order 2026-10-29): when this
+        // register was taken by a covering teacher — the session's
+        // teacher is not the period's own effective teacher — the
+        // register document says so next to the teacher's name, on
+        // screen and in print. The confirmed row names the absent
+        // teacher; if the row has since been removed, the effective
+        // teacher is named from the period itself.
+        $d['cover'] = null;
+        if ($session->subject && $session->teacher_id) {
+            $effectiveTeacherId = SectionTeacher::teacherIdFor($effectiveSectionId, $session->subject);
+            if ($effectiveTeacherId && (int) $effectiveTeacherId !== (int) $session->teacher_id) {
+                $d['cover'] = Substitution::confirmed()
+                    ->where('time_table_id', $session->time_table_id)
+                    ->where('substitute_teacher_id', (int) $session->teacher_id)
+                    ->whereDate('date', $session->date->toDateString())
+                    ->with('absent_teacher')->first()
+                    ?: (object) ['absent_teacher' => User::find($effectiveTeacherId)];
+            }
         }
         $d['entries'] = $entries->sortBy(function ($entry) {
             return strtolower(optional(optional($entry->student_record)->user)->name ?? '');
@@ -980,7 +1113,13 @@ class PeriodAttendanceController extends Controller
         }
 
         if ((int) SectionTeacher::teacherIdFor(optional($period['section'])->id ?? null, $period['subject']) !== (int) $request->user()->id) {
-            abort(403, 'You can only take attendance for your own periods.');
+            // Owner order 2026-10-29: the day's named substitute
+            // steps in for this period — a Substitution row for
+            // (period, date, this teacher) is the whole authority,
+            // and it expires with the date.
+            if (!SubstitutionAccess::coversPeriod((int) $request->user()->id, (int) $period['tt']->id, $this->dateFromRequest($request))) {
+                abort(403, 'You can only take attendance for your own periods.');
+            }
         }
 
         return null;

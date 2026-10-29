@@ -3,9 +3,13 @@
 namespace Tests\Feature;
 
 use App\Helpers\Qs;
+use App\Models\AttendanceSession;
+use App\Models\AttendanceSessionEntry;
 use App\Models\Section;
+use App\Models\StudentRecord;
 use App\Models\Subject;
 use App\Models\MyClass;
+use App\Models\TimeTable;
 use App\Support\SectionTeacher;
 use App\Support\TeacherScope;
 use App\User;
@@ -170,11 +174,57 @@ class OwnerAllotmentRound2Test extends TestCase
 
     public function test_allotment_change_keeps_historical_sessions()
     {
-        // Seeded session 11: Class 11-A section period (record 12,
-        // section 55, Mathematics subject 69), teacher 24, 360 entries.
-        $before = DB::table('attendance_sessions')->where('id', 11)->first();
-        $this->assertEquals(24, (int) $before->teacher_id);
-        $this->assertEquals(360, DB::table('attendance_session_entries')->where('session_id', 11)->count());
+        // Fixture built in-test (owner CI fix 2026-10-29): this test
+        // used to borrow seeded session id 11 and assert its exact
+        // teacher (24) and entry count (360). Both numbers were
+        // artefacts of one long-lived dev database — the current
+        // seeder enters the section's own students and picks a
+        // different session, so every fresh seed broke it. The
+        // invariant does not care which session it is: build a
+        // submitted historical session for section 55's Mathematics
+        // (subject 69) under its CURRENT effective teacher, then
+        // prove allotment changes leave it untouched.
+        $subject = Subject::findOrFail(69);
+        $originalTeacher = SectionTeacher::teacherIdFor(55, $subject);
+        $this->assertNotEmpty($originalTeacher);
+
+        $cell = TimeTable::where('ttr_id', 12)->where('subject_id', 69)
+            ->orderBy('id')->firstOrFail();
+        $date = null;
+        $cursor = \Carbon\Carbon::create(2026, 11, 2);
+        for ($i = 0; $i < 56 && !$date; $i++) {
+            $candidate = $cursor->copy()->addDays($i);
+            if ($candidate->format('l') === $cell->day
+                && !AttendanceSession::where('time_table_id', $cell->id)
+                    ->whereDate('date', $candidate->toDateString())->exists()) {
+                $date = $candidate->toDateString();
+            }
+        }
+        $this->assertNotNull($date, 'a free date for the fixture session must exist');
+
+        $session = AttendanceSession::create([
+            'date' => $date,
+            'time_table_id' => $cell->id,
+            'my_class_id' => 12,
+            'section_id' => 55,
+            'subject_id' => 69,
+            'teacher_id' => $originalTeacher,
+            'topic' => 'Historical session (allotment probe)',
+            'status' => AttendanceSession::STATUS_SUBMITTED,
+            'submitted_at' => now(),
+        ]);
+        $roster = StudentRecord::where('section_id', 55)->where('grad', 0)
+            ->orderBy('id')->limit(5)->get();
+        $this->assertCount(5, $roster);
+        foreach ($roster as $sr) {
+            AttendanceSessionEntry::create([
+                'session_id' => $session->id,
+                'student_record_id' => $sr->id,
+                'status' => AttendanceSessionEntry::STATUS_PRESENT,
+            ]);
+        }
+        $entryCount = DB::table('attendance_session_entries')->where('session_id', $session->id)->count();
+        $this->assertSame(5, $entryCount);
 
         // Re-assign the section's Mathematics override to Ananya (4).
         $valid = DB::table('section_subject_teachers')->where('section_id', 55)->pluck('teacher_id', 'subject_id');
@@ -190,17 +240,17 @@ class OwnerAllotmentRound2Test extends TestCase
 
         // Current resolution changed, history did not.
         $this->assertEquals(4, SectionTeacher::teacherIdFor(55, Subject::find(69)));
-        $after = DB::table('attendance_sessions')->where('id', 11)->first();
-        $this->assertEquals(24, (int) $after->teacher_id);
-        $this->assertEquals(360, DB::table('attendance_session_entries')->where('session_id', 11)->count());
+        $after = DB::table('attendance_sessions')->where('id', $session->id)->first();
+        $this->assertEquals($originalTeacher, (int) $after->teacher_id);
+        $this->assertEquals($entryCount, DB::table('attendance_session_entries')->where('session_id', $session->id)->count());
 
         // Same for a class-teacher change on the section.
         $newLead = $this->makeTeacher('PROBE-R2-3', 'probe-r2-3@example.com');
         $this->actingAs($this->admin())->put(route('sections.update', 55), [
             'name' => 'A', 'teacher_id' => Qs::hash($newLead->id),
         ]);
-        $afterLead = DB::table('attendance_sessions')->where('id', 11)->first();
-        $this->assertEquals(24, (int) $afterLead->teacher_id);
-        $this->assertEquals(360, DB::table('attendance_session_entries')->where('session_id', 11)->count());
+        $afterLead = DB::table('attendance_sessions')->where('id', $session->id)->first();
+        $this->assertEquals($originalTeacher, (int) $afterLead->teacher_id);
+        $this->assertEquals($entryCount, DB::table('attendance_session_entries')->where('session_id', $session->id)->count());
     }
 }

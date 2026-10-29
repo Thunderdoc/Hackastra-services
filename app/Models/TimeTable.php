@@ -10,7 +10,13 @@ class TimeTable extends Eloquent
        and the generator's busy map key on. It was missing here, so
        manually added cells (Manage store/update) silently stored
        NULL and never blocked generation or clashed correctly. */
-    protected $fillable = ['ttr_id', 'ts_id', 'exam_date', 'day', 'day_num', 'timestamp_from', 'timestamp_to', 'subject_id',];
+    protected $fillable = ['ttr_id', 'ts_id', 'exam_date', 'day', 'day_num', 'timestamp_from', 'timestamp_to', 'subject_id', 'room_id',];
+
+    /** T3: the room this period runs in, when one is assigned. */
+    public function room()
+    {
+        return $this->belongsTo(Room::class);
+    }
 
     public function time_slot()
     {

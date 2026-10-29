@@ -69,14 +69,19 @@ class OwnerExamDateSheetR26Test extends TestCase
 
     public function test_student_58_my_card_shows_fee_block_not_card()
     {
-        // Dariana Heaney (user 58): record 2 links her to parent@,
-        // and payment_record id 4 leaves 10800 outstanding.
+        // User 58 (student_record 2, linked to parent@): payment
+        // records 4-6 leave 14,400 outstanding in 2026-2027.
         $response = $this->actingAs($this->student58())
             ->get(route('admit_cards.my_card', ['exam' => 1, 'student_id' => 58]));
 
         $response->assertStatus(200);
         $response->assertSee('Admit Card Cannot Be Generated Yet', false);
-        $response->assertSee('Dariana Heaney', false);
+        // The student's NAME is faker-generated per seed (it was
+        // 'Dariana Heaney' in one dev database, something else in
+        // every fresh seed — hardcoding it kept CI red). Resolve the
+        // name the seed actually created; the outstanding amount
+        // (10,800 + 3,000 + 600 = 14,400) IS structural and stays.
+        $response->assertSee($this->student58()->name, false);
         $response->assertSee('14,400', false);
         // Student branch of the block view (viewer is not a parent).
         $response->assertSee('Please ask your parent to pay the fee', false);
@@ -89,7 +94,7 @@ class OwnerExamDateSheetR26Test extends TestCase
 
         $response->assertStatus(200);
         $response->assertSee('Admit Card Cannot Be Generated Yet', false);
-        $response->assertSee('Dariana Heaney', false);
+        $response->assertSee($this->student58()->name, false);
         // Parent branch: the block view offers the Pay the Fee button.
         $response->assertSee('Pay the Fee', false);
     }
@@ -102,7 +107,7 @@ class OwnerExamDateSheetR26Test extends TestCase
             ->get(route('admit_cards.my_card', ['exam' => 1, 'student_id' => 58]));
 
         $response->assertStatus(200);
-        $response->assertSee('Dariana Heaney', false);
+        $response->assertSee($this->student58()->name, false);
         $response->assertDontSee('Cannot Be Generated Yet', false);
     }
 

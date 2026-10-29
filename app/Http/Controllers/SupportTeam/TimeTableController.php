@@ -11,9 +11,11 @@ use App\Models\AttendanceSession;
 use App\Support\TimetableValidator;
 use App\Models\Exam;
 use App\Models\MyClass;
+use App\Models\Room;
 use App\Models\Section;
 use App\Models\Setting;
 use App\Models\Subject;
+use App\Models\Substitution;
 use App\Models\TimeSlot;
 use App\Models\TimeTable;
 use App\Models\TimeTableRecord;
@@ -24,6 +26,7 @@ use App\Support\Audit;
 use App\Support\Notify;
 use App\Support\SchoolLevel;
 use App\Support\SectionTeacher;
+use App\Support\Staffing;
 use App\Support\Streams;
 use App\Support\TeacherScope;
 use App\User;
@@ -231,6 +234,12 @@ class TimeTableController extends Controller
         $d['class_levels'] = SchoolLevel::levelsForClasses($d['my_classes']);
         $level = $presetClassId ? SchoolLevel::levelForClassId((int) $presetClassId) : 'primary';
         $d['defaults'] = $d['level_defaults'][$level];
+        // Cap defaults (owner audit 2026-10-29): the day cap field
+        // opens prefilled with the school's Settings cap so the
+        // planning surfaces agree by default; the week cap is not a
+        // form field at all — generation always respects it.
+        $d['cap_day_default'] = Staffing::maxPeriodsPerDay();
+        $d['cap_week'] = Staffing::maxPeriodsPerWeek();
         $d['subject_groups'] = collect($d['my_classes'])->map(function ($c) {
             return [
                 'class' => $c,
@@ -506,14 +515,24 @@ class TimeTableController extends Controller
         // the daily cap below counts kept periods too, so a cap is
         // real load, not just this run's load).
         $teacherDayCount = [];
+        /* Weekly load per teacher across the same kept cells
+           (owner audit 2026-10-29): the Settings week cap
+           (Staffing::maxPeriodsPerWeek) was previously read by the
+           staffing surfaces and the validator only — the generator
+           ignored it and produced grids its own validator then
+           warned about. The placer now counts kept load and refuses
+           to add a period that would take a teacher over the cap. */
+        $teacherWeekCount = [];
+        $weekCap = Staffing::maxPeriodsPerWeek();
         foreach ($existingRecords as $existing) {
             if (isset($supersededIds[$existing->id])) {
                 continue; // superseded by the section grid being built
             }
             if ($data['mode'] === 'replace'
                 && isset($targetKeys[$existing->my_class_id . ':' . ($existing->section_id ?? '')])) {
-                $locked = TimeTable::where('ttr_id', $existing->id)
-                    ->whereIn('id', AttendanceSession::pluck('time_table_id'))->exists();
+                $existingCellIds = TimeTable::where('ttr_id', $existing->id)->pluck('id');
+                $locked = AttendanceSession::whereIn('time_table_id', $existingCellIds)->exists()
+                    || Substitution::whereIn('time_table_id', $existingCellIds)->exists();
                 if (!$locked) {
                     continue; // this record is being rebuilt below
                 }
@@ -534,11 +553,12 @@ class TimeTableController extends Controller
                         $toMin = (int) date('H', (int) $cell->timestamp_to) * 60 + (int) date('i', (int) $cell->timestamp_to);
                         $busyIntervals[$teacherId][$cellDay][] = [$fromMin, $toMin];
                         $teacherDayCount[$teacherId][$cellDay] = ($teacherDayCount[$teacherId][$cellDay] ?? 0) + 1;
+                        $teacherWeekCount[$teacherId] = ($teacherWeekCount[$teacherId] ?? 0) + 1;
                     }
                 }
             }
         }
-        $summary = ['generated' => [], 'generated_section_count' => 0, 'skipped' => [], 'no_subjects' => [], 'locked' => [], 'placed' => 0, 'empty' => 0, 'free' => 0, 'capped' => 0, 'no_teacher' => 0, 'shortfalls' => [], 'unassigned' => [], 'double_warnings' => []];
+        $summary = ['generated' => [], 'generated_section_count' => 0, 'skipped' => [], 'no_subjects' => [], 'locked' => [], 'sub_locked' => [], 'placed' => 0, 'empty' => 0, 'free' => 0, 'capped' => 0, 'no_teacher' => 0, 'shortfalls' => [], 'unassigned' => [], 'double_warnings' => []];
 
         /* Agent D round 6 — whole-run atomicity: the per-target
            DB::transaction below makes each target atomic, but a
@@ -614,10 +634,30 @@ class TimeTableController extends Controller
                     $summary['locked'][] = $displayName;
                     continue;
                 }
+                /* Same orphan class, one module over (owner audit
+                   2026-10-29): substitutions reference cells by a
+                   plain id with NO foreign key, so replacing this
+                   grid would leave every arranged substitution
+                   pointing at a deleted period — the board would
+                   claim coverage that no longer exists and the
+                   substitute's access window would silently die.
+                   Keep the record and say why; the Admin removes
+                   the arrangements on the Substitutions board
+                   first, then regenerates. */
+                if (Substitution::whereIn('time_table_id',
+                    TimeTable::where('ttr_id', $record->id)->pluck('id'))->exists()) {
+                    $summary['sub_locked'][] = $displayName;
+                    continue;
+                }
             }
 
-            DB::transaction(function () use ($record, $class, $targetSectionId, $displayName, $subjects, $targetSlots, $targetCfg, $dayNames, $data, &$busyIntervals, &$teacherDayCount, &$summary) {
+            DB::transaction(function () use ($record, $class, $targetSectionId, $displayName, $subjects, $targetSlots, $targetCfg, $dayNames, $data, &$busyIntervals, &$teacherDayCount, &$teacherWeekCount, $weekCap, &$summary) {
                 if ($record) {
+                    /* T4: freeze the outgoing grid before it is
+                       replaced — a regenerate is never a point of
+                       no return; the snapshot restores as a draft. */
+                    \App\Support\GridSnapshot::capture($record,
+                        'Before regenerate — ' . now()->format('d M Y, g:i A'), Auth::id());
                     TimeTable::where('ttr_id', $record->id)->delete();
                     TimeSlot::where('ttr_id', $record->id)->delete();
                     // Timetable approval (owner order 2026-10-29):
@@ -684,6 +724,73 @@ class TimeTableController extends Controller
                 foreach ($subjects as $s) {
                     $teacherOf[$s->id] = SectionTeacher::teacherIdFor($targetSectionId, $s);
                 }
+                /* Owner order 2026-10-29: a needs_double pair is
+                   PLANNED, not hoped for. The continuation boost alone
+                   only completed a pair when the subject's first cell
+                   happened to land at a pair-start slot; a first cell
+                   at a segment end, or a target-2 subject outbid at
+                   the completing slot, silently degraded to singles.
+                   Before the greedy week runs, reserve the first
+                   feasible wall-clock-adjacent slot pair for every
+                   needs_double subject: teacher free in both
+                   intervals, the daily cap (counting pairs already
+                   reserved for that teacher that day) leaves room
+                   for two, and neither slot is reserved for another
+                   double in this grid. The slot loop forces the two
+                   reserved cells; when no reservation is feasible the
+                   greedy runs as before and the round-18 warning
+                   names the subject — pair, or be named. */
+                $pairPlan = [];
+                $plannedCells = [];
+                $plannedLoad = [];
+                $plannedWeekLoad = [];
+                $planCap = $data['max_teacher_periods_per_day'] ?? null;
+                foreach ($subjects as $s) {
+                    if (!$s->needs_double || $s->periods_per_week === null || (int) $s->periods_per_week < 2) {
+                        continue;
+                    }
+                    $planTeacher = $teacherOf[$s->id] ?? null;
+                    if (!$planTeacher || ($planCap !== null && (int) $planCap < 2)) {
+                        continue;
+                    }
+                    for ($pd = 1; $pd <= $targetCfg['days']; $pd++) {
+                        if ($planCap !== null
+                            && ($teacherDayCount[$planTeacher][$pd] ?? 0) + ($plannedLoad[$planTeacher][$pd] ?? 0) + 2 > (int) $planCap) {
+                            continue;
+                        }
+                        if (($teacherWeekCount[$planTeacher] ?? 0) + ($plannedWeekLoad[$planTeacher] ?? 0) + 2 > $weekCap) {
+                            continue;
+                        }
+                        for ($pi = 0; $pi + 1 < count($targetSlots); $pi++) {
+                            if (isset($plannedCells[$pd][$pi]) || isset($plannedCells[$pd][$pi + 1])) {
+                                continue;
+                            }
+                            $paFrom = (int) $targetSlots[$pi]['from']->format('H') * 60 + (int) $targetSlots[$pi]['from']->format('i');
+                            $paTo = (int) $targetSlots[$pi]['to']->format('H') * 60 + (int) $targetSlots[$pi]['to']->format('i');
+                            $pbFrom = (int) $targetSlots[$pi + 1]['from']->format('H') * 60 + (int) $targetSlots[$pi + 1]['from']->format('i');
+                            $pbTo = (int) $targetSlots[$pi + 1]['to']->format('H') * 60 + (int) $targetSlots[$pi + 1]['to']->format('i');
+                            if ($pbFrom !== $paTo) {
+                                continue;
+                            }
+                            $planBusy = false;
+                            foreach (($busyIntervals[$planTeacher][$pd] ?? []) as [$bf, $bt]) {
+                                if (($paFrom < $bt && $bf < $paTo) || ($pbFrom < $bt && $bf < $pbTo)) {
+                                    $planBusy = true;
+                                    break;
+                                }
+                            }
+                            if ($planBusy) {
+                                continue;
+                            }
+                            $pairPlan[$s->id] = [$pd, $pi];
+                            $plannedCells[$pd][$pi] = $s->id;
+                            $plannedCells[$pd][$pi + 1] = $s->id;
+                            $plannedLoad[$planTeacher][$pd] = ($plannedLoad[$planTeacher][$pd] ?? 0) + 2;
+                            $plannedWeekLoad[$planTeacher] = ($plannedWeekLoad[$planTeacher] ?? 0) + 2;
+                            break 2;
+                        }
+                    }
+                }
                 // Batch upgrade 2026-10-25 (pre-flight): subjects
                 // with no teacher are a warning in the summary, never
                 // a blocker — the placer skips them (agent D round
@@ -727,12 +834,49 @@ class TimeTableController extends Controller
                 for ($day = 1; $day <= $targetCfg['days']; $day++) {
                     $dayCount = $subjects->mapWithKeys(function ($s) { return [$s->id => 0]; })->all();
                     $prevSubjectId = null;
+                    $prevSlotToMinute = null;
                     foreach ($slotModels as $slotIdx => $slotModel) {
+                        $slotMinute = (int) $targetSlots[$slotIdx]['from']->format('H') * 60 + (int) $targetSlots[$slotIdx]['from']->format('i');
+                        $slotToMinute = (int) $targetSlots[$slotIdx]['to']->format('H') * 60 + (int) $targetSlots[$slotIdx]['to']->format('i');
+                        /* Owner order 2026-10-29 (CI-proven loophole):
+                           a needs_double pair counts ONLY when the two
+                           cells are wall-clock adjacent. A pair spanning
+                           the break or the lunch gap is not a true
+                           double period — no placement boost and no
+                           doubled credit across a clock gap. */
+                        $prevAdjacent = $prevSubjectId !== null && $prevSlotToMinute !== null
+                            && $slotMinute === $prevSlotToMinute;
+                        /* A double can only START where a second cell
+                           can follow: this slot starts a pair only if
+                           the NEXT slot is wall-clock adjacent to it. */
+                        $nextSlot = $targetSlots[$slotIdx + 1] ?? null;
+                        $nextAdjacent = $nextSlot !== null
+                            && ((int) $nextSlot['from']->format('H') * 60 + (int) $nextSlot['from']->format('i')) === $slotToMinute;
                         $candidates = $subjects->filter(function ($s) use ($targets, $weekCount) {
                             return $targets[$s->id] === null || $weekCount[$s->id] < (int) $targets[$s->id];
-                        })->sortBy(function ($s) use ($weekCount, $dayCount, $prevSubjectId, $doubled, $targets, $teacherOf, $teacherDayCount, $day, $subjectOrder, $subjectCount, $rotBase) {
-                            $doubleBoost = ($prevSubjectId === $s->id && $s->needs_double && !$doubled[$s->id]
+                        })->sortBy(function ($s) use ($weekCount, $dayCount, $prevSubjectId, $prevAdjacent, $nextAdjacent, $doubled, $targets, $teacherOf, $teacherDayCount, $day, $subjectOrder, $subjectCount, $rotBase) {
+                            $doubleBoost = ($prevAdjacent && $prevSubjectId === $s->id && $s->needs_double && !$doubled[$s->id]
                                 && ($targets[$s->id] === null || $weekCount[$s->id] < (int) $targets[$s->id])) ? -1000 : 0;
+                            /* Pair-start penalty: a needs_double subject
+                               whose pair has not formed yet is steered
+                               AWAY from segment-end slots (last slot
+                               before a break/lunch gap, or the day's
+                               final slot) unless this very placement
+                               completes the pair — a first cell placed
+                               there can never be followed back-to-back.
+                               A parity-level preference only (+50: below
+                               one weekCount step of 100, so a subject
+                               that is behind on its weekly target still
+                               outbids parity rivals even at a segment
+                               end and can never be starved out of its
+                               target; boost and penalty never apply
+                               together); when nothing else can take the
+                               slot the subject still places, and the
+                               round-18 warning names it if no pair
+                               formed. */
+                            $completesPair = $prevAdjacent && $prevSubjectId === $s->id;
+                            $doublePenalty = ($s->needs_double && !$doubled[$s->id] && !$nextAdjacent && !$completesPair
+                                && ($targets[$s->id] === null || ((int) $targets[$s->id] - $weekCount[$s->id]) >= 2)) ? 50 : 0;
                             // Load tiebreaker (capped at 9, below the
                             // dayCount step of 10): among equal
                             // subjects, the teacher with fewer
@@ -749,15 +893,47 @@ class TimeTableController extends Controller
                             $rot = $subjectCount > 0
                                 ? (($subjectOrder[$s->id] + $rotBase + ($day - 1)) % $subjectCount)
                                 : 0;
-                            return [$doubleBoost + ($weekCount[$s->id] * 100) + ($dayCount[$s->id] * 10) + $teacherLoad, $rot];
+                            return [$doubleBoost + $doublePenalty + ($weekCount[$s->id] * 100) + ($dayCount[$s->id] * 10) + $teacherLoad, $rot];
                         })->values();
                         $chosen = null;
-                        $slotMinute = (int) $targetSlots[$slotIdx]['from']->format('H') * 60 + (int) $targetSlots[$slotIdx]['from']->format('i');
-                        $slotToMinute = (int) $targetSlots[$slotIdx]['to']->format('H') * 60 + (int) $targetSlots[$slotIdx]['to']->format('i');
                         $cap = $data['max_teacher_periods_per_day'] ?? null;
                         $cappedSkip = false;
                         $noTeacherSkip = false;
-                        foreach ($candidates as $cand) {
+                        /* Reserved double pair (owner 2026-10-29):
+                           a planned slot takes its reserved subject
+                           when still valid (target unmet; at the pair
+                           START also: cap leaves room for both cells
+                           and the teacher is free in this interval).
+                           A start slot that fails validation releases
+                           its partner slot back to the greedy. */
+                        if (isset($plannedCells[$day][$slotIdx])) {
+                            $planSubjectId = $plannedCells[$day][$slotIdx];
+                            $planTeacher = $teacherOf[$planSubjectId] ?? null;
+                            $isPairStart = ($pairPlan[$planSubjectId][0] ?? null) === $day
+                                && ($pairPlan[$planSubjectId][1] ?? null) === $slotIdx;
+                            $planValid = $planTeacher
+                                && ($targets[$planSubjectId] === null
+                                    || $weekCount[$planSubjectId] < (int) $targets[$planSubjectId]);
+                            if ($planValid && $isPairStart) {
+                                $planValid = ($cap === null
+                                    || ($teacherDayCount[$planTeacher][$day] ?? 0) + 2 <= (int) $cap)
+                                    && ($teacherWeekCount[$planTeacher] ?? 0) + 2 <= $weekCap;
+                                if ($planValid) {
+                                    foreach (($busyIntervals[$planTeacher][$day] ?? []) as [$bf, $bt]) {
+                                        if ($slotMinute < $bt && $bf < $slotToMinute) {
+                                            $planValid = false;
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                            if ($planValid) {
+                                $chosen = $subjects->firstWhere('id', $planSubjectId);
+                            } elseif ($isPairStart) {
+                                unset($plannedCells[$day][$slotIdx + 1]);
+                            }
+                        }
+                        foreach ($chosen ? [] : $candidates as $cand) {
                             $candTeacher = $teacherOf[$cand->id] ?? null;
                             /* Agent D round 2: a teacher-less subject
                                is never placed — its periods stay
@@ -768,6 +944,16 @@ class TimeTableController extends Controller
                                 continue;
                             }
                             if ($cap !== null && ($teacherDayCount[$candTeacher][$day] ?? 0) >= (int) $cap) {
+                                $cappedSkip = true;
+                                continue;
+                            }
+                            /* Settings week cap (owner audit
+                               2026-10-29): never place a period that
+                               takes a teacher over the school's weekly
+                               cap — the validator warns about exactly
+                               this load, so generation must not create
+                               it. Buckets as capped, like the day cap. */
+                            if (($teacherWeekCount[$candTeacher] ?? 0) >= $weekCap) {
                                 $cappedSkip = true;
                                 continue;
                             }
@@ -825,15 +1011,18 @@ class TimeTableController extends Controller
                                 $summary['empty']++;
                             }
                             $prevSubjectId = null;
+                            $prevSlotToMinute = $slotToMinute;
                             continue;
                         }
-                        if ($prevSubjectId === $chosen->id && $chosen->needs_double) {
+                        if ($prevAdjacent && $prevSubjectId === $chosen->id && $chosen->needs_double) {
                             $doubled[$chosen->id] = true;
                         }
                         $prevSubjectId = $chosen->id;
+                        $prevSlotToMinute = $slotToMinute;
                         if ($teacherOf[$chosen->id]) {
                             $busyIntervals[$teacherOf[$chosen->id]][$day][] = [$slotMinute, $slotToMinute];
                             $teacherDayCount[$teacherOf[$chosen->id]][$day] = ($teacherDayCount[$teacherOf[$chosen->id]][$day] ?? 0) + 1;
+                            $teacherWeekCount[$teacherOf[$chosen->id]] = ($teacherWeekCount[$teacherOf[$chosen->id]] ?? 0) + 1;
                         }
                         $weekCount[$chosen->id]++;
                         $dayCount[$chosen->id]++;
@@ -870,6 +1059,21 @@ class TimeTableController extends Controller
                     if ($s->periods_per_week && $weekCount[$s->id] < (int) $s->periods_per_week) {
                         $summary['shortfalls'][] = $displayName . ' — ' . $s->name . ': '
                             . $weekCount[$s->id] . ' of ' . (int) $s->periods_per_week . ' placed';
+                    }
+                }
+                /* T3 rooms: assign physical rooms to the fresh
+                   grid — clash-free across the whole school, labs
+                   only for lab subjects, smallest sufficient room
+                   preferred. With no rooms defined the pass is a
+                   no-op and the flash claims nothing about rooms. */
+                if (Room::count() > 0) {
+                    $roomSummary = \App\Support\RoomAssigner::assignRecord($record);
+                    $summary['rooms_assigned'] = ($summary['rooms_assigned'] ?? 0) + $roomSummary['assigned'];
+                    foreach ($roomSummary['unassigned'] as $u) {
+                        $summary['room_unassigned'][] = $displayName . ' — ' . $u;
+                    }
+                    foreach ($roomSummary['over_capacity'] as $o) {
+                        $summary['room_over'][] = $displayName . ' — ' . $o;
                     }
                 }
                 $summary['generated'][] = $displayName;
@@ -938,9 +1142,13 @@ class TimeTableController extends Controller
             . (!empty($summary['shortfalls']) ? '. REQUIREMENTS NOT FULLY MET — ' . implode('; ', array_slice($summary['shortfalls'], 0, 4)) . (count($summary['shortfalls']) > 4 ? '; and ' . (count($summary['shortfalls']) - 4) . ' more' : '') . ' — add periods to the week or lower the requirement on Subjects' : '')
             . ($summary['skipped'] ? '. Skipped (already have one): ' . implode(', ', $summary['skipped']) : '')
             . (!empty($summary['locked']) ? '. Kept (attendance already submitted, timetable locked this session): ' . implode(', ', $summary['locked']) : '')
+            . (!empty($summary['sub_locked']) ? '. Kept (substitutions are arranged on their periods — remove those arrangements on the Substitutions board first, then regenerate): ' . implode(', ', $summary['sub_locked']) : '')
             . ($summary['no_subjects'] ? '. No subjects yet: ' . implode(', ', $summary['no_subjects']) : '')
             . (!empty($summary['unassigned']) ? '. No teacher assigned (those periods may stay empty): ' . implode('; ', array_slice($summary['unassigned'], 0, 4)) . (count($summary['unassigned']) > 4 ? '; and ' . (count($summary['unassigned']) - 4) . ' more' : '') : '')
             . (!empty($summary['double_warnings']) ? '. Double period not possible: ' . implode('; ', array_slice($summary['double_warnings'], 0, 4)) . (count($summary['double_warnings']) > 4 ? '; and ' . (count($summary['double_warnings']) - 4) . ' more' : '') : '')
+            . (!empty($summary['rooms_assigned']) ? '. Rooms assigned to ' . $summary['rooms_assigned'] . ' period(s)' : '')
+            . (!empty($summary['room_unassigned']) ? '. No room free (add rooms or move the period): ' . implode('; ', array_slice($summary['room_unassigned'], 0, 4)) . (count($summary['room_unassigned']) > 4 ? '; and ' . (count($summary['room_unassigned']) - 4) . ' more' : '') : '')
+            . (!empty($summary['room_over']) ? '. Room smaller than the class: ' . implode('; ', array_slice($summary['room_over'], 0, 4)) . (count($summary['room_over']) > 4 ? '; and ' . (count($summary['room_over']) - 4) . ' more' : '') : '')
             . '.';
         }
 
@@ -1033,7 +1241,7 @@ class TimeTableController extends Controller
      */
     protected function teacherWeekData($user)
     {
-        $periods = TimeTable::with(['subject.my_class', 'time_slot', 'tt_record.my_class', 'tt_record.section'])
+        $periods = TimeTable::with(['subject.my_class', 'time_slot', 'tt_record.my_class', 'tt_record.section', 'room'])
             ->whereNotNull('day')
             // Timetable approval: a teacher's week shows only
             // timetables the Principal has approved (in force).
@@ -1066,7 +1274,9 @@ class TimeTableController extends Controller
             }
             $d['map'][$p->day][$p->time_slot->full] = [
                 'title' => optional($p->subject)->name ?: '—',
-                'sub'   => $sectionSub($p),
+                // T3: the teacher's week also names the room —
+                // they need to know where to go, not just when.
+                'sub'   => trim($sectionSub($p) . ($p->room ? ' · ' . $p->room->name : '')),
             ];
         }
 
@@ -1271,7 +1481,7 @@ class TimeTableController extends Controller
     protected function recordWeekGrid(TimeTableRecord $ttr)
     {
         $slots = $this->tt->getTimeSlotByTTR($ttr->id);
-        $entries = TimeTable::with(['subject.teacher', 'time_slot'])
+        $entries = TimeTable::with(['subject.teacher', 'time_slot', 'room'])
             ->where('ttr_id', $ttr->id)->whereNotNull('day')->get();
 
         $map = [];
@@ -1282,7 +1492,8 @@ class TimeTableController extends Controller
             $teacher = optional(SectionTeacher::teacherFor($ttr->section_id ?? null, $e->subject))->name;
             $map[$e->day][$e->time_slot->full] = [
                 'title' => optional($e->subject)->name ?: '—',
-                'sub'   => $teacher ?: '',
+                // T3: the grid names the room under the teacher.
+                'sub'   => trim(($teacher ?: '') . ($e->room ? ' · ' . $e->room->name : '')),
             ];
         }
 
@@ -1312,6 +1523,11 @@ class TimeTableController extends Controller
             $ttr->section
         );
         $d['my_class'] = $this->my_class->find($ttr->my_class_id);
+        /* T4: this record's grid snapshots (approval freezes and
+           pre-regenerate saves), newest first. */
+        $d['snapshots'] = \Illuminate\Support\Facades\Schema::hasTable('timetable_snapshots')
+            ? \App\Models\TimetableSnapshot::where('ttr_id', $ttr->id)->latest()->get()
+            : collect();
 
         if($ttr->exam_id){
             $d['exam_id'] = $ttr->exam_id;
@@ -1355,6 +1571,41 @@ class TimeTableController extends Controller
      * is a duplicate. Timestamps encode their date, so the
      * timestamp check cannot false-positive across days.
      */
+    /**
+     * T3: a room hosts one period at a time, and a needs_lab
+     * subject may only sit in a lab. Returns the refusal message
+     * for a cell save that breaks either rule, or null.
+     */
+    protected function roomClashMessage(TTRequest $req, array $data, $ignoreTtId = null): ?string
+    {
+        $room = Room::find((int) $data['room_id']);
+        if (!$room) {
+            return 'That room no longer exists — pick another room.';
+        }
+        if (!empty($data['subject_id'])) {
+            $subject = Subject::find($data['subject_id']);
+            if ($subject && $subject->needs_lab && $room->kind !== 'lab') {
+                return $subject->name . ' needs a lab — ' . $room->name . ' is not a lab. Pick a lab room for this period.';
+            }
+        }
+        $day = $req->day ?? null;
+        if (!$day) {
+            return null;
+        }
+        $clashId = \App\Support\RoomAssigner::clashFor(
+            (int) $room->id,
+            $day,
+            date('H:i', $data['timestamp_from']),
+            date('H:i', $data['timestamp_to']),
+            $ignoreTtId ? (int) $ignoreTtId : null
+        );
+        if ($clashId) {
+            return 'Room clash: ' . $room->name . ' is already used at this time on ' . $day . '. Pick another room or move the period.';
+        }
+
+        return null;
+    }
+
     protected function duplicateCellExists(TTRequest $req, $from, $to, $excludeId = null): bool
     {
         $q = TimeTable::where('ttr_id', $req->ttr_id);
@@ -1394,8 +1645,12 @@ class TimeTableController extends Controller
         if ($this->duplicateCellExists($req, $data['timestamp_from'], $data['timestamp_to'])) {
             return Qs::json('This slot already has a period on ' . ($req->exam_date ?? $req->day) . ' — pick a free slot instead.', false);
         }
+        if (!empty($data['room_id']) && ($roomClash = $this->roomClashMessage($req, $data))) {
+            return Qs::json($roomClash, false);
+        }
 
         $this->tt->create($data);
+        $this->revertApprovalOnEdit($req->ttr_id);
 
         return Qs::jsonStoreOk();
     }
@@ -1413,8 +1668,18 @@ class TimeTableController extends Controller
         if ($this->duplicateCellExists($req, $data['timestamp_from'], $data['timestamp_to'], $tt_id)) {
             return back()->with('flash_danger', 'This slot already has a period on ' . ($req->exam_date ?? $req->day) . ' — pick a free slot instead.');
         }
+        if (!empty($data['room_id']) && ($roomClash = $this->roomClashMessage($req, $data, (int) $tt_id))) {
+            return back()->with('flash_danger', $roomClash);
+        }
 
+        $cellBefore = TimeTable::find($tt_id);
         $this->tt->update($tt_id, $data);
+        if ($cellBefore) {
+            $this->revertApprovalOnEdit($cellBefore->ttr_id);
+        }
+        if (!empty($data['ttr_id']) && (!$cellBefore || (int) $data['ttr_id'] !== (int) $cellBefore->ttr_id)) {
+            $this->revertApprovalOnEdit($data['ttr_id']);
+        }
 
         return back()->with('flash_success', __('msg.update_ok'));
 
@@ -1431,7 +1696,18 @@ class TimeTableController extends Controller
         if (AttendanceSession::where('time_table_id', $tt_id)->exists()) {
             return back()->with('flash_danger', 'This period cannot be deleted — attendance has already been submitted for it. Submitted attendance is locked history.');
         }
+        /* Substitution orphan guard (owner audit 2026-10-29):
+           substitutions reference the cell by a plain id with no
+           foreign key; deleting the cell would strand the arranged
+           coverage on a period that no longer exists. */
+        if (Substitution::where('time_table_id', $tt_id)->exists()) {
+            return back()->with('flash_danger', 'This period cannot be deleted — a substitution is arranged on it. Remove that arrangement on the Substitutions board first.');
+        }
+        $cellBefore = TimeTable::find($tt_id);
         $this->tt->delete($tt_id);
+        if ($cellBefore) {
+            $this->revertApprovalOnEdit($cellBefore->ttr_id);
+        }
         return back()->with('flash_success', __('msg.delete_ok'));
     }
 
@@ -1456,6 +1732,7 @@ class TimeTableController extends Controller
         }
 
         $this->tt->createTimeSlot($data);
+        $this->revertApprovalOnEdit($data['ttr_id'] ?? null);
         return Qs::jsonStoreOk();
     }
 
@@ -1481,6 +1758,7 @@ class TimeTableController extends Controller
             $ts['ttr_id'] = $ttr_id;
             $this->tt->createTimeSlot($ts);
         }
+        $this->revertApprovalOnEdit($ttr_id);
 
         return redirect()->route('ttr.manage', $ttr_id)->with('flash_success', __('msg.update_ok'));
 
@@ -1558,6 +1836,7 @@ class TimeTableController extends Controller
 
             return back()->with('flash_danger', 'Time slot update failed — nothing was changed. Please try again.')->withInput();
         }
+        $this->revertApprovalOnEdit($req->ttr_id);
 
         return redirect()->route('ttr.manage', $req->ttr_id)->with('flash_success', __('msg.update_ok'));
     }
@@ -1570,7 +1849,11 @@ class TimeTableController extends Controller
         if (TimeTable::where('ts_id', $ts_id)->exists()) {
             return back()->with('flash_danger', 'This time slot has periods placed in it — delete those periods first, then the slot.');
         }
+        $slotBefore = $this->tt->findTimeSlot($ts_id);
         $this->tt->deleteTimeSlot($ts_id);
+        if ($slotBefore) {
+            $this->revertApprovalOnEdit($slotBefore->ttr_id);
+        }
         return back()->with('flash_success', __('msg.delete_ok'));
     }
 
@@ -1656,6 +1939,57 @@ class TimeTableController extends Controller
      * and OKs it by submitting — the Principal then approves.
      * Submission is refused while the validator reports problems.
      */
+    /**
+     * Approval staleness guard (owner order 2026-10-29): the
+     * Principal approves a SPECIFIC grid. Any later change to that
+     * grid — a period added, moved or deleted, a time slot's times
+     * changed — means the approved thing is no longer what is live,
+     * so the record returns to draft with its approval metadata
+     * cleared (the same reset a regenerate performs), the change is
+     * audited, and the Principals are belled. Only records that a
+     * human actually submitted/approved are reverted (submitted_by /
+     * approved_by set); grandfathered seeded records carry the
+     * approved status by default with no human sign-off, and their
+     * routine edits are the pre-approval workflow, not staleness.
+     * Failure-proof: a revert problem must never break the edit
+     * itself.
+     */
+    protected function revertApprovalOnEdit($ttrId): void
+    {
+        try {
+            $record = TimeTableRecord::find($ttrId);
+            if (!$record) {
+                return;
+            }
+            $wasSubmitted = $record->approval_status === 'submitted' && $record->approval_submitted_by;
+            $wasApproved = $record->approval_status === 'approved' && $record->approved_by;
+            if (!$wasSubmitted && !$wasApproved) {
+                return;
+            }
+            $record->update([
+                'approval_status' => 'draft',
+                'approval_submitted_by' => null,
+                'approval_submitted_at' => null,
+                'approved_by' => null,
+                'approved_at' => null,
+            ]);
+            Audit::log('timetable.reverted_to_draft', null,
+                'Timetable ' . $record->id . ' (' . $record->name . ') was edited after '
+                . ($wasApproved ? 'principal approval' : 'submission for approval')
+                . ' by ' . Auth::user()->name . ' and returned to draft.');
+            foreach (User::where('user_type', 'principal')->pluck('id') as $principalId) {
+                Notify::toUser($principalId, 'timetable_reverted',
+                    'Timetable changed after ' . ($wasApproved ? 'approval' : 'submission') . ': ' . $record->name,
+                    $record->name . ' (' . $record->year . ') was edited after it was '
+                    . ($wasApproved ? 'approved' : 'sent for approval')
+                    . ', so it has returned to draft and is no longer in force until it is submitted and approved again.',
+                    route('tt.index'));
+            }
+        } catch (\Throwable $e) {
+            report($e);
+        }
+    }
+
     public function submitApproval($ttr_id)
     {
         $ttr = $this->tt->findRecord($ttr_id);
@@ -1725,7 +2059,35 @@ class TimeTableController extends Controller
                 route('tt.index'));
         }
         Audit::log('timetable.approved', null, 'Timetable ' . $ttr->id . ' (' . $ttr->name . ') approved by ' . Auth::user()->name);
+        /* T4: freeze the grid exactly as approved — the version
+           in force is always recoverable. */
+        \App\Support\GridSnapshot::capture($ttr->fresh(),
+            'Approved — ' . now()->format('d M Y, g:i A'), Auth::user()->id);
         return back()->with('flash_success', 'Timetable approved — it is now in force.');
+    }
+
+    /**
+     * T4: restore a grid snapshot as a NEW draft record (the
+     * current grid is never overwritten). Admin only — restoring
+     * is authoring work; the restored grid still needs the
+     * Principal's approval before it is in force.
+     */
+    public function restoreSnapshot($snapshot_id)
+    {
+        if (!Qs::userIsTeamSAWrite()) {
+            abort(403, 'Only the Admin can restore timetable snapshots.');
+        }
+        $snapshot = \App\Models\TimetableSnapshot::find($snapshot_id);
+        if (!$snapshot) {
+            return back()->with('pop_error', __('msg.rnf'));
+        }
+        $record = \App\Support\GridSnapshot::restore($snapshot, Auth::user()->id);
+        if (!$record) {
+            return back()->with('pop_error', 'That snapshot could not be restored.');
+        }
+
+        return redirect()->route('ttr.manage', $record->id)
+            ->with('flash_success', 'Snapshot restored as a new draft timetable — review it, then submit it for approval.');
     }
 
     public function sendBackRecord($ttr_id)
@@ -1919,6 +2281,13 @@ class TimeTableController extends Controller
         if (AttendanceSession::whereIn('time_table_id',
             TimeTable::where('ttr_id', $ttr_id)->pluck('id'))->exists()) {
             return back()->with('flash_danger', 'This timetable cannot be deleted — attendance has already been submitted on its periods. Submitted attendance is locked history.');
+        }
+        /* Substitution orphan guard (owner audit 2026-10-29): same
+           reasoning as the attendance guard — arranged coverage must
+           never be silently stranded on deleted periods. */
+        if (Substitution::whereIn('time_table_id',
+            TimeTable::where('ttr_id', $ttr_id)->pluck('id'))->exists()) {
+            return back()->with('flash_danger', 'This timetable cannot be deleted — substitutions are arranged on its periods. Remove those arrangements on the Substitutions board first.');
         }
         /* Agent D round 33 (F-R33-1): deleteRecord removed only the
            record row, orphaning its cells + slots — and the deleted

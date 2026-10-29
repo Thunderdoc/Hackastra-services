@@ -92,5 +92,56 @@
             </div>
             {{ $events->links() }}
         @endif
+
+        {{-- T2 day types (master prompt): a date's kind drives
+             attendance expectations and substitution cover. Set
+             here by the Admin; a date with no row is a normal
+             school day. --}}
+        <div class="card mt-3">
+            <div class="card-header header-elements-inline">
+                <h6 class="card-title">Day Types — special dates</h6>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">Mark a date as a half day, exam day, event-only day, holiday or emergency closure. Attendance and leave cover follow the day type automatically: non-teaching days expect no period registers and get no substitution cover; a half day runs only its first periods. Dates not listed here are normal school days.</p>
+                @if(Qs::userIsTeamSAWrite())
+                <form method="POST" action="{{ route('day_types.store') }}" class="form-inline" style="gap:8px;flex-wrap:wrap">
+                    @csrf
+                    <input type="date" name="date" class="form-control" required>
+                    <select name="type" class="form-control" required>
+                        @foreach($day_type_options as $opt)
+                            <option value="{{ $opt }}">{{ $day_type_labels[$opt] }}</option>
+                        @endforeach
+                    </select>
+                    <input type="number" name="half_day_periods" class="form-control" min="1" max="12" placeholder="Half-day periods (e.g. 4)" style="width:210px">
+                    <input type="text" name="note" class="form-control" maxlength="255" placeholder="Note (optional)" style="width:220px">
+                    <button class="btn btn-primary">Save day type</button>
+                </form>
+                @endif
+                @if($day_types->isEmpty())
+                    <p class="text-muted mb-0 mt-2">No special dates set — every date is a normal school day.</p>
+                @else
+                    <div class="table-responsive mt-2">
+                        <table class="table table-sm">
+                            <thead><tr><th>Date</th><th>Day type</th><th>Periods</th><th>Note</th>@if(Qs::userIsTeamSAWrite())<th></th>@endif</tr></thead>
+                            <tbody>
+                            @foreach($day_types as $dt)
+                                <tr>
+                                    <td>{{ $dt->date->format('l, d M Y') }}</td>
+                                    <td>{{ $day_type_labels[$dt->type] ?? $dt->type }}</td>
+                                    <td>{{ $dt->half_day_periods ?: '—' }}</td>
+                                    <td>{{ $dt->note ?: '—' }}</td>
+                                    @if(Qs::userIsTeamSAWrite())
+                                    <td>
+                                        <form method="post" action="{{ route('day_types.destroy', $dt->id) }}" style="display:inline" data-confirm="Remove this day type? The date becomes a normal school day again." data-confirm-title="Remove Day Type" data-confirm-action="Remove" data-confirm-danger>@csrf @method('delete')<button class="btn btn-light btn-sm text-danger">Remove</button></form>
+                                    </td>
+                                    @endif
+                                </tr>
+                            @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
+            </div>
+        </div>
     @endcomponent
 @endsection

@@ -108,6 +108,8 @@ class SubjectController extends Controller
         // Slice A: an unchecked "needs double period" box posts
         // nothing — normalize it so create/update mean the same.
         $data['needs_double'] = $req->boolean('needs_double');
+        // T3: same checkbox normalisation for the lab flag.
+        $data['needs_lab'] = $req->boolean('needs_lab');
         if ($refusal = $this->livenessRefusal($data['teacher_id'] ?? null)) {
             return $refusal;
         }
@@ -135,6 +137,7 @@ class SubjectController extends Controller
         $data = $req->all();
         $data['stream'] = implode(',', array_filter((array) $req->input('stream_tags', []))) ?: null;
         $data['needs_double'] = $req->boolean('needs_double');
+        $data['needs_lab'] = $req->boolean('needs_lab');
         if (!empty($data['teacher_id'])) {
             $existing = $this->my_class->findSubject(Qs::resolveId($id));
             $name = $data['name'] ?? ($existing ? $existing->name : null);

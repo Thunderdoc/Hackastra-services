@@ -60,7 +60,24 @@ class LeaveRequestController extends Controller
             // The form always sends this; older callers default to
             // normal so existing flows never break on the new field.
             'leave_type' => 'nullable|in:normal,emergency',
+            // Partial leave (owner order 2026-10-29): half a day or
+            // a few periods of ONE day, same workflow.
+            'day_part' => 'nullable|in:first_half,second_half,periods',
+            'period_from' => 'nullable|integer|min:1|max:12',
+            'period_to' => 'nullable|integer|min:1|max:12',
         ]);
+        if (($data['day_part'] ?? null) === 'periods') {
+            if (empty($data['period_from']) || empty($data['period_to'])) {
+                return back()->withInput()->with('flash_danger', 'Choose the period range for a period-only leave.');
+            }
+            if ((int) $data['period_to'] < (int) $data['period_from']) {
+                return back()->withInput()->with('flash_danger', 'The last period cannot be before the first period.');
+            }
+        }
+        // A partial leave lives inside a single day.
+        if (!empty($data['day_part'])) {
+            $data['end_date'] = $data['start_date'];
+        }
         $isEmergency = ($data['leave_type'] ?? 'normal') === 'emergency';
         $leave = LeaveRequest::create([
             'user_id' => Auth::id(),
@@ -68,6 +85,9 @@ class LeaveRequestController extends Controller
             'end_date' => $data['end_date'],
             'reason' => $data['reason'],
             'leave_type' => $data['leave_type'] ?? 'normal',
+            'day_part' => $data['day_part'] ?? null,
+            'period_from' => ($data['day_part'] ?? null) === 'periods' ? ($data['period_from'] ?? null) : null,
+            'period_to' => ($data['day_part'] ?? null) === 'periods' ? ($data['period_to'] ?? null) : null,
             // Owner order 2026-10-28: emergency is auto-approved
             // within seconds — synchronously at submit, so no
             // worker or cron is involved (free Render runs none).
@@ -121,6 +141,13 @@ class LeaveRequestController extends Controller
                 // Cover is best-effort here; the queue still shows
                 // the uncovered count for manual arranging.
             }
+            // The chain (owner order 2026-10-29): covers this
+            // teacher was holding for others move on as well.
+            try {
+                LeaveAutoCover::reassignForAbsentSubstitute($leave, null);
+            } catch (\Throwable $e) {
+                // The auto-approval stands regardless.
+            }
             return back()->with('flash_success', 'Emergency leave auto-approved.');
         }
         // Owner order 2026-10-29 (live report): a NORMAL leave
@@ -136,6 +163,7 @@ class LeaveRequestController extends Controller
             $body = $me->name . ' applied for leave from '
                 . \Carbon\Carbon::parse($data['start_date'])->format('d/m/Y')
                 . ' to ' . \Carbon\Carbon::parse($data['end_date'])->format('d/m/Y')
+                . ($leave->partialLabel() ? ' (' . $leave->partialLabel() . ')' : '')
                 . '. Reason: ' . $data['reason'];
             if ($me->user_type === 'student') {
                 $record = StudentRecord::where('user_id', $me->id)
@@ -204,10 +232,27 @@ class LeaveRequestController extends Controller
                 $allocCache[$user->id] ??= LeaveCover::allocationLines($user);
                 $r->allocation_lines = $allocCache[$user->id];
                 $r->uncovered_periods = ($user->user_type === 'teacher' && in_array($r->status, ['pending', 'approved'], true))
-                    ? LeaveCover::uncoveredCount($user->id, $r->start_date, $r->end_date) : null;
+                    ? LeaveCover::uncoveredCount($user->id, $r->start_date, $r->end_date, $r->periodWindow()) : null;
+                // Owner order 2026-10-29: a bare "Covered" badge is
+                // not enough — the queue must say WHO covers. Names
+                // of the distinct substitutes standing in for this
+                // teacher inside the leave window.
+                $r->cover_names = [];
+                if ($user->user_type === 'teacher' && in_array($r->status, ['pending', 'approved'], true)) {
+                    $r->cover_names = \App\Models\Substitution::with('substitute')
+                        ->where('absent_teacher_id', $user->id)
+                        ->whereDate('date', '>=', \Carbon\Carbon::parse($r->start_date)->toDateString())
+                        ->whereDate('date', '<=', \Carbon\Carbon::parse($r->end_date)->toDateString())
+                        ->get()
+                        ->map(function ($sub) {
+                            return optional($sub->substitute)->name;
+                        })
+                        ->filter()->unique()->values()->all();
+                }
             } catch (\Throwable $e) {
                 $r->allocation_lines = [];
                 $r->uncovered_periods = null;
+                $r->cover_names = [];
             }
         }
         return $requests;
@@ -286,6 +331,14 @@ class LeaveRequestController extends Controller
             } catch (\Throwable $e) {
                 // The decision stands; uncovered periods remain
                 // visible in the queue for manual arranging.
+            }
+            // The chain (owner order 2026-10-29): if the approved
+            // teacher was themselves covering periods for others,
+            // those covers move to the next free teacher now.
+            try {
+                LeaveAutoCover::reassignForAbsentSubstitute($leave, (int) Auth::id());
+            } catch (\Throwable $e) {
+                // The decision stands regardless.
             }
         }
         return back()->with('flash_success', 'Leave request ' . $data['status'] . '.');

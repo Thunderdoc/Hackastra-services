@@ -6,6 +6,7 @@
 @if(Qs::userIsTeamSAWrite())
 @section('page_actions')
     <a href="{{ route('tt.generate.form') }}" class="btn btn-success"><i class="icon-magic-wand mr-1"></i> Auto-Generate</a>
+    <a href="{{ route('rooms.index') }}" class="btn btn-light"><i class="icon-home4 mr-1"></i> Rooms &amp; Labs</a>
     <a href="#tt-create" class="btn btn-primary"><i class="icon-plus2 mr-1"></i> Create Timetable</a>
 @endsection
 @endif

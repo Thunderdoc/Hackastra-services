@@ -4,9 +4,13 @@ namespace App\Http\Controllers\SupportTeam;
 
 use App\Helpers\Qs;
 use App\Http\Controllers\Controller;
+use App\Models\LeaveRequest;
+use App\Models\StudentRecord;
 use App\Models\Substitution;
 use App\Models\TimeTable;
 use App\Models\UserNotification;
+use App\Support\Audit;
+use App\Support\LeaveCover;
 use App\Support\Notify;
 use App\Support\SectionTeacher;
 use App\User;
@@ -70,6 +74,29 @@ class SubstitutionController extends Controller
         $d['can_delete'] = function (Substitution $sub) use ($user) {
             return Qs::userIsAdmin();
         };
+
+        /* Full-auto flow (owner order 2026-10-29): system-arranged
+           plans wait here as 'pending' groups — one group per
+           (absent teacher, date). The Admin reviews them, switches
+           any teacher (the select lists only teachers FREE at that
+           slot, computed live), and submits; only then do the rows
+           go live. The Principal sees the same groups read-only. */
+        $pendingRows = Substitution::with([
+            'time_table.subject', 'time_table.time_slot',
+            'time_table.tt_record.my_class', 'time_table.tt_record.section',
+            'absent_teacher', 'substitute',
+        ])->pending()->orderBy('date')->orderBy('id')->get();
+        $d['pending_groups'] = $pendingRows->groupBy(function (Substitution $row) {
+            $d = $row->date instanceof Carbon ? $row->date->toDateString() : (string) $row->date;
+            return (int) $row->absent_teacher_id . '|' . $d;
+        });
+        $d['free_options'] = [];
+        if (Qs::userIsAdmin()) {
+            foreach ($pendingRows as $row) {
+                $d['free_options'][$row->id] = $this->freeTeachersFor($row);
+            }
+        }
+        $d['is_admin'] = Qs::userIsAdmin();
 
         return view('pages.support_team.substitutions.index', $d);
     }
@@ -179,6 +206,10 @@ class SubstitutionController extends Controller
                 'substitute_teacher_id' => $substitute->id,
                 'created_by' => $user->id,
                 'reason' => $data['reason'] ?? null,
+                // A manual arrangement IS the Admin's own submitted
+                // decision — it goes live immediately, unlike a
+                // system plan (owner order 2026-10-29).
+                'status' => 'confirmed',
             ]);
         } catch (QueryException $e) {
             // The (date, time_table_id) unique key fired on a race.
@@ -198,7 +229,11 @@ class SubstitutionController extends Controller
             'substitution_assigned',
             static::bellTitle($tt->subject->name, $date->toDateString()),
             'You cover ' . optional(optional($tt->tt_record)->my_class)->name . ' — ' . $tt->subject->name . ' on ' . $date->format('d M Y') . '.',
-            route('substitutions.index')
+            // The bell must land where a TEACHER can go: their
+            // attendance list. The board itself is admin/principal
+            // only and bounced teachers to a 403 (owner order
+            // 2026-10-29: notification click = right page, no error).
+            route('attendance.periods.index')
         );
 
         return redirect()->route('substitutions.index')
@@ -223,15 +258,238 @@ class SubstitutionController extends Controller
             optional($substitution->time_table->subject)->name ?: '',
             (string) $substitution->date
         );
-        UserNotification::where('user_id', (int) $substitution->substitute_teacher_id)
-            ->where('type', 'substitution_assigned')
-            ->where('title', $oldTitle)
-            ->delete();
+        // Only a CONFIRMED row ever rang that bell (owner order
+        // 2026-10-29): cleaning up for a pending row could kill the
+        // bell of a confirmed sibling with the same title (a double
+        // period shares subject + date).
+        if ($substitution->isConfirmed()) {
+            UserNotification::where('user_id', (int) $substitution->substitute_teacher_id)
+                ->where('type', 'substitution_assigned')
+                ->where('title', $oldTitle)
+                ->delete();
+        }
 
         $substitution->delete();
 
         return redirect()->route('substitutions.index')
             ->with('flash_success', 'Substitution removed.');
+    }
+
+    /**
+     * Switch the substitute on a PENDING plan row (owner order
+     * 2026-10-29). Only teachers the system itself shows as free
+     * for that slot may be picked — the same list the review
+     * section renders — so a switch can never create a clash, a
+     * cover by the absent teacher, or a cover by someone on leave.
+     */
+    public function switchSubstitute(Request $request, Substitution $substitution)
+    {
+        $user = $request->user();
+        if (!$user || !Qs::userIsAdmin()) {
+            abort(403, 'Substitutions are managed by administrators.');
+        }
+        if (!$substitution->isPending()) {
+            return back()->with('flash_danger', 'This substitution is already submitted and live. To change it, remove it and arrange a new one.');
+        }
+
+        $data = $request->validate([
+            'substitute_teacher_id' => 'required|integer|exists:users,id',
+        ]);
+        $target = (int) $data['substitute_teacher_id'];
+        if ($target === (int) $substitution->substitute_teacher_id) {
+            return back()->with('flash_success', 'No change — that teacher is already assigned in the plan.');
+        }
+
+        $freeIds = $this->freeTeachersFor($substitution)->pluck('id')
+            ->map(function ($id) { return (int) $id; })->all();
+        if (!in_array($target, $freeIds, true)) {
+            throw ValidationException::withMessages([
+                'substitute_teacher_id' => 'That teacher is not free at this time (own period, another cover, or on leave). Pick one of the free teachers shown.',
+            ]);
+        }
+
+        $substitution->update(['substitute_teacher_id' => $target]);
+
+        return back()->with('flash_success', 'Substitution switched — the plan is still unsubmitted. Submit it when the whole plan looks right.');
+    }
+
+    /**
+     * Submit one pending plan group (owner order 2026-10-29): every
+     * pending row for (absent teacher, date) goes live at once.
+     * Only NOW do substitutes gain access and get their bells, and
+     * the affected students hear about their covered periods — and
+     * about any period that stayed uncovered, as a free period.
+     */
+    public function confirm(Request $request)
+    {
+        $user = $request->user();
+        if (!$user || !Qs::userIsAdmin()) {
+            abort(403, 'Substitutions are managed by administrators.');
+        }
+
+        $data = $request->validate([
+            'absent_teacher_id' => 'required|integer|exists:users,id',
+            'date' => 'required|date_format:Y-m-d',
+        ]);
+        $date = Carbon::createFromFormat('Y-m-d', $data['date'])->startOfDay();
+
+        $rows = Substitution::with([
+            'time_table.subject', 'time_table.tt_record.my_class', 'time_table.tt_record.section',
+            'substitute', 'absent_teacher',
+        ])->pending()
+            ->where('absent_teacher_id', (int) $data['absent_teacher_id'])
+            ->whereDate('date', $date->toDateString())
+            ->get();
+
+        if ($rows->isEmpty()) {
+            return back()->with('flash_danger', 'That substitution plan has already been submitted.');
+        }
+
+        foreach ($rows as $row) {
+            $row->update(['status' => 'confirmed']);
+        }
+
+        foreach ($rows as $row) {
+            $cell = $row->time_table;
+            if (!$cell || !$cell->subject) {
+                continue;
+            }
+            try {
+                Notify::toUser(
+                    (int) $row->substitute_teacher_id,
+                    'substitution_assigned',
+                    static::bellTitle($cell->subject->name, $date->toDateString()),
+                    'You cover ' . optional(optional($cell->tt_record)->my_class)->name . ' — ' . $cell->subject->name . ' on ' . $date->format('d M Y') . '.',
+                    route('attendance.periods.index')
+                );
+            } catch (\Throwable $e) {
+                // Bell only — the submission itself stands.
+            }
+            $this->bellStudentsForCell($cell, 'period_substitute',
+                'Substitute teacher: ' . $cell->subject->name . ' on ' . $date->format('d M Y'),
+                optional($row->substitute)->name . ' will take your ' . $cell->subject->name
+                . ' period on ' . $date->format('d M Y') . ' (' . optional($row->absent_teacher)->name . ' is on leave).');
+        }
+
+        $this->bellFreePeriods((int) $data['absent_teacher_id'], $date);
+
+        Audit::log('substitution.plan_submitted', null,
+            'Substitution plan for ' . optional($rows->first()->absent_teacher)->name . ' on '
+            . $date->format('d M Y') . ' submitted by ' . $user->name . ' (' . $rows->count() . ' period(s)).');
+
+        return back()->with('flash_success', 'Substitution plan submitted: ' . $rows->count()
+            . ' period(s) confirmed for ' . $date->format('d M Y')
+            . '. Substitutes and students have been notified.');
+    }
+
+    /**
+     * Teachers the system can offer for this row's slot: live
+     * teachers, not the absent teacher, not the current pick, not
+     * on approved leave that date, and clash-free at the slot.
+     * This is the list the review section renders (owner order
+     * 2026-10-29: the system shows the free slots itself).
+     */
+    protected function freeTeachersFor(Substitution $row)
+    {
+        $row->loadMissing(['time_table.subject', 'time_table.time_slot']);
+        $cell = $row->time_table;
+        if (!$cell) {
+            return collect();
+        }
+        $date = $row->date instanceof Carbon ? $row->date->copy() : Carbon::parse((string) $row->date);
+        $onLeaveIds = LeaveRequest::where('status', 'approved')
+            ->whereDate('start_date', '<=', $date->toDateString())
+            ->whereDate('end_date', '>=', $date->toDateString())
+            ->pluck('user_id')->unique()->all();
+
+        return User::where('user_type', 'teacher')
+            ->where(function ($q) {
+                $q->whereNull('status')->orWhere('status', User::STATUS_ACTIVE);
+            })
+            ->where('id', '!=', (int) $row->absent_teacher_id)
+            ->where('id', '!=', (int) $row->substitute_teacher_id)
+            ->whereNotIn('id', $onLeaveIds)
+            ->orderBy('name')->get()
+            ->filter(function (User $t) use ($date, $cell) {
+                return $this->clashMessage((int) $t->id, $date, $cell) === null;
+            })->values();
+    }
+
+    /** Bell every student of a period's class/section. Bell-only:
+     *  any failure is swallowed so a submission never breaks on it. */
+    protected function bellStudentsForCell(TimeTable $cell, string $type, string $title, string $body): void
+    {
+        try {
+            $record = $cell->tt_record;
+            if (!$record) {
+                return;
+            }
+            $q = StudentRecord::where('grad', 0);
+            if ($record->section_id) {
+                $q->where('section_id', $record->section_id);
+            } else {
+                $q->where('my_class_id', $record->my_class_id);
+            }
+            foreach ($q->pluck('user_id') as $uid) {
+                Notify::toUser((int) $uid, $type, $title, $body, route('tt.mine'));
+            }
+        } catch (\Throwable $e) {
+            // Bell only.
+        }
+    }
+
+    /**
+     * Free-period bells (owner order 2026-10-29): after a plan for
+     * (absent teacher, date) is submitted, any of that teacher's
+     * periods that day still without a substitute are a free period
+     * for the class — the students hear it from the system, not by
+     * discovering an empty classroom. A partial leave's window
+     * limits this to the periods the teacher is actually away for.
+     */
+    protected function bellFreePeriods(int $absentId, Carbon $date): void
+    {
+        try {
+            $dayName = $date->format('l');
+            $query = TimeTable::with(['subject', 'tt_record.my_class', 'tt_record.section'])
+                ->whereNotNull('subject_id')->where('day', $dayName);
+            SectionTeacher::applyTeacherFilter($query, $absentId);
+            $cells = $query->get();
+            if ($cells->isEmpty()) {
+                return;
+            }
+
+            $leave = LeaveRequest::where('user_id', $absentId)->where('status', 'approved')
+                ->whereDate('start_date', '<=', $date->toDateString())
+                ->whereDate('end_date', '>=', $date->toDateString())
+                ->latest('id')->first();
+            $window = $leave ? $leave->periodWindow() : null;
+            if ($window !== null) {
+                $indexMap = LeaveCover::periodIndexMap(
+                    $cells->pluck('ttr_id')->unique()->map(function ($i) { return (int) $i; })->all(),
+                    $dayName
+                );
+                $cells = $cells->filter(function ($c) use ($indexMap, $window) {
+                    $n = $indexMap[(int) $c->id] ?? null;
+                    return $n !== null && $n >= $window[0] && $n <= $window[1];
+                });
+            }
+
+            $coveredIds = Substitution::where('absent_teacher_id', $absentId)
+                ->whereDate('date', $date->toDateString())
+                ->pluck('time_table_id')->map(function ($i) { return (int) $i; })->all();
+
+            foreach ($cells as $cell) {
+                if (in_array((int) $cell->id, $coveredIds, true) || !$cell->subject) {
+                    continue;
+                }
+                $this->bellStudentsForCell($cell, 'period_free',
+                    'Free period: ' . $cell->subject->name . ' on ' . $date->format('d M Y'),
+                    'No substitute is available for your ' . $cell->subject->name
+                    . ' period on ' . $date->format('d M Y') . ' — it is a free period.');
+            }
+        } catch (\Throwable $e) {
+            // Bell only.
+        }
     }
 
     /**

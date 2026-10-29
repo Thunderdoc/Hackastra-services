@@ -119,7 +119,13 @@ class OwnerMobileApiResweepRound26Test extends TestCase
         $this->assertSame([1, 2], $ids);
         $names = collect($response->json('user.children'))->pluck('name')->all();
         $this->assertContains('Aarav Sharma', $names);
-        $this->assertContains('Dariana Heaney', $names);
+        // The second demo child's name is faker-generated at seed
+        // time (it differed per seed — a hardcoded name here kept CI
+        // red on every fresh seed). Assert against the name the seed
+        // actually created: the API must return exactly the children
+        // linked in the database, with their real names.
+        $secondChildName = \App\User::where('id', \App\Models\StudentRecord::where('id', 2)->value('user_id'))->value('name');
+        $this->assertContains($secondChildName, $names);
     }
 
     public function test_me_principal_shape()

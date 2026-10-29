@@ -163,7 +163,7 @@
             </tr>
             <tr>
                 <td class="k">Teacher</td>
-                <td>{{ optional($session->teacher)->name ?: '—' }}</td>
+                <td>{{ optional($session->teacher)->name ?: '—' }}@if(!empty($cover)) (Substitute — covering for {{ optional($cover->absent_teacher)->name }})@endif</td>
                 <td class="k">Submitted At</td>
                 <td>{{ $session->submitted_at ? $session->submitted_at->format('d M Y, g:i A') : '—' }}</td>
             </tr>

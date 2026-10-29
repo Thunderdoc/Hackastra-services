@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\TimeTable;
 use App\Models\TimeTableRecord;
 use App\Models\UserNotification;
 use App\Support\TimetableValidator;
@@ -146,5 +147,60 @@ class OwnerTimetableApprovalTest extends TestCase
         $record = TimeTableRecord::where('year', '2026-2027')->firstOrFail();
         $this->assertSame('approved', $record->approval_status);
         $this->assertTrue($record->isInForce());
+    }
+
+    public function test_cell_edit_after_approval_returns_record_to_draft()
+    {
+        // Owner order 2026-10-29: the Principal approves a SPECIFIC
+        // grid. An Admin cell edit afterwards must not silently
+        // change what is in force — the record returns to draft and
+        // the Principal is belled.
+        $cleanIds = TimetableValidator::cleanRecordIds('2026-2027');
+        $this->assertNotEmpty($cleanIds, 'fixture: seed must contain a validator-clean record');
+        $record = TimeTableRecord::findOrFail($cleanIds[0]);
+        $this->setStatus($record->id, 'draft');
+
+        $admin = $this->admin();
+        $principal = $this->principal();
+        $this->actingAs($admin)->post(route('ttr.submit_approval', $record->id))->assertRedirect();
+        $this->actingAs($principal)->post(route('ttr.approve', $record->id))->assertRedirect();
+        $this->assertSame('approved', $record->fresh()->approval_status);
+        $this->assertNotNull($record->fresh()->approved_by);
+
+        $cell = TimeTable::where('ttr_id', $record->id)->firstOrFail();
+        $this->actingAs($admin)->put(route('tt.update', $cell->id), [
+            'ttr_id' => $record->id,
+            'ts_id' => $cell->ts_id,
+            'subject_id' => $cell->subject_id,
+            'day' => $cell->day,
+        ])->assertRedirect();
+
+        $record = $record->fresh();
+        $this->assertSame('draft', $record->approval_status);
+        $this->assertNull($record->approved_by);
+        $this->assertNull($record->approved_at);
+        $this->assertFalse($record->isInForce());
+        $this->assertTrue(UserNotification::where('user_id', $principal->id)
+            ->where('type', 'timetable_reverted')->exists());
+    }
+
+    public function test_cell_edit_on_grandfathered_record_keeps_its_status()
+    {
+        // Seeded records are 'approved' by migration default with no
+        // human sign-off (approved_by NULL): routine edits there are
+        // the pre-approval workflow and must not churn them to draft.
+        $cell = TimeTable::firstOrFail();
+        $record = TimeTableRecord::findOrFail($cell->ttr_id);
+        $this->assertSame('approved', $record->approval_status);
+        $this->assertNull($record->approved_by);
+
+        $this->actingAs($this->admin())->put(route('tt.update', $cell->id), [
+            'ttr_id' => $record->id,
+            'ts_id' => $cell->ts_id,
+            'subject_id' => $cell->subject_id,
+            'day' => $cell->day,
+        ])->assertRedirect();
+
+        $this->assertSame('approved', $record->fresh()->approval_status);
     }
 }

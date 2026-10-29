@@ -352,7 +352,7 @@ class OwnerTeacherPortalRound24Test extends TestCase
         $this->assertSame(0, $this->sessionCount());
     }
 
-    // ---------- ATTENDANCE: foreign teacher + substitute refused ----------
+    // ---------- ATTENDANCE: foreign teacher refused; named substitute allowed (owner order 2026-10-29) ----------
 
     public function test_attendance_foreign_teacher_take_and_store_are_forbidden()
     {
@@ -363,7 +363,7 @@ class OwnerTeacherPortalRound24Test extends TestCase
         $this->assertSame(0, $this->entryCount(), 'A refused take/store must write no entries');
     }
 
-    public function test_attendance_substitute_take_and_store_are_forbidden()
+    public function test_attendance_substitute_take_and_store_are_allowed_under_2026_10_29_order()
     {
         $this->period();
         Substitution::create([
@@ -374,12 +374,15 @@ class OwnerTeacherPortalRound24Test extends TestCase
             'created_by' => $this->admin()->id,
             'reason' => 'Sick leave',
         ]);
-        // Naming Ritu as substitute does NOT make her the period's
-        // teacher: guardCanTake resolves teacherIdFor only.
-        $this->actingAs($this->ritu())->get(route('attendance.periods.take', ['tt_id' => 788, 'date' => self::PAST_MONDAY]))->assertForbidden();
-        $this->actingAs($this->ritu())->post(route('attendance.periods.store', 788), $this->storePayload(self::PAST_MONDAY))->assertForbidden();
-        $this->assertSame(0, $this->sessionCount());
-        $this->assertSame(0, $this->entryCount());
+        // SUPERSEDED PREMISE (owner order 2026-10-29): naming Ritu
+        // as substitute for (period, date) DOES open the register
+        // to her for that window — guardCanTake honours the
+        // Substitution row alongside teacherIdFor. The no-row case
+        // in the neighbouring test above stays forbidden.
+        $this->actingAs($this->ritu())->get(route('attendance.periods.take', ['tt_id' => 788, 'date' => self::PAST_MONDAY]))->assertOk();
+        $this->actingAs($this->ritu())->post(route('attendance.periods.store', 788), $this->storePayload(self::PAST_MONDAY))->assertRedirect();
+        $this->assertSame(1, $this->sessionCount());
+        $this->assertGreaterThan(0, $this->entryCount());
     }
 
     // ---------- ATTENDANCE: date + roster violations ----------

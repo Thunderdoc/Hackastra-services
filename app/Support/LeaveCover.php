@@ -134,7 +134,50 @@ class LeaveCover
      * longer teaches. A live teacher with no periods in range
      * still returns 0 ("Covered": nothing needs cover).
      */
-    public static function uncoveredCount(int $teacherId, $startDate, $endDate): ?int
+    /**
+     * Period number of every cell of the given timetable records on
+     * a weekday: within one record's day grid, cells ordered by
+     * their slot start (then id) are periods 1, 2, 3... — the same
+     * numbering the school day uses. Partial leave windows are
+     * expressed in these numbers, so cover counting and arranging
+     * both resolve cells through this map.
+     *
+     * @param int[] $ttrIds
+     * @return array<int,int> time_table_id => period number
+     */
+    public static function periodIndexMap(array $ttrIds, string $dayName): array
+    {
+        if (!$ttrIds) {
+            return [];
+        }
+        $cells = TimeTable::with('time_slot')
+            ->whereIn('ttr_id', $ttrIds)
+            ->where('day', $dayName)
+            ->whereNotNull('subject_id')
+            ->get();
+        $byRecord = [];
+        foreach ($cells as $cell) {
+            $byRecord[(int) $cell->ttr_id][] = $cell;
+        }
+        $map = [];
+        foreach ($byRecord as $recordCells) {
+            usort($recordCells, function ($a, $b) {
+                $ta = optional($a->time_slot)->time_from ?: '99:99';
+                $tb = optional($b->time_slot)->time_from ?: '99:99';
+                if ($ta !== $tb) {
+                    return strcmp((string) $ta, (string) $tb);
+                }
+                return (int) $a->id <=> (int) $b->id;
+            });
+            foreach (array_values($recordCells) as $i => $cell) {
+                $map[(int) $cell->id] = $i + 1;
+            }
+        }
+
+        return $map;
+    }
+
+    public static function uncoveredCount(int $teacherId, $startDate, $endDate, ?array $window = null): ?int
     {
         $teacher = User::find($teacherId);
         if (!$teacher || !static::isLiveTeacher($teacher)) {
@@ -177,6 +220,19 @@ class LeaveCover
         for ($date = $start->copy(); $date->lte($end); $date->addDay()) {
             $dayName = $date->format('l');
             $periods = $byDay[$dayName] ?? [];
+            // Partial leave: only the window's periods of the day
+            // can be uncovered — the teacher is present for the rest.
+            if ($window !== null && $periods) {
+                $ttrIds = TimeTable::whereIn('id', $periods)->pluck('ttr_id')
+                    ->map(function ($id) {
+                        return (int) $id;
+                    })->unique()->all();
+                $indexMap = static::periodIndexMap($ttrIds, $dayName);
+                $periods = array_values(array_filter($periods, function ($ttId) use ($indexMap, $window) {
+                    $n = $indexMap[$ttId] ?? null;
+                    return $n !== null && $n >= $window[0] && $n <= $window[1];
+                }));
+            }
             foreach ($periods as $ttId) {
                 if (!isset($covered[$date->toDateString() . '|' . $ttId])) {
                     $uncovered++;

@@ -40,7 +40,38 @@
                             </select>
                         </div>
                     </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="day_part">Duration</label>
+                            <select name="day_part" id="day_part" class="form-control @error('day_part') is-invalid @enderror">
+                                <option value="" {{ old('day_part') ? '' : 'selected' }}>Full day(s)</option>
+                                <option value="first_half" {{ old('day_part') === 'first_half' ? 'selected' : '' }}>Half day — first half (periods 1-4)</option>
+                                <option value="second_half" {{ old('day_part') === 'second_half' ? 'selected' : '' }}>Half day — second half (periods 5-8)</option>
+                                <option value="periods" {{ old('day_part') === 'periods' ? 'selected' : '' }}>Some periods only</option>
+                            </select>
+                            <small class="form-text text-muted">Half-day and period leave apply to a single day — the To date follows the From date.</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4" id="period_range_row" style="display:none">
+                        <div class="form-group">
+                            <label>Periods (from — to)</label>
+                            <div class="d-flex">
+                                <input type="number" name="period_from" id="period_from" value="{{ old('period_from') }}" min="1" max="12" class="form-control mr-2" placeholder="From">
+                                <input type="number" name="period_to" id="period_to" value="{{ old('period_to') }}" min="1" max="12" class="form-control" placeholder="To">
+                            </div>
+                        </div>
+                    </div>
                 </div>
+                <script>
+                    (function () {
+                        var part = document.getElementById('day_part');
+                        var row = document.getElementById('period_range_row');
+                        if (!part || !row) { return; }
+                        var sync = function () { row.style.display = part.value === 'periods' ? '' : 'none'; };
+                        part.addEventListener('change', sync);
+                        sync();
+                    })();
+                </script>
                 <button type="submit" class="btn btn-success">Submit Request</button>
             </form>
         </div>
@@ -60,7 +91,7 @@
                         <tr>
                             <td>{{ $r->start_date_display }}</td>
                             <td>{{ $r->end_date_display }}</td>
-                            <td>{{ $r->days }}</td>
+                            <td>@if($r->partialLabel()){{ $r->partialLabel() }}@else{{ $r->days }}@endif</td>
                             <td>@if($r->leave_type === 'emergency')<span class="badge badge-danger">Emergency</span>@else<span class="badge badge-secondary">Normal</span>@endif</td>
                             <td>{{ $r->reason }}</td>
                             <td><span class="badge badge-{{ $r->status === 'approved' ? 'success' : ($r->status === 'rejected' ? 'danger' : 'warning') }}">{{ ucfirst($r->status) }}</span></td>

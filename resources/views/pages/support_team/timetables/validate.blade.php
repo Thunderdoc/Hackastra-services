@@ -45,14 +45,16 @@
         </div>
 
         @if(count($v_errors))
-            <h5 class="mt-4 mb-2 text-danger">Blocking Errors</h5>
+            <h5 class="mt-4 mb-2 text-danger">Blocking Errors — mandatory rules</h5>
+            <p class="text-muted">These break rules the system must never break: clashes, collisions and broken periods. The timetable cannot be trusted until they are fixed.</p>
             <ul class="list-group mb-3">
                 @foreach($v_errors as $e)<li class="list-group-item list-group-item-danger">{{ $e }}</li>@endforeach
             </ul>
         @endif
 
         @if(count($v_warnings))
-            <h5 class="mt-4 mb-2">Warnings</h5>
+            <h5 class="mt-4 mb-2">Warnings — preferences</h5>
+            <p class="text-muted">Best-effort goals the timetable did not fully reach: coverage shortfalls, teacher load over the weekly preference cap, rooms smaller than the class. They do not block the timetable, but they deserve a look.</p>
             <ul class="list-group mb-3">
                 @foreach($v_warnings as $w)<li class="list-group-item list-group-item-warning">{{ $w }}</li>@endforeach
             </ul>

@@ -866,7 +866,15 @@ class AssignmentController extends Controller
             return true;
         }
         if (Qs::userIsTeacher()) {
-            return $assignment->teacher_id == $user->id;
+            if ($assignment->teacher_id == $user->id) {
+                return true;
+            }
+            // Owner order 2026-10-29: the day's substitute for this
+            // class + subject may VIEW the assignment so the lesson
+            // can run — read-only; submissions stay the owner's.
+            return \App\Support\SubstitutionAccess::coversSubjectOn(
+                (int) $user->id, (int) $assignment->my_class_id, (int) $assignment->subject_id, now()
+            );
         }
         if (Qs::userIsStudent()) {
             $sr = Qs::getSRByUserID($user->id);

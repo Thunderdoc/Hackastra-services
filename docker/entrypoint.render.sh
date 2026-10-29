@@ -72,17 +72,24 @@ if [ "$PERSISTENT_DB" = "1" ]; then
             # First boot against this database: create the schema and
             # seed the demo dataset ONCE. Later boots never reseed.
             echo "External database is empty - first boot: migrating and seeding once."
-            php artisan migrate --force || echo "WARNING: migrations failed - check logs."
-            php artisan db:seed --force || echo "WARNING: seeding failed - check logs."
+            # Fail closed (live-schema-parity rule, 2026-10-29): a
+            # migration or seed failure must stop the deploy — a
+            # half-migrated schema served as "healthy" is how the
+            # leave 500 hid for a day. Render keeps the previous
+            # deploy live when the new one fails to boot.
+            php artisan migrate --force || { echo "FATAL: migrations failed - deploy aborted."; exit 1; }
+            php artisan db:seed --force || { echo "FATAL: seeding failed - deploy aborted."; exit 1; }
         elif [ -n "$TABLE_COUNT" ]; then
             # Normal boot: schema upgrades only. Data is preserved.
             echo "External database has ${TABLE_COUNT} tables - migrating only, data preserved."
-            php artisan migrate --force || echo "WARNING: migrations failed - check logs."
+            php artisan migrate --force || { echo "FATAL: migrations failed - deploy aborted."; exit 1; }
         else
-            echo "WARNING: could not inspect the external database - skipping migrations."
+            echo "FATAL: could not inspect the external database - deploy aborted."
+            exit 1
         fi
     else
-        echo "WARNING: external database did not answer in time - skipping migrations."
+        echo "FATAL: external database did not answer in time - deploy aborted."
+        exit 1
     fi
 else
     # ---- Bundled MariaDB (demo data lives and dies with the container) ----
@@ -131,9 +138,12 @@ SQL
     # rebuilds it from scratch and seeds the complete demo dataset. This
     # guarantees the checking/demo site always shows full demo data and
     # never a half-seeded state.
-    php artisan migrate:fresh --force || echo "WARNING: migrations failed - check logs."
+    # Fail closed: a halted migration used to seed a partial schema
+    # and serve it as healthy (the leave 500, 2026-10-29). Stop the
+    # deploy instead — the previous deploy keeps serving.
+    php artisan migrate:fresh --force || { echo "FATAL: migrations failed - deploy aborted."; exit 1; }
     echo "Seeding demo data..."
-    php artisan db:seed --force || echo "WARNING: seeding failed - check logs."
+    php artisan db:seed --force || { echo "FATAL: seeding failed - deploy aborted."; exit 1; }
 fi
 
 php artisan storage:link || true

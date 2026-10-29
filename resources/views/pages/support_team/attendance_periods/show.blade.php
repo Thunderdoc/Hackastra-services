@@ -46,7 +46,7 @@
                 </div>
                 <div class="rg-block">
                     <span class="rg-block-icon"><i class="icon-user"></i></span>
-                    <span class="rg-block-copy"><span class="rg-block-label">Teacher</span><span class="rg-block-value">{{ optional($session->teacher)->name ?: '—' }}</span></span>
+                    <span class="rg-block-copy"><span class="rg-block-label">Teacher</span><span class="rg-block-value">{{ optional($session->teacher)->name ?: '—' }}@if(!empty($cover)) (Substitute — covering for {{ optional($cover->absent_teacher)->name }})@endif</span></span>
                 </div>
                 <div class="rg-block">
                     <span class="rg-block-icon"><i class="icon-checkmark-circle2"></i></span>

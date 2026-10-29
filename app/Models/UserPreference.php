@@ -29,6 +29,9 @@ class UserPreference extends Model
         // this key through MyAccountController@update_theme — same
         // per-user store, values 'dark'/'light'.
         'theme',
+        // Owner order 2026-10-29: the topbar bell sound toggle
+        // (MyAccountController@update_bell_sound), '1' = on.
+        'bell_sound',
     ];
 
     public static function defaults(): array
@@ -44,6 +47,8 @@ class UserPreference extends Model
             // Owner directive 2026-10-22 ("dark mode for all"): accounts
             // that never chose get dark; a stored 'light' choice wins.
             'theme' => 'dark',
+            // The bell sound is ON until the user mutes it.
+            'bell_sound' => '1',
         ];
     }
 

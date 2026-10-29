@@ -16,6 +16,37 @@
             <i class="icon-magic-wand mr-2"></i> Auto-Generate Timetables
         @endslot
 
+        {{-- T5 constraint tiers (owner framework 2026-10-29): the
+             Admin is told, before generating, which rules the
+             generator will NEVER break and which it treats as
+             preferences — and the result message reports every
+             preference it could not meet instead of hiding it. --}}
+        <div class="pat-form-section">
+            <h6 class="mb-2">How generation decides</h6>
+            <div class="row">
+                <div class="col-md-6">
+                    <p class="mb-1"><strong>Mandatory — never broken</strong></p>
+                    <ul class="text-muted pl-3 mb-2">
+                        <li>No teacher in two places at the same time</li>
+                        <li>No room or lab double-booked (a lab subject only ever sits in a lab)</li>
+                        <li>Teacher daily cap (below) and the weekly cap from Settings</li>
+                        <li>One period per class per slot</li>
+                        <li>Timetables with submitted attendance or arranged substitutions are kept, never replaced</li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <p class="mb-1"><strong>Preferences — best effort, always reported</strong></p>
+                    <ul class="text-muted pl-3 mb-2">
+                        <li>Every subject's weekly periods, spread across the week</li>
+                        <li>Double periods formed back-to-back (never across a break)</li>
+                        <li>The least-loaded free teacher picked first</li>
+                        <li>The smallest room that seats the class</li>
+                    </ul>
+                </div>
+            </div>
+            <p class="text-muted mb-0">If a preference cannot be met, the result message names it — nothing is silently dropped.</p>
+        </div>
+
         <div class="pat-form-section">
             <p class="text-muted">Tell the system how your school day runs — it will build the timetable for every class itself. No teacher is placed in two classes in the same period. Afterwards you can edit any period from a timetable's <strong>Manage</strong> page. The fields below apply to "One class only". For "All classes", each level uses its own block further down.</p>
             <div class="pat-fields">
@@ -56,7 +87,8 @@
                 </div>
                 <div class="pat-field">
                     <label for="max_teacher_periods_per_day">Max periods per teacher per day (empty = no cap)</label>
-                    <input id="max_teacher_periods_per_day" name="max_teacher_periods_per_day" type="number" min="1" max="12" class="form-control" value="{{ old('max_teacher_periods_per_day') }}" placeholder="e.g. 6 — capped periods stay free for the teacher">
+                    <input id="max_teacher_periods_per_day" name="max_teacher_periods_per_day" type="number" min="1" max="12" class="form-control" value="{{ old('max_teacher_periods_per_day', $cap_day_default ?? '') }}" placeholder="e.g. 6 — capped periods stay free for the teacher">
+                    <small class="form-text text-muted">Prefilled with the school default from Settings ({{ $cap_day_default ?? 8 }}/day). Generation also always respects the weekly cap of {{ $cap_week ?? 40 }} periods per teacher from Settings.</small>
                 </div>
                 <div class="pat-field">
                     <label for="scope">Generate for <span class="text-danger">*</span></label>

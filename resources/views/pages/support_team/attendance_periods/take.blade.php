@@ -10,6 +10,14 @@
             {!! Qs::getPanelOptions() !!}
         </div>
         <div class="card-body">
+            @if(!empty($cover))
+                <div class="alert alert-info border-0">
+                    <i class="icon-user-check mr-1"></i>
+                    <strong>Substitute Attendance</strong> — you are covering this period for
+                    <strong>{{ optional($cover->absent_teacher)->name }}</strong>.
+                    This is their class, not your own; the register you submit is saved against this period.
+                </div>
+            @endif
             @if($errors->any())
                 <div class="alert alert-danger border-0">
                     @foreach($errors->all() as $error)

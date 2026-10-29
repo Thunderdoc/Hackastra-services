@@ -79,10 +79,28 @@ class OwnerLeaveAutoCoverTest extends TestCase
             $this->assertNull($row->created_by);
             $this->assertNotSame((int) $teacher->id, (int) $row->substitute_teacher_id);
         }
-        // Substitutes were belled exactly like the manual board does.
+        // Owner order 2026-10-29 (full-auto flow): the arrangement
+        // is a pending PLAN — the rows are 'pending', substitutes
+        // are NOT belled yet, and the Admin holds a plan-ready bell.
+        foreach ($rows as $row) {
+            $this->assertSame('pending', $row->status);
+        }
+        $this->assertFalse(UserNotification::where('type', 'substitution_assigned')
+            ->whereIn('user_id', $rows->pluck('substitute_teacher_id')->all())
+            ->exists());
+        $this->assertTrue(UserNotification::where('user_id', $this->admin()->id)
+            ->where('type', 'substitution_plan_ready')->exists());
+
+        // The Admin submits the plan — NOW the substitutes are
+        // belled and the rows go live.
+        $this->actingAs($this->admin())->post(route('substitutions.confirm'), [
+            'absent_teacher_id' => $teacher->id, 'date' => '2026-11-02',
+        ])->assertRedirect();
         $this->assertTrue(UserNotification::where('type', 'substitution_assigned')
             ->whereIn('user_id', $rows->pluck('substitute_teacher_id')->all())
             ->exists());
+        $this->assertSame(0, Substitution::where('absent_teacher_id', $teacher->id)
+            ->whereDate('date', '2026-11-02')->where('status', 'pending')->count());
     }
 
     public function test_admin_approval_arranges_but_rejection_does_not()

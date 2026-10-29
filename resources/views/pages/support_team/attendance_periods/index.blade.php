@@ -26,6 +26,20 @@
          subtitle + summary stats + card texts, admin "Period
          Schedule" + status filter tabs + Not Taken Today card —
          and the legend gains its third (Locked) dot. --}}
+    @if(($day_type ?? 'normal') !== 'normal')
+        <div class="alert {{ $day_type === 'half_day' ? 'alert-warning' : 'alert-info' }} border-0">
+            <i class="icon-calendar3 mr-1"></i>
+            <strong>{{ $date->format('l, d M Y') }} — {{ $day_type_label }}</strong>
+            @if($day_type === 'half_day')
+                Only the first periods of the day run today; registers open for those periods only.
+            @elseif($day_type === 'exam_day')
+                The exam schedule runs today — no regular period registers. Invigilation duties are on the Exam Duties page.
+            @else
+                No regular period registers are taken today.
+            @endif
+        </div>
+    @endif
+
     <p class="ma-intro">
         @if($is_teacher)
             Take attendance for your assigned classes and periods. Once a register is submitted it is locked and cannot be edited.
@@ -233,7 +247,7 @@
                                 <td>
                                     <div class="ma-subject">{{ optional($row['subject'])->name }}</div>
                                     @if(optional($row['subject'])->slug)<span class="ma-code-chip">{{ $row['subject']->slug }}</span>@endif
-                                    @if(!empty($row['substitution']) && optional($row['substitution']->substitute)->name)<div class="ma-sub">Sub: {{ $row['substitution']->substitute->name }}</div>@endif
+                                    @if(!empty($row['is_substitution']))<div class="ma-sub">Covering for {{ optional($row['teacher'])->name }}</div>@elseif(!empty($row['substitution']) && optional($row['substitution']->substitute)->name)<div class="ma-sub">Sub: {{ $row['substitution']->substitute->name }}</div>@endif
                                 </td>
                                 @if($is_teacher)
                                     <td>{{ optional($row['class'])->name }}@if(optional($row['section'])->name) — {{ $row['section']->name }}@endif</td>

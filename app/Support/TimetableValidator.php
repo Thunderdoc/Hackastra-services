@@ -210,6 +210,63 @@ class TimetableValidator
 
         $errors = self::recordErrors($record, $cells, self::clashes($record->year));
 
+        /* T3 rooms (mandatory tier): a room double-booked at the
+           same time — against this record's own cells or any other
+           record's — is an error, exactly like a teacher clash.
+           Timestamps embed a per-weekday offset, identical for
+           every cell, so modulo-a-day comparisons stay exact. */
+        if (\Illuminate\Support\Facades\Schema::hasTable('rooms')) {
+            $roomed = $cells->whereNotNull('room_id');
+            if ($roomed->isNotEmpty()) {
+                $yearRoomed = TimeTable::whereIn('ttr_id', $yearRecords)
+                    ->whereNotNull('room_id')
+                    ->get(['id', 'room_id', 'day', 'timestamp_from', 'timestamp_to']);
+                $roomNames = \App\Models\Room::pluck('name', 'id');
+                foreach ($roomed as $cell) {
+                    foreach ($yearRoomed as $other) {
+                        if ((int) $other->id === (int) $cell->id
+                            || (int) $other->room_id !== (int) $cell->room_id
+                            || $other->day !== $cell->day) {
+                            continue;
+                        }
+                        $cf = self::tsInt($cell->timestamp_from) % 86400;
+                        $ct = self::tsInt($cell->timestamp_to) % 86400;
+                        $of = self::tsInt($other->timestamp_from) % 86400;
+                        $ot = self::tsInt($other->timestamp_to) % 86400;
+                        if ($cf < $ot && $of < $ct) {
+                            $errors[] = 'Room clash on ' . $cell->day . ': '
+                                . ($roomNames[$cell->room_id] ?? 'A room')
+                                . ' is double-booked at ' . date('g:i A', self::tsInt($cell->timestamp_from)) . '.';
+                            break;
+                        }
+                    }
+                }
+                $errors = array_values(array_unique($errors));
+            }
+
+            /* A room smaller than the class it hosts is a
+               PREFERENCE warning — the period can run there, but
+               the school should know. Mirrors RoomAssigner's
+               strength rule (section count, else class count). */
+            if ($roomed->isNotEmpty()) {
+                $strength = \App\Models\StudentRecord::where('grad', 0)
+                    ->when($record->section_id, function ($q) use ($record) {
+                        return $q->where('section_id', $record->section_id);
+                    }, function ($q) use ($record) {
+                        return $q->where('my_class_id', $record->my_class_id);
+                    })->count();
+                $roomsById = \App\Models\Room::whereIn('id', $roomed->pluck('room_id')->unique())->get()->keyBy('id');
+                foreach ($roomed->pluck('room_id')->unique() as $roomId) {
+                    $room = $roomsById[$roomId] ?? null;
+                    if ($room && $room->capacity > 0 && $strength > $room->capacity) {
+                        $warnings[] = $room->name . ' seats ' . $room->capacity . ' but '
+                            . (optional($record->my_class)->name ?: 'the class') . ' has ' . $strength
+                            . ' students — the class is bigger than its room.';
+                    }
+                }
+            }
+        }
+
         /* Requirement coverage for this record's class. Agent D
            round 2: a streamed section grid covers only its own
            stream (common + own stream) — warning about other

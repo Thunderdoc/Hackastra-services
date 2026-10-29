@@ -85,8 +85,12 @@ class LeaveAutoCover
             ->where('id', '!=', $absent->id)
             ->whereNotIn('id', $onLeaveIds)
             ->orderBy('id')->get();
+        // Partial leave (owner order 2026-10-29): the window
+        // restricts cover to the periods the teacher is actually
+        // away for — the rest of the day they teach themselves.
+        $window = $leave->periodWindow();
         if ($pool->isEmpty()) {
-            $result['uncovered'] = LeaveCover::uncoveredCount($absent->id, $start, $end) ?? 0;
+            $result['uncovered'] = LeaveCover::uncoveredCount($absent->id, $start, $end, $window) ?? 0;
             $result['periods'] = $result['uncovered'];
             static::alertUncovered($absent, $leave, $result['uncovered'], $start, $end);
             return $result;
@@ -178,13 +182,52 @@ class LeaveAutoCover
             $dateStr = $date->toDateString();
             $ownMap = $ownCellsFor($dayName);
 
+            // Day types (T2, master prompt): a non-teaching day
+            // (holiday / closure / event-only / exam day) has no
+            // regular periods, so no cover is arranged for it. A
+            // half day narrows the window to the periods the
+            // school runs that date, intersected with any
+            // partial-leave window.
+            if (!DayType::isTeachingDay($date)) {
+                continue;
+            }
+            $effectiveWindow = $window;
+            $dtWindow = DayType::windowFor($date);
+            if ($dtWindow !== null) {
+                $effectiveWindow = $window === null ? $dtWindow
+                    : [max($window[0], $dtWindow[0]), min($window[1], $dtWindow[1])];
+                if ($effectiveWindow[0] > $effectiveWindow[1]) {
+                    continue;
+                }
+            }
+
+            if ($effectiveWindow !== null) {
+                $ttrIds = [];
+                foreach ($cells as $c) {
+                    $ttrIds[(int) $c->ttr_id] = true;
+                }
+                $indexMap = LeaveCover::periodIndexMap(array_keys($ttrIds), $dayName);
+                $cells = array_values(array_filter($cells, function ($c) use ($indexMap, $effectiveWindow) {
+                    $n = $indexMap[(int) $c->id] ?? null;
+                    return $n !== null && $n >= $effectiveWindow[0] && $n <= $effectiveWindow[1];
+                }));
+                if (!$cells) {
+                    continue;
+                }
+            }
+
             foreach ($cells as $cell) {
                 $key = $dateStr . '|' . (int) $cell->id;
                 if (isset($covered[$key])) {
                     continue;
                 }
                 $result['periods']++;
-                $window = static::slotWindow($date, $cell->time_slot);
+                // NOT $window: that name carries the leave's
+                // period window across the whole date loop, and
+                // rebinding it here (the pre-T2 code did) poisons
+                // every later date's window filter with Carbon
+                // slot times.
+                $slotWindow = static::slotWindow($date, $cell->time_slot);
 
                 // Rank the pool for this date: range load, day load, id.
                 $candidates = $pool->all();
@@ -205,7 +248,7 @@ class LeaveAutoCover
                 $pick = null;
                 foreach ($candidates as $candidate) {
                     $cid = (int) $candidate->id;
-                    if (!static::isFree($cid, $window, $date, $ownMap[$cid] ?? [], $busySubs[$dateStr][$cid] ?? [], $assignedNow[$dateStr][$cid] ?? [])) {
+                    if (!static::isFree($cid, $slotWindow, $date, $ownMap[$cid] ?? [], $busySubs[$dateStr][$cid] ?? [], $assignedNow[$dateStr][$cid] ?? [])) {
                         continue;
                     }
                     $pick = $candidate;
@@ -225,6 +268,11 @@ class LeaveAutoCover
                         'substitute_teacher_id' => (int) $pick->id,
                         'created_by' => $createdBy,
                         'reason' => 'Auto-arranged (leave)',
+                        // Owner order 2026-10-29: the arrangement
+                        // is a PLAN. It grants no access and rings
+                        // no substitute bell until the Admin reviews
+                        // and submits it on the board.
+                        'status' => 'pending',
                     ]);
                 } catch (\Throwable $e) {
                     // Unique (date, time_table_id) race or a bad row:
@@ -239,27 +287,37 @@ class LeaveAutoCover
                 $loadByDate[$dateStr][(int) $pick->id] = ($loadByDate[$dateStr][(int) $pick->id] ?? 0) + 1;
                 $result['arranged']++;
 
-                // Same bell the manual board sends (title format
-                // identical, so row removal cleans it up the same).
-                try {
-                    Notify::toUser(
-                        (int) $pick->id,
-                        'substitution_assigned',
-                        'Substitution assigned: ' . $cell->subject->name . ' on ' . $date->format('d M Y'),
-                        'You cover ' . optional(optional($cell->tt_record)->my_class)->name . ' — ' . $cell->subject->name . ' on ' . $date->format('d M Y') . '.',
-                        route('substitutions.index')
-                    );
-                } catch (\Throwable $e) {
-                    // Bell only — the arrangement itself stands.
-                }
             }
         }
 
+        if ($result['arranged'] > 0) {
+            static::alertPlanReady($absent, $leave, $result['arranged'], $start, $end);
+        }
         if ($result['uncovered'] > 0) {
             static::alertUncovered($absent, $leave, $result['uncovered'], $start, $end);
         }
 
         return $result;
+    }
+
+    /** Bell to every Admin (owner order 2026-10-29): a system plan
+     *  is waiting for review + submit. The Admin is the submit
+     *  actor, so this bell is admin-only; gaps alert wider (admins
+     *  + principal) via alertUncovered, as before. */
+    protected static function alertPlanReady(User $absent, LeaveRequest $leave, int $arranged, Carbon $start, Carbon $end): void
+    {
+        try {
+            $title = 'Substitution plan ready: ' . $absent->name;
+            $body = 'The system has arranged cover for ' . $arranged . ' period(s) of '
+                . $absent->name . ' between ' . $start->format('d M Y') . ' and ' . $end->format('d M Y')
+                . '. Review the plan on the Substitutions board — switch any teacher you want — then submit it. '
+                . 'Substitutes get access and their bells only after you submit.';
+            foreach (User::where('user_type', 'admin')->pluck('id') as $uid) {
+                Notify::toUser((int) $uid, 'substitution_plan_ready', $title, $body, route('substitutions.index'));
+            }
+        } catch (\Throwable $e) {
+            // Alert only — never break the leave flow over a bell.
+        }
     }
 
     /** Urgent bell to every admin + the principal when periods stay
@@ -280,6 +338,167 @@ class LeaveAutoCover
         } catch (\Throwable $e) {
             // Alert only — never break the leave flow over a bell.
         }
+    }
+
+    /**
+     * The chain (owner order 2026-10-29): when a teacher who is
+     * THEMSELVES covering periods for someone else goes on approved
+     * leave, those covers cannot stay with an absent teacher. Each
+     * affected substitution moves to the next eligible teacher —
+     * same eligibility and deterministic pick as arrange() — and
+     * the new substitute gets the standard assignment bell. A
+     * period nobody free can take loses its row and alerts every
+     * admin + the principal, exactly like an uncovered period.
+     *
+     * Call this AFTER arrange() for the same leave, once the leave
+     * is approved (or auto-approved for an emergency).
+     *
+     * @return array{reassigned:int, lost:int}
+     */
+    public static function reassignForAbsentSubstitute(LeaveRequest $leave, ?int $createdBy): array
+    {
+        $result = ['reassigned' => 0, 'lost' => 0];
+
+        $leaving = $leave->user;
+        if (!$leaving || $leaving->user_type !== 'teacher') {
+            return $result;
+        }
+
+        try {
+            $start = Carbon::parse($leave->start_date)->startOfDay();
+            $end = Carbon::parse($leave->end_date)->startOfDay();
+        } catch (\Throwable $e) {
+            return $result;
+        }
+        if ($end->lt($start)) {
+            return $result;
+        }
+
+        $rows = Substitution::with(['time_table.time_slot', 'time_table.subject', 'time_table.tt_record.my_class', 'absent_teacher'])
+            ->where('substitute_teacher_id', $leaving->id)
+            ->whereDate('date', '>=', $start->toDateString())
+            ->whereDate('date', '<=', $end->toDateString())
+            ->get();
+        if ($rows->isEmpty()) {
+            return $result;
+        }
+
+        foreach ($rows as $row) {
+            $cell = $row->time_table;
+            if (!$cell) {
+                continue;
+            }
+            $date = $row->date instanceof Carbon ? $row->date->copy() : Carbon::parse((string) $row->date);
+            $dateStr = $date->toDateString();
+            $absentId = (int) $row->absent_teacher_id;
+
+            // Teachers on approved leave touching THIS date are
+            // out — the leaving teacher included (their own new
+            // leave is already approved when this runs).
+            $onLeaveIds = LeaveRequest::where('status', 'approved')
+                ->whereDate('start_date', '<=', $dateStr)
+                ->whereDate('end_date', '>=', $dateStr)
+                ->pluck('user_id')->unique()->all();
+
+            $pool = User::where('user_type', 'teacher')
+                ->where(function ($q) {
+                    $q->whereNull('status')->orWhere('status', User::STATUS_ACTIVE);
+                })
+                ->whereNotIn('id', array_merge($onLeaveIds, [$absentId, (int) $leaving->id]))
+                ->orderBy('id')->get();
+
+            // Rank: fewest covers that date first, then lowest id.
+            $dayLoad = Substitution::whereDate('date', $dateStr)
+                ->whereIn('substitute_teacher_id', $pool->pluck('id')->all())
+                ->selectRaw('substitute_teacher_id, COUNT(*) as c')
+                ->groupBy('substitute_teacher_id')
+                ->pluck('c', 'substitute_teacher_id');
+            $candidates = $pool->all();
+            usort($candidates, function ($a, $b) use ($dayLoad) {
+                $da = (int) ($dayLoad[(int) $a->id] ?? 0);
+                $db = (int) ($dayLoad[(int) $b->id] ?? 0);
+                if ($da !== $db) {
+                    return $da <=> $db;
+                }
+                return (int) $a->id <=> (int) $b->id;
+            });
+
+            $window = static::slotWindow($date, $cell->time_slot);
+            $pick = null;
+            foreach ($candidates as $candidate) {
+                $cid = (int) $candidate->id;
+                // The candidate's own effective cells that weekday.
+                $ownCells = [];
+                $dayCells = TimeTable::with(['subject', 'time_slot', 'tt_record'])
+                    ->where('day', $date->format('l'))->whereNotNull('subject_id')->get();
+                foreach ($dayCells as $other) {
+                    if ((int) SectionTeacher::teacherIdFor(optional($other->tt_record)->section_id ?? null, $other->subject) === $cid) {
+                        $ownCells[] = $other;
+                    }
+                }
+                $existingSubs = Substitution::with('time_table.time_slot')
+                    ->where('substitute_teacher_id', $cid)
+                    ->whereDate('date', $dateStr)->get()
+                    ->map(function ($s) {
+                        return $s->time_table;
+                    })->all();
+                if (!static::isFree($cid, $window, $date, $ownCells, $existingSubs, [])) {
+                    continue;
+                }
+                $pick = $candidate;
+                break;
+            }
+
+            if ($pick) {
+                $wasPending = $row->isPending();
+                $row->update([
+                    'substitute_teacher_id' => (int) $pick->id,
+                    'created_by' => $createdBy,
+                ]);
+                $result['reassigned']++;
+                if ($wasPending) {
+                    // Owner order 2026-10-29: a pending plan moves
+                    // silently — the new substitute is belled
+                    // when the Admin submits the plan, not before.
+                    continue;
+                }
+                try {
+                    Notify::toUser(
+                        (int) $pick->id,
+                        'substitution_assigned',
+                        'Substitution assigned: ' . $cell->subject->name . ' on ' . $date->format('d M Y'),
+                        'You cover ' . optional(optional($cell->tt_record)->my_class)->name . ' — ' . $cell->subject->name . ' on ' . $date->format('d M Y') . ' (moved: the earlier substitute is on leave).',
+                        // The bell must land where a TEACHER can go:
+                        // their attendance list (the board itself is
+                        // admin/principal-only and bounced teachers).
+                        route('attendance.periods.index')
+                    );
+                } catch (\Throwable $e) {
+                    // Bell only — the move itself stands.
+                }
+                continue;
+            }
+
+            // Nobody free: the period loses its cover. Remove the
+            // row (its substitute is absent — keeping it would lie
+            // about coverage) and alert the office.
+            $absentName = optional($row->absent_teacher)->name ?: 'A teacher';
+            $row->delete();
+            $result['lost']++;
+            try {
+                $title = 'Cover lost: ' . $absentName . ' on ' . $date->format('d M Y');
+                $body = 'The substitute for ' . $absentName . ' (' . $cell->subject->name . ', '
+                    . optional(optional($cell->tt_record)->my_class)->name . ') on ' . $date->format('d M Y')
+                    . ' is now on leave too, and no free teacher could be found. Arrange cover from the substitutions board.';
+                foreach (User::whereIn('user_type', ['admin', 'principal'])->pluck('id') as $uid) {
+                    Notify::toUser((int) $uid, 'leave_coverage_unresolved', $title, $body, route('substitutions.index'));
+                }
+            } catch (\Throwable $e) {
+                // Alert only.
+            }
+        }
+
+        return $result;
     }
 
     /**

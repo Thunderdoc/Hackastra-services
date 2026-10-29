@@ -36,6 +36,39 @@
             </div>
         @endif
 
+        {{-- T4: grid snapshots — the approved version and the grid
+             as it was before each regenerate. Restoring never
+             overwrites this timetable; it creates a new draft. --}}
+        @if(isset($snapshots) && $snapshots->isNotEmpty())
+            <div style="margin: 12px 16px 0;">
+                <strong>Snapshots of this timetable</strong>
+                <span class="text-muted">— saved automatically when the Principal approved it and before every regenerate. A restore creates a new draft; this timetable is never overwritten.</span>
+                <div class="table-responsive mt-2">
+                    <table class="table table-sm">
+                        <thead><tr><th>Saved</th><th>When</th><th>Periods</th><th>By</th>@if(Qs::userIsTeamSAWrite())<th></th>@endif</tr></thead>
+                        <tbody>
+                        @foreach($snapshots as $snap)
+                            <tr>
+                                <td>{{ $snap->label }}</td>
+                                <td>{{ $snap->created_at->format('d M Y, g:i A') }}</td>
+                                <td>{{ $snap->cellCount() }}</td>
+                                <td>{{ optional($snap->creator)->name ?: '—' }}</td>
+                                @if(Qs::userIsTeamSAWrite())
+                                <td>
+                                    <form method="post" action="{{ route('tt.snapshot.restore', $snap->id) }}" data-confirm="Restore this snapshot as a new draft timetable?" data-confirm-title="Restore Snapshot" data-confirm-action="Restore">
+                                        @csrf
+                                        <button class="btn btn-light btn-sm"><i class="icon-history mr-1"></i> Restore as draft</button>
+                                    </form>
+                                </td>
+                                @endif
+                            </tr>
+                        @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        @endif
+
         <div class="card-body">
             <ul class="nav nav-tabs nav-tabs-highlight l108-tabs">
                 <li class="nav-item"><a href="#manage-ts" class="nav-link active" data-toggle="tab">Manage Time Slots</a></li>
@@ -73,6 +106,7 @@
         $form.find('[name="day"]').val($btn.data('day'));
         $form.find('[name="exam_date"]').val($btn.data('exam'));
         $form.find('[name="subject_id"]').val($btn.data('subject'));
+        $form.find('[name="room_id"]').val($btn.data('room'));
         $form.find('[name="ts_id"]').val($btn.data('ts'));
         $('#ttx-edit-modal').modal('show');
     });

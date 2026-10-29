@@ -59,6 +59,10 @@
                         <input class="form-check-input" type="checkbox" name="needs_double" id="needs_double" value="1" {{ $s->needs_double ? 'checked' : '' }}>
                         <label class="form-check-label" for="needs_double">Needs one double (back-to-back) period each week</label>
                     </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" name="needs_lab" id="needs_lab" value="1" {{ $s->needs_lab ? 'checked' : '' }}>
+                        <label class="form-check-label" for="needs_lab">Needs a lab room</label>
+                    </div>
                 </div>
                 <div class="pat-field">
                     <label>Streams (Class 11/12)</label>

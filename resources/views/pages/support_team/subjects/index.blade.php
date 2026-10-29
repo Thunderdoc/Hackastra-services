@@ -68,7 +68,7 @@
                         <td data-label="Short Name">{{ $s->slug }}</td>
                         <td data-label="Class">{{ $s->my_class->name }}</td>
                         <td data-label="Teacher">@if($s->teacher){{ $s->teacher->name }}@else<span class="badge badge-warning">Vacant</span>@endif</td>
-                        <td data-label="Periods/Wk">{{ $s->periods_per_week ?: '—' }}{{ $s->subject_type === 'practical' ? ' · Practical' : '' }}{{ $s->needs_double ? ' · Double' : '' }}</td>
+                        <td data-label="Periods/Wk">{{ $s->periods_per_week ?: '—' }}{{ $s->subject_type === 'practical' ? ' · Practical' : '' }}{{ $s->needs_double ? ' · Double' : '' }}{{ $s->needs_lab ? ' · Lab' : '' }}</td>
                         <td class="text-center" data-label="Action">
                             @if(Qs::userIsTeamSAWrite())
                                 <a href="{{ route('subjects.edit', $s->id) }}" class="btn btn-sm btn-primary"><i class="icon-pencil"></i> Edit</a>
@@ -145,6 +145,10 @@
                         <div class="form-check mt-2">
                             <input class="form-check-input" type="checkbox" name="needs_double" id="needs_double" value="1" {{ old('needs_double') ? 'checked' : '' }}>
                             <label class="form-check-label" for="needs_double">Needs one double (back-to-back) period each week</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="checkbox" name="needs_lab" id="needs_lab" value="1" {{ old('needs_lab') ? 'checked' : '' }}>
+                            <label class="form-check-label" for="needs_lab">Needs a lab room</label>
                         </div>
                     </div>
                     <div class="pat-field">

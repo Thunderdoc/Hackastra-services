@@ -5,7 +5,10 @@ namespace App\Http\Controllers\SupportTeam;
 use App\Helpers\Qs;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\SchoolEvent\SchoolEventSave;
+use App\Models\SchoolDayType;
 use App\Models\SchoolEvent;
+use App\Support\DayType;
+use Illuminate\Http\Request;
 
 /**
  * School events management (audit §9) — powers the dashboard's
@@ -38,7 +41,58 @@ class SchoolEventController extends Controller
                 ->orderBy('starts_at')->first(),
         ];
 
+        // T2 day types: the special-date list the Admin maintains
+        // here; it drives attendance expectations and leave cover
+        // (App\Support\DayType). Writes are admin-only via the
+        // teamSAWrite middleware on every non-index method.
+        $d['day_types'] = SchoolDayType::orderBy('date')->get();
+        $d['day_type_options'] = DayType::types();
+        $d['day_type_labels'] = DayType::labels();
+
         return view('pages.support_team.events.index', $d);
+    }
+
+    /**
+     * Set (or change) a date's day type. One row per date —
+     * saving again on the same date replaces the type.
+     */
+    public function storeDayType(Request $request)
+    {
+        $data = $request->validate([
+            'date' => 'required|date_format:Y-m-d',
+            'type' => 'required|in:' . implode(',', DayType::types()),
+            'half_day_periods' => 'nullable|integer|min:1|max:12',
+            'note' => 'nullable|string|max:255',
+        ]);
+        if ($data['type'] !== 'half_day') {
+            $data['half_day_periods'] = null;
+        }
+        $data['updated_by'] = $request->user()->id;
+        // Manual upsert on the DATE PART: the stored value carries
+        // a time component, so an equality lookup on the raw
+        // column would miss the existing row and the unique index
+        // would (rightly) refuse a second one.
+        $row = SchoolDayType::whereDate('date', $data['date'])->first();
+        if ($row) {
+            $row->update($data);
+        } else {
+            SchoolDayType::create($data);
+        }
+
+        return redirect()->route('events.index')
+            ->with('flash_success', 'Day type saved — attendance and leave cover now follow it for that date.');
+    }
+
+    /** Remove a date's day type (the date becomes a normal day). */
+    public function destroyDayType($id)
+    {
+        $row = SchoolDayType::find($id);
+        if ($row) {
+            $row->delete();
+        }
+
+        return redirect()->route('events.index')
+            ->with('flash_success', 'Day type removed — that date is a normal school day again.');
     }
 
     public function create()
