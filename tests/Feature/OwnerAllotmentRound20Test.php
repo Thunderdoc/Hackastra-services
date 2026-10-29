@@ -54,10 +54,12 @@ use Tests\TestCase;
  * - Quiz store: teacherMayQuiz -> teacherIdFor (round 6).
  *   Create for a removed subject is refused (regression
  *   control).
- * - Lesson plan show: teacher ownership ONLY (teacher_id ===
- *   caller). Read survives removal.
- * - Lesson plan store: teacherIdFor (round 6). Create for a
- *   removed subject is refused (regression control).
+ * - Lesson plan show/index/destroy (overnight menus 2026-10-29,
+ *   item 17, SUPERSEDING the old ownership shapes): teachers get
+ *   403 on every action; admin reads + deletes, principal reads.
+ *   Create/store refuse everyone (only teachers could write).
+ *   The fixture seeds probe plans as model rows, since the
+ *   store path that used to create them is closed.
  * - Lesson plan destroy (PRE-FIX): teacher-only + ownership +
  *   teacherIdFor. After removal the creator fails teacherIdFor,
  *   the new effective teacher fails ownership, and admin fails
@@ -163,18 +165,22 @@ class OwnerAllotmentRound20Test extends TestCase
         $this->assertSame($override->id, (int) $quiz->teacher_id);
         $question = QuizQuestion::where('quiz_id', $quiz->id)->firstOrFail();
 
-        // O creates the lesson plan while the override stands (teacherIdFor == O).
-        $this->actingAs($override)
-            ->post(route('lesson_plans.store'), [
-                'my_class_id' => $class->id,
-                'section_id' => $section->id,
-                'subject_id' => $subject->id,
-                'week_start' => '2026-11-02',
-                'topic' => 'R20 removal probe topic',
-                'notes' => 'probe',
-            ])
-            ->assertRedirect();
-        $plan = LessonPlan::where('topic', 'R20 removal probe topic')->orderBy('id', 'desc')->firstOrFail();
+        // Overnight menus 2026-10-29, item 17: lesson-plan
+        // store refuses EVERYONE now (only teachers could write),
+        // so the probe plan is seeded directly as a model row —
+        // the fixture's point is what happens to an EXISTING plan
+        // after override removal, not the (closed) create path.
+        // The quiz half of the fixture still goes through the
+        // real store, unchanged.
+        $plan = LessonPlan::create([
+            'teacher_id' => $override->id,
+            'my_class_id' => $class->id,
+            'section_id' => $section->id,
+            'subject_id' => $subject->id,
+            'week_start' => '2026-11-02',
+            'topic' => 'R20 removal probe topic',
+            'notes' => 'probe',
+        ]);
         $this->assertSame($override->id, (int) $plan->teacher_id);
 
         return [$quiz, $question, $plan];
@@ -295,7 +301,7 @@ class OwnerAllotmentRound20Test extends TestCase
             ->assertSessionHas('flash_danger');
     }
 
-    public function test_lesson_plan_show_survives_override_removal()
+    public function test_lesson_plan_show_refused_for_teacher_after_removal_admin_reads()
     {
         $d = $this->makeTeacher('PROBE-R20-D4', 'probe-r20-d4@example.com');
         $o = $this->makeTeacher('PROBE-R20-O4', 'probe-r20-o4@example.com');
@@ -304,14 +310,19 @@ class OwnerAllotmentRound20Test extends TestCase
 
         $this->removeOverride($section, $subject);
 
-        // Read survives: show gates on teacher_id only.
-        $this->actingAs($o)->get(route('lesson_plans.show', $plan->id))->assertOk();
-        // And the plan is still listed on the owner's index.
-        $this->actingAs($o)->get(route('lesson_plans.index'))->assertOk()
+        // Overnight menus 2026-10-29, item 17: teacher reads are
+        // gone with teacher access — the old "read survives for
+        // the owner" shape is retired. Admin read is untouched:
+        // show opens and the plan is listed on the admin index.
+        $this->actingAs($o)->get(route('lesson_plans.show', $plan->id))->assertForbidden();
+        $this->actingAs($o)->get(route('lesson_plans.index'))->assertForbidden();
+        $this->actingAs($this->admin())->get(route('lesson_plans.show', $plan->id))->assertOk()
+            ->assertSee('R20 removal probe topic');
+        $this->actingAs($this->admin())->get(route('lesson_plans.index'))->assertOk()
             ->assertSee('R20 removal probe topic');
     }
 
-    public function test_lesson_plan_destroy_by_creator_after_removal()
+    public function test_lesson_plan_destroy_by_creator_refused_after_removal()
     {
         $d = $this->makeTeacher('PROBE-R20-D5', 'probe-r20-d5@example.com');
         $o = $this->makeTeacher('PROBE-R20-O5', 'probe-r20-o5@example.com');
@@ -320,13 +331,14 @@ class OwnerAllotmentRound20Test extends TestCase
 
         $this->removeOverride($section, $subject);
 
-        // F-R20-1 (pre-fix this 403d): the creator deletes her
-        // own plan after removal — ownership persists, the
-        // round-18 principle, now for destroy too.
+        // Overnight menus 2026-10-29, item 17: teacher delete is
+        // gone with teacher access — the F-R20-1 creator-delete
+        // shape is retired (destroy is admin-only now) and the
+        // row survives a creator delete attempt.
         $this->actingAs($o)
             ->delete(route('lesson_plans.destroy', $plan->id))
-            ->assertRedirect(route('lesson_plans.index'));
-        $this->assertDatabaseMissing('lesson_plans', ['id' => $plan->id]);
+            ->assertForbidden();
+        $this->assertDatabaseHas('lesson_plans', ['id' => $plan->id]);
     }
 
     public function test_lesson_plan_destroy_by_admin_after_removal()
@@ -381,8 +393,9 @@ class OwnerAllotmentRound20Test extends TestCase
 
         $this->removeOverride($section, $subject);
 
-        // (d) New creation for the removed subject is refused:
-        // store re-validates via teacherIdFor, now D.
+        // (d) New creation for the removed subject is refused —
+        // now because lesson-plan store refuses everyone
+        // (overnight menus, item 17), not via teacherIdFor.
         $before = LessonPlan::where('topic', 'R20 removal probe topic second')->count();
         $this->actingAs($o)
             ->post(route('lesson_plans.store'), [
@@ -397,19 +410,21 @@ class OwnerAllotmentRound20Test extends TestCase
         $this->assertSame($before, LessonPlan::where('topic', 'R20 removal probe topic second')->count());
     }
 
-    public function test_lesson_plan_destroy_by_creator_while_teaching_still_works()
+    public function test_lesson_plan_destroy_by_creator_refused_while_teaching()
     {
         $d = $this->makeTeacher('PROBE-R20-D9', 'probe-r20-d9@example.com');
         $o = $this->makeTeacher('PROBE-R20-O9', 'probe-r20-o9@example.com');
         [$class, $section, $subject] = $this->fixture($d, 'I');
         [, , $plan] = $this->setupOverrideWithWork($o, $class, $section, $subject);
 
-        // Control: the normal path (override still standing)
-        // passes both pre- and post-fix — the fix changes only
-        // the after-removal case.
+        // Overnight menus 2026-10-29, item 17: the old control
+        // (creator deletes while the override stands) is retired
+        // with teacher delete — destroy is admin-only now, so
+        // even the while-teaching creator delete is refused and
+        // the row survives.
         $this->actingAs($o)
             ->delete(route('lesson_plans.destroy', $plan->id))
-            ->assertRedirect(route('lesson_plans.index'));
-        $this->assertDatabaseMissing('lesson_plans', ['id' => $plan->id]);
+            ->assertForbidden();
+        $this->assertDatabaseHas('lesson_plans', ['id' => $plan->id]);
     }
 }

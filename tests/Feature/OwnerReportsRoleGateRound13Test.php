@@ -173,17 +173,18 @@ class OwnerReportsRoleGateRound13Test extends TestCase
         ])->assertForbidden();
     }
 
-    public function test_super_admin_platform_ok_but_school_source_forbidden()
+    public function test_super_admin_forbidden_by_builder_gate()
     {
+        // New builder gate (2026-10-29): teacher + principal only, so the
+        // Super Admin is 403 at the gate even on the platform source.
         $sa = $this->userByEmail('superadmin@hackstra.app');
 
-        $response = $this->actingAs($sa)->post(route('reports.pdf'), [
+        $this->actingAs($sa)->post(route('reports.pdf'), [
             'config' => $this->config('platform', [
                 ['key' => 'metric', 'label' => 'Metric', 'type' => 'text', 'width' => 60],
                 ['key' => 'value', 'label' => 'Value', 'type' => 'number', 'width' => 40],
             ]),
-        ]);
-        $this->assertPdfResponse($response);
+        ])->assertForbidden();
 
         $this->actingAs($sa)->post(route('reports.pdf'), [
             'config' => $this->studentsConfig(1),
@@ -192,16 +193,22 @@ class OwnerReportsRoleGateRound13Test extends TestCase
 
     public function test_templates_owner_private_and_missing_is_404()
     {
-        $admin = $this->userByEmail('admin@hackstra.app');
+        // Owner is now the principal, not the admin: the new builder gate
+        // (2026-10-29, teacher + principal only) 403s the admin before
+        // any template action runs, so the admin can no longer be the
+        // template owner here. The foreign user stays the teacher, who
+        // passes the gate — so the foreign 403s below are genuine
+        // owner-private checks, not gate artefacts.
+        $principal = $this->userByEmail('principal@hackstra.app');
         $teacher = $this->userByEmail('teacher@hackstra.app');
 
-        $this->actingAs($admin)->from(route('reports.builder'))
+        $this->actingAs($principal)->from(route('reports.builder'))
             ->post(route('reports.templates.store'), [
-                'name' => 'Admin Roster',
+                'name' => 'Principal Roster',
                 'config' => $this->studentsConfig(1),
             ])->assertRedirect();
-        $template = ReportTemplate::where('name', 'Admin Roster')
-            ->where('user_id', $admin->id)->firstOrFail();
+        $template = ReportTemplate::where('name', 'Principal Roster')
+            ->where('user_id', $principal->id)->firstOrFail();
 
         // Foreign template: 403 on update, destroy, and duplicate.
         $this->actingAs($teacher)->from(route('reports.builder'))
@@ -215,21 +222,21 @@ class OwnerReportsRoleGateRound13Test extends TestCase
         $this->actingAs($teacher)->from(route('reports.builder'))
             ->post(route('reports.templates.duplicate', [$template->id]))
             ->assertForbidden();
-        $this->assertDatabaseHas('report_templates', ['id' => $template->id, 'name' => 'Admin Roster']);
+        $this->assertDatabaseHas('report_templates', ['id' => $template->id, 'name' => 'Principal Roster']);
 
         // Missing template: 404, not a leak-shaped error.
-        $this->actingAs($admin)->from(route('reports.builder'))
+        $this->actingAs($principal)->from(route('reports.builder'))
             ->put(route('reports.templates.update', [999999]), [
                 'name' => 'Ghost',
                 'config' => $this->studentsConfig(1),
             ])->assertNotFound();
 
         // Owner update works.
-        $this->actingAs($admin)->from(route('reports.builder'))
+        $this->actingAs($principal)->from(route('reports.builder'))
             ->put(route('reports.templates.update', [$template->id]), [
-                'name' => 'Admin Roster v2',
+                'name' => 'Principal Roster v2',
                 'config' => $this->studentsConfig(1),
             ])->assertRedirect();
-        $this->assertDatabaseHas('report_templates', ['id' => $template->id, 'name' => 'Admin Roster v2']);
+        $this->assertDatabaseHas('report_templates', ['id' => $template->id, 'name' => 'Principal Roster v2']);
     }
 }

@@ -205,14 +205,22 @@ class OwnerAllotmentRound33Test extends TestCase
         $this->assertSame(0, Substitution::where('time_table_id', $cell->id)->whereDate('date', $this->monday)->count());
     }
 
-    public function test_absent_teacher_creator_is_held_to_the_same_liveness_guard(): void
+    public function test_admin_creator_is_held_to_the_same_liveness_guard(): void
     {
         [$d, $k, $s, $subject, $cell] = $this->fixture('CREA');
         $dead = $this->makeTeacher('PROBE-R33-CREA', 'probe-r33-crea@example.com', 'suspended');
 
-        // The absent teacher herself creates for her own period — the
-        // create guard passes (absent == caller) but liveness refuses.
-        $response = $this->actingAs($d)->post(route('substitutions.store'), [
+        // Overnight menus 2026-10-29, item 19: the absent teacher
+        // can no longer create at all (403), so the liveness case
+        // is re-pointed to the admin creator — the liveness guard
+        // still refuses a suspended substitute with no row.
+        $this->actingAs($d)->post(route('substitutions.store'), [
+            'date' => $this->monday,
+            'time_table_id' => $cell->id,
+            'substitute_teacher_id' => $dead->id,
+            'reason' => 'Sick leave',
+        ])->assertForbidden();
+        $response = $this->actingAs($this->admin())->post(route('substitutions.store'), [
             'date' => $this->monday,
             'time_table_id' => $cell->id,
             'substitute_teacher_id' => $dead->id,

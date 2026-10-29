@@ -245,10 +245,19 @@ class OwnerAllotmentRound23Test extends TestCase
         $this->giveOverride($o, $class, $section, $subject);
 
         $subjectName = 'Probe Readiness Subject R23C';
-        $indexFor = function (User $teacher) use ($subjectName): bool {
-            $html = $this->actingAs($teacher)->get(route('substitutions.index'))->assertOk()->getContent();
+        // Overnight menus 2026-10-29, item 19: teachers no longer
+        // open the board at all, so per-teacher row visibility is
+        // retired — the board is read by admin (all rows) and
+        // principal (monitoring). The stored-row semantics below
+        // (absent/substitute derivation, post-removal naming) are
+        // still locked through the admin board.
+        $adminSees = function () use ($subjectName): bool {
+            $html = $this->actingAs($this->admin())->get(route('substitutions.index'))->assertOk()->getContent();
 
             return str_contains($html, $subjectName);
+        };
+        $teacherRefused = function (User $teacher): void {
+            $this->actingAs($teacher)->get(route('substitutions.index'))->assertForbidden();
         };
 
         // Control: naming O for her OWN override period is refused
@@ -270,20 +279,23 @@ class OwnerAllotmentRound23Test extends TestCase
         $pre = Substitution::where('time_table_id', $cell->id)->whereDate('date', '2026-11-02')->firstOrFail();
         $this->assertSame($o->id, (int) $pre->absent_teacher_id);
         $this->assertSame($s->id, (int) $pre->substitute_teacher_id);
-        $this->assertTrue($indexFor($o));
-        $this->assertTrue($indexFor($s));
-        $this->assertFalse($indexFor($u));
+        $this->assertTrue($adminSees());
+        $teacherRefused($o);
+        $teacherRefused($s);
+        $teacherRefused($u);
 
         $this->removeOverride($section, $subject);
 
-        // Stored-row semantics: the pre-removal row still shows to
-        // its stored parties (O as absent, S as substitute) even
-        // though O no longer teaches — and D, never a party to
-        // that row, still does not see it.
-        $this->assertTrue($indexFor($o));
-        $this->assertTrue($indexFor($s));
-        $this->assertFalse($indexFor($d));
-        $this->assertFalse($indexFor($u));
+        // Stored-row semantics: the pre-removal row still exists
+        // with its stored parties (O as absent, S as substitute)
+        // even though O no longer teaches — visible on the admin
+        // board, refused to every teacher including D, never a
+        // party to that row.
+        $this->assertTrue($adminSees());
+        $teacherRefused($o);
+        $teacherRefused($s);
+        $teacherRefused($d);
+        $teacherRefused($u);
 
         // After-removal naming: cover duty is NOT teaching, so
         // store imposes no teaching check — admin CAN name O as
@@ -297,21 +309,22 @@ class OwnerAllotmentRound23Test extends TestCase
         $post = Substitution::where('time_table_id', $cell->id)->whereDate('date', '2026-11-09')->firstOrFail();
         $this->assertSame($d->id, (int) $post->absent_teacher_id);
         $this->assertSame($o->id, (int) $post->substitute_teacher_id);
-        // Row-level visibility (dates, not the subject name — S
-        // still legitimately sees the PRE-removal row, so the
-        // name alone cannot distinguish the two rows): O sees
-        // both dates, D sees only the post-removal date, S sees
-        // only the pre-removal date, U sees neither.
-        $datesFor = function (User $teacher): string {
-            return $this->actingAs($teacher)->get(route('substitutions.index'))->assertOk()->getContent();
-        };
-        $this->assertStringContainsString('02 Nov 2026', $datesFor($o));
-        $this->assertStringContainsString('09 Nov 2026', $datesFor($o));
-        $this->assertStringNotContainsString('02 Nov 2026', $datesFor($d));
-        $this->assertStringContainsString('09 Nov 2026', $datesFor($d));
-        $this->assertStringContainsString('02 Nov 2026', $datesFor($s));
-        $this->assertStringNotContainsString('09 Nov 2026', $datesFor($s));
-        $this->assertStringNotContainsString('02 Nov 2026', $datesFor($u));
-        $this->assertStringNotContainsString('09 Nov 2026', $datesFor($u));
+        // Board visibility after both rows exist: the admin
+        // board shows both dates (both rows), the principal
+        // board shows both dates too (monitoring), and every
+        // teacher is refused outright — the old per-teacher
+        // date discrimination (O both, D post-only, S pre-only,
+        // U neither) is retired with teacher board access.
+        $adminBoard = $this->actingAs($this->admin())->get(route('substitutions.index'))->assertOk()->getContent();
+        $this->assertStringContainsString('02 Nov 2026', $adminBoard);
+        $this->assertStringContainsString('09 Nov 2026', $adminBoard);
+        $principal = User::where('email', 'principal@hackstra.app')->firstOrFail();
+        $principalBoard = $this->actingAs($principal)->get(route('substitutions.index'))->assertOk()->getContent();
+        $this->assertStringContainsString('02 Nov 2026', $principalBoard);
+        $this->assertStringContainsString('09 Nov 2026', $principalBoard);
+        $teacherRefused($o);
+        $teacherRefused($d);
+        $teacherRefused($s);
+        $teacherRefused($u);
     }
 }

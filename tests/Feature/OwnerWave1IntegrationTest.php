@@ -31,10 +31,18 @@ class OwnerWave1IntegrationTest extends TestCase
 
     public function test_teacher_sidebar_links_all_wave1_features()
     {
+        // Overnight menus 2026-10-29, item 17: the teacher
+        // sidebar lost Lesson Plans, Homework Tracker,
+        // Substitutions and Question Bank (menu-hide for the
+        // latter three, full removal for Lesson Plans). Quizzes
+        // and Class Overview stay.
         $response = $this->actingAs($this->teacher())->get(route('dashboard'));
         $response->assertOk();
-        foreach (['/quizzes', '/lesson-plans', '/homework-tracker', '/substitutions', '/class-overview', '/question-bank'] as $path) {
+        foreach (['/quizzes', '/class-overview'] as $path) {
             $response->assertSee($path, false);
+        }
+        foreach (['/lesson-plans', '/homework-tracker', '/substitutions', '/question-bank'] as $path) {
+            $response->assertDontSee($path, false);
         }
     }
 
@@ -84,9 +92,17 @@ class OwnerWave1IntegrationTest extends TestCase
 
     public function test_wave1_teacher_pages_all_load()
     {
+        // Overnight menus 2026-10-29, item 17: Homework Tracker,
+        // Question Bank and Class Overview are menu-hide only
+        // (servers unchanged), so they still load for teachers.
+        // Lesson Plans is fully removed (403) and Substitutions
+        // is admin-only (403) — both are refused, not loaded.
         $teacher = $this->teacher();
-        foreach (['lesson_plans.index', 'homework_tracker.index', 'substitutions.index', 'class_overview.index', 'question_bank.index'] as $route) {
+        foreach (['homework_tracker.index', 'class_overview.index', 'question_bank.index'] as $route) {
             $this->actingAs($teacher)->get(route($route))->assertOk();
+        }
+        foreach (['lesson_plans.index', 'substitutions.index'] as $route) {
+            $this->actingAs($teacher)->get(route($route))->assertForbidden();
         }
     }
 }

@@ -196,8 +196,13 @@ class OwnerSubstitutionTest extends TestCase
         ]);
     }
 
-    public function test_absent_teacher_creates_for_own_period()
+    public function test_absent_teacher_create_is_retired_teacher_is_refused()
     {
+        // Overnight menus 2026-10-29, item 19: absent-teacher
+        // self-create is retired — substitutions are admin-only.
+        // The teacher POST is refused and writes nothing; the
+        // admin path (test_admin_creates_a_substitution) is the
+        // only create path left.
         $teacher = $this->teacher();
         $cell = $this->ownCell($teacher);
         $substitute = $this->freeSubstitute($cell);
@@ -205,14 +210,11 @@ class OwnerSubstitutionTest extends TestCase
         $response = $this->actingAs($teacher)
             ->post(route('substitutions.store'), $this->payload($cell, $substitute));
 
-        $response->assertRedirect(route('substitutions.index'));
-        $this->assertDatabaseHas('substitutions', [
+        $response->assertForbidden();
+        $this->assertDatabaseMissing('substitutions', [
             'time_table_id' => $cell->id,
             'substitute_teacher_id' => $substitute->id,
-            'created_by' => $teacher->id,
         ]);
-        $this->assertTrue(Substitution::where('time_table_id', $cell->id)
-            ->whereDate('date', $this->monday)->exists());
     }
 
     public function test_another_teacher_creating_for_foreign_period_is_forbidden()
@@ -270,8 +272,13 @@ class OwnerSubstitutionTest extends TestCase
         $response->assertSee($substitute->name);
         $response->assertSee($this->teacher()->name);
 
-        // The substitute themself sees the row too (they are the substitute).
+        // Overnight menus 2026-10-29, item 19: teachers no
+        // longer see the board at all — the substitute themself
+        // is refused too. The principal reads it for monitoring.
         $response = $this->actingAs($substitute)->get(route('substitutions.index'));
+        $response->assertForbidden();
+        $principal = User::where('email', 'principal@hackstra.app')->firstOrFail();
+        $response = $this->actingAs($principal)->get(route('substitutions.index'));
         $response->assertOk();
         $response->assertSee($this->teacher()->name);
     }

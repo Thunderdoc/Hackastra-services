@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\ExamDate;
+use App\Models\ExamDateSheetState;
 use App\Models\StudentRecord;
 use App\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
@@ -105,6 +106,14 @@ class OwnerWave26Test extends TestCase
     public function test_date_sheet_student_view_is_stream_filtered()
     {
         $student = $this->seedClass12Sheet();
+
+        // Item 22 (overnight 2026-10-29): the sheet is gated until the
+        // principal publishes it; stream filtering is what this test
+        // proves, so publish the (exam 1, Class 12) sheet first.
+        ExamDateSheetState::create([
+            'exam_id' => 1, 'my_class_id' => 13,
+            'status' => ExamDateSheetState::PUBLISHED,
+        ]);
 
         $response = $this->actingAs(User::find($student->user_id))
             ->get(route('exam_dates.show') . '?exam_id=1');

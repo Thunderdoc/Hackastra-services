@@ -84,15 +84,17 @@ class OwnerPtmTest extends TestCase
 
         $this->actingAs($this->admin())->get(route('ptm.index'))
             ->assertOk()->assertSee('Available')->assertSee($this->teacher()->name);
-        $this->actingAs($this->teacher())->get(route('ptm.create'))->assertOk();
+        // PTM scheduling is ADMIN ONLY (item 18): teacher create is refused.
+        $this->actingAs($this->teacher())->get(route('ptm.create'))->assertForbidden();
     }
 
     public function test_teacher_creates_only_for_classes_they_teach()
     {
-        // Class 1 is in teacher@hackstra.app's scope (subject + section).
+        // PTM scheduling is ADMIN ONLY (item 18): even an in-scope
+        // teacher is refused, with zero slots created.
         $this->actingAs($this->teacher())->post(route('ptm.store'), $this->slotData())
-            ->assertRedirect(route('ptm.index'));
-        $this->assertDatabaseHas('ptm_slots', [
+            ->assertForbidden();
+        $this->assertDatabaseMissing('ptm_slots', [
             'teacher_id' => $this->teacher()->id, 'my_class_id' => 1,
         ]);
 

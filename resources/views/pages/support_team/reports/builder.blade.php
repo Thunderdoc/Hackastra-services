@@ -5,14 +5,26 @@
 @endsection
 @section('content')
 <style>
+    /* Builder redesign 2026-10-29: simple premium SaaS look, scoped
+       to this page only — no shared component is touched. White
+       cards, subtle blue accents (#1765f5 / #10213f), soft
+       #dfe8f3 borders, 12px radii. Two-panel desktop layout
+       (settings left, live A4 preview right); stacked on mobile. */
+    .rb-settings .card, .rb-preview .card { background: #fff; border: 1px solid #dfe8f3; border-radius: 12px; box-shadow: none; }
+    .rb-settings .card-header, .rb-preview .card-header { background: #fff; border-bottom: 1px solid #dfe8f3; border-radius: 12px 12px 0 0; }
     .rb-col-row td { vertical-align: middle; }
     .rb-col-row input[type="text"], .rb-col-row input[type="number"], .rb-col-row select { width: 100%; }
-    #previewFrame { width: 100%; height: 720px; border: 1px solid #ddd; background: #f8f9fa; }
+    .rb-preview-wrap { background: #f4f8fd; border: 1px solid #dfe8f3; border-radius: 12px; padding: 12px; }
+    #previewFrame { width: 100%; height: 720px; border: 1px solid #dfe8f3; border-radius: 8px; background: #fff; display: block; }
+    .rb-status { font-size: 13px; color: #4a5a6e; margin: 0 0 10px; line-height: 1.5; }
+    .rb-status.rb-status-error { color: #b42318; }
+    .rb-loading { font-size: 13px; color: #1765f5; margin: 0 0 10px; }
+    @media (min-width: 992px) { .rb-preview-card { position: sticky; top: 20px; } }
     @media (max-width: 991px) { #previewFrame { height: 480px; } }
 </style>
 
 <div class="row">
-    <div class="col-lg-5">
+    <div class="col-lg-5 rb-settings" id="rbSettings">
         <div class="card">
             <div class="card-header"><h5 class="card-title mb-0">Build your report</h5></div>
             <div class="card-body">
@@ -222,12 +234,23 @@
         @endif
     </div>
 
-    <div class="col-lg-7">
-        <div class="card">
+    <div class="col-lg-7 rb-preview">
+        <div class="card rb-preview-card">
             <div class="card-header"><h5 class="card-title mb-0">Live preview</h5></div>
             <div class="card-body">
                 <p class="text-muted">Preview shows the real PDF — the exact document the download produces, with true pagination.</p>
-                <iframe id="previewFrame" name="previewFrame" src="about:blank"></iframe>
+                {{-- Live preview states (builder redesign 2026-10-29):
+                     status line (ready / draft problem / error),
+                     loading indicator while the PDF loads, then the
+                     frame itself. The frame starts blank on purpose:
+                     the default draft has no title yet, so there is
+                     nothing valid to preview until one is typed. --}}
+                <p id="rbPreviewStatus" class="rb-status" role="status">Enter a report title to start the live preview.</p>
+                <p id="rbPreviewLoading" class="rb-loading" style="display:none;">Updating preview…</p>
+                <div class="rb-preview-wrap">
+                    <iframe id="previewFrame" name="previewFrame" src="about:blank"></iframe>
+                </div>
+                <p class="text-muted mt-2 mb-0">The preview updates automatically as you change settings. If there are no rows for the selected filters, the preview document itself says so — no sample records are ever shown.</p>
             </div>
         </div>
     </div>
@@ -235,6 +258,7 @@
 
 <form id="rbPreviewForm" method="POST" action="{{ route('reports.preview') }}" target="previewFrame" style="display:none;">
     @csrf
+    <input type="hidden" name="preview_frame" value="1">
     <input type="hidden" name="config" id="rbPreviewConfig">
 </form>
 <form id="rbPdfForm" method="POST" action="{{ route('reports.pdf') }}" style="display:none;">
@@ -260,6 +284,61 @@
     var totals = {};
     var sortKey = '';
     var sortDir = 'asc';
+
+    /* Live preview (builder redesign 2026-10-29): the preview
+       auto-updates from the SAME config as the download, debounced
+       600ms so typing does not hammer the server with a PDF render
+       per keystroke. Incomplete drafts never reach the server: the
+       panel above the frame explains what is missing instead of
+       showing a server error for a draft the user is still typing.
+       The manual Preview button still works as a fallback. */
+    var previewTimer = null;
+    var previewRequested = false;
+    var previewLoadGuard = null;
+    function previewDraftProblem(cfg) {
+        if (!cfg.title.trim()) { return 'Enter a report title to start the live preview.'; }
+        if (!cfg.columns.length) { return 'Add at least one column to start the live preview.'; }
+        for (var i = 0; i < cfg.columns.length; i++) {
+            if (!cfg.columns[i].label.trim()) { return 'Every column needs a label before previewing.'; }
+        }
+        if (cfg.source === 'marks' && (!cfg.filters.exam_id || !cfg.filters.class_id || !cfg.filters.subject_id)) {
+            return 'Marks reports require an exam, a class and a subject.';
+        }
+        return null;
+    }
+    function setPreviewStatus(text, isError) {
+        var s = el('rbPreviewStatus');
+        s.textContent = text;
+        s.className = isError ? 'rb-status rb-status-error' : 'rb-status';
+    }
+    function setPreviewLoading(on) {
+        el('rbPreviewLoading').style.display = on ? '' : 'none';
+    }
+    function schedulePreview() {
+        if (previewTimer) { clearTimeout(previewTimer); }
+        previewTimer = setTimeout(runPreview, 600);
+    }
+    function runPreview() {
+        previewTimer = null;
+        var cfg = collectConfig();
+        var problem = previewDraftProblem(cfg);
+        if (problem) { setPreviewLoading(false); setPreviewStatus(problem, false); return; }
+        previewRequested = true;
+        setPreviewLoading(true);
+        setPreviewStatus('Updating preview…', false);
+        el('rbPreviewConfig').value = JSON.stringify(cfg);
+        el('rbPreviewForm').submit();
+        /* Fallback: if the PDF viewer's load event never fires, the
+           loading line must not stick forever. 60s is generous for
+           a whole-class sheet; a real load clears this guard. */
+        if (previewLoadGuard) { clearTimeout(previewLoadGuard); }
+        previewLoadGuard = setTimeout(function () {
+            if (!previewRequested) { return; }
+            previewRequested = false;
+            setPreviewLoading(false);
+            setPreviewStatus('Live preview — the same document the download produces.', false);
+        }, 60000);
+    }
 
     function el(id) { return document.getElementById(id); }
     function isCustomKey(k) { return /^custom_\d+$/.test(k); }
@@ -377,6 +456,10 @@
         refreshAddSelect();
         renderTotals();
         renderSort();
+        /* Column add / remove / reorder / preset / template / source
+           changes all flow through here, so the live preview follows
+           them without a separate hook per button. */
+        schedulePreview();
     }
     function renderTotals() {
         var wrap = el('rbTotalsBody');
@@ -565,8 +648,51 @@
     el('rbPreviewBtn').addEventListener('click', function () {
         var cfg = collectConfig();
         if (!validForSubmit(cfg)) { return; }
+        if (previewTimer) { clearTimeout(previewTimer); previewTimer = null; }
+        previewRequested = true;
+        setPreviewLoading(true);
+        setPreviewStatus('Updating preview…', false);
         el('rbPreviewConfig').value = JSON.stringify(cfg);
         el('rbPreviewForm').submit();
+        if (previewLoadGuard) { clearTimeout(previewLoadGuard); }
+        previewLoadGuard = setTimeout(function () {
+            if (!previewRequested) { return; }
+            previewRequested = false;
+            setPreviewLoading(false);
+            setPreviewStatus('Live preview — the same document the download produces.', false);
+        }, 60000);
+    });
+    /* Auto-update on any settings change (title, filters, layout
+       options, column edits). The template-name box is excluded:
+       typing a name to save must not refresh the preview. */
+    el('rbSettings').addEventListener('input', function (ev) {
+        if (ev.target && ev.target.id === 'rbTemplateName') { return; }
+        schedulePreview();
+    });
+    el('rbSettings').addEventListener('change', function (ev) {
+        if (ev.target && ev.target.id === 'rbTemplateName') { return; }
+        schedulePreview();
+    });
+    /* Loading / error states for the frame. The initial about:blank
+       load is ignored (previewRequested is false until a real
+       preview is submitted). A PDF load leaves contentDocument
+       unreadable, so it reports live; the server's error document
+       carries the data-rb-preview-error marker and reports error. */
+    el('previewFrame').addEventListener('load', function () {
+        if (!previewRequested) { return; }
+        previewRequested = false;
+        if (previewLoadGuard) { clearTimeout(previewLoadGuard); previewLoadGuard = null; }
+        setPreviewLoading(false);
+        var isError = false;
+        try {
+            var fdoc = el('previewFrame').contentDocument;
+            if (fdoc && fdoc.body && fdoc.body.getAttribute('data-rb-preview-error')) { isError = true; }
+        } catch (e) { isError = false; }
+        if (isError) {
+            setPreviewStatus('Preview could not be generated — see the message in the preview panel, then fix the settings.', true);
+        } else {
+            setPreviewStatus('Live preview — the same document the download produces.', false);
+        }
     });
     el('rbPdfBtn').addEventListener('click', function () {
         var cfg = collectConfig();

@@ -226,11 +226,18 @@ class OwnerAllotmentRound38Test extends TestCase
         $this->assertSame(0, $this->bellCount($pk2, 'parent_message', 'R38 leader K-S'),
             'Other-section parent must NOT be belled.');
 
-        // PTM slot creation is OPEN for the led class; parent books it.
-        $ptmOffered = $this->actingAs($l)->get(route('ptm.create'))->assertOk()
-            ->viewData('classes')->pluck('id')->map(fn ($id) => (int) $id)->all();
-        $this->assertContains($k->id, $ptmOffered, 'PTM create form must offer the led class K to L.');
+        // PTM slot creation is ADMIN-ONLY now (overnight menus,
+        // item 18) — the leader's form + store are refused; the
+        // admin creates the led-class slot in the leader's name
+        // and the parent books it.
+        $this->actingAs($l)->get(route('ptm.create'))->assertForbidden();
         $this->actingAs($l)->from(route('ptm.create'))
+            ->post(route('ptm.store'), [
+                'date' => Carbon::today()->addDays(14)->format('Y-m-d'),
+                'start_time' => '10:00', 'end_time' => '10:30',
+                'teacher_id' => $l->id, 'my_class_id' => $k->id,
+            ])->assertForbidden();
+        $this->actingAs($this->admin())->from(route('ptm.create'))
             ->post(route('ptm.store'), [
                 'date' => Carbon::today()->addDays(14)->format('Y-m-d'),
                 'start_time' => '10:00', 'end_time' => '10:30',

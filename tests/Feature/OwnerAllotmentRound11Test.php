@@ -183,8 +183,14 @@ class OwnerAllotmentRound11Test extends TestCase
             ->whereDate('date', $this->friday)->count());
     }
 
-    public function test_override_substitute_and_absent_teacher_see_row_but_unrelated_teacher_does_not()
+    public function test_admin_and_principal_see_row_teachers_refused()
     {
+        // Overnight menus 2026-10-29, item 19: teacher board
+        // visibility is gone — per-teacher row scoping (substitute
+        // sees, absent sees, unrelated does not) is retired. The
+        // admin sees the row, the principal reads it for
+        // monitoring, and every teacher — substitute, absent and
+        // unrelated alike — is refused.
         $cell = $this->freeCellForRitu();
         $this->makeSubstitution($cell);
         $used = [(int) $this->teacher()->id, (int) $this->ritu()->id, (int) $this->admin()->id];
@@ -194,21 +200,19 @@ class OwnerAllotmentRound11Test extends TestCase
             });
         $this->assertNotNull($other, 'An unused active teacher must exist');
 
-        // Substitute side: Ritu sees Ananya's row.
-        $response = $this->actingAs($this->ritu())->get(route('substitutions.index'));
+        $response = $this->actingAs($this->admin())->get(route('substitutions.index'));
+        $response->assertOk();
+        $response->assertSee($this->teacher()->name);
+        $response->assertSee($this->ritu()->name);
+
+        $principal = User::where('email', 'principal@hackstra.app')->firstOrFail();
+        $response = $this->actingAs($principal)->get(route('substitutions.index'));
         $response->assertOk();
         $response->assertSee($this->teacher()->name);
 
-        // Absent side: Ananya sees Ritu's name on the row.
-        $response = $this->actingAs($this->teacher())->get(route('substitutions.index'));
-        $response->assertOk();
-        $response->assertSee($this->ritu()->name);
-
-        // Neither side: unrelated teacher sees neither name.
-        $response = $this->actingAs($other)->get(route('substitutions.index'));
-        $response->assertOk();
-        $response->assertDontSee($this->teacher()->name);
-        $response->assertDontSee($this->ritu()->name);
+        $this->actingAs($this->ritu())->get(route('substitutions.index'))->assertForbidden();
+        $this->actingAs($this->teacher())->get(route('substitutions.index'))->assertForbidden();
+        $this->actingAs($other)->get(route('substitutions.index'))->assertForbidden();
     }
 
     public function test_override_substitute_cannot_take_period()

@@ -7,6 +7,7 @@ use App\Models\HostelRoom;
 use App\Models\StudentRecord;
 use App\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
@@ -16,11 +17,14 @@ use Tests\TestCase;
  * occupancy, over-capacity refusal, deallocation, and the guarded
  * parent/student self view.
  *
- * Routes are NOT in routes/web.php yet (coordinator integrates them
- * centrally); this test registers the exact proposed route lines in
- * setUp so the controller + blades are verified as-is. Route names,
- * URIs, params and middleware below mirror the proposed lines
- * one-for-one. Users are resolved by email, never hardcoded ids.
+ * Overnight menus 2026-10-29, item 20: the WARDEN (user_type
+ * 'hostel') runs dorms/rooms/allocations; the admin is refused
+ * server-side. This test still registers the route lines in setUp
+ * (as before), but WITHOUT the old teamSA/teamSAWrite middleware:
+ * the real routes carry no team middleware now and
+ * HostelController::guardHostel() is the gate, so the scaffolding
+ * must not bounce the warden before the controller is reached.
+ * Users are resolved by email, never hardcoded ids.
  */
 class OwnerHostelTest extends TestCase
 {
@@ -32,20 +36,20 @@ class OwnerHostelTest extends TestCase
 
         Route::group(['namespace' => 'App\Http\Controllers\SupportTeam', 'middleware' => ['web', 'auth']], function () {
             Route::group(['prefix' => 'hostel'], function () {
-                Route::get('dorms', 'HostelController@dormsIndex')->name('hostel.dorms.index')->middleware('teamSA');
-                Route::post('dorms', 'HostelController@dormsStore')->name('hostel.dorms.store')->middleware('teamSAWrite');
-                Route::get('dorms/{hostel_dorm}/edit', 'HostelController@dormsEdit')->name('hostel.dorms.edit')->middleware('teamSAWrite');
-                Route::put('dorms/{hostel_dorm}', 'HostelController@dormsUpdate')->name('hostel.dorms.update')->middleware('teamSAWrite');
-                Route::delete('dorms/{hostel_dorm}', 'HostelController@dormsDestroy')->name('hostel.dorms.destroy')->middleware('teamSAWrite');
-                Route::get('rooms', 'HostelController@roomsIndex')->name('hostel.rooms.index')->middleware('teamSA');
-                Route::post('rooms', 'HostelController@roomsStore')->name('hostel.rooms.store')->middleware('teamSAWrite');
-                Route::get('rooms/{hostel_room}/edit', 'HostelController@roomsEdit')->name('hostel.rooms.edit')->middleware('teamSAWrite');
-                Route::put('rooms/{hostel_room}', 'HostelController@roomsUpdate')->name('hostel.rooms.update')->middleware('teamSAWrite');
-                Route::delete('rooms/{hostel_room}', 'HostelController@roomsDestroy')->name('hostel.rooms.destroy')->middleware('teamSAWrite');
-                Route::get('allocations', 'HostelController@allocationsIndex')->name('hostel.allocations.index')->middleware('teamSA');
-                Route::get('allocations/create', 'HostelController@allocationCreate')->name('hostel.allocations.create')->middleware('teamSA');
-                Route::post('allocations', 'HostelController@allocationStore')->name('hostel.allocations.store')->middleware('teamSAWrite');
-                Route::delete('allocations/{hostel_record}', 'HostelController@allocationDestroy')->name('hostel.allocations.destroy')->middleware('teamSAWrite');
+                Route::get('dorms', 'HostelController@dormsIndex')->name('hostel.dorms.index');
+                Route::post('dorms', 'HostelController@dormsStore')->name('hostel.dorms.store');
+                Route::get('dorms/{hostel_dorm}/edit', 'HostelController@dormsEdit')->name('hostel.dorms.edit');
+                Route::put('dorms/{hostel_dorm}', 'HostelController@dormsUpdate')->name('hostel.dorms.update');
+                Route::delete('dorms/{hostel_dorm}', 'HostelController@dormsDestroy')->name('hostel.dorms.destroy');
+                Route::get('rooms', 'HostelController@roomsIndex')->name('hostel.rooms.index');
+                Route::post('rooms', 'HostelController@roomsStore')->name('hostel.rooms.store');
+                Route::get('rooms/{hostel_room}/edit', 'HostelController@roomsEdit')->name('hostel.rooms.edit');
+                Route::put('rooms/{hostel_room}', 'HostelController@roomsUpdate')->name('hostel.rooms.update');
+                Route::delete('rooms/{hostel_room}', 'HostelController@roomsDestroy')->name('hostel.rooms.destroy');
+                Route::get('allocations', 'HostelController@allocationsIndex')->name('hostel.allocations.index');
+                Route::get('allocations/create', 'HostelController@allocationCreate')->name('hostel.allocations.create');
+                Route::post('allocations', 'HostelController@allocationStore')->name('hostel.allocations.store');
+                Route::delete('allocations/{hostel_record}', 'HostelController@allocationDestroy')->name('hostel.allocations.destroy');
                 Route::get('my', 'HostelController@myAllocation')->name('hostel.my');
             });
         });
@@ -60,6 +64,31 @@ class OwnerHostelTest extends TestCase
     protected function admin()
     {
         return User::where('email', 'admin@hackstra.app')->firstOrFail();
+    }
+
+    protected function warden()
+    {
+        // Overnight menus 2026-10-29, item 20: the Hostel Warden
+        // runs the hostel — a plain users row with user_type
+        // 'hostel' (no user_types seed row, no TeamHostel
+        // middleware, no warden landing yet — see the stream
+        // report for the remainder). Pattern copied from
+        // OwnerOvernightMenusTest.
+        if (!User::where('email', 'warden@hackstra.app')->exists()) {
+            DB::table('users')->insert([
+                'name' => 'Warden Test',
+                'email' => 'warden@hackstra.app',
+                'code' => 'WARDEN1',
+                'username' => 'warden',
+                'password' => bcrypt('hackstra'),
+                'user_type' => 'hostel',
+                'status' => 'active',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        return User::where('email', 'warden@hackstra.app')->firstOrFail();
     }
 
     protected function teacher()
@@ -100,55 +129,55 @@ class OwnerHostelTest extends TestCase
 
     protected function allocate(StudentRecord $record, HostelRoom $room)
     {
-        return $this->actingAs($this->admin())->post(route('hostel.allocations.store'), [
+        return $this->actingAs($this->warden())->post(route('hostel.allocations.store'), [
             'student_record_id' => $record->id,
             'dorm_id' => $room->dorm_id,
             'room_no' => $room->room_no,
         ]);
     }
 
-    public function test_admin_dorm_crud()
+    public function test_warden_dorm_crud()
     {
-        $this->actingAs($this->admin())
+        $this->actingAs($this->warden())
             ->post(route('hostel.dorms.store'), ['name' => 'W2 Test Dorm', 'description' => 'probe'])
             ->assertRedirect(route('hostel.dorms.index'));
         $dorm = Dorm::where('name', 'W2 Test Dorm')->firstOrFail();
 
-        $this->actingAs($this->admin())
+        $this->actingAs($this->warden())
             ->get(route('hostel.dorms.index'))->assertOk()->assertSee('W2 Test Dorm');
-        $this->actingAs($this->admin())
+        $this->actingAs($this->warden())
             ->get(route('hostel.dorms.edit', ['hostel_dorm' => $dorm->id]))->assertOk()->assertSee('W2 Test Dorm');
-        $this->actingAs($this->admin())
+        $this->actingAs($this->warden())
             ->put(route('hostel.dorms.update', ['hostel_dorm' => $dorm->id]), ['name' => 'W2 Test Dorm Renamed', 'description' => 'probe'])
             ->assertRedirect(route('hostel.dorms.index'));
         $this->assertEquals('W2 Test Dorm Renamed', $dorm->fresh()->name);
 
-        $this->actingAs($this->admin())
+        $this->actingAs($this->warden())
             ->delete(route('hostel.dorms.destroy', ['hostel_dorm' => $dorm->id]))
             ->assertRedirect();
         $this->assertNull(Dorm::where('name', 'W2 Test Dorm Renamed')->first());
     }
 
-    public function test_admin_room_crud_and_empty_occupancy_display()
+    public function test_warden_room_crud_and_empty_occupancy_display()
     {
         $dorm = Dorm::create(['name' => 'W2 Room Dorm']);
-        $this->actingAs($this->admin())
+        $this->actingAs($this->warden())
             ->post(route('hostel.rooms.store'), ['dorm_id' => $dorm->id, 'room_no' => 'W2-R1', 'capacity' => 3])
             ->assertRedirect(route('hostel.rooms.index'));
         $room = HostelRoom::where('room_no', 'W2-R1')->firstOrFail();
 
-        $this->actingAs($this->admin())
+        $this->actingAs($this->warden())
             ->get(route('hostel.rooms.index'))->assertOk()->assertSee('W2-R1')->assertSee('0 / 3');
-        $this->actingAs($this->admin())
+        $this->actingAs($this->warden())
             ->get(route('hostel.rooms.edit', ['hostel_room' => $room->id]))->assertOk()->assertSee('W2-R1');
-        $this->actingAs($this->admin())
+        $this->actingAs($this->warden())
             ->get(route('hostel.allocations.create'))->assertOk()->assertSee('Allocate Hostel Room');
-        $this->actingAs($this->admin())
+        $this->actingAs($this->warden())
             ->put(route('hostel.rooms.update', ['hostel_room' => $room->id]), ['dorm_id' => $dorm->id, 'room_no' => 'W2-R1', 'capacity' => 4])
             ->assertRedirect(route('hostel.rooms.index'));
         $this->assertEquals(4, $room->fresh()->capacity);
 
-        $this->actingAs($this->admin())
+        $this->actingAs($this->warden())
             ->delete(route('hostel.rooms.destroy', ['hostel_room' => $room->id]))
             ->assertRedirect();
         $this->assertNull(HostelRoom::where('room_no', 'W2-R1')->first());
@@ -165,7 +194,7 @@ class OwnerHostelTest extends TestCase
         $record->refresh();
         $this->assertEquals($room->dorm_id, $record->dorm_id);
         $this->assertEquals('W2-A1', $record->dorm_room_no);
-        $this->actingAs($this->admin())
+        $this->actingAs($this->warden())
             ->get(route('hostel.allocations.index'))->assertOk()->assertSee('W2-A1');
     }
 
@@ -178,7 +207,7 @@ class OwnerHostelTest extends TestCase
         $this->allocate($second, $room)->assertRedirect();
 
         $this->assertEquals(2, $room->fresh()->occupancy());
-        $this->actingAs($this->admin())
+        $this->actingAs($this->warden())
             ->get(route('hostel.rooms.index'))->assertOk()->assertSee('2 / 3');
     }
 
@@ -189,7 +218,7 @@ class OwnerHostelTest extends TestCase
         $second = StudentRecord::where('id', '!=', $first->id)->firstOrFail();
         $this->allocate($first, $room)->assertRedirect();
 
-        $this->actingAs($this->admin())->post(route('hostel.allocations.store'), [
+        $this->actingAs($this->warden())->post(route('hostel.allocations.store'), [
             'student_record_id' => $second->id,
             'dorm_id' => $room->dorm_id,
             'room_no' => $room->room_no,
@@ -206,7 +235,7 @@ class OwnerHostelTest extends TestCase
         $otherDorm = Dorm::create(['name' => 'W2 Other Dorm']);
         $record = $this->nonChildRecord();
 
-        $this->actingAs($this->admin())->post(route('hostel.allocations.store'), [
+        $this->actingAs($this->warden())->post(route('hostel.allocations.store'), [
             'student_record_id' => $record->id,
             'dorm_id' => $otherDorm->id,
             'room_no' => $room->room_no,
@@ -222,7 +251,7 @@ class OwnerHostelTest extends TestCase
         $this->allocate($record, $room)->assertRedirect();
         $this->assertNotNull($record->fresh()->dorm_id);
 
-        $this->actingAs($this->admin())
+        $this->actingAs($this->warden())
             ->delete(route('hostel.allocations.destroy', ['hostel_record' => $record->id]))
             ->assertRedirect();
 
@@ -240,12 +269,12 @@ class OwnerHostelTest extends TestCase
         $this->allocate($first, $room)->assertRedirect();
         $this->allocate($second, $room)->assertRedirect();
 
-        $this->actingAs($this->admin())
+        $this->actingAs($this->warden())
             ->delete(route('hostel.rooms.destroy', ['hostel_room' => $room->id]))
             ->assertRedirect();
         $this->assertNotNull(HostelRoom::find($room->id));
 
-        $this->actingAs($this->admin())
+        $this->actingAs($this->warden())
             ->put(route('hostel.rooms.update', ['hostel_room' => $room->id]), [
                 'dorm_id' => $room->dorm_id, 'room_no' => $room->room_no, 'capacity' => 1,
             ])->assertSessionHasErrors('capacity');
@@ -279,11 +308,31 @@ class OwnerHostelTest extends TestCase
             ->assertDontSee('W2-STRANGER-1');
     }
 
+    public function test_admin_denied_from_hostel_management()
+    {
+        // Overnight menus 2026-10-29, item 20: the admin is OUT
+        // of hostel management server-side too (no menu link and
+        // a 403 here), while the warden runs it.
+        $this->actingAs($this->admin())
+            ->get(route('hostel.rooms.index'))
+            ->assertForbidden();
+        $this->actingAs($this->admin())
+            ->post(route('hostel.dorms.store'), ['name' => 'Nope'])
+            ->assertForbidden();
+        $this->actingAs($this->admin())
+            ->get(route('hostel.allocations.index'))
+            ->assertForbidden();
+    }
+
     public function test_teacher_denied()
     {
+        // The test route scaffolding no longer carries teamSA
+        // (real routes carry no team middleware; the controller
+        // guard gates), so a teacher is refused with a 403 from
+        // HostelController::guardHostel, not a login redirect.
         $this->actingAs($this->teacher())
             ->get(route('hostel.dorms.index'))
-            ->assertRedirect(route('login'));
+            ->assertForbidden();
         $this->actingAs($this->teacher())
             ->get(route('hostel.my'))
             ->assertForbidden();

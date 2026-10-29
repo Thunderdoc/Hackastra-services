@@ -4,7 +4,9 @@
     <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Substitutions
 @endsection
 @section('page_actions')
-    <a href="{{ route('substitutions.create') }}" class="btn btn-primary"><i class="icon-plus2 mr-1"></i> Arrange Substitution</a>
+    @if(Qs::userIsAdmin())
+        <a href="{{ route('substitutions.create') }}" class="btn btn-primary"><i class="icon-plus2 mr-1"></i> Arrange Substitution</a>
+    @endif
 @endsection
 @section('content')
     @if(session('flash_success'))

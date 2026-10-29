@@ -63,6 +63,11 @@ class OwnerAllotmentRound30Test extends TestCase
 {
     use DatabaseTransactions;
 
+    protected function admin(): User
+    {
+        return User::where('email', 'admin@hackstra.app')->firstOrFail();
+    }
+
     protected function makeTeacher(string $code, string $email): User
     {
         return User::create([
@@ -258,12 +263,21 @@ class OwnerAllotmentRound30Test extends TestCase
     {
         [$l, $d, $f, $k, $s, $s2, $kSubject, $t, $st, $tSubject, $pk, $pk2, $pt, $sk] = array_slice($this->fixture('D'), 0, 14);
 
-        // Class-scoped gate: the led class IS offered to the leader.
-        $this->assertContains($k->id, $this->classIdsFromCreate($l, 'ptm.create'),
-            'PTM create form must offer the led class K to L.');
+        // Overnight menus 2026-10-29, item 18: PTM scheduling is
+        // admin-only — the leader no longer gets the create form
+        // or store (both 403); the ADMIN creates the slot in the
+        // leader's name. Parent booking + leader cancel by slot
+        // identity (round 29 shape) are unaffected.
+        $this->actingAs($l)->get(route('ptm.create'))->assertForbidden();
+        $this->actingAs($l)->from(route('ptm.create'))
+            ->post(route('ptm.store'), [
+                'date' => Carbon::today()->addDays(14)->format('Y-m-d'),
+                'start_time' => '10:00', 'end_time' => '10:30',
+                'teacher_id' => $l->id, 'my_class_id' => $k->id,
+            ])->assertForbidden();
 
         $date = Carbon::today()->addDays(14)->format('Y-m-d');
-        $this->actingAs($l)->from(route('ptm.create'))
+        $this->actingAs($this->admin())->from(route('ptm.create'))
             ->post(route('ptm.store'), [
                 'date' => $date, 'start_time' => '10:00', 'end_time' => '10:30',
                 'teacher_id' => $l->id, 'my_class_id' => $k->id,
@@ -309,9 +323,10 @@ class OwnerAllotmentRound30Test extends TestCase
         $this->assertSame(0, (int) ParentMessage::where('sender_id', $f->id)->count(),
             'Foreign message store must write nothing.');
 
-        // PTM: neither class offered; store refuses.
-        $ptmOffered = $this->classIdsFromCreate($f, 'ptm.create');
-        $this->assertNotContains($k->id, $ptmOffered, 'Foreign teacher must not be offered K for PTM.');
+        // PTM: the create form itself is refused for every
+        // teacher now (overnight menus, item 18 — admin-only
+        // scheduling); store refuses too.
+        $this->actingAs($f)->get(route('ptm.create'))->assertForbidden();
         $this->actingAs($f)->from(route('ptm.create'))
             ->post(route('ptm.store'), [
                 'date' => Carbon::today()->addDays(14)->format('Y-m-d'),
@@ -349,8 +364,17 @@ class OwnerAllotmentRound30Test extends TestCase
         $this->assertSame(1, $this->bellCount($pt, 'parent_message', 'R30 leader T'),
             'Taught-class parent must be belled.');
 
-        // PTM slot for the taught class works.
+        // PTM slot for the taught class works — created by the
+        // admin in the leader's name (overnight menus, item 18:
+        // teacher scheduling is admin-only; the leader's own
+        // store is refused).
         $this->actingAs($l)->from(route('ptm.create'))
+            ->post(route('ptm.store'), [
+                'date' => Carbon::today()->addDays(14)->format('Y-m-d'),
+                'start_time' => '11:00', 'end_time' => '11:30',
+                'teacher_id' => $l->id, 'my_class_id' => $t->id,
+            ])->assertForbidden();
+        $this->actingAs($this->admin())->from(route('ptm.create'))
             ->post(route('ptm.store'), [
                 'date' => Carbon::today()->addDays(14)->format('Y-m-d'),
                 'start_time' => '11:00', 'end_time' => '11:30',

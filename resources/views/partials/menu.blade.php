@@ -171,24 +171,14 @@
                         <span>Quizzes</span>
                     </a>
                 </li>
-                <li class="nav-item">
-                    <a href="{{ route('lesson_plans.index') }}" class="nav-link {{ (Route::is('lesson_plans.*')) ? 'active' : '' }}">
-                        <i class="icon-book"></i>
-                        <span>Lesson Plans</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="{{ route('homework_tracker.index') }}" class="nav-link {{ (Route::is('homework_tracker.*')) ? 'active' : '' }}">
-                        <i class="icon-history"></i>
-                        <span>Homework Tracker</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="{{ route('substitutions.index') }}" class="nav-link {{ (Route::is('substitutions.*')) ? 'active' : '' }}">
-                        <i class="icon-users"></i>
-                        <span>Substitutions</span>
-                    </a>
-                </li>
+                {{-- Overnight menus (2026-10-29): the teacher menu no
+                     longer links Lesson Plans, Homework Tracker,
+                     Substitutions, Question Bank or PTM Meetings.
+                     Lesson Plans is fully removed for teachers
+                     (controller gate too); the others are link-only
+                     removals — routes/controllers/views stay, so
+                     each restores by re-adding its line. Parent
+                     Messages and Discipline Records stay. --}}
                 <li class="nav-item">
                     <a href="{{ route('class_overview.index') }}" class="nav-link {{ (Route::is('class_overview.*')) ? 'active' : '' }}">
                         <i class="icon-watch"></i>
@@ -196,21 +186,9 @@
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="{{ route('question_bank.index') }}" class="nav-link {{ (Route::is('question_bank.*')) ? 'active' : '' }}">
-                        <i class="icon-book"></i>
-                        <span>Question Bank</span>
-                    </a>
-                </li>
-                <li class="nav-item">
                     <a href="{{ route('parent_messages.index') }}" class="nav-link {{ (Route::is('parent_messages.*')) ? 'active' : '' }}">
                         <i class="icon-file-text2"></i>
                         <span>Parent Messages</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="{{ route('ptm.index') }}" class="nav-link {{ (Route::is('ptm.*')) ? 'active' : '' }}">
-                        <i class="icon-calendar3"></i>
-                        <span>PTM Meetings</span>
                     </a>
                 </li>
                 <li class="nav-item">
@@ -271,7 +249,16 @@
                         <i class="icon-stack"></i>
                         <span>My Feedback</span>
                     </a>
-                </li>@else
+                </li>@elseif(auth()->user() && auth()->user()->user_type === 'hostel')
+                {{-- Overnight menus (2026-10-29): the Hostel Warden
+                     logs in to their own narrow menu — dorms, rooms
+                     and allocations, nothing else. The warden's
+                     dashboard landing is still the generic board
+                     until the HomeController redirect lands (see
+                     the stream report); the hostel pages themselves
+                     are warden-gated in HostelController. --}}
+                @include('pages.hostel.menu')
+            @else
 
 
                 <!-- Main -->
@@ -365,14 +352,11 @@
                     </a>
                 </li>
                 @endif
-                @if(auth()->user()->user_type === 'accountant')
-                <li class="nav-item">
-                    <a href="{{ route('reports.builder') }}" class="nav-link {{ (Route::is('reports.*')) ? 'active' : '' }}">
-                        <i class="icon-file-text2"></i>
-                        <span>Reports & PDF Builder</span>
-                    </a>
-                </li>
-                @endif
+                {{-- Overnight menus (2026-10-29, item 7, AUD-ROLES F2):
+                     the accountant's builder link is out too — the
+                     builder's server gate is teacher+principal-only,
+                     so the link only led to a clean 403. Teacher
+                     and principal links stay. --}}
 
                 <li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Communication</div><i class="icon-menu" title="Communication"></i></li>
                 @if(Qs::userIsTeamSA())
@@ -541,18 +525,12 @@
                         <a href="{{ route('dorms.index') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['dorms.index','dorms.edit']) ? 'active' : '' }}"><i class="icon-home9"></i> <span> Dormitories</span></a>
                     </li>
 
-                    {{--Wave 2: Hostel, Transport, Inventory (admin-only, like their route gates)--}}
-                    @if(Qs::userIsTeamSA())
-                    <li class="nav-item">
-                        <a href="{{ route('hostel.rooms.index') }}" class="nav-link {{ (Route::is('hostel.*')) ? 'active' : '' }}"><i class="icon-home9"></i> <span> Hostel</span></a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="{{ route('transport.index') }}" class="nav-link {{ (Route::is('transport.*')) ? 'active' : '' }}"><i class="icon-bus"></i> <span> Transport</span></a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="{{ route('inventory.index') }}" class="nav-link {{ (Route::is('inventory.*')) ? 'active' : '' }}"><i class="icon-box"></i> <span> Inventory / Store</span></a>
-                    </li>
-                    @endif
+                    {{--Overnight menus (2026-10-29): Hostel, Transport
+                        and Inventory are out of the admin sidebar —
+                        the Hostel Warden runs the hostel, and the
+                        other two are link-only removals (routes and
+                        controllers stay, so each restores by
+                        re-adding its line).--}}
 
                     {{--Manage Sections--}}
                     <li class="nav-item">

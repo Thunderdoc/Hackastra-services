@@ -596,9 +596,11 @@ class OwnerPortalDeepAuditRound7Test extends TestCase
             ->assertDontSee('Term 1 marks entry deadline');
 
         // Lesson plans have no student/parent surface by design
-        // (teacher/admin/principal tool): direct URLs refuse.
+        // (admin/principal tool since overnight menus 2026-10-29,
+        // item 17): direct URLs refuse — teachers included now.
         $this->actingAs($student)->get(route('lesson_plans.index'))->assertForbidden();
         $this->actingAs($parent)->get(route('lesson_plans.index'))->assertForbidden();
-        $this->actingAs($this->teacher())->get(route('lesson_plans.index'))->assertOk();
+        $this->actingAs($this->teacher())->get(route('lesson_plans.index'))->assertForbidden();
+        $this->actingAs($this->admin())->get(route('lesson_plans.index'))->assertOk();
     }
 }

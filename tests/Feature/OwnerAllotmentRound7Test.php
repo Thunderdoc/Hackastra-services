@@ -184,15 +184,24 @@ class OwnerAllotmentRound7Test extends TestCase
         return substr($html, $start, $end - $start);
     }
 
-    public function test_override_teacher_creates_substitution_for_own_override_period()
+    public function test_admin_creates_substitution_for_override_period_teacher_refused()
     {
+        // Overnight menus 2026-10-29, item 19: teacher
+        // substitution create is gone — re-pointed to the admin,
+        // who names the override teacher as absent. The teacher
+        // POST itself is refused and writes nothing.
         $ritu = $this->ritu();
         $this->assertSame(0, Subject::where('teacher_id', $ritu->id)->count(),
             'Ritu must be override-only for this test to discriminate');
         $cell = $this->ownCell($ritu);
         $substitute = $this->freeSubstitute($cell, [(int) $this->teacher()->id]);
 
-        $response = $this->actingAs($ritu)
+        $this->actingAs($ritu)
+            ->post(route('substitutions.store'), $this->payload($cell, $substitute))
+            ->assertForbidden();
+        $this->assertDatabaseMissing('substitutions', ['time_table_id' => $cell->id]);
+
+        $response = $this->actingAs($this->admin())
             ->post(route('substitutions.store'), $this->payload($cell, $substitute));
 
         $response->assertRedirect(route('substitutions.index'));
@@ -200,24 +209,31 @@ class OwnerAllotmentRound7Test extends TestCase
             'time_table_id' => $cell->id,
             'absent_teacher_id' => $ritu->id,
             'substitute_teacher_id' => $substitute->id,
-            'created_by' => $ritu->id,
+            'created_by' => $this->admin()->id,
         ]);
     }
 
-    public function test_override_teacher_create_form_lists_only_own_periods()
+    public function test_admin_create_form_lists_all_periods_teacher_form_refused()
     {
+        // Overnight menus 2026-10-29, item 19: period options
+        // are admin-only now, and the admin form lists EVERY
+        // period with a subject — the teacher-only filter is
+        // retired with teacher access. The teacher form itself
+        // is refused.
         $ritu = $this->ritu();
         $own = $this->ownCell($ritu);
         $foreign = $this->foreignSectionCell();
 
-        $response = $this->actingAs($ritu)->get(route('substitutions.create'));
+        $this->actingAs($ritu)->get(route('substitutions.create'))->assertForbidden();
+
+        $response = $this->actingAs($this->admin())->get(route('substitutions.create'));
         $response->assertOk();
         $block = $this->periodSelectBlock($response->getContent());
 
         $this->assertStringContainsString('value="' . $own->id . '"', $block,
-            'Ritu\'s override period must be offered in the picker');
-        $this->assertStringNotContainsString('value="' . $foreign->id . '"', $block,
-            'Another section\'s period must not be offered to Ritu');
+            'Ritu\'s override period must be offered in the admin picker');
+        $this->assertStringContainsString('value="' . $foreign->id . '"', $block,
+            'The admin picker lists every period, including another section\'s');
     }
 
     public function test_override_teacher_cannot_create_for_foreign_section_period()
@@ -235,8 +251,12 @@ class OwnerAllotmentRound7Test extends TestCase
         ]);
     }
 
-    public function test_override_teacher_index_shows_absent_and_substitute_rows_and_hides_others()
+    public function test_admin_index_lists_all_rows_teacher_index_refused()
     {
+        // Overnight menus 2026-10-29, item 19: the teacher board
+        // view is gone — per-teacher row scoping is retired. The
+        // admin sees every row; the principal reads for
+        // monitoring; every teacher is refused.
         $ritu = $this->ritu();
         $teacher = $this->teacher();
         $own = $this->ownCell($ritu);
@@ -268,28 +288,26 @@ class OwnerAllotmentRound7Test extends TestCase
             'reason' => 'Workshop',
         ]);
 
-        $response = $this->actingAs($ritu)->get(route('substitutions.index'));
+        $response = $this->actingAs($this->admin())->get(route('substitutions.index'));
         $response->assertOk();
         $response->assertSee($sub1->name);
-        $response->assertDontSee($other->name);
+        $response->assertSee($other->name);
 
-        // Row 2: Ritu is the substitute — now she must see it too.
-        Substitution::create([
-            'time_table_id' => $this->ownCell($teacher)->id,
-            'date' => $this->monday,
-            'absent_teacher_id' => $teacher->id,
-            'substitute_teacher_id' => $ritu->id,
-            'created_by' => $this->admin()->id,
-            'reason' => 'Sick leave',
-        ]);
+        $this->actingAs($ritu)->get(route('substitutions.index'))->assertForbidden();
+        $this->actingAs($teacher)->get(route('substitutions.index'))->assertForbidden();
 
-        $response = $this->actingAs($ritu)->get(route('substitutions.index'));
-        $response->assertOk();
-        $response->assertSee($teacher->name);
+        $principal = User::where('email', 'principal@hackstra.app')->firstOrFail();
+        $this->actingAs($principal)->get(route('substitutions.index'))->assertOk()
+            ->assertSee($sub1->name);
     }
 
-    public function test_override_teacher_can_delete_own_substitution_and_not_others()
+    public function test_admin_can_delete_any_substitution_teacher_delete_refused()
     {
+        // Overnight menus 2026-10-29, item 19: delete is
+        // admin-only (can_delete admin-only). The old
+        // teacher-owns / teacher-not-owns distinction is retired:
+        // the teacher delete is refused for every row and the row
+        // survives; the admin deletes any row.
         $ritu = $this->ritu();
         $own = $this->ownCell($ritu);
         $sub1 = $this->freeSubstitute($own, [(int) $this->teacher()->id]);
@@ -304,6 +322,11 @@ class OwnerAllotmentRound7Test extends TestCase
         ]);
         $response = $this->actingAs($ritu)
             ->delete(route('substitutions.destroy', $mine->id));
+        $response->assertForbidden();
+        $this->assertDatabaseHas('substitutions', ['id' => $mine->id]);
+
+        $response = $this->actingAs($this->admin())
+            ->delete(route('substitutions.destroy', $mine->id));
         $response->assertRedirect(route('substitutions.index'));
         $this->assertDatabaseMissing('substitutions', ['id' => $mine->id]);
 
@@ -315,10 +338,10 @@ class OwnerAllotmentRound7Test extends TestCase
             'created_by' => $this->admin()->id,
             'reason' => 'Sick leave',
         ]);
-        $response = $this->actingAs($ritu)
+        $response = $this->actingAs($this->admin())
             ->delete(route('substitutions.destroy', $others->id));
-        $response->assertForbidden();
-        $this->assertDatabaseHas('substitutions', ['id' => $others->id]);
+        $response->assertRedirect(route('substitutions.index'));
+        $this->assertDatabaseMissing('substitutions', ['id' => $others->id]);
     }
 
     /** Ritu's override subject ids inside one class. */

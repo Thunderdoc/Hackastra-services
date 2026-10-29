@@ -181,7 +181,11 @@ class OwnerAllotmentRound29Test extends TestCase
             $payload['section_id'] = $sectionId;
         }
 
-        return $this->actingAs($teacher)->post(route('ptm.store'), $payload);
+        // Overnight menus 2026-10-29, item 18: PTM scheduling is
+        // admin-only — the SLOT TEACHER stays $teacher, but the
+        // creator is the admin. Teacher view/book/cancel
+        // assertions in this file are unaffected.
+        return $this->actingAs($this->admin())->post(route('ptm.store'), $payload);
     }
 
     protected function slotFor(User $teacher, int $classId, ?int $sectionId): PtmSlot
@@ -297,32 +301,50 @@ class OwnerAllotmentRound29Test extends TestCase
         $this->assertSame(1, $this->bellCount($o), 'A refused cancel must not touch the bell.');
     }
 
-    public function test_slot_creation_closes_after_removal_but_still_taught_class_stays_open()
+    public function test_slot_creation_is_admin_only_regardless_of_override_removal()
     {
+        // Overnight menus 2026-10-29, item 18: the old
+        // "creation closes for the removed class but stays open
+        // for the still-taught class" shape is retired — teacher
+        // scheduling is closed for EVERY class now, before and
+        // after override removal alike. The admin still schedules
+        // in the teacher's name for either class (admin store
+        // carries no class-scope check).
         [$o, $d, $k, $s, $subject, $k2, $sk2, $p1, $p2, $p4, $s1, $s2, $s4] = $this->fixture('D');
 
-        // Before removal the create form's CLASS picker offers K and K2.
-        // (Asserted on view data, not raw HTML: the section dropdown
-        // renders every section as "Section (Class)", so a class name
-        // legitimately appears there even when its class option is
-        // gone — assertDontSee on the name would be vacuous-wrong.)
-        $before = $this->actingAs($o)->get(route('ptm.create'))->assertOk()
-            ->viewData('classes')->pluck('id')->all();
-        $this->assertContains($k->id, $before);
-        $this->assertContains($k2->id, $before);
+        $slotPayload = function (int $classId, ?int $sectionId) use ($o): array {
+            $payload = [
+                'date' => now()->addDays(7)->format('Y-m-d'),
+                'start_time' => '10:00',
+                'end_time' => '10:30',
+                'teacher_id' => $o->id,
+                'my_class_id' => $classId,
+            ];
+            if ($sectionId !== null) {
+                $payload['section_id'] = $sectionId;
+            }
+
+            return $payload;
+        };
+
+        // Before removal: teacher form + store refused for both classes.
+        $this->actingAs($o)->get(route('ptm.create'))->assertForbidden();
+        $this->actingAs($o)->post(route('ptm.store'), $slotPayload($k->id, $s->id))->assertForbidden();
+        $this->actingAs($o)->post(route('ptm.store'), $slotPayload($k2->id, $sk2->id))->assertForbidden();
+        $this->assertSame(0, (int) PtmSlot::where('teacher_id', $o->id)->count());
 
         $this->removeOverrideViaMatrix($s, $subject);
 
-        // After removal the class picker drops K but keeps K2.
-        $after = $this->actingAs($o)->get(route('ptm.create'))->assertOk()
-            ->viewData('classes')->pluck('id')->all();
-        $this->assertNotContains($k->id, $after);
-        $this->assertContains($k2->id, $after);
+        // After removal: still refused for the teacher — removal
+        // changes nothing about the admin-only gate.
+        $this->actingAs($o)->get(route('ptm.create'))->assertForbidden();
+        $this->actingAs($o)->post(route('ptm.store'), $slotPayload($k->id, $s->id))->assertForbidden();
+        $this->actingAs($o)->post(route('ptm.store'), $slotPayload($k2->id, $sk2->id))->assertForbidden();
+        $this->assertSame(0, (int) PtmSlot::where('teacher_id', $o->id)->count());
 
-        // Store for K is refused (current-teaching gate, same shape
-        // as round 28 messaging); store for K2 still succeeds.
-        $this->createSlotAs($o, $k->id, $s->id)->assertForbidden();
-        $this->assertDatabaseMissing('ptm_slots', ['teacher_id' => $o->id, 'my_class_id' => $k->id]);
+        // Admin scheduling in O's name still works for both classes.
+        $this->createSlotAs($o, $k->id, $s->id)->assertRedirect(route('ptm.index'));
+        $this->assertDatabaseHas('ptm_slots', ['teacher_id' => $o->id, 'my_class_id' => $k->id]);
         $this->createSlotAs($o, $k2->id, $sk2->id)->assertRedirect(route('ptm.index'));
         $this->assertDatabaseHas('ptm_slots', ['teacher_id' => $o->id, 'my_class_id' => $k2->id]);
     }

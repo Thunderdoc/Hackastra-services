@@ -124,6 +124,11 @@ class OwnerWave12Test extends TestCase
             'status' => 'new', 'session' => '2026-2027',
         ]);
         $this->actingAs($this->admin());
-        $this->get(route('home'))->assertOk()->assertSee('New Enquiries');
+        // Admin dashboard redesign 2026-10-28 (owner order): the New
+        // Enquiries card was removed from admin home, so even with a
+        // new enquiry present it must NOT appear on the dashboard.
+        // (Enquiries themselves are still covered by the board tests
+        // above; this test now guards the removal, not the count.)
+        $this->get(route('home'))->assertOk()->assertDontSee('New Enquiries');
     }
 }

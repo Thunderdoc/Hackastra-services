@@ -337,9 +337,19 @@ Route::group(['middleware' => 'auth'], function () {
         Route::post('exams/date-sheet/manage', 'ExamDateController@save')->name('exam_dates.save');
         Route::get('exams/date-sheet/generate', 'ExamDateController@generateForm')->name('exam_dates.generate.form');
         Route::post('exams/date-sheet/generate', 'ExamDateController@generate')->name('exam_dates.generate');
+        /* Date sheet approval (overnight menus 2026-10-29, item 22):
+           admin submits, principal approves (= publishes). The
+           submit is teamSAWrite (controller middleware); the
+           approvals queue and approve action are principal-guarded
+           inside ExamDateController, not teamSA (the principal is
+           not teamSA, and Manage stays teamSA-only). */
+        Route::post('exams/date-sheet/submit', 'ExamDateController@submit')->name('exam_dates.submit');
+        Route::get('exams/date-sheet/approvals', 'ExamDateController@approvals')->name('exam_dates.approvals');
+        Route::post('exams/date-sheet/approve', 'ExamDateController@approve')->name('exam_dates.approve');
         Route::get('exam-dates', 'ExamDateController@show')->name('exam_dates.index');
         Route::get('exams/duties', 'ExamDutyController@index')->name('exam_duties.index');
         Route::post('exams/duties/assign', 'ExamDutyController@assign')->name('exam_duties.assign');
+        Route::post('exams/duties/assign-bulk', 'ExamDutyController@assignBulk')->name('exam_duties.assign_bulk');
         Route::post('exams/duties/auto', 'ExamDutyController@auto')->name('exam_duties.auto');
         Route::get('exams/my-duties', 'ExamDutyController@myDuties')->name('exam_duties.my');
         Route::get('exam-dates/show', 'ExamDateController@show')->name('exam_dates.show');
@@ -504,22 +514,27 @@ Route::group(['middleware' => 'auth'], function () {
             Route::get('mine', 'TransportController@mine')->name('transport.mine');
         });
 
-        /*************** Hostel (Wave 2) *****************/
+        /*************** Hostel (Wave 2; overnight menus 2026-10-29,
+           item 20: the Hostel Warden runs it — these routes carry
+           NO team middleware any more, so every action guards
+           itself in HostelController: warden (+ super_admin read)
+           in, admin and everyone else out. The student/parent
+           self-view (hostel.my) is untouched.) ***************/
         Route::group(['prefix' => 'hostel'], function() {
-            Route::get('dorms', 'HostelController@dormsIndex')->name('hostel.dorms.index')->middleware('teamSA');
-            Route::post('dorms', 'HostelController@dormsStore')->name('hostel.dorms.store')->middleware('teamSAWrite');
-            Route::get('dorms/{hostel_dorm}/edit', 'HostelController@dormsEdit')->name('hostel.dorms.edit')->middleware('teamSAWrite');
-            Route::put('dorms/{hostel_dorm}', 'HostelController@dormsUpdate')->name('hostel.dorms.update')->middleware('teamSAWrite');
-            Route::delete('dorms/{hostel_dorm}', 'HostelController@dormsDestroy')->name('hostel.dorms.destroy')->middleware('teamSAWrite');
-            Route::get('rooms', 'HostelController@roomsIndex')->name('hostel.rooms.index')->middleware('teamSA');
-            Route::post('rooms', 'HostelController@roomsStore')->name('hostel.rooms.store')->middleware('teamSAWrite');
-            Route::get('rooms/{hostel_room}/edit', 'HostelController@roomsEdit')->name('hostel.rooms.edit')->middleware('teamSAWrite');
-            Route::put('rooms/{hostel_room}', 'HostelController@roomsUpdate')->name('hostel.rooms.update')->middleware('teamSAWrite');
-            Route::delete('rooms/{hostel_room}', 'HostelController@roomsDestroy')->name('hostel.rooms.destroy')->middleware('teamSAWrite');
-            Route::get('allocations', 'HostelController@allocationsIndex')->name('hostel.allocations.index')->middleware('teamSA');
-            Route::get('allocations/create', 'HostelController@allocationCreate')->name('hostel.allocations.create')->middleware('teamSA');
-            Route::post('allocations', 'HostelController@allocationStore')->name('hostel.allocations.store')->middleware('teamSAWrite');
-            Route::delete('allocations/{hostel_record}', 'HostelController@allocationDestroy')->name('hostel.allocations.destroy')->middleware('teamSAWrite');
+            Route::get('dorms', 'HostelController@dormsIndex')->name('hostel.dorms.index');
+            Route::post('dorms', 'HostelController@dormsStore')->name('hostel.dorms.store');
+            Route::get('dorms/{hostel_dorm}/edit', 'HostelController@dormsEdit')->name('hostel.dorms.edit');
+            Route::put('dorms/{hostel_dorm}', 'HostelController@dormsUpdate')->name('hostel.dorms.update');
+            Route::delete('dorms/{hostel_dorm}', 'HostelController@dormsDestroy')->name('hostel.dorms.destroy');
+            Route::get('rooms', 'HostelController@roomsIndex')->name('hostel.rooms.index');
+            Route::post('rooms', 'HostelController@roomsStore')->name('hostel.rooms.store');
+            Route::get('rooms/{hostel_room}/edit', 'HostelController@roomsEdit')->name('hostel.rooms.edit');
+            Route::put('rooms/{hostel_room}', 'HostelController@roomsUpdate')->name('hostel.rooms.update');
+            Route::delete('rooms/{hostel_room}', 'HostelController@roomsDestroy')->name('hostel.rooms.destroy');
+            Route::get('allocations', 'HostelController@allocationsIndex')->name('hostel.allocations.index');
+            Route::get('allocations/create', 'HostelController@allocationCreate')->name('hostel.allocations.create');
+            Route::post('allocations', 'HostelController@allocationStore')->name('hostel.allocations.store');
+            Route::delete('allocations/{hostel_record}', 'HostelController@allocationDestroy')->name('hostel.allocations.destroy');
             Route::get('my', 'HostelController@myAllocation')->name('hostel.my');
         });
 

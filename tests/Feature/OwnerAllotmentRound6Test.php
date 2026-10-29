@@ -196,8 +196,14 @@ class OwnerAllotmentRound6Test extends TestCase
         ]);
     }
 
-    public function test_override_teacher_lesson_plan_create_already_effective()
+    public function test_override_teacher_lesson_plan_create_refused_after_full_removal()
     {
+        // Overnight menus 2026-10-29, item 17: lesson plans are
+        // FULLY removed for teachers — create/store refuse
+        // everyone now (only teachers could write), so the
+        // override-effective create is refused and writes
+        // nothing. The quiz + question-bank override surfaces in
+        // this file are untouched and still pass.
         $response = $this->actingAs($this->ritu())->post(route('lesson_plans.store'), [
             'my_class_id' => 12,
             'section_id' => 55,
@@ -206,12 +212,9 @@ class OwnerAllotmentRound6Test extends TestCase
             'topic' => 'R6 Override Plan Topic',
         ]);
 
-        $response->assertRedirect();
-        $this->assertDatabaseHas('lesson_plans', [
+        $response->assertForbidden();
+        $this->assertDatabaseMissing('lesson_plans', [
             'topic' => 'R6 Override Plan Topic',
-            'teacher_id' => $this->ritu()->id,
-            'subject_id' => 67,
-            'section_id' => 55,
         ]);
     }
 

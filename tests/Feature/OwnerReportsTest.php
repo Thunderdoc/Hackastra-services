@@ -81,16 +81,16 @@ class OwnerReportsTest extends TestCase
         $this->assertGreaterThan(1000, strlen($response->getContent()));
     }
 
-    public function test_builder_page_loads_for_teacher_and_admin()
+    public function test_builder_page_loads_for_teacher_but_admin_forbidden()
     {
         $this->actingAs($this->teacher())
             ->get(route('reports.builder'))
             ->assertOk()
             ->assertSee('Build your report');
+        // New builder gate (2026-10-29): teacher + principal only.
         $this->actingAs($this->userByEmail('admin@hackstra.app'))
             ->get(route('reports.builder'))
-            ->assertOk()
-            ->assertSee('Build your report');
+            ->assertForbidden();
     }
 
     public function test_teacher_can_build_students_roster_pdf()
@@ -145,64 +145,66 @@ class OwnerReportsTest extends TestCase
         ])->assertForbidden();
     }
 
-    public function test_accountant_fees_pdf_ok()
+    public function test_accountant_fees_pdf_forbidden_by_builder_gate()
     {
-        $response = $this->actingAs($this->userByEmail('accountant@hackstra.app'))->post(route('reports.pdf'), [
+        // New builder gate (2026-10-29): teacher + principal only, so the
+        // accountant is 403 at the gate before any source check runs.
+        $this->actingAs($this->userByEmail('accountant@hackstra.app'))->post(route('reports.pdf'), [
             'config' => $this->config('fees', [
                 ['key' => 'student', 'label' => 'Student', 'type' => 'text', 'width' => 22],
                 ['key' => 'fee_title', 'label' => 'Fee Title', 'type' => 'text', 'width' => 20],
                 ['key' => 'amt_paid', 'label' => 'Paid', 'type' => 'currency', 'width' => 12],
             ], ['class_id' => $this->teacherClassId(), 'year' => Qs::getCurrentSession()]),
-        ]);
-        $this->assertPdfResponse($response);
+        ])->assertForbidden();
     }
 
-    public function test_librarian_books_pdf_ok()
+    public function test_librarian_books_pdf_forbidden_by_builder_gate()
     {
-        $response = $this->actingAs($this->userByEmail('librarian@hackstra.app'))->post(route('reports.pdf'), [
+        // New builder gate (2026-10-29): teacher + principal only.
+        $this->actingAs($this->userByEmail('librarian@hackstra.app'))->post(route('reports.pdf'), [
             'config' => $this->config('books', [
                 ['key' => 'name', 'label' => 'Book Title', 'type' => 'text', 'width' => 28],
                 ['key' => 'author', 'label' => 'Author', 'type' => 'text', 'width' => 20],
                 ['key' => 'available', 'label' => 'Available', 'type' => 'number', 'width' => 10],
             ]),
-        ]);
-        $this->assertPdfResponse($response);
+        ])->assertForbidden();
     }
 
-    public function test_admin_staff_pdf_ok()
+    public function test_admin_staff_pdf_forbidden_by_builder_gate()
     {
-        $response = $this->actingAs($this->userByEmail('admin@hackstra.app'))->post(route('reports.pdf'), [
+        // New builder gate (2026-10-29): teacher + principal only.
+        $this->actingAs($this->userByEmail('admin@hackstra.app'))->post(route('reports.pdf'), [
             'config' => $this->config('staff', [
                 ['key' => 'name', 'label' => 'Name', 'type' => 'text', 'width' => 24],
                 ['key' => 'email', 'label' => 'Email', 'type' => 'text', 'width' => 24],
                 ['key' => 'user_type', 'label' => 'Role', 'type' => 'text', 'width' => 12],
             ]),
-        ]);
-        $this->assertPdfResponse($response);
+        ])->assertForbidden();
     }
 
-    public function test_admin_admissions_pdf_ok()
+    public function test_admin_admissions_pdf_forbidden_by_builder_gate()
     {
-        $response = $this->actingAs($this->userByEmail('admin@hackstra.app'))->post(route('reports.pdf'), [
+        // New builder gate (2026-10-29): teacher + principal only.
+        $this->actingAs($this->userByEmail('admin@hackstra.app'))->post(route('reports.pdf'), [
             'config' => $this->config('admissions', [
                 ['key' => 'name', 'label' => 'Name', 'type' => 'text', 'width' => 24],
                 ['key' => 'phone', 'label' => 'Phone', 'type' => 'text', 'width' => 14],
                 ['key' => 'status', 'label' => 'Status', 'type' => 'text', 'width' => 13],
             ]),
-        ]);
-        $this->assertPdfResponse($response);
+        ])->assertForbidden();
     }
 
-    public function test_super_admin_platform_ok_and_school_source_forbidden()
+    public function test_super_admin_forbidden_by_builder_gate()
     {
+        // New builder gate (2026-10-29): teacher + principal only, so even
+        // the platform source is 403 for the Super Admin at the gate.
         $sa = $this->userByEmail('superadmin@hackstra.app');
-        $response = $this->actingAs($sa)->post(route('reports.pdf'), [
+        $this->actingAs($sa)->post(route('reports.pdf'), [
             'config' => $this->config('platform', [
                 ['key' => 'metric', 'label' => 'Metric', 'type' => 'text', 'width' => 60],
                 ['key' => 'value', 'label' => 'Value', 'type' => 'number', 'width' => 40],
             ]),
-        ]);
-        $this->assertPdfResponse($response);
+        ])->assertForbidden();
 
         $this->actingAs($sa)->post(route('reports.pdf'), [
             'config' => $this->config('fees', [

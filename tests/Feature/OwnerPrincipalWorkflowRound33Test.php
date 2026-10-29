@@ -8,6 +8,7 @@ use App\Models\Exam;
 use App\Models\LeaveRequest;
 use App\Models\ReportTemplate;
 use App\Models\Substitution;
+use App\Support\Reports\ReportSources;
 use App\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
@@ -202,19 +203,24 @@ class OwnerPrincipalWorkflowRound33Test extends TestCase
         $admin = $this->admin();
 
         // Admin template exists first: principal must never see it.
-        $this->actingAs($admin)->post(route('reports.templates.store'), [
+        // Item 7 (overnight 2026-10-29) removed admin from the builder,
+        // so the fixture is created directly; the test's intent — the
+        // template belongs to admin and stays invisible to principal —
+        // is unchanged.
+        $adminTemplate = ReportTemplate::create([
+            'user_id' => $admin->id,
             'name' => 'R33 Admin Template',
             'config' => $this->classesConfig(),
-        ])->assertRedirect();
-        $adminTemplate = ReportTemplate::where('user_id', $admin->id)
-            ->where('name', 'R33 Admin Template')->firstOrFail();
+        ]);
 
         // Principal builder: same sources as admin (principal->admin
-        // mapping), platform absent.
+        // mapping), platform absent. Admin has no builder HTTP surface
+        // since item 7, so the admin source list comes from the gate
+        // itself rather than an admin builder GET.
         $builder = $this->actingAs($principal)->get(route('reports.builder'))->assertOk();
-        $adminSources = $this->actingAs($admin)->get(route('reports.builder'))->viewData('sources');
+        $adminSources = ReportSources::allowedFor('admin');
         $principalSources = $builder->viewData('sources');
-        $this->assertSame(array_keys($adminSources), array_keys($principalSources));
+        $this->assertSame($adminSources, array_keys($principalSources));
         $this->assertNotContains('platform', array_keys($principalSources));
         $this->assertNotContains($adminTemplate->id, collect($builder->viewData('templates'))->pluck('id')->all());
 

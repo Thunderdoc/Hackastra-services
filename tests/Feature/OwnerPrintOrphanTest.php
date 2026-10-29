@@ -31,6 +31,14 @@ class OwnerPrintOrphanTest extends TestCase
         return User::where('email', 'admin@hackstra.app')->firstOrFail();
     }
 
+    protected function principal()
+    {
+        // Reports & PDF Builder gate (overnight order 2026-10-29):
+        // teacher + principal ONLY. Principal maps to admin sources,
+        // so it reproduces the same students config as admin did.
+        return User::where('email', 'principal@hackstra.app')->firstOrFail();
+    }
+
     protected function assertPdfResponse($response)
     {
         $response->assertStatus(200);
@@ -111,7 +119,10 @@ class OwnerPrintOrphanTest extends TestCase
     {
         // Landscape + signature lines: the signature block used to sit
         // alone on the last page (11 pages, p.11 = signatures only).
-        $response = $this->actingAs($this->admin())->post(route('reports.pdf'), [
+        // Caller is principal, not admin: the builder gate is now
+        // teacher + principal only, so admin gets 403 (stale caller,
+        // not a parity regression). Config/assertions unchanged.
+        $response = $this->actingAs($this->principal())->post(route('reports.pdf'), [
             'config' => [
                 'title' => 'Landscape Signature Test',
                 'source' => 'students',

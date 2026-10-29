@@ -164,12 +164,16 @@ class OwnerSubstitutionBellTest extends TestCase
         ]);
     }
 
-    public function test_absent_teacher_created_substitution_still_bells_substitute()
+    public function test_admin_created_substitution_still_bells_substitute()
     {
+        // Overnight menus 2026-10-29, item 19: absent-teacher
+        // self-create is retired, so the bell case is re-pointed
+        // to the admin creator — the substitute is still belled,
+        // and only the substitute.
         $cell = $this->ownCell($this->teacher());
         $substitute = $this->freeSubstitute($cell);
 
-        $response = $this->actingAs($this->teacher())
+        $response = $this->actingAs($this->admin())
             ->post(route('substitutions.store'), $this->payload($cell, $substitute));
 
         $response->assertRedirect(route('substitutions.index'));
@@ -177,6 +181,10 @@ class OwnerSubstitutionBellTest extends TestCase
             'user_id' => $substitute->id,
             'type' => 'substitution_assigned',
             'title' => $this->bellTitle($cell),
+        ]);
+        $this->assertDatabaseMissing('user_notifications', [
+            'user_id' => $this->teacher()->id,
+            'type' => 'substitution_assigned',
         ]);
     }
 
