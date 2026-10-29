@@ -46,19 +46,20 @@ use Illuminate\Support\Str;
  */
 class ReportsController extends Controller
 {
-    /** Roles allowed anywhere in this controller: teacher and
-     *  principal only (overnight order 2026-10-29: removed from
-     *  admin and every other role). This does NOT weaken the
-     *  source gate: ReportSources::allowedFor() still decides
-     *  which sources each role sees in the builder (principal
-     *  maps to admin sources there), and
+    /** Roles allowed anywhere in this controller: teacher,
+     *  principal and ADMIN. An overnight change (2026-10-29) had
+     *  removed admin; the owner corrected that the same evening —
+     *  he works in the builder as Admin himself (live screenshot,
+     *  "ye thik kro") — so admin access is restored. This does NOT
+     *  weaken the source gate: ReportSources::allowedFor() still
+     *  decides which sources each role sees in the builder
+     *  (principal maps to admin sources there), and
      *  ReportEngine::validateConfig() still aborts 403 on any
-     *  role-disallowed source on every request. Menu-link removal
-     *  for admin is a sibling stream's job, not done here. */
+     *  role-disallowed source on every request. */
     protected function gateRole(): void
     {
         $user = Auth::user();
-        if (!$user || (!Qs::userIsTeacher() && !Qs::userIsPrincipal())) {
+        if (!$user || (!Qs::userIsTeacher() && !Qs::userIsPrincipal() && !Qs::userIsAdmin())) {
             abort(403, 'Reports are not available for your role.');
         }
     }

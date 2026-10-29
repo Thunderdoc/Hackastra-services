@@ -50,6 +50,7 @@
 
 @include('partials.confirm_modal')
 @include('partials.inc_bottom')
+@include('partials.hk_date')
 @yield('scripts')
 <script>
 if ('serviceWorker' in navigator) {

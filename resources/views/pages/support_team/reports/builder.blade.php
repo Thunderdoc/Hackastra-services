@@ -571,12 +571,25 @@
             totals: totals,
             sort: sortKey ? { key: sortKey, dir: el('rbSortDir').value } : null
         };
+        /* A column the current source does not offer (left over
+           from another source, a template, or an old saved config)
+           must never reach the engine — it refuses the whole
+           report with "Unknown column". Drop stale keys here, at
+           the single exit every preview, PDF and save passes
+           through. Custom fields and marks component columns are
+           source-independent and stay. */
+        var srcDef = SOURCES[el('rbSource').value] || {};
+        var srcKeys = {};
+        (srcDef.columns || []).forEach(function (c) { srcKeys[c.key] = true; });
+        var cleanColumns = columns.filter(function (c) {
+            return srcKeys[c.key] || /^custom_\d+$/.test(c.key) || /^comp_\d+$/.test(c.key);
+        });
         return {
             title: el('rbTitle').value,
             subtitle: el('rbSubtitle').value,
             source: el('rbSource').value,
             filters: filters,
-            columns: columns,
+            columns: cleanColumns,
             options: options,
             instructions: el('rbInstructions').value
         };

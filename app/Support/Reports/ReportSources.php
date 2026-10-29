@@ -71,6 +71,7 @@ class ReportSources
                     'roll_no' => ['Roll No', 'number', 8],
                     'student' => ['Student', 'text', 24],
                     'adm_no' => ['Admission No', 'text', 15],
+                    'class' => ['Class', 'text', 12],
                     'section' => ['Section', 'text', 8],
                     'subject' => ['Subject', 'text', 18],
                     'exam' => ['Exam', 'text', 18],
@@ -86,6 +87,7 @@ class ReportSources
                     'date' => ['Date', 'date', 12],
                     'student' => ['Student', 'text', 24],
                     'adm_no' => ['Admission No', 'text', 15],
+                    'class' => ['Class', 'text', 12],
                     'section' => ['Section', 'text', 8],
                     'subject' => ['Subject', 'text', 18],
                     'topic' => ['Topic', 'text', 22],
@@ -513,12 +515,14 @@ class ReportSources
             });
 
         $components = MarkScheme::components($exam->id, $subject->id);
+        $className = optional(MyClass::find($filters['class_id']))->name;
         $rows = [];
         foreach ($marks as $m) {
             $row = [
                 'roll_no' => $rolls[(int) $m->student_id] ?? null,
                 'student' => optional($m->user)->name,
                 'adm_no' => optional(optional($m->user)->student_record)->adm_no,
+                'class' => $className,
                 'section' => optional($m->section)->name,
                 'subject' => $subject->name,
                 'exam' => $exam->name,
@@ -583,6 +587,7 @@ class ReportSources
                     'date' => $s->date,
                     'student' => optional(optional($sr)->user)->name,
                     'adm_no' => optional($sr)->adm_no,
+                    'class' => optional($s->my_class)->name,
                     'section' => optional(optional($sr)->section)->name,
                     'subject' => optional($s->subject)->name,
                     'topic' => $s->topic,

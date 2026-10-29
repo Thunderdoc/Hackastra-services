@@ -100,8 +100,9 @@ class OwnerReportsRoleResweepRound28Test extends TestCase
 
     public function test_builder_index_status_per_role()
     {
-        // New builder gate (2026-10-29): teacher + principal ONLY.
-        $this->actingAs($this->userByEmail('admin@hackstra.app'))->get(route('reports.builder'))->assertForbidden();
+        // Builder gate (owner correction 2026-10-29 evening):
+        // teacher + principal + admin.
+        $this->actingAs($this->userByEmail('admin@hackstra.app'))->get(route('reports.builder'))->assertOk();
         $this->actingAs($this->userByEmail('principal@hackstra.app'))->get(route('reports.builder'))->assertOk();
         $this->actingAs($this->userByEmail('teacher@hackstra.app'))->get(route('reports.builder'))->assertOk();
         $this->actingAs($this->userByEmail('accountant@hackstra.app'))->get(route('reports.builder'))->assertForbidden();
@@ -113,10 +114,12 @@ class OwnerReportsRoleResweepRound28Test extends TestCase
 
     public function test_builder_source_lists_per_role_match_allowed_for()
     {
-        // New builder gate (2026-10-29): only teacher + principal reach
-        // the builder view, so only their source lists are readable
-        // here. Admin/accountant/librarian/SA are 403 at the gate.
-        $this->actingAs($this->userByEmail('admin@hackstra.app'))->get(route('reports.builder'))->assertForbidden();
+        // Builder gate (owner correction 2026-10-29 evening):
+        // teacher + principal + admin reach the builder view.
+        // Accountant/librarian/SA are 403 at the gate.
+        $adminSources = $this->actingAs($this->userByEmail('admin@hackstra.app'))
+            ->get(route('reports.builder'))->viewData('sources');
+        $this->assertEquals(ReportSources::allowedFor('admin'), array_keys($adminSources));
         $this->actingAs($this->userByEmail('accountant@hackstra.app'))->get(route('reports.builder'))->assertForbidden();
         $this->actingAs($this->userByEmail('librarian@hackstra.app'))->get(route('reports.builder'))->assertForbidden();
         $this->actingAs($this->userByEmail('superadmin@hackstra.app'))->get(route('reports.builder'))->assertForbidden();
@@ -152,11 +155,11 @@ class OwnerReportsRoleResweepRound28Test extends TestCase
         $this->assertNotContains(2, $ids);
     }
 
-    public function test_principal_generates_small_sources_admin_forbidden()
+    public function test_principal_and_admin_generate_small_sources()
     {
-        // New builder gate (2026-10-29): admin is 403 at the gate.
-        $this->actingAs($this->userByEmail('admin@hackstra.app'))
-            ->post(route('reports.pdf'), ['config' => $this->classesConfig()])->assertForbidden();
+        // Owner correction: admin generates like the principal.
+        $this->assertPdfResponse($this->actingAs($this->userByEmail('admin@hackstra.app'))
+            ->post(route('reports.pdf'), ['config' => $this->classesConfig()]));
 
         // Principal on an admin-only source (staff): maps to admin, so it works.
         $staffConfig = $this->config('staff', [
@@ -297,21 +300,23 @@ class OwnerReportsRoleResweepRound28Test extends TestCase
         ])->assertForbidden();
     }
 
-    public function test_row_cap_principal_pdf_and_preview_admin_forbidden()
+    public function test_row_cap_principal_and_admin_pdf_and_preview()
     {
         $expected = 'Too many rows for one PDF (3041). Filter by class or section first, then generate.';
         $unfiltered = $this->studentsConfig();
         unset($unfiltered['filters']['class_id']);
         $unfiltered['filters'] = [];
 
-        // New builder gate (2026-10-29): admin is 403 at the gate, so the
-        // row-cap redirect is no longer reachable for the admin.
+        // Owner correction: the admin reaches the row cap exactly
+        // like the principal (redirect + the cap flash).
         $this->actingAs($this->userByEmail('admin@hackstra.app'))->from(route('reports.builder'))
             ->post(route('reports.pdf'), ['config' => $unfiltered])
-            ->assertForbidden();
+            ->assertRedirect(route('reports.builder'))
+            ->assertSessionHas('flash_danger', $expected);
         $this->actingAs($this->userByEmail('admin@hackstra.app'))->from(route('reports.builder'))
             ->post(route('reports.preview'), ['config' => $unfiltered])
-            ->assertForbidden();
+            ->assertRedirect(route('reports.builder'))
+            ->assertSessionHas('flash_danger', $expected);
 
         // Principal pdf: same cap, same flash (principal resolves school-wide).
         $this->actingAs($this->userByEmail('principal@hackstra.app'))->from(route('reports.builder'))
@@ -376,16 +381,18 @@ class OwnerReportsRoleResweepRound28Test extends TestCase
         $this->assertEquals([$teacherTpl->id], collect($teacherTpls)->pluck('id')->sort()->values()->all());
     }
 
-    public function test_unknown_source_teacher_pdf_refused_cleanly_admin_forbidden()
+    public function test_unknown_source_teacher_and_admin_pdf_refused_cleanly()
     {
-        // New builder gate (2026-10-29): admin is 403 at the gate, so the
-        // unknown-source redirect is no longer reachable for the admin.
+        // Owner correction: the admin passes the gate too, so an
+        // unknown source refuses cleanly for the admin as well
+        // (redirect + flash, never 500).
         $this->actingAs($this->userByEmail('admin@hackstra.app'))->from(route('reports.builder'))
             ->post(route('reports.pdf'), [
                 'config' => $this->config('no_such_source', [
                     ['key' => 'student', 'label' => 'Student', 'type' => 'text', 'width' => 20],
                 ]),
-            ])->assertForbidden();
+            ])->assertRedirect(route('reports.builder'))
+            ->assertSessionHas('flash_danger', 'Unknown report source.');
 
         // Teacher passes the gate: unknown source still refuses cleanly
         // (redirect + flash, never 500).
