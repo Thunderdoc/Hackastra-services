@@ -10,7 +10,11 @@ return new class extends Migration
     {
         Schema::create('fee_heads', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('my_class_id')->constrained('my_classes');
+            // my_classes is a legacy increments() table (INT PK):
+            // unsignedInteger FK — foreignId() (BIGINT) makes
+            // MariaDB refuse the constraint (errno 150).
+            $table->unsignedInteger('my_class_id');
+            $table->foreign('my_class_id')->references('id')->on('my_classes');
             $table->string('title');
             $table->integer('amount');
             $table->string('year');
@@ -28,12 +32,16 @@ return new class extends Migration
 
         Schema::create('concessions', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('student_record_id')->constrained('student_records');
+            // student_records + users are legacy increments() tables
+            // (INT PKs): unsignedInteger FKs, same errno-150 reason.
+            $table->unsignedInteger('student_record_id');
+            $table->foreign('student_record_id')->references('id')->on('student_records');
             $table->foreignId('fee_head_id')->constrained('fee_heads')->cascadeOnDelete();
             $table->string('type');
             $table->decimal('value', 10, 2);
             $table->string('reason')->nullable();
-            $table->foreignId('approved_by')->nullable()->constrained('users');
+            $table->unsignedInteger('approved_by')->nullable();
+            $table->foreign('approved_by')->references('id')->on('users');
             $table->timestamps();
         });
     }

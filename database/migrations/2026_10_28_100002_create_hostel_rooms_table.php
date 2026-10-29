@@ -10,7 +10,13 @@ return new class extends Migration
     {
         Schema::create('hostel_rooms', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('dorm_id')->constrained('dorms')->cascadeOnDelete();
+            // dorms is a legacy increments() table (INT PK): the FK
+            // column must be unsignedInteger — foreignId() would be
+            // BIGINT and MariaDB refuses the constraint (errno 150),
+            // which silently halted every later migration on the
+            // live MariaDB while SQLite ignored the mismatch.
+            $table->unsignedInteger('dorm_id');
+            $table->foreign('dorm_id')->references('id')->on('dorms')->onDelete('cascade');
             $table->string('room_no');
             $table->unsignedInteger('capacity');
             $table->timestamps();

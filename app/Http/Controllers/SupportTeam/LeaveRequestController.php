@@ -62,14 +62,7 @@ class LeaveRequestController extends Controller
             'leave_type' => 'nullable|in:normal,emergency',
         ]);
         $isEmergency = ($data['leave_type'] ?? 'normal') === 'emergency';
-        // TEMPORARY LIVE DIAGNOSTIC (2026-10-29, remove once fixed):
-        // leave submit 500s ONLY on the live MariaDB/PHP 8.4 stack —
-        // local SQLite runs this code green and the container's log
-        // file is unreachable from outside. Until the cause is known,
-        // surface the real exception as the response body so it can
-        // be read off the page; then this catch comes out.
-        try {
-            $leave = LeaveRequest::create([
+        $leave = LeaveRequest::create([
             'user_id' => Auth::id(),
             'start_date' => $data['start_date'],
             'end_date' => $data['end_date'],
@@ -82,10 +75,7 @@ class LeaveRequestController extends Controller
             'status' => $isEmergency ? 'approved' : 'pending',
             'decided_at' => $isEmergency ? now() : null,
             'decision_note' => $isEmergency ? 'Auto-approved (emergency).' : null,
-            ]);
-        } catch (\Throwable $e) {
-            return response('LEAVE-DIAG: ' . get_class($e) . ': ' . $e->getMessage(), 500);
-        }
+        ]);
         if ($isEmergency) {
             // Inform, don't ask: the approver who would have
             // decided gets a bell item so the absence is visible.
