@@ -32,7 +32,14 @@
         .ds-meta { text-align: center; color: #46586c; font-size: 13px; margin: 8px 0 2px; }
         .ds-meta strong { color: #10263b; }
 
-        table.ds { width: 100%; border-collapse: collapse; border: 1.5px solid #10263b; margin: 12px auto; }
+        /* School watermark (owner, 2026-10-29 night): same furniture
+           as the timetable print — the school's logo, or its initials
+           monogram, faint behind the sheet's table. */
+        .ds-wrap { position: relative; }
+        .ds-wm { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 280px; max-height: 340px; opacity: .06; z-index: 0; }
+        .ds-wm-mono { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-18deg); font-size: 130px; font-weight: 800; letter-spacing: .05em; line-height: 1; color: #10263b; opacity: .055; z-index: 0; white-space: nowrap; }
+
+        table.ds { position: relative; z-index: 1; width: 100%; border-collapse: collapse; border: 1.5px solid #10263b; margin: 12px auto; }
         table.ds th, table.ds td { border: 1px solid #7d8fa6; padding: 9px 10px; font-size: 13.5px; text-align: left; }
         table.ds thead th { background: #eef2f7; color: #10263b; text-transform: uppercase; letter-spacing: .4px; font-size: 12px; }
         .ds-date { font-weight: bold; color: #10263b; white-space: nowrap; }
@@ -117,6 +124,23 @@
             <p class="ds-empty-note">Dates for this exam have not been announced yet. The subjects below will carry their dates here as soon as the school office publishes them.</p>
         @endif
 
+        <div class="ds-wrap">
+            @if(!empty($school['logo']))
+                <img class="ds-wm" src="{{ $school['logo'] }}" alt="">
+            @else
+                @php
+                    $dsWmInitials = '';
+                    foreach (preg_split('/\s+/', trim((string) $school['name'])) as $dsWmWord) {
+                        if ($dsWmWord !== '') {
+                            $dsWmInitials .= strtoupper(substr($dsWmWord, 0, 1));
+                            if (strlen($dsWmInitials) >= 2) { break; }
+                        }
+                    }
+                    if ($dsWmInitials === '') { $dsWmInitials = 'S'; }
+                @endphp
+                <div class="ds-wm-mono" aria-hidden="true">{{ $dsWmInitials }}</div>
+            @endif
+
         <table class="ds">
             <thead>
             <tr>
@@ -144,6 +168,7 @@
             @endforeach
             </tbody>
         </table>
+        </div>
 
         <div class="ds-signatures">
             @if(!empty($school['stamp']))

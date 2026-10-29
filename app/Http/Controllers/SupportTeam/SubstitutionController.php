@@ -13,6 +13,7 @@ use App\Support\Audit;
 use App\Support\LeaveCover;
 use App\Support\Notify;
 use App\Support\SectionTeacher;
+use App\Support\SubstitutionDay;
 use App\User;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
@@ -77,10 +78,9 @@ class SubstitutionController extends Controller
 
         /* Full-auto flow (owner order 2026-10-29): system-arranged
            plans wait here as 'pending' groups — one group per
-           (absent teacher, date). The Admin reviews them, switches
-           any teacher (the select lists only teachers FREE at that
-           slot, computed live), and submits; only then do the rows
-           go live. The Principal sees the same groups read-only. */
+           (absent teacher, date) — as a RECORD. Review, switching
+           and going live all happen on the Leave Requests page
+           (owner order, same night); this page only shows them. */
         $pendingRows = Substitution::with([
             'time_table.subject', 'time_table.time_slot',
             'time_table.tt_record.my_class', 'time_table.tt_record.section',
@@ -90,12 +90,13 @@ class SubstitutionController extends Controller
             $d = $row->date instanceof Carbon ? $row->date->toDateString() : (string) $row->date;
             return (int) $row->absent_teacher_id . '|' . $d;
         });
-        $d['free_options'] = [];
-        if (Qs::userIsAdmin()) {
-            foreach ($pendingRows as $row) {
-                $d['free_options'][$row->id] = $this->freeTeachersFor($row);
-            }
-        }
+        /* The board is a record now (owner order 2026-10-29
+           night): it renders NO switch options, so it must not PAY
+           for them either. Computing every pending row's free
+           teachers here was half of the ~93k-query page cost that
+           hung this page on the hosted database. Plan review and
+           switching live on the Leave Requests page, which answers
+           the same questions through SubstitutionDay snapshots. */
         $d['is_admin'] = Qs::userIsAdmin();
 
         return view('pages.support_team.substitutions.index', $d);
@@ -402,21 +403,25 @@ class SubstitutionController extends Controller
             return collect();
         }
         $date = $row->date instanceof Carbon ? $row->date->copy() : Carbon::parse((string) $row->date);
-        $onLeaveIds = LeaveRequest::where('status', 'approved')
-            ->whereDate('start_date', '<=', $date->toDateString())
-            ->whereDate('end_date', '>=', $date->toDateString())
-            ->pluck('user_id')->unique()->all();
+        // Answered from one snapshot of the day (SubstitutionDay):
+        // the teacher list and the approved-leave list are bulk
+        // queries, and each clash check is in-memory. The old
+        // per-candidate database walk cost ~11k queries PER ROW.
+        $day = SubstitutionDay::forDate($date);
+        $onLeaveIds = $day['on_leave'];
 
-        return User::where('user_type', 'teacher')
-            ->where(function ($q) {
-                $q->whereNull('status')->orWhere('status', User::STATUS_ACTIVE);
-            })
-            ->where('id', '!=', (int) $row->absent_teacher_id)
-            ->where('id', '!=', (int) $row->substitute_teacher_id)
-            ->whereNotIn('id', $onLeaveIds)
-            ->orderBy('name')->get()
-            ->filter(function (User $t) use ($date, $cell) {
-                return $this->clashMessage((int) $t->id, $date, $cell) === null;
+        return collect($day['teachers'])
+            ->filter(function (User $t) use ($row, $onLeaveIds, $date, $cell, $day) {
+                if ((int) $t->id === (int) $row->absent_teacher_id) {
+                    return false;
+                }
+                if ((int) $t->id === (int) $row->substitute_teacher_id) {
+                    return false;
+                }
+                if (in_array((int) $t->id, $onLeaveIds, true)) {
+                    return false;
+                }
+                return $this->clashMessageFromDay($day, (int) $t->id, $date, $cell) === null;
             })->values();
     }
 
@@ -532,37 +537,45 @@ class SubstitutionController extends Controller
      */
     protected function clashMessage(int $substituteId, Carbon $date, TimeTable $cell): ?string
     {
+        if (!$this->slotWindow($date, optional($cell->time_slot))) {
+            return null;
+        }
+
+        return $this->clashMessageFromDay(SubstitutionDay::forDate($date), $substituteId, $date, $cell);
+    }
+
+    /**
+     * The clash checks against a pre-built day snapshot — the
+     * same two questions as always: (a) does the substitute teach
+     * their own period at an overlapping time that weekday, and
+     * (b) do they already hold a substitution at an overlapping
+     * time that date. Callers checking many candidates build the
+     * snapshot once and ask here, instead of re-querying the
+     * whole weekday grid per candidate (the ~93k-query incident).
+     */
+    protected function clashMessageFromDay(array $day, int $substituteId, Carbon $date, TimeTable $cell): ?string
+    {
         $window = $this->slotWindow($date, optional($cell->time_slot));
         if (!$window) {
             return null;
         }
         [$start, $end] = $window;
 
-        $ownCells = TimeTable::with(['subject', 'time_slot', 'tt_record'])
-            ->where('day', $date->format('l'))
-            ->where('id', '!=', $cell->id)
-            ->whereNotNull('subject_id')
-            ->get()
-            ->filter(function ($other) use ($substituteId) {
-                return SectionTeacher::teacherIdFor(
-                    optional($other->tt_record)->section_id ?? null, $other->subject
-                ) === $substituteId;
-            });
-
-        foreach ($ownCells as $other) {
-            $otherWindow = $this->slotWindow($date, optional($other->time_slot));
+        foreach ($day['cells'] as $other) {
+            if ($other['id'] === (int) $cell->id || $other['teacher_id'] !== $substituteId) {
+                continue;
+            }
+            $otherWindow = $this->slotWindow($date, $other['slot']);
             if ($otherWindow && $this->overlaps($start, $end, $otherWindow[0], $otherWindow[1])) {
-                return 'This teacher already teaches ' . $other->subject->name . ' at ' . (optional($other->time_slot)->full ?: 'this time') . ' on ' . $date->format('l') . '.';
+                return 'This teacher already teaches ' . $other['subject_name'] . ' at ' . (optional($other['slot'])->full ?: 'this time') . ' on ' . $date->format('l') . '.';
             }
         }
 
-        $existing = Substitution::with('time_table.time_slot')
-            ->whereDate('date', $date->toDateString())
-            ->where('substitute_teacher_id', $substituteId)
-            ->get();
-
-        foreach ($existing as $sub) {
-            $otherWindow = $this->slotWindow($date, optional(optional($sub->time_table)->time_slot));
+        foreach ($day['subs'] as $sub) {
+            if ($sub['substitute_id'] !== $substituteId) {
+                continue;
+            }
+            $otherWindow = $this->slotWindow($date, $sub['slot']);
             if ($otherWindow && $this->overlaps($start, $end, $otherWindow[0], $otherWindow[1])) {
                 return 'This teacher is already covering another period at this time on ' . $date->format('d M Y') . '.';
             }

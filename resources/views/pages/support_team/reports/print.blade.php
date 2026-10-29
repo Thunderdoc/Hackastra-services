@@ -20,6 +20,16 @@
         @page { size: A4 {{ $doc['options']['orientation'] }}; margin: 12mm {{ $doc['options']['margin_mm'] }}mm 16mm {{ $doc['options']['margin_mm'] }}mm; }
         @endif
         .rp-header, .rp-footer { position: fixed; left: 0; right: 0; }
+        /* School watermark (owner, 2026-10-29 night): the school's
+           own logo — or its initials when no logo is uploaded — sits
+           faintly at the centre of EVERY page, behind the table.
+           position:fixed is what makes dompdf repeat it per page;
+           it is placed before the content in the document so the
+           table paints over it. No transform: centring is done with
+           a full-width fixed layer and text-align. */
+        .rp-wm { position: fixed; top: 33%; left: 0; width: 100%; text-align: center; }
+        .rp-wm img { width: 400px; max-width: 400px; opacity: .06; }
+        .rp-wm .rp-wm-mono { font-size: 150px; font-weight: 800; color: #10263b; opacity: .05; letter-spacing: .04em; line-height: 1; }
         .rp-header { top: -46mm; }
         .rp-footer { bottom: -12mm; }
         .rp-header .band { background: #10263b; color: #fff; padding: 8px 14px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -115,6 +125,13 @@
     </tr>
 </table>
 @endif
+<div class="rp-wm" aria-hidden="true">
+    @if(!empty($s['logo']))
+        <img src="{{ $s['logo'] }}" alt="">
+    @else
+        <span class="rp-wm-mono">{{ \App\Helpers\Qs::initials($s['system_name'] ?? 'Hackstra Academy') }}</span>
+    @endif
+</div>
 @if($doc['instructions'] !== '')
     <p class="instructions">{{ $doc['instructions'] }}</p>
 @endif

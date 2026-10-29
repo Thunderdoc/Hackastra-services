@@ -101,10 +101,16 @@ class StudentRecordsTableSeeder extends Seeder
                     // look bekar). Age follows the class: Prep is
                     // 5, each higher class one year older.
                     'gender' => (($section->id + $i) % 2 === 0) ? 'Male' : 'Female',
+                    // Month/day are SPREAD by multiplication, not
+                    // lockstep: ($i % 12)+1 / ($i % 28)+1 printed
+                    // 01 Jan, 02 Feb, 03 Mar... down the register —
+                    // visibly fake in a demo (owner screenshot,
+                    // 2026-10-29). The spread keeps every date
+                    // deterministic with no faker draws.
                     'dob' => sprintf('%04d-%02d-%02d',
                         (int) date('Y') - (4 + (int) $section->my_class_id),
-                        ($i % 12) + 1,
-                        ($i % 28) + 1),
+                        (($i * 5) % 12) + 1,
+                        (($i * 7) % 28) + 1),
                     'code' => strtoupper(Str::random(10)),
                     'remember_token' => Str::random(10),
                     'created_at' => $now,

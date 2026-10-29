@@ -535,8 +535,17 @@
             ? srcSel.options[srcSel.selectedIndex].textContent.trim() : '';
         var clsSel = el('rbClass');
         var clsLabel = 'All classes';
-        if (clsSel && clsSel.value && clsSel.selectedIndex >= 0 && clsSel.options[clsSel.selectedIndex]) {
-            clsLabel = clsSel.options[clsSel.selectedIndex].textContent.trim();
+        if (clsSel && clsSel.value) {
+            /* Find the option BY VALUE — the same source
+               collectConfig() reads. Reading selectedIndex raced
+               the dependent-select rebuilds and could keep showing
+               the placeholder after the value had moved on. */
+            for (var ci = 0; ci < clsSel.options.length; ci++) {
+                if (clsSel.options[ci].value === clsSel.value) {
+                    clsLabel = clsSel.options[ci].textContent.trim();
+                    break;
+                }
+            }
         }
         var visible = 0;
         columns.forEach(function (c) { if (!c.hidden) { visible++; } });
@@ -921,6 +930,12 @@
         filterDependent();
         el('rbSection').value = '';
         el('rbSubject').value = '';
+        /* This handler used to skip schedulePreview() — the class
+           changed but the preview (and the summary line) stayed on
+           the old class until some other control was touched
+           (live check, 2026-10-29: PDF said Prep, summary still
+           said "All classes"). Every filter change refreshes. */
+        schedulePreview();
     });
     el('rbPreset').addEventListener('change', function () {
         var key = el('rbPreset').value;
@@ -995,6 +1010,9 @@
         } else {
             setPreviewStatus('Live preview — the same document the download produces.', false);
         }
+        /* The summary settles with the preview that actually
+           loaded, so the line can never lag the document. */
+        updateSummary();
     });
     document.querySelectorAll('.rb-generate-btn').forEach(function (genBtn) {
         genBtn.addEventListener('click', function () {
