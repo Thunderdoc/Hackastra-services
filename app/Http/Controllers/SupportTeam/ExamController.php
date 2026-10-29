@@ -169,7 +169,20 @@ class ExamController extends Controller
             return redirect()->route('exams.index');
         }
         $pending = collect(PublicationReadiness::pendingUnits($exam));
-        if (!$req->boolean('all')) {
+        if ($req->filled('units')) {
+            // Bulk remind (owner ask 2026-10-29): the publication
+            // page's checkboxes post the picked units as
+            // "section_id:subject_id" pairs; remind exactly those.
+            $picked = collect((array) $req->input('units'))->map(function ($pair) {
+                $parts = explode(':', (string) $pair);
+                return [(int) ($parts[0] ?? 0), (int) ($parts[1] ?? 0)];
+            });
+            $pending = $pending->filter(function ($u) use ($picked) {
+                return $picked->contains(function ($pair) use ($u) {
+                    return $pair[0] === $u['section_id'] && $pair[1] === $u['subject_id'];
+                });
+            });
+        } elseif (!$req->boolean('all')) {
             $pending = $pending->filter(function ($u) use ($req) {
                 return $u['section_id'] === (int) $req->input('section_id')
                     && $u['subject_id'] === (int) $req->input('subject_id');

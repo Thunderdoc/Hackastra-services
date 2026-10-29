@@ -33,14 +33,45 @@
 
                 @if(count($pending_units) > 0)
                     <h6 class="mt-3">Still waiting on these teachers</h6>
+                    {{-- List tools (owner ask 2026-10-29): S/N on
+                         every row, a search box + class filter for
+                         long lists, and checkboxes with select-all
+                         so a picked set of teachers can be reminded
+                         in one go — nobody should have to click
+                         Remind hundreds of times. --}}
+                    <div class="d-flex flex-wrap align-items-center mb-2" style="gap:.5rem">
+                        <input type="text" id="pub-search" class="form-control" style="max-width:260px" placeholder="Search class, subject or teacher…">
+                        <select id="pub-class-filter" class="form-control" style="max-width:220px">
+                            <option value="">All classes</option>
+                            @foreach(collect($pending_units)->pluck('class_name')->unique() as $cn)
+                                <option value="{{ $cn }}">{{ $cn }}</option>
+                            @endforeach
+                        </select>
+                        <form method="post" action="{{ route('exams.notify_pending', $exam->id) }}" id="pub-remind-selected-form" class="m-0">
+                            @csrf
+                            <span id="pub-selected-units"></span>
+                            <button type="submit" class="btn btn-warning" id="pub-remind-selected" disabled><i class="icon-bell2 mr-1"></i> Remind selected (<span id="pub-selected-count">0</span>)</button>
+                        </form>
+                        <form method="post" action="{{ route('exams.notify_pending', $exam->id) }}" class="m-0">
+                            @csrf
+                            <input type="hidden" name="all" value="1">
+                            <button type="submit" class="btn btn-outline-warning"><i class="icon-bell2 mr-1"></i> Remind all pending teachers</button>
+                        </form>
+                    </div>
                     <div class="table-responsive">
-                    <table class="table table-striped">
+                    <table class="table table-striped" id="pub-pending-table">
                         <thead>
-                        <tr><th>Class</th><th>Subject</th><th>Teacher</th><th></th></tr>
+                        <tr>
+                            <th style="width:44px"><input type="checkbox" id="pub-select-all" title="Select all visible"></th>
+                            <th style="width:52px">S/N</th>
+                            <th>Class</th><th>Subject</th><th>Teacher</th><th></th>
+                        </tr>
                         </thead>
                         <tbody>
                         @foreach($pending_units as $u)
-                            <tr>
+                            <tr data-class="{{ $u['class_name'] }}" data-search="{{ strtolower($u['class_name'] . ' ' . ($u['section_name'] ?? '') . ' ' . $u['subject_name'] . ' ' . $u['teacher_name']) }}">
+                                <td>@if($u['teacher_id'])<input type="checkbox" class="pub-unit-check" value="{{ $u['section_id'] }}:{{ $u['subject_id'] }}">@endif</td>
+                                <td>{{ $loop->iteration }}</td>
                                 <td>{{ $u['class_name'] }}@if($u['section_name']) — {{ $u['section_name'] }}@endif</td>
                                 <td>{{ $u['subject_name'] }}</td>
                                 <td>{{ $u['teacher_name'] }}</td>
@@ -59,11 +90,7 @@
                         </tbody>
                     </table>
                     </div>
-                    <form method="post" action="{{ route('exams.notify_pending', $exam->id) }}">
-                        @csrf
-                        <input type="hidden" name="all" value="1">
-                        <button type="submit" class="btn btn-warning"><i class="icon-bell2 mr-1"></i> Remind all pending teachers (submit within 2 days)</button>
-                    </form>
+                    <p class="text-muted" id="pub-no-match" style="display:none">No pending teachers match the search.</p>
                 @else
                     <div class="alert alert-success border-0">
                         <strong>All marks are submitted.</strong> Every subject is in — the results are ready to publish.
@@ -99,4 +126,72 @@
         </div>
     </div>
 
+@endsection
+
+@section('scripts')
+<script>
+(function () {
+    var search = document.getElementById('pub-search');
+    var table = document.getElementById('pub-pending-table');
+    if (!search || !table) { return; }
+    var classFilter = document.getElementById('pub-class-filter');
+    var rows = Array.prototype.slice.call(table.querySelectorAll('tbody tr'));
+    var selectAll = document.getElementById('pub-select-all');
+    var noMatch = document.getElementById('pub-no-match');
+    var countEl = document.getElementById('pub-selected-count');
+    var remindBtn = document.getElementById('pub-remind-selected');
+    var unitsHolder = document.getElementById('pub-selected-units');
+
+    function isVisible(row) { return row.style.display !== 'none'; }
+    function checkedBoxes() {
+        return Array.prototype.slice.call(table.querySelectorAll('.pub-unit-check:checked'));
+    }
+    function syncSelected() {
+        var n = checkedBoxes().length;
+        countEl.textContent = n;
+        remindBtn.disabled = n === 0;
+    }
+    function syncSelectAll() {
+        var boxes = rows.filter(isVisible).map(function (r) { return r.querySelector('.pub-unit-check'); }).filter(Boolean);
+        var checked = boxes.filter(function (b) { return b.checked; }).length;
+        selectAll.checked = boxes.length > 0 && checked === boxes.length;
+        selectAll.indeterminate = checked > 0 && checked < boxes.length;
+    }
+    function applyFilter() {
+        var q = (search.value || '').toLowerCase().trim();
+        var cls = classFilter.value || '';
+        var any = false;
+        rows.forEach(function (row) {
+            var ok = (!q || (row.getAttribute('data-search') || '').indexOf(q) !== -1)
+                && (!cls || row.getAttribute('data-class') === cls);
+            row.style.display = ok ? '' : 'none';
+            if (ok) { any = true; }
+        });
+        noMatch.style.display = any ? 'none' : '';
+        syncSelectAll();
+    }
+    search.addEventListener('input', applyFilter);
+    classFilter.addEventListener('change', applyFilter);
+    selectAll.addEventListener('change', function () {
+        rows.filter(isVisible).forEach(function (r) {
+            var box = r.querySelector('.pub-unit-check');
+            if (box) { box.checked = selectAll.checked; }
+        });
+        syncSelected();
+    });
+    table.addEventListener('change', function (e) {
+        if (e.target.classList && e.target.classList.contains('pub-unit-check')) {
+            syncSelected(); syncSelectAll();
+        }
+    });
+    document.getElementById('pub-remind-selected-form').addEventListener('submit', function () {
+        unitsHolder.innerHTML = '';
+        checkedBoxes().forEach(function (box) {
+            var input = document.createElement('input');
+            input.type = 'hidden'; input.name = 'units[]'; input.value = box.value;
+            unitsHolder.appendChild(input);
+        });
+    });
+})();
+</script>
 @endsection

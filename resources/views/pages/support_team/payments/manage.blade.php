@@ -85,6 +85,15 @@
                     'message' => 'No active students in this class yet.',
                 ])
             @else
+                {{-- Never show a button for something the viewer
+                     cannot do (owner rule 2026-10-29): the invoice
+                     pages behind "Manage Payments" are gated by the
+                     viewFees policy — a viewer who fails it (the
+                     Principal, whose finance access is read-only
+                     lists by design) gets no Payments column at
+                     all, instead of a button whose every link
+                     refuses them. --}}
+                @php $canFees = auth()->user()->can('viewFees', $students->first()); @endphp
                 <table class="table l108-stack">
                     <thead>
                     <tr>
@@ -92,7 +101,7 @@
                         <th class="print-hide">Photo</th>
                         <th>Name</th>
                         <th>ADM_No</th>
-                        <th class="print-hide">Payments</th>
+                        @if($canFees)<th class="print-hide">Payments</th>@endif
                     </tr>
                     </thead>
                     <tbody>
@@ -102,6 +111,7 @@
                             <td class="print-hide" data-label="Photo">@if(Qs::hasRealPhoto($s->user->photo))<img class="rounded-circle" style="height: 40px; width: 40px;" src="{{ $s->user->photo }}" alt="photo">@else<span class="hk-ini" style="width:40px;height:40px;font-size:.8rem" aria-hidden="true">{{ Qs::initials($s->user->name) }}</span>@endif</td>
                             <td data-label="Name">{{ $s->user->name }}</td>
                             <td data-label="ADM No">{{ $s->adm_no }}</td>
+                            @if($canFees)
                             <td class="print-hide" data-label="Payments">
                                 <div class="dropdown">
                                     <button type="button" class="btn btn-sm btn-primary dropdown-toggle" data-toggle="dropdown">Manage Payments</button>
@@ -115,6 +125,7 @@
                                     </div>
                                 </div>
                             </td>
+                            @endif
                         </tr>
                     @endforeach
                     </tbody>

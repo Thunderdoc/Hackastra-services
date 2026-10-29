@@ -175,10 +175,17 @@
                                                             <form method="post" id="item-reset-{{ Qs::hash($uc->id) }}" action="{{ route('payments.reset_record', Qs::hash($uc->id)) }}" class="hidden">@csrf @method('delete')</form>
                                                             @endif
 
-                                                            {{--Receipt--}}
+                                                            {{--Receipt — only when money has
+                                                                 actually been received: a receipt
+                                                                 for a fee with nothing paid is a
+                                                                 document for something that never
+                                                                 happened (owner rule 2026-10-29:
+                                                                 no button for the impossible).--}}
+                                                            @if(($uc->amt_paid ?: 0) > 0)
                                                                 <a target="_blank" href="{{ route('payments.receipts', Qs::hash($uc->id)) }}" class="dropdown-item"><i class="icon-printer"></i> Print Receipt</a>
                                                             {{--PDF Receipt (plain link on purpose: the .download-receipt JS handler swallows the file with an AJAX GET, so it must not be used here)--}}
                                                                 <a href="{{ route('payments.pdf_receipts', Qs::hash($uc->id)) }}" class="dropdown-item"><i class="icon-download"></i> Download Receipt (PDF)</a>
+                                                            @endif
 
                                                     </div>
                                                 </div>
