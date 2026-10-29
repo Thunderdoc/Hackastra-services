@@ -123,13 +123,7 @@
                     @include('partials.errors.field', ['field' => 'state_id'])
                 </div>
 
-                <div class="pat-field">
-                    <label for="lga_id">LGA: <span class="text-danger">*</span></label>
-                    <select required data-placeholder="Select State First" class="select-search form-control @error('lga_id') is-invalid @enderror" name="lga_id" id="lga_id">
-                        <option value="{{ $user->lga_id ?? '' }}">{{ $user->lga->name ?? '' }}</option>
-                    </select>
-                    @include('partials.errors.field', ['field' => 'lga_id'])
-                </div>
+
             </div>
         </div>
 

@@ -97,6 +97,11 @@ class StaffBulkModule
             } elseif (!in_array($type->title, Qs::getStaff(), true)) {
                 $err('user_type', $typeRaw, "Role '{$typeRaw}' is not a staff role — use Bulk Add Students for students.");
                 $type = null;
+            } elseif ($type->title === 'admin') {
+                // One Admin per school (owner order 2026-10-29):
+                // Admin accounts are never bulk-created.
+                $err('user_type', $typeRaw, 'A school can have only one Admin — create or edit that account from Manage Users, not in bulk.');
+                $type = null;
             } elseif ($ctx->actorType && (int) $type->level < (int) $ctx->actorType->level) {
                 $err('user_type', $typeRaw, "You cannot create a {$type->name} account — that role is above your level.");
                 $type = null;

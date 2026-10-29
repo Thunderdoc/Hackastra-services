@@ -131,12 +131,7 @@
                                 <td>{{ $user->state->name }}</td>
                             </tr>
                         @endif
-                        @if($user->lga_id)
-                            <tr>
-                                <td class="profile-label">LGA</td>
-                                <td>{{ $user->lga->name }}</td>
-                            </tr>
-                        @endif
+
                         @if($user->user_type == 'parent')
                             <tr>
                                 <td class="profile-label">Children/Ward</td>

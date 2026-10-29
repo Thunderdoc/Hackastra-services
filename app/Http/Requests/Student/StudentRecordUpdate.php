@@ -31,7 +31,10 @@ class StudentRecordUpdate extends FormRequest
             'my_class_id' => 'required|exists:my_classes,id',
             'section_id' => 'required|exists:sections,id',
             'state_id' => 'required|exists:states,id',
-            'lga_id' => 'required|exists:lgas,id',
+            'lga_id' => 'nullable|exists:lgas,id',
+            // Category (owner order 2026-10-29): the Indian admission
+            // categories, asked instead of LGA.
+            'category' => 'nullable|in:General,OBC,SC,ST,EWS',
             'nal_id' => 'required|exists:nationalities,id',
             'my_parent_id' => 'sometimes|nullable|exists:users,id',
             'dorm_id' => 'sometimes|nullable|exists:dorms,id',

@@ -273,6 +273,15 @@ class OwnerTokenSweepRound35Test extends TestCase
     public function test_admin_token_suspended_by_sa_then_reactivated_with_same_token()
     {
         $sa = $this->sa();
+        // One Admin per school (owner order 2026-10-29 night): the
+        // SA can only create this probe Admin while the school's
+        // Admin slot is free, so the seeded Admin is demoted in the
+        // data layer first and restored at the end of the test —
+        // the suspension/token chain under test is unchanged.
+        $seededAdmin = $this->admin();
+        $seededAdmin->user_type = 'teacher';
+        $seededAdmin->save();
+
         $this->createViaRoute($sa, 'admin', 'R35 Sweep Admin', 'r35sweepadmin@hackstra.app')
             ->assertRedirect();
         $freshAdmin = $this->userByEmail('r35sweepadmin@hackstra.app');
@@ -293,5 +302,10 @@ class OwnerTokenSweepRound35Test extends TestCase
         $this->assertSame('active', $freshAdmin->fresh()->accountStatus());
         $this->apiWithToken('GET', '/api/me', $token)->assertOk();
         $this->apiWithToken('GET', '/api/notifications', $token)->assertOk();
+
+        // Restore the one-Admin state for the rest of the suite.
+        $freshAdmin->delete();
+        $seededAdmin->user_type = 'admin';
+        $seededAdmin->save();
     }
 }

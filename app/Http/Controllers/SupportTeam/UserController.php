@@ -206,6 +206,15 @@ class UserController extends Controller
             return Qs::json(__('msg.denied'), FALSE);
         }
 
+        /* One Admin per school (owner order 2026-10-29 night):
+           a school has exactly ONE Admin account. A second one
+           can never be created — whoever the existing Admin is
+           (active or not), the role is taken; the way to change
+           the Admin is to edit that account. */
+        if ($type->title === 'admin' && \App\User::where('user_type', 'admin')->exists()) {
+            return Qs::json('This school already has an Admin. A school can have only one Admin — please edit that account instead.', FALSE);
+        }
+
         $user_type = $type->title;
 
         $data = $req->except(Qs::getStaffRecord());
@@ -493,6 +502,13 @@ class UserController extends Controller
         $d['user_types'] = Qs::userIsAdmin()
             ? $ut2
             : (Qs::userIsSuperAdmin() ? $ut->whereIn('title', ['super_admin', 'admin'])->values() : $ut);
+        /* One Admin per school (owner order 2026-10-29 night):
+           while an Admin account exists, the create form does not
+           offer the Admin role at all — store() refuses it too,
+           this just keeps the dead option out of the UI. */
+        if (\App\User::where('user_type', 'admin')->exists()) {
+            $d['user_types'] = collect($d['user_types'])->where('title', '!=', 'admin')->values();
+        }
         $d['states'] = $this->loc->getStates();
         $d['nationals'] = $this->loc->getAllNationals();
         $d['blood_groups'] = $this->user->getBloodGroups();

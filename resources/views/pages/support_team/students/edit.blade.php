@@ -100,11 +100,12 @@
                 </div>
 
                 <div class="pat-field">
-                    <label for="lga_id">LGA: <span class="text-danger">*</span></label>
-                    <select required data-placeholder="Select State First" class="select-search form-control" name="lga_id" id="lga_id">
-                        @if($sr->user->lga_id)
-                            <option selected value="{{ $sr->user->lga_id }}">{{ $sr->user->lga->name}}</option>
-                        @endif
+                    <label for="category">Category: </label>
+                    <select class="select form-control" id="category" name="category" data-fouc data-placeholder="Choose..">
+                        <option value=""></option>
+                        @foreach(['General', 'OBC', 'SC', 'ST', 'EWS'] as $catOption)
+                            <option {{ (($sr->category ?? '') == $catOption) ? 'selected' : '' }} value="{{ $catOption }}">{{ $catOption }}</option>
+                        @endforeach
                     </select>
                 </div>
             </div>

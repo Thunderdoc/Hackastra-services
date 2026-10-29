@@ -417,7 +417,11 @@ class HomeController extends Controller
             $d['users'] = $this->user->getAll();
             $d['student_count'] = StudentRecord::where('grad', 0)->count();
             $d['teacher_count'] = $d['users']->where('user_type', 'teacher')->count();
-            $d['administrator_count'] = $d['users']->whereIn('user_type', ['admin', 'super_admin'])->count();
+            // One Admin per school (owner order 2026-10-29): the
+            // school's Administrators card counts the school's
+            // Admin only — the Super Admin is the platform owner,
+            // not a school administrator.
+            $d['administrator_count'] = $d['users']->where('user_type', 'admin')->count();
             $d['parent_count'] = $d['users']->where('user_type', 'parent')->count();
             // Wave 12: enquiries awaiting first contact.
             $d['new_enquiry_count'] = \App\Models\Admission::where('status', 'new')->count();
@@ -427,7 +431,7 @@ class HomeController extends Controller
             $d['stat_deltas'] = [
                 'students' => $this->periodDelta(StudentRecord::where('grad', 0), $now),
                 'teachers' => $this->userTypeDelta('teacher', $now),
-                'administrators' => $this->userTypeDelta(['admin', 'super_admin'], $now),
+                'administrators' => $this->userTypeDelta(['admin'], $now),
                 'parents' => $this->userTypeDelta('parent', $now),
                 'enquiries' => null,
             ];

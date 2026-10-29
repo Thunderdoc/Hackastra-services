@@ -31,7 +31,7 @@ class UserRequest extends FormRequest
             'photo' => 'sometimes|nullable|image|mimes:jpeg,gif,png,jpg,webp|max:2048',
             'address' => 'required|string|min:6|max:120',
             'state_id' => 'required',
-            'lga_id' => 'required',
+            'lga_id' => 'nullable',
             'nal_id' => 'required',
         ];
         $update =  [
@@ -43,7 +43,7 @@ class UserRequest extends FormRequest
             'photo' => 'sometimes|nullable|image|mimes:jpeg,gif,png,jpg,webp|max:2048',
             'address' => 'required|string|min:6|max:120',
             'state_id' => 'required',
-            'lga_id' => 'required',
+            'lga_id' => 'nullable',
             'nal_id' => 'required',
         ];
         return ($this->method() === 'POST') ? $store : $update;

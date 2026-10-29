@@ -34,7 +34,10 @@ class StudentRecordCreate extends FormRequest
             'address' => 'required|string|min:6|max:120',
             'bg_id' => 'sometimes|nullable|exists:blood_groups,id',
             'state_id' => 'required|exists:states,id',
-            'lga_id' => 'required|exists:lgas,id',
+            'lga_id' => 'nullable|exists:lgas,id',
+            // Category (owner order 2026-10-29): the Indian admission
+            // categories, asked instead of LGA.
+            'category' => 'nullable|in:General,OBC,SC,ST,EWS',
             'nal_id' => 'required|exists:nationalities,id',
             'my_class_id' => 'required|exists:my_classes,id',
             'section_id' => 'required|exists:sections,id',

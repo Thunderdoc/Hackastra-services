@@ -128,6 +128,17 @@ class OwnerUserLifecycleRound34Test extends TestCase
 
     public function test_sa_creates_admin_who_logs_in_web_and_api()
     {
+        // One Admin per school (owner order 2026-10-29 night): the
+        // SA provisions a school's Admin only while the school has
+        // none. The seed already has its one Admin, so this chain
+        // first frees the slot (the seeded Admin is demoted in the
+        // data layer), runs the original SA-provisioning flow, and
+        // restores the seeded Admin at the end for the later tests
+        // in this file.
+        $seededAdmin = $this->admin();
+        $seededAdmin->user_type = 'teacher';
+        $seededAdmin->save();
+
         $this->createViaRoute($this->sa(), 'admin', 'R34 Chain Admin', 'r34chainadmin@hackstra.app', 'r34chainadmin')
             ->assertRedirect();
         $fresh = $this->userByEmail('r34chainadmin@hackstra.app');
@@ -150,6 +161,11 @@ class OwnerUserLifecycleRound34Test extends TestCase
             ->assertJsonPath('user.user_type', 'admin');
         $this->assertNotEmpty($this->postJson('/api/login', ['identity' => 'r34chainadmin@hackstra.app', 'password' => 'admin'])->json('token'));
         $this->assertSame(2, $this->tokenCount($fresh));
+
+        // Restore the one-Admin state for the rest of this file.
+        $fresh->delete();
+        $seededAdmin->user_type = 'admin';
+        $seededAdmin->save();
     }
 
     public function test_admin_creates_teacher_then_suspend_activate_terminate_chain()

@@ -31,11 +31,24 @@
     .rb2-source-tile .rb2-src-meta { display: block; color: #718096; font-size: 11.5px; margin-top: 3px; }
     .rb2-chip { border: 1px solid #dfe8f3; background: #fff; border-radius: 999px; padding: 5px 12px; font-size: 12.5px; cursor: pointer; margin: 0 6px 6px 0; color: #10263b; }
     .rb2-chip:hover { border-color: #1765f5; color: #1765f5; }
-    .rb2-col-row td { vertical-align: middle; }
-    .rb2-col-row input[type="text"], .rb2-col-row input[type="number"], .rb2-col-row select { width: 100%; }
+    /* Columns editor — stacked cards, NOT a wide table (owner,
+       2026-10-29 night: the 6-column table clipped inside the
+       narrow settings column — labels cut to "Ro", "St", "Ad").
+       Each column is one card: label + Show + reorder on line 1,
+       Type / Width / Align on line 2. Fits any column width,
+       never scrolls sideways. */
+    .rb2-col-item { border: 1px solid #dbe4ee; border-radius: 10px; padding: 10px; margin-bottom: 10px; background: #fcfdff; }
+    .rb2-col-line1 { display: flex; align-items: center; gap: 6px; }
+    .rb2-col-line1 input[type="text"] { flex: 1 1 auto; min-width: 0; }
+    .rb2-col-show { display: inline-flex; align-items: center; gap: 4px; font-size: 12.5px; color: #4a5a6e; margin: 0; white-space: nowrap; cursor: pointer; }
+    .rb2-col-line2 { display: flex; gap: 8px; margin-top: 8px; }
+    .rb2-col-field { flex: 1 1 0; min-width: 0; }
+    .rb2-col-field label { display: block; font-size: 11px; font-weight: 600; color: #718096; margin-bottom: 2px; text-transform: uppercase; letter-spacing: .02em; }
+    .rb2-col-static { font-size: 13px; color: #10263b; padding-top: 5px; }
     .rb2-preview-wrap { background: #d7dfe9; border: 1px solid #c2cfdd; border-radius: 12px; padding: 14px; }
     #previewFrame { width: 100%; height: 720px; border: none; border-radius: 4px; background: #fff; display: block; box-shadow: 0 3px 16px rgba(16, 38, 59, .22); }
     .rb2-status { font-size: 13px; color: #4a5a6e; margin: 0 0 10px; line-height: 1.5; }
+    .rb2-summary { font-size: 12.5px; color: #718096; margin-top: 2px; }
     .rb2-status.rb2-status-error { color: #b42318; }
     .rb2-loading { font-size: 13px; color: #1765f5; margin: 0 0 10px; }
     .rb2-adv summary { cursor: pointer; font-weight: 600; color: #10263b; outline: none; }
@@ -117,7 +130,7 @@
         <div class="card">
             <div class="card-header">
                 <h5 class="card-title mb-0 rb2-step-title"><span class="rb2-step-badge">1</span> Build your report</h5>
-                <div class="rb2-step-sub">Pick a ready template or a data source, then name the report.</div>
+                <div class="rb2-step-sub">Easiest: tap a ready template — everything fills in for you. Or pick a data source and build your own.</div>
             </div>
             <div class="card-body">
                 @if($presets)
@@ -273,12 +286,7 @@
                 <div class="rb2-step-sub">Rename, resize, reorder or drop columns; add totals and sorting.</div>
             </div>
             <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-sm">
-                        <thead><tr><th>Label</th><th>Type</th><th>Width</th><th>Align</th><th>Show</th><th></th></tr></thead>
-                        <tbody id="rbColBody"></tbody>
-                    </table>
-                </div>
+                <div id="rbColBody"></div>
                 <div class="form-row align-items-end">
                     <div class="form-group col-8">
                         <label>Add column</label>
@@ -374,6 +382,7 @@
                 <div class="rb2-toolbar">
                     <div style="min-width: 0;">
                         <p id="rbPreviewStatus" class="rb2-status mb-0" role="status">Loading the live preview…</p>
+                        <p id="rbSummary" class="rb2-summary mb-0"></p>
                         <p id="rbPreviewLoading" class="rb2-loading mb-0" style="display:none;">Updating preview…</p>
                     </div>
                     <div class="rb2-actions">
@@ -514,7 +523,27 @@
     function setPreviewLoading(on) {
         el('rbPreviewLoading').style.display = on ? '' : 'none';
     }
+    /* Plain-language summary above the preview (owner, 2026-10-29
+       night — "builder ko aur easy banao"): one line that always
+       says what is being made, in the words a school office uses:
+       the report, the class it covers, how many columns show. */
+    function updateSummary() {
+        var out = el('rbSummary');
+        if (!out) { return; }
+        var srcSel = el('rbSource');
+        var srcLabel = (srcSel && srcSel.selectedIndex >= 0 && srcSel.options[srcSel.selectedIndex])
+            ? srcSel.options[srcSel.selectedIndex].textContent.trim() : '';
+        var clsSel = el('rbClass');
+        var clsLabel = 'All classes';
+        if (clsSel && clsSel.value && clsSel.selectedIndex >= 0 && clsSel.options[clsSel.selectedIndex]) {
+            clsLabel = clsSel.options[clsSel.selectedIndex].textContent.trim();
+        }
+        var visible = 0;
+        columns.forEach(function (c) { if (!c.hidden) { visible++; } });
+        out.textContent = 'Report: ' + srcLabel + ' • Class: ' + clsLabel + ' • ' + visible + ' column' + (visible === 1 ? '' : 's');
+    }
     function schedulePreview() {
+        updateSummary();
         if (previewTimer) { clearTimeout(previewTimer); }
         setPreviewLoading(true);
         previewTimer = setTimeout(runPreview, 350);
@@ -576,65 +605,32 @@
         var body = el('rbColBody');
         body.innerHTML = '';
         columns.forEach(function (col, idx) {
-            var tr = document.createElement('tr');
-            tr.className = 'rb2-col-row';
-            var tdLabel = document.createElement('td');
+            var item = document.createElement('div');
+            item.className = 'rb2-col-item';
+            var line1 = document.createElement('div');
+            line1.className = 'rb2-col-line1';
             var inp = document.createElement('input');
             inp.type = 'text';
             inp.className = 'form-control form-control-sm';
             inp.value = col.label;
             inp.maxLength = 60;
+            inp.setAttribute('aria-label', 'Column label');
             inp.addEventListener('input', function () { col.label = inp.value; renderTotals(); renderSort(); schedulePreview(); });
-            tdLabel.appendChild(inp);
-            var tdType = document.createElement('td');
-            if (isCustomKey(col.key)) {
-                var sel = document.createElement('select');
-                sel.className = 'form-control form-control-sm';
-                COL_TYPES.forEach(function (t) {
-                    var o = document.createElement('option');
-                    o.value = t;
-                    o.textContent = t;
-                    if (t === col.type) { o.selected = true; }
-                    sel.appendChild(o);
-                });
-                sel.addEventListener('change', function () { col.type = sel.value; renderTotals(); schedulePreview(); });
-                tdType.appendChild(sel);
-            } else {
-                tdType.textContent = col.type;
-            }
-            var tdWidth = document.createElement('td');
-            var winp = document.createElement('input');
-            winp.type = 'number';
-            winp.className = 'form-control form-control-sm';
-            winp.min = 1;
-            winp.max = 100;
-            winp.value = col.width;
-            winp.addEventListener('input', function () { col.width = parseInt(winp.value, 10) || 10; schedulePreview(); });
-            tdWidth.appendChild(winp);
-            var tdAlign = document.createElement('td');
-            var asel = document.createElement('select');
-            asel.className = 'form-control form-control-sm';
-            [['', 'Auto'], ['left', 'Left'], ['center', 'Center'], ['right', 'Right']].forEach(function (pair) {
-                var o = document.createElement('option');
-                o.value = pair[0];
-                o.textContent = pair[1];
-                if ((col.align || '') === pair[0]) { o.selected = true; }
-                asel.appendChild(o);
-            });
-            asel.addEventListener('change', function () { col.align = asel.value; schedulePreview(); });
-            tdAlign.appendChild(asel);
-            var tdShow = document.createElement('td');
+            line1.appendChild(inp);
+            var showWrap = document.createElement('label');
+            showWrap.className = 'rb2-col-show';
             var chk = document.createElement('input');
             chk.type = 'checkbox';
             chk.checked = !col.hidden;
             chk.addEventListener('change', function () { col.hidden = !chk.checked; schedulePreview(); });
-            tdShow.appendChild(chk);
-            var tdAct = document.createElement('td');
-            tdAct.style.whiteSpace = 'nowrap';
+            showWrap.appendChild(chk);
+            showWrap.appendChild(document.createTextNode(' Show'));
+            line1.appendChild(showWrap);
             var up = document.createElement('button');
             up.type = 'button';
             up.className = 'btn btn-sm btn-light';
-            up.textContent = '↑';
+            up.textContent = '\u2191';
+            up.title = 'Move up';
             up.addEventListener('click', function () {
                 if (idx > 0) {
                     var tmp = columns[idx - 1];
@@ -646,7 +642,8 @@
             var dn = document.createElement('button');
             dn.type = 'button';
             dn.className = 'btn btn-sm btn-light';
-            dn.textContent = '↓';
+            dn.textContent = '\u2193';
+            dn.title = 'Move down';
             dn.addEventListener('click', function () {
                 if (idx < columns.length - 1) {
                     var tmp = columns[idx + 1];
@@ -658,21 +655,75 @@
             var rm = document.createElement('button');
             rm.type = 'button';
             rm.className = 'btn btn-sm btn-light';
-            rm.textContent = '×';
+            rm.textContent = '\u00d7';
+            rm.title = 'Remove column';
             rm.addEventListener('click', function () {
                 columns.splice(idx, 1);
                 renderColumns();
             });
-            tdAct.appendChild(up);
-            tdAct.appendChild(dn);
-            tdAct.appendChild(rm);
-            tr.appendChild(tdLabel);
-            tr.appendChild(tdType);
-            tr.appendChild(tdWidth);
-            tr.appendChild(tdAlign);
-            tr.appendChild(tdShow);
-            tr.appendChild(tdAct);
-            body.appendChild(tr);
+            line1.appendChild(up);
+            line1.appendChild(dn);
+            line1.appendChild(rm);
+            item.appendChild(line1);
+            var line2 = document.createElement('div');
+            line2.className = 'rb2-col-line2';
+            var fType = document.createElement('div');
+            fType.className = 'rb2-col-field';
+            var lType = document.createElement('label');
+            lType.textContent = 'Type';
+            fType.appendChild(lType);
+            if (isCustomKey(col.key)) {
+                var sel = document.createElement('select');
+                sel.className = 'form-control form-control-sm';
+                COL_TYPES.forEach(function (t) {
+                    var o = document.createElement('option');
+                    o.value = t;
+                    o.textContent = t;
+                    if (t === col.type) { o.selected = true; }
+                    sel.appendChild(o);
+                });
+                sel.addEventListener('change', function () { col.type = sel.value; renderTotals(); schedulePreview(); });
+                fType.appendChild(sel);
+            } else {
+                var tdiv = document.createElement('div');
+                tdiv.className = 'rb2-col-static';
+                tdiv.textContent = col.type;
+                fType.appendChild(tdiv);
+            }
+            line2.appendChild(fType);
+            var fWidth = document.createElement('div');
+            fWidth.className = 'rb2-col-field';
+            var lWidth = document.createElement('label');
+            lWidth.textContent = 'Width';
+            fWidth.appendChild(lWidth);
+            var winp = document.createElement('input');
+            winp.type = 'number';
+            winp.className = 'form-control form-control-sm';
+            winp.min = 1;
+            winp.max = 100;
+            winp.value = col.width;
+            winp.addEventListener('input', function () { col.width = parseInt(winp.value, 10) || 10; schedulePreview(); });
+            fWidth.appendChild(winp);
+            line2.appendChild(fWidth);
+            var fAlign = document.createElement('div');
+            fAlign.className = 'rb2-col-field';
+            var lAlign = document.createElement('label');
+            lAlign.textContent = 'Align';
+            fAlign.appendChild(lAlign);
+            var asel = document.createElement('select');
+            asel.className = 'form-control form-control-sm';
+            [['', 'Auto'], ['left', 'Left'], ['center', 'Center'], ['right', 'Right']].forEach(function (pair) {
+                var o = document.createElement('option');
+                o.value = pair[0];
+                o.textContent = pair[1];
+                if ((col.align || '') === pair[0]) { o.selected = true; }
+                asel.appendChild(o);
+            });
+            asel.addEventListener('change', function () { col.align = asel.value; schedulePreview(); });
+            fAlign.appendChild(asel);
+            line2.appendChild(fAlign);
+            item.appendChild(line2);
+            body.appendChild(item);
         });
         refreshAddSelect();
         renderTotals();
@@ -934,7 +985,13 @@
             if (fdoc && fdoc.body && fdoc.body.getAttribute('data-rb-preview-error')) { isError = true; }
         } catch (e) { isError = false; }
         if (isError) {
-            setPreviewStatus('Preview could not be generated — see the message in the preview panel, then fix the settings.', true);
+            var tooMany = false;
+            try { tooMany = !!(fdoc && fdoc.body && fdoc.body.textContent && fdoc.body.textContent.indexOf('Too many rows') !== -1); } catch (e) { tooMany = false; }
+            if (tooMany) {
+                setPreviewStatus('Too many rows for one PDF — pick a class or section on the left and the preview will appear here.', false);
+            } else {
+                setPreviewStatus('Preview could not be generated — see the message in the preview panel, then fix the settings.', true);
+            }
         } else {
             setPreviewStatus('Live preview — the same document the download produces.', false);
         }
@@ -1004,6 +1061,7 @@
     updateMarksHint();
     ensureAutoTitle();
     applySourceColumns(el('rbSource').value);
+    updateSummary();
 })();
 </script>
 @endsection

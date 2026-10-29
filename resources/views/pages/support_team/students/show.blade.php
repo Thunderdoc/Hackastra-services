@@ -29,7 +29,7 @@
                      full admission form requires (address, nationality,
                      state, LGA) are still blank, e.g. after a Quick
                      Admit. Computed from the real blanks; no flag column. --}}
-                @if(empty($sr->user->address) || empty($sr->user->nal_id) || empty($sr->user->state_id) || empty($sr->user->lga_id))
+                @if(empty($sr->user->address) || empty($sr->user->nal_id) || empty($sr->user->state_id))
                     <div><span class="badge badge-warning qa102-pill">Incomplete profile</span></div>
                 @endif
                 @if(Qs::userIsTeamSA())
@@ -122,10 +122,10 @@
                                 <td>{{$sr->user->state->name }}</td>
                             </tr>
                             @endif
-                            @if($sr->user->lga_id)
+                            @if($sr->category)
                             <tr>
-                                <td class="font-weight-bold">LGA</td>
-                                <td>{{$sr->user->lga->name }}</td>
+                                <td class="font-weight-bold">Category</td>
+                                <td>{{ $sr->category }}</td>
                             </tr>
                             @endif
                             @if($sr->dorm_id)

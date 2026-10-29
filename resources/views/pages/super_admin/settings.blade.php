@@ -128,10 +128,10 @@
         {{-- ======================= Admission Numbers ======================= --}}
         <div class="pat-form-section">
             <div class="pat-form-section-title">Admission Numbers</div>
-            <div class="pat-form-section-sub">How the school's admission numbers are generated for every new student — the Admit Student form, Quick Admit and bulk import all follow this. A typed admission number becomes the suffix of the same format.</div>
+            <div class="pat-form-section-sub">Every new student gets an admission number automatically. Just pick how it should look — the green example below shows exactly what new students will get. It applies everywhere: the Admit Student form, Quick Admit and bulk import.</div>
             <div class="pat-fields">
                 <div class="pat-field">
-                    <label for="adm_no_format">Admission Number Format</label>
+                    <label for="adm_no_format">How should the number look?</label>
                     <select name="adm_no_format" id="adm_no_format" onchange="toggleAdmCustom(this.value)" class="form-control @error('adm_no_format') is-invalid @enderror">
                         <option value="code_class_year_serial" {{ ($s['adm_no_format'] ?? 'code_class_year_serial') === 'code_class_year_serial' ? 'selected' : '' }}>School code / Class / Year / Serial (e.g. HA/PN/2026/1001)</option>
                         <option value="code_year_serial" {{ ($s['adm_no_format'] ?? '') === 'code_year_serial' ? 'selected' : '' }}>School code / Year / Serial (e.g. HA/2026/1001)</option>
@@ -141,26 +141,49 @@
                         <option value="custom" {{ ($s['adm_no_format'] ?? '') === 'custom' ? 'selected' : '' }}>Custom — define your own pattern</option>
                     </select>
                     @include('partials.errors.field', ['field' => 'adm_no_format'])
-                    <small class="form-text text-muted">Changing the format starts a fresh series — old admission numbers never change.</small>
+                    <small class="form-text text-muted">Old students keep their old numbers — only new students get the new style.</small>
                 </div>
                 <div class="pat-field" id="adm_no_custom_wrap" style="{{ ($s['adm_no_format'] ?? '') === 'custom' ? '' : 'display:none' }}">
                     <label for="adm_no_custom_pattern">Custom Pattern</label>
                     <input name="adm_no_custom_pattern" id="adm_no_custom_pattern" value="{{ $s['adm_no_custom_pattern'] ?? '' }}" type="text" maxlength="50" class="form-control @error('adm_no_custom_pattern') is-invalid @enderror" placeholder="e.g. HA-{YEAR}-{CLASS}-" {{ ($s['adm_no_format'] ?? '') === 'custom' ? '' : 'disabled' }}>
                     @include('partials.errors.field', ['field' => 'adm_no_custom_pattern'])
-                    <small class="form-text text-muted">Use {CODE} for the School Acronym, {CLASS} for the class code and {YEAR} for the year admitted. End the pattern with / or - . The serial number is added at the end automatically (e.g. HA-2026-PN-1001). Changing the pattern starts a fresh series — old numbers never change.</small>
+                    <small class="form-text text-muted">Write your own style: {CODE} = school code, {CLASS} = class, {YEAR} = year. End with / or - — the running number is added at the end by itself (e.g. HA-2026-PN-1001).</small>
                 </div>
                 <div class="pat-field">
-                    <label for="adm_no_serial_start">First Number of a Fresh Series</label>
-                    <input name="adm_no_serial_start" id="adm_no_serial_start" value="{{ $s['adm_no_serial_start'] ?? '' }}" type="number" min="1" max="999999" class="form-control @error('adm_no_serial_start') is-invalid @enderror" placeholder="Default 1000">
+                    <label for="adm_no_serial_start">Start counting from</label>
+                    <input name="adm_no_serial_start" id="adm_no_serial_start" value="{{ $s['adm_no_serial_start'] ?? '' }}" type="number" min="1" max="999999" class="form-control @error('adm_no_serial_start') is-invalid @enderror" placeholder="1000">
                     @include('partials.errors.field', ['field' => 'adm_no_serial_start'])
-                    <small class="form-text text-muted">A series already started keeps counting from its last number — this never renumbers existing students.</small>
+                    <small class="form-text text-muted">The first student with a new style gets this number. After that it counts up by itself. Numbers already given to students never change.</small>
                 </div>
                 <div class="pat-field">
-                    <label for="adm_no_serial_width">Leading Zeros (Serial Width)</label>
-                    <input name="adm_no_serial_width" id="adm_no_serial_width" value="{{ $s['adm_no_serial_width'] ?? '' }}" type="number" min="0" max="6" class="form-control @error('adm_no_serial_width') is-invalid @enderror" placeholder="0 = no padding">
+                    <label for="adm_no_serial_width">Zeros in front of the number?</label>
+                    @php $admWidthSaved = (int) ($s['adm_no_serial_width'] ?? 0); @endphp
+                    <select name="adm_no_serial_width" id="adm_no_serial_width" class="form-control @error('adm_no_serial_width') is-invalid @enderror">
+                        <option value="0" {{ $admWidthSaved === 0 ? 'selected' : '' }}>No zeros — plain numbers (1, 2, 3…)</option>
+                        <option value="2" {{ $admWidthSaved === 2 ? 'selected' : '' }}>2 digits — 01, 02, 03…</option>
+                        <option value="3" {{ $admWidthSaved === 3 ? 'selected' : '' }}>3 digits — 001, 002, 003…</option>
+                        <option value="4" {{ $admWidthSaved === 4 ? 'selected' : '' }}>4 digits — 0001, 0002, 0003…</option>
+                        @if(!in_array($admWidthSaved, [0, 2, 3, 4], true))
+                            <option value="{{ $admWidthSaved }}" selected>{{ $admWidthSaved }} digits</option>
+                        @endif
+                    </select>
                     @include('partials.errors.field', ['field' => 'adm_no_serial_width'])
-                    <small class="form-text text-muted">Width 4 turns 1 into 0001. Leave 0 for plain numbers.</small>
+                    <small class="form-text text-muted">Zeros make every number the same length, like on a printed roll-number list.</small>
                 </div>
+            </div>
+            @php
+                $admExStart = (int) ($s['adm_no_serial_start'] ?? 0);
+                if ($admExStart < 1) { $admExStart = 1000; }
+                $admExSerial = function ($n) use ($admWidthSaved) {
+                    return $admWidthSaved > 0 ? str_pad((string) $n, $admWidthSaved, '0', STR_PAD_LEFT) : (string) $n;
+                };
+                $admExPrefix = \App\Helpers\Qs::admNoPrefix('PN', (int) date('Y'));
+            @endphp
+            <div class="alert alert-success mt-3 mb-0" role="alert" style="font-size: 14px;">
+                <strong>Example:</strong> new students will get admission numbers like
+                <strong id="admExample1" style="font-family: monospace;">{{ $admExPrefix }}{{ $admExSerial($admExStart) }}</strong>,
+                then <strong id="admExample2" style="font-family: monospace;">{{ $admExPrefix }}{{ $admExSerial($admExStart + 1) }}</strong>,
+                then <strong id="admExample3" style="font-family: monospace;">{{ $admExPrefix }}{{ $admExSerial($admExStart + 2) }}</strong> — counting up automatically.
             </div>
         </div>
 
@@ -367,7 +390,55 @@
         var on = format === 'custom';
         wrap.style.display = on ? '' : 'none';
         input.disabled = !on;
+        updateAdmExample();
     }
+    /* Admission Numbers made plain (owner, 2026-10-29 night —
+       "mujhe samajh nahi aa raha, school ko kaise aayega"): the
+       green example under the fields recomputes live from the
+       three controls, mirroring Qs::admNoPrefix + generateAdmNo
+       exactly (segments joined with /, serial appended last,
+       zero-padded to the chosen width). Sample class code PN
+       and the current year, same as the format options show. */
+    function updateAdmExample() {
+        var fmt = document.getElementById('adm_no_format');
+        var startEl = document.getElementById('adm_no_serial_start');
+        var widthEl = document.getElementById('adm_no_serial_width');
+        var patEl = document.getElementById('adm_no_custom_pattern');
+        var out1 = document.getElementById('admExample1');
+        if (!fmt || !out1) { return; }
+        var code = '{{ strtoupper($s['system_title'] ?? 'HA') }}';
+        var year = '{{ date('Y') }}';
+        var prefix = '';
+        if (fmt.value === 'custom') {
+            prefix = (patEl && patEl.value ? patEl.value : 'HA-{YEAR}-{CLASS}-')
+                .split('{CODE}').join(code).split('{CLASS}').join('PN').split('{YEAR}').join(year);
+        } else {
+            var segs = {
+                code_class_year_serial: [code, 'PN', year],
+                code_year_serial: [code, year],
+                class_year_serial: ['PN', year],
+                code_serial: [code],
+                year_serial: [year]
+            }[fmt.value] || [code, 'PN', year];
+            prefix = segs.join('/') + '/';
+        }
+        var start = parseInt(startEl && startEl.value ? startEl.value : '1000', 10);
+        if (!start || start < 1) { start = 1000; }
+        var width = parseInt(widthEl && widthEl.value ? widthEl.value : '0', 10) || 0;
+        var serial = function (n) {
+            var s = String(n);
+            while (width > 0 && s.length < width) { s = '0' + s; }
+            return s;
+        };
+        out1.textContent = prefix + serial(start);
+        document.getElementById('admExample2').textContent = prefix + serial(start + 1);
+        document.getElementById('admExample3').textContent = prefix + serial(start + 2);
+    }
+    ['adm_no_format', 'adm_no_serial_start', 'adm_no_serial_width', 'adm_no_custom_pattern'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) { el.addEventListener('input', updateAdmExample); el.addEventListener('change', updateAdmExample); }
+    });
+    updateAdmExample();
     // Owner order 2026-10-29: the "No signature/stamp uploaded" note
     // describes the SAVED setting, but the file picker shows a preview
     // of the just-selected (not yet saved) file underneath it — so the

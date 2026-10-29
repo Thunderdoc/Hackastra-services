@@ -55,19 +55,36 @@ if [ "$PERSISTENT_DB" = "1" ]; then
     # the Render dashboard env vars — nothing is hardcoded here.
 
     echo "External database configured (${DB_HOST}) - bundled MariaDB skipped."
-    # Some free MySQL hosts (e.g. TiDB Cloud Serverless) accept
-    # TLS connections only. DB_SSL_MODE=required in the dashboard
-    # turns TLS on for both the shell checks below and Laravel
-    # (config/database.php reads the same variable).
-    SSL_FLAGS=""
+    # The reachability checks below run through PHP's PDO — the
+    # exact driver + TLS options Laravel itself uses (see
+    # config/database.php) — and NOT through the mysql CLI. The
+    # image ships the MariaDB client, whose TLS flags differ from
+    # MySQL's: it rejects --ssl-mode outright, so the old
+    # mysqladmin ping failed on its own flags for 90 seconds and
+    # reported a healthy TiDB as "did not answer" (the failed
+    # deploys of 2026-10-29 21:53 + 22:01 IST died exactly there,
+    # with the real error swallowed by >/dev/null). The last PDO
+    # error is now KEPT and printed on failure, so a bad password,
+    # a TLS problem and a network problem are distinguishable.
     if [ "${DB_SSL_MODE:-}" = "required" ]; then
-        SSL_FLAGS="--ssl-mode=REQUIRED --ssl-ca=${DB_SSL_CA:-/etc/ssl/certs/ca-certificates.crt}"
-        echo "TLS required for the external database - SSL flags on."
+        echo "TLS required for the external database - PDO TLS on."
     fi
     echo "Waiting for the external database to accept connections..."
     DB_UP=0
+    DB_CHECK_ERR=""
     for i in $(seq 1 45); do
-        if mysqladmin -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USERNAME" -p"$DB_PASSWORD" $SSL_FLAGS ping >/dev/null 2>&1; then
+        if DB_CHECK_ERR="$(php -r '
+            $opts = [PDO::ATTR_TIMEOUT => 5];
+            if (getenv("DB_SSL_MODE") === "required") {
+                $opts[PDO::MYSQL_ATTR_SSL_CA] = getenv("DB_SSL_CA") ?: "/etc/ssl/certs/ca-certificates.crt";
+            }
+            try {
+                new PDO("mysql:host=" . getenv("DB_HOST") . ";port=" . getenv("DB_PORT"), getenv("DB_USERNAME"), getenv("DB_PASSWORD"), $opts);
+            } catch (Throwable $e) {
+                fwrite(STDERR, $e->getMessage());
+                exit(1);
+            }
+        ' 2>&1 >/dev/null)"; then
             echo "External database is up."
             DB_UP=1
             break
@@ -76,7 +93,20 @@ if [ "$PERSISTENT_DB" = "1" ]; then
     done
 
     if [ "$DB_UP" = "1" ]; then
-        TABLE_COUNT="$(mysql -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USERNAME" -p"$DB_PASSWORD" $SSL_FLAGS -N -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='${DB_DATABASE}'" 2>/dev/null || true)"
+        TABLE_COUNT="$(php -r '
+            $opts = [PDO::ATTR_TIMEOUT => 10];
+            if (getenv("DB_SSL_MODE") === "required") {
+                $opts[PDO::MYSQL_ATTR_SSL_CA] = getenv("DB_SSL_CA") ?: "/etc/ssl/certs/ca-certificates.crt";
+            }
+            try {
+                $pdo = new PDO("mysql:host=" . getenv("DB_HOST") . ";port=" . getenv("DB_PORT"), getenv("DB_USERNAME"), getenv("DB_PASSWORD"), $opts);
+                $st = $pdo->prepare("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = ?");
+                $st->execute([getenv("DB_DATABASE")]);
+                echo $st->fetchColumn();
+            } catch (Throwable $e) {
+                exit(1);
+            }
+        ' 2>/dev/null || true)"
         if [ "$TABLE_COUNT" = "0" ]; then
             # First boot against this database: create the schema and
             # seed the demo dataset ONCE. Later boots never reseed.
@@ -97,7 +127,7 @@ if [ "$PERSISTENT_DB" = "1" ]; then
             exit 1
         fi
     else
-        echo "FATAL: external database did not answer in time - deploy aborted."
+        echo "FATAL: external database did not answer in time - last error: ${DB_CHECK_ERR} - deploy aborted."
         exit 1
     fi
 else

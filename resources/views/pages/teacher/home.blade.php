@@ -16,7 +16,10 @@
     <div class="t10-welcome">
         <div class="t10-welcome-main">
             <h2>{{ $greeting }}, {{ Auth::user()->name }} <span aria-hidden="true">👋</span></h2>
-            <a href="{{ route('attendance.periods.index') }}" class="t10-take-btn"><i class="icon-calendar52"></i> Take Attendance</a>
+            {{-- Take Attendance renders ONCE on this page — the top-right
+                 button in the subheader strip (partials/header). The hero
+                 copy was removed 2026-10-29 night: the owner flagged the
+                 same button appearing twice on the teacher dashboard. --}}
         </div>
         <aside class="t10-quote">
             <i class="icon-quotes-left" aria-hidden="true"></i>

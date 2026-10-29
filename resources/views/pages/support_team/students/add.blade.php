@@ -150,11 +150,14 @@
                 </div>
 
                 <div class="pat-field">
-                    <label for="lga_id">LGA: <span class="text-danger">*</span></label>
-                    <select required data-placeholder="Select State First" class="select-search form-control @error('lga_id') is-invalid @enderror" name="lga_id" id="lga_id">
+                    <label for="category">Category: </label>
+                    <select class="select form-control @error('category') is-invalid @enderror" id="category" name="category" data-fouc data-placeholder="Choose..">
                         <option value=""></option>
+                        @foreach(['General', 'OBC', 'SC', 'ST', 'EWS'] as $catOption)
+                            <option {{ (old('category') == $catOption) ? 'selected' : '' }} value="{{ $catOption }}">{{ $catOption }}</option>
+                        @endforeach
                     </select>
-                    @include('partials.errors.field', ['field' => 'lga_id'])
+                    @include('partials.errors.field', ['field' => 'category'])
                 </div>
             </div>
         </div>

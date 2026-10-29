@@ -167,7 +167,7 @@ class UsersTableSeeder extends Seeder
         // then by the account number). Emails, usernames and passwords are
         // unchanged — only the display names are human.
         $demo_names = [
-            'admin'      => [1 => 'Sanjay Mehta', 2 => 'Deepa Iyer', 3 => 'Vikram Singh'],
+            'admin'      => [1 => 'Sanjay Mehta', 2 => 'Deepa Iyer', 3 => 'Vikram Singh', 4 => 'Rohit Khanna', 5 => 'Anita Desai', 6 => 'Manoj Pillai'],
             'teacher'    => [1 => 'Rahul Verma', 2 => 'Priya Nair', 3 => 'Arun Prakash', 4 => 'Kavya Reddy', 5 => 'Amit Sharma', 6 => 'Neha Gupta'],
             'accountant' => [1 => 'Meera Krishnan', 2 => 'Imran Sheikh', 3 => 'Lakshmi Prasad'],
             'parent'     => [1 => 'Sunita Devi', 2 => 'Mohammed Faiz', 3 => 'Geeta Pillai'],
@@ -177,10 +177,19 @@ class UsersTableSeeder extends Seeder
 
             foreach ($user_type as $k => $ut){
 
+                /* One Admin per school (owner order 2026-10-29
+                   night): the filler rounds used to mint six extra
+                   Admin accounts (admin1..6@admin.com). A school
+                   has exactly ONE Admin — the named admin@ account
+                   above — so the filler slot now seeds a teacher
+                   instead. Email/username stay on the old pattern
+                   so every other seeded id and count is unchanged. */
+                $rowType = $user_type[$k] === 'admin' ? 'teacher' : $user_type[$k];
+
                 $data[] = ['phone' => '+91 98110 00' . $phoneSeq++,
                     'name' => $demo_names[$user_type[$k]][$i] ?? ucfirst($user_type[$k]).' '.$i,
                     'email' => $user_type[$k].$i.'@'.$user_type[$k].'.com',
-                    'user_type' => $user_type[$k],
+                    'user_type' => $rowType,
                     'username' => $user_type[$k].$i,
                     'password' => Hash::make($user_type[$k]),
                     'code' => strtoupper(Str::random(10)),
