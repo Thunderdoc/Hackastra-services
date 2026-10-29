@@ -5,6 +5,7 @@ namespace App\Http\Controllers\SupportTeam;
 use App\Helpers\Qs;
 use App\Http\Controllers\Controller;
 use App\Models\ExamDate;
+use App\Models\ExamDateSheetState;
 use App\Models\MyClass;
 use App\Models\Section;
 use App\Repositories\ExamRepo;
@@ -48,7 +49,7 @@ class ExamDateController extends Controller
     public function __construct(ExamRepo $exam, MyClassRepo $my_class)
     {
         $this->middleware('teamSA', ['only' => ['manage']]);
-        $this->middleware('teamSAWrite', ['only' => ['save', 'generateForm', 'generate']]);
+        $this->middleware('teamSAWrite', ['only' => ['save', 'generateForm', 'generate', 'submit']]);
 
         $this->exam = $exam;
         $this->my_class = $my_class;
@@ -65,6 +66,8 @@ class ExamDateController extends Controller
         $d['class_id'] = $req->query('class_id');
         $d['selected'] = false;
         $d['subjects'] = collect();
+        $d['sheet_state'] = null;
+        $d['sheet_row_count'] = 0;
 
         if ($d['exam_id'] && $d['class_id']) {
             $d['exam'] = $this->exam->find($d['exam_id']);
@@ -80,6 +83,8 @@ class ExamDateController extends Controller
                         $s->date_entry = $entries->get($s->id);
                         return $s;
                     });
+                $d['sheet_state'] = ExamDateSheetState::where('exam_id', $d['exam_id'])->where('my_class_id', $d['class_id'])->first();
+                $d['sheet_row_count'] = ExamDate::where('exam_id', $d['exam_id'])->where('my_class_id', $d['class_id'])->count();
             }
         }
 
@@ -242,6 +247,10 @@ class ExamDateController extends Controller
         $skipped = [];
         $overflow = [];
         $noSubjects = [];
+        // Overnight menus (item 22): classes this generate actually
+        // wrote to — only those can drop a published sheet back to
+        // draft. Skipped classes wrote nothing, so they keep state.
+        $writtenClassIds = [];
         // Batch 2026-10-28 (exam-timetable round 3): the whole
         // write loop runs inside ONE transaction — a mid-loop
         // failure (lock, exception) used to leave a half-written
@@ -270,7 +279,9 @@ class ExamDateController extends Controller
                 foreach ((clone $orphans)->get() as $orphan) {
                     Invigilation::clearSitting($orphan);
                 }
-                $orphans->delete();
+                if ($orphans->delete() > 0) {
+                    $writtenClassIds[$class->id] = true;
+                }
             }
             if ($subjects->isEmpty()) {
                 $noSubjects[] = $class->name;
@@ -302,6 +313,7 @@ class ExamDateController extends Controller
                             ]
                         );
                         $occupied[$key][$group] = true;
+                        $writtenClassIds[$class->id] = true;
                         $slotIdx++;
                         $placed = true;
                         break;
@@ -314,6 +326,16 @@ class ExamDateController extends Controller
             }
             $done[] = $class->name;
         }
+            // Overnight menus (item 22): regenerating a published
+            // sheet returns it to draft for re-approval (same rule
+            // as the manual save).
+            $reverted = 0;
+            foreach (array_keys($writtenClassIds) as $classId) {
+                $reverted += ExamDateSheetState::where('exam_id', $exam->id)
+                    ->where('my_class_id', $classId)
+                    ->where('status', ExamDateSheetState::PUBLISHED)
+                    ->update(['status' => ExamDateSheetState::DRAFT, 'submitted_by' => null, 'submitted_at' => null, 'approved_by' => null, 'approved_at' => null]);
+            }
             DB::commit();
         } catch (\Throwable $e) {
             DB::rollBack();
@@ -328,6 +350,7 @@ class ExamDateController extends Controller
             . ($skipped ? ' Skipped (sheet already exists): ' . implode(', ', $skipped) . '.' : '')
             . ($noSubjects ? ' No subjects yet: ' . implode(', ', $noSubjects) . '.' : '')
             . ($overflow ? ' Could not fit within the days given: ' . implode('; ', $overflow) . ' — extend the days or set those on the Manage page.' : '');
+        $msg .= $reverted ? ' Published sheet(s) returned to draft for re-approval.' : '';
 
         return redirect()->route('exam_dates.manage', ['exam_id' => $exam->id])
             ->with('flash_success', $msg);
@@ -381,10 +404,13 @@ class ExamDateController extends Controller
         // in the stored sheet, never blocks an unrelated edit.
         $today = \Illuminate\Support\Carbon::today()->toDateString();
         $storedBySubject = [];
-        foreach (ExamDate::where('exam_id', $exam->id)->where('my_class_id', $mc->id)->get(['subject_id', 'exam_date', 'start_time']) as $r) {
+        foreach (ExamDate::where('exam_id', $exam->id)->where('my_class_id', $mc->id)->get(['subject_id', 'exam_date', 'start_time', 'note']) as $r) {
             $storedBySubject[(int) $r->subject_id] = [
                 'date' => (string) $r->exam_date,
                 'time' => $r->start_time ? substr((string) $r->start_time, 0, 5) : null,
+                // Note joins the comparison so a note-only edit is
+                // still a real change for the approval rule below.
+                'note' => $r->note ? trim((string) $r->note) : null,
             ];
         }
         $subjectNames = $subjects->pluck('name', 'id')->mapWithKeys(function ($name, $id) {
@@ -414,6 +440,7 @@ class ExamDateController extends Controller
             $postMap[(int) $subjectId] = [
                 'date' => $date,
                 'time' => !empty($row['start_time']) ? substr((string) $row['start_time'], 0, 5) : null,
+                'note' => trim((string) ($row['note'] ?? '')) ?: null,
             ];
         }
         $clashGroups = function ($map) {
@@ -496,6 +523,19 @@ class ExamDateController extends Controller
             $saved++;
         }
 
+        // Overnight menus (item 22) — the edit-of-published rule:
+        // editing a published sheet returns it to draft, so the
+        // edited content needs re-approval before families see it
+        // again. A no-change save leaves the published state alone
+        // (submitted vs stored comparison, notes included).
+        $reverted = false;
+        if ($postMap != $storedBySubject) {
+            $reverted = (bool) ExamDateSheetState::where('exam_id', $exam->id)
+                ->where('my_class_id', $mc->id)
+                ->where('status', ExamDateSheetState::PUBLISHED)
+                ->update(['status' => ExamDateSheetState::DRAFT, 'submitted_by' => null, 'submitted_at' => null, 'approved_by' => null, 'approved_at' => null]);
+        }
+
         Audit::log('exams.date_sheet_saved', null, 'Exam date sheet saved: exam ' . $exam->id . ' (' . $exam->name . '), class ' . $mc->id . ' (' . $mc->name . ') — ' . $saved . ' date(s) set, ' . $cleared . ' cleared');
             DB::commit();
         } catch (\Throwable $e) {
@@ -506,9 +546,88 @@ class ExamDateController extends Controller
 
         $msg = 'Date sheet saved for ' . $exam->name . ' — ' . $mc->name . ': ' . $saved . ' date(s) set';
         $msg .= $cleared ? ', ' . $cleared . ' cleared.' : '.';
+        $msg .= $reverted ? ' This sheet was published — edits return it to draft for re-approval.' : '';
 
         return redirect()->route('exam_dates.manage', ['exam_id' => $exam->id, 'class_id' => $mc->id])
             ->with('flash_success', $msg);
+    }
+
+    /*********************** Approval workflow (overnight menus 2026-10-29, item 22) ***********************/
+    /* Draft -> submitted (Admin) -> published (Principal approval =
+       final publish). Students, parents and teachers see a sheet
+       only once it is published; admin and principal always see
+       the live rows. */
+
+    /** Admin submits one (exam, class) sheet for Principal approval. */
+    public function submit(Request $req)
+    {
+        $data = $req->validate(['exam_id' => 'required|integer', 'class_id' => 'required|integer']);
+        $exam = $this->exam->find($data['exam_id']);
+        $mc = $this->my_class->find($data['class_id']);
+        if (!$exam || !$mc) {
+            return back()->with('flash_danger', __('msg.rnf'));
+        }
+        if (!empty($exam->my_class_id) && (int) $exam->my_class_id !== (int) $mc->id) {
+            return back()->with('flash_danger', $this->scopeMismatchMessage($exam, $mc->id));
+        }
+        $rows = ExamDate::where('exam_id', $exam->id)->where('my_class_id', $mc->id)->count();
+        if ($rows === 0) {
+            return back()->with('flash_danger', 'There are no dates to submit for ' . $exam->name . ' — ' . $mc->name . ' yet.');
+        }
+        $state = ExamDateSheetState::firstOrNew(['exam_id' => $exam->id, 'my_class_id' => $mc->id]);
+        if ($state->status === ExamDateSheetState::PUBLISHED) {
+            return back()->with('flash_danger', 'This sheet is already published.');
+        }
+        if ($state->status === ExamDateSheetState::SUBMITTED) {
+            return back()->with('flash_info', 'This sheet is already awaiting Principal approval.');
+        }
+        $state->status = ExamDateSheetState::SUBMITTED;
+        $state->submitted_by = Auth::id();
+        $state->submitted_at = now();
+        $state->approved_by = null;
+        $state->approved_at = null;
+        $state->save();
+        Audit::log('exams.date_sheet_submitted', null, 'Exam date sheet submitted for approval: exam ' . $exam->id . ' (' . $exam->name . '), class ' . $mc->id . ' (' . $mc->name . ')');
+
+        return back()->with('flash_success', 'Date sheet submitted for Principal approval: ' . $exam->name . ' — ' . $mc->name . '.');
+    }
+
+    /** Principal-only queue of submitted date sheets. */
+    public function approvals()
+    {
+        if (!Qs::userIsPrincipal()) {
+            return redirect()->route('dashboard');
+        }
+        $states = ExamDateSheetState::with(['exam', 'my_class'])
+            ->where('status', ExamDateSheetState::SUBMITTED)
+            ->orderBy('submitted_at')
+            ->get();
+        foreach ($states as $state) {
+            $state->row_count = ExamDate::where('exam_id', $state->exam_id)->where('my_class_id', $state->my_class_id)->count();
+            $state->submitted_by_name = $state->submitted_by ? optional(\App\User::find($state->submitted_by))->name : null;
+        }
+
+        return view('pages.support_team.exams.date_sheet_approvals', ['states' => $states]);
+    }
+
+    /** Principal approval = final publish. Submitted sheets only. */
+    public function approve(Request $req)
+    {
+        if (!Qs::userIsPrincipal()) {
+            return redirect()->route('dashboard');
+        }
+        $data = $req->validate(['exam_id' => 'required|integer', 'class_id' => 'required|integer']);
+        $state = ExamDateSheetState::where('exam_id', $data['exam_id'])->where('my_class_id', $data['class_id'])->first();
+        if (!$state || $state->status !== ExamDateSheetState::SUBMITTED) {
+            return back()->with('flash_danger', 'This sheet is not awaiting approval.');
+        }
+        $state->status = ExamDateSheetState::PUBLISHED;
+        $state->approved_by = Auth::id();
+        $state->approved_at = now();
+        $state->save();
+        Audit::log('exams.date_sheet_published', null, 'Exam date sheet published by Principal: exam ' . $state->exam_id . ', class ' . $state->my_class_id);
+
+        return back()->with('flash_success', 'Date sheet published.');
     }
 
     /*********************** Scoped read views **********************/
@@ -541,6 +660,18 @@ class ExamDateController extends Controller
                 ->with('flash_info', 'There is no date sheet available.');
         }
 
+        /* Overnight menus (item 22): no print of an unpublished
+           DATED sheet for students, parents or teachers — same
+           gate as the index view. Admin and principal print live
+           rows. An undated sheet has nothing to leak, so it still
+           prints its honest empty note (standing R24 behavior). */
+        if (in_array(Auth::user()->user_type, ['student', 'parent', 'teacher'], true)
+            && !($scope['sheet_published'] ?? true)
+            && ($scope['announced_before_gate'] ?? 0) > 0) {
+            return redirect()->route('exam_dates.index')
+                ->with('flash_info', 'There is no date sheet available.');
+        }
+
         $scope['school'] = ExamDateSheet::schoolInfo();
         $scope['for_pdf'] = false;
 
@@ -557,6 +688,17 @@ class ExamDateController extends Controller
            — the filename line below dereferences exam + class, so
            an empty state would 500 before any PDF bytes exist. */
         if (!$scope['exam'] || !$scope['my_class']) {
+            return redirect()->route('exam_dates.index')
+                ->with('flash_info', 'There is no date sheet available.');
+        }
+
+        /* Overnight menus (item 22): no PDF of an unpublished
+           DATED sheet for students, parents or teachers (same
+           rule as print: undated sheets still render their empty
+           note). */
+        if (in_array(Auth::user()->user_type, ['student', 'parent', 'teacher'], true)
+            && !($scope['sheet_published'] ?? true)
+            && ($scope['announced_before_gate'] ?? 0) > 0) {
             return redirect()->route('exam_dates.index')
                 ->with('flash_info', 'There is no date sheet available.');
         }
@@ -641,7 +783,17 @@ class ExamDateController extends Controller
             $d['scope_params']['student_id'] = $child->user_id;
         } elseif ($user->user_type === 'teacher') {
             $classIds = TeacherScope::classIds($user);
-            $d['classes'] = MyClass::whereIn('id', $classIds)->orderBy('name')->get();
+            // Natural class order (Prep, Class 1 … Class 12), same key
+            // as MyClassRepo::all() — a raw orderBy('name') sorted
+            // "Class 12" before "Class 3" and "Prep" last, which is
+            // exactly the dropdown order the owner screenshotted.
+            $d['classes'] = MyClass::whereIn('id', $classIds)->get()->sortBy(function ($c) {
+                if (preg_match('/(\d+)/', $c->name, $m)) {
+                    return sprintf('%05d-%s', (int) $m[1], $c->name);
+                }
+
+                return sprintf('00000-%s', $c->name);
+            })->values();
             if ($d['classes']->isEmpty()) {
                 return $d;
             }
@@ -766,6 +918,31 @@ class ExamDateController extends Controller
             ->unique()
             ->values();
         $d['class_teacher_name'] = $names->count() === 1 ? $names->first() : null;
+
+        /* Overnight menus (item 22): students, parents and
+           teachers see a sheet only once the Principal has
+           published it. Until then the sheet renders as the honest
+           "Dates not announced yet" state, exactly like a sheet
+           with no dates at all. Admin and principal always see the
+           live rows (the principal previews before approving).
+           Print and PDF redirect instead of rendering empty, but
+           only when dates actually exist to leak — an undated
+           sheet prints its honest empty note as before (see
+           printSheet() and pdf() above). */
+        $d['sheet_published'] = $d['my_class']
+            ? ExamDateSheetState::statusFor($exam->id, $d['my_class']->id) === ExamDateSheetState::PUBLISHED
+            : false;
+        $d['announced_before_gate'] = $d['announced'];
+        // Rows are emptied only when dates actually exist to hide:
+        // an undated sheet already renders its honest empty state
+        // on both blades, and emptying it would make print claim
+        // "No subjects are configured" for a class that has subjects
+        // (standing R24 behavior).
+        if ($d['my_class'] && in_array($user->user_type, ['student', 'parent', 'teacher'], true)
+            && !$d['sheet_published'] && $d['announced'] > 0) {
+            $d['rows'] = collect();
+            $d['announced'] = 0;
+        }
 
         return $d;
     }

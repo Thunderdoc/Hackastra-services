@@ -17,7 +17,7 @@
          and the search moved into the table card. --}}
     @php
         $filterLine = $month->format('F Y')
-            . ($selected_class ? ' · Class: ' . $selected_class->name : ' · All Classes')
+            . ($selected_class ? ' · Class: ' . $selected_class->name : (Qs::userIsTeacher() ? ' · Assigned Classes' : ' · All Classes'))
             . ($selected_section ? ' · Section: ' . $selected_section->name : '')
             . ($search !== '' ? ' · Search: "' . $search . '"' : '');
         $avgLabel = $summary['average'] !== null
@@ -88,7 +88,7 @@
                         ['value' => number_format($summary['below']), 'label' => 'Students', 'sub' => 'Below ' . $threshold . '% attendance', 'icon' => 'icon-users', 'tone' => 'red'],
                         ['value' => number_format($summary['classes']), 'label' => 'Classes', 'sub' => 'Have students below ' . $threshold . '%', 'icon' => 'icon-graduation2', 'tone' => 'blue'],
                         ['value' => $avgLabel, 'label' => 'Average Attendance', 'sub' => 'Of at-risk students', 'icon' => 'icon-watch', 'tone' => 'amber'],
-                        ['value' => number_format($summary['total_students']), 'label' => 'Total Students', 'sub' => ($selected_class || $selected_section) ? 'Enrolled in the selected scope' : 'Across all classes', 'icon' => 'icon-users4', 'tone' => 'green'],
+                        ['value' => number_format($summary['total_students']), 'label' => 'Total Students', 'sub' => ($selected_class || $selected_section) ? 'Enrolled in the selected scope' : (Qs::userIsTeacher() ? 'Across your assigned classes' : 'Across all classes'), 'icon' => 'icon-users4', 'tone' => 'green'],
                     ] as $stat)
                         <div class="col-sm-6 col-xl-3">
                             <div class="l117-kpi l117-kpi-{{ $stat['tone'] }}">
@@ -109,7 +109,7 @@
                     <div class="pat-filter-field">
                         <label for="ad_class_id">Class</label>
                         <select name="class_id" id="ad_class_id" class="form-control" onchange="this.form.submit()">
-                            <option value="">All Classes</option>
+                            <option value="">{{ Qs::userIsTeacher() ? 'All assigned classes' : 'All Classes' }}</option>
                             @foreach($classes as $class)
                                 <option value="{{ $class->id }}" {{ $selected_class && $selected_class->id === $class->id ? 'selected' : '' }}>{{ $class->name }}</option>
                             @endforeach

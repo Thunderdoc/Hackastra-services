@@ -28,7 +28,7 @@ class ExamDutyController extends Controller
     public function __construct(ExamRepo $exam)
     {
         $this->middleware('teamSA', ['except' => ['myDuties']]);
-        $this->middleware('teamSAWrite', ['only' => ['assign', 'auto']]);
+        $this->middleware('teamSAWrite', ['only' => ['assign', 'auto', 'assignBulk']]);
         $this->exam = $exam;
     }
 
@@ -113,6 +113,62 @@ class ExamDutyController extends Controller
             : '';
 
         return back()->with('flash_success', 'Invigilator saved.' . $note);
+    }
+
+    /**
+     * Save All (overnight menus 2026-10-29, item 21): one request
+     * saves every changed invigilator on the duties page. The page
+     * posts only changed, non-empty rows; the server skips any
+     * empty value that still arrives. Each row goes through the
+     * same pool check, clash rule (Invigilation::assign) and audit
+     * entry as a single save; rows that clash are reported and the
+     * rest still save. Rows cleared to empty are skipped — single
+     * saves cannot unassign either, so bulk does not invent that
+     * behaviour.
+     */
+    public function assignBulk(Request $request)
+    {
+        $data = $request->validate([
+            'assignments' => 'required|array',
+            'assignments.*' => 'nullable|string',
+        ]);
+
+        $saved = 0;
+        $failed = [];
+        foreach ($data['assignments'] as $sittingId => $hashedTeacherId) {
+            if ($hashedTeacherId === null || $hashedTeacherId === '') {
+                continue; // Cleared row — skipped, never unassigned.
+            }
+            $sitting = ExamDate::find($sittingId);
+            $teacherId = (int) Qs::resolveId($hashedTeacherId);
+            $teacher = $sitting ? Invigilation::pool()->firstWhere('id', $teacherId) : null;
+            if (!$sitting || !$teacher) {
+                $failed[] = 'Sitting #' . $sittingId . ': teacher not in the invigilator pool.';
+                continue;
+            }
+
+            [$ok, $message] = Invigilation::assign($sitting, $teacherId, Auth::id());
+            if (!$ok) {
+                $failed[] = $sitting->exam_date . ' ' . substr((string) $sitting->start_time, 0, 5)
+                    . ' (' . optional($sitting->my_class)->name . '): ' . $message;
+                continue;
+            }
+
+            Audit::log('exams.duty_assigned', $sitting,
+                'Invigilator ' . $teacher->name . ' set for ' . $sitting->exam_date . ' '
+                . substr((string) $sitting->start_time, 0, 5) . ' (' . optional($sitting->my_class)->name . ')');
+            $saved++;
+        }
+
+        $response = back();
+        if ($saved > 0) {
+            $response->with('flash_success', $saved . ' invigilator(s) saved in one go.');
+        }
+        if (!empty($failed)) {
+            $response->with('flash_danger', 'Could not save: ' . implode(' ', $failed));
+        }
+
+        return $response;
     }
 
     public function auto(Request $request)

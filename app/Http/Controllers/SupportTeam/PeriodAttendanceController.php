@@ -15,6 +15,8 @@ use App\Models\Substitution;
 use App\Models\TimeTable;
 use App\Support\CsvExport;
 use App\Support\SectionTeacher;
+use App\Support\TeacherScope;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -615,6 +617,7 @@ class PeriodAttendanceController extends Controller
             [$from, $to] = [$to, $from];
         }
 
+        $this->guardClassScope($request->query('class_id'));
         $class = $request->query('class_id')
             ? MyClass::find((int) $request->query('class_id'))
             : null;
@@ -629,21 +632,47 @@ class PeriodAttendanceController extends Controller
             }
         }
 
+        // Section filter, same fallback rule as the subject: a
+        // section outside the chosen class is ignored, and without
+        // a class there is no section scope to apply.
+        $section = null;
+        if ($class && $request->query('section_id')) {
+            $section = Section::where('my_class_id', $class->id)
+                ->find((int) $request->query('section_id'));
+        }
+
         // Inclusive calendar bounds via whereDate: the shared
         // betweenDates scope string-compares the datetime column
         // against 'Y-m-d', which silently drops the final day's
         // sessions (their stored value carries a time component) —
         // an export "to 2026-10-23" must contain 2026-10-23.
-        $query = AttendanceSession::with(['my_class', 'subject', 'teacher', 'time_table.time_slot', 'entries'])
+        $with = ['my_class', 'subject', 'teacher', 'time_table.time_slot'];
+        if ($section) {
+            $with['entries'] = function ($q) use ($section) {
+                $q->whereHas('student_record', function ($q2) use ($section) {
+                    $q2->where('section_id', $section->id);
+                });
+            };
+        } else {
+            $with[] = 'entries';
+        }
+        $query = AttendanceSession::with($with)
             ->whereDate('date', '>=', $from->format('Y-m-d'))
             ->whereDate('date', '<=', $to->format('Y-m-d'))
             ->orderBy('date')
             ->orderBy('id');
         if ($class) {
             $query->forClass($class->id);
+        } elseif (Qs::userIsTeacher()) {
+            // A teacher's unscoped export covers assigned classes
+            // only, never the whole school's session log.
+            $query->whereIn('my_class_id', TeacherScope::classIds(Auth::user()));
         }
         if ($subject) {
             $query->forSubject($subject->id);
+        }
+        if ($section) {
+            $query->forEffectiveSection($section->id);
         }
         $sessions = $query->get();
 
@@ -663,7 +692,7 @@ class PeriodAttendanceController extends Controller
         })->all();
 
         $scope = $class
-            ? Str::slug($class->name) . ($subject ? '-' . Str::slug($subject->name) : '-all-subjects')
+            ? Str::slug($class->name) . ($subject ? '-' . Str::slug($subject->name) : '-all-subjects') . ($section ? '-' . Str::slug($section->name) : '')
             : 'all-classes';
         $filename = 'period-attendance-sessions-'
             . $scope . '-'
@@ -674,13 +703,49 @@ class PeriodAttendanceController extends Controller
             $rows);
     }
 
+    /**
+     * The classes this user may work with — staff teams keep the
+     * whole school; a teacher gets only their assigned classes
+     * (TeacherScope), the same rule AttendanceController applies.
+     * Previously this report listed every class to every teacher.
+     */
+    private function visibleClasses()
+    {
+        $classes = MyClass::orderBy('name')->get();
+
+        if (Qs::userIsTeacher()) {
+            $classes = $classes->whereIn('id', TeacherScope::classIds(Auth::user()))->values();
+        }
+
+        return $classes;
+    }
+
+    private function guardClassScope($classId)
+    {
+        if ($classId && Qs::userIsTeacher() && !TeacherScope::canTeachClass(Auth::user(), $classId)) {
+            abort(403, 'You can only work with your assigned classes.');
+        }
+    }
+
     /** Shared computation behind report() and export(). */
     protected function reportData(Request $request): array
     {
-        $d['classes'] = MyClass::orderBy('name')->get();
+        $this->guardClassScope($request->query('class_id'));
+        $d['classes'] = $this->visibleClasses();
         $d['selected_class'] = $request->query('class_id')
             ? $d['classes']->firstWhere('id', (int) $request->query('class_id'))
             : $d['classes']->first();
+        /* Section filter (same rule as the monthly report): only
+           for a single selected class — a section from another
+           class falls back to All sections, never an empty report.
+           Teacher scope stays class-level via visibleClasses();
+           the filter only narrows what the teacher already sees. */
+        $d['sections'] = $d['selected_class']
+            ? Section::where('my_class_id', $d['selected_class']->id)->orderBy('id')->get()
+            : collect();
+        $d['selected_section'] = ($d['selected_class'] && $request->query('section_id'))
+            ? $d['sections']->firstWhere('id', (int) $request->query('section_id'))
+            : null;
 
         $d['subjects'] = $d['selected_class']
             ? Subject::where('my_class_id', $d['selected_class']->id)->orderBy('name')->get()
@@ -700,9 +765,28 @@ class PeriodAttendanceController extends Controller
         $d['held'] = 0;
 
         if ($d['selected_class'] && $d['selected_subject']) {
-            $sessions = AttendanceSession::with(['teacher', 'time_table.time_slot', 'entries'])
+            $sectionId = $d['selected_section'] ? $d['selected_section']->id : null;
+            // A section-filtered report counts only that section's
+            // entries: the session log's totals read the loaded
+            // entries relation, so the relation itself is filtered
+            // (a legacy class-wide session's foreign-section entries
+            // must not inflate the section's figures).
+            $with = ['teacher', 'time_table.time_slot'];
+            if ($sectionId) {
+                $with['entries'] = function ($q) use ($sectionId) {
+                    $q->whereHas('student_record', function ($q2) use ($sectionId) {
+                        $q2->where('section_id', $sectionId);
+                    });
+                };
+            } else {
+                $with[] = 'entries';
+            }
+            $sessions = AttendanceSession::with($with)
                 ->forClass($d['selected_class']->id)
                 ->forSubject($d['selected_subject']->id)
+                ->when($sectionId, function ($q) use ($sectionId) {
+                    $q->forEffectiveSection($sectionId);
+                })
                 ->betweenDates($d['from'], $d['to'])
                 ->orderBy('date')
                 ->orderBy('id')
@@ -711,10 +795,15 @@ class PeriodAttendanceController extends Controller
             $d['held'] = $sessions->count();
 
             $entriesByStudent = AttendanceSessionEntry::whereIn('session_id', $sessions->pluck('id')->all())
+                ->when($sectionId, function ($q) use ($sectionId) {
+                    $q->whereHas('student_record', function ($q2) use ($sectionId) {
+                        $q2->where('section_id', $sectionId);
+                    });
+                })
                 ->get()
                 ->groupBy('student_record_id');
 
-            $students = $this->roster((int) $d['selected_class']->id);
+            $students = $this->roster((int) $d['selected_class']->id, $sectionId);
             $d['rows'] = $students->map(function ($student) use ($entriesByStudent, $d) {
                 $entries = $entriesByStudent->get($student->id, collect());
                 $present = $entries->where('status', AttendanceSessionEntry::STATUS_PRESENT)->count();

@@ -21,13 +21,15 @@ use Illuminate\Validation\ValidationException;
  * period on one date.
  *
  * These routes carry NO team middleware, so every action guards
- * itself here: Admin manages all substitutions; a teacher creates
- * only for periods they own (the period's effective teacher, via
- * SectionTeacher — section override else subject teacher) and
- * deletes only substitutions they created; index shows an admin
- * everything and a teacher only rows where they are absent or
- * substitute. Anyone else (including Super Admin, who has no
- * oversight role on this surface) gets a 403.
+ * itself here. Overnight menus 2026-10-29, item 19 (image-31:
+ * the Substitutions decision screen): substitutions are NOT
+ * decided by teachers — the Admin arranges them (manually here;
+ * any auto-assignment is a separate build) and the system notifies
+ * the substitute. Admin manages all substitutions; the Principal
+ * reads the board (monitoring only, via the leave queue's cover
+ * badge); teachers get no access at all — no menu link, and every
+ * action refuses them server-side. Anyone else (including Super
+ * Admin, who has no oversight role on this surface) gets a 403.
  *
  * Clash rule (store): the substitute must not already teach
  * another period at an overlapping time that day — checked against
@@ -41,7 +43,7 @@ use Illuminate\Validation\ValidationException;
  */
 class SubstitutionController extends Controller
 {
-    /** List: admin sees all, teacher sees rows where they are absent or substitute. */
+    /** List: admin sees all, principal reads (monitoring only). Teachers get no access. */
     public function index(Request $request)
     {
         $user = $request->user();
@@ -59,31 +61,25 @@ class SubstitutionController extends Controller
             // Round-2 roles fix: the principal's leave queue links its
             // "N without cover" badge here, so the board must open for
             // the principal (read-only monitoring). Arranging and
-            // deleting cover stay admin/teacher (create/store/destroy
-            // guards unchanged).
+            // deleting cover stay admin-only.
             $d['substitutions'] = $query->get();
-        } elseif (Qs::userIsTeacher()) {
-            $d['substitutions'] = $query->where(function ($q) use ($user) {
-                $q->where('absent_teacher_id', $user->id)
-                    ->orWhere('substitute_teacher_id', $user->id);
-            })->get();
         } else {
-            abort(403, 'Substitutions are managed by administrators and teachers.');
+            abort(403, 'Substitutions are managed by administrators.');
         }
 
         $d['can_delete'] = function (Substitution $sub) use ($user) {
-            return Qs::userIsAdmin() || (int) $sub->created_by === (int) $user->id;
+            return Qs::userIsAdmin();
         };
 
         return view('pages.support_team.substitutions.index', $d);
     }
 
-    /** Form: admin picks any period, a teacher only their own periods. */
+    /** Form: admin picks any period. Teachers get no access. */
     public function create(Request $request)
     {
         $user = $request->user();
-        if (!$user || (!Qs::userIsAdmin() && !Qs::userIsTeacher())) {
-            abort(403, 'Substitutions are managed by administrators and teachers.');
+        if (!$user || !Qs::userIsAdmin()) {
+            abort(403, 'Substitutions are managed by administrators.');
         }
 
         $d['periods'] = $this->periodOptions($user);
@@ -101,8 +97,8 @@ class SubstitutionController extends Controller
     public function store(Request $request)
     {
         $user = $request->user();
-        if (!$user || (!Qs::userIsAdmin() && !Qs::userIsTeacher())) {
-            abort(403, 'Substitutions are managed by administrators and teachers.');
+        if (!$user || !Qs::userIsAdmin()) {
+            abort(403, 'Substitutions are managed by administrators.');
         }
 
         $data = $request->validate([
@@ -129,11 +125,10 @@ class SubstitutionController extends Controller
             optional($tt->tt_record)->section_id ?? null, $tt->subject
         );
 
-        // Create guard: admin, or the absent teacher themself. A
-        // teacher may only create substitutions for periods they own.
-        if (!Qs::userIsAdmin() && $absentId !== (int) $user->id) {
-            abort(403, 'You can only create substitutions for your own periods.');
-        }
+        // Overnight menus 2026-10-29, item 19: only the Admin
+        // arranges cover — the absent-teacher self-create path is
+        // retired with the teacher menu link (the guard at the top
+        // already refuses non-admins).
 
         if (!$absentId) {
             throw ValidationException::withMessages([
@@ -210,15 +205,12 @@ class SubstitutionController extends Controller
             ->with('flash_success', 'Substitution arranged: ' . $substitute->name . ' covers ' . $tt->subject->name . ' on ' . $date->format('d M Y') . '.');
     }
 
-    /** Delete: admin, or the teacher who created the row. */
+    /** Delete: admin only. */
     public function destroy(Request $request, Substitution $substitution)
     {
         $user = $request->user();
-        if (!$user) {
-            abort(403);
-        }
-        if (!Qs::userIsAdmin() && (int) $substitution->created_by !== (int) $user->id) {
-            abort(403, 'You can only delete substitutions you created.');
+        if (!$user || !Qs::userIsAdmin()) {
+            abort(403, 'Substitutions are managed by administrators.');
         }
 
         // Round 6 (roles audit, PTM-cancel precedent): removing the
@@ -253,18 +245,15 @@ class SubstitutionController extends Controller
     }
 
     /**
-     * Period options for the create form. Admins get every period
-     * with a subject; teachers get only their own periods, using
-     * the same effective-teacher filter period attendance uses.
+     * Period options for the create form. Admin-only since the
+     * 2026-10-29 overnight menus order, so the form lists every
+     * period with a subject; the teacher filter is retired with
+     * teacher access.
      */
     protected function periodOptions(User $user)
     {
         $query = TimeTable::with(['subject', 'time_slot', 'tt_record.my_class', 'tt_record.section'])
             ->whereNotNull('subject_id');
-
-        if (!Qs::userIsAdmin()) {
-            SectionTeacher::applyTeacherFilter($query, (int) $user->id);
-        }
 
         return $query->get()->sortBy(function ($tt) {
             return ($tt->day ?? '') . ' ' . optional($tt->time_slot)->time_from;

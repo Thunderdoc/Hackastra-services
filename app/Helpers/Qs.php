@@ -52,6 +52,24 @@ class Qs
     ];
 
     /**
+     * A school-defined admission-number pattern is valid when it uses
+     * only letters, digits, / - _ . and the placeholders {CODE}
+     * (School Acronym), {CLASS} (class type code), {YEAR} (year
+     * admitted), and ends with a separator (/ - _ .) so the serial
+     * appended after it can never glue onto the pattern text and so
+     * the LIKE-based series lookup can never match another prefix.
+     * The serial itself is always appended last by generateAdmNo().
+     */
+    public static function isValidAdmNoCustomPattern($pattern): bool
+    {
+        if (!is_string($pattern) || $pattern === '' || strlen($pattern) > 50) {
+            return false;
+        }
+
+        return (bool) preg_match('/^(?:[A-Za-z0-9]|\{(CODE|CLASS|YEAR)\})(?:[A-Za-z0-9\/\-_.]|\{(CODE|CLASS|YEAR)\})*[\/\-_.]$/', $pattern);
+    }
+
+    /**
      * The admission-number PREFIX for one (class type, year) under the
      * school's chosen format, trailing slash included, uppercased.
      * Every composite admission number in the app — system-minted AND
@@ -62,6 +80,22 @@ class Qs
     public static function admNoPrefix($classTypeCode, $yearAdmitted)
     {
         $format = self::getSetting('adm_no_format') ?: 'code_class_year_serial';
+        if ($format === 'custom') {
+            $pattern = (string) (self::getSetting('adm_no_custom_pattern') ?: '');
+            if (self::isValidAdmNoCustomPattern($pattern)) {
+                $prefix = str_replace(
+                    ['{CODE}', '{CLASS}', '{YEAR}'],
+                    [self::getAppCode(), $classTypeCode, trim((string) $yearAdmitted)],
+                    $pattern
+                );
+
+                return strtoupper($prefix);
+            }
+            // Invalid or empty custom pattern falls back to the
+            // default format, same as a bogus format value — never
+            // mint a broken shape.
+            $format = 'code_class_year_serial';
+        }
         $segments = self::ADM_NO_FORMATS[$format] ?? self::ADM_NO_FORMATS['code_class_year_serial'];
         $values = [
             'code' => self::getAppCode(),

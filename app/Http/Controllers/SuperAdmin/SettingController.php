@@ -28,6 +28,7 @@ class SettingController extends Controller
         'principal_name', 'logo', 'school_stamp',
         'principal_signature',
         'adm_no_format', 'adm_no_serial_start', 'adm_no_serial_width',
+        'adm_no_custom_pattern',
     ];
 
     public const PLATFORM_FIELDS = [
@@ -65,6 +66,7 @@ class SettingController extends Controller
         'teacher_max_periods_day', 'teacher_max_periods_week',
         'library_fine_per_day',
         'adm_no_format', 'adm_no_serial_start', 'adm_no_serial_width',
+        'adm_no_custom_pattern',
     ];
 
     protected $setting, $my_class;

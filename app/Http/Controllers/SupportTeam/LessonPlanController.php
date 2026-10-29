@@ -21,29 +21,28 @@ class LessonPlanController extends Controller
      * Lesson planner / syllabus tracker (Wave 1 feature 2).
      *
      * Guard model: these routes carry NO team middleware, so this
-     * controller gates everything. create/store/destroy are teacher
-     * only, and only for classes/subjects the teacher teaches
-     * (effective teacher via SectionTeacher, so a section override
-     * teacher counts for that section). index/show are teacher (own
-     * plans only) plus admin (all plans, read-only oversight).
-     * Everyone else — students, parents, super admin — gets 403.
+     * controller gates everything. Overnight menus 2026-10-29,
+     * item 17 (image-33, full removal for teachers): teachers get
+     * 403 on every action — no menu link and no server access.
+     * Admin and principal keep their read oversight (index/show);
+     * admin keeps delete. Create/store refuse everyone now that
+     * only teachers could write — no admin-write capability is
+     * invented here. Everyone else — students, parents, super
+     * admin — gets 403. Code and routes stay, so the module
+     * restores by re-adding the teacher link and gates.
      */
 
     public function index(Request $request)
     {
         $user = Auth::user();
         // Limited principal role (owner order 2026-10-28): the
-        // principal reads every plan school-wide (the ->when
-        // below scopes teachers only, so principals are
-        // unscoped by construction); plan writes stay teacher/.
-        if (!Qs::userIsTeacher() && !Qs::userIsAdmin() && !Qs::userIsPrincipal()) {
+        // principal reads every plan school-wide; admin reads all.
+        // Teachers are out entirely (overnight menus, item 17).
+        if (!Qs::userIsAdmin() && !Qs::userIsPrincipal()) {
             abort(403);
         }
 
         $plans = LessonPlan::with(['my_class', 'section', 'subject', 'teacher'])
-            ->when(Qs::userIsTeacher(), function ($q) use ($user) {
-                $q->where('teacher_id', $user->id);
-            })
             ->orderBy('week_start')
             ->orderBy('my_class_id')
             ->orderBy('subject_id')
@@ -92,75 +91,25 @@ class LessonPlanController extends Controller
 
     public function create()
     {
-        if (!Qs::userIsTeacher()) {
-            abort(403);
-        }
-
-        return view('pages.support_team.lesson_plans.create', $this->formData(Auth::id()));
+        // Overnight menus, item 17: only teachers could create,
+        // and teachers are out — so creation is closed, not handed
+        // to another role.
+        abort(403, 'Lesson plans are not available.');
     }
 
     public function store(Request $request)
     {
-        if (!Qs::userIsTeacher()) {
-            abort(403);
-        }
-
-        $data = $request->validate([
-            'my_class_id' => 'required|exists:my_classes,id',
-            'section_id' => 'nullable|exists:sections,id',
-            'subject_id' => 'required|exists:subjects,id',
-            'week_start' => 'required|date',
-            'topic' => 'required|string|max:255',
-            'notes' => 'nullable|string',
-        ]);
-
-        $subject = Subject::findOrFail($data['subject_id']);
-
-        // Scope guards: the subject must belong to the chosen class,
-        // the section (when given) must belong to the class, and the
-        // caller must be the subject's effective teacher for that
-        // section (section override wins, else the class teacher).
-        if ((int) $subject->my_class_id !== (int) $data['my_class_id']) {
-            abort(403);
-        }
-        if (!empty($data['section_id'])) {
-            $section = Section::findOrFail($data['section_id']);
-            if ((int) $section->my_class_id !== (int) $data['my_class_id']) {
-                abort(403);
-            }
-        }
-        if ((int) SectionTeacher::teacherIdFor($data['section_id'] ?? null, $subject) !== (int) Auth::id()) {
-            abort(403);
-        }
-
-        // Normalize the week to its Monday, whatever weekday was picked.
-        $monday = Carbon::parse($data['week_start'])->startOfDay();
-        $monday = $monday->subDays($monday->dayOfWeekIso - 1);
-
-        $plan = LessonPlan::create([
-            'teacher_id' => Auth::id(),
-            'my_class_id' => $data['my_class_id'],
-            'section_id' => $data['section_id'] ?? null,
-            'subject_id' => $data['subject_id'],
-            'week_start' => $monday->toDateString(),
-            'topic' => trim($data['topic']),
-            'notes' => $data['notes'] ?? null,
-        ]);
-
-        return redirect()->route('lesson_plans.show', $plan->id)
-            ->with('flash_success', 'Lesson plan saved.');
+        // Overnight menus, item 17: see create() — writes are closed.
+        abort(403, 'Lesson plans are not available.');
     }
 
     public function show(LessonPlan $lesson)
     {
         $user = Auth::user();
-        if (Qs::userIsTeacher()) {
-            if ((int) $lesson->teacher_id !== (int) $user->id) {
-                abort(403);
-            }
-        } elseif (!Qs::userIsAdmin() && !Qs::userIsPrincipal()) {
-            // Round-2 roles fix: the principal's index lists every plan
-            // school-wide with a View link, so show must open them too.
+        // Round-2 roles fix: the principal's index lists every plan
+        // school-wide with a View link, so show must open them too.
+        // Teachers are out entirely (overnight menus, item 17).
+        if (!Qs::userIsAdmin() && !Qs::userIsPrincipal()) {
             abort(403);
         }
 
@@ -177,9 +126,6 @@ class LessonPlanController extends Controller
             $lesson->section_id,
             LessonPlan::where('my_class_id', $lesson->my_class_id)
                 ->where('subject_id', $lesson->subject_id)
-                ->when(Qs::userIsTeacher(), function ($q) use ($user) {
-                    $q->where('teacher_id', $user->id);
-                })
                 ->when($lesson->section_id, function ($q) use ($lesson) {
                     $q->where('section_id', $lesson->section_id);
                 })
@@ -214,8 +160,9 @@ class LessonPlanController extends Controller
         // owners (incl. the new effective teacher and the
         // principal) are still refused.
         $user = Auth::user();
-        $ownTeacher = Qs::userIsTeacher() && (int) $lesson->teacher_id === (int) $user->id;
-        if (!$ownTeacher && !Qs::userIsAdmin()) {
+        // Overnight menus, item 17: teacher delete is gone with
+        // teacher access; admin delete stays.
+        if (!Qs::userIsAdmin()) {
             abort(403);
         }
 

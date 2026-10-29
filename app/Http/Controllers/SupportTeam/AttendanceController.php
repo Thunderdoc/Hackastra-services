@@ -265,8 +265,11 @@ class AttendanceController extends Controller
         $d['range_label'] = $d['months'] === 1
             ? $d['month']->format('F Y')
             : $rangeFrom->format('F Y') . ' – ' . $rangeTo->format('F Y');
+        // Same wording rule as the Low Attendance page: a teacher's
+        // all-classes aggregate covers assigned classes only, so the
+        // document header must not call it "All Classes".
         $d['class_label'] = $d['all_classes']
-            ? 'All Classes'
+            ? (Qs::userIsTeacher() ? 'All Assigned Classes' : 'All Classes')
             : ($d['selected_class']
                 ? $d['selected_class']->name . ($d['selected_section'] ? ' — ' . $d['selected_section']->name : '')
                 : '');

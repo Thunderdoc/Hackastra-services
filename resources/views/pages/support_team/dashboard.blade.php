@@ -24,63 +24,17 @@
         </div>
     </div>
 
+    {{-- Admin dashboard redesign 2026-10-28 (owner order): the four
+         KPI stat cards (Total Students, Teaching Staff,
+         Administrators, Parents) and the Quick Actions section are
+         removed from this page. They are view-only links — no routes,
+         controllers or other pages are touched, and the controller
+         still computes the same figures, so nothing else breaks.
+         The left column is gone with them; the calendar stays in
+         the right-side column, pushed right with ml-auto. --}}
     <div class="row">
-        <div class="col-xl-9">
-            {{-- Stat cards with real 30-day deltas --}}
-            <div class="row dashboard-stats">
-                @foreach([
-                    ['label' => 'Total Students', 'value' => $student_count, 'sub' => 'Enrolled students', 'icon' => 'icon-users4', 'tone' => 'blue', 'delta' => $stat_deltas['students'], 'link' => route('students.list', optional(App\Models\MyClass::first())->id)],
-                    ['label' => 'Teaching Staff', 'value' => $teacher_count, 'sub' => 'Active teachers', 'icon' => 'icon-user-tie', 'tone' => 'green', 'delta' => $stat_deltas['teachers'], 'link' => route('users.index')],
-                    ['label' => 'Administrators', 'value' => $administrator_count, 'sub' => 'System administrators', 'icon' => 'icon-shield-check', 'tone' => 'orange', 'delta' => $stat_deltas['administrators'], 'link' => route('users.index')],
-                    ['label' => 'Parents', 'value' => $parent_count, 'sub' => 'Registered parents', 'icon' => 'icon-users2', 'tone' => 'purple', 'delta' => $stat_deltas['parents'], 'link' => route('users.index')],
-                ] as $stat)
-                    <div class="col-sm-6 col-xl-3">
-                        <a href="{{ $stat['link'] }}" class="dashboard-stat-card dashboard-stat-{{ $stat['tone'] }}">
-                            <span class="dashboard-stat-top">
-                                <span class="dashboard-stat-icon"><i class="{{ $stat['icon'] }}"></i></span>
-                                @if($stat['delta'] !== null)
-                                    <span class="dashboard-delta {{ $stat['delta'] > 0 ? 'delta-up' : ($stat['delta'] < 0 ? 'delta-down' : 'delta-flat') }}">
-                                        {{ $stat['delta'] > 0 ? '↑' : ($stat['delta'] < 0 ? '↓' : '') }} {{ abs($stat['delta']) }}%
-                                    </span>
-                                @endif
-                            </span>
-                            <span class="dashboard-stat-copy">
-                                <span class="dashboard-stat-label">{{ $stat['label'] }}</span>
-                                <strong>{{ number_format($stat['value']) }}</strong>
-                                <small>{{ $stat['sub'] }}</small>
-                            </span>
-                        </a>
-                    </div>
-                @endforeach
-            </div>
-
-            {{-- Quick Actions --}}
-            <section class="dashboard-panel dashboard-quick-actions mb-4">
-                <div class="dashboard-panel-heading">
-                    <div><h5 class="mb-1"><i class="icon-rocket text-blue mr-1"></i> Quick Actions</h5><p class="dashboard-muted mb-0">Perform common administrative tasks quickly.</p></div>
-                </div>
-                <div class="dashboard-action-grid l17-action-grid">
-                    @if(Qs::userIsTeamSAWrite())
-                    {{-- Workstream CO: no "Add Student" tile here — the
-                         hero primary action above is that same button
-                         (same label, same route, one page). --}}
-                    <a href="{{ route('users.create') }}"><i class="icon-user-tie"></i><span>Add Teacher</span></a>
-                    @endif
-                    <a href="{{ route('classes.index') }}"><i class="icon-windows2"></i><span>Manage Classes</span></a>
-                    @if(Qs::userIsTeamSAWrite())
-                    <a href="{{ route('exams.create') }}"><i class="icon-book"></i><span>Create Exam</span></a>
-                    @endif
-                    @if(Qs::userIsTeamAccountWrite())
-                    <a href="{{ route('payments.create') }}"><i class="icon-wallet"></i><span>Record Payment</span></a>
-                    @endif
-                    <a href="{{ route('marks.tabulation') }}"><i class="icon-stats-bars"></i><span>Marks Tabulation</span></a>
-                    <a href="{{ route('settings') }}"><i class="icon-cog5"></i><span>School Settings</span></a>
-                </div>
-            </section>
-        </div>
-
         {{-- School Calendar --}}
-        <div class="col-xl-3">
+        <div class="col-xl-3 ml-auto">
             <section class="dashboard-panel dashboard-calendar mb-4">
                 <div class="dashboard-panel-heading">
                     <div><h5 class="mb-1"><i class="icon-calendar3 text-blue mr-1"></i> School Calendar</h5></div>
@@ -104,26 +58,17 @@
                 </div>
             </section>
 
-            {{-- New Enquiries lives under the calendar (owner ask
-                 2026-10-28): as the 5th stat it wrapped alone onto a
-                 second row of the KPI grid, leaving a gap in the
-                 left column. In the right rail it keeps its exact
-                 card width and the KPI row stays a clean four. --}}
-            <a href="{{ route('admissions.index') }}" class="dashboard-stat-card dashboard-stat-red mb-4">
-                <span class="dashboard-stat-top">
-                    <span class="dashboard-stat-icon"><i class="icon-envelop"></i></span>
-                    @if($stat_deltas['enquiries'] !== null)
-                        <span class="dashboard-delta {{ $stat_deltas['enquiries'] > 0 ? 'delta-up' : ($stat_deltas['enquiries'] < 0 ? 'delta-down' : 'delta-flat') }}">
-                            {{ $stat_deltas['enquiries'] > 0 ? '↑' : ($stat_deltas['enquiries'] < 0 ? '↓' : '') }} {{ abs($stat_deltas['enquiries']) }}%
-                        </span>
-                    @endif
-                </span>
-                <span class="dashboard-stat-copy">
-                    <span class="dashboard-stat-label">New Enquiries</span>
-                    <strong>{{ number_format($new_enquiry_count) }}</strong>
-                    <small>Awaiting first contact</small>
-                </span>
-            </a>
+            {{-- Admin dashboard redesign 2026-10-28 (owner order):
+                 New Enquiries card removed from under the calendar.
+                 The main form belongs directly below this calendar
+                 card, in this same right-side column, aligned with
+                 the calendar's edges — NOT yet placed, because this
+                 page has no main form to move: its only forms are
+                 the two year-select GET forms on the Enrollment
+                 Trend and Fee Collection panels below. The form's
+                 identity (which page's form / screenshot) is still
+                 needed from the owner before that move is made;
+                 no duplicate form is created here. --}}
         </div>
     </div>
 

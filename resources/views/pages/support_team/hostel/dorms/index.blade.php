@@ -35,7 +35,7 @@
                                     <td>{{ $dorm->name }}</td>
                                     <td>{{ $dorm->description }}</td>
                                     <td>
-                                        @if(Qs::userIsTeamSAWrite())
+                                        @if(auth()->user() && auth()->user()->user_type === 'hostel')
                                             <a href="{{ route('hostel.dorms.edit', ['hostel_dorm' => $dorm->id]) }}" class="btn btn-sm btn-primary">Edit</a>
                                             <form method="post" action="{{ route('hostel.dorms.destroy', ['hostel_dorm' => $dorm->id]) }}" class="d-inline" onsubmit="return confirm('Delete this dorm?')">
                                                 @csrf @method('delete')
@@ -51,7 +51,7 @@
             @else
                 <p>No dorms found yet. Create the first dorm using the form below.</p>
             @endif
-            @if(Qs::userIsTeamSAWrite())
+            @if(auth()->user() && auth()->user()->user_type === 'hostel')
                 <hr>
                 <h6>Create Dorm</h6>
                 <form method="post" action="{{ route('hostel.dorms.store') }}">

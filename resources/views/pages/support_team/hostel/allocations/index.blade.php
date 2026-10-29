@@ -7,7 +7,7 @@
             <div class="header-elements">
                 <a href="{{ route('hostel.dorms.index') }}" class="btn btn-sm btn-primary">Dorms</a>
                 <a href="{{ route('hostel.rooms.index') }}" class="btn btn-sm btn-primary">Rooms</a>
-                @if(Qs::userIsTeamSAWrite())
+                @if(auth()->user() && auth()->user()->user_type === 'hostel')
                     <a href="{{ route('hostel.allocations.create') }}" class="btn btn-sm btn-success">Allocate Student</a>
                 @endif
             </div>
@@ -31,7 +31,7 @@
                                     <td>{{ optional($allocation->dorm)->name }}</td>
                                     <td>{{ $allocation->dorm_room_no }}</td>
                                     <td>
-                                        @if(Qs::userIsTeamSAWrite())
+                                        @if(auth()->user() && auth()->user()->user_type === 'hostel')
                                             <form method="post" action="{{ route('hostel.allocations.destroy', ['hostel_record' => $allocation->id]) }}" class="d-inline" onsubmit="return confirm('Deallocate this student from the hostel?')">
                                                 @csrf @method('delete')
                                                 <button type="submit" class="btn btn-sm btn-danger">Deallocate</button>

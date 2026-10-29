@@ -78,23 +78,36 @@ class LeaveRequestController extends Controller
         if ($isEmergency) {
             // Inform, don't ask: the approver who would have
             // decided gets a bell item so the absence is visible.
-            $me = Auth::user();
-            $title = 'Emergency leave: ' . $me->name;
-            $body = $me->name . ' is on emergency leave from ' . $data['start_date'] . ' to ' . $data['end_date'] . '. Reason: ' . $data['reason'];
-            if ($me->user_type === 'student') {
-                $record = StudentRecord::where('user_id', $me->id)
-                    ->where('grad', 0)->orderByDesc('id')->first();
-                if ($record && $record->section && $record->section->teacher_id) {
-                    Notify::toUser($record->section->teacher_id, 'leave_emergency', $title, $body, route('leave.student_requests'));
+            // Overnight fix (adopted from a5e6b05): a bell failure
+            // must never 500 an already-created, auto-approved
+            // leave. Notify already degrades to silence when its
+            // table is missing, but any other bell failure (route,
+            // column, recipient lookup) used to take the whole
+            // submit down with it — the leave was created, yet the
+            // user saw a 500 and could retry into a duplicate.
+            // Swallow bell failures here; the approval itself
+            // stands regardless.
+            try {
+                $me = Auth::user();
+                $title = 'Emergency leave: ' . $me->name;
+                $body = $me->name . ' is on emergency leave from ' . $data['start_date'] . ' to ' . $data['end_date'] . '. Reason: ' . $data['reason'];
+                if ($me->user_type === 'student') {
+                    $record = StudentRecord::where('user_id', $me->id)
+                        ->where('grad', 0)->orderByDesc('id')->first();
+                    if ($record && $record->section && $record->section->teacher_id) {
+                        Notify::toUser($record->section->teacher_id, 'leave_emergency', $title, $body, route('leave.student_requests'));
+                    }
+                } else {
+                    // Staff emergency: notify everyone who could have
+                    // decided it — admins AND the principal (designated
+                    // approver). Fixed by parent 2026-10-28 (C round-5
+                    // finding: the loop previously covered admins only).
+                    foreach (User::whereIn('user_type', ['admin', 'principal'])->pluck('id') as $adminId) {
+                        Notify::toUser($adminId, 'leave_emergency', $title, $body, route('leave.index'));
+                    }
                 }
-            } else {
-                // Staff emergency: notify everyone who could have
-                // decided it — admins AND the principal (designated
-                // approver). Fixed by parent 2026-10-28 (C round-5
-                // finding: the loop previously covered admins only).
-                foreach (User::whereIn('user_type', ['admin', 'principal'])->pluck('id') as $adminId) {
-                    Notify::toUser($adminId, 'leave_emergency', $title, $body, route('leave.index'));
-                }
+            } catch (\Throwable $e) {
+                // Bell only — approval stands, no 500, no retry trap.
             }
             return back()->with('flash_success', 'Emergency leave auto-approved.');
         }
@@ -138,10 +151,21 @@ class LeaveRequestController extends Controller
         foreach ($requests as $r) {
             $user = $r->user;
             if (!$user) { $r->allocation_lines = []; $r->uncovered_periods = null; continue; }
-            $allocCache[$user->id] ??= LeaveCover::allocationLines($user);
-            $r->allocation_lines = $allocCache[$user->id];
-            $r->uncovered_periods = ($user->user_type === 'teacher' && in_array($r->status, ['pending', 'approved'], true))
-                ? LeaveCover::uncoveredCount($user->id, $r->start_date, $r->end_date) : null;
+            // Overnight fix (adopted from a5e6b05): cover info is
+            // display-only — the blade already renders dashes when
+            // these attributes are absent. One bad row (bad dates,
+            // a cover query failure) must never 500 the whole leave
+            // queue for every other row. Degrade that row to dashes
+            // and keep the queue.
+            try {
+                $allocCache[$user->id] ??= LeaveCover::allocationLines($user);
+                $r->allocation_lines = $allocCache[$user->id];
+                $r->uncovered_periods = ($user->user_type === 'teacher' && in_array($r->status, ['pending', 'approved'], true))
+                    ? LeaveCover::uncoveredCount($user->id, $r->start_date, $r->end_date) : null;
+            } catch (\Throwable $e) {
+                $r->allocation_lines = [];
+                $r->uncovered_periods = null;
+            }
         }
         return $requests;
     }

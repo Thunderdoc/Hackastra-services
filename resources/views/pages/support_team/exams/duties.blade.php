@@ -35,11 +35,14 @@
                 <strong>{{ $exam->name }}</strong>
                 <span class="text-muted">{{ $sittings->count() }} sitting(s) · {{ $duties->count() }} with an invigilator</span>
                 @if(Qs::userIsTeamSAWrite())
-                    <form method="post" action="{{ route('exam_duties.auto') }}" class="ml-auto">
-                        @csrf
-                        <input type="hidden" name="exam_id" value="{{ $exam->id }}">
-                        <button type="submit" class="btn btn-success btn-sm"><i class="icon-magic-wand mr-1"></i> Auto-Assign All Empty</button>
-                    </form>
+                    <div class="ml-auto d-flex" style="gap:.5rem; flex-wrap: wrap;">
+                        <button type="button" id="saveAllDuties" class="btn btn-primary btn-sm" disabled><i class="icon-floppy-disk mr-1"></i> Save All</button>
+                        <form method="post" action="{{ route('exam_duties.auto') }}">
+                            @csrf
+                            <input type="hidden" name="exam_id" value="{{ $exam->id }}">
+                            <button type="submit" class="btn btn-success btn-sm"><i class="icon-magic-wand mr-1"></i> Auto-Assign All Empty</button>
+                        </form>
+                    </div>
                 @endif
             </div>
 
@@ -51,11 +54,12 @@
             @else
                 <div class="table-responsive">
                     <table class="table">
-                        <thead><tr><th>Date</th><th>Time</th><th>Class</th><th>Subject</th><th>Venue</th><th>Invigilator</th><th>Duties (this exam)</th>@if(Qs::userIsTeamSAWrite())<th>Set</th>@endif</tr></thead>
+                        <thead><tr><th>#</th><th>Date</th><th>Time</th><th>Class</th><th>Subject</th><th>Venue</th><th>Invigilator</th><th>Duties (this exam)</th>@if(Qs::userIsTeamSAWrite())<th>Set</th>@endif</tr></thead>
                         <tbody>
                         @foreach($sittings as $sitting)
                             @php $duty = $duties->get($sitting->id); @endphp
                             <tr>
+                                <td>{{ $loop->iteration }}</td>
                                 <td>{{ \Carbon\Carbon::parse($sitting->exam_date)->format('D, d M Y') }}</td>
                                 <td>{{ \Carbon\Carbon::parse($sitting->start_time)->format('g:i A') }}</td>
                                 <td>{{ optional($sitting->my_class)->name }}</td>
@@ -77,7 +81,7 @@
                                         <form method="post" action="{{ route('exam_duties.assign') }}" class="d-flex" style="gap:.35rem;">
                                             @csrf
                                             <input type="hidden" name="exam_date_id" value="{{ $sitting->id }}">
-                                            <select name="teacher_id" class="form-control form-control-sm" style="min-width: 170px;">
+                                            <select name="teacher_id" class="form-control form-control-sm js-duty-select" data-sitting-id="{{ $sitting->id }}" data-current="{{ $duty ? Qs::hash($duty->teacher_id) : '' }}" style="min-width: 170px;">
                                                 <option value="">Choose…</option>
                                                 @foreach($teachers as $t)
                                                     <option value="{{ Qs::hash($t->id) }}" {{ $duty && (int) $duty->teacher_id === (int) $t->id ? 'selected' : '' }}>{{ $t->name }}</option>
@@ -93,6 +97,43 @@
                     </table>
                 </div>
             @endif
+        @endif
+        @if($exam_id && isset($exam) && Qs::userIsTeamSAWrite())
+        <script>
+        (function () {
+            var btn = document.getElementById('saveAllDuties');
+            if (!btn) { return; }
+            var selects = Array.prototype.slice.call(document.querySelectorAll('.js-duty-select'));
+            function changed() {
+                return selects.filter(function (s) { return s.value !== '' && s.value !== s.getAttribute('data-current'); });
+            }
+            function refresh() { btn.disabled = changed().length === 0; }
+            selects.forEach(function (s) { s.addEventListener('change', refresh); });
+            refresh();
+            btn.addEventListener('click', function () {
+                var rows = changed();
+                if (!rows.length) { return; }
+                var token = document.querySelector('input[name="_token"]');
+                var form = document.createElement('form');
+                form.method = 'post';
+                form.action = '{{ route('exam_duties.assign_bulk') }}';
+                var t = document.createElement('input');
+                t.type = 'hidden'; t.name = '_token'; t.value = token ? token.value : '';
+                form.appendChild(t);
+                rows.forEach(function (s) {
+                    var h = document.createElement('input');
+                    h.type = 'hidden';
+                    h.name = 'assignments[' + s.getAttribute('data-sitting-id') + ']';
+                    h.value = s.value;
+                    form.appendChild(h);
+                });
+                document.body.appendChild(form);
+                btn.disabled = true;
+                btn.textContent = 'Saving…';
+                form.submit();
+            });
+        })();
+        </script>
         @endif
     @endcomponent
 @endsection

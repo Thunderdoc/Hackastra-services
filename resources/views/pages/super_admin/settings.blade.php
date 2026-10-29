@@ -97,15 +97,22 @@
             <div class="pat-fields">
                 <div class="pat-field">
                     <label for="adm_no_format">Admission Number Format</label>
-                    <select name="adm_no_format" id="adm_no_format" class="form-control @error('adm_no_format') is-invalid @enderror">
+                    <select name="adm_no_format" id="adm_no_format" onchange="toggleAdmCustom(this.value)" class="form-control @error('adm_no_format') is-invalid @enderror">
                         <option value="code_class_year_serial" {{ ($s['adm_no_format'] ?? 'code_class_year_serial') === 'code_class_year_serial' ? 'selected' : '' }}>School code / Class / Year / Serial (e.g. HA/PN/2026/1001)</option>
                         <option value="code_year_serial" {{ ($s['adm_no_format'] ?? '') === 'code_year_serial' ? 'selected' : '' }}>School code / Year / Serial (e.g. HA/2026/1001)</option>
                         <option value="class_year_serial" {{ ($s['adm_no_format'] ?? '') === 'class_year_serial' ? 'selected' : '' }}>Class / Year / Serial (e.g. PN/2026/1001)</option>
                         <option value="code_serial" {{ ($s['adm_no_format'] ?? '') === 'code_serial' ? 'selected' : '' }}>School code / Serial (e.g. HA/1001)</option>
                         <option value="year_serial" {{ ($s['adm_no_format'] ?? '') === 'year_serial' ? 'selected' : '' }}>Year / Serial (e.g. 2026/1001)</option>
+                        <option value="custom" {{ ($s['adm_no_format'] ?? '') === 'custom' ? 'selected' : '' }}>Custom — define your own pattern</option>
                     </select>
                     @include('partials.errors.field', ['field' => 'adm_no_format'])
                     <small class="form-text text-muted">Changing the format starts a fresh series — old admission numbers never change.</small>
+                </div>
+                <div class="pat-field" id="adm_no_custom_wrap" style="{{ ($s['adm_no_format'] ?? '') === 'custom' ? '' : 'display:none' }}">
+                    <label for="adm_no_custom_pattern">Custom Pattern</label>
+                    <input name="adm_no_custom_pattern" id="adm_no_custom_pattern" value="{{ $s['adm_no_custom_pattern'] ?? '' }}" type="text" maxlength="50" class="form-control @error('adm_no_custom_pattern') is-invalid @enderror" placeholder="e.g. HA-{YEAR}-{CLASS}-" {{ ($s['adm_no_format'] ?? '') === 'custom' ? '' : 'disabled' }}>
+                    @include('partials.errors.field', ['field' => 'adm_no_custom_pattern'])
+                    <small class="form-text text-muted">Use {CODE} for the School Acronym, {CLASS} for the class code and {YEAR} for the year admitted. End the pattern with / or - . The serial number is added at the end automatically (e.g. HA-2026-PN-1001). Changing the pattern starts a fresh series — old numbers never change.</small>
                 </div>
                 <div class="pat-field">
                     <label for="adm_no_serial_start">First Number of a Fresh Series</label>
@@ -259,8 +266,17 @@
             </div>
         </div>
 
+        <style>
+        /* Owner order 2026-10-29: fileinput pending-selection previews
+           used to blow up the Report Card columns (full-size cards
+           under a "No ... uploaded" note). Keep them small and tidy. */
+        .tt-upload-previews .file-preview-frame { max-width: 230px; }
+        .tt-upload-previews .file-preview-image { max-height: 90px; width: auto; }
+        .tt-upload-previews .file-preview { margin-bottom: 6px; }
+        .tt-upload-previews .file-footer-caption { font-size: 12px; }
+        </style>
         {{-- ======================= Report Card ======================= --}}
-        <div class="pat-form-section">
+        <div class="pat-form-section tt-upload-previews">
             <div class="pat-form-section-title">Report Card</div>
             <div class="pat-form-section-sub">The principal's name, digital signature and the school stamp printed on report cards and admit cards.</div>
             <div class="pat-fields">
@@ -280,7 +296,8 @@
                             <input type="checkbox" name="principal_signature_remove" value="1"> Remove this signature
                         </label>
                     @else
-                        <div class="text-muted mb-2">No signature uploaded — documents print with a blank Principal signature line.</div>
+                        <div class="text-muted mb-2" id="principal_signature_empty_note">No signature uploaded — documents print with a blank Principal signature line.</div>
+                        <div class="text-muted mb-2" id="principal_signature_pending_note" style="display:none">New signature selected — save settings to use it on documents.</div>
                     @endif
                     <input name="principal_signature" id="principal_signature" accept="image/*" type="file" class="file-input @error('principal_signature') is-invalid @enderror" data-show-caption="false" data-show-upload="false" data-fouc>
                     @include('partials.errors.field', ['field' => 'principal_signature'])
@@ -296,7 +313,8 @@
                             <input type="checkbox" name="school_stamp_remove" value="1"> Remove this stamp
                         </label>
                     @else
-                        <div class="text-muted mb-2">No stamp uploaded — report cards print without one. A stamp appears on a card only when one is uploaded here; no placeholder is ever drawn.</div>
+                        <div class="text-muted mb-2" id="school_stamp_empty_note">No stamp uploaded — report cards print without one. A stamp appears on a card only when one is uploaded here; no placeholder is ever drawn.</div>
+                        <div class="text-muted mb-2" id="school_stamp_pending_note" style="display:none">New stamp selected — save settings to use it on report cards.</div>
                     @endif
                     <input name="school_stamp" id="school_stamp" accept="image/*" type="file" class="file-input @error('school_stamp') is-invalid @enderror" data-show-caption="false" data-show-upload="false" data-fouc>
                     @include('partials.errors.field', ['field' => 'school_stamp'])
@@ -306,6 +324,46 @@
         </div>
 
     @endcomponent
+    <script>
+    function toggleAdmCustom(format) {
+        var wrap = document.getElementById('adm_no_custom_wrap');
+        var input = document.getElementById('adm_no_custom_pattern');
+        if (!wrap || !input) { return; }
+        var on = format === 'custom';
+        wrap.style.display = on ? '' : 'none';
+        input.disabled = !on;
+    }
+    // Owner order 2026-10-29: the "No signature/stamp uploaded" note
+    // describes the SAVED setting, but the file picker shows a preview
+    // of the just-selected (not yet saved) file underneath it — so the
+    // page claimed "no signature" while showing one. While a file is
+    // picked, hide the saved-state note and show the pending note;
+    // clearing the pick restores the saved-state note. The saved
+    // image (when one exists) is untouched: it stays live until save.
+    function syncUploadNote(inputId, noteId, pendingId) {
+        var input = document.getElementById(inputId);
+        var note = document.getElementById(noteId);
+        var pending = document.getElementById(pendingId);
+        if (!input || !note || !pending) { return; }
+        var has = input.files && input.files.length > 0;
+        note.style.display = has ? 'none' : '';
+        pending.style.display = has ? '' : 'none';
+    }
+    document.addEventListener('DOMContentLoaded', function () {
+        var pairs = [
+            ['principal_signature', 'principal_signature_empty_note', 'principal_signature_pending_note'],
+            ['school_stamp', 'school_stamp_empty_note', 'school_stamp_pending_note']
+        ];
+        pairs.forEach(function (pair) {
+            var input = document.getElementById(pair[0]);
+            if (!input) { return; }
+            var sync = function () { syncUploadNote(pair[0], pair[1], pair[2]); };
+            input.addEventListener('change', sync);
+            if (window.jQuery) { window.jQuery(input).on('fileclear filecleared', sync); }
+            sync();
+        });
+    });
+    </script>
     @if(Qs::userIsSuperAdmin())
     </fieldset>
     @endif

@@ -36,14 +36,29 @@ use Illuminate\Support\Str;
  * reuses the wave-31a fixed-header technique, and page numbers come
  * from PdfFooter's canvas stamp (render first, then stamp, then
  * output — download/output do not re-render).
+ *
+ * Builder redesign 2026-10-29 — live preview, first: the preview
+ * iframe auto-updates (debounced) from the same config as the
+ * download, and an invalid preview config no longer redirects
+ * inside the iframe (that rendered the builder page inside the
+ * frame, i.e. a blank/broken "live preview"). It now returns a
+ * small error document with a 422 status for iframe requests.
  */
 class ReportsController extends Controller
 {
-    /** Roles allowed anywhere in this controller. */
+    /** Roles allowed anywhere in this controller: teacher and
+     *  principal only (overnight order 2026-10-29: removed from
+     *  admin and every other role). This does NOT weaken the
+     *  source gate: ReportSources::allowedFor() still decides
+     *  which sources each role sees in the builder (principal
+     *  maps to admin sources there), and
+     *  ReportEngine::validateConfig() still aborts 403 on any
+     *  role-disallowed source on every request. Menu-link removal
+     *  for admin is a sibling stream's job, not done here. */
     protected function gateRole(): void
     {
         $user = Auth::user();
-        if (!$user || Qs::userIsStudent() || Qs::userIsParent()) {
+        if (!$user || (!Qs::userIsTeacher() && !Qs::userIsPrincipal())) {
             abort(403, 'Reports are not available for your role.');
         }
     }
@@ -170,8 +185,41 @@ class ReportsController extends Controller
                 'Content-Disposition' => 'inline; filename="' . Str::slug($config['title']) . '.pdf"',
             ]);
         } catch (\InvalidArgumentException $e) {
+            // Iframe preview path (the builder's hidden preview form
+            // carries preview_frame=1): a redirect here used to load
+            // the builder page itself inside the iframe, which is
+            // exactly the "live preview is not working" report — a
+            // blank frame, or a nested builder. Return a small error
+            // document with a 422 status instead, so the frame shows
+            // a helpful error. Direct navigation keeps the old
+            // redirect-with-flash behaviour, unchanged.
+            if ($request->input('preview_frame')) {
+                return response($this->previewErrorHtml($e->getMessage()), 422, [
+                    'Content-Type' => 'text/html; charset=utf-8',
+                ]);
+            }
             return redirect()->back()->with('flash_danger', $e->getMessage());
         }
+    }
+
+    /** Error document for the preview iframe: no app chrome, just
+     * the reason and what to do. The builder's JS detects the
+     * data-rb-preview-error marker on the body to report the error
+     * state above the frame. The message is escaped; it comes from
+     * the engine's own validation, never from user input verbatim. */
+    protected function previewErrorHtml(string $message): string
+    {
+        $safe = e($message);
+        return '<!DOCTYPE html><html><head><meta charset="utf-8">'
+            . '<style>body{font-family:Arial,Helvetica,sans-serif;color:#172536;background:#f4f8fd;margin:0;padding:24px;}'
+            . '.box{background:#fff;border:1px solid #dfe8f3;border-left:4px solid #1765f5;border-radius:12px;padding:20px;max-width:520px;margin:0 auto;}'
+            . 'h2{font-size:16px;margin:0 0 8px;color:#10213f;}p{font-size:13px;line-height:1.6;color:#4a5a6e;margin:0 0 8px;}'
+            . '.msg{color:#172536;font-weight:600;}</style></head>'
+            . '<body data-rb-preview-error="1"><div class="box">'
+            . '<h2>Preview could not be generated</h2>'
+            . '<p class="msg">' . $safe . '</p>'
+            . '<p>Fix the report settings on the left and the preview will update automatically. No PDF was generated.</p>'
+            . '</div></body></html>';
     }
 
     /** Download the generated PDF. */

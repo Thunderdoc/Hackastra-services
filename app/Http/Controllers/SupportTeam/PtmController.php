@@ -22,16 +22,18 @@ use Illuminate\Support\Facades\DB;
  *
  * Controller-guarded (no team middleware — parents must reach it):
  *  - index: admin, teacher, parent.
- *  - create/store: admin, or a teacher for a class they teach.
+ *  - create/store: admin only (overnight menus 2026-10-29, item 18:
+ *    scheduling moved to admin; teachers no longer create slots).
  *  - book: parent only, for their own child only.
  *  - cancel: the booking parent, an admin, or the slot's teacher.
  *
  * Decisions (documented per the task brief):
- *  - Teacher scope = App\Support\TeacherScope::canTeachClass: a
- *    teacher may create slots only for classes they teach via a
- *    subject (subjects.teacher_id) OR lead as class-teacher
- *    (sections.teacher_id). One canonical rule, not two ad-hoc
- *    checks, so it cannot drift from the rest of the app.
+ *  - Teacher scope (retired for creation, overnight menus
+ *    2026-10-29): App\Support\TeacherScope::canTeachClass used to
+ *    let a teacher create slots only for classes they teach;
+ *    creation is now admin-only, so that rule grants nothing on
+ *    its own anymore. Teachers keep viewing their own PTM slots
+ *    and bookings, and cancelling their own slots.
  *  - Double-booking is refused cleanly, never duplicated: an
  *    exists-check before insert AND a UNIQUE constraint on
  *    ptm_bookings.ptm_slot_id (a race still hits the constraint
@@ -49,7 +51,7 @@ class PtmController extends Controller
 {
     protected function canCreate(User $user): bool
     {
-        return $user->user_type === 'admin' || $user->user_type === 'teacher';
+        return $user->user_type === 'admin';
     }
 
     protected function canView(User $user): bool
@@ -71,6 +73,10 @@ class PtmController extends Controller
         $d['can_create'] = $this->canCreate($user);
         // Staff see who booked each slot; parents see only "Booked"
         // (or "Booked by you") — never another family's names.
+        // Kept for teachers deliberately (overnight menus, item 18):
+        // only the scheduling choice moved to admin — the teacher's
+        // view of their own slots and bookings, including the
+        // cancel button the blade gates on staff_view, stays whole.
         $d['staff_view'] = in_array($user->user_type, ['admin', 'teacher'], true);
         $d['is_parent'] = $user->user_type === 'parent';
         $d['my_children'] = $user->user_type === 'parent'

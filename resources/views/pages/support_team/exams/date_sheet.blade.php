@@ -27,7 +27,7 @@
                 </div>
             @else
                 {{-- Scope selectors: the exam always; the child (parent)
-                     or the class (teacher/admin) only within the set
+                     or the class (teacher/admin/principal) only within the set
                      the server has already scoped for this viewer. --}}
                 <form method="get" action="{{ route('exam_dates.show') }}" class="l103-toolbar">
                     <div class="pat-fields">
@@ -52,7 +52,7 @@
                                     @endforeach
                                 </select>
                             </div>
-                        @elseif(in_array($viewer, ['teacher', 'admin']))
+                        @elseif(in_array($viewer, ['teacher', 'admin', 'principal']))
                             <div class="pat-field">
                                 <label for="ds_class">Class</label>
                                 <select id="ds_class" name="class_id" class="form-control" onchange="this.form.submit()">

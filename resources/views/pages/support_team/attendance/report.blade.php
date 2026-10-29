@@ -38,7 +38,7 @@
                     <label for="ar_class_id">Class</label>
                     <select name="class_id" id="ar_class_id" class="form-control" onchange="this.form.submit()">
                         @if($classes->count() > 1)
-                            <option value="all" {{ !empty($all_classes) ? 'selected' : '' }}>All Classes</option>
+                            <option value="all" {{ !empty($all_classes) ? 'selected' : '' }}>{{ Qs::userIsTeacher() ? 'All assigned classes' : 'All Classes' }}</option>
                         @endif
                         @foreach($classes as $class)
                             <option value="{{ $class->id }}" {{ $selected_class && $selected_class->id === $class->id ? 'selected' : '' }}>{{ $class->name }}</option>

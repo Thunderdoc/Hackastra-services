@@ -13,31 +13,43 @@ use Illuminate\Validation\Rule;
 
 class HostelController extends Controller
 {
-    public function __construct()
+    /**
+     * Overnight menus 2026-10-29, item 20: the Hostel Warden runs
+     * the hostel — the Admin is OUT (no menu link, and this gate
+     * refuses admin server-side too). The routes carry no team
+     * middleware any more (see web.php), so this is the gate:
+     * reads allow the warden (+ super_admin, platform parity —
+     * PlatformOnly redirects SA from school pages regardless);
+     * writes are warden-only. The parent/student self view
+     * (myAllocation) guards itself separately and is untouched.
+     * The full warden role (user_types row, TeamHostel middleware,
+     * warden dashboard landing) is still owed outside this
+     * stream's file scope — see the stream report.
+     */
+    protected function guardHostel($write = false)
     {
-        // Same gate pattern as DormController: teamSA reads, admin-only
-        // writes. The parent/student self view is excluded from both
-        // gates and guarded controller-side instead (students and
-        // parents are not teamSA, so a teamSA gate would lock them out).
-        $this->middleware('teamSA', ['only' => [
-            'dormsIndex', 'roomsIndex', 'allocationsIndex', 'allocationCreate',
-        ]]);
-        $this->middleware('teamSAWrite', ['except' => [
-            'dormsIndex', 'roomsIndex', 'allocationsIndex', 'allocationCreate',
-            'myAllocation',
-        ]]);
+        $type = auth()->user() ? auth()->user()->user_type : null;
+        if ($write) {
+            if ($type !== 'hostel') {
+                abort(403, 'Hostel is managed by the Hostel Warden.');
+            }
+        } elseif (!in_array($type, ['hostel', 'super_admin'], true)) {
+            abort(403, 'Hostel is managed by the Hostel Warden.');
+        }
     }
 
     /* ---------------- Dorms (reuses the existing Dorm model) ---------------- */
 
     public function dormsIndex()
     {
+        $this->guardHostel();
         $d['dorms'] = Dorm::orderBy('name')->get();
         return view('pages.support_team.hostel.dorms.index', $d);
     }
 
     public function dormsStore(Request $req)
     {
+        $this->guardHostel(true);
         $data = $req->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string|max:1000',
@@ -50,6 +62,7 @@ class HostelController extends Controller
 
     public function dormsEdit($hostel_dorm)
     {
+        $this->guardHostel(true);
         $d['dorm'] = $dorm = Dorm::find(Qs::resolveId($hostel_dorm));
 
         return !is_null($dorm) ? view('pages.support_team.hostel.dorms.edit', $d)
@@ -58,6 +71,7 @@ class HostelController extends Controller
 
     public function dormsUpdate(Request $req, $hostel_dorm)
     {
+        $this->guardHostel(true);
         $data = $req->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string|max:1000',
@@ -71,6 +85,7 @@ class HostelController extends Controller
 
     public function dormsDestroy($hostel_dorm)
     {
+        $this->guardHostel(true);
         $dorm = Dorm::findOrFail(Qs::resolveId($hostel_dorm));
         if (HostelRoom::where('dorm_id', $dorm->id)->exists()) {
             return back()->with('flash_danger', 'Cannot delete a dorm that still has rooms. Delete its rooms first.');
@@ -86,6 +101,7 @@ class HostelController extends Controller
 
     public function roomsIndex()
     {
+        $this->guardHostel();
         $d['dorms'] = Dorm::orderBy('name')->get();
         $d['rooms'] = HostelRoom::with('dorm')->orderBy('dorm_id')->orderBy('room_no')->get();
         return view('pages.support_team.hostel.rooms.index', $d);
@@ -93,6 +109,7 @@ class HostelController extends Controller
 
     public function roomsStore(Request $req)
     {
+        $this->guardHostel(true);
         $data = $req->validate([
             'dorm_id' => 'required|exists:dorms,id',
             'room_no' => [
@@ -109,6 +126,7 @@ class HostelController extends Controller
 
     public function roomsEdit($hostel_room)
     {
+        $this->guardHostel(true);
         $d['room'] = $room = HostelRoom::find(Qs::resolveId($hostel_room));
         $d['dorms'] = Dorm::orderBy('name')->get();
 
@@ -118,6 +136,7 @@ class HostelController extends Controller
 
     public function roomsUpdate(Request $req, $hostel_room)
     {
+        $this->guardHostel(true);
         $room = HostelRoom::findOrFail(Qs::resolveId($hostel_room));
         $data = $req->validate([
             'dorm_id' => 'required|exists:dorms,id',
@@ -144,6 +163,7 @@ class HostelController extends Controller
 
     public function roomsDestroy($hostel_room)
     {
+        $this->guardHostel(true);
         $room = HostelRoom::findOrFail(Qs::resolveId($hostel_room));
         if ($room->occupancy() > 0) {
             return back()->with('flash_danger', 'Cannot delete an occupied room. Deallocate its ' . $room->occupancy() . ' student(s) first.');
@@ -159,6 +179,7 @@ class HostelController extends Controller
 
     public function allocationsIndex()
     {
+        $this->guardHostel();
         $d['allocations'] = StudentRecord::with(['user', 'dorm'])
             ->whereNotNull('dorm_id')
             ->orderBy('dorm_id')->orderBy('dorm_room_no')
@@ -168,6 +189,7 @@ class HostelController extends Controller
 
     public function allocationCreate()
     {
+        $this->guardHostel();
         $d['students'] = StudentRecord::with('user')->orderBy('id')->get();
         $d['dorms'] = Dorm::orderBy('name')->get();
         $d['rooms'] = HostelRoom::with('dorm')->orderBy('dorm_id')->orderBy('room_no')->get();
@@ -176,6 +198,7 @@ class HostelController extends Controller
 
     public function allocationStore(Request $req)
     {
+        $this->guardHostel(true);
         $req->validate([
             'student_record_id' => 'required|exists:student_records,id',
             'dorm_id' => 'required|exists:dorms,id',
@@ -218,6 +241,7 @@ class HostelController extends Controller
 
     public function allocationDestroy($hostel_record)
     {
+        $this->guardHostel(true);
         $record = StudentRecord::findOrFail(Qs::resolveId($hostel_record));
         $record->update(['dorm_id' => null, 'dorm_room_no' => null]);
         Audit::log('hostel.deallocated', $record, 'Student record ' . $record->id . ' deallocated from hostel');

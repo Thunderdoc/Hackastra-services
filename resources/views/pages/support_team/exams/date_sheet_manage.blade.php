@@ -15,9 +15,10 @@
         <div class="card-body">
             <div class="alert alert-info border-0">
                 <span>Set the date of every subject's paper for an exam, class by class. Students see the sheet for
-                their own class, parents for their children's classes, and teachers for the classes they teach —
-                exactly as saved here. A subject left without a date shows as <strong>“Not announced”</strong>;
-                dates are never guessed. To remove a date, clear it and save.</span>
+                their own class, parents for their children's classes, and teachers for the classes they teach only
+                after the Principal publishes it; admin and principal see the live sheet. A subject left without a
+                date shows as <strong>“Not announced”</strong>; dates are never guessed. To remove a date, clear it
+                and save.</span>
             </div>
 
             {{-- Exam + class picker (GET, same pattern as Admit Cards) --}}
@@ -55,6 +56,17 @@
                     <h6 class="mb-2">{{ $exam->name }} — {{ $my_class_sel->name }}
                         <span class="text-muted font-size-sm">(Term {{ $exam->term }} &middot; {{ $exam->year }})</span>
                     </h6>
+
+                    <div class="mb-2">
+                        @if($sheet_state && $sheet_state->status === 'published')
+                            <span class="badge badge-success">Published by Principal</span>
+                            <span class="text-muted font-size-sm ml-1">Editing this sheet returns it to draft for re-approval.</span>
+                        @elseif($sheet_state && $sheet_state->status === 'submitted')
+                            <span class="badge badge-warning">Awaiting Principal approval</span>
+                        @else
+                            <span class="badge badge-secondary">Draft — not yet published</span>
+                        @endif
+                    </div>
 
                     <div class="table-responsive">
                         <table class="table l103-table">
@@ -107,6 +119,16 @@
                         <button type="submit" class="btn btn-primary">Save Date Sheet <i class="icon-paperplane ml-2"></i></button>
                     </div>
                 </form>
+                @if(Qs::userIsTeamSAWrite() && (!$sheet_state || $sheet_state->status === 'draft') && $sheet_row_count > 0)
+                    <div class="text-right mt-2">
+                        <form method="post" action="{{ route('exam_dates.submit') }}" class="d-inline">
+                            @csrf
+                            <input type="hidden" name="exam_id" value="{{ $exam->id }}">
+                            <input type="hidden" name="class_id" value="{{ $my_class_sel->id }}">
+                            <button type="submit" class="btn btn-success">Submit for Principal Approval <i class="icon-paperplane ml-2"></i></button>
+                        </form>
+                    </div>
+                @endif
             @elseif($exams->isEmpty())
                 <div class="alert alert-warning border-0 mt-3">
                     <span>No exams have been created for the current session ({{ Qs::getCurrentSession() }}) yet.

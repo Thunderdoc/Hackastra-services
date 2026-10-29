@@ -39,7 +39,7 @@
                                     <td>{{ $room->occupancy() }} / {{ $room->capacity }}</td>
                                     <td>{{ $room->available() }}</td>
                                     <td>
-                                        @if(Qs::userIsTeamSAWrite())
+                                        @if(auth()->user() && auth()->user()->user_type === 'hostel')
                                             <a href="{{ route('hostel.rooms.edit', ['hostel_room' => $room->id]) }}" class="btn btn-sm btn-primary">Edit</a>
                                             <form method="post" action="{{ route('hostel.rooms.destroy', ['hostel_room' => $room->id]) }}" class="d-inline" onsubmit="return confirm('Delete this room? Occupied rooms cannot be deleted.')">
                                                 @csrf @method('delete')
@@ -55,7 +55,7 @@
             @else
                 <p>No rooms found yet. Create the first room using the form below.</p>
             @endif
-            @if(Qs::userIsTeamSAWrite())
+            @if(auth()->user() && auth()->user()->user_type === 'hostel')
                 <hr>
                 <h6>Create Room</h6>
                 <form method="post" action="{{ route('hostel.rooms.store') }}">

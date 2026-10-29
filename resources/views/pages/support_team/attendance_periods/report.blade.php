@@ -19,7 +19,7 @@
                      request); on the default landing the export covers
                      every session in the date range instead of silently
                      inheriting the page's defaulted class/subject. --}}
-                <a class="btn btn-light btn-sm" href="{{ route('attendance.periods.export', array_filter(['class_id' => request()->query('class_id'), 'subject_id' => request()->query('subject_id'), 'from' => $from->format('Y-m-d'), 'to' => $to->format('Y-m-d')])) }}"><i class="icon-file-download mr-1"></i> Export CSV</a>
+                <a class="btn btn-light btn-sm" href="{{ route('attendance.periods.export', array_filter(['class_id' => request()->query('class_id'), 'subject_id' => request()->query('subject_id'), 'section_id' => request()->query('section_id'), 'from' => $from->format('Y-m-d'), 'to' => $to->format('Y-m-d')])) }}"><i class="icon-file-download mr-1"></i> Export CSV</a>
             @endif
         @endslot
         @slot('filters')
@@ -40,6 +40,17 @@
                         @endforeach
                     </select>
                 </div>
+                @if($selected_class && $sections->isNotEmpty())
+                    <div class="pat-filter-field">
+                        <label for="pr_section_id">Section:</label>
+                        <select name="section_id" id="pr_section_id" class="form-control" onchange="this.form.submit()">
+                            <option value="" {{ empty($selected_section) ? 'selected' : '' }}>All sections</option>
+                            @foreach($sections as $section)
+                                <option value="{{ $section->id }}" {{ $selected_section && $selected_section->id === $section->id ? 'selected' : '' }}>{{ $section->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                @endif
                 <div class="pat-filter-field">
                     <label for="pr_from">From:</label>
                     <input type="date" name="from" id="pr_from" class="form-control" value="{{ $from->format('Y-m-d') }}" onchange="this.form.submit()">
@@ -62,12 +73,13 @@
         @elseif($held === 0)
             @include('partials.patterns.empty_state', [
                 'icon' => 'icon-stats-bars2',
-                'message' => 'No period sessions were submitted for ' . $selected_subject->name . ' (' . $selected_class->name . ') between ' . $from->format('d M Y') . ' and ' . $to->format('d M Y') . '.',
+                'message' => 'No period sessions were submitted for ' . $selected_subject->name . ' (' . $selected_class->name . (!empty($selected_section) ? ' — ' . $selected_section->name : '') . ') between ' . $from->format('d M Y') . ' and ' . $to->format('d M Y') . '.',
             ])
         @else
             <div class="d-flex flex-wrap align-items-center mb-3">
                 <span class="badge badge-primary mr-2 mb-1" style="font-size: 100%">{{ $selected_subject->name }}</span>
                 <span class="badge badge-light mr-2 mb-1" style="font-size: 100%">{{ $selected_class->name }}</span>
+                @if(!empty($selected_section))<span class="badge badge-light mr-2 mb-1" style="font-size: 100%">Section {{ $selected_section->name }}</span>@endif
                 <span class="badge badge-info mr-2 mb-1" style="font-size: 100%">Sessions held: {{ $held }}</span>
                 <span class="badge badge-light mr-2 mb-1" style="font-size: 100%">{{ $from->format('d M Y') }} – {{ $to->format('d M Y') }}</span>
             </div>

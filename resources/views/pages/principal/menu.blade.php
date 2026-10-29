@@ -31,6 +31,9 @@
     <a href="{{ route('leave.index') }}" class="nav-link {{ Route::is('leave.*') ? 'active' : '' }}"><i class="icon-clipboard"></i> <span>Approvals &amp; Requests</span></a>
 </li>
 <li class="nav-item">
+    <a href="{{ route('exam_dates.approvals') }}" class="nav-link {{ Route::is('exam_dates.approvals') ? 'active' : '' }}"><i class="icon-calendar3"></i> <span>Date Sheet Approvals</span></a>
+</li>
+<li class="nav-item">
     <a href="{{ route('payments.manage') }}" class="nav-link {{ Route::is('payments.*') ? 'active' : '' }}"><i class="icon-wallet"></i> <span>Fees &amp; Finance</span></a>
 </li>
 <li class="nav-item">
