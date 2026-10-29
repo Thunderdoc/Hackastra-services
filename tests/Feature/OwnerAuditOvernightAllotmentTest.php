@@ -17,10 +17,10 @@ use Tests\TestCase;
  * 4 (student-information selector section filtering),
  * 17 (teacher-side link removals, hidden not deleted),
  * 18 (PTM scheduling admin-only, teacher keeps viewing),
- * 19 (decisions gate — candidate screen: leave decide; see
- * test_item19 note: the batch brief does not name the screen,
- * so this probes the leave-decide gate and reports it as the
- * candidate, not as a confirmed item-19 verdict).
+ * 19 (decisions gate — ADJUDICATED by the owner 2026-10-29:
+ * the section teacher DOES decide his own section's student
+ * leaves, alongside Admin/Principal. The candidate probe that
+ * asserted the opposite reading was removed on his ruling).
  */
 class OwnerAuditOvernightAllotmentTest extends TestCase
 {
@@ -318,53 +318,5 @@ class OwnerAuditOvernightAllotmentTest extends TestCase
         $response = $this->actingAs($this->teacher())->get(route('ptm.index'));
         $response->assertOk();
         $response->assertSee($this->teacher()->name);
-    }
-
-    // ---- Item 19 (candidate screen: leave decide) ----
-
-    public function test_item19_candidate_leave_decide_teacher_cannot_decide_admin_can()
-    {
-        // CANDIDATE ONLY: the batch brief names no screen for item 19.
-        // Leave decide is the only "decide" gate in the teacher area
-        // (LeaveRequestController::decide, route leave.decide). If
-        // item 19 targets a different screen, this test does not
-        // prove or disprove it — see the audit report.
-        $student = StudentRecord::where('my_class_id', 13)->where('section_id', 68)
-            ->where('grad', 0)->firstOrFail();
-        $leave = \App\Models\LeaveRequest::create([
-            'user_id' => $student->user_id,
-            'start_date' => now()->addDays(3)->format('Y-m-d'),
-            'end_date' => now()->addDays(4)->format('Y-m-d'),
-            'reason' => 'Audit probe leave',
-            'status' => 'pending',
-            'leave_type' => 'normal',
-        ]);
-        // Teacher (class teacher of section 68 is user 24, not the
-        // demo teacher; use a teacher who CAN decide under current
-        // code only if one exists — instead probe the demo teacher
-        // against a leave in their own scope class 1, section 1).
-        $inScopeStudent = StudentRecord::where('my_class_id', 1)->where('section_id', 1)
-            ->where('grad', 0)->firstOrFail();
-        $inScopeLeave = \App\Models\LeaveRequest::create([
-            'user_id' => $inScopeStudent->user_id,
-            'start_date' => now()->addDays(3)->format('Y-m-d'),
-            'end_date' => now()->addDays(4)->format('Y-m-d'),
-            'reason' => 'Audit probe leave in scope',
-            'status' => 'pending',
-            'leave_type' => 'normal',
-        ]);
-        $teacherResponse = $this->actingAs($this->teacher())
-            ->post(route('leave.decide', $inScopeLeave->id), ['status' => 'approved']);
-        // Under an item-19 "teacher cannot decide" rule the teacher
-        // must NOT change the leave: either a 403 or a redirect
-        // that leaves status pending. This assertion encodes that
-        // rule; a success + status change is the failure signal.
-        $this->assertEquals('pending', $inScopeLeave->fresh()->status,
-            'Teacher must not be able to decide a leave under item 19');
-        // Admin can decide.
-        $this->actingAs($this->admin())
-            ->post(route('leave.decide', $inScopeLeave->id), ['status' => 'approved']);
-        $this->assertEquals('approved', $inScopeLeave->fresh()->status,
-            'Admin must be able to decide a leave');
     }
 }

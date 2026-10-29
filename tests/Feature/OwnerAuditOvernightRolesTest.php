@@ -212,18 +212,6 @@ class OwnerAuditOvernightRolesTest extends TestCase
         ]);
     }
 
-    public function test_item19_teacher_cannot_decide_student_leave_per_batch_wording()
-    {
-        // student@ is Prep A (section 1), whose section teacher is teacher@.
-        $leave = $this->pendingStudentLeave();
-        $response = $this->actingAs($this->userByEmail('teacher@hackstra.app'))
-            ->post(route('leave.decide', $leave->id), ['status' => 'approved']);
-        // Refusal = dashboard bounce (controller style) or 403; either way
-        // the leave must stay pending.
-        $this->assertContains($response->status(), [302, 403]);
-        $this->assertSame('pending', $leave->fresh()->status);
-    }
-
     public function test_item19_admin_manual_decide_and_emergency_auto_approve()
     {
         $leave = $this->pendingStudentLeave();
