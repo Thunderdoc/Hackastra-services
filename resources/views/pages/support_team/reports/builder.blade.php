@@ -12,8 +12,14 @@
        live A4 preview beside it. Same engine, sources, routes and
        config contract as before; the page itself is rebuilt.
        Scoped styles (rb2-) — no shared component is touched. */
-    .rb2-settings .card, .rb2-preview .card { background: #fff; border: 1px solid #dfe8f3; border-radius: 12px; box-shadow: none; }
-    .rb2-settings .card-header, .rb2-preview .card-header { background: #fff; border-bottom: 1px solid #dfe8f3; border-radius: 12px 12px 0 0; }
+    .rb2-settings .card, .rb2-preview .card { background: #fff; border: 1px solid #c9d6e4; border-radius: 12px; box-shadow: 0 1px 3px rgba(16, 38, 59, .07); }
+    .rb2-settings .card-header, .rb2-preview .card-header { background: #f7fafd; border-bottom: 1px solid #dfe8f3; border-radius: 12px 12px 0 0; }
+    .rb2-settings .card-body { padding: 14px 16px; }
+    .rb2-settings .form-group { margin-bottom: 10px; }
+    .rb2-settings label { font-size: 12.5px; font-weight: 600; color: #33475c; margin-bottom: 4px; }
+    .rb2-chips { max-height: 118px; overflow-y: auto; padding: 2px; }
+    .rb2-toolbar { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+    .rb2-toolbar .rb2-actions { display: flex; gap: 6px; flex-wrap: wrap; }
     .rb2-step-badge { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%; background: #1765f5; color: #fff; font-weight: 700; font-size: 13px; margin-right: 8px; flex: 0 0 auto; }
     .rb2-step-title { display: flex; align-items: center; }
     .rb2-step-sub { color: #718096; font-size: 12.5px; margin-left: 32px; }
@@ -27,20 +33,36 @@
     .rb2-chip:hover { border-color: #1765f5; color: #1765f5; }
     .rb2-col-row td { vertical-align: middle; }
     .rb2-col-row input[type="text"], .rb2-col-row input[type="number"], .rb2-col-row select { width: 100%; }
-    .rb2-preview-wrap { background: #f4f8fd; border: 1px solid #dfe8f3; border-radius: 12px; padding: 12px; }
-    #previewFrame { width: 100%; height: 720px; border: 1px solid #dfe8f3; border-radius: 8px; background: #fff; display: block; }
+    .rb2-preview-wrap { background: #d7dfe9; border: 1px solid #c2cfdd; border-radius: 12px; padding: 14px; }
+    #previewFrame { width: 100%; height: 720px; border: none; border-radius: 4px; background: #fff; display: block; box-shadow: 0 3px 16px rgba(16, 38, 59, .22); }
     .rb2-status { font-size: 13px; color: #4a5a6e; margin: 0 0 10px; line-height: 1.5; }
     .rb2-status.rb2-status-error { color: #b42318; }
     .rb2-loading { font-size: 13px; color: #1765f5; margin: 0 0 10px; }
     .rb2-adv summary { cursor: pointer; font-weight: 600; color: #10263b; outline: none; }
-    @media (min-width: 992px) { .rb2-preview-card { position: sticky; top: 20px; } }
+    /* Fit-to-screen workspace (owner, 2026-10-29 night — "mujhe
+       ye fit to screen chahiye"): on desktop the whole builder
+       sits inside the viewport — the settings column scrolls
+       internally, the preview card fills the height and the PDF
+       frame flexes with it. Nothing below the fold, no page
+       scroll to reach Generate. Mobile keeps the natural
+       stacked flow. */
+    @media (min-width: 992px) {
+        .rb2-fit-row { height: calc(100vh - 268px); min-height: 430px; }
+        .rb2-settings { height: 100%; overflow-y: auto; padding-right: 6px; }
+        .rb2-preview { height: 100%; }
+        .rb2-preview-card { height: 100%; display: flex; flex-direction: column; }
+        .rb2-preview-card .card-body { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+        .rb2-preview-wrap { flex: 1; min-height: 0; }
+        #previewFrame { height: 100%; }
+    }
     @media (max-width: 991px) { #previewFrame { height: 480px; } }
     /* Builder v3 (owner reference, 2026-10-29 night): the
        category shortcut bar across the top — every category is
        computed from the sources THIS role may actually use, so a
        category that would be empty for the viewer never renders. */
     .rb3-cats { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 10px; margin-bottom: 16px; }
-    .rb3-cat { display: flex; align-items: center; gap: 10px; border: 1.5px solid #dfe8f3; background: #fff; border-radius: 12px; padding: 10px 12px; text-align: left; cursor: pointer; width: 100%; }
+    @media (min-width: 1400px) { .rb3-cats { grid-template-columns: repeat(8, 1fr); } .rb3-cat { padding: 8px 9px; gap: 8px; } .rb3-cat .rb3-cat-icon { width: 30px; height: 30px; font-size: 14px; } }
+    .rb3-cat { display: flex; align-items: center; gap: 10px; border: 1.5px solid #dfe8f3; background: #fff; border-radius: 12px; padding: 10px 12px; text-align: left; cursor: pointer; width: 100%; box-shadow: 0 1px 2px rgba(16, 38, 59, .05); }
     .rb3-cat:hover { border-color: #9db9e8; }
     .rb3-cat.active { border-color: #1765f5; box-shadow: 0 0 0 1px #1765f5 inset; }
     .rb3-cat .rb3-cat-icon { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 9px; font-size: 16px; flex: 0 0 auto; }
@@ -88,7 +110,7 @@
     @endforeach
 </div>
 
-<div class="row">
+<div class="row rb2-fit-row">
     <div class="col-lg-5 rb2-settings" id="rbSettings">
 
         {{-- STEP 1 — DATA --}}
@@ -101,7 +123,7 @@
                 @if($presets)
                 <div class="form-group">
                     <label>Start from a ready template</label>
-                    <div>
+                    <div class="rb2-chips">
                         @foreach($presets as $preset)
                             <button type="button" class="rb2-chip rb2-preset-chip" data-key="{{ $preset['key'] }}" data-category="{{ $rbSourceCategory[$preset['config']['source'] ?? ''] ?? '' }}">{{ $preset['label'] }}</button>
                         @endforeach
@@ -328,7 +350,7 @@
                     </div>
                 </details>
                 <hr>
-                <button type="button" id="rbPdfBtn" class="btn btn-primary btn-block btn-lg"><i class="icon-file-pdf mr-2"></i> Generate PDF</button>
+                <button type="button" id="rbPdfBtn" class="btn btn-primary btn-block btn-lg rb-generate-btn"><i class="icon-file-pdf mr-2"></i> Generate PDF</button>
                 <div class="form-row align-items-end mt-3">
                     <div class="form-group col-8 mb-0">
                         <label>Save as my template</label>
@@ -346,15 +368,20 @@
         <div class="card rb2-preview-card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="card-title mb-0">Live preview</h5>
-                <span>
-                    <button type="button" id="rbPrintBtn" class="btn btn-light btn-sm"><i class="icon-printer mr-1"></i> Print</button>
-                    <button type="button" id="rbPreviewBtn" class="btn btn-light btn-sm">Refresh preview</button>
-                </span>
+                <span class="text-muted" style="font-size: 12.5px;">The exact PDF the download produces</span>
             </div>
             <div class="card-body">
-                <p class="text-muted">Preview shows the real PDF — the exact document the download produces, with true pagination.</p>
-                <p id="rbPreviewStatus" class="rb2-status" role="status">Loading the live preview…</p>
-                <p id="rbPreviewLoading" class="rb2-loading" style="display:none;">Updating preview…</p>
+                <div class="rb2-toolbar">
+                    <div style="min-width: 0;">
+                        <p id="rbPreviewStatus" class="rb2-status mb-0" role="status">Loading the live preview…</p>
+                        <p id="rbPreviewLoading" class="rb2-loading mb-0" style="display:none;">Updating preview…</p>
+                    </div>
+                    <div class="rb2-actions">
+                        <button type="button" id="rbPrintBtn" class="btn btn-light btn-sm"><i class="icon-printer mr-1"></i> Print</button>
+                        <button type="button" id="rbPreviewBtn" class="btn btn-light btn-sm">Refresh preview</button>
+                        <button type="button" class="btn btn-primary btn-sm rb-generate-btn"><i class="icon-file-pdf mr-1"></i> Generate PDF</button>
+                    </div>
+                </div>
                 <div class="rb2-preview-wrap">
                     <iframe id="previewFrame" name="previewFrame" src="about:blank"></iframe>
                 </div>
@@ -912,11 +939,13 @@
             setPreviewStatus('Live preview — the same document the download produces.', false);
         }
     });
-    el('rbPdfBtn').addEventListener('click', function () {
+    document.querySelectorAll('.rb-generate-btn').forEach(function (genBtn) {
+        genBtn.addEventListener('click', function () {
         var cfg = collectConfig();
         if (!validForSubmit(cfg)) { return; }
         el('rbPdfConfig').value = JSON.stringify(cfg);
         el('rbPdfForm').submit();
+        });
     });
     el('rbSaveBtn').addEventListener('click', function () {
         var cfg = collectConfig();

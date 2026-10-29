@@ -106,6 +106,30 @@ class OwnerSettingsLockTest extends TestCase
         $this->assertSame('Changed After Unlock', Qs::getSetting('system_name'));
     }
 
+    public function test_principal_sees_the_request_in_bell_and_approval_center()
+    {
+        // Owner report 2026-10-29 night: "admin requested unlock,
+        // principal ko notification kyu nahi gaya, approve ke
+        // liye kyu nahi aaya." The DB bell was already asserted in
+        // the chain test; this pins the RENDERED principal side —
+        // the bell dropdown lists the item and the Approval
+        // Center shows the request with its review link.
+        $admin = $this->admin();
+        $this->actingAs($admin)->post(route('settings.lock'));
+        $this->actingAs($admin)->post(route('settings.unlock_request'), [
+            'changes' => 'Update the school phone number — the office line changed.',
+        ]);
+
+        $dash = $this->actingAs($this->principal())->get(route('dashboard'));
+        $dash->assertOk();
+        $dash->assertSee('Settings unlock requested', false);
+        $dash->assertSee('Review &amp; approve', false);
+
+        $page = $this->actingAs($this->principal())->get(route('settings_unlock.index'));
+        $page->assertOk();
+        $page->assertSee('Update the school phone number', false);
+    }
+
     public function test_principal_rejection_keeps_the_lock_and_frees_a_new_request()
     {
         $admin = $this->admin();
