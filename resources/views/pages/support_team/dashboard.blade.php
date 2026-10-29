@@ -40,7 +40,7 @@
                     ['label' => 'Administrators', 'value' => number_format($administrator_count), 'delta' => $stat_deltas['administrators'] ?? null, 'icon' => 'icon-lock2', 'tone' => 'orange', 'link' => route('users.index')],
                     ['label' => 'Parents', 'value' => number_format($parent_count), 'delta' => $stat_deltas['parents'] ?? null, 'icon' => 'icon-users2', 'tone' => 'purple', 'link' => route('users.index')],
                 ] as $stat)
-                    <div class="col-sm-6 mb-4">
+                    <div class="col-sm-6 col-xl-3 mb-4">
                         <a href="{{ $stat['link'] }}" class="dashboard-stat-card dashboard-stat-{{ $stat['tone'] }}">
                             <span class="dashboard-stat-icon"><i class="{{ $stat['icon'] }}"></i></span>
                             <span class="dashboard-stat-copy">
@@ -56,6 +56,7 @@
             <section class="dashboard-panel mb-4">
                 <div class="dashboard-panel-heading">
                     <div><h5 class="mb-1"><i class="icon-rocket text-blue mr-1"></i> Quick Actions</h5></div>
+
                 </div>
                 <div class="px-4 pb-4 d-flex flex-wrap" style="gap:10px">
                     <a href="{{ route('students.create') }}" class="btn btn-light"><i class="icon-plus3 mr-1"></i> Add Student</a>
@@ -89,6 +90,27 @@
                         <span><i class="dot-purple"></i> Event</span>
                     </div>
                 </div>
+            </section>
+
+            {{-- Upcoming Events — real school_events / exam timetables
+                 only. Moved up beside the calendar (live-verification
+                 fix 2026-10-29 night): the calendar alone left a tall
+                 empty stretch in this right rail; events belong with
+                 the calendar, and the third row rebalanced to match. --}}
+            <section class="dashboard-panel dashboard-upcoming mb-4">
+                <div class="dashboard-panel-heading">
+                    <div><h5 class="mb-1"><i class="icon-calendar3 text-blue mr-1"></i> Upcoming Events</h5></div>
+                    <span class="dashboard-view-all">View All <i class="icon-arrow-right7"></i></span>
+                </div>
+                @forelse($upcoming_events as $event)
+                    <div class="dashboard-event">
+                        <span class="event-date event-{{ $event['type'] }}"><small>{{ $event['month'] }}</small><strong>{{ $event['day'] }}</strong></span>
+                        <span class="event-copy"><strong>{{ $event['title'] }}</strong><small>{{ $event['meta'] }}</small></span>
+                        <span class="dashboard-status event-pill pill-{{ $event['type'] }}">{{ $event['type_label'] }}</span>
+                    </div>
+                @empty
+                    <div class="dashboard-empty dashboard-event-empty">No upcoming events. Add events, exams or timetables and they will appear here.</div>
+                @endforelse
             </section>
 
             {{-- Admin dashboard redesign 2026-10-28 (owner order):
@@ -213,7 +235,7 @@
 
     <div class="row">
         {{-- Recent Students --}}
-        <div class="col-xl-5">
+        <div class="col-xl-6">
             <section class="dashboard-panel mb-4">
                 <div class="dashboard-panel-heading">
                     <div><h5 class="mb-1">Recent Students</h5><p class="dashboard-muted mb-0">Latest admissions and active enrollments</p></div>
@@ -241,7 +263,7 @@
         </div>
 
         {{-- Recent Payments --}}
-        <div class="col-xl-4">
+        <div class="col-xl-6">
             <section class="dashboard-panel mb-4">
                 <div class="dashboard-panel-heading">
                     <div><h5 class="mb-1">Recent Payments</h5><p class="dashboard-muted mb-0">Latest payment records</p></div>
@@ -267,24 +289,6 @@
             </section>
         </div>
 
-        {{-- Upcoming Events — real school_events / exam timetables only --}}
-        <div class="col-xl-3">
-            <section class="dashboard-panel dashboard-upcoming mb-4">
-                <div class="dashboard-panel-heading">
-                    <div><h5 class="mb-1"><i class="icon-calendar3 text-blue mr-1"></i> Upcoming Events</h5></div>
-                    <span class="dashboard-view-all">View All <i class="icon-arrow-right7"></i></span>
-                </div>
-                @forelse($upcoming_events as $event)
-                    <div class="dashboard-event">
-                        <span class="event-date event-{{ $event['type'] }}"><small>{{ $event['month'] }}</small><strong>{{ $event['day'] }}</strong></span>
-                        <span class="event-copy"><strong>{{ $event['title'] }}</strong><small>{{ $event['meta'] }}</small></span>
-                        <span class="dashboard-status event-pill pill-{{ $event['type'] }}">{{ $event['type_label'] }}</span>
-                    </div>
-                @empty
-                    <div class="dashboard-empty dashboard-event-empty">No upcoming events. Add events, exams or timetables and they will appear here.</div>
-                @endforelse
-            </section>
-        </div>
     </div>
 
     {{-- Smart Insights — generated from the same real data as the panels above --}}
