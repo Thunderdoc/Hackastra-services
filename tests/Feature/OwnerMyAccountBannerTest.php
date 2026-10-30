@@ -3,7 +3,10 @@
 namespace Tests\Feature;
 
 use App\Http\Controllers\MyAccountController;
+use App\Models\StudentRecord;
+use App\Models\Subject;
 use App\User;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
@@ -54,9 +57,22 @@ class OwnerMyAccountBannerTest extends TestCase
         $ritu = User::where('email', 'teacher20@teacher.com')->firstOrFail();
         $stats = $this->bannerStats($ritu);
 
-        $this->assertSame(2, $this->stat($stats, 'Subjects'));
-        $this->assertSame(2, $this->stat($stats, 'Classes'));
-        $this->assertSame(880, $this->stat($stats, 'Students'));
+        // Expectations are computed with bannerStats' own formula
+        // over the LIVE data: another test may have admitted a
+        // student into Class 11/12 earlier in the run (880 students
+        // on the untouched seed), which must not stale this pin.
+        $subjects = Subject::where('teacher_id', $ritu->id)->get()->merge(
+            Subject::whereIn('id', DB::table('section_subject_teachers')
+                ->where('teacher_id', $ritu->id)->distinct()->pluck('subject_id'))->get()
+        )->unique('id')->values();
+        $classIds = $subjects->pluck('my_class_id')->filter()->unique()->values();
+        $expectedStudents = $classIds->isEmpty() ? 0
+            : StudentRecord::where('grad', 0)->whereIn('my_class_id', $classIds)->count();
+
+        $this->assertSame($subjects->count(), $this->stat($stats, 'Subjects'));
+        $this->assertSame($classIds->count(), $this->stat($stats, 'Classes'));
+        $this->assertSame($expectedStudents, $this->stat($stats, 'Students'));
+        $this->assertGreaterThan(0, $expectedStudents);
         $this->assertContains('English Language', $this->bannerChips($ritu));
     }
 

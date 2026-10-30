@@ -304,7 +304,11 @@ class OwnerReportsRoleResweepRound28Test extends TestCase
 
     public function test_row_cap_principal_and_admin_pdf_and_preview()
     {
-        $expected = 'Too many rows for one PDF (3041). Filter by class or section first, then generate.';
+        // The count in the cap message is the LIVE unfiltered
+        // roster size (the engine counts grad=0 records). Another
+        // test may have admitted a student earlier in the run, so
+        // the expectation is built from the same live count.
+        $expected = 'Too many rows for one PDF (' . \App\Models\StudentRecord::where('grad', 0)->count() . '). Filter by class or section first, then generate.';
         $unfiltered = $this->studentsConfig();
         unset($unfiltered['filters']['class_id']);
         $unfiltered['filters'] = [];

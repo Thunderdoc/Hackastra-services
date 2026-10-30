@@ -279,9 +279,9 @@ class BulkManagementController extends Controller
     public function studentsEditTemplate()
     {
         $example = [
-            'Adaeze Chiamaka Obi', '', '', '08031234567', '', '',
-            '12 Allen Avenue, Ikeja', '', '', '', '', 'JSS 1', 'B', '', '2024', '', '', '',
-            'HA/JSS/2024/10001',
+            'Aarav Sharma', '', '', '9876543210', '', '',
+            '12 Gandhi Nagar, Madurai', '', '', '', '', 'Class 6', 'B', '', '2024', '', '', '',
+            'HA/2026/10001',
         ];
 
         return CsvExport::download('students-bulk-edit-template.csv', StudentBulkController::COLUMNS, [$example]);
@@ -291,8 +291,8 @@ class BulkManagementController extends Controller
     public function staffAddTemplate()
     {
         $example = [
-            'Chinedu Emeka Nwosu', 'Teacher', 'c.nwosu@example.com', 'Male', '08031234567', '',
-            '1990-04-12', '12 Allen Avenue, Ikeja', 'Nigerian', 'Lagos', 'Ikeja', 'O+', '2024-09-01',
+            'Rajesh Kumar', 'Teacher', 'rajesh.kumar@example.com', 'Male', '9876543210', '',
+            '1990-04-12', '12 Gandhi Nagar, Madurai', 'Indian', 'Tamil Nadu', '', 'O+', '2024-09-01',
         ];
 
         return CsvExport::download('staff-bulk-add-template.csv', StaffBulkModule::COLUMNS, [$example]);
@@ -304,8 +304,8 @@ class BulkManagementController extends Controller
     public function staffEditTemplate()
     {
         $example = [
-            'Adaeze Chiamaka Obi', '', 'a.obi@example.com', '', '08031234567', '',
-            '', '12 Allen Avenue, Ikeja', '', '', '', '', '',
+            'Priya Nair', '', 'priya.nair@example.com', '', '9876543210', '',
+            '', '12 Gandhi Nagar, Madurai', '', '', '', '', '',
         ];
 
         return CsvExport::download('staff-bulk-edit-template.csv', StaffBulkModule::COLUMNS, [$example]);

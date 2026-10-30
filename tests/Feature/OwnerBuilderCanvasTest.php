@@ -82,8 +82,10 @@ class OwnerBuilderCanvasTest extends TestCase
             'config' => json_encode($this->config()),
         ])->assertForbidden();
 
-        // Unfiltered students = 3041 rows — the cap refuses with
-        // the engine's own message, as an error document.
+        // Unfiltered students (3041 on the untouched seed) — the
+        // cap refuses with the engine's own message, as an error
+        // document. The count is read live: another test may have
+        // admitted a student earlier in the run.
         $admin = $this->user('admin@hackstra.app');
         $cfg = $this->config();
         $cfg['filters'] = [];
@@ -91,7 +93,7 @@ class OwnerBuilderCanvasTest extends TestCase
             'config' => json_encode($cfg),
         ]);
         $response->assertStatus(422);
-        $this->assertStringContainsString('Too many rows for one PDF (3041)', $response->getContent());
+        $this->assertStringContainsString('Too many rows for one PDF (' . \App\Models\StudentRecord::where('grad', 0)->count() . ')', $response->getContent());
     }
 
     public function test_pdf_download_still_works_with_new_options()

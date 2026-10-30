@@ -109,9 +109,9 @@ class StudentBulkController extends Controller
     public function importTemplate()
     {
         $example = [
-            'Adaeze Chiamaka Obi', 'adaeze.obi@example.com', 'Female', '08031234567', '',
-            '2012-05-14', '12 Allen Avenue, Ikeja', 'Nigerian', 'Lagos', 'Ikeja', 'O+',
-            'JSS 1', 'A', '', (string) date('Y'), '', '', '',
+            'Aarav Sharma', 'aarav.sharma@example.com', 'Male', '9876543210', '',
+            '2012-05-14', '12 Gandhi Nagar, Madurai', 'Indian', 'Tamil Nadu', '', 'O+',
+            'Class 6', 'A', '', (string) date('Y'), '', '', '',
         ];
 
         return CsvExport::download('students-import-template.csv', self::ADD_COLUMNS, [$example]);

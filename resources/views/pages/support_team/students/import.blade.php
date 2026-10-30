@@ -102,7 +102,7 @@
                         <tr><td>state</td><td><span class="text-danger">*</span></td><td>Exact state name.</td></tr>
                         <tr><td>lga</td><td><span class="text-danger">*</span></td><td>Exact LGA name — must belong to the state on the same row.</td></tr>
                         <tr><td>blood_group</td><td></td><td>e.g. O+, A-, AB+.</td></tr>
-                        <tr><td>class</td><td><span class="text-danger">*</span></td><td>Exact class name, e.g. JSS 1.</td></tr>
+                        <tr><td>class</td><td><span class="text-danger">*</span></td><td>Exact class name, e.g. Class 6.</td></tr>
                         <tr><td>section</td><td><span class="text-danger">*</span></td><td>Exact section name in that class, e.g. A.</td></tr>
                         <tr><td>parent_email</td><td></td><td>Email of an existing parent account, to link the student.</td></tr>
                         <tr><td>year_admitted</td><td><span class="text-danger">*</span></td><td>4-digit year, e.g. {{ date('Y') }}.</td></tr>

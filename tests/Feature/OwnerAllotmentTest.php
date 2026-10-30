@@ -158,7 +158,22 @@ class OwnerAllotmentTest extends TestCase
         $response = $this->actingAs($this->ritu())->get('/dashboard');
         $response->assertOk();
         $response->assertSee('My Subjects', false);
-        $response->assertSee('880', false); // Class 11 (360) + Class 12 (520)
+        // Her Total Students KPI is the distinct grad=0 student
+        // count over her scope classes (subject classes + override
+        // subjects' classes + led sections' classes) — computed
+        // exactly as HomeController computes it, so an earlier
+        // test's admission cannot stale the figure (880 on the
+        // untouched seed: Class 11 360 + Class 12 520).
+        $rituUser = $this->ritu();
+        $scopeClassIds = Subject::where('teacher_id', $rituUser->id)->pluck('my_class_id')
+            ->merge(Subject::whereIn('id', DB::table('section_subject_teachers')
+                ->where('teacher_id', $rituUser->id)->distinct()->pluck('subject_id'))->pluck('my_class_id'))
+            ->merge(Section::where('teacher_id', $rituUser->id)->pluck('my_class_id'))
+            ->filter()->unique()->values();
+        $expectedStudents = (int) \App\Models\StudentRecord::where('grad', 0)
+            ->whereIn('my_class_id', $scopeClassIds)->distinct()->count('user_id');
+        $this->assertGreaterThan(0, $expectedStudents);
+        $response->assertSee((string) $expectedStudents, false);
     }
 
     public function test_subject_teacher_with_no_led_sections_dashboard_renders()

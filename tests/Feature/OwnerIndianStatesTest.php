@@ -40,6 +40,36 @@ class OwnerIndianStatesTest extends TestCase
         $page->assertSee('selected value="' . $indian->id . '"', false);
     }
 
+    public function test_user_facing_examples_are_indian_not_nigerian()
+    {
+        // Live-proof catch 2026-10-30: the create form's phone
+        // placeholders still showed Nigeria's +234, and the bulk
+        // CSV templates still carried Nigerian example rows.
+        $admin = User::where('email', 'admin@hackstra.app')->firstOrFail();
+        $page = $this->actingAs($admin)->get(route('users.create'));
+        $page->assertOk();
+        $page->assertDontSee('+234', false);
+        $page->assertSee('+919876543210', false);
+
+        // Add templates carry a full worked example (state filled);
+        // edit templates leave nationality/state blank by design —
+        // every template must still be free of Nigerian examples.
+        foreach (['students.import.template', 'bulk.templates.staff_add'] as $routeName) {
+            $csv = $this->actingAs($admin)->get(route($routeName));
+            $csv->assertOk();
+            $this->assertStringContainsString('Tamil Nadu', $csv->streamedContent(), $routeName);
+        }
+        foreach (['students.import.template', 'bulk.templates.students_edit', 'bulk.templates.staff_add', 'bulk.templates.staff_edit'] as $routeName) {
+            $csv = $this->actingAs($admin)->get(route($routeName));
+            $csv->assertOk();
+            $content = $csv->streamedContent();
+            $this->assertStringContainsString('Madurai', $content, $routeName);
+            $this->assertStringNotContainsString('Lagos', $content, $routeName);
+            $this->assertStringNotContainsString('Ikeja', $content, $routeName);
+            $this->assertStringNotContainsString('JSS', $content, $routeName);
+        }
+    }
+
     public function test_edit_form_for_teacher_without_nationality_defaults_to_indian()
     {
         $teacher = User::where('email', 'teacher@hackstra.app')->firstOrFail();

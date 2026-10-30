@@ -103,13 +103,13 @@
 
                 <div class="pat-field">
                     <label for="phone">Phone:</label>
-                    <input value="{{ old('phone') }}" type="text" name="phone" id="phone" class="form-control @error('phone') is-invalid @enderror" placeholder="+2341234567" >
+                    <input value="{{ old('phone') }}" type="text" name="phone" id="phone" class="form-control @error('phone') is-invalid @enderror" placeholder="+919876543210" >
                     @include('partials.errors.field', ['field' => 'phone'])
                 </div>
 
                 <div class="pat-field">
                     <label for="phone2">Telephone:</label>
-                    <input value="{{ old('phone2') }}" type="text" name="phone2" id="phone2" class="form-control @error('phone2') is-invalid @enderror" placeholder="+2341234567" >
+                    <input value="{{ old('phone2') }}" type="text" name="phone2" id="phone2" class="form-control @error('phone2') is-invalid @enderror" placeholder="+919876543210" >
                     @include('partials.errors.field', ['field' => 'phone2'])
                 </div>
 
