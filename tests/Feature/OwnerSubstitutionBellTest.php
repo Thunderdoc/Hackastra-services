@@ -150,10 +150,11 @@ class OwnerSubstitutionBellTest extends TestCase
             'user_id' => $substitute->id,
             'type' => 'substitution_assigned',
             'title' => $this->bellTitle($cell),
-            // Owner order 2026-10-29: the bell lands on the page a
-            // teacher can actually open (their attendance list),
-            // never the admin-only board.
-            'link' => route('attendance.periods.index'),
+            // Owner order 2026-10-30 (supersedes the 2026-10-29
+            // attendance-list landing): the bell lands on the
+            // teacher's own extra classes page — one place listing
+            // every cover they hold — never the admin-only board.
+            'link' => route('substitutions.mine'),
         ]);
         // The absent teacher is covered, not an actor — no bell.
         $this->assertDatabaseMissing('user_notifications', [

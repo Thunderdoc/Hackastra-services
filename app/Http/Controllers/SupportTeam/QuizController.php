@@ -384,8 +384,25 @@ class QuizController extends Controller
             return redirect()->route('quizzes.show', $quiz->id)
                 ->with('flash_success', 'You have already attempted this quiz. Your result is below.');
         }
+        // Timed quizzes stamp their start on the SERVER the first
+        // time this page opens (loophole closed 2026-10-30): the
+        // countdown — and the submit check — run from this stamp,
+        // so refreshing or reopening never buys more time.
+        $secondsLeft = null;
+        if ($quiz->time_limit_minutes) {
+            $start = \App\Models\QuizAttemptStart::firstOrCreate(
+                ['quiz_id' => $quiz->id, 'student_record_id' => $record->id],
+                ['started_at' => now()]
+            );
+            $deadline = $start->started_at->copy()->addMinutes((int) $quiz->time_limit_minutes);
+            $secondsLeft = max(0, (int) now()->diffInSeconds($deadline, false));
+            if ($secondsLeft <= 0) {
+                return redirect()->route('quizzes.index')
+                    ->with('flash_danger', 'Your time for this quiz has run out.');
+            }
+        }
         $quiz->load(['questions', 'subject', 'my_class', 'section']);
-        return view('pages.support_team.quizzes.attempt', compact('quiz'));
+        return view('pages.support_team.quizzes.attempt', compact('quiz', 'secondsLeft'));
     }
 
     public function submitAttempt(Request $req, Quiz $quiz)
@@ -407,6 +424,26 @@ class QuizController extends Controller
         if (!$this->isAvailable($quiz)) {
             return redirect()->route('quizzes.index')
                 ->with('flash_danger', 'This quiz is not available right now (draft, or outside its published timing window). Nothing was submitted.');
+        }
+        // Server-side time enforcement (loophole closed
+        // 2026-10-30): a timed quiz can only be submitted from a
+        // stamped start, inside started_at + the limit (plus a
+        // 60-second grace for a slow connection). The client
+        // countdown alone was never a check.
+        if ($quiz->time_limit_minutes) {
+            $start = \App\Models\QuizAttemptStart::where('quiz_id', $quiz->id)
+                ->where('student_record_id', $record->id)
+                ->first();
+            if (!$start) {
+                return redirect()->route('quizzes.index')
+                    ->with('flash_danger', 'Please open the quiz from its page first — the timer starts there. Nothing was submitted.');
+            }
+            $deadline = $start->started_at->copy()
+                ->addMinutes((int) $quiz->time_limit_minutes)->addSeconds(60);
+            if (now()->greaterThan($deadline)) {
+                return redirect()->route('quizzes.index')
+                    ->with('flash_danger', 'Your time for this quiz has run out — the submission was not accepted.');
+            }
         }
 
         $quiz->load('questions');

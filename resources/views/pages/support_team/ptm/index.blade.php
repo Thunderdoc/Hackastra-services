@@ -46,12 +46,14 @@
                                         @else
                                             <span class="badge badge-success">Booked</span>
                                         @endif
+                                    @elseif($slot->hasEnded())
+                                        <span class="badge badge-secondary">Ended</span>
                                     @else
                                         <span class="badge badge-info">Available</span>
                                     @endif
                                 </td>
                                 <td>
-                                    @if(!$slot->booking && $is_parent && $my_children->count() > 0)
+                                    @if(!$slot->booking && !$slot->hasEnded() && $is_parent && $my_children->count() > 0)
                                         <form method="POST" action="{{ route('ptm.book', $slot->id) }}">
                                             @csrf
                                             <select name="student_user_id" class="form-control form-control-sm" required>
@@ -70,6 +72,13 @@
                                         </form>
                                     @else
                                         —
+                                    @endif
+                                    @if($can_create && !$slot->booking)
+                                        <form method="POST" action="{{ route('ptm.destroy', $slot->id) }}" onsubmit="return confirm('Delete this slot? This cannot be undone.');" class="mt-1">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-light btn-sm text-danger">Delete Slot</button>
+                                        </form>
                                     @endif
                                 </td>
                             </tr>

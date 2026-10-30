@@ -114,7 +114,7 @@ class MyAccountController extends Controller
             'time_format' => 'sometimes|in:12,24',
         ]);
 
-        foreach (['notify_email', 'notify_announcements', 'notify_attendance', 'notify_exams', 'notify_lms'] as $key) {
+        foreach (['notify_email', 'notify_announcements', 'notify_attendance', 'notify_exams', 'notify_lms', 'bell_sound', 'notifications_muted'] as $key) {
             if ($req->has($key) || $req->has($key . '_present')) {
                 UserPreference::set($user->id, $key, $req->boolean($key) ? '1' : '0');
             }

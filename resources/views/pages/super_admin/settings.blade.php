@@ -138,6 +138,7 @@
                         <option value="class_year_serial" {{ ($s['adm_no_format'] ?? '') === 'class_year_serial' ? 'selected' : '' }}>Class / Year / Serial (e.g. PN/2026/1001)</option>
                         <option value="code_serial" {{ ($s['adm_no_format'] ?? '') === 'code_serial' ? 'selected' : '' }}>School code / Serial (e.g. HA/1001)</option>
                         <option value="year_serial" {{ ($s['adm_no_format'] ?? '') === 'year_serial' ? 'selected' : '' }}>Year / Serial (e.g. 2026/1001)</option>
+                        <option value="serial_only" {{ ($s['adm_no_format'] ?? '') === 'serial_only' ? 'selected' : '' }}>Numbers only — no code, no year (e.g. 1001)</option>
                         <option value="custom" {{ ($s['adm_no_format'] ?? '') === 'custom' ? 'selected' : '' }}>Custom — define your own pattern</option>
                     </select>
                     @include('partials.errors.field', ['field' => 'adm_no_format'])
@@ -226,6 +227,18 @@
                     <label for="library_fine_per_day">Library Fine per Day Late (₹)</label>
                     <input name="library_fine_per_day" id="library_fine_per_day" value="{{ $s['library_fine_per_day'] ?? '' }}" type="number" min="0" max="1000" class="form-control @error('library_fine_per_day') is-invalid @enderror" placeholder="Default 10">
                     @include('partials.errors.field', ['field' => 'library_fine_per_day'])
+                </div>
+                <div class="pat-field">
+                    <label for="paid_leave_quota_days">Paid Leave Quota — Days per Year (per staff)</label>
+                    <input name="paid_leave_quota_days" id="paid_leave_quota_days" value="{{ $s['paid_leave_quota_days'] ?? '' }}" type="number" min="0" max="365" step="0.5" class="form-control @error('paid_leave_quota_days') is-invalid @enderror" placeholder="e.g. 12 — leave empty for no deduction">
+                    @include('partials.errors.field', ['field' => 'paid_leave_quota_days'])
+                    <small class="text-muted">Approved leave beyond this many days in a year is unpaid. Leave empty (or 0) to only record leave on payslips, with no deduction.</small>
+                </div>
+                <div class="pat-field">
+                    <label for="leave_deduction_percent">Leave Deduction — % of One Day's Salary per Extra Day</label>
+                    <input name="leave_deduction_percent" id="leave_deduction_percent" value="{{ $s['leave_deduction_percent'] ?? '' }}" type="number" min="0" max="100" step="1" class="form-control @error('leave_deduction_percent') is-invalid @enderror" placeholder="Default 100">
+                    @include('partials.errors.field', ['field' => 'leave_deduction_percent'])
+                    <small class="text-muted">One day's salary = (Basic + Allowances) ÷ 30. Applied automatically when payroll is generated; the payslip shows the leave days and the deduction.</small>
                 </div>
             </div>
         </div>

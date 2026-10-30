@@ -8,6 +8,8 @@ use App\Models\Substitution;
 use App\Models\TimeTable;
 use App\User;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Auto-arranged leave cover (owner order 2026-10-29).
@@ -177,16 +179,24 @@ class LeaveAutoCover
         }
 
         // Effective-teacher map per weekday, computed lazily: for a
-        // weekday, every cell's effective teacher (override first).
+        // weekday, every cell's effective teacher (override first),
+        // resolved from ONE bulk override map — SectionTeacher::
+        // teacherIdFor() costs a query per cell, and a weekday
+        // carries ~200 cells; that per-cell storm was part of why
+        // a leave approval could not finish against the remote
+        // production database (owner report 2026-10-30).
+        $overrideMap = static::overrideMap();
         $ownCellsByDay = [];
-        $ownCellsFor = function (string $dayName) use (&$ownCellsByDay) {
+        $ownCellsFor = function (string $dayName) use (&$ownCellsByDay, $overrideMap) {
             if (!isset($ownCellsByDay[$dayName])) {
                 $map = [];
                 $cells = TimeTable::with(['subject', 'time_slot', 'tt_record'])
                     ->where('day', $dayName)->whereNotNull('subject_id')->get();
                 foreach ($cells as $other) {
-                    $tid = SectionTeacher::teacherIdFor(
-                        optional($other->tt_record)->section_id ?? null, $other->subject
+                    $tid = static::effectiveTeacherId(
+                        $overrideMap,
+                        optional($other->tt_record)->section_id ?? null,
+                        $other->subject
                     );
                     if ($tid) {
                         $map[(int) $tid][] = $other;
@@ -409,8 +419,38 @@ class LeaveAutoCover
             ->whereDate('date', '<=', $end->toDateString())
             ->get();
 
+        // One statement for the whole plan (was one UPDATE per
+        // row) and one bulk insert for every substitute bell
+        // (was one INSERT + one schema check per row) — the
+        // per-row write storm is what made approvals time out
+        // against the remote database (owner report 2026-10-30).
+        if ($rows->isNotEmpty()) {
+            Substitution::whereIn('id', $rows->pluck('id')->all())
+                ->update(['status' => 'confirmed']);
+        }
+
+        $substituteBells = [];
         foreach ($rows as $row) {
-            $row->update(['status' => 'confirmed']);
+            $date = $row->date instanceof Carbon ? $row->date->copy() : Carbon::parse((string) $row->date);
+            $cell = $row->time_table;
+            if (!$cell || !$cell->subject) {
+                continue;
+            }
+            $substituteBells[] = [
+                'user_id' => (int) $row->substitute_teacher_id,
+                'type' => 'substitution_assigned',
+                // Same title shape as
+                // SubstitutionController::bellTitle — the
+                // board's destroy cleanup finds bells by it.
+                'title' => 'Substitution assigned: ' . $cell->subject->name . ' on ' . $date->format('d M Y'),
+                'body' => 'You cover ' . optional(optional($cell->tt_record)->my_class)->name . ' — ' . $cell->subject->name . ' on ' . $date->format('d M Y') . '.',
+                'link' => route('substitutions.mine'),
+            ];
+        }
+        try {
+            Notify::insertMany($substituteBells);
+        } catch (\Throwable $e) {
+            // Bells only — the confirmation itself stands.
         }
 
         foreach ($rows as $row) {
@@ -418,20 +458,6 @@ class LeaveAutoCover
             $cell = $row->time_table;
             if (!$cell || !$cell->subject) {
                 continue;
-            }
-            try {
-                Notify::toUser(
-                    (int) $row->substitute_teacher_id,
-                    'substitution_assigned',
-                    // Same title shape as
-                    // SubstitutionController::bellTitle — the
-                    // board's destroy cleanup finds bells by it.
-                    'Substitution assigned: ' . $cell->subject->name . ' on ' . $date->format('d M Y'),
-                    'You cover ' . optional(optional($cell->tt_record)->my_class)->name . ' — ' . $cell->subject->name . ' on ' . $date->format('d M Y') . '.',
-                    route('attendance.periods.index')
-                );
-            } catch (\Throwable $e) {
-                // Bell only — the confirmation itself stands.
             }
             static::bellStudentsForCell($cell, 'period_substitute',
                 'Substitute teacher: ' . $cell->subject->name . ' on ' . $date->format('d M Y'),
@@ -474,9 +500,10 @@ class LeaveAutoCover
             } else {
                 $q->where('my_class_id', $record->my_class_id);
             }
-            foreach ($q->pluck('user_id') as $uid) {
-                Notify::toUser((int) $uid, $type, $title, $body, route('tt.mine'));
-            }
+            // One bulk insert for the whole class/section —
+            // per-student single inserts here were the bulk of
+            // the leave-approval query storm (see Notify::toUsers).
+            Notify::toUsers($q->pluck('user_id')->all(), $type, $title, $body, route('tt.mine'));
         } catch (\Throwable $e) {
             // Bell only.
         }
@@ -628,65 +655,8 @@ class LeaveAutoCover
                 continue;
             }
             $date = $row->date instanceof Carbon ? $row->date->copy() : Carbon::parse((string) $row->date);
-            $dateStr = $date->toDateString();
-            $absentId = (int) $row->absent_teacher_id;
 
-            // Teachers on approved leave touching THIS date are
-            // out — the leaving teacher included (their own new
-            // leave is already approved when this runs).
-            $onLeaveIds = LeaveRequest::where('status', 'approved')
-                ->whereDate('start_date', '<=', $dateStr)
-                ->whereDate('end_date', '>=', $dateStr)
-                ->pluck('user_id')->unique()->all();
-
-            $pool = User::where('user_type', 'teacher')
-                ->where(function ($q) {
-                    $q->whereNull('status')->orWhere('status', User::STATUS_ACTIVE);
-                })
-                ->whereNotIn('id', array_merge($onLeaveIds, [$absentId, (int) $leaving->id]))
-                ->orderBy('id')->get();
-
-            // Rank: fewest covers that date first, then lowest id.
-            $dayLoad = Substitution::whereDate('date', $dateStr)
-                ->whereIn('substitute_teacher_id', $pool->pluck('id')->all())
-                ->selectRaw('substitute_teacher_id, COUNT(*) as c')
-                ->groupBy('substitute_teacher_id')
-                ->pluck('c', 'substitute_teacher_id');
-            $candidates = $pool->all();
-            usort($candidates, function ($a, $b) use ($dayLoad) {
-                $da = (int) ($dayLoad[(int) $a->id] ?? 0);
-                $db = (int) ($dayLoad[(int) $b->id] ?? 0);
-                if ($da !== $db) {
-                    return $da <=> $db;
-                }
-                return (int) $a->id <=> (int) $b->id;
-            });
-
-            $window = static::slotWindow($date, $cell->time_slot);
-            $pick = null;
-            foreach ($candidates as $candidate) {
-                $cid = (int) $candidate->id;
-                // The candidate's own effective cells that weekday.
-                $ownCells = [];
-                $dayCells = TimeTable::with(['subject', 'time_slot', 'tt_record'])
-                    ->where('day', $date->format('l'))->whereNotNull('subject_id')->get();
-                foreach ($dayCells as $other) {
-                    if ((int) SectionTeacher::teacherIdFor(optional($other->tt_record)->section_id ?? null, $other->subject) === $cid) {
-                        $ownCells[] = $other;
-                    }
-                }
-                $existingSubs = Substitution::with('time_table.time_slot')
-                    ->where('substitute_teacher_id', $cid)
-                    ->whereDate('date', $dateStr)->get()
-                    ->map(function ($s) {
-                        return $s->time_table;
-                    })->all();
-                if (!static::isFree($cid, $window, $date, $ownCells, $existingSubs, [])) {
-                    continue;
-                }
-                $pick = $candidate;
-                break;
-            }
+            $pick = static::pickReplacementFor($row, $date, [(int) $leaving->id]);
 
             if ($pick) {
                 $wasPending = $row->isPending();
@@ -707,10 +677,10 @@ class LeaveAutoCover
                         'substitution_assigned',
                         'Substitution assigned: ' . $cell->subject->name . ' on ' . $date->format('d M Y'),
                         'You cover ' . optional(optional($cell->tt_record)->my_class)->name . ' — ' . $cell->subject->name . ' on ' . $date->format('d M Y') . ' (moved: the earlier substitute is on leave).',
-                        // The bell must land where a TEACHER can go:
-                        // their attendance list (the board itself is
-                        // admin/principal-only and bounced teachers).
-                        route('attendance.periods.index')
+                        // The bell lands on the teacher's own extra
+                        // classes page (owner order 2026-10-30: one
+                        // place listing every cover they hold).
+                        route('substitutions.mine')
                     );
                 } catch (\Throwable $e) {
                     // Bell only — the move itself stands.
@@ -734,6 +704,211 @@ class LeaveAutoCover
                 }
             } catch (\Throwable $e) {
                 // Alert only.
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * The deterministic replacement pick for ONE substitution row
+     * on ONE date — the same eligibility and ranking arrange() and
+     * the chained-absence reassign use: live teachers only, never
+     * the absent teacher, never anyone on approved leave touching
+     * the date, never anyone in $excludeIds; free at the slot
+     * (no own effective period, no other substitution overlapping);
+     * ranked fewest covers that date first, then lowest id.
+     */
+    protected static function pickReplacementFor(Substitution $row, Carbon $date, array $excludeIds): ?User
+    {
+        $cell = $row->time_table;
+        if (!$cell) {
+            return null;
+        }
+        $dateStr = $date->toDateString();
+
+        $onLeaveIds = LeaveRequest::where('status', 'approved')
+            ->whereDate('start_date', '<=', $dateStr)
+            ->whereDate('end_date', '>=', $dateStr)
+            ->pluck('user_id')->unique()->all();
+
+        $pool = User::where('user_type', 'teacher')
+            ->where(function ($q) {
+                $q->whereNull('status')->orWhere('status', User::STATUS_ACTIVE);
+            })
+            ->whereNotIn('id', array_merge($onLeaveIds, [(int) $row->absent_teacher_id], $excludeIds))
+            ->orderBy('id')->get();
+        if ($pool->isEmpty()) {
+            return null;
+        }
+
+        // Rank: fewest covers that date first, then lowest id.
+        $dayLoad = Substitution::whereDate('date', $dateStr)
+            ->whereIn('substitute_teacher_id', $pool->pluck('id')->all())
+            ->selectRaw('substitute_teacher_id, COUNT(*) as c')
+            ->groupBy('substitute_teacher_id')
+            ->pluck('c', 'substitute_teacher_id');
+        $candidates = $pool->all();
+        usort($candidates, function ($a, $b) use ($dayLoad) {
+            $da = (int) ($dayLoad[(int) $a->id] ?? 0);
+            $db = (int) ($dayLoad[(int) $b->id] ?? 0);
+            if ($da !== $db) {
+                return $da <=> $db;
+            }
+            return (int) $a->id <=> (int) $b->id;
+        });
+
+        $window = static::slotWindow($date, $cell->time_slot);
+        $dayCells = TimeTable::with(['subject', 'time_slot', 'tt_record'])
+            ->where('day', $date->format('l'))->whereNotNull('subject_id')->get();
+        // Resolve every cell's effective teacher ONCE from the
+        // bulk map and batch the candidates' existing covers into
+        // one query: the previous shape re-scanned all ~200 day
+        // cells PER CANDIDATE, each with its own teacherIdFor
+        // query — up to ~7,800 queries to re-pick a single row.
+        $overrideMap = static::overrideMap();
+        $ownByTeacher = [];
+        foreach ($dayCells as $other) {
+            $tid = static::effectiveTeacherId(
+                $overrideMap,
+                optional($other->tt_record)->section_id ?? null,
+                $other->subject
+            );
+            if ($tid) {
+                $ownByTeacher[(int) $tid][] = $other;
+            }
+        }
+        $subsByTeacher = [];
+        foreach (Substitution::with('time_table.time_slot')
+            ->whereIn('substitute_teacher_id', $pool->pluck('id')->all())
+            ->whereDate('date', $dateStr)->get() as $s) {
+            $subsByTeacher[(int) $s->substitute_teacher_id][] = $s->time_table;
+        }
+        foreach ($candidates as $candidate) {
+            $cid = (int) $candidate->id;
+            if (!static::isFree($cid, $window, $date, $ownByTeacher[$cid] ?? [], $subsByTeacher[$cid] ?? [], [])) {
+                continue;
+            }
+            return $candidate;
+        }
+
+        return null;
+    }
+
+    /**
+     * The whole section-override table as a local lookup map,
+     * "section_id:subject_id" => teacher_id (truthy teachers
+     * only). One query; callers resolve effective teachers from
+     * it instead of SectionTeacher::teacherIdFor()'s query per
+     * cell. Semantics identical: a truthy override wins, else
+     * the subject's class-level teacher (see effectiveTeacherId).
+     */
+    protected static function overrideMap(): array
+    {
+        $map = [];
+        if (Schema::hasTable('section_subject_teachers')) {
+            foreach (DB::table('section_subject_teachers')->get(['section_id', 'subject_id', 'teacher_id']) as $o) {
+                if ($o->teacher_id) {
+                    $map[(int) $o->section_id . ':' . (int) $o->subject_id] = (int) $o->teacher_id;
+                }
+            }
+        }
+        return $map;
+    }
+
+    /** Effective teacher of a cell resolved from a bulk map. */
+    protected static function effectiveTeacherId(array $overrideMap, $sectionId, $subject): ?int
+    {
+        if ($sectionId && $subject && isset($overrideMap[(int) $sectionId . ':' . (int) $subject->id])) {
+            return $overrideMap[(int) $sectionId . ':' . (int) $subject->id];
+        }
+        return ($subject && $subject->teacher_id) ? (int) $subject->teacher_id : null;
+    }
+
+    /**
+     * Owner order 2026-10-30: when a teacher's account is suspended,
+     * terminated or deleted, the cover they were holding cannot
+     * stay with them — the class would stand uncovered behind a
+     * name that can no longer teach it. Every future row they
+     * substitute (today included) moves to the next eligible
+     * teacher with the same pick as every other reassign; a
+     * confirmed row's new substitute gets the standard bell, a
+     * pending plan row moves silently. A period nobody free can
+     * take loses its row (keeping it would lie about coverage)
+     * and alerts every admin + the principal, exactly like an
+     * uncovered period. Past rows are history and stay untouched.
+     *
+     * @return array{reassigned:int, lost:int}
+     */
+    public static function reassignForDepartedTeacher(User $departing, ?int $actorId, string $reasonLabel = 'no longer available'): array
+    {
+        $result = ['reassigned' => 0, 'lost' => 0];
+        if (!$departing || $departing->user_type !== 'teacher') {
+            return $result;
+        }
+
+        $rows = Substitution::with(['time_table.time_slot', 'time_table.subject', 'time_table.tt_record.my_class', 'absent_teacher'])
+            ->where('substitute_teacher_id', $departing->id)
+            ->whereDate('date', '>=', now()->toDateString())
+            ->orderBy('date')->orderBy('id')
+            ->get();
+
+        foreach ($rows as $row) {
+            $cell = $row->time_table;
+            if (!$cell || !$cell->subject) {
+                continue;
+            }
+            $date = $row->date instanceof Carbon ? $row->date->copy() : Carbon::parse((string) $row->date);
+            $pick = static::pickReplacementFor($row, $date, [(int) $departing->id]);
+
+            if ($pick) {
+                $wasPending = $row->isPending();
+                $row->update([
+                    'substitute_teacher_id' => (int) $pick->id,
+                    'created_by' => $actorId ?: $row->created_by,
+                ]);
+                $result['reassigned']++;
+                if ($wasPending) {
+                    continue;
+                }
+                try {
+                    Notify::toUser(
+                        (int) $pick->id,
+                        'substitution_assigned',
+                        'Substitution assigned: ' . $cell->subject->name . ' on ' . $date->format('d M Y'),
+                        'You cover ' . optional(optional($cell->tt_record)->my_class)->name . ' — ' . $cell->subject->name . ' on ' . $date->format('d M Y') . ' (moved: the earlier substitute is ' . $reasonLabel . ').',
+                        route('substitutions.mine')
+                    );
+                } catch (\Throwable $e) {
+                    // Bell only — the move itself stands.
+                }
+                continue;
+            }
+
+            $absentName = optional($row->absent_teacher)->name ?: 'A teacher';
+            $row->delete();
+            $result['lost']++;
+            try {
+                $title = 'Cover lost: ' . $absentName . ' on ' . $date->format('d M Y');
+                $body = 'The substitute for ' . $absentName . ' (' . $cell->subject->name . ', '
+                    . optional(optional($cell->tt_record)->my_class)->name . ') on ' . $date->format('d M Y')
+                    . ' is ' . $reasonLabel . ', and no free teacher could be found. Arrange cover from the substitutions board.';
+                foreach (User::whereIn('user_type', ['admin', 'principal'])->pluck('id') as $uid) {
+                    Notify::toUser((int) $uid, 'leave_coverage_unresolved', $title, $body, route('substitutions.index'));
+                }
+            } catch (\Throwable $e) {
+                // Alert only.
+            }
+        }
+
+        if ($result['reassigned'] > 0 || $result['lost'] > 0) {
+            try {
+                Audit::log('substitution.cover_healed', null,
+                    'Cover held by ' . $departing->name . ' (' . $reasonLabel . '): '
+                    . $result['reassigned'] . ' period(s) moved to another teacher, '
+                    . $result['lost'] . ' period(s) could not be re-covered.');
+            } catch (\Throwable $e) {
+                // Audit only.
             }
         }
 

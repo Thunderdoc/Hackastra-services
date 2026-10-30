@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Support\DemoToday;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
@@ -132,7 +133,7 @@ class DashboardDemoDataSeeder extends Seeder
             ];
 
             foreach ($demoEvents as $event) {
-                $date = now()->addDays($event['days'])->toDateString();
+                $date = DemoToday::now()->addDays($event['days'])->toDateString();
                 DB::table('school_events')->updateOrInsert(
                     ['title' => $event['title'], 'starts_at' => $date],
                     [

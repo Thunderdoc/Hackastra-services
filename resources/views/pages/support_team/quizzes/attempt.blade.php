@@ -8,7 +8,7 @@
         <div class="card-header">
             <h5 class="card-title">{{ $quiz->title }}</h5>
             @if ($quiz->time_limit_minutes)
-                <span class="float-right">Time left: <strong id="quiz-countdown" data-seconds="{{ $quiz->time_limit_minutes * 60 }}">{{ $quiz->time_limit_minutes }}:00</strong></span>
+                <span class="float-right">Time left: <strong id="quiz-countdown" data-seconds="{{ $secondsLeft ?? ($quiz->time_limit_minutes * 60) }}">{{ $quiz->time_limit_minutes }}:00</strong></span>
             @endif
         </div>
         <div class="card-body">

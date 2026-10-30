@@ -294,8 +294,14 @@ class OwnerAuditOvernightAllotmentTest extends TestCase
             'Teacher menu must not link to Lesson Plans');
         $this->assertStringNotContainsString(route('homework_tracker.index'), $content,
             'Teacher menu must not link to Homework Tracker');
-        $this->assertStringNotContainsString(route('substitutions.index'), $content,
-            'Teacher menu must not link to Substitutions');
+        // Exact href: the board stays hidden (overnight order),
+        // but the teacher's OWN extra-classes page (owner order
+        // 2026-10-30) lives at /substitutions/mine — a prefix
+        // match on the board URL would falsely condemn it.
+        $this->assertStringNotContainsString('href="' . route('substitutions.index') . '"', $content,
+            'Teacher menu must not link to the Substitutions board');
+        $this->assertStringContainsString('href="' . route('substitutions.mine') . '"', $content,
+            'Teacher menu must link to My Extra Classes');
     }
 
     // ---- Item 18: PTM scheduling admin-only ----

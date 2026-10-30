@@ -85,6 +85,41 @@
     .rb3-tint-amber { background: #fdf1e0; color: #b26a00; } .rb3-tint-violet { background: #f0eafd; color: #6d3bd1; }
     .rb3-tint-rose { background: #fdebee; color: #c2255c; } .rb3-tint-teal { background: #e2f5f2; color: #0f766e; }
     .rb3-tint-indigo { background: #e7eafa; color: #3949ab; } .rb3-tint-slate { background: #edf1f5; color: #47596b; }
+
+    /* Builder rb4 (owner, 2026-10-30): fit-to-screen with the
+       screen split into TWO EQUAL halves — left every input,
+       right the live PDF. No page scroll, no column scroll: the
+       left half is one tabbed card (Data / Filters / Columns /
+       Finish) so each step fits the height, and the category
+       shortcuts shrink to chips at the top of the left half. */
+    .rb4-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+    .rb4-tab { border: 1.5px solid #dfe8f3; background: #fff; color: #10263b; border-radius: 999px; padding: 6px 14px; font-weight: 600; font-size: 13px; cursor: pointer; }
+    .rb4-tab.active { border-color: #1765f5; background: #1765f5; color: #fff; }
+    @media (min-width: 992px) {
+        .rb2-fit-row { height: calc(100dvh - 208px); min-height: 540px; }
+        .rb2-settings { height: 100%; overflow: visible; padding-right: 15px; }
+        [data-rb4-panel] { display: none; }
+        [data-rb4-panel].rb4-on { display: block; }
+        .rb3-cats { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+        .rb3-cat { width: auto; padding: 5px 10px; border-radius: 999px; gap: 6px; box-shadow: none; }
+        .rb3-cat .rb3-cat-icon { width: 22px; height: 22px; font-size: 12px; border-radius: 6px; }
+        .rb3-cat .rb3-cat-desc { display: none; }
+        .rb3-cat .rb3-cat-label { font-size: 12.5px; }
+        .rb2-col-item { display: flex; flex-wrap: wrap; gap: 8px; padding: 6px 8px; margin-bottom: 6px; align-items: flex-start; }
+        .rb2-col-line1 { flex: 1 1 230px; }
+        .rb2-col-line2 { flex: 1 1 190px; margin-top: 0; }
+        .rb2-source-tile { padding: 6px 8px; }
+        .rb2-source-tile .rb2-src-label { font-size: 12.5px; }
+        .rb2-source-tile .rb2-src-meta { display: inline; margin-top: 0; margin-left: 4px; }
+    }
+    @media (min-width: 992px) and (max-height: 820px) {
+        .rb2-settings .card-body { padding: 12px 14px; }
+        .rb2-settings .form-group { margin-bottom: 9px; }
+        .rb2-source-tile .rb2-src-meta { display: none; }
+    }
+    @media (max-width: 991px) {
+        .rb4-tabs { display: none; }
+    }
 </style>
 
 @php
@@ -107,6 +142,14 @@
         foreach ($catDef['sources'] as $srcKey) { $rbSourceCategory[$srcKey] = $catKey; }
     }
 @endphp
+<div class="row rb2-fit-row">
+    <div class="col-lg-6 rb2-settings" id="rbSettings">
+        <div class="rb4-tabs" role="tablist">
+            <button type="button" class="rb4-tab active" data-rb4-tab="data">1 · Data</button>
+            <button type="button" class="rb4-tab" data-rb4-tab="filters">2 · Filters</button>
+            <button type="button" class="rb4-tab" data-rb4-tab="columns">3 · Columns</button>
+            <button type="button" class="rb4-tab" data-rb4-tab="finish">4 · Finish</button>
+        </div>
 <div class="rb3-cats" id="rbCatBar">
     <button type="button" class="rb3-cat active" data-category="">
         <span class="rb3-cat-icon rb3-tint-blue"><i class="icon-grid6"></i></span>
@@ -123,11 +166,10 @@
     @endforeach
 </div>
 
-<div class="row rb2-fit-row">
-    <div class="col-lg-5 rb2-settings" id="rbSettings">
+
 
         {{-- STEP 1 — DATA --}}
-        <div class="card">
+        <div class="card rb4-on" data-rb4-panel="data">
             <div class="card-header">
                 <h5 class="card-title mb-0 rb2-step-title"><span class="rb2-step-badge">1</span> Build your report</h5>
                 <div class="rb2-step-sub">Easiest: tap a ready template — everything fills in for you. Or pick a data source and build your own.</div>
@@ -181,7 +223,7 @@
         </div>
 
         @if($templates->count())
-        <div class="card">
+        <div class="card rb4-on" data-rb4-panel="data">
             <div class="card-header"><h5 class="card-title mb-0">My saved templates</h5></div>
             <div class="card-body p-0">
                 <table class="table table-sm mb-0">
@@ -208,7 +250,7 @@
         @endif
 
         {{-- STEP 2 — FILTERS --}}
-        <div class="card">
+        <div class="card" data-rb4-panel="filters">
             <div class="card-header">
                 <h5 class="card-title mb-0 rb2-step-title"><span class="rb2-step-badge">2</span> Filters</h5>
                 <div class="rb2-step-sub">Only the filters this data source actually uses are shown.</div>
@@ -280,7 +322,7 @@
         </div>
 
         {{-- STEP 3 — COLUMNS --}}
-        <div class="card">
+        <div class="card" data-rb4-panel="columns">
             <div class="card-header">
                 <h5 class="card-title mb-0 rb2-step-title"><span class="rb2-step-badge">3</span> Columns</h5>
                 <div class="rb2-step-sub">Rename, resize, reorder or drop columns; add totals and sorting.</div>
@@ -317,7 +359,7 @@
         </div>
 
         {{-- STEP 4 — FINISH --}}
-        <div class="card">
+        <div class="card" data-rb4-panel="finish">
             <div class="card-header">
                 <h5 class="card-title mb-0 rb2-step-title"><span class="rb2-step-badge">4</span> Finish</h5>
                 <div class="rb2-step-sub">Layout and print options, then generate the PDF or save the design as a template.</div>
@@ -372,7 +414,7 @@
         </div>
     </div>
 
-    <div class="col-lg-7 rb2-preview">
+    <div class="col-lg-6 rb2-preview">
         <div class="card rb2-preview-card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="card-title mb-0">Live preview</h5>
@@ -1083,3 +1125,24 @@
 })();
 </script>
 @endsection
+
+<script>
+/* Builder rb4 tabs (owner, 2026-10-30): the left half shows one
+   step at a time so the whole builder fits the screen with no
+   scrolling. Pure presentation — every input keeps its id and
+   the preview keeps updating from any panel, visible or not. */
+(function () {
+    var tabs = document.querySelectorAll('[data-rb4-tab]');
+    var panels = document.querySelectorAll('[data-rb4-panel]');
+    if (!tabs.length) { return; }
+    tabs.forEach(function (tab) {
+        tab.addEventListener('click', function () {
+            var target = tab.getAttribute('data-rb4-tab');
+            tabs.forEach(function (t) { t.classList.toggle('active', t === tab); });
+            panels.forEach(function (p) {
+                p.classList.toggle('rb4-on', p.getAttribute('data-rb4-panel') === target);
+            });
+        });
+    });
+})();
+</script>

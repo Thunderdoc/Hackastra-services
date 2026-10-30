@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\SupportTeam;
 
 use App\Helpers\Qs;
+use App\Models\Admission;
+use App\Models\StudentRecord;
 use App\Support\Audit;
 use App\Support\CsvExport;
 use App\Support\TeacherScope;
@@ -85,6 +87,19 @@ class StudentRecordController extends Controller
 
     public function store(StudentRecordCreate $req)
     {
+        // Admission-enquiry loop closure (owner loophole review,
+        // 2026-10-30): when this admit came from an enquiry's
+        // Convert action, the enquiry rides along as admission_id.
+        // An enquiry that already produced a student can never
+        // admit a second one — refuse before anything is created.
+        $enquiry = null;
+        if ($req->filled('admission_id')) {
+            $enquiry = Admission::find((int) $req->input('admission_id'));
+            if ($enquiry && ($enquiry->status === 'converted' || $enquiry->student_record_id)) {
+                return back()->withInput()->with('flash_danger', 'This enquiry has already been converted into a student admission. It cannot be admitted twice.');
+            }
+        }
+
        $data =  $req->only(Qs::getUserRecord());
        $sr =  $req->only(Qs::getStudentData());
 
@@ -138,13 +153,14 @@ class StudentRecordController extends Controller
         }
 
         $sr['session'] = Qs::getSetting('current_session');
-        $createStudent = function ($username) use ($data, $sr) {
+        $createdRecordId = null;
+        $createStudent = function ($username) use ($data, $sr, &$createdRecordId) {
             $data['username'] = $username;
             $sr['adm_no'] = $username;
-            DB::transaction(function () use ($data, $sr) {
+            DB::transaction(function () use ($data, $sr, &$createdRecordId) {
                 $user = $this->user->create($data); // Create User
                 $sr['user_id'] = $user->id;
-                $this->student->createRecord($sr); // Create Student
+                $createdRecordId = $this->student->createRecord($sr)->id; // Create Student
             });
         };
         if ($adm_no) {
@@ -152,11 +168,24 @@ class StudentRecordController extends Controller
         } else {
             Qs::mintStudent($createStudent, $ct, $sr['year_admitted']);
         }
+
+        // Close the enquiry loop: the student now exists, so the
+        // enquiry is converted for real — status + the link to the
+        // record it produced (see the guard at the top of store()).
+        $convertedNote = '';
+        if ($enquiry && $enquiry->status === 'approved' && $createdRecordId) {
+            $enquiry->update([
+                'status' => 'converted',
+                'student_record_id' => $createdRecordId,
+            ]);
+            $convertedNote = ' The admission enquiry has been marked Converted.';
+        }
+
         // Loop 112: post-save lands on the student's class list (owner
         // ruling) — was Qs::jsonStoreOk() (a raw JSON response to a
         // plain form POST).
         return redirect()->route('students.list', $req->my_class_id)
-            ->with('flash_success', __('msg.store_ok') . $movedNote);
+            ->with('flash_success', __('msg.store_ok') . $movedNote . $convertedNote);
     }
 
     /**
@@ -273,6 +302,115 @@ class StudentRecordController extends Controller
         // list below (section, search, sort, print, CSV, bulk delete)
         // is untouched.
         if (is_null($class_id)) {
+            // Student search with full filters (owner order
+            // 2026-10-30: "search student me koi filter hi nahi —
+            // saab add kro"). The picker below only opens a class
+            // list; this search finds individual students across
+            // classes by name / admission number / email / phone,
+            // narrowed by class, section, gender, house, category,
+            // status and admission year. Teacher scope applies
+            // exactly as on the class lists — a teacher's search
+            // can never surface a student outside their classes.
+            if (request('search') === '1') {
+                $classes = $this->my_class->all();
+                if (Qs::userIsTeacher()) {
+                    $classes = $classes->whereIn('id', TeacherScope::classIds(Auth::user()))->values();
+                }
+                $scopeIds = $classes->pluck('id')->map(function ($id) {
+                    return (int) $id;
+                })->all();
+
+                $f = [
+                    'q' => trim((string) request('q')),
+                    'class_id' => (int) request('class_id'),
+                    'section_id' => (int) request('section_id'),
+                    'gender' => (string) request('gender'),
+                    'house' => (string) request('house'),
+                    'category' => (string) request('category'),
+                    'status' => (string) request('status') ?: 'active',
+                    'year_admitted' => (string) request('year_admitted'),
+                ];
+
+                $query = StudentRecord::with(['user', 'my_class', 'section'])
+                    ->whereIn('my_class_id', $scopeIds ?: [0]);
+                if ($f['class_id']) {
+                    // An explicit class outside the viewer's scope
+                    // is an empty result — never silently widen the
+                    // search back to the whole scope.
+                    $query->where('my_class_id', in_array($f['class_id'], $scopeIds, true) ? $f['class_id'] : 0);
+                }
+                if ($f['section_id']) {
+                    $query->where('section_id', $f['section_id']);
+                }
+                if ($f['gender'] !== '') {
+                    $query->whereHas('user', function ($u) use ($f) {
+                        $u->where('gender', $f['gender']);
+                    });
+                }
+                if ($f['house'] !== '') {
+                    $query->where('house', $f['house']);
+                }
+                if ($f['category'] !== '') {
+                    $query->where('category', $f['category']);
+                }
+                if ($f['status'] === 'active') {
+                    $query->where('grad', 0);
+                } elseif ($f['status'] === 'graduated') {
+                    $query->where('grad', 1);
+                }
+                if ($f['year_admitted'] !== '') {
+                    $query->where('year_admitted', $f['year_admitted']);
+                }
+                if ($f['q'] !== '') {
+                    $q = $f['q'];
+                    $query->where(function ($w) use ($q) {
+                        $w->where('adm_no', 'like', "%{$q}%")
+                            ->orWhereHas('user', function ($u) use ($q) {
+                                $u->where('name', 'like', "%{$q}%")
+                                    ->orWhere('email', 'like', "%{$q}%")
+                                    ->orWhere('phone', 'like', "%{$q}%");
+                            });
+                    });
+                }
+                $total = $query->count();
+                $results = $query
+                    ->join('users', 'users.id', '=', 'student_records.user_id')
+                    ->orderBy('student_records.my_class_id')
+                    ->orderBy('student_records.section_id')
+                    ->orderBy('users.name')
+                    ->select('student_records.*')
+                    ->take(300)
+                    ->get();
+
+                $scopedRecords = StudentRecord::whereIn('my_class_id', $scopeIds ?: [0]);
+                $houses = (clone $scopedRecords)->whereNotNull('house')->where('house', '!=', '')
+                    ->distinct()->orderBy('house')->pluck('house')->all();
+                $years = (clone $scopedRecords)->whereNotNull('year_admitted')->where('year_admitted', '!=', '')
+                    ->distinct()->orderByDesc('year_admitted')->pluck('year_admitted')->all();
+                $extraCategories = (clone $scopedRecords)->whereNotNull('category')->where('category', '!=', '')
+                    ->distinct()->pluck('category')->all();
+                $categories = array_values(array_unique(array_merge(
+                    ['General', 'OBC', 'SC', 'ST', 'EWS'], $extraCategories
+                )));
+                $genders = \App\User::where('user_type', 'student')
+                    ->whereNotNull('gender')->where('gender', '!=', '')
+                    ->distinct()->orderBy('gender')->pluck('gender')->all();
+
+                $data['classes'] = $classes;
+                $data['sections'] = $this->my_class->getAllSections()
+                    ->whereIn('my_class_id', $classes->pluck('id'))->values();
+                $data['searched'] = true;
+                $data['results'] = $results;
+                $data['results_total'] = $total;
+                $data['filters'] = $f;
+                $data['houses'] = $houses;
+                $data['years'] = $years;
+                $data['categories'] = $categories;
+                $data['genders'] = $genders;
+
+                return view('pages.support_team.students.list_picker', $data);
+            }
+
             $picked = (int) request('class_id');
             if ($picked) {
                 $mc = $this->my_class->getMC(['id' => $picked])->first();

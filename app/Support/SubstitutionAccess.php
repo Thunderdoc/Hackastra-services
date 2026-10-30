@@ -65,6 +65,60 @@ class SubstitutionAccess
             ->exists();
     }
 
+    /** Class + subject pairs this teacher covers on a date, as
+     *  [class_id => [subject_id, ...]] — the LMS list window: the
+     *  covered class's assignments and study materials join the
+     *  substitute's own lists for that day only, labelled as
+     *  substitute work (owner order 2026-10-30). */
+    public static function coveredClassSubjectsOn(int $userId, $date): array
+    {
+        try {
+            $dateStr = $date instanceof Carbon ? $date->toDateString() : Carbon::parse((string) $date)->toDateString();
+        } catch (\Throwable $e) {
+            return [];
+        }
+
+        $rows = Substitution::confirmed()
+            ->where('substitute_teacher_id', $userId)
+            ->whereDate('date', $dateStr)
+            ->with(['time_table.tt_record', 'time_table.subject'])
+            ->get();
+
+        $map = [];
+        foreach ($rows as $row) {
+            $tt = $row->time_table;
+            if (!$tt || !$tt->tt_record || !$tt->subject_id) {
+                continue;
+            }
+            $classId = (int) $tt->tt_record->my_class_id;
+            $map[$classId] = $map[$classId] ?? [];
+            if (!in_array((int) $tt->subject_id, $map[$classId], true)) {
+                $map[$classId][] = (int) $tt->subject_id;
+            }
+        }
+
+        return $map;
+    }
+
+    /** Is this (class, subject) one of the teacher's OWN teaching
+     *  pairs — as the subject's teacher or through a section
+     *  override? A pair the teacher owns is never labelled
+     *  substitute work, even if they also cover a period of it. */
+    public static function ownPair(int $userId, int $classId, int $subjectId): bool
+    {
+        $subject = \App\Models\Subject::find($subjectId);
+        if ($subject && (int) $subject->my_class_id === $classId && (int) $subject->teacher_id === $userId) {
+            return true;
+        }
+
+        return \Illuminate\Support\Facades\DB::table('section_subject_teachers')
+            ->join('sections', 'sections.id', '=', 'section_subject_teachers.section_id')
+            ->where('sections.my_class_id', $classId)
+            ->where('section_subject_teachers.subject_id', $subjectId)
+            ->where('section_subject_teachers.teacher_id', $userId)
+            ->exists();
+    }
+
     /** Timetable ids this teacher covers on a date (their extra
      *  periods for the attendance list). */
     public static function coveredPeriodIdsOn(int $userId, $date): array

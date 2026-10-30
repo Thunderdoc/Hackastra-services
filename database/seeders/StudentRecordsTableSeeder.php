@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Support\DemoToday;
 use App\Models\Section;
 use App\Models\StudentRecord;
 use App\User;
@@ -40,7 +41,7 @@ class StudentRecordsTableSeeder extends Seeder
             })
             ->each(function ($sr) use ($appCode) {
                 $ct = optional(optional($sr->my_class)->class_type)->code ?: 'N';
-                $year = $sr->year_admitted ?: date('Y');
+                $year = $sr->year_admitted ?: DemoToday::now()->year;
                 do {
                     $admNo = $appCode . '/' . $ct . '/' . $year . '/' . mt_rand(1000, 99999);
                 } while (StudentRecord::where('adm_no', $admNo)->exists());
@@ -80,7 +81,7 @@ class StudentRecordsTableSeeder extends Seeder
         foreach ($sections as $section) {
             $ctCode = optional(optional($section->my_class)->class_type)->code ?: 'N';
             for ($i = 0; $i < $count; $i++) {
-                $admNo = $appCode . '/' . $ctCode . '/' . date('Y') . '/' . $seq++;
+                $admNo = $appCode . '/' . $ctCode . '/' . DemoToday::now()->year . '/' . $seq++;
                 $email = $faker->unique()->safeEmail;
                 do {
                     $phone = '+91 ' . $faker->numerify('98########');
@@ -108,7 +109,7 @@ class StudentRecordsTableSeeder extends Seeder
                     // 2026-10-29). The spread keeps every date
                     // deterministic with no faker draws.
                     'dob' => sprintf('%04d-%02d-%02d',
-                        (int) date('Y') - (4 + (int) $section->my_class_id),
+                        DemoToday::now()->year - (4 + (int) $section->my_class_id),
                         (($i * 5) % 12) + 1,
                         (($i * 7) % 28) + 1),
                     'code' => strtoupper(Str::random(10)),

@@ -37,7 +37,11 @@
                                     </select>
                                     <button type="submit" class="btn btn-light btn-sm mr-1">Move</button>
                                 </form>
-                                <a href="{{ route('admissions.convert', $a->id) }}" class="btn btn-success btn-sm mt-1">Convert → Admit</a>
+                                @if($a->status === 'approved')
+                                    <a href="{{ route('admissions.convert', $a->id) }}" class="btn btn-success btn-sm mt-1">Convert → Admit</a>
+                                @elseif($a->status === 'converted' && $a->student_record_id)
+                                    <a href="{{ route('students.show', Qs::hash($a->student_record_id)) }}" class="btn btn-light btn-sm mt-1"><i class="icon-eye mr-1"></i> View Student</a>
+                                @endif
                             </td>
                         </tr>
                     @empty

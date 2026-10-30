@@ -26,11 +26,17 @@ class Admission extends Model
         'rejected' => 'Rejected',
     ];
 
-    protected $fillable = ['name', 'phone', 'my_class_id', 'message', 'status', 'notes', 'session'];
+    protected $fillable = ['name', 'phone', 'my_class_id', 'message', 'status', 'notes', 'session', 'student_record_id'];
 
     public function myClass()
     {
         return $this->belongsTo(MyClass::class, 'my_class_id');
+    }
+
+    /** The student this enquiry became, once truly converted. */
+    public function studentRecord()
+    {
+        return $this->belongsTo(StudentRecord::class, 'student_record_id');
     }
 
     public function getStatusLabelAttribute(): string

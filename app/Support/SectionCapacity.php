@@ -43,10 +43,29 @@ class SectionCapacity
      * @return array{section_id:int, moved:bool, all_full:bool,
      *               from:?\App\Models\Section, to:?\App\Models\Section}
      */
-    public static function resolve(int $classId, int $requestedSectionId): array
+    /**
+     * @param array $claimed section_id => seats already claimed by
+     *                       earlier rows of the same bulk import, so
+     *                       one file cannot overfill a section by
+     *                       validating every row against the same
+     *                       pre-import strength. Single admissions
+     *                       pass nothing.
+     */
+    public static function resolve(int $classId, int $requestedSectionId, array $claimed = []): array
     {
+        $full = function ($section) use ($claimed) {
+            if (!$section) {
+                return false;
+            }
+            $capacity = (int) ($section->capacity ?? 0);
+            if ($capacity <= 0) {
+                return false;
+            }
+            return self::strength((int) $section->id) + (int) ($claimed[$section->id] ?? 0) >= $capacity;
+        };
+
         $requested = Section::find($requestedSectionId);
-        if (!$requested || (int) $requested->my_class_id !== $classId || !self::isFull($requested)) {
+        if (!$requested || (int) $requested->my_class_id !== $classId || !$full($requested)) {
             return ['section_id' => $requestedSectionId, 'moved' => false,
                 'all_full' => false, 'from' => $requested, 'to' => $requested];
         }
@@ -54,7 +73,7 @@ class SectionCapacity
         $next = Section::where('my_class_id', $classId)
             ->orderBy('id')
             ->get()
-            ->first(function ($s) { return !self::isFull($s); });
+            ->first(function ($s) use ($full) { return !$full($s); });
 
         if (!$next) {
             return ['section_id' => $requestedSectionId, 'moved' => false,

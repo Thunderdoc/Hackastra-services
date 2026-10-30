@@ -9,6 +9,7 @@ use App\Models\TimeTable;
 use App\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Leave cover visibility (roles agent, owner question 2026-10-28).
@@ -119,6 +120,41 @@ class LeaveCover
         }
 
         return $lines;
+    }
+
+    /**
+     * The one-line version of allocationLines() for the queue
+     * row itself (owner order 2026-10-30): the row must never
+     * carry the paragraph — "Class teacher · 9 sections" — the
+     * full list lives behind the row's expander. Students get
+     * their single short line ("Prep — A") as-is.
+     */
+    public static function allocationSummary(User $user): ?string
+    {
+        if ($user->user_type === 'student') {
+            $lines = static::allocationLines($user);
+            return $lines[0] ?? null;
+        }
+        if (!static::isLiveTeacher($user)) {
+            return null;
+        }
+        $parts = [];
+        $sectionCount = Section::where('teacher_id', $user->id)->count();
+        if ($sectionCount > 0) {
+            $parts[] = 'Class teacher · ' . $sectionCount . ' section' . ($sectionCount === 1 ? '' : 's');
+        }
+        $subjectCount = Subject::where('teacher_id', $user->id)->count();
+        if ($subjectCount > 0) {
+            $parts[] = 'Teaches ' . $subjectCount . ' subject' . ($subjectCount === 1 ? '' : 's');
+        }
+        if (Schema::hasTable('section_subject_teachers')) {
+            $overrideCount = DB::table('section_subject_teachers')
+                ->where('teacher_id', $user->id)->count();
+            if ($overrideCount > 0) {
+                $parts[] = $overrideCount . ' section override' . ($overrideCount === 1 ? '' : 's');
+            }
+        }
+        return $parts ? implode(' · ', $parts) : null;
     }
 
     /**

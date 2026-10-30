@@ -28,7 +28,34 @@
             </select>
             <button type="submit" class="btn btn-primary">Apply filters</button>
         </form>
-        <p class="text-muted">Month filters apply to attendance and fee collection. Marks averages carry no month, so they follow the exam filter instead. Teachers see only the classes they teach.</p>
+        <p class="text-muted">Month filters apply to attendance and fee collection. Marks averages carry no month, so they follow the exam filter instead.</p>
+
+        <div class="row mb-2">
+            <div class="col-md-3 col-6 mb-3">
+                <div class="border rounded p-3 text-center">
+                    <div class="text-muted text-uppercase" style="font-size: 11px; letter-spacing: 1px;">Overall Attendance</div>
+                    <div style="font-size: 26px; font-weight: 600;">{{ $attendanceOverall !== null ? $attendanceOverall . '%' : '—' }}</div>
+                </div>
+            </div>
+                <div class="col-md-3 col-6 mb-3">
+                    <div class="border rounded p-3 text-center">
+                        <div class="text-muted text-uppercase" style="font-size: 11px; letter-spacing: 1px;">Collected (in range)</div>
+                        <div style="font-size: 26px; font-weight: 600;">₹{{ number_format($feeTotal) }}</div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6 mb-3">
+                    <div class="border rounded p-3 text-center">
+                        <div class="text-muted text-uppercase" style="font-size: 11px; letter-spacing: 1px;">Outstanding Fees</div>
+                        <div style="font-size: 26px; font-weight: 600;">₹{{ number_format($feeOutstandingTotal) }}</div>
+                    </div>
+                </div>
+            <div class="col-md-3 col-6 mb-3">
+                <div class="border rounded p-3 text-center">
+                    <div class="text-muted text-uppercase" style="font-size: 11px; letter-spacing: 1px;">Classes in View</div>
+                    <div style="font-size: 26px; font-weight: 600;">{{ $classCount }}</div>
+                </div>
+            </div>
+        </div>
 
         <h5>Attendance by class and month</h5>
         <p class="text-muted">Attendance % = (present + late) / marked entries, the app's standard rule, over period-attendance registers.</p>
@@ -41,7 +68,7 @@
                     <tbody>
                         @foreach($attendance as $row)
                             <tr>
-                                <td>{{ $row['month'] }}</td>
+                                <td>{{ $row['month_label'] }}</td>
                                 <td>{{ $row['class_name'] }}</td>
                                 <td>{{ $row['present'] }}</td>
                                 <td>{{ $row['late'] }}</td>
@@ -50,7 +77,7 @@
                                 <td>{{ $row['pct'] !== null ? $row['pct'] . '%' : '—' }}</td>
                                 <td>
                                     @if($row['pct'] !== null)
-                                        <div style="background:#e5e7eb;height:12px;min-width:60px;"><div style="background:#22c55e;height:12px;width:{{ $row['pct'] }}%;"></div></div>
+                                        <div style="background:rgba(127,140,160,.35);height:12px;min-width:60px;"><div style="background:#22c55e;height:12px;width:{{ $row['pct'] }}%;"></div></div>
                                     @else
                                         —
                                     @endif
@@ -75,11 +102,11 @@
                     <tbody>
                         @foreach($fees as $row)
                             <tr>
-                                <td>{{ $row['month'] }}</td>
+                                <td>{{ $row['month_label'] }}</td>
                                 <td>{{ $row['receipts'] }}</td>
                                 <td>{{ number_format($row['total']) }}</td>
                                 <td>
-                                    <div style="background:#e5e7eb;height:12px;min-width:60px;"><div style="background:#3b82f6;height:12px;width:{{ $feeMax > 0 ? round($row['total'] / $feeMax * 100) : 0 }}%;"></div></div>
+                                    <div style="background:rgba(127,140,160,.35);height:12px;min-width:60px;"><div style="background:#3b82f6;height:12px;width:{{ $feeMax > 0 ? round($row['total'] / $feeMax * 100) : 0 }}%;"></div></div>
                                 </td>
                             </tr>
                         @endforeach
@@ -128,7 +155,7 @@
                                 <td>{{ $row['avg'] !== null ? number_format($row['avg'], 2) : '—' }}</td>
                                 <td>
                                     @if($row['avg'] !== null)
-                                        <div style="background:#e5e7eb;height:12px;min-width:60px;"><div style="background:#f59e0b;height:12px;width:{{ min(100, round($row['avg'])) }}%;"></div></div>
+                                        <div style="background:rgba(127,140,160,.35);height:12px;min-width:60px;"><div style="background:#f59e0b;height:12px;width:{{ min(100, round($row['avg'])) }}%;"></div></div>
                                     @else
                                         —
                                     @endif

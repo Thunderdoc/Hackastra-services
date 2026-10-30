@@ -51,7 +51,13 @@ class MarkComputation
 
         foreach ($marks as $mk) {
             $total = MarkScheme::subjectTotal($mk);
-            $grade = $total === null ? null : $markRepo->getGrade($total, $classType->id);
+            // Grade on the percentage of the scheme maximum —
+            // the bands are percentage bands (see
+            // GradeCalculator::percentage).
+            $grade = $total === null ? null : $markRepo->getGrade(
+                GradeCalculator::percentage($total, MarkScheme::maxTotal($exam->id, $subjectId)),
+                $classType->id
+            );
             $examRepo->updateMark($mk->id, [
                 $tex => $total,
                 'grade_id' => $grade ? $grade->id : null,
@@ -116,8 +122,15 @@ class MarkComputation
             'section_id' => $sectionId, 'year' => $year,
         ])->get();
 
+        $maxBySubject = [];
         foreach ($marks as $mk) {
-            $grade = $markRepo->getGrade($mk->$tex, $classType->id);
+            if (!array_key_exists($mk->subject_id, $maxBySubject)) {
+                $maxBySubject[$mk->subject_id] = MarkScheme::maxTotal($exam->id, $mk->subject_id);
+            }
+            $grade = $mk->$tex === null ? null : $markRepo->getGrade(
+                GradeCalculator::percentage($mk->$tex, $maxBySubject[$mk->subject_id]),
+                $classType->id
+            );
             $examRepo->updateMark($mk->id, ['grade_id' => $grade ? $grade->id : null]);
         }
 

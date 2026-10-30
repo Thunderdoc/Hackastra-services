@@ -23,7 +23,11 @@ class SectionController extends Controller
         // Workstream CM: reads (index/show) stay teamSA — SA keeps
         // oversight; every write goes to the Admin write team.
         $this->middleware('teamSA', ['only' => ['index', 'show']]);
-        $this->middleware('teamSAWrite', ['except' => ['index', 'show']]);
+        $this->middleware('teamSAWrite', ['except' => ['index', 'show', 'updateWhatsapp']]);
+        // The WhatsApp group link is the ONE section write a
+        // teacher may make — and only for a section they lead;
+        // the method itself enforces that (owner order 2026-10-30).
+        $this->middleware('teamSAT', ['only' => ['updateWhatsapp']]);
 
         $this->my_class = $my_class;
         $this->user = $user;
@@ -202,6 +206,42 @@ class SectionController extends Controller
      * section only. Only the section's own class subjects are
      * honoured, so foreign keys in the request are ignored.
      */
+    /**
+     * The section's WhatsApp group link (owner order 2026-10-30):
+     * kept by the section's own class teacher (the school Admin
+     * may also set it); students see it beside their class on
+     * their dashboard. Only real WhatsApp invite hosts are
+     * accepted, and an empty value clears the link.
+     */
+    public function updateWhatsapp(Request $req, $id)
+    {
+        $section = $this->my_class->findSection(Qs::resolveId($id));
+        if (!$section) {
+            return Qs::goWithDanger();
+        }
+        if (!Qs::userIsTeamSAWrite() && (int) $section->teacher_id !== (int) $req->user()->id) {
+            abort(403, 'Only the class teacher of this section can set its WhatsApp group link.');
+        }
+        $data = $req->validate([
+            'whatsapp_link' => ['nullable', 'string', 'max:255', function ($attribute, $value, $fail) {
+                if ($value === null || trim((string) $value) === '') {
+                    return;
+                }
+                $host = parse_url(trim((string) $value), PHP_URL_HOST);
+                $scheme = parse_url(trim((string) $value), PHP_URL_SCHEME);
+                if ($scheme !== 'https' || !in_array($host, ['chat.whatsapp.com', 'wa.me', 'www.whatsapp.com', 'whatsapp.com'], true)) {
+                    $fail('Please paste a WhatsApp group invite link (it starts with https://chat.whatsapp.com/).');
+                }
+            }],
+        ]);
+        $link = isset($data['whatsapp_link']) ? trim((string) $data['whatsapp_link']) : '';
+        $section->update(['whatsapp_link' => $link !== '' ? $link : null]);
+
+        return back()->with('flash_success', $link !== ''
+            ? 'WhatsApp group link saved for ' . optional($section->my_class)->name . ' ' . $section->name . ' — students can see it on their dashboard.'
+            : 'WhatsApp group link removed for ' . optional($section->my_class)->name . ' ' . $section->name . '.');
+    }
+
     public function updateTeachers(Request $req, $id)
     {
         $section = $this->my_class->findSection(Qs::resolveId($id));

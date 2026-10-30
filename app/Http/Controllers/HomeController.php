@@ -1329,6 +1329,11 @@ class HomeController extends Controller
             'ungraded_assignments' => $ungraded_assignments,
             'lms_to_grade' => $lms_to_grade,
             'my_leave_requests' => $my_leave_requests,
+            // Leave balance (owner order 2026-10-30): the teacher
+            // always sees their paid-leave quota, what they have
+            // taken, what remains and any extra (unpaid) days —
+            // right on their portal home.
+            'leave_balance' => \App\Support\LeaveBalance::summary($teacher_id, (int) $now->format('Y')),
             'my_duties' => $my_duties,
             'my_subjects' => $subjects,
             'my_class_count' => $class_ids->count(),

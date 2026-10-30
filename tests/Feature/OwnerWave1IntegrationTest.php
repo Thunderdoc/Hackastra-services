@@ -41,9 +41,16 @@ class OwnerWave1IntegrationTest extends TestCase
         foreach (['/quizzes', '/class-overview'] as $path) {
             $response->assertSee($path, false);
         }
-        foreach (['/lesson-plans', '/homework-tracker', '/substitutions', '/question-bank'] as $path) {
+        foreach (['/lesson-plans', '/homework-tracker', '/question-bank'] as $path) {
             $response->assertDontSee($path, false);
         }
+        // The board stays hidden (overnight order stands) — exact
+        // hrefs, because the teacher's OWN extra-classes page
+        // (owner order 2026-10-30) legitimately lives under
+        // /substitutions/mine and must not trip this pin.
+        $response->assertDontSee('href="' . route('substitutions.index') . '"', false);
+        $response->assertDontSee('href="' . route('substitutions.create') . '"', false);
+        $response->assertSee('href="' . route('substitutions.mine') . '"', false);
     }
 
     public function test_quiz_create_page_carries_bank_picker()

@@ -32,6 +32,11 @@ class UserPreference extends Model
         // Owner order 2026-10-29: the topbar bell sound toggle
         // (MyAccountController@update_bell_sound), '1' = on.
         'bell_sound',
+        // Owner order 2026-10-30: the proper mute — one master
+        // switch in My Account. '1' = muted: the chime never plays
+        // and the badge greys; notifications still collect in the
+        // list (nothing is ever dropped).
+        'notifications_muted',
     ];
 
     public static function defaults(): array
@@ -49,6 +54,8 @@ class UserPreference extends Model
             'theme' => 'dark',
             // The bell sound is ON until the user mutes it.
             'bell_sound' => '1',
+            // Notifications are unmuted until the user mutes them.
+            'notifications_muted' => '0',
         ];
     }
 

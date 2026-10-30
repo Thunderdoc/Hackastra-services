@@ -87,6 +87,10 @@ class QuickAdmitRequest extends FormRequest
                     if (StudentRecord::where('adm_no', $composite)->exists()) {
                         $validator->errors()->add('q_adm_no', "Admission number {$composite} already exists.");
                     }
+                    // Numbers-only format (owner order 2026-10-30).
+                    if ((string) Qs::getSetting('adm_no_format') === 'serial_only' && !ctype_digit($admNo)) {
+                        $validator->errors()->add('q_adm_no', 'This school uses numbers-only admission numbers — digits only, please.');
+                    }
                 }
             }
 

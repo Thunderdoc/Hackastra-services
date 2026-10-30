@@ -147,7 +147,7 @@
                         </td>
                         <td><span class="lms-chip lms-chip-subject"><i class="icon-book mr-1"></i>{{ optional($assignment->subject)->name ?? 'Subject —' }}</span></td>
                         <td>
-                            {{ optional($assignment->myClass)->name ?? '—' }}
+                            {{ optional($assignment->myClass)->name ?? '—' }}@if(isset($cover_pairs) && ($cover_pairs[$assignment->my_class_id] ?? null) && in_array((int) $assignment->subject_id, $cover_pairs[$assignment->my_class_id], true) && (int) $assignment->teacher_id !== (int) Auth::id()) <span class="badge badge-warning ml-1">(Substitute)</span>@endif
                             <div class="text-muted">{{ $assignment->section ? optional($assignment->section)->name : 'Whole class' }}</div>
                         </td>
                         <td>
@@ -237,7 +237,7 @@
                         <div class="text-muted lms82-clamp2">{{ \Illuminate\Support\Str::limit($assignment->description, 130) }}</div>
                     @endif
                     <div class="lms82-gcard-meta">
-                        <span><i class="icon-users mr-1"></i>{{ optional($assignment->myClass)->name ?? '—' }} · {{ $assignment->section ? optional($assignment->section)->name : 'Whole class' }}</span>
+                        <span><i class="icon-users mr-1"></i>{{ optional($assignment->myClass)->name ?? '—' }} · {{ $assignment->section ? optional($assignment->section)->name : 'Whole class' }}@if(isset($cover_pairs) && ($cover_pairs[$assignment->my_class_id] ?? null) && in_array((int) $assignment->subject_id, $cover_pairs[$assignment->my_class_id], true) && (int) $assignment->teacher_id !== (int) Auth::id()) <span class="badge badge-warning ml-1">(Substitute)</span>@endif</span>
                         <span>
                             <i class="icon-alarm mr-1"></i>
                             @if($due)

@@ -250,7 +250,7 @@
                                     @if(!empty($row['is_substitution']))<div class="ma-sub">Covering for {{ optional($row['teacher'])->name }}</div>@elseif(!empty($row['substitution']) && optional($row['substitution']->substitute)->name)<div class="ma-sub">Sub: {{ $row['substitution']->substitute->name }}</div>@endif
                                 </td>
                                 @if($is_teacher)
-                                    <td>{{ optional($row['class'])->name }}@if(optional($row['section'])->name) — {{ $row['section']->name }}@endif</td>
+                                    <td>{{ optional($row['class'])->name }}@if(optional($row['section'])->name) — {{ $row['section']->name }}@endif @if(!empty($row['is_substitution'])) <span class="badge badge-warning">(Substitute)</span>@endif</td>
                                     <td>
                                         @if($row['session'])
                                             <span class="ma-pill ma-pill-done"><i class="icon-checkmark3"></i> Submitted</span>
@@ -299,6 +299,9 @@
                                         @else
                                             <a href="{{ route('attendance.periods.show', $row['session']->id) }}" class="btn btn-light btn-sm"><i class="icon-eye mr-1"></i> View</a>
                                         @endif
+                                    @elseif($is_teacher && !empty($row['on_leave']))
+                                        <span class="badge badge-warning">On Leave</span>
+                                        @if(!empty($row['substitution']) && optional($row['substitution']->substitute)->name)<div class="ma-status-sub">Covered by {{ $row['substitution']->substitute->name }}</div>@endif
                                     @elseif($is_teacher)
                                         <a href="{{ route('attendance.periods.take', [$row['tt']->id, 'date' => $date->format('Y-m-d')]) }}" class="btn btn-primary btn-sm"><i class="icon-pencil7 mr-1"></i> Take Attendance</a>
                                     @else

@@ -255,6 +255,26 @@
                             <input type="hidden" name="tab" value="notifications">
 
                             <div class="acct-toggle-list">
+                                {{-- Owner order 2026-10-30: the proper mute —
+                                     one master switch here in My Account,
+                                     not just a hidden row in the bell menu.
+                                     Muting silences the chime and greys the
+                                     badge; notifications still collect in
+                                     the list, nothing is ever dropped. --}}
+                                <div class="acct-toggle-row">
+                                    <span class="acct-toggle-icon acct-tint-rose"><i class="icon-volume-mute"></i></span>
+                                    <span class="acct-toggle-text"><strong>Mute All Notifications</strong><small>Silences the bell sound and alert badge. Notifications still arrive in your list — nothing is lost.</small></span>
+                                    <input type="hidden" name="notifications_muted_present" value="1">
+                                    <label class="acct-switch"><input type="checkbox" name="notifications_muted" value="1" {{ ($prefs['notifications_muted'] ?? '0') === '1' ? 'checked' : '' }}><span></span></label>
+                                </div>
+
+                                <div class="acct-toggle-row">
+                                    <span class="acct-toggle-icon acct-tint-blue"><i class="icon-volume-medium"></i></span>
+                                    <span class="acct-toggle-text"><strong>Bell Sound</strong><small>A soft chime when you open the bell and something new is waiting.</small></span>
+                                    <input type="hidden" name="bell_sound_present" value="1">
+                                    <label class="acct-switch"><input type="checkbox" name="bell_sound" value="1" {{ ($prefs['bell_sound'] ?? '1') === '1' ? 'checked' : '' }}><span></span></label>
+                                </div>
+
                                 <div class="acct-toggle-row">
                                     <span class="acct-toggle-icon acct-tint-blue"><i class="icon-envelop"></i></span>
                                     <span class="acct-toggle-text"><strong>Email Notifications</strong><small>Receive important updates via email.</small></span>

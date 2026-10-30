@@ -162,6 +162,10 @@
                 $lavNotifications = \App\Support\Notify::latestFor(Auth::id(), 5);
                 $lavBellBadge += $lavUnreadNotifs;
             }
+            // Owner order 2026-10-30: the proper mute (My Account
+            // master switch). Muted = no chime, grey badge; the
+            // notifications themselves still collect.
+            $lavMuted = \App\Models\UserPreference::enabled(Auth::id(), 'notifications_muted');
             // Workstream CW (feedback flow): same computed-count style —
             // the school Admin's badge rises with NEW feedback waiting
             // for triage, the Super Admin's with forwarded reports not
@@ -190,12 +194,27 @@
                 $lavRecentStudents = \App\Models\StudentRecord::with('user')->latest()->take(4)->get();
             @endphp
             <div class="nav-item dropdown" id="lavNotifBell">
-                <button type="button" class="lav-topbar-icon" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="Recent activity" title="Recent activity" data-lav-badge-base="{{ $lavBellBadge - $lavUnreadNotifs }}" data-hk-bell="1" data-hk-bell-on="{{ \App\Models\UserPreference::enabled(Auth::id(), 'bell_sound') ? 1 : 0 }}"><i class="icon-bell2"></i>@if($lavBellBadge > 0)<span class="lav-bell-badge">{{ $lavBellBadge }}</span>@endif</button>
+                <button type="button" class="lav-topbar-icon" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="Recent activity" title="Recent activity" data-lav-badge-base="{{ $lavBellBadge - $lavUnreadNotifs }}" data-hk-bell="1" data-hk-bell-on="{{ (\App\Models\UserPreference::enabled(Auth::id(), 'bell_sound') && !$lavMuted) ? 1 : 0 }}"><i class="icon-bell2"></i>@if($lavBellBadge > 0)<span class="lav-bell-badge"@if($lavMuted) style="background:#8a9bb0" title="Notifications muted"@endif>{{ $lavBellBadge }}</span>@endif</button>
                 <div class="dropdown-menu dropdown-menu-right lav-notif-menu">
                     <div class="dropdown-item lav-notif-item hk-bell-sound-row" role="button">
                         <i class="icon-volume-medium"></i>
                         <span>Bell sound: <strong class="hk-bell-sound-state">{{ \App\Models\UserPreference::enabled(Auth::id(), 'bell_sound') ? 'On' : 'Off' }}</strong><small>Tap to change — saved to your account</small></span>
                     </div>
+                    <div class="dropdown-divider"></div>
+                    @if($lavMuted)
+                        <div class="dropdown-item lav-notif-item">
+                            <i class="icon-volume-mute"></i>
+                            <span><strong>Notifications muted</strong><small>Sound and alerts are off — your list still collects everything.</small></span>
+                        </div>
+                    @endif
+                    <a class="dropdown-item lav-notif-item" href="{{ route('notifications.index') }}">
+                        <i class="icon-list"></i>
+                        <span>See all notifications<small>Your full list, with Mark all read</small></span>
+                    </a>
+                    <a class="dropdown-item lav-notif-item" href="{{ route('my_account') }}#notifications">
+                        <i class="icon-cog3"></i>
+                        <span>Notification settings<small>Mute, sound and alert choices</small></span>
+                    </a>
                     <div class="dropdown-divider"></div>
                     {{-- Owner order 2026-10-29: the staff bell never
                          listed the caller's OWN per-user notifications
@@ -310,12 +329,27 @@
                 $lavCirculars = \App\Models\Circular::published()->forAudience(Auth::user()->user_type)->latest()->take(4)->get();
             @endphp
             <div class="nav-item dropdown" id="lavNotifBell">
-                <button type="button" class="lav-topbar-icon" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="Circulars" title="Circulars" data-lav-events-today="{{ $lavEventsToday }}" data-lav-badge-base="{{ $lavBellBadge - $lavUnreadNotifs }}" data-hk-bell="1" data-hk-bell-on="{{ \App\Models\UserPreference::enabled(Auth::id(), 'bell_sound') ? 1 : 0 }}"><i class="icon-bell2"></i>@if($lavBellBadge > 0)<span class="lav-bell-badge">{{ $lavBellBadge }}</span>@endif</button>
+                <button type="button" class="lav-topbar-icon" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="Circulars" title="Circulars" data-lav-events-today="{{ $lavEventsToday }}" data-lav-badge-base="{{ $lavBellBadge - $lavUnreadNotifs }}" data-hk-bell="1" data-hk-bell-on="{{ (\App\Models\UserPreference::enabled(Auth::id(), 'bell_sound') && !$lavMuted) ? 1 : 0 }}"><i class="icon-bell2"></i>@if($lavBellBadge > 0)<span class="lav-bell-badge"@if($lavMuted) style="background:#8a9bb0" title="Notifications muted"@endif>{{ $lavBellBadge }}</span>@endif</button>
                 <div class="dropdown-menu dropdown-menu-right lav-notif-menu">
                     <div class="dropdown-item lav-notif-item hk-bell-sound-row" role="button">
                         <i class="icon-volume-medium"></i>
                         <span>Bell sound: <strong class="hk-bell-sound-state">{{ \App\Models\UserPreference::enabled(Auth::id(), 'bell_sound') ? 'On' : 'Off' }}</strong><small>Tap to change — saved to your account</small></span>
                     </div>
+                    <div class="dropdown-divider"></div>
+                    @if($lavMuted)
+                        <div class="dropdown-item lav-notif-item">
+                            <i class="icon-volume-mute"></i>
+                            <span><strong>Notifications muted</strong><small>Sound and alerts are off — your list still collects everything.</small></span>
+                        </div>
+                    @endif
+                    <a class="dropdown-item lav-notif-item" href="{{ route('notifications.index') }}">
+                        <i class="icon-list"></i>
+                        <span>See all notifications<small>Your full list, with Mark all read</small></span>
+                    </a>
+                    <a class="dropdown-item lav-notif-item" href="{{ route('my_account') }}#notifications">
+                        <i class="icon-cog3"></i>
+                        <span>Notification settings<small>Mute, sound and alert choices</small></span>
+                    </a>
                     <div class="dropdown-divider"></div>
                     {{-- Workstream CZ (LMS): the caller's own
                          notifications (grades + internal pushes for

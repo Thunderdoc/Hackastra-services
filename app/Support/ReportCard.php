@@ -303,10 +303,24 @@ class ReportCard
         $sectionRanked = array_values($sectionOverall);
         rsort($sectionRanked);
 
+        // Each subject's scheme maximum across the year's exams —
+        // the annual average is graded on its percentage of that
+        // maximum, like every term grade (see MarkComputation).
+        $annualMax = [];
+        foreach ($marks as $mk) {
+            $m = MarkScheme::maxTotal($mk->exam_id, $mk->subject_id);
+            if ($m > 0) {
+                $annualMax[$mk->subject_id] = max($annualMax[$mk->subject_id] ?? 0, $m);
+            }
+        }
+
         $rows = [];
         foreach ($subjects as $sub) {
             $annual = $ownAnnual[$sub->id] ?? null;
-            $grade = $annual === null ? null : $markRepo->getGrade($annual, $classTypeId);
+            $grade = $annual === null ? null : $markRepo->getGrade(
+                GradeCalculator::percentage($annual, $annualMax[$sub->id] ?? 100),
+                $classTypeId
+            );
 
             $pos = null;
             if ($annual !== null && !empty($peerAnnual[$sub->id])) {

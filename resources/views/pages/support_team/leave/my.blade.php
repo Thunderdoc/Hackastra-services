@@ -7,6 +7,19 @@
             {!! Qs::getPanelOptions() !!}
         </div>
         <div class="card-body">
+            @if(!empty($leave_balance))
+                <div class="alert alert-info" style="display:flex; flex-wrap:wrap; gap:6px 22px;">
+                    <span><i class="icon-calendar2 mr-1"></i> <strong>Your leave balance ({{ $leave_balance['year'] }})</strong></span>
+                    @if($leave_balance['quota'] > 0)
+                        <span>Paid leave: <strong>{{ rtrim(rtrim(number_format($leave_balance['quota'], 2), '0'), '.') }} days</strong></span>
+                        <span>Taken: <strong>{{ rtrim(rtrim(number_format($leave_balance['used'], 2), '0'), '.') }}</strong></span>
+                        <span>Remaining: <strong>{{ rtrim(rtrim(number_format($leave_balance['remaining'], 2), '0'), '.') }}</strong></span>
+                        @if($leave_balance['extra'] > 0)<span class="text-danger">Extra (unpaid): <strong>{{ rtrim(rtrim(number_format($leave_balance['extra'], 2), '0'), '.') }} days</strong> — deducted from salary</span>@endif
+                    @else
+                        <span>Leave taken: <strong>{{ rtrim(rtrim(number_format($leave_balance['used'], 2), '0'), '.') }} days</strong></span>
+                    @endif
+                </div>
+            @endif
             @if(!empty($approver_name))
                 <p class="text-muted">Your class teacher ({{ $approver_name }}) will approve or reject this request.</p>
             @endif

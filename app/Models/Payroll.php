@@ -17,7 +17,7 @@ class Payroll extends Model
     protected $fillable = [
         'user_id', 'year', 'month', 'basic_salary', 'allowances',
         'deductions', 'net_pay', 'status', 'paid_at', 'created_by',
-        'remarks',
+        'remarks', 'leave_days', 'leave_extra_days', 'leave_deduction',
     ];
 
     protected $casts = [

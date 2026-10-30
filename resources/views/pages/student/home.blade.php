@@ -18,6 +18,9 @@
             <p class="mb-0 dashboard-muted">
                 @if($student_record)
                     {{ optional($student_record->my_class)->name ?: 'Class —' }} &middot; {{ optional($student_record->section)->name ?: 'Section —' }} &middot; Here&rsquo;s your school day at a glance.
+                    @if(optional($student_record->section)->whatsapp_link)
+                        &middot; <a href="{{ $student_record->section->whatsapp_link }}" target="_blank" rel="noopener" style="color:#25D366; font-weight:600;"><i class="icon-bubbles2 mr-1"></i>Class WhatsApp Group</a>
+                    @endif
                 @else
                     Here&rsquo;s your school day at a glance.
                 @endif
@@ -167,6 +170,40 @@
         </div>
 
         <div class="col-xl-4">
+            {{-- My ID card (owner order 2026-10-30): the student's
+                 basic identity card lives on the dashboard itself —
+                 photo (or initials), class, admission number and
+                 the details the printed card carries. --}}
+            @if($student_record)
+            <section class="dashboard-panel mb-4">
+                <div class="dashboard-panel-heading">
+                    <div>
+                        <h5 class="mb-1"><i class="icon-profile text-blue mr-1"></i> My ID Card</h5>
+                        <p class="dashboard-muted mb-0">{{ Qs::getSetting('system_name') }}</p>
+                    </div>
+                    <a href="{{ route('id_card.mine') }}" class="dashboard-view-all">Full Card <i class="icon-arrow-right7"></i></a>
+                </div>
+                <div class="d-flex align-items-center" style="gap:14px;">
+                    <span class="l7-avatar" style="width:64px; height:64px; font-size:24px;" aria-hidden="true">{{ strtoupper(substr(Auth::user()->name, 0, 1)) }}@if(Qs::hasRealPhoto(Auth::user()->photo))<img src="{{ Auth::user()->photo }}" alt="" onerror="this.remove()">@endif</span>
+                    <div>
+                        <div style="font-weight:600; font-size:16px;">{{ Auth::user()->name }}</div>
+                        <div class="dashboard-muted">{{ optional($student_record->my_class)->name }} &middot; Section {{ optional($student_record->section)->name }}</div>
+                        <div class="dashboard-muted">Adm No: {{ $student_record->adm_no }}</div>
+                    </div>
+                </div>
+                <table class="table table-sm mt-3 mb-0">
+                    <tbody>
+                        <tr><td class="text-muted" style="width:42%;">Date of Birth</td><td>{{ Auth::user()->dob ? \Carbon\Carbon::parse(Auth::user()->dob)->format('d M Y') : '—' }}</td></tr>
+                        <tr><td class="text-muted">Session</td><td>{{ $student_record->session ?? '—' }}</td></tr>
+                        <tr><td class="text-muted">Phone</td><td>{{ Auth::user()->phone ?? '—' }}</td></tr>
+                        @if(optional($student_record->section)->whatsapp_link)
+                            <tr><td class="text-muted">Class Group</td><td><a href="{{ $student_record->section->whatsapp_link }}" target="_blank" rel="noopener" style="color:#25D366; font-weight:600;"><i class="icon-bubbles2 mr-1"></i>WhatsApp Group</a></td></tr>
+                        @endif
+                    </tbody>
+                </table>
+            </section>
+            @endif
+
             {{-- Attendance summary --}}
             <section class="dashboard-panel mb-4">
                 <div class="dashboard-panel-heading">

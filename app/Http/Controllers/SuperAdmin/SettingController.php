@@ -67,6 +67,7 @@ class SettingController extends Controller
         'library_fine_per_day',
         'adm_no_format', 'adm_no_serial_start', 'adm_no_serial_width',
         'adm_no_custom_pattern',
+        'paid_leave_quota_days', 'leave_deduction_percent',
     ];
 
     protected $setting, $my_class;

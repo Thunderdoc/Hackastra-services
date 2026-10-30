@@ -423,6 +423,23 @@ class UserController extends Controller
             User::STATUS_TERMINATED => 'Account terminated — ' . $user->name . ' can no longer sign in. Their records are preserved.',
         ];
 
+        /* Owner order 2026-10-30: a suspended/terminated teacher
+           cannot hold substitution cover — the system moves every
+           future period they were covering to the next free
+           teacher (and alerts the office about any period nobody
+           can take), so a class never stands uncovered behind a
+           dead account. */
+        if ($newStatus !== User::STATUS_ACTIVE && $user->user_type === 'teacher') {
+            $heal = \App\Support\LeaveAutoCover::reassignForDepartedTeacher(
+                $user, (int) Auth::id(), $verb);
+            if ($heal['reassigned'] > 0) {
+                $messages[$newStatus] .= ' ' . $heal['reassigned'] . ' substitution cover(s) moved to other teachers.';
+            }
+            if ($heal['lost'] > 0) {
+                $messages[$newStatus] .= ' ' . $heal['lost'] . ' period(s) could not be re-covered — admins and the principal have been alerted.';
+            }
+        }
+
         return back()->with('flash_success', $messages[$newStatus]);
     }
 
@@ -460,11 +477,27 @@ class UserController extends Controller
             return back()->with('pop_error', 'This teacher still leads sections or holds section subject overrides. Remove those assignments first, then delete.');
         }
 
+        /* Owner order 2026-10-30: before a teacher's account goes,
+           the substitution cover they hold moves to the next free
+           teacher (periods nobody can take alert the office) —
+           deleting the account must never silently uncover a class. */
+        $healNote = '';
+        if ($user->user_type === 'teacher') {
+            $heal = \App\Support\LeaveAutoCover::reassignForDepartedTeacher(
+                $user, (int) Auth::id(), 'removed');
+            if ($heal['reassigned'] > 0) {
+                $healNote .= ' ' . $heal['reassigned'] . ' substitution cover(s) moved to other teachers.';
+            }
+            if ($heal['lost'] > 0) {
+                $healNote .= ' ' . $heal['lost'] . ' period(s) could not be re-covered — admins and the principal have been alerted.';
+            }
+        }
+
         $path = Qs::getUploadPath($user->user_type).$user->code;
         Storage::exists($path) ? Storage::deleteDirectory($path) : true;
         $this->user->delete($user->id);
 
-        return back()->with('flash_success', __('msg.del_ok'));
+        return back()->with('flash_success', __('msg.del_ok') . $healNote);
     }
 
     protected function userTeachesSubject($user)

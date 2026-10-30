@@ -67,6 +67,19 @@ class SubstitutionController extends Controller
             // "N without cover" badge here, so the board must open for
             // the principal (read-only monitoring). Arranging and
             // deleting cover stay admin-only.
+            // Sheet filter (owner order 2026-10-30): one date at a
+            // time when the office asks for it; blank = the whole
+            // record, newest first.
+            $d['filter_date'] = null;
+            if ($request->filled('date')) {
+                try {
+                    $filterDate = Carbon::parse((string) $request->input('date'))->toDateString();
+                    $query->whereDate('date', $filterDate);
+                    $d['filter_date'] = $filterDate;
+                } catch (\Throwable $e) {
+                    // A garbled date filter shows the whole sheet.
+                }
+            }
             $d['substitutions'] = $query->get();
         } else {
             abort(403, 'Substitutions are managed by administrators.');
@@ -100,6 +113,50 @@ class SubstitutionController extends Controller
         $d['is_admin'] = Qs::userIsAdmin();
 
         return view('pages.support_team.substitutions.index', $d);
+    }
+
+    /**
+     * The substitute's own page (owner order 2026-10-30): every
+     * extra class this teacher covers, in one place — this is
+     * where the 'substitution_assigned' bell lands. Confirmed
+     * cover first (it is live: attendance and LMS access follow
+     * it), then the system's planned rows (they go live when the
+     * leave is approved), then recent past cover.
+     */
+    public function mine(Request $request)
+    {
+        $user = $request->user();
+        if (!$user || !Qs::userIsTeacher()) {
+            abort(403, 'Extra classes are for teachers.');
+        }
+
+        $with = [
+            'time_table.subject', 'time_table.time_slot',
+            'time_table.tt_record.my_class', 'time_table.tt_record.section',
+            'absent_teacher',
+        ];
+        $base = Substitution::with($with)
+            ->where('substitute_teacher_id', $user->id);
+        $today = now()->toDateString();
+
+        $d['upcoming'] = (clone $base)->confirmed()
+            ->whereDate('date', '>=', $today)
+            ->orderBy('date')->orderBy('id')->get()
+            ->groupBy(function (Substitution $row) {
+                return $row->date instanceof Carbon ? $row->date->toDateString() : (string) $row->date;
+            });
+        $d['planned'] = (clone $base)->pending()
+            ->whereDate('date', '>=', $today)
+            ->orderBy('date')->orderBy('id')->get()
+            ->groupBy(function (Substitution $row) {
+                return $row->date instanceof Carbon ? $row->date->toDateString() : (string) $row->date;
+            });
+        $d['past'] = (clone $base)->confirmed()
+            ->whereDate('date', '<', $today)
+            ->orderByDesc('date')->orderBy('id')->limit(20)->get();
+        $d['today'] = $today;
+
+        return view('pages.support_team.substitutions.mine', $d);
     }
 
     /** Owner order 2026-10-29 (night): substitutions are NOT
@@ -227,11 +284,11 @@ class SubstitutionController extends Controller
             'substitution_assigned',
             static::bellTitle($tt->subject->name, $date->toDateString()),
             'You cover ' . optional(optional($tt->tt_record)->my_class)->name . ' — ' . $tt->subject->name . ' on ' . $date->format('d M Y') . '.',
-            // The bell must land where a TEACHER can go: their
-            // attendance list. The board itself is admin/principal
-            // only and bounced teachers to a 403 (owner order
-            // 2026-10-29: notification click = right page, no error).
-            route('attendance.periods.index')
+            // The bell lands on the teacher's own extra classes
+            // page (owner order 2026-10-30: one place listing
+            // every cover they hold; the board itself is
+            // admin/principal-only and would bounce a teacher).
+            route('substitutions.mine')
         );
 
         return redirect()->route('substitutions.index')
@@ -362,7 +419,7 @@ class SubstitutionController extends Controller
                     'substitution_assigned',
                     static::bellTitle($cell->subject->name, $date->toDateString()),
                     'You cover ' . optional(optional($cell->tt_record)->my_class)->name . ' — ' . $cell->subject->name . ' on ' . $date->format('d M Y') . '.',
-                    route('attendance.periods.index')
+                    route('substitutions.mine')
                 );
             } catch (\Throwable $e) {
                 // Bell only — the submission itself stands.
@@ -440,9 +497,9 @@ class SubstitutionController extends Controller
             } else {
                 $q->where('my_class_id', $record->my_class_id);
             }
-            foreach ($q->pluck('user_id') as $uid) {
-                Notify::toUser((int) $uid, $type, $title, $body, route('tt.mine'));
-            }
+            // Bulk insert — the per-student loop was the
+            // leave-approval query storm (see Notify::toUsers).
+            Notify::toUsers($q->pluck('user_id')->all(), $type, $title, $body, route('tt.mine'));
         } catch (\Throwable $e) {
             // Bell only.
         }

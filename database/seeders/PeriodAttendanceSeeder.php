@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Support\DemoToday;
 use App\Models\AttendanceSession;
 use App\Models\AttendanceSessionEntry;
 use App\Models\TimeTable;
@@ -139,7 +140,7 @@ class PeriodAttendanceSeeder extends Seeder
     protected function schoolDays(): array
     {
         $days = [];
-        $cursor = Carbon::today();
+        $cursor = DemoToday::today();
         $guard = 0;
         while (count($days) < 6 && $guard++ < 21) {
             if ($cursor->isWeekday()) {

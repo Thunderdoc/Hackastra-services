@@ -19,7 +19,7 @@ class AdmissionController extends Controller
     public function index(Request $request)
     {
         $status = $request->get('status', 'all');
-        $query = Admission::with('myClass')->orderByDesc('id');
+        $query = Admission::with(['myClass', 'studentRecord.user'])->orderByDesc('id');
         if (in_array($status, Admission::STATUSES, true)) {
             $query->where('status', $status);
         }
@@ -68,6 +68,12 @@ class AdmissionController extends Controller
             'name' => $admission->name,
             'phone' => $admission->phone,
             'my_class_id' => $admission->my_class_id,
+            // Carried so the admit can close the loop: when the
+            // student is created, StudentRecordController marks
+            // THIS enquiry converted and links the record — one
+            // enquiry can therefore never be admitted twice
+            // (owner loophole review, 2026-10-30).
+            'admission_id' => $admission->id,
         ]);
     }
 }

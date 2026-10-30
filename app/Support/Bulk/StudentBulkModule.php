@@ -69,6 +69,10 @@ class StudentBulkModule
     protected $userRepo;
     protected $studentRepo;
 
+    /** Seats claimed per section by earlier valid rows of the
+     *  file currently being validated (capacity accounting). */
+    protected $capacityClaims = [];
+
     public function __construct(StudentBulkController $toolkit, MyClassRepo $myClass, UserRepo $userRepo, StudentRepo $studentRepo)
     {
         $this->toolkit = $toolkit;
@@ -132,6 +136,38 @@ class StudentBulkModule
         } else {
             $verdict = 'valid_create';
             $ctx->seenFingerprints[$fingerprint] = true;
+        }
+
+        // Section capacity (owner loophole review, 2026-10-30):
+        // single admits have respected capacity since 2026-10-29,
+        // but bulk ADD rows walked straight past it. A valid row
+        // now claims a seat exactly like the Admit form does —
+        // full section: the row moves to the next section with
+        // room (and the preview says so); whole class full: the
+        // row is refused in the preview, never half-imported.
+        // Seats claimed by earlier rows of THIS file count, so a
+        // file cannot validate 50 rows into a 40-seat section.
+        if ($verdict === 'valid_create' && !empty($row['my_class_id']) && !empty($row['section_id'])) {
+            $placement = \App\Support\SectionCapacity::resolve(
+                (int) $row['my_class_id'], (int) $row['section_id'], $this->capacityClaims
+            );
+            if ($placement['all_full']) {
+                $verdict = 'invalid';
+                $className = optional(\App\Models\MyClass::find($row['my_class_id']))->name ?? 'that class';
+                $errors[] = [
+                    'field' => 'section', 'value' => (string) ($row['section'] ?? ''),
+                    'message' => \App\Support\SectionCapacity::allFullMessage($className),
+                ];
+            } else {
+                $this->capacityClaims[$placement['section_id']] = ($this->capacityClaims[$placement['section_id']] ?? 0) + 1;
+                if ($placement['moved']) {
+                    $row['section_id'] = $placement['section_id'];
+                    $errors[] = [
+                        'field' => 'section', 'value' => (string) ($row['section'] ?? ''),
+                        'message' => \App\Support\SectionCapacity::movedMessage($placement['from'], $placement['to']),
+                    ];
+                }
+            }
         }
 
         // The class_type model can't ride JSON — persist its code only;

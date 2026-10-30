@@ -38,6 +38,89 @@ class Notify
     }
 
     /**
+     * The same bell to MANY users in a handful of queries.
+     *
+     * toUser() costs one INSERT per recipient; a fan-out like
+     * "every student of this period" (a whole class is 121–280
+     * students, and a leave approval bells a dozen-plus periods)
+     * ran THOUSANDS of sequential inserts inside one HTTP
+     * request — measured 5,012 queries for a single 2-day leave
+     * approval, which against the remote production database
+     * never finishes and leaves the Approve button spinning
+     * forever (owner report 2026-10-30). This bulk path writes
+     * the identical rows with one insert per 500 recipients.
+     */
+    public static function toUsers(array $userIds, string $type, string $title, $body = null, $link = null): void
+    {
+        if (!Schema::hasTable('user_notifications')) {
+            return;
+        }
+        $ids = [];
+        foreach ($userIds as $userId) {
+            $userId = (int) $userId;
+            if ($userId > 0) {
+                $ids[$userId] = true;
+            }
+        }
+        if (!$ids) {
+            return;
+        }
+        $now = now();
+        $rows = [];
+        foreach (array_keys($ids) as $userId) {
+            $rows[] = [
+                'user_id' => $userId,
+                'type' => $type,
+                'title' => $title,
+                'body' => $body,
+                'link' => $link,
+                'read_at' => null,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ];
+        }
+        foreach (array_chunk($rows, 500) as $chunk) {
+            UserNotification::insert($chunk);
+        }
+    }
+
+    /**
+     * Many DIFFERENT bells in a handful of queries: each item is
+     * ['user_id' => …, 'type' => …, 'title' => …, 'body' => …,
+     * 'link' => …]. For fan-outs whose text differs per recipient
+     * (a substitute's bell names their subject and date), where
+     * toUsers()' single shared text does not fit — the write is
+     * still one insert per 500 bells instead of one per bell.
+     */
+    public static function insertMany(array $items): void
+    {
+        if (!$items || !Schema::hasTable('user_notifications')) {
+            return;
+        }
+        $now = now();
+        $rows = [];
+        foreach ($items as $item) {
+            $userId = (int) ($item['user_id'] ?? 0);
+            if ($userId <= 0 || empty($item['title'])) {
+                continue;
+            }
+            $rows[] = [
+                'user_id' => $userId,
+                'type' => $item['type'] ?? 'general',
+                'title' => $item['title'],
+                'body' => $item['body'] ?? null,
+                'link' => $item['link'] ?? null,
+                'read_at' => null,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ];
+        }
+        foreach (array_chunk($rows, 500) as $chunk) {
+            UserNotification::insert($chunk);
+        }
+    }
+
+    /**
      * Notify a student (by users.id) and every parent linked to any
      * of the student's records — the same my_parent_id linkage the
      * parent portal itself is scoped by, so a parent only ever hears

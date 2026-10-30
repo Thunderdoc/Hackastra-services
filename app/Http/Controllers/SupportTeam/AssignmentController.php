@@ -71,12 +71,30 @@ class AssignmentController extends Controller
             // Loop 82: summary cards + server-side filters ride the
             // SAME scoped query — cards always describe the viewer's
             // whole scope; filters only narrow the listing.
-            $scope = function () use ($user) {
-                $q = Assignment::query();
+            // Substitute cover (owner order 2026-10-30): the
+            // classes a teacher covers TODAY join their list for
+            // the day, labelled (Substitute) — read-only, the
+            // absent teacher keeps ownership.
+            $coverPairs = Qs::userIsTeacher()
+                ? \App\Support\SubstitutionAccess::coveredClassSubjectsOn((int) $user->id, now())
+                : [];
+            $d['cover_pairs'] = $coverPairs;
+            $applyScope = function ($q) use ($user, $coverPairs) {
                 if (Qs::userIsTeacher()) {
-                    $q->where('teacher_id', $user->id);
+                    $q->where(function ($w) use ($user, $coverPairs) {
+                        $w->where('teacher_id', $user->id);
+                        foreach ($coverPairs as $coverClassId => $coverSubjectIds) {
+                            $w->orWhere(function ($x) use ($coverClassId, $coverSubjectIds) {
+                                $x->where('my_class_id', $coverClassId)
+                                    ->whereIn('subject_id', $coverSubjectIds);
+                            });
+                        }
+                    });
                 }
                 return $q;
+            };
+            $scope = function () use ($applyScope) {
+                return $applyScope(Assignment::query());
             };
             // "Open" follows the model's actual submission rule
             // (submit()): the window is open while the due moment has
@@ -99,10 +117,7 @@ class AssignmentController extends Controller
             $d['filters_active'] = $req->filled('q') || $req->filled('class_id')
                 || $req->filled('subject_id') || $req->filled('status');
 
-            $query = $base();
-            if (Qs::userIsTeacher()) {
-                $query->where('teacher_id', $user->id);
-            }
+            $query = $applyScope($base());
             if ($req->filled('q')) {
                 $term = '%' . trim((string) $req->query('q')) . '%';
                 $query->where(function ($q) use ($term) {

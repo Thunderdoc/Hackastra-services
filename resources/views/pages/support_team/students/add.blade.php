@@ -55,6 +55,12 @@
         @slot('title') Admit Student @endslot
         @slot('subtitle') Please fill the form below to admit a new student. @endslot
 
+        @if(old('admission_id'))
+            {{-- Carried from an admission enquiry's Convert action:
+                 admitting this student converts that enquiry, once. --}}
+            <input type="hidden" name="admission_id" value="{{ old('admission_id') }}">
+        @endif
+
         <div class="pat-form-section">
             <div class="pat-form-section-title">Personal Details</div>
             <div class="pat-fields">

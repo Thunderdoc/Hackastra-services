@@ -49,6 +49,13 @@ class Qs
         'class_year_serial' => ['class', 'year'],
         'code_serial' => ['code'],
         'year_serial' => ['year'],
+        // Numbers only (owner order 2026-10-30): a school that
+        // wants plain numerical admission numbers gets NO prefix
+        // at all — the number is the serial itself (1001, 1002…).
+        // The series then continues from the highest purely
+        // numeric admission number already issued, so composite
+        // numbers from an earlier format never pollute it.
+        'serial_only' => [],
     ];
 
     /**
@@ -97,6 +104,10 @@ class Qs
             $format = 'code_class_year_serial';
         }
         $segments = self::ADM_NO_FORMATS[$format] ?? self::ADM_NO_FORMATS['code_class_year_serial'];
+        if ($segments === []) {
+            // Numbers only: no prefix — the serial IS the number.
+            return '';
+        }
         $values = [
             'code' => self::getAppCode(),
             'class' => $classTypeCode,

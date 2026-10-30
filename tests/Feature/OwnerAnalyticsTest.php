@@ -165,31 +165,23 @@ class OwnerAnalyticsTest extends TestCase
 
     public function test_teacher_sees_own_classes_only_and_foreign_class_is_forbidden()
     {
+        // Owner order 2026-10-30: the analytics dashboard was
+        // REMOVED for teachers entirely — it is the school Admin's
+        // page alone. Every teacher request is a plain 403 now
+        // (scoped, foreign, or unfiltered alike).
         $teacher = $this->teacher();
-        $own = TeacherScope::classIds($teacher);
-        $this->assertContains(1, $own, 'Seed teacher must teach class 1');
-        $this->assertNotContains(2, $own, 'Seed teacher must not teach class 2');
 
         $this->actingAs($teacher)
             ->get(route('analytics.index', ['class_id' => 1]))
-            ->assertOk();
+            ->assertForbidden();
 
         $this->actingAs($teacher)
             ->get(route('analytics.index', ['class_id' => 2]))
             ->assertForbidden();
 
-        $response = $this->actingAs($teacher)->get(route('analytics.index'));
-        $response->assertOk();
-        $response->assertViewHas('classes', function ($classes) use ($own) {
-            $ids = $classes->pluck('id')->map(function ($id) {
-                return (int) $id;
-            })->all();
-            sort($ids);
-            $expected = $own;
-            sort($expected);
-
-            return $ids === $expected;
-        });
+        $this->actingAs($teacher)
+            ->get(route('analytics.index'))
+            ->assertForbidden();
     }
 
     public function test_empty_data_classes_and_months_render_without_errors()

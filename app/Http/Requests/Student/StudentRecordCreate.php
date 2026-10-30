@@ -86,6 +86,12 @@ class StudentRecordCreate extends FormRequest
             if (StudentRecord::where('adm_no', $composite)->exists()) {
                 $validator->errors()->add('adm_no', "Admission number {$composite} already exists.");
             }
+            // Numbers-only format (owner order 2026-10-30): the
+            // school chose plain numerical admission numbers, so
+            // a typed number with letters would break the style.
+            if ((string) Qs::getSetting('adm_no_format') === 'serial_only' && !ctype_digit($admNo)) {
+                $validator->errors()->add('adm_no', 'This school uses numbers-only admission numbers — digits only, please.');
+            }
         });
     }
 

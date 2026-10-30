@@ -70,6 +70,9 @@ class OwnerOvernightDashboardsTest extends TestCase
 
     public function test_item8_teacher_analytics_scoped_and_foreign_class_forbidden()
     {
+        // Owner order 2026-10-30: teachers were removed from the
+        // analytics dashboard entirely — own class or foreign, the
+        // answer is 403.
         $teacher = $this->teacher();
         $own = TeacherScope::classIds($teacher);
         $this->assertNotEmpty($own, 'Seed teacher must teach at least one class');
@@ -80,7 +83,7 @@ class OwnerOvernightDashboardsTest extends TestCase
 
         $this->actingAs($teacher)
             ->get(route('analytics.index', ['class_id' => $own[0]]))
-            ->assertOk();
+            ->assertForbidden();
 
         $this->actingAs($teacher)
             ->get(route('analytics.index', ['class_id' => $foreignIds[0]]))

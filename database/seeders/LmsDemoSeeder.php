@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Support\DemoToday;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
@@ -32,7 +33,7 @@ class LmsDemoSeeder extends Seeder
             return;
         }
 
-        $now = now();
+        $now = DemoToday::now();
 
         // Open assignment — Prep English Language (subject is the
         // class-bound English row; its teacher owns the demo content).

@@ -6,6 +6,7 @@ use App\Helpers\Qs;
 use App\Http\Controllers\Controller;
 use App\Models\Payroll;
 use App\Support\Audit;
+use App\Support\LeaveBalance;
 use App\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -80,6 +81,19 @@ class PayrollController extends Controller
         return view('pages.support_team.payroll.index', $d);
     }
 
+    /** Leave figures for one staff member's payroll month
+     *  (owner orders 2026-10-30): approved leave days in the
+     *  month, how many fall beyond the paid quota, and the
+     *  deduction those extra days produce at this gross. */
+    protected function leaveFigures(int $userId, int $year, int $month, float $gross): array
+    {
+        return [
+            'leave_days' => LeaveBalance::usedInMonth($userId, $year, $month),
+            'leave_extra_days' => LeaveBalance::extraInMonth($userId, $year, $month),
+            'leave_deduction' => LeaveBalance::deductionFor($userId, $year, $month, $gross),
+        ];
+    }
+
     public function store(Request $request)
     {
         $data = $this->validatePayroll($request, true);
@@ -97,7 +111,11 @@ class PayrollController extends Controller
                 . $staff->name . ' for this month — use Edit instead.');
         }
 
-        $payroll = Payroll::create($data + [
+        $leave = $this->leaveFigures($staff->id, (int) $data['year'], (int) $data['month'],
+            (float) $data['basic_salary'] + (float) $data['allowances']);
+        $data['deductions'] = (float) $data['deductions'] + $leave['leave_deduction'];
+
+        $payroll = Payroll::create($data + $leave + [
             'created_by' => Auth::id(),
             'status' => 'pending',
         ]);
@@ -105,7 +123,12 @@ class PayrollController extends Controller
         Audit::log('payroll.create', $payroll, 'Generated payroll for ' . $staff->name
             . ' (' . $payroll->monthName() . ' ' . $payroll->year . '), net ' . $payroll->net_pay);
 
-        return back()->with('flash_success', 'Payroll generated for ' . $staff->name . '.');
+        $note = $leave['leave_deduction'] > 0
+            ? ' Includes a leave deduction of ₹' . number_format($leave['leave_deduction'], 2)
+                . ' for ' . $leave['leave_extra_days'] . ' extra (unpaid) leave day(s).'
+            : '';
+
+        return back()->with('flash_success', 'Payroll generated for ' . $staff->name . '.' . $note);
     }
 
     public function update(Request $request, Payroll $payroll)
@@ -138,15 +161,27 @@ class PayrollController extends Controller
                 ->orderByDesc('year')->orderByDesc('month')
                 ->first();
 
+            $basic = $last ? (float) $last->basic_salary : 0;
+            $allowances = $last ? (float) $last->allowances : 0;
+            // The prefilled deductions carry the member's usual
+            // deductions forward WITHOUT last month's leave
+            // deduction — this month's is computed fresh below, so
+            // a leave deduction never double-charges by riding the
+            // prefill from one month into the next.
+            $baseDeductions = $last
+                ? max(0.0, (float) $last->deductions - (float) ($last->leave_deduction ?? 0))
+                : 0;
+            $leave = $this->leaveFigures($member->id, $year, $month, $basic + $allowances);
+
             Payroll::firstOrCreate(
                 ['user_id' => $member->id, 'year' => $year, 'month' => $month],
                 [
-                    'basic_salary' => $last ? $last->basic_salary : 0,
-                    'allowances' => $last ? $last->allowances : 0,
-                    'deductions' => $last ? $last->deductions : 0,
+                    'basic_salary' => $basic,
+                    'allowances' => $allowances,
+                    'deductions' => $baseDeductions + $leave['leave_deduction'],
                     'status' => 'pending',
                     'created_by' => Auth::id(),
-                ]
+                ] + $leave
             );
             $created++;
         }
@@ -334,6 +369,10 @@ class PayrollController extends Controller
         $net = (float) $payroll->net_pay;
 
         $d['payroll'] = $payroll;
+        // Leave summary for the payslip (owner order 2026-10-30):
+        // this month's approved leave, the year's quota position.
+        $d['leave_summary'] = LeaveBalance::summary((int) $payroll->user_id, (int) $payroll->year)
+            + ['month_days' => LeaveBalance::usedInMonth((int) $payroll->user_id, (int) $payroll->year, (int) $payroll->month)];
         $d['back_url'] = $backUrl;
         $d['school_name'] = Qs::getSystemName();
         $d['school_address'] = Qs::getSetting('address');

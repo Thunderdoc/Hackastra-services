@@ -165,12 +165,11 @@
                         <span>Reports & PDF Builder</span>
                     </a>
                 </li>
-                <li class="nav-item">
-                    <a href="{{ route('analytics.index') }}" class="nav-link {{ (Route::is('analytics.*')) ? 'active' : '' }}">
-                        <i class="icon-stats-bars"></i>
-                        <span>Analytics Dashboard</span>
-                    </a>
-                </li>
+                {{-- Analytics Dashboard link removed for teachers
+                     (owner order 2026-10-30): the dashboard is the
+                     school Admin's alone now — a link to a page the
+                     teacher cannot open does not belong in their
+                     menu. --}}
                 {{-- Overnight menus (2026-10-29): the teacher menu no
                      longer links Lesson Plans, Homework Tracker,
                      Substitutions, Question Bank or PTM Meetings.
@@ -208,6 +207,17 @@
                     <a href="{{ route('leave.student_requests') }}" class="nav-link {{ (Route::is('leave.student_requests') || Route::is('leave.decide')) ? 'active' : '' }}">
                         <i class="icon-calendar2"></i>
                         <span>Student Leave Requests</span>
+                    </a>
+                </li>
+                {{-- Owner order 2026-10-30: the substitute's own page
+                     (their extra classes in one place — where the
+                     substitution bell lands). NOT the board: the
+                     overnight link-removal of the admin board for
+                     teachers stands. --}}
+                <li class="nav-item">
+                    <a href="{{ route('substitutions.mine') }}" class="nav-link {{ (Route::is('substitutions.mine')) ? 'active' : '' }}">
+                        <i class="icon-people"></i>
+                        <span>My Extra Classes</span>
                     </a>
                 </li>
                 <li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Account</div><i class="icon-menu" title="Account"></i></li>

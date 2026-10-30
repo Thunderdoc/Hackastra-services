@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Support\DemoToday;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -335,7 +336,7 @@ class DemoDataSeeder extends Seeder
             ?: DB::table('users')->where('user_type', 'super_admin')->value('id');
 
         $days = [];
-        $cursor = Carbon::today();
+        $cursor = DemoToday::today();
         while (count($days) < 10) {
             if (!$cursor->isSunday()) {
                 $days[] = $cursor->copy();
@@ -417,8 +418,8 @@ class DemoDataSeeder extends Seeder
             DB::table('book_requests')->insert([
                 'book_id' => $loanedBookId,
                 'user_id' => $students->first()->user_id,
-                'start_date' => Carbon::today()->subDays(3)->toDateString(),
-                'end_date' => Carbon::today()->addDays(11)->toDateString(),
+                'start_date' => DemoToday::today()->subDays(3)->toDateString(),
+                'end_date' => DemoToday::today()->addDays(11)->toDateString(),
                 'returned' => 0,
                 'status' => 'issued',
                 'created_at' => now(),
@@ -445,7 +446,7 @@ class DemoDataSeeder extends Seeder
 
         $rows = [];
         foreach ($events as [$title, $type, $offset, $description]) {
-            $date = Carbon::today()->addDays($offset)->toDateString();
+            $date = DemoToday::today()->addDays($offset)->toDateString();
             $rows[] = [
                 'title' => $title,
                 'type' => $type,
@@ -741,8 +742,8 @@ class DemoDataSeeder extends Seeder
                 'audience' => $audience,
                 'priority' => $priority,
                 'published_by' => $publisher,
-                'starts_at' => Carbon::today()->subDays(2)->toDateString(),
-                'expires_at' => Carbon::today()->addDays(10)->toDateString(),
+                'starts_at' => DemoToday::today()->subDays(2)->toDateString(),
+                'expires_at' => DemoToday::today()->addDays(10)->toDateString(),
                 'is_published' => 1,
                 'created_at' => now(),
                 'updated_at' => now(),
@@ -1249,7 +1250,7 @@ class DemoDataSeeder extends Seeder
             'status' => 'in_progress',
             'duplicate_of_id' => null,
             'admin_note' => 'Plumber visit scheduled; cooler replacement approved by the office.',
-            'forwarded_at' => now()->subDays(1),
+            'forwarded_at' => DemoToday::now()->subDays(1),
             'forwarded_by' => $admin->id,
             'sa_status' => 'fixed',
             'sa_reply' => 'Fixed — the cooler was replaced and the water line flushed. Thank you for reporting it.',

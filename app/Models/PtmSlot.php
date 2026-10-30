@@ -17,6 +17,20 @@ class PtmSlot extends Eloquent
         'date' => 'date',
     ];
 
+    /** When this slot finishes (date + end time). */
+    public function endsAt(): \Carbon\Carbon
+    {
+        return \Carbon\Carbon::parse($this->date->format('Y-m-d') . ' ' . substr((string) $this->end_time, 0, 5));
+    }
+
+    /** A slot whose end time has passed can no longer be booked
+     *  (loophole closed 2026-10-30: parents could book meetings
+     *  scheduled in the past). */
+    public function hasEnded(): bool
+    {
+        return $this->endsAt()->isPast();
+    }
+
     public function teacher()
     {
         return $this->belongsTo(User::class, 'teacher_id');

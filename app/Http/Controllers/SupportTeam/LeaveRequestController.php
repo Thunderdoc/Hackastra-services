@@ -45,6 +45,12 @@ class LeaveRequestController extends Controller
         return view('pages.support_team.leave.my', [
             'requests' => LeaveRequest::where('user_id', Auth::id())->orderByDesc('id')->paginate(25),
             'approver_name' => $approverName,
+            // Paid-leave balance for staff (owner order 2026-10-30):
+            // quota, taken, remaining, extra — always visible where
+            // they apply. Students have no salary quota: null.
+            'leave_balance' => in_array(Auth::user()->user_type, ['teacher', 'accountant', 'librarian', 'admin', 'principal'], true)
+                ? \App\Support\LeaveBalance::summary(Auth::id(), (int) now()->format('Y'))
+                : null,
         ]);
     }
 
@@ -77,6 +83,37 @@ class LeaveRequestController extends Controller
         // A partial leave lives inside a single day.
         if (!empty($data['day_part'])) {
             $data['end_date'] = $data['start_date'];
+        }
+        // Overlap guard (owner order 2026-10-30): nobody holds two
+        // leaves over the same period. A new application that
+        // touches a date AND period window already covered by the
+        // applicant's own pending or approved leave is refused,
+        // naming that leave — a teacher away for ten days cannot
+        // apply again inside those ten days. Two partial leaves on
+        // one day still combine when their windows do not touch
+        // (first half + second half is a legitimate pair).
+        $newWindow = (new LeaveRequest([
+            'day_part' => $data['day_part'] ?? null,
+            'period_from' => $data['period_from'] ?? null,
+            'period_to' => $data['period_to'] ?? null,
+        ]))->periodWindow() ?? [1, 8];
+        $overlap = LeaveRequest::where('user_id', Auth::id())
+            ->whereIn('status', ['pending', 'approved'])
+            ->whereDate('start_date', '<=', $data['end_date'])
+            ->whereDate('end_date', '>=', $data['start_date'])
+            ->orderBy('start_date')
+            ->get()
+            ->first(function ($existing) use ($newWindow) {
+                $w = $existing->periodWindow() ?? [1, 8];
+                return $newWindow[0] <= $w[1] && $w[0] <= $newWindow[1];
+            });
+        if ($overlap) {
+            return back()->withInput()->with('flash_danger',
+                'You already have a ' . $overlap->status . ' leave covering these dates ('
+                . \Carbon\Carbon::parse($overlap->start_date)->format('d/m/Y')
+                . ' to ' . \Carbon\Carbon::parse($overlap->end_date)->format('d/m/Y')
+                . ($overlap->partialLabel() ? ' — ' . $overlap->partialLabel() : '')
+                . '). Please choose dates outside that leave.');
         }
         $isEmergency = ($data['leave_type'] ?? 'normal') === 'emergency';
         $leave = LeaveRequest::create([
@@ -252,8 +289,12 @@ class LeaveRequestController extends Controller
             // queue for every other row. Degrade that row to dashes
             // and keep the queue.
             try {
-                $allocCache[$user->id] ??= LeaveCover::allocationLines($user);
-                $r->allocation_lines = $allocCache[$user->id];
+                $allocCache[$user->id] ??= [
+                    'lines' => LeaveCover::allocationLines($user),
+                    'summary' => LeaveCover::allocationSummary($user),
+                ];
+                $r->allocation_lines = $allocCache[$user->id]['lines'];
+                $r->allocation_summary = $allocCache[$user->id]['summary'];
                 $r->uncovered_periods = ($user->user_type === 'teacher' && in_array($r->status, ['pending', 'approved'], true))
                     ? LeaveCover::uncoveredCount($user->id, $r->start_date, $r->end_date, $r->periodWindow()) : null;
                 // Owner order 2026-10-29: a bare "Covered" badge is

@@ -4,7 +4,6 @@ namespace App\Http\Controllers\SupportTeam;
 
 use App\Http\Controllers\Controller;
 use App\Models\MyClass;
-use App\Support\TeacherScope;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -47,30 +46,37 @@ use Illuminate\Support\Facades\DB;
  * class or all), from_month / to_month (YYYY-MM, applied to the
  * attendance and fee blocks only), exam_id (marks block only).
  *
- * Roles: admin (and super_admin at controller level) see
- * school-wide. Teachers see ONLY classes TeacherScope assigns them:
- * the class list is restricted, and a foreign class_id aborts 403 —
- * never an empty page that leaks, never another class's numbers.
- * Other roles are refused by the teamSAT route middleware and by
- * the guard below. The Super Admin never needs this route: it is
- * deliberately NOT on the PlatformOnly allowlist, which the
- * coordinator must not change.
+ * Roles (owner order 2026-10-30): the school ADMIN's page alone.
+ * Teachers had a TeacherScope-limited view until today — the
+ * owner ruled the analytics dashboard is of no use to a teacher
+ * and removed it from their account entirely (their class numbers
+ * live on their own dashboards and class overviews); they now get
+ * a plain 403 and no menu link. The Super Admin is platform-only
+ * and is sent to his own dashboard like every other school GET.
+ * The Principal keeps his Command Center analytics and stays out
+ * of this page. Do not widen without a fresh owner decision.
  */
 class AnalyticsController extends Controller
 {
     public function index(Request $request)
     {
         $user = Auth::user();
-        if (!$user || !in_array($user->user_type, ['admin', 'super_admin', 'teacher'], true)) {
+        // Platform-only doctrine (owner, 2026-10-28): the Super
+        // Admin's place is the platform dashboard — school pages,
+        // this one included, send him back there like every other
+        // school GET.
+        if ($user && $user->user_type === 'super_admin') {
+            return redirect('/dashboard');
+        }
+        // Admin alone (owner order 2026-10-30: teachers removed
+        // from the analytics dashboard entirely).
+        if (!$user || $user->user_type !== 'admin') {
             abort(403);
         }
 
-        $isTeacher = $user->user_type === 'teacher';
-        $allowedClassIds = $isTeacher
-            ? TeacherScope::classIds($user)
-            : MyClass::orderBy('id')->pluck('id')->map(function ($id) {
-                return (int) $id;
-            })->all();
+        $allowedClassIds = MyClass::orderBy('id')->pluck('id')->map(function ($id) {
+            return (int) $id;
+        })->all();
 
         $classes = MyClass::whereIn('id', $allowedClassIds)->orderBy('id')->get();
 
@@ -79,9 +85,6 @@ class AnalyticsController extends Controller
         if ($classId !== null) {
             if (!MyClass::where('id', $classId)->exists()) {
                 abort(404);
-            }
-            if ($isTeacher && !TeacherScope::canTeachClass($user, $classId)) {
-                abort(403);
             }
         }
 
@@ -101,6 +104,14 @@ class AnalyticsController extends Controller
         $fees = $this->feeRows($scopeClassIds, $fromMonth, $toMonth);
         $feeOutstanding = $this->feeOutstanding($scopeClassIds, $classNames);
         $marks = $this->marksRows($scopeClassIds, $examId, $classNames);
+
+        // Weighted overall attendance for the KPI strip: total
+        // (present + late) over total marked across the rows in
+        // scope — the same standard rule, never an average of
+        // percentages.
+        $attMarked = array_sum(array_column($attendance, 'marked'));
+        $attPresent = array_sum(array_column($attendance, 'present')) + array_sum(array_column($attendance, 'late'));
+        $attendanceOverall = $attMarked > 0 ? (int) round($attPresent / $attMarked * 100) : null;
 
         $maxFee = 0;
         foreach ($fees as $row) {
@@ -131,7 +142,8 @@ class AnalyticsController extends Controller
             'feeOutstanding' => $feeOutstanding,
             'feeOutstandingTotal' => array_sum(array_column($feeOutstanding, 'outstanding')),
             'marks' => $marks,
-            'isTeacher' => $isTeacher,
+            'attendanceOverall' => $attendanceOverall,
+            'classCount' => count($scopeClassIds),
         ]);
     }
 
@@ -189,6 +201,7 @@ class AnalyticsController extends Controller
             $marked = (int) $row->present + (int) $row->late + (int) $row->absent;
             $rows[] = [
                 'month' => $row->ym,
+                'month_label' => date('M Y', strtotime($row->ym . '-01')),
                 'class_id' => (int) $row->class_id,
                 'class_name' => $classNames[(int) $row->class_id] ?? ('Class ' . $row->class_id),
                 'present' => (int) $row->present,
@@ -226,6 +239,7 @@ class AnalyticsController extends Controller
         foreach ($query->get() as $row) {
             $rows[] = [
                 'month' => $row->ym,
+                'month_label' => date('M Y', strtotime($row->ym . '-01')),
                 'total' => (int) $row->total,
                 'receipts' => (int) $row->receipts,
             ];

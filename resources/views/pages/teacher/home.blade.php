@@ -151,6 +151,17 @@
                         <h5>My Leave Requests</h5>
                         <p class="t10-panel-sub">Your recent requests and their status</p>
                     </div>
+                    @if(isset($leave_balance))
+                        <div class="t10-panel-sub" style="margin-left:auto; text-align:right;">
+                            @if($leave_balance['quota'] > 0)
+                                Paid leave: <strong>{{ rtrim(rtrim(number_format($leave_balance['used'], 2), '0'), '.') }} / {{ rtrim(rtrim(number_format($leave_balance['quota'], 2), '0'), '.') }} days</strong> taken
+                                · Remaining: <strong>{{ rtrim(rtrim(number_format($leave_balance['remaining'], 2), '0'), '.') }}</strong>
+                                @if($leave_balance['extra'] > 0) · <span class="text-danger">Extra (unpaid): <strong>{{ rtrim(rtrim(number_format($leave_balance['extra'], 2), '0'), '.') }} days</strong></span>@endif
+                            @else
+                                Leave taken this year: <strong>{{ rtrim(rtrim(number_format($leave_balance['used'], 2), '0'), '.') }} days</strong>
+                            @endif
+                        </div>
+                    @endif
                 </div>
                 <a href="{{ route('leave.my') }}" class="t10-view-all">Apply / View All <i class="icon-arrow-right7"></i></a>
             </div>
@@ -170,6 +181,45 @@
                 </table>
             </div>
         </section>
+
+        {{-- WhatsApp group links (owner order 2026-10-30): each
+             class teacher keeps ONE group link per section they
+             lead; students see it beside their class on their
+             dashboard. --}}
+        @if(isset($sections_led) && $sections_led->isNotEmpty())
+        <section class="t10-panel">
+            <div class="t10-panel-head">
+                <div class="t10-panel-title">
+                    <span class="t10-panel-icon t10-tone-green"><i class="icon-bubbles2"></i></span>
+                    <div>
+                        <h5>Class WhatsApp Groups</h5>
+                        <p class="t10-panel-sub">One group link per section you lead — students see it on their dashboard</p>
+                    </div>
+                </div>
+            </div>
+            <div class="t10-table-wrap">
+                <table class="t10-table">
+                    <tbody>
+                    @foreach($sections_led as $ledSection)
+                        <tr>
+                            <td style="white-space:nowrap;"><strong>{{ optional($ledSection->my_class)->name }} {{ $ledSection->name }}</strong></td>
+                            <td>
+                                <form method="POST" action="{{ route('sections.whatsapp', $ledSection->id) }}" class="form-inline">
+                                    @csrf
+                                    <input type="url" name="whatsapp_link" value="{{ $ledSection->whatsapp_link }}" class="form-control form-control-sm" style="min-width:260px;" placeholder="https://chat.whatsapp.com/…">
+                                    <button type="submit" class="btn btn-primary btn-sm ml-1">Save</button>
+                                    @if($ledSection->whatsapp_link)
+                                        <a href="{{ $ledSection->whatsapp_link }}" target="_blank" rel="noopener" class="btn btn-light btn-sm ml-1">Open Group</a>
+                                    @endif
+                                </form>
+                            </td>
+                        </tr>
+                    @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </section>
+        @endif
 
         {{-- Batch fix 2026-10-25: duties were invisible to teachers.
              Upcoming duties panel, same pattern as My Leave above. --}}

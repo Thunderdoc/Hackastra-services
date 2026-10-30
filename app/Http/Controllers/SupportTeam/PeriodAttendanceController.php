@@ -6,6 +6,7 @@ use App\Helpers\Qs;
 use App\Http\Controllers\Controller;
 use App\Models\AttendanceSession;
 use App\Models\AttendanceSessionEntry;
+use App\Models\LeaveRequest;
 use App\Models\MyClass;
 use App\Models\Section;
 use App\Models\Setting;
@@ -97,6 +98,24 @@ class PeriodAttendanceController extends Controller
                     $d['periods'] = $d['periods']->concat($extra)->sortBy('sort')->values();
                 }
             }
+            // Owner order 2026-10-30: the teacher's OWN rows on a
+            // day they are on approved leave are flagged, so the
+            // list shows "On Leave" (with the covering substitute)
+            // instead of a Take Attendance button they may not use.
+            $indexMaps = [];
+            $viewerId = (int) $request->user()->id;
+            $d['periods'] = $d['periods']->map(function ($row) use ($request, $d, $viewerId, &$indexMaps) {
+                if (!empty($row['is_substitution'])) {
+                    return $row;
+                }
+                $ttrId = (int) $row['tt']->ttr_id;
+                if (!array_key_exists($ttrId, $indexMaps)) {
+                    $indexMaps[$ttrId] = LeaveCover::periodIndexMap([$ttrId], $d['date']->format('l'));
+                }
+                $n = $indexMaps[$ttrId][(int) $row['tt']->id] ?? null;
+                $row['on_leave'] = $this->approvedLeaveCovering($viewerId, $d['date'], $n) !== null;
+                return $row;
+            });
         } else {
             $d['classes'] = MyClass::orderBy('name')->get();
             $d['selected_class'] = $request->query('class_id')
@@ -1104,12 +1123,47 @@ class PeriodAttendanceController extends Controller
      * submit. Returns a redirect when the user may not take it,
      * null when they may.
      */
+    /** The approved leave covering (teacher, date, period), if
+     *  any — full-day leaves cover every period; partial leaves
+     *  cover only their period window. */
+    protected function approvedLeaveCovering(int $teacherId, Carbon $date, ?int $periodIndex): ?LeaveRequest
+    {
+        $leaves = LeaveRequest::where('user_id', $teacherId)
+            ->where('status', 'approved')
+            ->whereDate('start_date', '<=', $date->toDateString())
+            ->whereDate('end_date', '>=', $date->toDateString())
+            ->get();
+        foreach ($leaves as $leave) {
+            $window = $leave->periodWindow();
+            if ($window === null || $periodIndex === null
+                || ($periodIndex >= $window[0] && $periodIndex <= $window[1])) {
+                return $leave;
+            }
+        }
+
+        return null;
+    }
+
     protected function guardCanTake(Request $request, array $period)
     {
         if (!Qs::userIsTeacher()) {
             return redirect()
                 ->route('attendance.periods.index', ['date' => $this->dateFromRequest($request)->toDateString()])
                 ->with('flash_danger', 'Period attendance is submitted by the subject teacher — this view is read-only for administrators.');
+        }
+
+        if ((int) SectionTeacher::teacherIdFor(optional($period['section'])->id ?? null, $period['subject']) === (int) $request->user()->id) {
+            // Owner order 2026-10-30: a teacher on approved leave
+            // does not take their own registers during the leave —
+            // the register belongs to the day's substitute. (The
+            // substitute branch below is unaffected: covering
+            // someone ELSE's period is a different row entirely.)
+            $date = $this->dateFromRequest($request);
+            $indexMap = LeaveCover::periodIndexMap([(int) $period['tt']->ttr_id], $date->format('l'));
+            $n = $indexMap[(int) $period['tt']->id] ?? null;
+            if ($this->approvedLeaveCovering((int) $request->user()->id, $date, $n)) {
+                abort(403, 'You are on approved leave for this period — your substitute takes this register.');
+            }
         }
 
         if ((int) SectionTeacher::teacherIdFor(optional($period['section'])->id ?? null, $period['subject']) !== (int) $request->user()->id) {

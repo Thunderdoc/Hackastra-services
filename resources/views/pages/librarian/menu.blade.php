@@ -6,9 +6,10 @@
 <li class="nav-item">
     <a href="{{ route('books.index') }}" class="nav-link {{ (Route::is('books.*') || Route::is('book_requests.*')) ? 'active' : '' }}"><i class="icon-books"></i> <span>Books</span></a>
 </li>
-<li class="nav-item">
-    <a href="{{ route('reports.builder') }}" class="nav-link {{ (Route::is('reports.*')) ? 'active' : '' }}"><i class="icon-file-text2"></i> <span>Reports &amp; PDF Builder</span></a>
-</li>
+{{-- Report Builder link removed (owner loophole review,
+     2026-10-30): the builder is gated to teacher / principal /
+     admin, so this link landed the librarian on a 403 — a button
+     for something that cannot happen for the viewer. --}}
 <li class="nav-item">
     <a href="{{ route('library_reservations.index') }}" class="nav-link {{ (Route::is('library_reservations.*')) ? 'active' : '' }}"><i class="icon-books"></i> <span>Book Reservations</span></a>
 </li>

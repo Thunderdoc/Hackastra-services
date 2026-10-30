@@ -45,6 +45,29 @@ class GradeCalculator
     }
 
     /**
+     * A subject total expressed as a percentage of its scheme
+     * maximum — the scale the grade bands are written in
+     * (A = 70–100, …). Grading the raw total instead mis-grades
+     * every subject whose scheme does not sum to exactly 100:
+     * 72 out of 80 is 90% (an A), not a raw 72 against the same
+     * bands by luck. (Exam-flexibility audit finding; owner
+     * loophole review 2026-10-30.) A non-positive maximum means
+     * no scheme context — the total is returned unchanged.
+     */
+    public static function percentage($total, $max): ?float
+    {
+        if ($total === null || $total === '') {
+            return null;
+        }
+        $max = (float) $max;
+        if ($max <= 0) {
+            return (float) $total;
+        }
+
+        return round(((float) $total / $max) * 100, 2);
+    }
+
+    /**
      * @return array|null the matching band, or null when no band covers the score
      */
     public static function gradeFor($score, array $bands): ?array

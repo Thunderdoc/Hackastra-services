@@ -208,13 +208,35 @@
                 <td style="width:49%;">
                     <table class="ps-panel ps-ded">
                         <tr><th>DEDUCTIONS</th><th class="ps-amt-head">AMOUNT (₹)</th></tr>
-                        <tr><td>Deductions</td><td class="ps-amt">{{ $psDocAmt($payroll->deductions) }}</td></tr>
-                        <tr><td>&nbsp;</td><td class="ps-amt">&nbsp;</td></tr>
+                        @if((float) ($payroll->leave_deduction ?? 0) > 0)
+                            <tr><td>Other Deductions</td><td class="ps-amt">{{ $psDocAmt((float) $payroll->deductions - (float) $payroll->leave_deduction) }}</td></tr>
+                            <tr><td>Leave Deduction ({{ rtrim(rtrim(number_format((float) $payroll->leave_extra_days, 2), '0'), '.') }} extra days)</td><td class="ps-amt">{{ $psDocAmt($payroll->leave_deduction) }}</td></tr>
+                        @else
+                            <tr><td>Deductions</td><td class="ps-amt">{{ $psDocAmt($payroll->deductions) }}</td></tr>
+                            <tr><td>&nbsp;</td><td class="ps-amt">&nbsp;</td></tr>
+                        @endif
                         <tr class="ps-total"><td>Total Deductions</td><td class="ps-amt">{{ $psDocAmt($payroll->deductions) }}</td></tr>
                     </table>
                 </td>
             </tr>
         </table>
+
+        {{-- Leave summary (owner order 2026-10-30): the month's
+             approved leave and the year's paid-quota position, so
+             the teacher can check the deduction themselves. --}}
+        @if(isset($leave_summary) && ($leave_summary['month_days'] > 0 || $leave_summary['quota'] > 0))
+            <table class="ps-panels" style="margin-top:10px;">
+                <tr><td style="border:1px solid #d8dee6; padding:8px 12px; font-size:12.5px; color:#33475c;">
+                    <strong>Leave:</strong>
+                    {{ rtrim(rtrim(number_format($leave_summary['month_days'], 2), '0'), '.') }} day(s) this month
+                    @if($leave_summary['quota'] > 0)
+                        · Paid leave used this year: {{ rtrim(rtrim(number_format($leave_summary['used'], 2), '0'), '.') }} of {{ rtrim(rtrim(number_format($leave_summary['quota'], 2), '0'), '.') }} days
+                        · Remaining: {{ rtrim(rtrim(number_format($leave_summary['remaining'], 2), '0'), '.') }}
+                        @if((float) ($payroll->leave_extra_days ?? 0) > 0) · Extra (unpaid) this month: {{ rtrim(rtrim(number_format((float) $payroll->leave_extra_days, 2), '0'), '.') }} day(s) @endif
+                    @endif
+                </td></tr>
+            </table>
+        @endif
 
         {{-- Net pay: the record's stored, authoritative net --}}
         <table class="ps-net">

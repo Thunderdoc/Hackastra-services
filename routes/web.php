@@ -30,6 +30,8 @@ Route::group(['middleware' => 'auth'], function () {
     // Workstream CZ (LMS): bell notifications — opening the bell
     // marks the caller's per-user notifications read.
     Route::post('/notifications/read', 'NotificationController@markRead')->name('notifications.read');
+    // Owner order 2026-10-30: the full notifications page.
+    Route::get('/notifications', 'NotificationController@index')->name('notifications.index');
 
     Route::group(['prefix' => 'my_account'], function() {
         Route::get('/', 'MyAccountController@edit_profile')->name('my_account');
@@ -383,6 +385,7 @@ Route::group(['middleware' => 'auth'], function () {
         Route::resource('users', 'UserController');
         Route::resource('classes', 'MyClassController');
         Route::put('sections/{id}/teachers', 'SectionController@updateTeachers')->name('sections.teachers.update');
+        Route::post('sections/{id}/whatsapp', 'SectionController@updateWhatsapp')->name('sections.whatsapp');
         Route::resource('sections', 'SectionController');
         Route::resource('subjects', 'SubjectController');
 
@@ -492,6 +495,7 @@ Route::group(['middleware' => 'auth'], function () {
         });
         Route::group(['prefix' => 'substitutions'], function() {
             Route::get('/', 'SubstitutionController@index')->name('substitutions.index');
+            Route::get('mine', 'SubstitutionController@mine')->name('substitutions.mine');
             Route::get('create', 'SubstitutionController@create')->name('substitutions.create');
             Route::post('/', 'SubstitutionController@store')->name('substitutions.store');
             Route::post('confirm', 'SubstitutionController@confirm')->name('substitutions.confirm');
@@ -733,6 +737,7 @@ Route::group(['middleware' => 'auth'], function () {
             Route::post('/', 'PtmController@store')->name('ptm.store');
             Route::post('{slot}/book', 'PtmController@book')->name('ptm.book');
             Route::delete('{booking}/cancel', 'PtmController@cancel')->name('ptm.cancel');
+            Route::delete('{slot}', 'PtmController@destroy')->name('ptm.destroy');
         });
         Route::group(['prefix' => 'library-reservations'], function() {
             Route::get('/', 'LibraryReservationController@index')->name('library_reservations.index');

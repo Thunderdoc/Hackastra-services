@@ -161,6 +161,10 @@ class PtmController extends Controller
 
         $slot = PtmSlot::with('booking')->findOrFail($slot);
 
+        if ($slot->hasEnded()) {
+            return back()->with('flash_danger', 'This slot has already ended and cannot be booked.');
+        }
+
         $request->validate([
             'student_user_id' => 'required|integer',
         ]);
@@ -211,6 +215,30 @@ class PtmController extends Controller
         );
 
         return redirect()->route('ptm.index')->with('flash_success', 'Slot booked.');
+    }
+
+    /**
+     * Delete a slot (owner order 2026-10-30: old slots piled up
+     * with no way to remove them). Admin only — the same role
+     * that creates slots. A BOOKED slot is refused: its booking
+     * must be cancelled first, so a family's meeting is never
+     * silently deleted from under them.
+     */
+    public function destroy($slot)
+    {
+        $user = Auth::user();
+        if (!$user || !$this->canCreate($user)) {
+            abort(403);
+        }
+
+        $slot = PtmSlot::with('booking')->findOrFail($slot);
+        if ($slot->booking) {
+            return back()->with('flash_danger', 'This slot is booked — cancel the booking first, then delete the slot.');
+        }
+
+        $slot->delete();
+
+        return redirect()->route('ptm.index')->with('flash_success', 'PTM slot deleted.');
     }
 
     public function cancel($booking)

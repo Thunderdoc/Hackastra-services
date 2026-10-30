@@ -47,8 +47,25 @@ class StudyMaterialController extends Controller
         // these subjects that carries no materials.
         $scopeSubjects = collect();
 
+        // Substitute cover (owner order 2026-10-30): classes a
+        // teacher covers TODAY join their list for the day, so the
+        // absent teacher's content is right there — labelled
+        // (Substitute) in the view, read-only as always.
+        $coverPairs = Qs::userIsTeacher()
+            ? \App\Support\SubstitutionAccess::coveredClassSubjectsOn((int) $user->id, now())
+            : [];
+        $d['cover_pairs'] = $coverPairs;
+
         if (Qs::userIsTeacher()) {
-            $query->where('teacher_id', $user->id);
+            $query->where(function ($q) use ($user, $coverPairs) {
+                $q->where('teacher_id', $user->id);
+                foreach ($coverPairs as $coverClassId => $coverSubjectIds) {
+                    $q->orWhere(function ($w) use ($coverClassId, $coverSubjectIds) {
+                        $w->where('my_class_id', $coverClassId)
+                            ->whereIn('subject_id', $coverSubjectIds);
+                    });
+                }
+            });
             // Same taught-subject universe as the create picker:
             // class-wide subjects plus override subjects, so the
             // grouped page renders empty groups for override subjects
@@ -57,7 +74,8 @@ class StudyMaterialController extends Controller
             $override = DB::table('section_subject_teachers')
                 ->where('teacher_id', $user->id)
                 ->pluck('subject_id');
-            $scopeSubjects = Subject::whereIn('id', $direct->merge($override)->unique()->values())
+            $covered = collect($coverPairs)->flatten();
+            $scopeSubjects = Subject::whereIn('id', $direct->merge($override)->merge($covered)->unique()->values())
                 ->orderBy('name')->get();
         } elseif (Qs::userIsTeamSA()) {
             // Admin + Super Admin read everything (SA read-only).

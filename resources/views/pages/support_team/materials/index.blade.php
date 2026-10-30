@@ -155,7 +155,7 @@
                                         <span class="lms-mat-desc lms82-clamp2">{{ \Illuminate\Support\Str::limit($material->description, 160) }}</span>
                                     @endif
                                     <span class="lms82-mat-meta">
-                                        <span class="lms-chip"><i class="icon-users mr-1"></i>{{ optional($material->myClass)->name ?? 'Class —' }}{{ $material->section ? ' · ' . optional($material->section)->name : ' · Whole class' }}</span>
+                                        <span class="lms-chip"><i class="icon-users mr-1"></i>{{ optional($material->myClass)->name ?? 'Class —' }}{{ $material->section ? ' · ' . optional($material->section)->name : ' · Whole class' }}@if(isset($cover_pairs) && ($cover_pairs[$material->my_class_id] ?? null) && in_array((int) $material->subject_id, $cover_pairs[$material->my_class_id], true) && (int) $material->teacher_id !== (int) Auth::id()) <span class="badge badge-warning ml-1">(Substitute)</span>@endif</span>
                                         <span class="lms-chip"><i class="icon-user mr-1"></i>by {{ optional($material->teacher)->name ?? 'Teacher' }}</span>
                                         @if($material->created_at)
                                             <span class="lms-chip"><i class="icon-calendar mr-1"></i>{{ \Carbon\Carbon::parse($material->created_at)->format('d M Y') }}</span>
