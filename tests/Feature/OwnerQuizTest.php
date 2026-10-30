@@ -164,6 +164,7 @@ class OwnerQuizTest extends TestCase
         $quiz = $this->makePrepQuiz();
         $questions = $quiz->questions()->orderBy('id')->get();
 
+        $this->actingAs($this->student())->get(route('quizzes.attempt', $quiz->id))->assertOk();
         $response = $this->actingAs($this->student())->post(route('quizzes.submit', $quiz->id), [
             'answers' => [
                 $questions[0]->id => 0,
@@ -189,6 +190,7 @@ class OwnerQuizTest extends TestCase
     {
         $quiz = $this->makePrepQuiz();
         $questions = $quiz->questions()->orderBy('id')->get();
+        $this->actingAs($this->student())->get(route('quizzes.attempt', $quiz->id));
         $this->actingAs($this->student())->post(route('quizzes.submit', $quiz->id), [
             'answers' => [$questions[0]->id => 0, $questions[1]->id => 0],
         ]);
@@ -207,6 +209,7 @@ class OwnerQuizTest extends TestCase
         $quiz = $this->makeClass12Quiz();
         $response = $this->actingAs($this->student())->get(route('quizzes.attempt', $quiz->id));
         $response->assertForbidden();
+        $this->actingAs($this->student())->get(route('quizzes.attempt', $quiz->id));
         $response = $this->actingAs($this->student())->post(route('quizzes.submit', $quiz->id), [
             'answers' => [],
         ]);
@@ -226,6 +229,7 @@ class OwnerQuizTest extends TestCase
     {
         $quiz = $this->makePrepQuiz();
         $questions = $quiz->questions()->orderBy('id')->get();
+        $this->actingAs($this->student())->get(route('quizzes.attempt', $quiz->id));
         $this->actingAs($this->student())->post(route('quizzes.submit', $quiz->id), [
             'answers' => [$questions[0]->id => 0, $questions[1]->id => 1],
         ]);

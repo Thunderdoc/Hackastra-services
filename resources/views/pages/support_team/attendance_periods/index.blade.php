@@ -250,7 +250,7 @@
                                     @if(!empty($row['is_substitution']))<div class="ma-sub">Covering for {{ optional($row['teacher'])->name }}</div>@elseif(!empty($row['substitution']) && optional($row['substitution']->substitute)->name)<div class="ma-sub">Sub: {{ $row['substitution']->substitute->name }}</div>@endif
                                 </td>
                                 @if($is_teacher)
-                                    <td>{{ optional($row['class'])->name }}@if(optional($row['section'])->name) — {{ $row['section']->name }}@endif @if(!empty($row['is_substitution'])) <span class="badge badge-warning">(Substitute)</span>@endif</td>
+                                    <td>@if(!empty($row['is_substitution']))<span class="badge badge-warning mr-1">(Substitute)</span>@endif{{ optional($row['class'])->name }}@if(optional($row['section'])->name) — {{ $row['section']->name }}@endif</td>
                                     <td>
                                         @if($row['session'])
                                             <span class="ma-pill ma-pill-done"><i class="icon-checkmark3"></i> Submitted</span>

@@ -35,6 +35,27 @@ use Tests\TestCase;
  */
 class OwnerLeavePayrollWhatsappTest extends TestCase
 {
+    protected $bellWatermark = 0;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->bellWatermark = (int) \Illuminate\Support\Facades\DB::table('user_notifications')->max('id');
+    }
+
+    protected function tearDown(): void
+    {
+        // The leave applications below bell the Admin and
+        // Principal (correct product behaviour) — but badge-count
+        // suites assert exact unread counts, so this file removes
+        // exactly the bells it caused.
+        \Illuminate\Support\Facades\DB::table('user_notifications')
+            ->where('id', '>', $this->bellWatermark)
+            ->where('type', 'leave_submitted')
+            ->delete();
+        parent::tearDown();
+    }
+
     protected function admin(): User
     {
         return User::where('email', 'admin@hackstra.app')->firstOrFail();
@@ -111,7 +132,7 @@ class OwnerLeavePayrollWhatsappTest extends TestCase
     {
         $teacher = $this->teacher();
         $cell = $this->ananyaMondayCell();
-        $monday = '2026-11-02';
+        $monday = '2026-12-07'; // a Monday no other suite uses for her
 
         LeaveRequest::create([
             'user_id' => $teacher->id, 'start_date' => $monday, 'end_date' => $monday,

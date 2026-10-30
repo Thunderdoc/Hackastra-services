@@ -91,6 +91,7 @@ class OwnerQuizV2Test extends TestCase
     protected function attemptPrepQuiz(Quiz $quiz)
     {
         $questions = $quiz->questions()->orderBy('id')->get();
+        $this->actingAs($this->student())->get(route('quizzes.attempt', $quiz->id));
         $this->actingAs($this->student())->post(route('quizzes.submit', $quiz->id), [
             'answers' => [$questions[0]->id => 0, $questions[1]->id => 0],
         ]);
@@ -359,6 +360,7 @@ class OwnerQuizV2Test extends TestCase
             'correct_index' => 0,
             'marks' => 1,
         ]);
+        $this->actingAs($this->student())->get(route('quizzes.attempt', $quiz->id));
         $this->actingAs($this->student())->post(route('quizzes.submit', $quiz->id), [
             'answers' => [$quiz->questions()->first()->id => 0],
         ]);

@@ -23,6 +23,28 @@ use Tests\TestCase;
  */
 class OwnerPtmQuizLoopholesTest extends TestCase
 {
+    protected $slotIds = [];
+    protected $quizIds = [];
+
+    protected function tearDown(): void
+    {
+        // Leave no trace: other suites assert exact slot counts
+        // and "no such slot" states against the shared demo data.
+        if ($this->slotIds) {
+            PtmBooking::whereIn('ptm_slot_id', $this->slotIds)->delete();
+            PtmSlot::whereIn('id', $this->slotIds)->delete();
+        }
+        if ($this->quizIds) {
+            $attemptIds = QuizAttempt::whereIn('quiz_id', $this->quizIds)->pluck('id');
+            \App\Models\QuizAnswer::whereIn('attempt_id', $attemptIds)->delete();
+            QuizAttempt::whereIn('quiz_id', $this->quizIds)->delete();
+            QuizAttemptStart::whereIn('quiz_id', $this->quizIds)->delete();
+            QuizQuestion::whereIn('quiz_id', $this->quizIds)->delete();
+            Quiz::whereIn('id', $this->quizIds)->delete();
+        }
+        parent::tearDown();
+    }
+
     protected function admin(): User
     {
         return User::where('email', 'admin@hackstra.app')->firstOrFail();
@@ -46,11 +68,13 @@ class OwnerPtmQuizLoopholesTest extends TestCase
 
     protected function makeSlot(string $date, string $from, string $to): PtmSlot
     {
-        return PtmSlot::create([
+        $slot = PtmSlot::create([
             'date' => $date, 'start_time' => $from, 'end_time' => $to,
             'teacher_id' => $this->teacher()->id, 'my_class_id' => 1,
             'section_id' => 1, 'created_by' => $this->admin()->id,
         ]);
+        $this->slotIds[] = $slot->id;
+        return $slot;
     }
 
     /* ---------------- PTM ---------------- */
@@ -118,6 +142,7 @@ class OwnerPtmQuizLoopholesTest extends TestCase
             'quiz_id' => $quiz->id, 'question' => '2 + 2 = ?',
             'options' => ['3', '4', '5'], 'correct_index' => 1, 'marks' => 5,
         ]);
+        $this->quizIds[] = $quiz->id;
         return $quiz;
     }
 
