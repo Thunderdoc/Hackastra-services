@@ -139,15 +139,15 @@ class ParentMessageController extends Controller
             ->unique();
 
         $link = route('parent_messages.show', $message->id);
-        foreach ($parentIds as $parentId) {
-            Notify::toUser(
-                (int) $parentId,
-                'parent_message',
-                $message->title,
-                Str::limit($message->body, 200),
-                $link
-            );
-        }
+        // Bulk fan-out (P27): a whole-class message can mean
+        // hundreds of parents — one insert, not a query each.
+        Notify::toUsers(
+            $parentIds->map(function ($id) { return (int) $id; })->all(),
+            'parent_message',
+            $message->title,
+            Str::limit($message->body, 200),
+            $link
+        );
 
         return redirect()->route('parent_messages.index')
             ->with('flash_success', 'Message sent to parents.');

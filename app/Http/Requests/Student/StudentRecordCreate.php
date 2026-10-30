@@ -5,6 +5,7 @@ namespace App\Http\Requests\Student;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
 use App\Helpers\Qs;
+use App\Models\Section;
 use App\Models\StudentRecord;
 use App\Repositories\MyClassRepo;
 
@@ -72,6 +73,18 @@ class StudentRecordCreate extends FormRequest
     public function withValidator(Validator $validator)
     {
         $validator->after(function (Validator $validator) {
+            // Pair guard FIRST (cascade audit 2026-10-30): it must
+            // run even when no admission number was typed — the
+            // adm_no block below returns early in exactly that
+            // case, which is the common auto-numbered admit.
+            $sectionId = $this->input('section_id');
+            $pairClassId = $this->input('my_class_id');
+            if ($sectionId && $pairClassId) {
+                $section = Section::find($sectionId);
+                if ($section && (int) $section->my_class_id !== (int) $pairClassId) {
+                    $validator->errors()->add('section_id', 'The selected section does not belong to the selected class.');
+                }
+            }
             $admNo = trim((string) $this->input('adm_no'));
             $classId = $this->input('my_class_id');
             $year = $this->input('year_admitted');

@@ -2,7 +2,10 @@
 
 namespace App\Http\Requests\TimeTable;
 
+use App\Models\Subject;
+use App\Models\TimeTableRecord;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Validator;
 
 class TTRequest extends FormRequest
 {
@@ -10,6 +13,30 @@ class TTRequest extends FormRequest
     public function authorize()
     {
         return true;
+    }
+
+    /**
+     * Pair guard (cascade audit 2026-10-30): a timetable cell's
+     * subject must belong to the class its record serves. The
+     * plain `exists` rules let a crafted post drop a Class 12
+     * subject into a Class 6 record and it saved silently — the
+     * one unguarded pair in the audit (records, assignments,
+     * materials, question bank, PTM and lesson plans all check
+     * theirs). Covers both the cell store and the cell update,
+     * which share this request.
+     */
+    public function withValidator(Validator $validator)
+    {
+        $validator->after(function (Validator $v) {
+            if ($v->errors()->isNotEmpty()) {
+                return;
+            }
+            $subject = Subject::find($this->input('subject_id'));
+            $record = TimeTableRecord::find($this->input('ttr_id'));
+            if ($subject && $record && (int) $subject->my_class_id !== (int) $record->my_class_id) {
+                $v->errors()->add('subject_id', 'That subject does not belong to the class this timetable serves.');
+            }
+        });
     }
 
     /**

@@ -299,11 +299,20 @@ class StudentBulkController extends Controller
             $row['state_id'] = $state->id;
         }
 
-        // lga — required, by name, and must belong to the chosen state
+        // lga — by name, must belong to the chosen state, and
+        // required ONLY when the state actually has districts in
+        // the lookup (owner order 2026-10-30: the Nigerian LGA
+        // lookup is retired; Indian states carry none, so the
+        // column is optional and any text is accepted without an
+        // FK to store it against).
+        $row['lga_id'] = null;
+        $stateLgas = $state ? ($lookups['lgas'][$state->id] ?? []) : [];
         if ($get('lga') === '') {
-            $errors[] = ['field' => 'lga', 'value' => $get('lga'), 'message' => 'LGA is required.'];
-        } elseif ($state) {
-            $lga = $lookups['lgas'][$state->id][strtolower($get('lga'))] ?? null;
+            if (!empty($stateLgas)) {
+                $errors[] = ['field' => 'lga', 'value' => $get('lga'), 'message' => 'LGA is required.'];
+            }
+        } elseif ($state && !empty($stateLgas)) {
+            $lga = $stateLgas[strtolower($get('lga'))] ?? null;
             if (!$lga) {
                 $errors[] = ['field' => 'lga', 'value' => $get('lga'), 'message' => "LGA '{$get('lga')}' was not found in {$state->name}."];
             } else {

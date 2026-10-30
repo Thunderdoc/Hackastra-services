@@ -47,7 +47,7 @@ class OwnerStudentCategoryNoLgaTest extends TestCase
             'gender' => 'Female',
             'year_admitted' => '2026',
             'address' => '12 School Road',
-            'state_id' => 1,
+            'state_id' => \App\Models\State::where('name', 'Tamil Nadu')->value('id'),
             'nal_id' => 1,
             'my_class_id' => 1,
             'section_id' => 1,
@@ -106,7 +106,7 @@ class OwnerStudentCategoryNoLgaTest extends TestCase
             'gender' => $user->gender ?: 'Male',
             'year_admitted' => $record->year_admitted,
             'address' => $user->address ?: '12 School Road',
-            'state_id' => $user->state_id ?: 1,
+            'state_id' => $user->state_id ?: \App\Models\State::where('name', 'Tamil Nadu')->value('id'),
             'nal_id' => $user->nal_id ?: 1,
             'my_class_id' => $record->my_class_id,
             'section_id' => $record->section_id,
@@ -130,7 +130,7 @@ class OwnerStudentCategoryNoLgaTest extends TestCase
             'gender' => 'female',
             'address' => '12 School Road',
             'emp_date' => '2026-01-05',
-            'state_id' => 1,
+            'state_id' => \App\Models\State::where('name', 'Tamil Nadu')->value('id'),
             'nal_id' => 1,
         ])->assertRedirect();
 

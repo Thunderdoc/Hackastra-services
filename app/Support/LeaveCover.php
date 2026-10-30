@@ -278,4 +278,170 @@ class LeaveCover
 
         return $uncovered;
     }
+
+    /**
+     * Leave intelligence (owner brief 2026-10-30): the full impact
+     * of one teacher's leave, from the SAME walk uncoveredCount()
+     * uses, so the queue's numbers can never disagree — affected
+     * periods in the (partial-leave aware) window, how many already
+     * carry a substitute, which classes / sections / subjects are
+     * hit, how many are lab sessions, and on how many real working
+     * days. Non-teaching day types (holiday / closure / event-only)
+     * contribute nothing. Null for non-teachers.
+     */
+    public static function impactSummary(int $teacherId, $startDate, $endDate, ?array $window = null): ?array
+    {
+        $teacher = User::find($teacherId);
+        if (!$teacher || !static::isLiveTeacher($teacher)) {
+            return null;
+        }
+        $start = $startDate instanceof Carbon ? $startDate->copy()->startOfDay() : Carbon::parse($startDate)->startOfDay();
+        $end = $endDate instanceof Carbon ? $endDate->copy()->startOfDay() : Carbon::parse($endDate)->startOfDay();
+        $empty = ['affected' => 0, 'covered' => 0, 'uncovered' => 0, 'classes' => 0, 'sections' => 0, 'subjects' => [], 'labs' => 0, 'working_days' => 0];
+        if ($end->lt($start)) {
+            return $empty;
+        }
+
+        $query = TimeTable::query()->select('id', 'day', 'subject_id', 'ttr_id')
+            ->with(['tt_record:id,my_class_id,section_id', 'subject:id,name,needs_lab']);
+        SectionTeacher::applyTeacherFilter($query, $teacherId);
+        $byDay = [];
+        foreach ($query->get() as $cell) {
+            $byDay[$cell->day][] = $cell;
+        }
+        if (!$byDay) {
+            return $empty;
+        }
+
+        $covered = [];
+        $subs = Substitution::where('absent_teacher_id', $teacherId)
+            ->whereDate('date', '>=', $start->toDateString())
+            ->whereDate('date', '<=', $end->toDateString())
+            ->whereNotNull('substitute_teacher_id')
+            ->get(['time_table_id', 'date']);
+        foreach ($subs as $sub) {
+            $date = $sub->date instanceof Carbon ? $sub->date->toDateString() : (string) $sub->date;
+            $covered[$date . '|' . (int) $sub->time_table_id] = true;
+        }
+
+        $affected = 0;
+        $coveredCount = 0;
+        $classes = [];
+        $sections = [];
+        $subjects = [];
+        $labs = 0;
+        $workDates = [];
+        for ($date = $start->copy(); $date->lte($end); $date->addDay()) {
+            if (!DayType::isTeachingDay($date)) {
+                continue;
+            }
+            $dayName = $date->format('l');
+            $cells = $byDay[$dayName] ?? [];
+            if ($window !== null && $cells) {
+                $ttrIds = collect($cells)->pluck('ttr_id')->map(function ($id) {
+                    return (int) $id;
+                })->unique()->all();
+                $indexMap = static::periodIndexMap($ttrIds, $dayName);
+                $cells = array_values(array_filter($cells, function ($cell) use ($indexMap, $window) {
+                    $n = $indexMap[(int) $cell->id] ?? null;
+                    return $n !== null && $n >= $window[0] && $n <= $window[1];
+                }));
+            }
+            foreach ($cells as $cell) {
+                $affected++;
+                if (isset($covered[$date->toDateString() . '|' . (int) $cell->id])) {
+                    $coveredCount++;
+                }
+                $record = $cell->tt_record;
+                if ($record) {
+                    if ($record->my_class_id) {
+                        $classes[(int) $record->my_class_id] = true;
+                    }
+                    if ($record->section_id) {
+                        $sections[(int) $record->section_id] = true;
+                    }
+                }
+                if ($cell->subject) {
+                    $subjects[$cell->subject->name] = true;
+                    if ($cell->subject->needs_lab) {
+                        $labs++;
+                    }
+                }
+            }
+            if ($cells) {
+                $workDates[$date->toDateString()] = true;
+            }
+        }
+
+        return [
+            'affected' => $affected,
+            'covered' => $coveredCount,
+            'uncovered' => $affected - $coveredCount,
+            'classes' => count($classes),
+            'sections' => count($sections),
+            'subjects' => array_keys($subjects),
+            'labs' => $labs,
+            'working_days' => count($workDates),
+        ];
+    }
+
+    /**
+     * The teacher's full weekly allocation as grid rows (owner
+     * brief 2026-10-30: the queue's "View full allocation" table) —
+     * Day | Period | Class | Section | Subject | Room, straight
+     * from the real timetable cells.
+     */
+    public static function weekGrid(User $user): array
+    {
+        if (!static::isLiveTeacher($user)) {
+            return [];
+        }
+        $query = TimeTable::query()
+            ->with(['tt_record.my_class', 'tt_record.section', 'subject', 'time_slot', 'room']);
+        SectionTeacher::applyTeacherFilter($query, $user->id);
+        $cells = $query->get();
+        if ($cells->isEmpty()) {
+            return [];
+        }
+        $maps = [];
+        foreach ($cells->pluck('day')->unique() as $day) {
+            $maps[$day] = static::periodIndexMap($cells->pluck('ttr_id')->map(function ($id) {
+                return (int) $id;
+            })->unique()->all(), $day);
+        }
+        $dayOrder = ['Monday' => 1, 'Tuesday' => 2, 'Wednesday' => 3, 'Thursday' => 4, 'Friday' => 5, 'Saturday' => 6, 'Sunday' => 7];
+        $rows = [];
+        foreach ($cells as $cell) {
+            $record = $cell->tt_record;
+            $rows[] = [
+                'day' => $cell->day,
+                'period' => $maps[$cell->day][(int) $cell->id] ?? null,
+                'class' => $record ? (optional($record->my_class)->name ?: '—') : '—',
+                'section' => $record && $record->section ? $record->section->name : '—',
+                'subject' => $cell->subject ? $cell->subject->name : '—',
+                'room' => $cell->room ? $cell->room->name : '—',
+            ];
+        }
+        usort($rows, function ($a, $b) use ($dayOrder) {
+            $d = ($dayOrder[$a['day']] ?? 9) <=> ($dayOrder[$b['day']] ?? 9);
+            if ($d !== 0) {
+                return $d;
+            }
+            return ($a['period'] ?? 99) <=> ($b['period'] ?? 99);
+        });
+
+        return $rows;
+    }
+
+    /** Total weekly teaching periods on the teacher's real grid. */
+    public static function weeklyPeriods(User $user): int
+    {
+        if (!static::isLiveTeacher($user)) {
+            return 0;
+        }
+        $query = TimeTable::query();
+        SectionTeacher::applyTeacherFilter($query, $user->id);
+
+        return $query->count();
+    }
 }

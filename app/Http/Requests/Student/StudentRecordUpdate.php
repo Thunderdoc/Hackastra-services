@@ -3,7 +3,9 @@
 namespace App\Http\Requests\Student;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Validator;
 use App\Helpers\Qs;
+use App\Models\Section;
 
 class StudentRecordUpdate extends FormRequest
 {
@@ -53,6 +55,25 @@ class StudentRecordUpdate extends FormRequest
             'my_class_id' => 'Class',
             'section_id' => 'Section',
         ];
+    }
+
+    /**
+     * Pair guard (cascade audit 2026-10-30): the same belongs
+     * check as StudentRecordCreate — an edit must not be able to
+     * move a student into a section of another class either.
+     */
+    public function withValidator(Validator $validator)
+    {
+        $validator->after(function (Validator $validator) {
+            $sectionId = $this->input('section_id');
+            $classId = $this->input('my_class_id');
+            if ($sectionId && $classId) {
+                $section = Section::find($sectionId);
+                if ($section && (int) $section->my_class_id !== (int) $classId) {
+                    $validator->errors()->add('section_id', 'The selected section does not belong to the selected class.');
+                }
+            }
+        });
     }
 
     protected function getValidatorInstance()

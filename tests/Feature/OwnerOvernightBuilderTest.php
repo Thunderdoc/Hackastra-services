@@ -214,45 +214,50 @@ class OwnerOvernightBuilderTest extends TestCase
 
     public function test_builder_page_is_two_panel_with_live_preview_states()
     {
-        // Builder v2 (2026-10-29 night, owner order — rebuilt from
-        // scratch): the two panels are rb2-settings / rb2-preview,
-        // and the settings side is a 4-step flow (Data, Filters,
-        // Columns, Finish) with source tiles and per-source
-        // filter groups.
+        // Builder rb5 (2026-10-30, owner order — full replacement):
+        // ONE screen, two panels — #rbSettings configures on the
+        // left, the editable document (toolbar + #previewFrame
+        // canvas) sits on the right. No wizard tabs, no source
+        // tiles, no Preview button; the document refreshes through
+        // the preview-html endpoint.
         $response = $this->actingAs($this->userByEmail('teacher@hackstra.app'))->get(route('reports.builder'));
         $response->assertOk();
-        $response->assertSee('rb2-settings', false);
-        $response->assertSee('rb2-preview', false);
-        $response->assertSee('rb2-source-tile', false);
+        $response->assertSee('rb5-wrap', false);
+        $response->assertSee('id="rbSettings"', false);
+        $response->assertSee('id="previewFrame"', false);
+        $response->assertSee('rb5-toolbar', false);
         $response->assertSee('data-filter-group', false);
         $response->assertSee('FILTER_MAP', false);
         $response->assertSee('rbPreviewStatus', false);
-        $response->assertSee('preview_frame', false);
         $response->assertSee('schedulePreview', false);
-        $response->assertSee('Live preview', false);
+        $response->assertSee('preview-html', false);
+        $response->assertSee('wireCanvas', false);
+        $response->assertDontSee('data-rb4-tab', false);
+        $response->assertDontSee('rb2-source-tile', false);
+        $response->assertDontSee('Refresh preview', false);
     }
 
-    public function test_builder_v3_categories_are_role_filtered_and_column_alignment_works()
+    public function test_builder_sources_are_role_filtered_and_column_alignment_works()
     {
-        // Builder v3 (owner reference design, 2026-10-29 night):
-        // the category shortcut bar is computed from the sources
-        // the role may actually use. The Admin lost every library
-        // surface tonight, so Admin sees NO Library category;
+        // Role-filtered sources (was the v3 category bar; rb5 has
+        // no categories — the same rule now shows in the Data
+        // Source select's options): the school Admin lost every
+        // library surface, so Admin is offered NO library source;
         // the Principal (whose builder keeps the library sources)
-        // does. Column alignment is honoured by the engine and a
+        // is. Column alignment is honoured by the engine and a
         // bogus alignment falls back instead of refusing the PDF.
         $admin = $this->userByEmail('admin@hackstra.app');
         $page = $this->actingAs($admin)->get(route('reports.builder'));
         $page->assertOk();
-        $page->assertSee('rb3-cats', false);
-        $page->assertSee('Student Reports', false);
-        $page->assertSee('Fee Reports', false);
-        $page->assertDontSee('Library Reports', false);
+        $page->assertDontSee('Book Issues / Returns', false);
+        $page->assertDontSee('Library Fines', false);
+        $page->assertDontSee('Library Summary (per type)', false);
 
         $principal = $this->userByEmail('principal@hackstra.app');
         $page = $this->actingAs($principal)->get(route('reports.builder'));
         $page->assertOk();
-        $page->assertSee('Library Reports', false);
+        $page->assertSee('Book Issues / Returns', false);
+        $page->assertSee('Library Fines', false);
 
         $aligned = $this->classesConfig();
         $aligned['columns'][1]['align'] = 'center';

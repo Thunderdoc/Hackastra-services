@@ -394,10 +394,14 @@ class StudentBulkModule
         }
         if ($get('lga') !== '') {
             $stateId = $newState ? $newState->id : $user->state_id;
-            $lga = $stateId ? ($ctx->lookups['lgas'][$stateId][strtolower($get('lga'))] ?? null) : null;
-            if (!$lga) {
+            // States with no districts configured (Indian states,
+            // 2026-10-30) cannot resolve an LGA — the value is
+            // informational only and never an error there.
+            $stateLgas = $stateId ? ($ctx->lookups['lgas'][$stateId] ?? []) : [];
+            $lga = $stateId ? ($stateLgas[strtolower($get('lga'))] ?? null) : null;
+            if (!$lga && !empty($stateLgas)) {
                 $err('lga', $get('lga'), "LGA '{$get('lga')}' was not found in the selected state.");
-            } elseif ((int) $lga->id !== (int) $user->lga_id) {
+            } elseif ($lga && (int) $lga->id !== (int) $user->lga_id) {
                 $old = $user->lga_id ? optional(Lga::find($user->lga_id))->name : '';
                 $diff('lga', (string) $old, $lga->name, 'user', 'lga_id', $lga->id);
             }

@@ -71,8 +71,10 @@ class OwnerReportClassColumnTest extends TestCase
     {
         $page = $this->actingAs($this->admin())->get(route('reports.builder'));
         $page->assertOk();
-        // The stale-column guard at the builder's single exit.
-        $page->assertSee('cleanColumns', false);
+        // The stale-column guard at the builder's single exit
+        // (rb5: the cleaning lives in visibleColumns(), shared by
+        // collectConfig() and the canvas heading editor).
+        $page->assertSee('visibleColumns', false);
         // The DD/MM/YYYY mechanism ships in the layout: native
         // date inputs take their format from the browser's
         // language, so the site converts them itself.

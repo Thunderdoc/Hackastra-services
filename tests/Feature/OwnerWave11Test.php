@@ -186,7 +186,7 @@ class OwnerWave11Test extends TestCase
     {
         $nal = Nationality::first()->name;
         $state = State::first();
-        $lga = Lga::where('state_id', $state->id)->first()->name;
+        $lga = ''; // No LGA lookup exists for Indian states (retired 2026-10-30) — the column ships empty.
         $csv = $this->editHeader() . "\n"
             . "Wave Eleven Newbie,Teacher,w11-newbie@example.com,Male,08031112222,,1990-04-12,"
             . "\"12 Allen Avenue, Ikeja\",{$nal},{$state->name},{$lga},,2024-09-01\n";

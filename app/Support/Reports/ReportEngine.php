@@ -141,6 +141,12 @@ class ReportEngine
             'columns' => $columns,
             'options' => [
                 'orientation' => ($options['orientation'] ?? 'portrait') === 'landscape' ? 'landscape' : 'portrait',
+                // Builder rb5 (owner, 2026-10-30): paper size +
+                // a free footer line for the editable-document
+                // workspace. Defaults keep every old template
+                // byte-identical (A4, generated-on footer).
+                'paper' => ($options['paper'] ?? 'a4') === 'letter' ? 'letter' : 'a4',
+                'footer_text' => substr(trim((string) ($options['footer_text'] ?? '')), 0, 200),
                 'margin_mm' => max(5, min(25, (int) ($options['margin_mm'] ?? 10))),
                 'font_size' => max(8, min(14, (int) ($options['font_size'] ?? 11))),
                 'show_header' => !isset($options['show_header']) || (bool) $options['show_header'],

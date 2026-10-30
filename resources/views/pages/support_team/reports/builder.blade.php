@@ -3,260 +3,127 @@
 @section('page_breadcrumb')
     <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Reports &amp; PDF Builder
 @endsection
-@section('page_subtitle', 'Generate and print important school documents with ready-made templates, or create a custom report.')
+@section('page_subtitle', 'Configure on the left, edit the actual document on the right — then print it or download the PDF.')
 @section('content')
 <style>
-    /* Builder v2 (owner order 2026-10-29 night — "report and pdf
-       builder we have to develop from scratch"): a guided 4-step
-       flow — 1 Data, 2 Filters, 3 Columns, 4 Finish — with the
-       live A4 preview beside it. Same engine, sources, routes and
-       config contract as before; the page itself is rebuilt.
-       Scoped styles (rb2-) — no shared component is touched. */
-    .rb2-settings .card, .rb2-preview .card { background: #fff; border: 1px solid #c9d6e4; border-radius: 12px; box-shadow: 0 1px 3px rgba(16, 38, 59, .07); }
-    .rb2-settings .card-header, .rb2-preview .card-header { background: #f7fafd; border-bottom: 1px solid #dfe8f3; border-radius: 12px 12px 0 0; }
-    .rb2-settings .card-body { padding: 14px 16px; }
-    .rb2-settings .form-group { margin-bottom: 10px; }
-    .rb2-settings label { font-size: 12.5px; font-weight: 600; color: #33475c; margin-bottom: 4px; }
-    .rb2-chips { max-height: 118px; overflow-y: auto; padding: 2px; }
-    .rb2-toolbar { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
-    .rb2-toolbar .rb2-actions { display: flex; gap: 6px; flex-wrap: wrap; }
-    .rb2-step-badge { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%; background: #1765f5; color: #fff; font-weight: 700; font-size: 13px; margin-right: 8px; flex: 0 0 auto; }
-    .rb2-step-title { display: flex; align-items: center; }
-    .rb2-step-sub { color: #718096; font-size: 12.5px; margin-left: 32px; }
-    .rb2-source-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 8px; }
-    .rb2-source-tile { border: 1.5px solid #dfe8f3; background: #fbfdff; border-radius: 10px; padding: 10px 8px; text-align: left; cursor: pointer; width: 100%; }
-    .rb2-source-tile:hover { border-color: #9db9e8; }
-    .rb2-source-tile.active { border-color: #1765f5; background: #eef4ff; box-shadow: 0 0 0 1px #1765f5 inset; }
-    .rb2-source-tile .rb2-src-label { display: block; font-weight: 600; color: #10263b; font-size: 13.5px; line-height: 1.25; }
-    .rb2-source-tile .rb2-src-meta { display: block; color: #718096; font-size: 11.5px; margin-top: 3px; }
-    .rb2-chip { border: 1px solid #dfe8f3; background: #fff; border-radius: 999px; padding: 5px 12px; font-size: 12.5px; cursor: pointer; margin: 0 6px 6px 0; color: #10263b; }
-    .rb2-chip:hover { border-color: #1765f5; color: #1765f5; }
-    /* Columns editor — stacked cards, NOT a wide table (owner,
-       2026-10-29 night: the 6-column table clipped inside the
-       narrow settings column — labels cut to "Ro", "St", "Ad").
-       Each column is one card: label + Show + reorder on line 1,
-       Type / Width / Align on line 2. Fits any column width,
-       never scrolls sideways. */
-    .rb2-col-item { border: 1px solid #dbe4ee; border-radius: 10px; padding: 10px; margin-bottom: 10px; background: #fcfdff; }
-    .rb2-col-line1 { display: flex; align-items: center; gap: 6px; }
-    .rb2-col-line1 input[type="text"] { flex: 1 1 auto; min-width: 0; }
-    .rb2-col-show { display: inline-flex; align-items: center; gap: 4px; font-size: 12.5px; color: #4a5a6e; margin: 0; white-space: nowrap; cursor: pointer; }
-    .rb2-col-line2 { display: flex; gap: 8px; margin-top: 8px; }
-    .rb2-col-field { flex: 1 1 0; min-width: 0; }
-    .rb2-col-field label { display: block; font-size: 11px; font-weight: 600; color: #718096; margin-bottom: 2px; text-transform: uppercase; letter-spacing: .02em; }
-    .rb2-col-static { font-size: 13px; color: #10263b; padding-top: 5px; }
-    .rb2-preview-wrap { background: #d7dfe9; border: 1px solid #c2cfdd; border-radius: 12px; padding: 14px; }
-    #previewFrame { width: 100%; height: 720px; border: none; border-radius: 4px; background: #fff; display: block; box-shadow: 0 3px 16px rgba(16, 38, 59, .22); }
-    .rb2-status { font-size: 13px; color: #4a5a6e; margin: 0 0 10px; line-height: 1.5; }
-    .rb2-summary { font-size: 12.5px; color: #718096; margin-top: 2px; }
-    .rb2-status.rb2-status-error { color: #b42318; }
-    .rb2-loading { font-size: 13px; color: #1765f5; margin: 0 0 10px; }
-    .rb2-adv summary { cursor: pointer; font-weight: 600; color: #10263b; outline: none; }
-    /* Fit-to-screen workspace (owner, 2026-10-29 night — "mujhe
-       ye fit to screen chahiye"): on desktop the whole builder
-       sits inside the viewport — the settings column scrolls
-       internally, the preview card fills the height and the PDF
-       frame flexes with it. Nothing below the fold, no page
-       scroll to reach Generate. Mobile keeps the natural
-       stacked flow. */
+    /* Builder rb5 (owner, 2026-10-30 — full replacement ordered):
+       ONE screen, TWO panels. LEFT (43%) configures the report;
+       RIGHT (57%) is the live editable document itself — the same
+       print view the PDF download uses, rendered as HTML with the
+       title / subtitle / footer line editable in place. No wizard,
+       no tabs, no separate preview screen, no Preview button.
+       Same engine, sources, routes and config contract as rb4;
+       only the page and the preview transport changed. Scoped
+       styles (rb5-) — no shared component is touched. */
+    .rb5-switcher { display: none; gap: 8px; margin-bottom: 10px; }
+    .rb5-switcher .btn { flex: 1; }
+    .rb5-wrap { display: flex; gap: 14px; align-items: stretch; }
+    .rb5-left { flex: 0 0 43%; max-width: 43%; min-width: 0; overflow-y: auto; padding-right: 2px; }
+    .rb5-right { flex: 1 1 57%; min-width: 0; display: flex; flex-direction: column; }
+    .rb5-left .card { background: #fff; border: 1px solid #c9d6e4; border-radius: 12px; box-shadow: 0 1px 3px rgba(16, 38, 59, .07); margin-bottom: 14px; }
+    .rb5-left .card-header { background: #f7fafd; border-bottom: 1px solid #dfe8f3; border-radius: 12px 12px 0 0; padding: 10px 16px; }
+    .rb5-left .card-title { font-size: 15px; font-weight: 700; color: #10263b; }
+    .rb5-left .card-body { padding: 14px 16px; }
+    .rb5-toolbar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; background: #fff; border: 1px solid #c9d6e4; border-radius: 10px; padding: 7px 10px; margin-bottom: 8px; }
+    .rb5-toolbar .form-control { width: auto; height: 32px; padding: 2px 6px; font-size: 13px; }
+    .rb5-tb-btn { border: 1px solid #dfe8f3; background: #f7fafd; color: #10263b; border-radius: 7px; min-width: 32px; height: 32px; font-size: 13px; cursor: pointer; }
+    .rb5-tb-btn:hover { background: #e8f0fc; }
+    .rb5-tb-sep { width: 1px; height: 22px; background: #dfe8f3; margin: 0 2px; }
+    .rb5-statusbar { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: baseline; padding: 0 2px 8px; min-height: 22px; }
+    .rb2-status { font-size: 13px; color: #4a5a6e; }
+    .rb2-status-error { color: #b42318; font-weight: 600; }
+    .rb2-summary { font-size: 13px; font-weight: 600; color: #10263b; }
+    .rb2-loading { font-size: 12.5px; color: #1765f5; }
+    .rb5-workspace { flex: 1; min-height: 0; background: #cfd9e4; border: 1px solid #b9c7d6; border-radius: 12px; padding: 16px; overflow: auto; display: flex; justify-content: center; }
+    #previewFrame { width: 100%; max-width: 980px; height: 100%; min-height: 520px; border: none; background: #fff; box-shadow: 0 4px 22px rgba(16, 38, 59, .30); display: block; }
+    .rb5-col-item { border: 1px solid #dfe8f3; border-radius: 9px; padding: 8px 10px; margin-bottom: 8px; background: #fbfcfe; }
+    .rb5-col-item.rb5-drag-over { border-color: #1765f5; box-shadow: 0 0 0 1px #1765f5 inset; }
+    .rb2-col-line1 { display: flex; gap: 6px; align-items: center; }
+    .rb2-col-line1 input[type="text"] { flex: 1; min-width: 0; }
+    .rb5-drag { cursor: grab; color: #8496ad; font-size: 15px; padding: 0 2px; user-select: none; }
+    .rb2-col-show { display: flex; gap: 4px; align-items: center; font-size: 12.5px; margin: 0; white-space: nowrap; }
+    .rb2-col-line2 { display: flex; gap: 10px; margin-top: 7px; flex-wrap: wrap; }
+    .rb2-col-field { flex: 1; min-width: 86px; }
+    .rb2-col-field label { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: #718096; margin-bottom: 2px; display: block; }
+    .rb2-col-static { font-size: 13px; padding: 5px 0; color: #4a5a6e; }
+    .rb5-details summary { cursor: pointer; font-weight: 700; color: #10263b; font-size: 15px; padding: 10px 16px; }
+    .rb5-details { background: #fff; border: 1px solid #c9d6e4; border-radius: 12px; box-shadow: 0 1px 3px rgba(16, 38, 59, .07); margin-bottom: 14px; }
+    .rb5-details .card-body { padding-top: 4px; }
     @media (min-width: 992px) {
-        .rb2-fit-row { height: calc(100vh - 268px); min-height: 430px; }
-        .rb2-settings { height: 100%; overflow-y: auto; padding-right: 6px; }
-        .rb2-preview { height: 100%; }
-        .rb2-preview-card { height: 100%; display: flex; flex-direction: column; }
-        .rb2-preview-card .card-body { display: flex; flex-direction: column; flex: 1; min-height: 0; }
-        .rb2-preview-wrap { flex: 1; min-height: 0; }
-        #previewFrame { height: 100%; }
-    }
-    @media (max-width: 991px) { #previewFrame { height: 480px; } }
-    /* Builder v3 (owner reference, 2026-10-29 night): the
-       category shortcut bar across the top — every category is
-       computed from the sources THIS role may actually use, so a
-       category that would be empty for the viewer never renders. */
-    .rb3-cats { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 10px; margin-bottom: 16px; }
-    @media (min-width: 1400px) { .rb3-cats { grid-template-columns: repeat(8, 1fr); } .rb3-cat { padding: 8px 9px; gap: 8px; } .rb3-cat .rb3-cat-icon { width: 30px; height: 30px; font-size: 14px; } }
-    .rb3-cat { display: flex; align-items: center; gap: 10px; border: 1.5px solid #dfe8f3; background: #fff; border-radius: 12px; padding: 10px 12px; text-align: left; cursor: pointer; width: 100%; box-shadow: 0 1px 2px rgba(16, 38, 59, .05); }
-    .rb3-cat:hover { border-color: #9db9e8; }
-    .rb3-cat.active { border-color: #1765f5; box-shadow: 0 0 0 1px #1765f5 inset; }
-    .rb3-cat .rb3-cat-icon { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 9px; font-size: 16px; flex: 0 0 auto; }
-    .rb3-cat .rb3-cat-label { display: block; font-weight: 600; color: #10263b; font-size: 13.5px; line-height: 1.2; }
-    .rb3-cat .rb3-cat-desc { display: block; color: #718096; font-size: 11.5px; margin-top: 2px; }
-    .rb3-tint-blue { background: #e8f0fe; color: #1765f5; } .rb3-tint-green { background: #e6f7ec; color: #12805c; }
-    .rb3-tint-amber { background: #fdf1e0; color: #b26a00; } .rb3-tint-violet { background: #f0eafd; color: #6d3bd1; }
-    .rb3-tint-rose { background: #fdebee; color: #c2255c; } .rb3-tint-teal { background: #e2f5f2; color: #0f766e; }
-    .rb3-tint-indigo { background: #e7eafa; color: #3949ab; } .rb3-tint-slate { background: #edf1f5; color: #47596b; }
-
-    /* Builder rb4 (owner, 2026-10-30): fit-to-screen with the
-       screen split into TWO EQUAL halves — left every input,
-       right the live PDF. No page scroll, no column scroll: the
-       left half is one tabbed card (Data / Filters / Columns /
-       Finish) so each step fits the height, and the category
-       shortcuts shrink to chips at the top of the left half. */
-    .rb4-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
-    .rb4-tab { border: 1.5px solid #dfe8f3; background: #fff; color: #10263b; border-radius: 999px; padding: 6px 14px; font-weight: 600; font-size: 13px; cursor: pointer; }
-    .rb4-tab.active { border-color: #1765f5; background: #1765f5; color: #fff; }
-    @media (min-width: 992px) {
-        .rb2-fit-row { height: calc(100dvh - 208px); min-height: 540px; }
-        .rb2-settings { height: 100%; overflow: visible; padding-right: 15px; }
-        [data-rb4-panel] { display: none; }
-        [data-rb4-panel].rb4-on { display: block; }
-        .rb3-cats { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
-        .rb3-cat { width: auto; padding: 5px 10px; border-radius: 999px; gap: 6px; box-shadow: none; }
-        .rb3-cat .rb3-cat-icon { width: 22px; height: 22px; font-size: 12px; border-radius: 6px; }
-        .rb3-cat .rb3-cat-desc { display: none; }
-        .rb3-cat .rb3-cat-label { font-size: 12.5px; }
-        .rb2-col-item { display: flex; flex-wrap: wrap; gap: 8px; padding: 6px 8px; margin-bottom: 6px; align-items: flex-start; }
-        .rb2-col-line1 { flex: 1 1 230px; }
-        .rb2-col-line2 { flex: 1 1 190px; margin-top: 0; }
-        .rb2-source-tile { padding: 6px 8px; }
-        .rb2-source-tile .rb2-src-label { font-size: 12.5px; }
-        .rb2-source-tile .rb2-src-meta { display: inline; margin-top: 0; margin-left: 4px; }
-    }
-    @media (min-width: 992px) and (max-height: 820px) {
-        .rb2-settings .card-body { padding: 12px 14px; }
-        .rb2-settings .form-group { margin-bottom: 9px; }
-        .rb2-source-tile .rb2-src-meta { display: none; }
+        .rb5-wrap { height: calc(100vh - 168px); min-height: 600px; }
+        .rb5-left { height: 100%; }
+        .rb5-right { height: 100%; }
     }
     @media (max-width: 991px) {
-        .rb4-tabs { display: none; }
+        .rb5-switcher { display: flex; }
+        .rb5-wrap { display: block; }
+        .rb5-left { max-width: none; overflow: visible; }
+        .rb5-right { margin-top: 4px; }
+        .rb5-wrap .rb5-right { display: none; }
+        .rb5-wrap.rb5-show-doc .rb5-right { display: flex; }
+        .rb5-wrap.rb5-show-doc .rb5-left { display: none; }
+        #previewFrame { min-height: 70vh; }
+        .rb5-workspace { padding: 8px; }
     }
 </style>
 
-@php
-    // Category map over the REAL sources (builder v3). A source
-    // belongs to exactly one category; categories with no source
-    // available to this role are not rendered at all — the same
-    // honest-buttons rule as everywhere else in the app.
-    $rbCategories = [
-        'student' => ['label' => 'Student Reports', 'desc' => 'Lists, Attendance, Summaries', 'icon' => 'icon-users2', 'tint' => 'rb3-tint-blue', 'sources' => ['students', 'attendance', 'attendance_summary']],
-        'fees' => ['label' => 'Fee Reports', 'desc' => 'Receipts, Defaulters, Summaries', 'icon' => 'icon-coin-dollar', 'tint' => 'rb3-tint-green', 'sources' => ['fees', 'defaulters', 'fee_summary']],
-        'exam' => ['label' => 'Exam Reports', 'desc' => 'Results, Marks, Timetables', 'icon' => 'icon-file-text2', 'tint' => 'rb3-tint-amber', 'sources' => ['marks', 'results_summary', 'timetables']],
-        'staff' => ['label' => 'Staff Reports', 'desc' => 'Directory, Assignments', 'icon' => 'icon-user-tie', 'tint' => 'rb3-tint-violet', 'sources' => ['staff', 'assignments']],
-        'library' => ['label' => 'Library Reports', 'desc' => 'Books, Issues, Fines', 'icon' => 'icon-books', 'tint' => 'rb3-tint-rose', 'sources' => ['books', 'issues', 'fines', 'library_summary']],
-        'certificates' => ['label' => 'Certificates', 'desc' => 'Bonafide, Transfer', 'icon' => 'icon-certificate', 'tint' => 'rb3-tint-teal', 'sources' => ['certificates']],
-        'notices' => ['label' => 'Notices & Letters', 'desc' => 'Circulars', 'icon' => 'icon-bubbles4', 'tint' => 'rb3-tint-indigo', 'sources' => ['circulars']],
-        'more' => ['label' => 'More Reports', 'desc' => 'Classes, Admissions, Blank', 'icon' => 'icon-stack', 'tint' => 'rb3-tint-slate', 'sources' => ['classes', 'admissions', 'platform', 'blank']],
-    ];
-    $rbSourceCategory = [];
-    foreach ($rbCategories as $catKey => $catDef) {
-        foreach ($catDef['sources'] as $srcKey) { $rbSourceCategory[$srcKey] = $catKey; }
-    }
-@endphp
-<div class="row rb2-fit-row">
-    <div class="col-lg-6 rb2-settings" id="rbSettings">
-        <div class="rb4-tabs" role="tablist">
-            <button type="button" class="rb4-tab active" data-rb4-tab="data">1 · Data</button>
-            <button type="button" class="rb4-tab" data-rb4-tab="filters">2 · Filters</button>
-            <button type="button" class="rb4-tab" data-rb4-tab="columns">3 · Columns</button>
-            <button type="button" class="rb4-tab" data-rb4-tab="finish">4 · Finish</button>
-        </div>
-<div class="rb3-cats" id="rbCatBar">
-    <button type="button" class="rb3-cat active" data-category="">
-        <span class="rb3-cat-icon rb3-tint-blue"><i class="icon-grid6"></i></span>
-        <span><span class="rb3-cat-label">All Reports</span><span class="rb3-cat-desc">Every source &amp; template</span></span>
-    </button>
-    @foreach($rbCategories as $catKey => $catDef)
-        @php $catSources = array_intersect($catDef['sources'], array_keys($sources)); @endphp
-        @if(count($catSources))
-            <button type="button" class="rb3-cat" data-category="{{ $catKey }}">
-                <span class="rb3-cat-icon {{ $catDef['tint'] }}"><i class="{{ $catDef['icon'] }}"></i></span>
-                <span><span class="rb3-cat-label">{{ $catDef['label'] }}</span><span class="rb3-cat-desc">{{ $catDef['desc'] }}</span></span>
-            </button>
-        @endif
-    @endforeach
+<div class="rb5-switcher">
+    <button type="button" class="btn btn-primary" id="rb5SwConfig">Configure</button>
+    <button type="button" class="btn btn-light" id="rb5SwDoc">Document</button>
 </div>
 
+<div class="rb5-wrap" id="rb5Wrap">
+    {{-- ================= LEFT — CONFIGURE ================= --}}
+    <div class="rb5-left" id="rbSettings">
 
-
-        {{-- STEP 1 — DATA --}}
-        <div class="card rb4-on" data-rb4-panel="data">
-            <div class="card-header">
-                <h5 class="card-title mb-0 rb2-step-title"><span class="rb2-step-badge">1</span> Build your report</h5>
-                <div class="rb2-step-sub">Easiest: tap a ready template — everything fills in for you. Or pick a data source and build your own.</div>
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Report Template</h5>
+                <button type="button" class="btn btn-sm btn-light" id="rbChangeTemplate">Change Template</button>
             </div>
             <div class="card-body">
                 @if($presets)
                 <div class="form-group">
-                    <label>Start from a ready template</label>
-                    <div class="rb2-chips">
-                        @foreach($presets as $preset)
-                            <button type="button" class="rb2-chip rb2-preset-chip" data-key="{{ $preset['key'] }}" data-category="{{ $rbSourceCategory[$preset['config']['source'] ?? ''] ?? '' }}">{{ $preset['label'] }}</button>
-                        @endforeach
-                    </div>
-                    <select id="rbPreset" class="d-none" aria-hidden="true" tabindex="-1">
+                    <label>Ready template</label>
+                    <select id="rbPreset" class="form-control">
                         <option value="">— Custom (blank) —</option>
                         @foreach($presets as $preset)
                             <option value="{{ $preset['key'] }}">{{ $preset['label'] }}</option>
                         @endforeach
                     </select>
                 </div>
+                @else
+                <select id="rbPreset" class="d-none" aria-hidden="true" tabindex="-1"><option value=""></option></select>
                 @endif
-                <div class="form-group">
+                <div class="form-group mb-1">
                     <label>Data source *</label>
-                    <div class="rb2-source-grid" id="rbSourceGrid">
-                        @foreach($sources as $srcKey => $srcDef)
-                            <button type="button" class="rb2-source-tile" data-source="{{ $srcKey }}" data-category="{{ $rbSourceCategory[$srcKey] ?? '' }}">
-                                <span class="rb2-src-label">{{ $srcDef['label'] }}</span>
-                                <span class="rb2-src-meta">{{ count($srcDef['columns']) }} columns</span>
-                            </button>
-                        @endforeach
-                    </div>
-                    <select id="rbSource" class="d-none" aria-hidden="true" tabindex="-1">
+                    <select id="rbSource" class="form-control">
                         @foreach($sources as $srcKey => $srcDef)
                             <option value="{{ $srcKey }}">{{ $srcDef['label'] }}</option>
                         @endforeach
                     </select>
-                    <small class="form-text text-muted">Changing the source resets the column list. Teachers see only their own classes and subjects.</small>
+                    <small class="form-text text-muted" id="rbTemplateDesc">Changing the source resets the column list. Teachers see only their own classes and subjects.</small>
                 </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><h5 class="card-title mb-0">Report Details</h5></div>
+            <div class="card-body">
                 <div id="rbMarksHint" class="alert alert-info" style="display:none;">
                     Marks reports require an exam, a class and a subject. Component columns (Theory, Internal, Viva, …) are added automatically for configured marking schemes.
                 </div>
-                <div class="form-group">
-                    <label>Report title *</label>
-                    <input type="text" id="rbTitle" class="form-control" maxlength="120" placeholder="e.g. Class Roster — Prep A">
+                <div class="form-row">
+                    <div class="form-group col-md-6">
+                        <label>Report title *</label>
+                        <input type="text" id="rbTitle" class="form-control" maxlength="120" placeholder="e.g. Class Roster — Prep A">
+                    </div>
+                    <div class="form-group col-md-6">
+                        <label>Subtitle</label>
+                        <input type="text" id="rbSubtitle" class="form-control" maxlength="200" placeholder="Optional line under the title">
+                    </div>
                 </div>
-                <div class="form-group mb-0">
-                    <label>Subtitle</label>
-                    <input type="text" id="rbSubtitle" class="form-control" maxlength="200" placeholder="Optional line under the title">
-                </div>
-            </div>
-        </div>
-
-        @if($templates->count())
-        <div class="card rb4-on" data-rb4-panel="data">
-            <div class="card-header"><h5 class="card-title mb-0">My saved templates</h5></div>
-            <div class="card-body p-0">
-                <table class="table table-sm mb-0">
-                    @foreach($templates as $template)
-                    <tr>
-                        <td>{{ $template->name }}</td>
-                        <td class="text-right" style="white-space: nowrap;">
-                            <button type="button" class="btn btn-sm btn-light rb-load-template" data-template-id="{{ $template->id }}">Load</button>
-                            <form method="POST" action="{{ route('reports.templates.duplicate', [$template->id]) }}" style="display:inline;">
-                                @csrf
-                                <button type="submit" class="btn btn-sm btn-light">Duplicate</button>
-                            </form>
-                            <form method="POST" action="{{ route('reports.templates.destroy', [$template->id]) }}" style="display:inline;" onsubmit="return confirm('Delete this template?');">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="btn btn-sm btn-light">Delete</button>
-                            </form>
-                        </td>
-                    </tr>
-                    @endforeach
-                </table>
-            </div>
-        </div>
-        @endif
-
-        {{-- STEP 2 — FILTERS --}}
-        <div class="card" data-rb4-panel="filters">
-            <div class="card-header">
-                <h5 class="card-title mb-0 rb2-step-title"><span class="rb2-step-badge">2</span> Filters</h5>
-                <div class="rb2-step-sub">Only the filters this data source actually uses are shown.</div>
-            </div>
-            <div class="card-body">
-                <p class="text-muted mb-0" id="rbNoFilters" style="display:none;">This source has no filters — the report covers everything it holds.</p>
+                <p class="text-muted mb-2" id="rbNoFilters" style="display:none;">This source has no filters — the report covers everything it holds.</p>
                 <div class="form-row">
                     <div class="form-group col-md-6 rb2-filter" data-filter-group="class">
                         <label>Class</label>
@@ -309,46 +176,22 @@
                 </div>
                 <div class="form-row">
                     <div class="form-group col-md-6 rb2-filter" data-filter-group="status">
-                        <label>Status filter</label>
+                        <label>Status</label>
                         <input type="text" id="rbStatus" class="form-control" placeholder="e.g. overdue">
                         <small class="form-text text-muted">Source-specific: overdue, issued, partial, …</small>
                     </div>
                     <div class="form-group col-md-6 rb2-filter" data-filter-group="session">
-                        <label>Session</label>
+                        <label>Academic Year / Session</label>
                         <input type="text" id="rbYear" class="form-control" value="{{ $currentSession }}">
                     </div>
                 </div>
-            </div>
-        </div>
-
-        {{-- STEP 3 — COLUMNS --}}
-        <div class="card" data-rb4-panel="columns">
-            <div class="card-header">
-                <h5 class="card-title mb-0 rb2-step-title"><span class="rb2-step-badge">3</span> Columns</h5>
-                <div class="rb2-step-sub">Rename, resize, reorder or drop columns; add totals and sorting.</div>
-            </div>
-            <div class="card-body">
-                <div id="rbColBody"></div>
-                <div class="form-row align-items-end">
-                    <div class="form-group col-8">
-                        <label>Add column</label>
-                        <select id="rbAddCol" class="form-control"></select>
-                    </div>
-                    <div class="form-group col-4">
-                        <button type="button" id="rbAddBtn" class="btn btn-light btn-block">Add</button>
-                    </div>
-                </div>
-                <div id="rbTotalsWrap" class="form-group">
-                    <label>Totals (numeric columns only)</label>
-                    <div id="rbTotalsBody"></div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group col-md-6">
-                        <label>Sort by</label>
+                <div class="form-row mb-0">
+                    <div class="form-group col-md-6 mb-0">
+                        <label>Sort By</label>
                         <select id="rbSortKey" class="form-control"></select>
                     </div>
-                    <div class="form-group col-md-6">
-                        <label>Direction</label>
+                    <div class="form-group col-md-6 mb-0">
+                        <label>Sort Order</label>
                         <select id="rbSortDir" class="form-control">
                             <option value="asc">Ascending</option>
                             <option value="desc">Descending</option>
@@ -358,49 +201,65 @@
             </div>
         </div>
 
-        {{-- STEP 4 — FINISH --}}
-        <div class="card" data-rb4-panel="finish">
-            <div class="card-header">
-                <h5 class="card-title mb-0 rb2-step-title"><span class="rb2-step-badge">4</span> Finish</h5>
-                <div class="rb2-step-sub">Layout and print options, then generate the PDF or save the design as a template.</div>
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Columns <span class="text-muted" style="font-size:12px; font-weight:400;">(drag to reorder)</span></h5>
+                <button type="button" class="btn btn-sm btn-light" id="rbRestoreCols">Restore defaults</button>
             </div>
             <div class="card-body">
-                <details class="rb2-adv">
-                    <summary>Layout, print &amp; instructions</summary>
-                    <div class="mt-3">
-                        <div class="form-row">
-                            <div class="form-group col-md-4">
-                                <label>Orientation</label>
-                                <select id="rbOrientation" class="form-control">
-                                    <option value="portrait">Portrait (A4)</option>
-                                    <option value="landscape">Landscape (A4)</option>
-                                </select>
-                            </div>
-                            <div class="form-group col-md-4">
-                                <label>Side margin (mm)</label>
-                                <input type="number" id="rbMargin" class="form-control" min="5" max="25" value="10">
-                            </div>
-                            <div class="form-group col-md-4">
-                                <label>Font size</label>
-                                <input type="number" id="rbFontSize" class="form-control" min="8" max="14" value="11">
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label>Blank rows (manual writing space)</label>
-                            <input type="number" id="rbBlankRows" class="form-control" min="0" max="200" value="0">
-                        </div>
-                        <div class="form-check"><input type="checkbox" id="rbShowHeader" class="form-check-input" checked> <label class="form-check-label" for="rbShowHeader">Include school header</label></div>
-                        <div class="form-check"><input type="checkbox" id="rbShowMeta" class="form-check-input" checked> <label class="form-check-label" for="rbShowMeta">Include class / subject details</label></div>
-                        <div class="form-check"><input type="checkbox" id="rbShowFooter" class="form-check-input" checked> <label class="form-check-label" for="rbShowFooter">Include generation date + page numbers</label></div>
-                        <div class="form-check"><input type="checkbox" id="rbShowSignatures" class="form-check-input"> <label class="form-check-label" for="rbShowSignatures">Include signature lines</label></div>
-                        <div class="form-group mt-3">
-                            <label>Instructions (printed at the top of the document)</label>
-                            <textarea id="rbInstructions" class="form-control" rows="2" maxlength="500"></textarea>
-                        </div>
+                <div id="rbColBody"></div>
+                <div class="form-row align-items-end">
+                    <div class="form-group col-8">
+                        <label>Add column</label>
+                        <select id="rbAddCol" class="form-control"></select>
                     </div>
-                </details>
-                <hr>
-                <button type="button" id="rbPdfBtn" class="btn btn-primary btn-block btn-lg rb-generate-btn"><i class="icon-file-pdf mr-2"></i> Generate PDF</button>
+                    <div class="form-group col-4">
+                        <button type="button" id="rbAddBtn" class="btn btn-primary btn-block">+ Add Column</button>
+                    </div>
+                </div>
+                <div id="rbTotalsWrap" class="form-group mb-0">
+                    <label>Totals (numeric columns only)</label>
+                    <div id="rbTotalsBody"></div>
+                </div>
+            </div>
+        </div>
+
+        <details class="rb5-details">
+            <summary>Header, Footer &amp; Page Settings</summary>
+            <div class="card-body">
+                <div class="form-check"><input type="checkbox" id="rbShowHeader" class="form-check-input" checked> <label class="form-check-label" for="rbShowHeader">Include school header (logo, name, contacts)</label></div>
+                <div class="form-check"><input type="checkbox" id="rbShowMeta" class="form-check-input" checked> <label class="form-check-label" for="rbShowMeta">Include class / subject details line</label></div>
+                <div class="form-check"><input type="checkbox" id="rbShowFooter" class="form-check-input" checked> <label class="form-check-label" for="rbShowFooter">Include footer + page numbers</label></div>
+                <div class="form-check mb-2"><input type="checkbox" id="rbShowSignatures" class="form-check-input"> <label class="form-check-label" for="rbShowSignatures">Include signature lines</label></div>
+                <div class="form-group">
+                    <label>Footer text</label>
+                    <input type="text" id="rbFooterText" class="form-control" maxlength="200" placeholder="Printed at the foot of every page">
+                </div>
+                <div class="form-row">
+                    <div class="form-group col-md-4">
+                        <label>Margins (mm)</label>
+                        <input type="number" id="rbMargin" class="form-control" min="5" max="25" value="10">
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label>Font size</label>
+                        <input type="number" id="rbFontSize" class="form-control" min="8" max="14" value="11">
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label>Blank rows</label>
+                        <input type="number" id="rbBlankRows" class="form-control" min="0" max="200" value="0">
+                    </div>
+                </div>
+                <div class="form-group mb-0">
+                    <label>Instructions (printed at the top of the document)</label>
+                    <textarea id="rbInstructions" class="form-control" rows="2" maxlength="500"></textarea>
+                </div>
+            </div>
+        </details>
+
+        <div class="card">
+            <div class="card-header"><h5 class="card-title mb-0">Save &amp; Export</h5></div>
+            <div class="card-body">
+                <button type="button" id="rbPdfBtn" class="btn btn-primary btn-block btn-lg rb-generate-btn"><i class="icon-file-pdf mr-2"></i> Download PDF</button>
                 <div class="form-row align-items-end mt-3">
                     <div class="form-group col-8 mb-0">
                         <label>Save as my template</label>
@@ -412,48 +271,100 @@
                 </div>
             </div>
         </div>
-    </div>
 
-    <div class="col-lg-6 rb2-preview">
-        <div class="card rb2-preview-card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">Live preview</h5>
-                <span class="text-muted" style="font-size: 12.5px;">The exact PDF the download produces</span>
-            </div>
-            <div class="card-body">
-                <div class="rb2-toolbar">
-                    <div style="min-width: 0;">
-                        <p id="rbPreviewStatus" class="rb2-status mb-0" role="status">Loading the live preview…</p>
-                        <p id="rbSummary" class="rb2-summary mb-0"></p>
-                        <p id="rbPreviewLoading" class="rb2-loading mb-0" style="display:none;">Updating preview…</p>
-                    </div>
-                    <div class="rb2-actions">
-                        <button type="button" id="rbPrintBtn" class="btn btn-light btn-sm"><i class="icon-printer mr-1"></i> Print</button>
-                        <button type="button" id="rbPreviewBtn" class="btn btn-light btn-sm">Refresh preview</button>
-                        <button type="button" class="btn btn-primary btn-sm rb-generate-btn"><i class="icon-file-pdf mr-1"></i> Generate PDF</button>
-                    </div>
-                </div>
-                <div class="rb2-preview-wrap">
-                    <iframe id="previewFrame" name="previewFrame" src="about:blank"></iframe>
-                </div>
-                <p class="text-muted mt-2 mb-0">The preview updates on its own as you change any step — no click needed. If there are no rows for the selected filters, the preview document itself says so — no sample records are ever shown.</p>
+        @if($templates->count())
+        <div class="card">
+            <div class="card-header"><h5 class="card-title mb-0">My Saved Templates</h5></div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    @foreach($templates as $template)
+                    <tr>
+                        <td>{{ $template->name }}</td>
+                        <td class="text-right" style="white-space: nowrap;">
+                            <button type="button" class="btn btn-sm btn-light rb-load-template" data-template-id="{{ $template->id }}">Load</button>
+                            <form method="POST" action="{{ route('reports.templates.duplicate', [$template->id]) }}" style="display:inline;">
+                                @csrf
+                                <button type="submit" class="btn btn-sm btn-light">Duplicate</button>
+                            </form>
+                            <form method="POST" action="{{ route('reports.templates.destroy', [$template->id]) }}" style="display:inline;" onsubmit="return confirm('Delete this template?');">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="btn btn-sm btn-light">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                    @endforeach
+                </table>
             </div>
         </div>
+        @endif
+    </div>
+
+    {{-- ================= RIGHT — LIVE EDITABLE DOCUMENT ================= --}}
+    <div class="rb5-right">
+        <div class="rb5-toolbar" id="rb5Toolbar">
+            <select id="rbTbFont" class="form-control" title="Document font">
+                <option value="">Default font</option>
+                <option value="'DejaVu Sans', Arial, sans-serif">DejaVu Sans</option>
+                <option value="Arial, Helvetica, sans-serif">Arial</option>
+                <option value="Georgia, 'Times New Roman', serif">Georgia</option>
+                <option value="'Times New Roman', Times, serif">Times New Roman</option>
+                <option value="'Courier New', monospace">Courier New</option>
+            </select>
+            <select id="rbTbFontSize" class="form-control" title="Font size">
+                <option value="9">9</option>
+                <option value="10">10</option>
+                <option value="11" selected>11</option>
+                <option value="12">12</option>
+                <option value="13">13</option>
+                <option value="14">14</option>
+            </select>
+            <span class="rb5-tb-sep"></span>
+            <button type="button" class="rb5-tb-btn" id="rbTbBold" title="Bold"><strong>B</strong></button>
+            <button type="button" class="rb5-tb-btn" id="rbTbItalic" title="Italic"><em>I</em></button>
+            <button type="button" class="rb5-tb-btn" id="rbTbUnderline" title="Underline"><u>U</u></button>
+            <input type="color" id="rbTbColor" value="#10263b" title="Text colour" style="width:34px; height:32px; padding:1px; border:1px solid #dfe8f3; border-radius:7px; background:#fff;">
+            <span class="rb5-tb-sep"></span>
+            <button type="button" class="rb5-tb-btn" id="rbTbAlignLeft" title="Align left">⯇</button>
+            <button type="button" class="rb5-tb-btn" id="rbTbAlignCenter" title="Align centre">≡</button>
+            <button type="button" class="rb5-tb-btn" id="rbTbAlignRight" title="Align right">⯈</button>
+            <span class="rb5-tb-sep"></span>
+            <select id="rbPaper" class="form-control" title="Paper size">
+                <option value="a4">A4</option>
+                <option value="letter">Letter</option>
+            </select>
+            <select id="rbOrientation" class="form-control" title="Orientation">
+                <option value="portrait">Portrait</option>
+                <option value="landscape">Landscape</option>
+            </select>
+            <select id="rbTbZoom" class="form-control" title="Zoom">
+                <option value="0.6">60%</option>
+                <option value="0.75">75%</option>
+                <option value="0.9">90%</option>
+                <option value="1" selected>100%</option>
+                <option value="1.25">125%</option>
+                <option value="1.5">150%</option>
+            </select>
+            <span class="rb5-tb-sep"></span>
+            <button type="button" class="rb5-tb-btn" id="rbTbUndo" title="Undo">↺</button>
+            <button type="button" class="rb5-tb-btn" id="rbTbRedo" title="Redo">↻</button>
+            <button type="button" class="btn btn-primary btn-sm" id="rbTbPrint" style="height:32px;"><i class="icon-printer mr-1"></i> Print</button>
+        </div>
+        <div class="rb5-statusbar">
+            <p id="rbPreviewStatus" class="rb2-status mb-0" role="status">Loading the document…</p>
+            <p id="rbSummary" class="rb2-summary mb-0"></p>
+            <p id="rbPreviewLoading" class="rb2-loading mb-0" style="display:none;">Updating document…</p>
+        </div>
+        <div class="rb5-workspace">
+            <iframe id="previewFrame" name="previewFrame" src="about:blank" title="Report document"></iframe>
+        </div>
+        <p class="text-muted mt-2 mb-0" style="font-size:12.5px;">The document is live: click its title, subtitle, footer line or any column heading to edit it in place. Data rows come straight from the school records — they are never typed by hand. Print prints only this document; Download PDF produces the identical file.</p>
     </div>
 </div>
 
-<form id="rbPreviewForm" method="POST" action="{{ route('reports.preview') }}" target="previewFrame" style="display:none;">
-    @csrf
-    <input type="hidden" name="preview_frame" value="1">
-    <input type="hidden" name="config" id="rbPreviewConfig">
-</form>
 <form id="rbPdfForm" method="POST" action="{{ route('reports.pdf') }}" style="display:none;">
     @csrf
     <input type="hidden" name="config" id="rbPdfConfig">
-</form>
-<form id="rbPrintForm" method="POST" action="{{ route('reports.pdf') }}" target="_blank" style="display:none;">
-    @csrf
-    <input type="hidden" name="config" id="rbPrintConfig">
 </form>
 <form id="rbSaveForm" method="POST" action="{{ route('reports.templates.store') }}" style="display:none;">
     @csrf
@@ -468,12 +379,13 @@
     var SECTIONS = @json($sectionsMap);
     var SUBJECTS = @json($subjectsMap);
     var TEMPLATES = @json($templatesMap);
+    var SCHOOL_NAME = @json(\App\Helpers\Qs::getSetting('system_name') ?: 'Hackstra Academy');
+    var PREVIEW_HTML_URL = @json(route('reports.preview_html'));
     var COL_TYPES = ['text', 'number', 'currency', 'date', 'checkbox', 'box', 'dropdown', 'yes_no', 'signature', 'remarks', 'blank'];
 
-    /* Builder v2: which filter groups each source actually reads
-       (grounded in ReportSources' row builders). Step 2 shows
-       exactly these groups and hides the rest, so nobody fills a
-       filter the report silently ignores. */
+    /* Which filter groups each source actually reads (grounded in
+       ReportSources' row builders) — the Details card shows exactly
+       these groups and hides the rest. */
     var FILTER_MAP = {
         students: ['class', 'section'],
         marks: ['class', 'section', 'subject', 'exam'],
@@ -497,6 +409,7 @@
         platform: [],
         blank: []
     };
+    function el(id) { return document.getElementById(id); }
     function applyFilterVisibility() {
         var groups = FILTER_MAP[el('rbSource').value] || [];
         document.querySelectorAll('.rb2-filter').forEach(function (node) {
@@ -504,11 +417,12 @@
         });
         el('rbNoFilters').style.display = groups.length ? 'none' : '';
     }
-    function syncSourceTiles() {
-        var current = el('rbSource').value;
-        document.querySelectorAll('.rb2-source-tile').forEach(function (tile) {
-            tile.classList.toggle('active', tile.getAttribute('data-source') === current);
-        });
+    function refreshTemplateDesc() {
+        var s = SOURCES[el('rbSource').value];
+        var desc = el('rbTemplateDesc');
+        if (s && desc) {
+            desc.textContent = s.label + ' — ' + s.columns.length + ' fields available. Changing the source resets the column list. Teachers see only their own classes and subjects.';
+        }
     }
 
     var columns = [];
@@ -516,26 +430,12 @@
     var sortKey = '';
     var sortDir = 'asc';
 
-    /* Live preview (builder redesign 2026-10-29): the preview
-       auto-updates from the SAME config as the download, debounced
-       350ms so typing does not hammer the server with a PDF render
-       per keystroke, while still feeling live as you type
-       (owner order 2026-10-29). Incomplete drafts never reach the
-       server: the panel above the frame explains what is missing
-       instead of showing a server error for a draft the user is
-       still typing. The manual Preview button still works as a
-       fallback. */
     var previewTimer = null;
     var previewRequested = false;
-    var previewLoadGuard = null;
-    /* Auto title (owner order 2026-10-29: the preview must appear
-       without any click): the engine requires a title, so until the
-       user types their own, the title follows the selected source's
-       name and the first preview loads with the page. Typing in the
-       box takes over instantly; presets and templates set their own
-       title and are never overwritten. */
+    var previewSeq = 0;
     var autoTitle = '';
     var titleTouched = false;
+    var canvasFont = '';
     function sourceLabel() {
         var s = SOURCES[el('rbSource').value];
         return s ? s.label : 'Report';
@@ -547,10 +447,10 @@
         autoTitle = t.value;
     }
     function previewDraftProblem(cfg) {
-        if (!cfg.title.trim()) { return 'Enter a report title to start the live preview.'; }
-        if (!cfg.columns.length) { return 'Add at least one column to start the live preview.'; }
+        if (!cfg.title.trim()) { return 'Enter a report title to start the document.'; }
+        if (!cfg.columns.length) { return 'Add at least one column to start the document.'; }
         for (var i = 0; i < cfg.columns.length; i++) {
-            if (!cfg.columns[i].label.trim()) { return 'Every column needs a label before previewing.'; }
+            if (!cfg.columns[i].label.trim()) { return 'Every column needs a label before the document can update.'; }
         }
         if (cfg.source === 'marks' && (!cfg.filters.exam_id || !cfg.filters.class_id || !cfg.filters.subject_id)) {
             return 'Marks reports require an exam, a class and a subject.';
@@ -565,23 +465,12 @@
     function setPreviewLoading(on) {
         el('rbPreviewLoading').style.display = on ? '' : 'none';
     }
-    /* Plain-language summary above the preview (owner, 2026-10-29
-       night — "builder ko aur easy banao"): one line that always
-       says what is being made, in the words a school office uses:
-       the report, the class it covers, how many columns show. */
     function updateSummary() {
         var out = el('rbSummary');
         if (!out) { return; }
-        var srcSel = el('rbSource');
-        var srcLabel = (srcSel && srcSel.selectedIndex >= 0 && srcSel.options[srcSel.selectedIndex])
-            ? srcSel.options[srcSel.selectedIndex].textContent.trim() : '';
         var clsSel = el('rbClass');
         var clsLabel = 'All classes';
         if (clsSel && clsSel.value) {
-            /* Find the option BY VALUE — the same source
-               collectConfig() reads. Reading selectedIndex raced
-               the dependent-select rebuilds and could keep showing
-               the placeholder after the value had moved on. */
             for (var ci = 0; ci < clsSel.options.length; ci++) {
                 if (clsSel.options[ci].value === clsSel.value) {
                     clsLabel = clsSel.options[ci].textContent.trim();
@@ -591,7 +480,7 @@
         }
         var visible = 0;
         columns.forEach(function (c) { if (!c.hidden) { visible++; } });
-        out.textContent = 'Report: ' + srcLabel + ' • Class: ' + clsLabel + ' • ' + visible + ' column' + (visible === 1 ? '' : 's');
+        out.textContent = 'Report: ' + sourceLabel() + ' • Class: ' + clsLabel + ' • ' + visible + ' column' + (visible === 1 ? '' : 's');
     }
     function schedulePreview() {
         updateSummary();
@@ -599,29 +488,38 @@
         setPreviewLoading(true);
         previewTimer = setTimeout(runPreview, 350);
     }
+    /* rb5 transport: the document is HTML (the same print view),
+       fetched and swapped into the frame. A sequence number
+       discards stale responses, so a slow earlier render can never
+       overwrite a newer one. Text edits inside the document stay
+       local and sync into the config — they never trigger this. */
     function runPreview() {
         previewTimer = null;
         var cfg = collectConfig();
         var problem = previewDraftProblem(cfg);
         if (problem) { setPreviewLoading(false); setPreviewStatus(problem, false); return; }
+        var seq = ++previewSeq;
         previewRequested = true;
         setPreviewLoading(true);
-        setPreviewStatus('Updating preview…', false);
-        el('rbPreviewConfig').value = JSON.stringify(cfg);
-        el('rbPreviewForm').submit();
-        /* Fallback: if the PDF viewer's load event never fires, the
-           loading line must not stick forever. 60s is generous for
-           a whole-class sheet; a real load clears this guard. */
-        if (previewLoadGuard) { clearTimeout(previewLoadGuard); }
-        previewLoadGuard = setTimeout(function () {
-            if (!previewRequested) { return; }
-            previewRequested = false;
-            setPreviewLoading(false);
-            setPreviewStatus('Live preview — the same document the download produces.', false);
-        }, 60000);
+        setPreviewStatus('Updating document…', false);
+        var fd = new FormData();
+        var tokenInput = el('rbSaveForm').querySelector('input[name="_token"]');
+        fd.append('_token', tokenInput ? tokenInput.value : '');
+        fd.append('config', JSON.stringify(cfg));
+        fetch(PREVIEW_HTML_URL, { method: 'POST', body: fd, credentials: 'same-origin' })
+            .then(function (r) { return r.text().then(function (t) { return { ok: r.ok, text: t }; }); })
+            .then(function (res) {
+                if (seq !== previewSeq) { return; }
+                el('previewFrame').srcdoc = res.text;
+            })
+            .catch(function () {
+                if (seq !== previewSeq) { return; }
+                previewRequested = false;
+                setPreviewLoading(false);
+                setPreviewStatus('Could not reach the server — the document will refresh when the connection returns.', true);
+            });
     }
 
-    function el(id) { return document.getElementById(id); }
     function isCustomKey(k) { return /^custom_\d+$/.test(k); }
     function nextCustomKey() {
         var n = 1;
@@ -633,6 +531,18 @@
     function sourceCols() {
         var s = SOURCES[el('rbSource').value];
         return s ? s.columns : [];
+    }
+    /* The columns the document will actually carry, in order —
+       the single cleaning rule collectConfig() sends and the
+       canvas heading editor maps against. */
+    function visibleColumns() {
+        var srcDef = SOURCES[el('rbSource').value] || {};
+        var srcKeys = {};
+        (srcDef.columns || []).forEach(function (c) { srcKeys[c.key] = true; });
+        return columns.filter(function (c) {
+            if (c.hidden) { return false; }
+            return srcKeys[c.key] || /^custom_\d+$/.test(c.key) || /^comp_\d+$/.test(c.key);
+        });
     }
     function refreshAddSelect() {
         var sel = el('rbAddCol');
@@ -657,9 +567,34 @@
         body.innerHTML = '';
         columns.forEach(function (col, idx) {
             var item = document.createElement('div');
-            item.className = 'rb2-col-item';
+            item.className = 'rb5-col-item';
+            item.draggable = true;
+            item.setAttribute('data-idx', idx);
+            item.addEventListener('dragstart', function (ev) {
+                ev.dataTransfer.setData('text/plain', String(idx));
+                ev.dataTransfer.effectAllowed = 'move';
+            });
+            item.addEventListener('dragover', function (ev) {
+                ev.preventDefault();
+                item.classList.add('rb5-drag-over');
+            });
+            item.addEventListener('dragleave', function () { item.classList.remove('rb5-drag-over'); });
+            item.addEventListener('drop', function (ev) {
+                ev.preventDefault();
+                item.classList.remove('rb5-drag-over');
+                var from = parseInt(ev.dataTransfer.getData('text/plain'), 10);
+                if (isNaN(from) || from === idx) { return; }
+                var moved = columns.splice(from, 1)[0];
+                columns.splice(idx, 0, moved);
+                renderColumns();
+            });
             var line1 = document.createElement('div');
             line1.className = 'rb2-col-line1';
+            var grip = document.createElement('span');
+            grip.className = 'rb5-drag';
+            grip.textContent = '⋮⋮';
+            grip.title = 'Drag to reorder';
+            line1.appendChild(grip);
             var inp = document.createElement('input');
             inp.type = 'text';
             inp.className = 'form-control form-control-sm';
@@ -680,7 +615,7 @@
             var up = document.createElement('button');
             up.type = 'button';
             up.className = 'btn btn-sm btn-light';
-            up.textContent = '\u2191';
+            up.textContent = '↑';
             up.title = 'Move up';
             up.addEventListener('click', function () {
                 if (idx > 0) {
@@ -693,7 +628,7 @@
             var dn = document.createElement('button');
             dn.type = 'button';
             dn.className = 'btn btn-sm btn-light';
-            dn.textContent = '\u2193';
+            dn.textContent = '↓';
             dn.title = 'Move down';
             dn.addEventListener('click', function () {
                 if (idx < columns.length - 1) {
@@ -706,7 +641,7 @@
             var rm = document.createElement('button');
             rm.type = 'button';
             rm.className = 'btn btn-sm btn-light';
-            rm.textContent = '\u00d7';
+            rm.textContent = '×';
             rm.title = 'Remove column';
             rm.addEventListener('click', function () {
                 columns.splice(idx, 1);
@@ -721,7 +656,7 @@
             var fType = document.createElement('div');
             fType.className = 'rb2-col-field';
             var lType = document.createElement('label');
-            lType.textContent = 'Type';
+            lType.textContent = 'Field';
             fType.appendChild(lType);
             if (isCustomKey(col.key)) {
                 var sel = document.createElement('select');
@@ -738,7 +673,7 @@
             } else {
                 var tdiv = document.createElement('div');
                 tdiv.className = 'rb2-col-static';
-                tdiv.textContent = col.type;
+                tdiv.textContent = col.key + ' (' + col.type + ')';
                 fType.appendChild(tdiv);
             }
             line2.appendChild(fType);
@@ -779,9 +714,6 @@
         refreshAddSelect();
         renderTotals();
         renderSort();
-        /* Column add / remove / reorder / preset / template / source
-           changes all flow through here, so the live preview follows
-           them without a separate hook per button. */
         schedulePreview();
     }
     function renderTotals() {
@@ -852,6 +784,8 @@
         if (el('rbStatus').value) { filters.status = el('rbStatus').value; }
         var options = {
             orientation: el('rbOrientation').value,
+            paper: el('rbPaper').value,
+            footer_text: el('rbFooterText').value,
             margin_mm: parseInt(el('rbMargin').value, 10) || 10,
             font_size: parseInt(el('rbFontSize').value, 10) || 11,
             show_header: el('rbShowHeader').checked,
@@ -862,26 +796,12 @@
             totals: totals,
             sort: sortKey ? { key: sortKey, dir: el('rbSortDir').value } : null
         };
-        /* A column the current source does not offer (left over
-           from another source, a template, or an old saved config)
-           must never reach the engine — it refuses the whole
-           report with "Unknown column". Drop stale keys here, at
-           the single exit every preview, PDF and save passes
-           through. Custom fields and marks component columns are
-           source-independent and stay. */
-        var srcDef = SOURCES[el('rbSource').value] || {};
-        var srcKeys = {};
-        (srcDef.columns || []).forEach(function (c) { srcKeys[c.key] = true; });
-        var cleanColumns = columns.filter(function (c) {
-            if (c.hidden) { return false; }
-            return srcKeys[c.key] || /^custom_\d+$/.test(c.key) || /^comp_\d+$/.test(c.key);
-        });
         return {
             title: el('rbTitle').value,
             subtitle: el('rbSubtitle').value,
             source: el('rbSource').value,
             filters: filters,
-            columns: cleanColumns,
+            columns: visibleColumns(),
             options: options,
             instructions: el('rbInstructions').value
         };
@@ -899,8 +819,8 @@
         return true;
     }
     function applySourceColumns(sourceKey) {
-        syncSourceTiles();
         applyFilterVisibility();
+        refreshTemplateDesc();
         columns = [];
         sourceCols().forEach(function (c) {
             columns.push({ key: c.key, label: c.label, type: c.type, width: 12, align: c.align || '', hidden: !!c.hidden });
@@ -912,8 +832,8 @@
     function applyConfig(cfg) {
         if (!cfg) { return; }
         if (cfg.source && SOURCES[cfg.source]) { el('rbSource').value = cfg.source; }
-        syncSourceTiles();
         applyFilterVisibility();
+        refreshTemplateDesc();
         el('rbTitle').value = cfg.title || '';
         titleTouched = !!el('rbTitle').value.trim();
         autoTitle = '';
@@ -931,12 +851,15 @@
         el('rbDateTo').value = f.date_to || '';
         el('rbStatus').value = f.status || '';
         columns = (cfg.columns || []).map(function (c) {
-            return { key: c.key, label: c.label, type: c.type, width: c.width || 12 };
+            return { key: c.key, label: c.label, type: c.type, width: c.width || 12, align: c.align || '', hidden: !!c.hidden };
         });
         var o = cfg.options || {};
         el('rbOrientation').value = o.orientation || 'portrait';
+        el('rbPaper').value = o.paper || 'a4';
+        el('rbFooterText').value = o.footer_text || SCHOOL_NAME;
         el('rbMargin').value = o.margin_mm || 10;
         el('rbFontSize').value = o.font_size || 11;
+        el('rbTbFontSize').value = String(o.font_size || 11);
         el('rbBlankRows').value = o.blank_rows || 0;
         el('rbShowHeader').checked = o.show_header !== false;
         el('rbShowMeta').checked = o.show_meta !== false;
@@ -962,6 +885,56 @@
         el('rbMarksHint').style.display = el('rbSource').value === 'marks' ? '' : 'none';
     }
 
+    /* ---- Editable document wiring (rb5) ----
+       After every render, the frame's title / subtitle / footer
+       line carry data-edit (rendered by the print view in canvas
+       mode) and its column headings become editable. Typing syncs
+       into the config inputs immediately; the document re-renders
+       on blur ONLY when the text actually changed, so editing
+       never fights the cursor. Data cells are never editable. */
+    function wireCanvas() {
+        var frame = el('previewFrame');
+        var fdoc = frame.contentDocument;
+        if (!fdoc || !fdoc.body) { return; }
+        if (canvasFont) { fdoc.body.style.fontFamily = canvasFont; }
+        fdoc.querySelectorAll('[data-edit]').forEach(function (node) {
+            var kind = node.getAttribute('data-edit');
+            var original = node.textContent;
+            node.addEventListener('focus', function () { original = node.textContent; });
+            node.addEventListener('input', function () {
+                var text = node.textContent.trim();
+                if (kind === 'title') { el('rbTitle').value = text; titleTouched = true; }
+                if (kind === 'subtitle') { el('rbSubtitle').value = text; }
+                if (kind === 'footer') { el('rbFooterText').value = text; }
+            });
+            node.addEventListener('blur', function () {
+                if (node.textContent !== original) { schedulePreview(); }
+            });
+        });
+        var heads = fdoc.querySelectorAll('table.items thead th');
+        var vis = visibleColumns();
+        heads.forEach(function (th, i) {
+            if (!vis[i]) { return; }
+            th.contentEditable = 'true';
+            th.setAttribute('spellcheck', 'false');
+            th.title = 'Click to rename this column';
+            var original = th.textContent;
+            th.addEventListener('focus', function () { original = th.textContent; });
+            th.addEventListener('blur', function () {
+                var text = th.textContent.trim();
+                if (text && text !== original) {
+                    vis[i].label = text;
+                    renderColumns();
+                }
+            });
+        });
+    }
+    function frameExec(cmd, val) {
+        var fdoc = el('previewFrame').contentDocument;
+        if (fdoc) { try { fdoc.execCommand(cmd, false, val || null); } catch (e) {} }
+    }
+
+    /* ---- events ---- */
     el('rbTitle').addEventListener('input', function () { titleTouched = true; });
     el('rbSource').addEventListener('change', function () {
         updateMarksHint();
@@ -972,11 +945,6 @@
         filterDependent();
         el('rbSection').value = '';
         el('rbSubject').value = '';
-        /* This handler used to skip schedulePreview() — the class
-           changed but the preview (and the summary line) stayed on
-           the old class until some other control was touched
-           (live check, 2026-10-29: PDF said Prep, summary still
-           said "All classes"). Every filter change refreshes. */
         schedulePreview();
     });
     el('rbPreset').addEventListener('change', function () {
@@ -998,26 +966,13 @@
         }
         renderColumns();
     });
-    el('rbPreviewBtn').addEventListener('click', function () {
-        var cfg = collectConfig();
-        if (!validForSubmit(cfg)) { return; }
-        if (previewTimer) { clearTimeout(previewTimer); previewTimer = null; }
-        previewRequested = true;
-        setPreviewLoading(true);
-        setPreviewStatus('Updating preview…', false);
-        el('rbPreviewConfig').value = JSON.stringify(cfg);
-        el('rbPreviewForm').submit();
-        if (previewLoadGuard) { clearTimeout(previewLoadGuard); }
-        previewLoadGuard = setTimeout(function () {
-            if (!previewRequested) { return; }
-            previewRequested = false;
-            setPreviewLoading(false);
-            setPreviewStatus('Live preview — the same document the download produces.', false);
-        }, 60000);
+    el('rbRestoreCols').addEventListener('click', function () {
+        applySourceColumns(el('rbSource').value);
     });
-    /* Auto-update on any settings change (title, filters, layout
-       options, column edits). The template-name box is excluded:
-       typing a name to save must not refresh the preview. */
+    el('rbChangeTemplate').addEventListener('click', function () {
+        el('rb5Wrap').classList.remove('rb5-show-doc');
+        el('rbPreset').focus();
+    });
     el('rbSettings').addEventListener('input', function (ev) {
         if (ev.target && ev.target.id === 'rbTemplateName') { return; }
         schedulePreview();
@@ -1026,15 +981,47 @@
         if (ev.target && ev.target.id === 'rbTemplateName') { return; }
         schedulePreview();
     });
-    /* Loading / error states for the frame. The initial about:blank
-       load is ignored (previewRequested is false until a real
-       preview is submitted). A PDF load leaves contentDocument
-       unreadable, so it reports live; the server's error document
-       carries the data-rb-preview-error marker and reports error. */
+    /* Toolbar controls live outside #rbSettings — wire them too. */
+    el('rbPaper').addEventListener('change', schedulePreview);
+    el('rbOrientation').addEventListener('change', schedulePreview);
+    el('rbTbFontSize').addEventListener('change', function () {
+        el('rbFontSize').value = el('rbTbFontSize').value;
+        schedulePreview();
+    });
+    el('rbTbFont').addEventListener('change', function () {
+        canvasFont = el('rbTbFont').value;
+        var fdoc = el('previewFrame').contentDocument;
+        if (fdoc && fdoc.body) { fdoc.body.style.fontFamily = canvasFont; }
+    });
+    el('rbTbBold').addEventListener('click', function () { frameExec('bold'); });
+    el('rbTbItalic').addEventListener('click', function () { frameExec('italic'); });
+    el('rbTbUnderline').addEventListener('click', function () { frameExec('underline'); });
+    el('rbTbColor').addEventListener('input', function () { frameExec('foreColor', el('rbTbColor').value); });
+    el('rbTbAlignLeft').addEventListener('click', function () { frameExec('justifyLeft'); });
+    el('rbTbAlignCenter').addEventListener('click', function () { frameExec('justifyCenter'); });
+    el('rbTbAlignRight').addEventListener('click', function () { frameExec('justifyRight'); });
+    el('rbTbUndo').addEventListener('click', function () { frameExec('undo'); });
+    el('rbTbRedo').addEventListener('click', function () { frameExec('redo'); });
+    el('rbTbZoom').addEventListener('change', function () {
+        el('previewFrame').style.zoom = el('rbTbZoom').value;
+    });
+    el('rbTbPrint').addEventListener('click', function () {
+        var fw = el('previewFrame').contentWindow;
+        if (fw) { fw.focus(); fw.print(); }
+    });
+    el('rb5SwConfig').addEventListener('click', function () {
+        el('rb5Wrap').classList.remove('rb5-show-doc');
+        el('rb5SwConfig').className = 'btn btn-primary';
+        el('rb5SwDoc').className = 'btn btn-light';
+    });
+    el('rb5SwDoc').addEventListener('click', function () {
+        el('rb5Wrap').classList.add('rb5-show-doc');
+        el('rb5SwDoc').className = 'btn btn-primary';
+        el('rb5SwConfig').className = 'btn btn-light';
+    });
     el('previewFrame').addEventListener('load', function () {
         if (!previewRequested) { return; }
         previewRequested = false;
-        if (previewLoadGuard) { clearTimeout(previewLoadGuard); previewLoadGuard = null; }
         setPreviewLoading(false);
         var isError = false;
         try {
@@ -1045,23 +1032,22 @@
             var tooMany = false;
             try { tooMany = !!(fdoc && fdoc.body && fdoc.body.textContent && fdoc.body.textContent.indexOf('Too many rows') !== -1); } catch (e) { tooMany = false; }
             if (tooMany) {
-                setPreviewStatus('Too many rows for one PDF — pick a class or section on the left and the preview will appear here.', false);
+                setPreviewStatus('Too many rows for one document — pick a class or section on the left and the document will appear here.', false);
             } else {
-                setPreviewStatus('Preview could not be generated — see the message in the preview panel, then fix the settings.', true);
+                setPreviewStatus('The document could not be generated — see the message in the document panel, then fix the settings.', true);
             }
         } else {
-            setPreviewStatus('Live preview — the same document the download produces.', false);
+            setPreviewStatus('Live document — click its title, subtitle, footer or column headings to edit. Print and the PDF use exactly this document.', false);
+            wireCanvas();
         }
-        /* The summary settles with the preview that actually
-           loaded, so the line can never lag the document. */
         updateSummary();
     });
     document.querySelectorAll('.rb-generate-btn').forEach(function (genBtn) {
         genBtn.addEventListener('click', function () {
-        var cfg = collectConfig();
-        if (!validForSubmit(cfg)) { return; }
-        el('rbPdfConfig').value = JSON.stringify(cfg);
-        el('rbPdfForm').submit();
+            var cfg = collectConfig();
+            if (!validForSubmit(cfg)) { return; }
+            el('rbPdfConfig').value = JSON.stringify(cfg);
+            el('rbPdfForm').submit();
         });
     });
     el('rbSaveBtn').addEventListener('click', function () {
@@ -1080,44 +1066,7 @@
         });
     });
 
-    document.querySelectorAll('.rb2-source-tile').forEach(function (tile) {
-        tile.addEventListener('click', function () {
-            var sel = el('rbSource');
-            if (sel.value === tile.getAttribute('data-source')) { return; }
-            sel.value = tile.getAttribute('data-source');
-            sel.dispatchEvent(new Event('change', { bubbles: true }));
-        });
-    });
-    var rbPrintBtn = el('rbPrintBtn');
-    if (rbPrintBtn) {
-        rbPrintBtn.addEventListener('click', function () {
-            var cfg = collectConfig();
-            if (!validForSubmit(cfg)) { return; }
-            el('rbPrintConfig').value = JSON.stringify(cfg);
-            el('rbPrintForm').submit();
-        });
-    }
-    document.querySelectorAll('.rb3-cat').forEach(function (catBtn) {
-        catBtn.addEventListener('click', function () {
-            var cat = catBtn.getAttribute('data-category');
-            document.querySelectorAll('.rb3-cat').forEach(function (b) { b.classList.toggle('active', b === catBtn); });
-            document.querySelectorAll('.rb2-source-tile').forEach(function (tile) {
-                tile.style.display = (!cat || tile.getAttribute('data-category') === cat) ? '' : 'none';
-            });
-            document.querySelectorAll('.rb2-preset-chip').forEach(function (chip) {
-                chip.style.display = (!cat || chip.getAttribute('data-category') === cat) ? '' : 'none';
-            });
-        });
-    });
-
-    document.querySelectorAll('.rb2-preset-chip').forEach(function (chip) {
-        chip.addEventListener('click', function () {
-            var sel = el('rbPreset');
-            sel.value = chip.getAttribute('data-key');
-            sel.dispatchEvent(new Event('change', { bubbles: true }));
-        });
-    });
-
+    if (!el('rbFooterText').value) { el('rbFooterText').value = SCHOOL_NAME; }
     updateMarksHint();
     ensureAutoTitle();
     applySourceColumns(el('rbSource').value);
@@ -1125,24 +1074,3 @@
 })();
 </script>
 @endsection
-
-<script>
-/* Builder rb4 tabs (owner, 2026-10-30): the left half shows one
-   step at a time so the whole builder fits the screen with no
-   scrolling. Pure presentation — every input keeps its id and
-   the preview keeps updating from any panel, visible or not. */
-(function () {
-    var tabs = document.querySelectorAll('[data-rb4-tab]');
-    var panels = document.querySelectorAll('[data-rb4-panel]');
-    if (!tabs.length) { return; }
-    tabs.forEach(function (tab) {
-        tab.addEventListener('click', function () {
-            var target = tab.getAttribute('data-rb4-tab');
-            tabs.forEach(function (t) { t.classList.toggle('active', t === tab); });
-            panels.forEach(function (p) {
-                p.classList.toggle('rb4-on', p.getAttribute('data-rb4-panel') === target);
-            });
-        });
-    });
-})();
-</script>

@@ -69,7 +69,7 @@ class OwnerBulkCapacityTest extends TestCase
         foreach ($names as $i => $name) {
             $lines[] = implode(',', [
                 $name, 'cap.test' . $i . '@example.com', 'Female', '0803555000' . $i, '',
-                '2015-05-01', '1 Test Lane', 'Nigerian', 'Lagos', 'Ikeja', 'O+',
+                '2015-05-01', '1 Test Lane', 'Indian', 'Tamil Nadu', '', 'O+',
                 'Prep', 'A', '', '2026',
             ]);
         }

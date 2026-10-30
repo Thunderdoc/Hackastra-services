@@ -161,6 +161,11 @@ Route::group(['middleware' => 'auth'], function () {
                 Route::post('generate', 'TimeTableController@generate')->name('tt.generate');
             });
             Route::get('mine', 'TimeTableController@mine')->name('tt.mine');
+            /* Teacher Workload Analysis (owner ask 2026-10-30): the
+               only workload surface was the Admin's Staffing
+               Dashboard — a teacher had none. Own data only, from
+               the same week grid the leave queue uses. */
+            Route::get('workload', 'WorkloadController@mine')->name('tt.workload');
             Route::get('approvals', 'TimeTableController@approvals')->name('tt.approvals');
             /* Loop 81: teacher's own weekly timetable — print + PDF */
             Route::get('mine/print', 'TimeTableController@mine_print')->name('tt.mine_print');
@@ -455,6 +460,7 @@ Route::group(['middleware' => 'auth'], function () {
         Route::group(['prefix' => 'reports'], function() {
             Route::get('/', 'ReportsController@builder')->name('reports.builder');
             Route::post('preview', 'ReportsController@preview')->name('reports.preview');
+            Route::post('preview-html', 'ReportsController@previewHtml')->name('reports.preview_html');
             Route::post('pdf', 'ReportsController@pdf')->name('reports.pdf');
             Route::post('templates', 'ReportsController@storeTemplate')->name('reports.templates.store');
             Route::put('templates/{template}', 'ReportsController@updateTemplate')->name('reports.templates.update');

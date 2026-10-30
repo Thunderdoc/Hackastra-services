@@ -106,7 +106,7 @@
                     <select data-placeholder="Choose..." required name="nal_id" id="nal_id" class="select-search form-control @error('nal_id') is-invalid @enderror">
                         <option value=""></option>
                         @foreach($nationals as $nal)
-                            <option {{ ($user->nal_id == $nal->id) ? 'selected' : '' }} value="{{ $nal->id }}">{{ $nal->name }}</option>
+                            <option {{ (old('nal_id', $user->nal_id ?: ($nal->name === 'Indian' ? $nal->id : 0)) == $nal->id) ? 'selected' : '' }} value="{{ $nal->id }}">{{ $nal->name }}</option>
                         @endforeach
                     </select>
                     @include('partials.errors.field', ['field' => 'nal_id'])

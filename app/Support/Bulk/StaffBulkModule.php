@@ -186,10 +186,16 @@ class StaffBulkModule
         }
 
         $lga = null;
+        // Same rule as the student toolkit (2026-10-30): LGA is
+        // required only when the state has districts configured;
+        // Indian states carry none in the retired lookup.
+        $stateLgas = $state ? ($ctx->lookups['lgas'][$state->id] ?? []) : [];
         if ($get('lga') === '') {
-            $err('lga', '', 'LGA is required.');
-        } elseif ($state) {
-            $lga = $ctx->lookups['lgas'][$state->id][strtolower($get('lga'))] ?? null;
+            if (!empty($stateLgas)) {
+                $err('lga', '', 'LGA is required.');
+            }
+        } elseif ($state && !empty($stateLgas)) {
+            $lga = $stateLgas[strtolower($get('lga'))] ?? null;
             if (!$lga) {
                 $err('lga', $get('lga'), "LGA '{$get('lga')}' was not found in {$state->name}.");
             }
@@ -464,10 +470,11 @@ class StaffBulkModule
             if (isset($userChanges['state_id'])) {
                 $stateId = $userChanges['state_id'];
             }
-            $lga = $ctx->lookups['lgas'][$stateId][strtolower($get('lga'))] ?? null;
-            if (!$lga) {
+            $stateLgas = $ctx->lookups['lgas'][$stateId] ?? [];
+            $lga = $stateLgas[strtolower($get('lga'))] ?? null;
+            if (!$lga && !empty($stateLgas)) {
                 $err('lga', $get('lga'), "LGA '{$get('lga')}' was not found.");
-            } elseif ((int) $lga->id !== (int) $user->lga_id) {
+            } elseif ($lga && (int) $lga->id !== (int) $user->lga_id) {
                 $old = $user->lga_id ? optional(\App\Models\Lga::find($user->lga_id))->name : '';
                 $diff('lga', (string) $old, $lga->name, 'user', 'lga_id', $lga->id);
             }

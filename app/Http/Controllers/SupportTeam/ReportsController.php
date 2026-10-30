@@ -122,7 +122,7 @@ class ReportsController extends Controller
             'doc' => $doc,
             's' => $this->settingsForPrint(),
         ]);
-        $pdf->setPaper('a4', $config['options']['orientation']);
+        $pdf->setPaper($config['options']['paper'] ?? 'a4', $config['options']['orientation']);
         // Page numbers (PDF polish, owner 2026-10-29 night):
         // dompdf's CSS has no per-page counter, so the canvas
         // draws "Page X of Y" into the footer's empty right zone
@@ -245,6 +245,36 @@ class ReportsController extends Controller
             . '<p class="msg">' . $safe . '</p>'
             . '<p>Fix the report settings on the left and the preview will update automatically. No PDF was generated.</p>'
             . '</div></body></html>';
+    }
+
+    /**
+     * Builder rb5 (owner, 2026-10-30): the editable-document
+     * canvas — the SAME print view rendered as HTML (never a
+     * second template), with the canvas flag that turns the
+     * title / subtitle / footer line into editable regions.
+     * Data-dependent refreshes come here; keystroke-level text
+     * edits stay in the browser and sync back into the config.
+     */
+    public function previewHtml(Request $request)
+    {
+        $this->gateRole();
+        try {
+            ini_set('memory_limit', '512M');
+            set_time_limit(300);
+            $user = Auth::user();
+            $config = ReportEngine::validateConfig($this->configFromRequest($request), $user);
+            $doc = ReportEngine::resolve($config, $user);
+            $html = view('pages.support_team.reports.print', [
+                'doc' => $doc,
+                's' => $this->settingsForPrint(),
+                'canvas' => true,
+            ])->render();
+            return response($html, 200, ['Content-Type' => 'text/html; charset=utf-8']);
+        } catch (\InvalidArgumentException $e) {
+            return response($this->previewErrorHtml($e->getMessage()), 422, [
+                'Content-Type' => 'text/html; charset=utf-8',
+            ]);
+        }
     }
 
     /** Download the generated PDF. */

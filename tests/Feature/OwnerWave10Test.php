@@ -147,7 +147,7 @@ class OwnerWave10Test extends TestCase
     {
         $nat = Nationality::first()->name;
         $state = State::first();
-        $lga = Lga::where('state_id', $state->id)->first()->name;
+        $lga = ''; // No LGA lookup exists for Indian states (retired 2026-10-30) — the column ships empty.
         $this->makeXlsx($path,
             ['name', 'gender', 'address', 'nationality', 'state', 'lga', 'class', 'section', 'year_admitted', 'dob', 'email'],
             [[

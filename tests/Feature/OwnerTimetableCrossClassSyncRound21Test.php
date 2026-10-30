@@ -112,16 +112,21 @@ class OwnerTimetableCrossClassSyncRound21Test extends TestCase
         return [$record, $own, $foreign, $teacher, $slot1];
     }
 
-    /** (a) Whole-class grid: foreign-class subject via real tt.store is flagged, pill withheld. */
+    /** (a) Whole-class grid: a foreign-class subject sitting in the
+     *  grid is flagged, pill withheld. The cell is seeded directly
+     *  since the cascade audit (2026-10-30): TTRequest now REFUSES
+     *  a cross-class cell post — the validator stays as the safety
+     *  net for bad rows however they arise (legacy/imported data). */
     public function test_whole_class_grid_flags_cross_class_subject()
     {
         [$record, $own, $foreign, $teacher, $slot1] = $this->fixture(null);
 
-        $resp = $this->actingAs($this->admin())->post(route('tt.store'), [
+        TimeTable::create([
             'ttr_id' => $record->id, 'ts_id' => $slot1->id,
             'day' => 'Monday', 'subject_id' => $foreign->id,
+            'timestamp_from' => strtotime('Monday ' . $slot1->time_from),
+            'timestamp_to' => strtotime('Monday ' . $slot1->time_to),
         ]);
-        $resp->assertOk()->assertJson(['ok' => true]);
         $this->assertDatabaseHas('time_tables', [
             'ttr_id' => $record->id, 'ts_id' => $slot1->id,
             'day' => 'Monday', 'subject_id' => $foreign->id,
@@ -145,10 +150,14 @@ class OwnerTimetableCrossClassSyncRound21Test extends TestCase
     {
         [$record, $own, $foreign, $teacher, $slot1] = $this->fixture('pcb');
 
-        $this->actingAs($this->admin())->post(route('tt.store'), [
+        // Seeded directly — tt.store refuses cross-class posts now
+        // (TTRequest pair guard, cascade audit 2026-10-30).
+        TimeTable::create([
             'ttr_id' => $record->id, 'ts_id' => $slot1->id,
             'day' => 'Monday', 'subject_id' => $foreign->id,
-        ])->assertOk()->assertJson(['ok' => true]);
+            'timestamp_from' => strtotime('Monday ' . $slot1->time_from),
+            'timestamp_to' => strtotime('Monday ' . $slot1->time_to),
+        ]);
 
         $report = TimetableValidator::report($record->fresh());
         $this->assertCount(1, $report['errors'], 'Cross-class takes precedence via elseif — no stream error alongside it');

@@ -7,42 +7,47 @@ use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
 /**
- * Owner order 2026-10-30: the Report Builder is fit-to-screen —
- * after the sidebar, the screen splits into TWO EQUAL halves:
- * every input on the left (one step at a time, so nothing needs
- * to scroll), the live PDF on the right, updating on its own as
- * any input changes. Simple: no extra buttons, no extra panels.
+ * Owner order 2026-10-30 (rb5, full replacement): the Report
+ * Builder is ONE fit-to-screen workspace in TWO panels — the
+ * configuration on the left (43%), the live EDITABLE document
+ * on the right (57%). No wizard tabs, no separate preview
+ * screen, no Preview button: the document on the right IS the
+ * preview, and Print prints only it.
  */
 class OwnerBuilderFitScreenTest extends TestCase
 {
     use DatabaseTransactions;
 
-    public function test_builder_is_two_equal_halves_with_tabbed_inputs()
+    public function test_builder_is_two_panels_43_57_with_editable_document()
     {
         $admin = User::where('email', 'admin@hackstra.app')->firstOrFail();
         $response = $this->actingAs($admin)->get(route('reports.builder'));
         $response->assertOk();
 
-        // Two equal halves.
-        $response->assertSee('col-lg-6 rb2-settings', false);
-        $response->assertSee('col-lg-6 rb2-preview', false);
-        $response->assertSee('calc(100dvh - 208px)', false);
+        // The 43 / 57 split.
+        $response->assertSee('flex: 0 0 43%', false);
+        $response->assertSee('flex: 1 1 57%', false);
+        $response->assertSee('id="rb5Wrap"', false);
+        $response->assertSee('id="rbSettings"', false);
 
-        // The four steps are tabs over panels on the left.
-        foreach (['data', 'filters', 'columns', 'finish'] as $step) {
-            $response->assertSee('data-rb4-tab="' . $step . '"', false);
-            $response->assertSee('data-rb4-panel="' . $step . '"', false);
-        }
+        // The document side: toolbar + canvas + Print.
+        $response->assertSee('id="rb5Toolbar"', false);
+        $response->assertSee('id="previewFrame"', false);
+        $response->assertSee('id="rbTbPrint"', false);
+        $response->assertSee('id="rbPaper"', false);
+        $response->assertSee('id="rbOrientation"', false);
 
-        // Category shortcuts live inside the left half now.
+        // The old wizard is gone — ordered removed, not hidden.
+        $response->assertDontSee('data-rb4-tab', false);
+        $response->assertDontSee('data-rb4-panel', false);
+        $response->assertDontSee('rbPreviewBtn', false);
+        $response->assertDontSee('Refresh preview', false);
+
+        // The config half precedes the document half in the DOM.
         $html = $response->getContent();
         $this->assertGreaterThan(
             strpos($html, 'id="rbSettings"'),
-            strpos($html, 'id="rbCatBar"'),
-            'Category chips belong to the left (inputs) half');
-
-        // The live preview contract is untouched.
-        $response->assertSee('Live preview');
-        $response->assertSee('id="previewFrame"', false);
+            strpos($html, 'id="previewFrame"'),
+            'Configuration belongs to the left half, the document to the right');
     }
 }

@@ -89,26 +89,25 @@
                     </a>
                 </li>
                 <li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Academics</div><i class="icon-menu" title="Academics"></i></li>
-                <li class="nav-item nav-item-submenu {{ in_array(Route::currentRouteName(), ['tt.index', 'tt.mine', 'ttr.edit', 'ttr.show', 'ttr.manage']) ? 'nav-item-expanded nav-item-open' : '' }} ">
+                {{-- Owner order 2026-10-30: the LMS items and the
+                     WhatsApp groups live INSIDE Academics now — the
+                     separate LMS group is gone. Same routes, same
+                     order (Assignments, Study Materials, Quizzes);
+                     WhatsApp Groups lands on the teacher home panel
+                     where the section links are kept. --}}
+                <li class="nav-item nav-item-submenu {{ (in_array(Route::currentRouteName(), ['tt.index', 'tt.mine', 'tt.workload', 'ttr.edit', 'ttr.show', 'ttr.manage']) || Route::is('assignments.*') || Route::is('materials.*') || Route::is('quizzes.*')) ? 'nav-item-expanded nav-item-open' : '' }} ">
                     <a href="#" class="nav-link"><i class="icon-graduation2"></i> <span> Academics</span></a>
                     <ul class="nav nav-group-sub" data-submenu-title="Manage Academics">
                         <li class="nav-item"><a href="{{ route('tt.index') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['tt.index']) ? 'active' : '' }}">Timetables</a></li>
                         <li class="nav-item"><a href="{{ route('tt.mine') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['tt.mine']) ? 'active' : '' }}">My Timetable</a></li>
-                    </ul>
-                </li>
-                {{-- Workstream CS2 (LMS, owner-ordered module).
-                     Owner orders 2026-10-29: the group is named LMS
-                     and Quizzes lives inside it with Assignments and
-                     Study Materials (moved from below, same route);
-                     the group is a collapsible submenu exactly like
-                     Academics above (owner screenshot + order). --}}
-                <li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">LMS</div><i class="icon-menu" title="LMS"></i></li>
-                <li class="nav-item nav-item-submenu {{ (Route::is('assignments.*') || Route::is('materials.*') || Route::is('quizzes.*')) ? 'nav-item-expanded nav-item-open' : '' }} ">
-                    <a href="#" class="nav-link"><i class="icon-books"></i> <span> LMS</span></a>
-                    <ul class="nav nav-group-sub" data-submenu-title="Manage LMS">
                         <li class="nav-item"><a href="{{ route('assignments.index') }}" class="nav-link {{ (Route::is('assignments.*')) ? 'active' : '' }}">Assignments</a></li>
                         <li class="nav-item"><a href="{{ route('materials.index') }}" class="nav-link {{ (Route::is('materials.*')) ? 'active' : '' }}">Study Materials</a></li>
                         <li class="nav-item"><a href="{{ route('quizzes.index') }}" class="nav-link {{ (Route::is('quizzes.*')) ? 'active' : '' }}">Quizzes</a></li>
+                        {{-- Owner ask 2026-10-30: Workload Analysis
+                             belongs in Academics too — the teacher's
+                             own load vs the Settings caps. --}}
+                        <li class="nav-item"><a href="{{ route('tt.workload') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['tt.workload']) ? 'active' : '' }}">Workload Analysis</a></li>
+                        <li class="nav-item"><a href="{{ route('dashboard') }}#whatsapp-groups" class="nav-link">WhatsApp Groups</a></li>
                     </ul>
                 </li>
                 <li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Students</div><i class="icon-menu" title="Students"></i></li>

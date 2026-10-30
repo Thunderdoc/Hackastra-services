@@ -37,9 +37,16 @@ class UserFactory extends Factory
                ~3,000 students, and faker's bare userName/safeEmail
                pools collide at that volume (UNIQUE violation on
                users.username killed a reseed). unique() retries
-               until the value is fresh — required at this scale. */
-            'email' => $this->faker->unique()->safeEmail,
-            'username' => $this->faker->unique()->userName,
+               until the value is fresh — required at this scale.
+               Gate flake fix (2026-10-30): unique() only holds
+               inside ONE Faker instance, and the test suite rebuilds
+               the app (and Faker) per test on a shared database —
+               two tests could mint the same safeEmail and die on the
+               UNIQUE constraint (OwnerMyAccountBannerTest, CI-recipe
+               gate). A random token in both values makes uniqueness
+               independent of Faker's registry. */
+            'email' => 'u' . strtolower(Str::random(12)) . '@example.test',
+            'username' => 'u' . strtolower(Str::random(12)),
             'password' => Hash::make($user_type),
             'user_type' => $user_type,
             'code' => strtoupper(Str::random(10)),

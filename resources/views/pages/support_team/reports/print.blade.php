@@ -15,9 +15,9 @@
         * { box-sizing: border-box; }
         body { font-family: 'DejaVu Sans', Arial, Helvetica, sans-serif; color: #172536; margin: 0; padding: 0; font-size: {{ $doc['options']['font_size'] }}px; }
         @if($doc['options']['show_header'])
-        @page { size: A4 {{ $doc['options']['orientation'] }}; margin: 48mm {{ $doc['options']['margin_mm'] }}mm 16mm {{ $doc['options']['margin_mm'] }}mm; }
+        @page { size: {{ strtoupper($doc['options']['paper'] ?? 'a4') }} {{ $doc['options']['orientation'] }}; margin: 48mm {{ $doc['options']['margin_mm'] }}mm 16mm {{ $doc['options']['margin_mm'] }}mm; }
         @else
-        @page { size: A4 {{ $doc['options']['orientation'] }}; margin: 12mm {{ $doc['options']['margin_mm'] }}mm 16mm {{ $doc['options']['margin_mm'] }}mm; }
+        @page { size: {{ strtoupper($doc['options']['paper'] ?? 'a4') }} {{ $doc['options']['orientation'] }}; margin: 12mm {{ $doc['options']['margin_mm'] }}mm 16mm {{ $doc['options']['margin_mm'] }}mm; }
         @endif
         .rp-header, .rp-footer { position: fixed; left: 0; right: 0; }
         /* School watermark (owner, 2026-10-29 night): the school's
@@ -73,6 +73,22 @@
         .sign { margin-top: 14px; width: 100%; border-collapse: collapse; }
         .sign td { width: 33%; vertical-align: bottom; padding-right: 24px; }
         .sign .line { border-top: 1px solid #172536; margin-top: 22px; padding-top: 4px; font-size: 12px; }
+        @if(!empty($canvas))
+        /* Builder rb5 canvas (owner, 2026-10-30): the SAME document
+           rendered for the editable workspace — the fixed header /
+           footer become static sheet furniture, page margins become
+           sheet padding, and the editable regions (title, subtitle,
+           footer line) announce themselves. The PDF path never sets
+           $canvas, so the printed document is untouched. */
+        body { position: relative; padding: 14mm 11mm 18mm; background: #fff; }
+        .rp-header, .rp-footer { position: static; }
+        .rp-header { margin-bottom: 5mm; }
+        .rp-footer { margin-top: 9mm; }
+        .rp-wm { position: absolute; top: 32%; }
+        [data-edit] { cursor: text; }
+        [data-edit]:hover { outline: 1px dashed rgba(23, 101, 245, .55); outline-offset: 2px; }
+        [data-edit]:focus { outline: 2px solid rgba(23, 101, 245, .8); outline-offset: 2px; }
+        @endif
     </style>
 </head>
 <body>
@@ -102,9 +118,9 @@
     <table class="titlebar">
         <tr>
             <td>
-                <div class="doc-title">{{ strtoupper($doc['title']) }}</div>
+                <div class="doc-title"@if(!empty($canvas)) data-edit="title" contenteditable="true" spellcheck="false"@endif>{{ strtoupper($doc['title']) }}</div>
                 @if($doc['subtitle'] !== '')
-                    <div class="subtitle">{{ $doc['subtitle'] }}</div>
+                    <div class="subtitle"@if(!empty($canvas)) data-edit="subtitle" contenteditable="true" spellcheck="false"@endif>{{ $doc['subtitle'] }}</div>
                 @endif
             </td>
             <td class="refbox">
@@ -120,7 +136,7 @@
 @if($doc['options']['show_footer'])
 <table class="rp-footer">
     <tr>
-        <td>Generated on: {{ date('d M Y | g:i A') }}</td>
+        <td>@if(($doc['options']['footer_text'] ?? '') !== '')<span @if(!empty($canvas)) data-edit="footer" contenteditable="true" spellcheck="false"@endif>{{ $doc['options']['footer_text'] }}</span>@else Generated on: {{ date('d M Y | g:i A') }}@endif</td>
         <td style="text-align: right;"></td>
     </tr>
 </table>

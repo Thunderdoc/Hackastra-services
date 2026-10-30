@@ -86,14 +86,14 @@ class OwnerReportsTest extends TestCase
         $this->actingAs($this->teacher())
             ->get(route('reports.builder'))
             ->assertOk()
-            ->assertSee('Build your report');
+            ->assertSee('Report Template');
         // Owner correction (2026-10-29 evening): he works in the
         // builder as Admin himself — admin is a builder role
         // again (teacher + principal + admin).
         $this->actingAs($this->userByEmail('admin@hackstra.app'))
             ->get(route('reports.builder'))
             ->assertOk()
-            ->assertSee('Build your report');
+            ->assertSee('Report Template');
     }
 
     public function test_teacher_can_build_students_roster_pdf()

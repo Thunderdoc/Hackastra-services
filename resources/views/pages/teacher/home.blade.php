@@ -187,7 +187,7 @@
              lead; students see it beside their class on their
              dashboard. --}}
         @if(isset($sections_led) && $sections_led->isNotEmpty())
-        <section class="t10-panel">
+        <section class="t10-panel" id="whatsapp-groups">
             <div class="t10-panel-head">
                 <div class="t10-panel-title">
                     <span class="t10-panel-icon t10-tone-green"><i class="icon-bubbles2"></i></span>

@@ -261,9 +261,146 @@ class LeaveRequestController extends Controller
         if (!\App\Helpers\Qs::userIsTeamSAWrite() && !\App\Helpers\Qs::userIsPrincipal()) {
             return redirect()->route('dashboard');
         }
+        // Leave intelligence (owner brief 2026-10-30): summary
+        // cards + real filters over the same queue. Coverage is a
+        // COMPUTED state, so that filter runs after enrichment on
+        // the full filtered set and paginates manually.
+        $filters = [
+            'q' => trim((string) request('q', '')),
+            'status' => (string) request('status', ''),
+            'leave_type' => (string) request('leave_type', ''),
+            'coverage' => (string) request('coverage', ''),
+            'from' => (string) request('from', ''),
+            'to' => (string) request('to', ''),
+        ];
+        $query = LeaveRequest::with('user')
+            ->orderByRaw("CASE WHEN status = 'pending' AND leave_type = 'emergency' THEN 0 WHEN status = 'pending' THEN 1 ELSE 2 END")
+            ->orderByDesc('id');
+        if ($filters['q'] !== '') {
+            $query->whereHas('user', function ($u) use ($filters) {
+                $u->where('name', 'like', '%' . $filters['q'] . '%');
+            });
+        }
+        if (in_array($filters['status'], ['pending', 'approved', 'rejected'], true)) {
+            $query->where('status', $filters['status']);
+        }
+        if (in_array($filters['leave_type'], LeaveRequest::TYPES, true)) {
+            $query->where('leave_type', $filters['leave_type']);
+        }
+        if ($filters['from'] !== '') {
+            $query->whereDate('end_date', '>=', $filters['from']);
+        }
+        if ($filters['to'] !== '') {
+            $query->whereDate('start_date', '<=', $filters['to']);
+        }
+        if (in_array($filters['coverage'], ['covered', 'partial', 'none'], true)) {
+            $all = $this->attachCoverInfo($query->get());
+            $filtered = $all->filter(function ($r) use ($filters) {
+                return $r->coverage_state === $filters['coverage'];
+            })->values();
+            $page = max(1, (int) request('page', 1));
+            $requests = new \Illuminate\Pagination\LengthAwarePaginator(
+                $filtered->forPage($page, 25), $filtered->count(), 25, $page,
+                ['path' => request()->url(), 'query' => request()->query()]
+            );
+        } else {
+            $requests = $this->attachCoverInfo($query->paginate(25));
+        }
         return view('pages.support_team.leave.index', [
-            'requests' => $this->attachCoverInfo(LeaveRequest::with('user')->orderByRaw("CASE WHEN status = 'pending' AND leave_type = 'emergency' THEN 0 WHEN status = 'pending' THEN 1 ELSE 2 END")->orderByDesc('id')->paginate(25)),
+            'requests' => $requests,
+            'summary' => $this->queueSummary(),
+            'filters' => $filters,
         ]);
+    }
+
+    /**
+     * Queue summary cards (owner brief 2026-10-30): real counts
+     * over ALL requests, plus the pending queue's coverage health —
+     * how many pending requests are only partially covered, how
+     * many periods still have nobody, and how many distinct
+     * substitutes the pending plans already name.
+     */
+    protected function queueSummary(): array
+    {
+        $counts = LeaveRequest::selectRaw('status, COUNT(*) as c')->groupBy('status')->pluck('c', 'status');
+        $summary = [
+            'pending' => (int) ($counts['pending'] ?? 0),
+            'approved' => (int) ($counts['approved'] ?? 0),
+            'rejected' => (int) ($counts['rejected'] ?? 0),
+            'total' => (int) $counts->sum(),
+            'partial' => 0,
+            'uncovered' => 0,
+            'substitutes' => 0,
+        ];
+        $substituteIds = [];
+        $pending = LeaveRequest::with('user')->where('status', 'pending')->get();
+        foreach ($pending as $leave) {
+            $u = $leave->user;
+            if (!$u || $u->user_type !== 'teacher') {
+                continue;
+            }
+            try {
+                $impact = LeaveCover::impactSummary($u->id, $leave->start_date, $leave->end_date, $leave->periodWindow());
+            } catch (\Throwable $e) {
+                $impact = null;
+            }
+            if (!$impact) {
+                continue;
+            }
+            $summary['uncovered'] += $impact['uncovered'];
+            if ($impact['uncovered'] > 0 && $impact['covered'] > 0) {
+                $summary['partial']++;
+            }
+            $ids = \App\Models\Substitution::where('absent_teacher_id', $u->id)
+                ->where('status', 'pending')
+                ->whereDate('date', '>=', \Carbon\Carbon::parse($leave->start_date)->toDateString())
+                ->whereDate('date', '<=', \Carbon\Carbon::parse($leave->end_date)->toDateString())
+                ->pluck('substitute_teacher_id')->all();
+            foreach ($ids as $id) {
+                if ($id) {
+                    $substituteIds[(int) $id] = true;
+                }
+            }
+        }
+        $summary['substitutes'] = count($substituteIds);
+
+        return $summary;
+    }
+
+    /**
+     * Overlap warning for a pending teacher leave (owner brief
+     * 2026-10-30): other teachers ALREADY approved off inside the
+     * same window who share a subject with the applicant — the
+     * shortage the approver must see before deciding.
+     */
+    protected function overlapWarning(LeaveRequest $leave, ?array $impact): ?string
+    {
+        if (!$impact || empty($impact['subjects'])) {
+            return null;
+        }
+        $others = LeaveRequest::with('user')
+            ->where('status', 'approved')
+            ->where('user_id', '!=', $leave->user_id)
+            ->whereDate('start_date', '<=', $leave->end_date)
+            ->whereDate('end_date', '>=', $leave->start_date)
+            ->get();
+        $hits = [];
+        foreach ($others as $other) {
+            $u = $other->user;
+            if (!$u || $u->user_type !== 'teacher') {
+                continue;
+            }
+            $subjects = \App\Models\Subject::where('teacher_id', $u->id)->pluck('name')->all();
+            $shared = array_values(array_intersect($subjects, $impact['subjects']));
+            if ($shared) {
+                $hits[] = $u->name . ' (' . implode(', ', $shared) . ')';
+            }
+        }
+        if (!$hits) {
+            return null;
+        }
+
+        return 'Also on approved leave in this window: ' . implode('; ', $hits) . '.';
     }
 
     /**
@@ -280,6 +417,12 @@ class LeaveRequestController extends Controller
     {
         $allocCache = [];
         foreach ($requests as $r) {
+            $r->impact = null;
+            $r->coverage_state = null;
+            $r->week_grid = [];
+            $r->weekly_periods = 0;
+            $r->leave_balance = null;
+            $r->overlap_warning = null;
             $user = $r->user;
             if (!$user) { $r->allocation_lines = []; $r->uncovered_periods = null; continue; }
             // Overnight fix (adopted from a5e6b05): cover info is
@@ -345,6 +488,34 @@ class LeaveRequestController extends Controller
                             $r->plan_free_options = $freeOptions;
                         }
                     }
+                }
+                // Leave intelligence enrichment (owner brief
+                // 2026-10-30): impact + coverage state from the
+                // one walk, the full week grid behind "Full
+                // allocation", the approver-side leave balance,
+                // and the overlap warning. Display-only: any
+                // failure degrades to the catch below.
+                if ($user->user_type === 'teacher') {
+                    $allocCache[$user->id]['grid'] ??= LeaveCover::weekGrid($user);
+                    $r->week_grid = $allocCache[$user->id]['grid'];
+                    $r->weekly_periods = count($r->week_grid);
+                    if (in_array($r->status, ['pending', 'approved'], true)) {
+                        $r->impact = LeaveCover::impactSummary($user->id, $r->start_date, $r->end_date, $r->periodWindow());
+                        if ($r->impact !== null) {
+                            // One source of truth: the badge count
+                            // and the impact strip are the same walk.
+                            $r->uncovered_periods = $r->impact['uncovered'];
+                            $r->coverage_state = $r->impact['affected'] === 0 ? 'none_affected'
+                                : ($r->impact['uncovered'] === 0 ? 'covered'
+                                : (($r->impact['covered'] > 0 || !empty($r->planned_periods)) ? 'partial' : 'none'));
+                            if ($r->status === 'pending') {
+                                $r->overlap_warning = $this->overlapWarning($r, $r->impact);
+                            }
+                        }
+                    }
+                }
+                if (!in_array($user->user_type, ['student', 'parent'], true)) {
+                    $r->leave_balance = \App\Support\LeaveBalance::summary($user->id, (int) \Carbon\Carbon::parse($r->start_date)->format('Y'));
                 }
             } catch (\Throwable $e) {
                 $r->allocation_lines = [];

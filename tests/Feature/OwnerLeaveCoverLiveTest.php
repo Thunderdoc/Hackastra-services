@@ -81,9 +81,12 @@ class OwnerLeaveCoverLiveTest extends TestCase
             ->assertOk()->assertSee('8 without cover');
 
         // Suspended: neither badge — the row shows a dash instead.
+        // (Scoped to the badge markup since 2026-10-30: the queue's
+        // coverage FILTER legitimately contains the word "Covered"
+        // as an option label; the pin's intent is the row's badge.)
         $t->update(['status' => 'suspended']);
         $this->actingAs($this->admin())->get(route('leave.index'))
             ->assertOk()->assertSee('Ananya Sharma')
-            ->assertDontSee('without cover')->assertDontSee('Covered');
+            ->assertDontSee('without cover')->assertDontSee('>Covered</span>');
     }
 }
