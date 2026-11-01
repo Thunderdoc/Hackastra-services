@@ -7228,3 +7228,6 @@ body:not(.sidebar-xs) .sidebar-main .nav-group-sub .nav-link{position:relative;p
 body:not(.sidebar-xs) .sidebar-main .nav-group-sub .nav-link::before{content:'';position:absolute;left:3px;top:50%;width:7px;height:7px;margin-top:-3.5px;border-radius:50%;background:#5f7ea6;transition:background .15s,box-shadow .15s,transform .15s}
 body:not(.sidebar-xs) .sidebar-main .nav-group-sub .nav-link:hover::before{background:#a9c6f2;transform:scale(1.2)}
 body:not(.sidebar-xs) .sidebar-main .nav-group-sub .nav-link.active::before{background:#fff;box-shadow:0 0 0 3px rgba(255,255,255,.35);transform:scale(1.15)}
+
+/* Marks selector: the "Not Enabled" reason line (owner order 2026-11-01) */
+.l84-entry-note{margin:10px 2px 0;font-size:13px;line-height:1.45;color:#b45309}

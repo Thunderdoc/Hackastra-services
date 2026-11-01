@@ -12,6 +12,7 @@ use App\Models\Subject;
 use App\Support\TeacherScope;
 use App\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 /**
@@ -30,6 +31,22 @@ use Tests\TestCase;
 class OwnerAllotmentRound6Test extends TestCase
 {
     use DatabaseTransactions;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // Section segment (2026-10-30): the seeded (55, 67)
+        // override moved to another teacher when the staffing
+        // pass grew to 90 teachers. The property under test is
+        // override-effective access on this anchor pair, so the
+        // fixture establishes Ritu's override itself (rolled back
+        // by DatabaseTransactions). Section 56 keeps a different
+        // holder, so the foreign-section negatives still bite.
+        DB::table('section_subject_teachers')->updateOrInsert(
+            ['section_id' => 55, 'subject_id' => 67],
+            ['teacher_id' => $this->ritu()->id, 'created_at' => now(), 'updated_at' => now()]
+        );
+    }
 
     protected function ritu()
     {

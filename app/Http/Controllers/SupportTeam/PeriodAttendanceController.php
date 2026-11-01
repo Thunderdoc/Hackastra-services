@@ -480,6 +480,7 @@ class PeriodAttendanceController extends Controller
         $d['s'] = Setting::all()->flatMap(function ($s) {
             return [$s->type => $s->description];
         });
+        $d['s']->put('phone', Qs::getSchoolPhone());
 
         return view('pages.support_team.attendance_periods.print', $d);
     }
@@ -508,6 +509,7 @@ class PeriodAttendanceController extends Controller
         $d['s'] = Setting::all()->flatMap(function ($s) {
             return [$s->type => $s->description];
         });
+        $d['s']->put('phone', Qs::getSchoolPhone());
 
         /* Documents Premium pass: mark the dompdf rendering so the
            blade hides its screen-only Print bar (dompdf ignores the
@@ -635,6 +637,7 @@ class PeriodAttendanceController extends Controller
         $d['s'] = Setting::all()->flatMap(function ($s) {
             return [$s->type => $s->description];
         });
+        $d['s']->put('phone', Qs::getSchoolPhone());
         if (!empty($d['s']['logo'])) {
             $d['s']['logo'] = $this->pdfImageDataUri($d['s']['logo']);
         }

@@ -59,8 +59,42 @@ class OwnerTimetableSummaryRound7Test extends TestCase
         ]);
     }
 
+    /**
+     * Section segment (2026-10-30): the seeded Prep–Class 10
+     * records are per-section now, so a scope=all skip run no
+     * longer skips their whole-class targets — it would generate
+     * 11 extra class grids and swamp the buckets these tests
+     * audit. Give every SEEDED class an (empty) sectionless
+     * record so skip mode leaves the seeded school untouched,
+     * exactly as the old seed's whole-class records did; the
+     * flash buckets then measure only the fresh R7 targets.
+     * (Fixture classes in this file are all 'R7 '-prefixed.)
+     */
+    private function skipSeededClasses(): void
+    {
+        foreach (MyClass::all() as $class) {
+            if (str_starts_with($class->name, 'R7 ')) {
+                continue;
+            }
+            $exists = TimeTableRecord::where('my_class_id', $class->id)
+                ->whereNull('section_id')->whereNull('exam_id')
+                ->where('year', Qs::getCurrentSession())->exists();
+            if (!$exists) {
+                TimeTableRecord::create([
+                    'name' => 'R7 Skip Guard — ' . $class->name,
+                    'my_class_id' => $class->id,
+                    'section_id' => null,
+                    'exam_id' => null,
+                    'year' => Qs::getCurrentSession(),
+                ]);
+            }
+        }
+    }
+
     private function generateAll(array $extra = [])
     {
+        $this->skipSeededClasses();
+
         return $this->actingAs($this->admin())
             ->from(route('tt.generate.form'))
             ->post(route('tt.generate'), array_merge([

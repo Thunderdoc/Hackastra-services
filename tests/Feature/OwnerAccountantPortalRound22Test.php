@@ -214,22 +214,22 @@ class OwnerAccountantPortalRound22Test extends TestCase
         $foreign = $this->foreignStudentRecord();
 
         // Accountant: school-wide, any student.
-        $this->actingAs($this->accountant())->get(route('payments.invoice', Qs::hash(57)))->assertOk();
+        $this->actingAs($this->accountant())->get(route('payments.invoice', Qs::hash($this->student()->id)))->assertOk();
         $this->actingAs($this->accountant())->get(route('payments.invoice', Qs::hash($foreign->user_id)))->assertOk();
-        $this->actingAs($this->admin())->get(route('payments.invoice', Qs::hash(57)))->assertOk();
+        $this->actingAs($this->admin())->get(route('payments.invoice', Qs::hash($this->student()->id)))->assertOk();
 
         // Teacher never reaches the policy: middleware redirects.
-        $this->actingAs($this->teacher())->get(route('payments.invoice', Qs::hash(57)))->assertRedirect(route('login'));
+        $this->actingAs($this->teacher())->get(route('payments.invoice', Qs::hash($this->student()->id)))->assertRedirect(route('login'));
 
         // Principal passes the middleware but fails viewFees: 403.
-        $this->actingAs($this->principal())->get(route('payments.invoice', Qs::hash(57)))->assertForbidden();
+        $this->actingAs($this->principal())->get(route('payments.invoice', Qs::hash($this->student()->id)))->assertForbidden();
 
         // Student/parent never reach the policy either: middleware.
-        $this->actingAs($this->student())->get(route('payments.invoice', Qs::hash(57)))->assertRedirect(route('login'));
-        $this->actingAs($this->parent())->get(route('payments.invoice', Qs::hash(57)))->assertRedirect(route('login'));
+        $this->actingAs($this->student())->get(route('payments.invoice', Qs::hash($this->student()->id)))->assertRedirect(route('login'));
+        $this->actingAs($this->parent())->get(route('payments.invoice', Qs::hash($this->student()->id)))->assertRedirect(route('login'));
 
         // SA: PlatformOnly before the team gate.
-        $this->actingAs($this->superAdmin())->get(route('payments.invoice', Qs::hash(57)))->assertRedirect('/dashboard');
+        $this->actingAs($this->superAdmin())->get(route('payments.invoice', Qs::hash($this->student()->id)))->assertRedirect('/dashboard');
     }
 
     public function test_fee_reminders_accountant_only()

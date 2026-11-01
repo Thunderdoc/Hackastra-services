@@ -111,18 +111,35 @@ class OwnerExamDateSheetR18Test extends TestCase
     {
         $pool = $this->pool();
         $pairs = $this->classSubjectPairs();
-        $this->assertGreaterThanOrEqual(
-            $pool->count(), count($pairs),
-            'Not enough distinct (class, subject) pairs to clash the whole pool'
-        );
+        $this->assertNotEmpty($pool, 'No live teachers in pool — fixture broken');
 
-        // Give EVERY pool teacher a duty at the target slot, each
-        // on a distinct sitting (distinct pair, same date + time).
+        // Give EVERY pool teacher a duty at the target slot. The
+        // clash rule is cross-exam (same date + start time), so the
+        // pre-fill sittings live on a throwaway exam and the pairs
+        // cycle — since the section segment grew the pool to 90
+        // teachers, exam 1's 90 pairs no longer leave a spare pair
+        // for both the pre-fills AND a target under one exam.
+        $clashExam = \App\Models\Exam::create([
+            'name' => 'R18 Clash Pool Exam',
+            'term' => 'Term 1',
+            'year' => '2026-2027',
+            'my_class_id' => 0,
+        ]);
+        $sittings = [];
         foreach ($pool as $i => $teacher) {
-            [$classId, $subjectId] = $pairs[$i];
-            $sitting = $this->sitting($classId, $subjectId);
+            [$classId, $subjectId] = $pairs[$i % count($pairs)];
+            $key = $classId . '-' . $subjectId;
+            if (!isset($sittings[$key])) {
+                $sittings[$key] = ExamDate::create([
+                    'exam_id' => $clashExam->id,
+                    'my_class_id' => $classId,
+                    'subject_id' => $subjectId,
+                    'exam_date' => '2026-11-10',
+                    'start_time' => '09:00',
+                ]);
+            }
             ExamDuty::create([
-                'exam_date_id' => $sitting->id,
+                'exam_date_id' => $sittings[$key]->id,
                 'teacher_id' => $teacher->id,
                 'assigned_by' => $this->admin()->id,
             ]);
@@ -130,8 +147,9 @@ class OwnerExamDateSheetR18Test extends TestCase
         $preFilled = ExamDuty::count();
         $this->assertEquals($pool->count(), $preFilled);
 
-        // Target sitting: same slot, a pair no pool teacher holds.
-        [$tClass, $tSubject] = $pairs[$pool->count()];
+        // Target sitting: same slot under exam 1 — every teacher
+        // already holds a duty at this date + time.
+        [$tClass, $tSubject] = $pairs[0];
         $target = $this->sitting($tClass, $tSubject);
 
         $expected = 'Auto-assignment complete: 0 sitting(s) got an invigilator.'

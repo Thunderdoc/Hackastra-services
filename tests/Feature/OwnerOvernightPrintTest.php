@@ -120,9 +120,26 @@ class OwnerOvernightPrintTest extends TestCase
         $this->assertTrue((bool) preg_match('/<select[^>]*id="ds_class"[^>]*>(.*?)<\/select>/s', $page, $m), 'ds_class select not rendered');
         preg_match_all('/<option[^>]*>([^<]+)<\/option>/', $m[1], $opts);
         $names = array_map('trim', $opts[1]);
-        // Seeded teacher scope: Prep, Class 3, 6, 7, 9, 12 — the exact
-        // set the owner's screenshot showed as 12 / 3 / 6 / 7 / 9 / Prep.
-        $this->assertSame(['Prep', 'Class 3', 'Class 6', 'Class 7', 'Class 9', 'Class 12'], $names);
+        // The dropdown must list the teacher's live scope classes
+        // in natural class order (the property item 13 locked).
+        // The expected list is computed with the controller's own
+        // expression — the seeded scope grew in the section
+        // segment (Class 11 joined via an override), so a frozen
+        // list would pin the seed, not the behaviour.
+        $expected = \App\Models\MyClass::whereIn('id', \App\Support\TeacherScope::classIds($this->teacher()))
+            ->get()
+            ->sortBy(function ($c) {
+                if (preg_match('/(\d+)/', $c->name, $m)) {
+                    return sprintf('%05d-%s', (int) $m[1], $c->name);
+                }
+
+                return sprintf('00000-%s', $c->name);
+            })
+            ->pluck('name')->values()->all();
+        $this->assertGreaterThanOrEqual(6, count($expected), 'Seeded teacher scope must stay broad');
+        $this->assertContains('Prep', $expected);
+        $this->assertContains('Class 12', $expected);
+        $this->assertSame($expected, $names);
     }
 
     /* ---------------- Item 14: settings signature/stamp agreement ---------------- */

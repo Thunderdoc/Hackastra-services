@@ -136,34 +136,55 @@ class OwnerOvernightAttendanceTest extends TestCase
 
     public function test_periods_index_section_row_shows_section_count()
     {
-        // Wednesday 2026-10-28: Ananya's Class 12-E period is a
-        // section row (40 students); section-less class-grid rows
-        // still show their class total by timetable design.
+        // Wednesday 2026-10-28: Ananya has a Class 12 period in
+        // one of her override sections — its index row is a
+        // SECTION row and must show the section size, not the
+        // class size. Section resolved live (her Class 12 English
+        // anchor moved from section 68 to 76 in the section
+        // segment, 2026-10-30).
+        $cell = \App\Models\TimeTable::where('day', 'Wednesday')->whereNotNull('subject_id')
+            ->orderBy('id')->get()
+            ->first(function ($c) {
+                $rec = $c->tt_record;
+                return $rec && (int) $rec->my_class_id === 13
+                    && \App\Support\SectionTeacher::teacherIdFor($rec->section_id, $c->subject) === $this->teacher()->id;
+            });
+        $this->assertNotNull($cell, 'Ananya must hold a Wednesday Class 12 period');
+        $section = $cell->tt_record->section;
+        $roster = \App\Models\StudentRecord::where('section_id', $section->id)
+            ->where('grad', 0)->count();
+        $this->assertGreaterThan(0, $roster);
+
         $html = $this->actingAs($this->teacher())
             ->get(route('attendance.periods.index') . '?date=2026-10-28')
             ->assertOk()
             ->getContent();
 
-        $found = preg_match('/Class 12 — E<\/td>.*?ma-students">\s*(?:\d+\/)?(\d+)\s*</s', $html, $m);
-        $this->assertSame(1, $found, 'Class 12-E row not found on the periods index');
-        $this->assertSame('40', $m[1], 'Section row must show the section size, not the class size');
+        $found = preg_match('/Class 12 — ' . preg_quote($section->name, '/') . '<\/td>.*?ma-students">\s*(?:\d+\/)?(\d+)\s*</s', $html, $m);
+        $this->assertSame(1, $found, 'Class 12-' . $section->name . ' row not found on the periods index');
+        $this->assertSame((string) $roster, $m[1], 'Section row must show the section size, not the class size');
     }
 
     public function test_period_subject_report_section_filter_lists_section_only()
     {
         // One legacy-style Class 12-E English session (section_id
-        // NULL, section carried by its timetable record tt 805) with
-        // entries for the 40 section-E students plus 5 section-A
-        // students: the unfiltered report must still show both, the
-        // section-filtered report only section E.
-        $teacher = $this->teacher();
+        // NULL, section carried by its timetable record — the cell
+        // is resolved live; the pre-segment id tt 805 is stale)
+        // with entries for the 40 section-E students plus 5
+        // section-A students: the unfiltered report must still
+        // show both, the section-filtered report only section E.
+        $cell = \App\Models\TimeTable::where('subject_id', 79)
+            ->whereHas('tt_record', function ($q) {
+                $q->where('section_id', 68);
+            })
+            ->orderBy('id')->firstOrFail();
         $session = AttendanceSession::create([
             'date' => '2026-10-28',
-            'time_table_id' => 805,
+            'time_table_id' => $cell->id,
             'my_class_id' => 13,
             'section_id' => null,
             'subject_id' => 79,
-            'teacher_id' => $teacher->id,
+            'teacher_id' => \App\Support\SectionTeacher::teacherIdFor(68, \App\Models\Subject::findOrFail(79)),
             'topic' => 'Overnight section probe',
             'status' => AttendanceSession::STATUS_SUBMITTED,
             'submitted_at' => now(),

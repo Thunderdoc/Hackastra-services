@@ -98,14 +98,15 @@ class OwnerQuizTest extends TestCase
 
     public function test_teacher_creates_quiz_with_questions()
     {
-        // Section 74 (Class 12 K) is one of teacher 4's section-override
-        // sections for subject 79; section 65 (B) belongs to teacher 44,
-        // so a section-65 create by teacher 4 must 403 — see
+        // Section 76 is teacher 4's section-override section for
+        // subject 79 (the anchor moved from 74 with the section
+        // segment, 2026-10-30); section 65 (B) belongs to teacher
+        // 45, so a section-65 create by teacher 4 must 403 — see
         // SectionTeacher::teacherIdFor.
         $response = $this->actingAs($this->teacher())->post(route('quizzes.store'), [
-            'title' => 'Class 12 K English Quiz',
+            'title' => 'Class 12 English Quiz',
             'subject_id' => 79,
-            'section_id' => 74,
+            'section_id' => 76,
             'time_limit_minutes' => 30,
             'questions' => [
                 [
@@ -118,13 +119,13 @@ class OwnerQuizTest extends TestCase
         ]);
         $response->assertRedirect();
         $this->assertDatabaseHas('quizzes', [
-            'title' => 'Class 12 K English Quiz',
+            'title' => 'Class 12 English Quiz',
             'teacher_id' => $this->teacher()->id,
             'my_class_id' => 13,
-            'section_id' => 74,
+            'section_id' => 76,
             'subject_id' => 79,
         ]);
-        $quiz = Quiz::where('title', 'Class 12 K English Quiz')->first();
+        $quiz = Quiz::where('title', 'Class 12 English Quiz')->first();
         $this->assertEquals(1, $quiz->questions()->count());
         $this->assertEquals('Apple', $quiz->questions()->first()->options[1]);
         $response->assertRedirect(route('quizzes.review', $quiz->id));

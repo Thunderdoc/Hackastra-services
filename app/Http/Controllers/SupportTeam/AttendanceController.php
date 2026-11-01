@@ -177,7 +177,7 @@ class AttendanceController extends Controller
            builder PDFs already use. Chunking + lean rows keep the
            peak far from that ceiling; the limit is a backstop,
            not the fix. */
-        ini_set('memory_limit', '512M');
+        Qs::ensurePdfMemory();
         set_time_limit(300);
 
         $filename = 'attendance-report-'
@@ -408,7 +408,7 @@ class AttendanceController extends Controller
         return [
             'name' => Qs::getSystemName(),
             'address' => Qs::getSetting('address'),
-            'phone' => Qs::getSetting('phone'),
+            'phone' => Qs::getSchoolPhone(),
             'email' => Qs::getSetting('system_email'),
             'session' => Qs::getCurrentSession(),
             'code' => strtoupper((string) Qs::getAppCode()),
@@ -755,7 +755,11 @@ class AttendanceController extends Controller
         $month = $request->query('month');
 
         return $month && preg_match('/^\d{4}-\d{2}$/', $month)
-            ? Carbon::createFromFormat('Y-m', $month)->startOfMonth()
+            // Day anchored to 01 before parsing: createFromFormat
+            // fills a missing day from TODAY, so on the 31st a
+            // 30-day month overflowed into the next month even
+            // after startOfMonth() (Apr 31 → May 1).
+            ? Carbon::createFromFormat('Y-m-d', $month . '-01')->startOfMonth()
             : Carbon::now()->startOfMonth();
     }
 

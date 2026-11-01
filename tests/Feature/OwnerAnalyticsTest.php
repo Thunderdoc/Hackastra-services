@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Http\Controllers\SupportTeam\AnalyticsController;
 use App\Support\TeacherScope;
 use App\User;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
@@ -27,6 +28,18 @@ use Tests\TestCase;
  */
 class OwnerAnalyticsTest extends TestCase
 {
+    // The class-13 session cleanup in
+    // test_empty_data_classes_and_months_render_without_errors
+    // has always documented itself as "the deletes roll back
+    // with the test transaction" — but the trait was never
+    // actually used, so the deletes COMMITTED. That was a no-op
+    // while the seed left class 13 session-free; once the term
+    // backfill (2026-10-30) gave class 13 real registers, the
+    // committed delete wiped them for every later test in the
+    // shared suite DB. The trait makes the code match its own
+    // documented intent.
+    use DatabaseTransactions;
+
     protected function setUp(): void
     {
         parent::setUp();

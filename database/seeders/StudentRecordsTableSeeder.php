@@ -87,8 +87,17 @@ class StudentRecordsTableSeeder extends Seeder
                     $phone = '+91 ' . $faker->numerify('98########');
                 } while (isset($usedPhones[$phone]));
                 $usedPhones[$phone] = true;
+                // Indian names, NO faker draw (owner fix 2026-10-30):
+                // the en_US $faker->name produced "Prof. Alysha
+                // Braun", "Lilian Rempel DDS", "Mrs. Jackie Nader
+                // II" on registers and report cards. Names come
+                // from curated Indian lists, indexed by a stable
+                // hash — deterministic like the gender/DOB below,
+                // and free of titles/suffixes by construction.
+                $gender = (($section->id + $i) % 2 === 0) ? 'Male' : 'Female';
+                $name = $this->indianStudentName($gender, $section->id, $i);
                 $userRows[] = [
-                    'name' => $faker->name,
+                    'name' => $name,
                     'phone' => $phone,
                     'email' => $email,
                     'username' => $admNo,
@@ -101,7 +110,7 @@ class StudentRecordsTableSeeder extends Seeder
                     // permanently blank columns (owner: the PDFs
                     // look bekar). Age follows the class: Prep is
                     // 5, each higher class one year older.
-                    'gender' => (($section->id + $i) % 2 === 0) ? 'Male' : 'Female',
+                    'gender' => $gender,
                     // Month/day are SPREAD by multiplication, not
                     // lockstep: ($i % 12)+1 / ($i % 28)+1 printed
                     // 01 Jan, 02 Feb, 03 Mar... down the register —
@@ -171,5 +180,33 @@ class StudentRecordsTableSeeder extends Seeder
             'user_id' => $user->id,
             'section_id' => $section->id
         ]);
+    }
+
+    /**
+     * A plausibly Indian student name from curated lists — first
+     * name by gender, family name shared. Indexed by a stable hash
+     * of (section, position) so a fresh seed always produces the
+     * same roster, with NO honorifics (Prof/Dr/Mrs…) and NO
+     * suffixes (DDS/MD/II/Jr…) — the lists simply do not contain
+     * any. Pinned by OwnerIndianStudentNamesTest.
+     */
+    protected function indianStudentName(string $gender, int $sectionId, int $i): string
+    {
+        $male = ['Aarav', 'Vihaan', 'Arjun', 'Kabir', 'Advait', 'Reyansh', 'Krishna', 'Ishaan', 'Rohan', 'Vivaan', 'Aditya', 'Sai', 'Shaurya', 'Atharv', 'Dhruv', 'Pranav', 'Kunal', 'Nikhil', 'Varun', 'Rahul', 'Sachin', 'Vikram', 'Manoj', 'Rajesh', 'Suresh', 'Amit', 'Deepak', 'Harish', 'Karthik', 'Madhav', 'Naren', 'Praveen', 'Raghav', 'Sanjay', 'Tarun', 'Vishal', 'Yash', 'Dev', 'Gaurav', 'Mohit'];
+        $female = ['Ananya', 'Diya', 'Aadhya', 'Myra', 'Sara', 'Ira', 'Prisha', 'Anika', 'Navya', 'Pari', 'Riya', 'Kiara', 'Shanaya', 'Advika', 'Charvi', 'Esha', 'Ishita', 'Kavya', 'Lakshmi', 'Meera', 'Nandini', 'Pooja', 'Radha', 'Shreya', 'Sneha', 'Tanvi', 'Uma', 'Vaishnavi', 'Divya', 'Harini', 'Keerthi', 'Madhuri', 'Nithya', 'Pavithra', 'Revathi', 'Sowmya', 'Deepika', 'Jahnavi', 'Farah', 'Zoya'];
+        $last = ['Sharma', 'Verma', 'Gupta', 'Iyer', 'Reddy', 'Nair', 'Patel', 'Khan', 'Singh', 'Kumar', 'Das', 'Rao', 'Menon', 'Pillai', 'Yadav', 'Mishra', 'Tiwari', 'Pandey', 'Chandra', 'Bose', 'Chatterjee', 'Banerjee', 'Mukherjee', 'Kulkarni', 'Deshmukh', 'Patil', 'Jadhav', 'Shetty', 'Hegde', 'Bhat', 'Kaur', 'Gill', 'Chauhan', 'Rathore', 'Saxena', 'Agarwal', 'Malhotra', 'Kapoor', 'Khanna', 'Mehta', 'Shah', 'Joshi', 'Bhatt', 'Trivedi', 'Dubey', 'Shukla', 'Choudhary', 'Krishnan', 'Subramanian', 'Venkatesh', 'Raman'];
+
+        $first = $gender === 'Male' ? $male : $female;
+        $hash = $this->hashOf('stuname|' . $sectionId . '|' . $i);
+        $firstName = $first[$hash % count($first)];
+        $lastName = $last[intdiv($hash, count($first)) % count($last)];
+
+        return $firstName . ' ' . $lastName;
+    }
+
+    /** Unsigned crc32 so hash-derived values are identical on any platform. */
+    protected function hashOf(string $key): int
+    {
+        return (int) sprintf('%u', crc32($key));
     }
 }

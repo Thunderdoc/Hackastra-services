@@ -73,9 +73,17 @@
     <div class="pat-actionbar">
         @if(!empty($marks_selector_full))
             <button type="button" id="l84-reset-btn" class="btn btn-light l84-reset-btn">Reset</button>
-            <button type="submit" id="l84-manage-btn" class="btn btn-primary">Manage Marks <i class="icon-paperplane ml-2"></i></button>
+            <button type="submit" id="l84-manage-btn" class="btn btn-primary"><span id="l84-manage-btn-label">Manage Marks</span> <i class="icon-paperplane ml-2"></i></button>
         @else
             <button type="submit" class="btn btn-light l115-change-btn">Change</button>
         @endif
     </div>
+    @if(!empty($marks_selector_full))
+        {{-- Owner order 2026-11-01: when the chosen unit is not
+             enabled (exam still ahead, or marks already submitted),
+             the button above reads "Not Enabled" and this line says
+             why — filled by the marks/index script from the
+             entry-state endpoint, hidden otherwise. --}}
+        <p id="l84-entry-note" class="l84-entry-note" style="display:none" role="status"></p>
+    @endif
 </form>

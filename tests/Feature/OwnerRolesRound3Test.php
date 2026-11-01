@@ -67,6 +67,23 @@ class OwnerRolesRound3Test extends TestCase
         return StudentRecord::where('my_class_id', 3)->where('grad', 0)->firstOrFail();
     }
 
+    /**
+     * A student record in a class the given teacher has NO scope
+     * over, resolved live. Section segment (2026-10-30): teacher2
+     * gained a Prep override, so "foreign = Prep" stopped being
+     * true — foreign must be computed from the live scope map.
+     */
+    protected function foreignRecordFor($teacher)
+    {
+        $scope = \App\Support\TeacherScope::classIds($teacher);
+        $record = StudentRecord::where('grad', 0)
+            ->whereNotIn('my_class_id', $scope ?: [-1])
+            ->orderBy('id')->firstOrFail();
+        $this->assertNotContains((int) $record->my_class_id, $scope);
+
+        return $record;
+    }
+
     protected function uniq($prefix)
     {
         return $prefix . ' ' . uniqid();
@@ -292,8 +309,13 @@ class OwnerRolesRound3Test extends TestCase
         $this->actingAs($student)
             ->get(route('marks.show', [Qs::hash($other->id), $year]))
             ->assertRedirect(route('dashboard'));
+        // teacher2 bounces for a student outside their scope
+        // (student@ is INSIDE teacher2's scope since the section
+        // segment gave them a Prep override — a 200 there is now
+        // correct, so the bounce probe uses a foreign student).
+        $foreignToTeacher2 = User::findOrFail($this->foreignRecordFor($this->teacher2())->user_id);
         $this->actingAs($this->teacher2())
-            ->get(route('marks.show', [Qs::hash($student->id), $year]))
+            ->get(route('marks.show', [Qs::hash($foreignToTeacher2->id), $year]))
             ->assertRedirect(route('dashboard'));
 
         // Quizzes: own-class list opens; a foreign-class quiz's
@@ -417,7 +439,10 @@ class OwnerRolesRound3Test extends TestCase
     public function test_teacher_scoped_indexes_and_health_show()
     {
         $teacher2 = $this->teacher2();
-        $prepStudent = $this->student();
+        // The "foreign" student is one outside teacher2's scope,
+        // resolved live (Prep joined their scope in the section
+        // segment — student@ no longer discriminates).
+        $prepStudent = User::findOrFail($this->foreignRecordFor($teacher2)->user_id);
         $class2Record = $this->class2Record();
         $class2Student = User::findOrFail($class2Record->user_id);
 

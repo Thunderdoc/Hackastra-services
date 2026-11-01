@@ -100,6 +100,49 @@
 
         function val($el) { var v = $el.val(); return (v === null || v === '') ? '' : String(v); }
 
+        /* Owner order 2026-11-01: once all four are chosen, ask the
+           server whether this unit is actually enabled (exam date
+           reached + not yet submitted, via MarkLifecycle). If not,
+           the button reads "Not Enabled" and the note under it says
+           why — nobody clicks through into a locked grid. The
+           server-side gates remain the real enforcement; a failed
+           check fails OPEN to them rather than stranding the user. */
+        var $note = $('#l84-entry-note'), $label = $('#l84-manage-btn-label'),
+            entryStateUrl = '{{ route('marks.entry_state') }}',
+            entrySeq = 0, entryOk = false, entryPending = false, lastEntryKey = '';
+
+        function checkEntry() {
+            var key = [val($exam), val($cls), val($sec), val($sub)].join(':');
+            if (key === lastEntryKey) { return; }
+            lastEntryKey = key;
+            entryOk = false; entryPending = true;
+            var seq = ++entrySeq;
+            $.ajax({ url: entryStateUrl, dataType: 'json', data: {
+                exam_id: val($exam), class_id: val($cls),
+                section_id: val($sec), subject_id: val($sub)
+            }}).done(function (data) {
+                if (seq !== entrySeq) { return; }
+                entryPending = false;
+                if (data && data.enabled) {
+                    entryOk = true;
+                    $label.text('Manage Marks');
+                    $note.hide().text('');
+                } else {
+                    entryOk = false;
+                    $label.text('Not Enabled');
+                    if (data && data.reason) { $note.text(data.reason).show(); }
+                    else { $note.hide().text(''); }
+                }
+                evalState();
+            }).fail(function () {
+                if (seq !== entrySeq) { return; }
+                entryPending = false; entryOk = true;
+                $label.text('Manage Marks');
+                $note.hide().text('');
+                evalState();
+            });
+        }
+
         function evalState() {
             var done1 = val($exam) !== '',
                 done2 = val($cls) !== '' && val($sec) !== '' && !cascadePending,
@@ -114,7 +157,14 @@
                 if (i === current) { $li.attr('aria-current', 'step'); } else { $li.removeAttr('aria-current'); }
             });
 
-            $btn.prop('disabled', !(done1 && done2 && done3));
+            var complete = done1 && done2 && done3;
+            if (complete) { checkEntry(); }
+            else {
+                entrySeq++; entryOk = false; entryPending = false; lastEntryKey = '';
+                $label.text('Manage Marks');
+                $note.hide().text('');
+            }
+            $btn.prop('disabled', !complete || entryPending || !entryOk);
         }
 
         $('#exam_id, #my_class_id, #section_id, #subject_id').on('change', function () {

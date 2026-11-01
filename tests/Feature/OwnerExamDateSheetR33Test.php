@@ -167,10 +167,13 @@ class OwnerExamDateSheetR33Test extends TestCase
     {
         $this->generate(1, self::VENUE);
 
-        // Student 57 is Aarav Sharma, Prep Section A; admin is
-        // teamSA so no fee block stands between us and the card.
+        // Aarav Sharma (student@, Prep Section A) — id resolved
+        // by email; the raw id shifted when the roster grew.
+        // Admin is teamSA so no fee block stands between us and
+        // the card.
+        $studentId = User::where('email', 'student@hackstra.app')->firstOrFail()->id;
         $this->actingAs($this->admin())
-            ->get(route('admit_cards.my_card', [1, 57]))
+            ->get(route('admit_cards.my_card', [1, $studentId]))
             ->assertOk()
             ->assertSee('Aarav Sharma')
             ->assertDontSee(self::VENUE);

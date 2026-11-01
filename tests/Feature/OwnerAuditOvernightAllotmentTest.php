@@ -138,15 +138,27 @@ class OwnerAuditOvernightAllotmentTest extends TestCase
 
     // ---- Item 3: section-wise attendance registers ----
 
+    /** The probe cell: a Monday Class 12 section-76 English period (teacher@'s override). */
+    protected function probeCell()
+    {
+        return TimeTable::where('day', 'Monday')->where('subject_id', 79)
+            ->whereHas('tt_record', function ($q) {
+                $q->where('section_id', 76);
+            })
+            ->orderBy('id')->firstOrFail();
+    }
+
     public function test_item3_section_take_page_lists_only_section_students()
     {
-        // tt 788: Class 12 (id 13), section 68 (E), 40 students.
-        $expected = StudentRecord::where('my_class_id', 13)->where('section_id', 68)
+        // Probe cell: Class 12 (id 13), section 76, 40 students
+        // (resolved live — the pre-segment seeded id tt 788 and
+        // section 68's old holder are stale).
+        $expected = StudentRecord::where('my_class_id', 13)->where('section_id', 76)
             ->where('grad', 0)->orderBy('id')->pluck('adm_no')->all();
         $this->assertCount(40, $expected);
 
         $response = $this->actingAs($this->teacher())
-            ->get(route('attendance.periods.take', [788, 'date' => '2026-11-02']));
+            ->get(route('attendance.periods.take', [$this->probeCell()->id, 'date' => '2026-11-02']));
         $response->assertOk();
         $rolls = [];
         preg_match_all('/reg-roll">(\d+)</', $response->getContent(), $rolls);
@@ -155,10 +167,10 @@ class OwnerAuditOvernightAllotmentTest extends TestCase
 
     public function test_item3_section_roster_export_lists_exactly_section_students()
     {
-        $expected = StudentRecord::where('my_class_id', 13)->where('section_id', 68)
+        $expected = StudentRecord::where('my_class_id', 13)->where('section_id', 76)
             ->where('grad', 0)->orderBy('id')->pluck('adm_no')->all();
         $csv = $this->actingAs($this->teacher())
-            ->get(route('attendance.periods.roster_export', [788]))
+            ->get(route('attendance.periods.roster_export', [$this->probeCell()->id]))
             ->assertOk()->streamedContent();
         $this->assertEqualsCanonicalizing($expected, $this->csvAdmNos($csv),
             'Roster export for a section period must contain exactly that section\'s students');
@@ -171,9 +183,12 @@ class OwnerAuditOvernightAllotmentTest extends TestCase
         // which held the legacy shape only in one dev database; a
         // fresh seed's session 11 is a different, modern row. Build
         // the legacy shape directly: a Class 11-A section period
-        // (record 12, Mathematics) whose session is stored with
-        // section_id NULL and entries for the WHOLE class.
-        $cell = TimeTable::where('ttr_id', 12)->where('subject_id', 69)
+        // (section 55's record, Mathematics) whose session is
+        // stored with section_id NULL and entries for the WHOLE
+        // class. (Record resolved by section — record ids shifted
+        // when every class went per-section.)
+        $record = \App\Models\TimeTableRecord::where('section_id', 55)->firstOrFail();
+        $cell = TimeTable::where('ttr_id', $record->id)->where('subject_id', 69)
             ->orderBy('id')->firstOrFail();
         $date = null;
         $cursor = \Carbon\Carbon::create(2026, 11, 2);

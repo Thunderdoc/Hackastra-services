@@ -41,16 +41,22 @@ use Tests\TestCase;
  * Fixture anchors (seeded, resolved by email / ids, never
  * hardcoded student ids):
  * - Ritu Sharma (teacher20@teacher.com, id 44): override-only
- *   teacher — Class 11-A (section 55) English (67) + Class 12-B
- *   (section 65) English (79) via overrides, no direct subjects.
+ *   teacher — one English override in each of classes 2/5/8/11/13
+ *   (sections 4/19/34/49/64) since the section segment
+ *   (2026-10-30), no direct subjects. Her combos below are
+ *   resolved from that live map.
  * - Ananya Sharma (teacher@hackstra.app, id 4): direct teacher of
- *   Class 12 English (79) and Prep English (1); LEADS Class 8
- *   sections 31–36 but teaches NO Class 8 subject and holds NO
- *   Class 8 override — the clean led-only anchor.
- * - Period tt 788: Monday, Class 12-E (section 68), English (79),
- *   effective teacher Ananya, zero seeded sessions, roster 40.
- * - Past Monday 2026-10-19 (no session for tt 788), Tuesday
- *   2026-10-20 (wrong weekday), future Monday computed from today.
+ *   Class 12 English (79) and Prep English (1); LEADS Class 7
+ *   (my_class_id 8) sections 31–36 but teaches NO my_class_id 8
+ *   subject — she holds an override only in section 31, so
+ *   section 32 is the clean led-only anchor.
+ * - Probe period: a Monday cell of Class 12 section 76 /
+ *   English (79), effective teacher Ananya via her (76, 79)
+ *   override, zero seeded sessions, roster 40 (resolved by
+ *   period() — the pre-segment seeded id tt 788 is stale).
+ * - Past Monday 2026-10-19 (no session for the probe cell),
+ *   Tuesday 2026-10-20 (wrong weekday), future Monday computed
+ *   from today.
  */
 class OwnerTeacherPortalRound24Test extends TestCase
 {
@@ -157,19 +163,54 @@ class OwnerTeacherPortalRound24Test extends TestCase
         return [$data, $first->id, $key, $new, $comp];
     }
 
+    protected $probeTtId;
+
+    /** Resolve (once per test) the probe cell id WITHOUT preconditions. */
+    protected function resolveProbeTtId(): int
+    {
+        if ($this->probeTtId === null) {
+            // Section segment (2026-10-30): the old seeded cell id
+            // (tt 788) now points at an unrelated period. The probe
+            // cell is resolved by its anchors instead: a Monday cell
+            // of Class 12 section 76 / English (79), whose effective
+            // teacher is Ananya via her (76, 79) override, roster 40.
+            $tt = TimeTable::where('day', 'Monday')
+                ->where('subject_id', 79)
+                ->whereHas('tt_record', function ($q) {
+                    $q->where('section_id', 76);
+                })
+                ->orderBy('id')
+                ->first();
+            $this->assertNotNull($tt, 'Probe Monday cell (section 76, English) must exist');
+            $this->probeTtId = (int) $tt->id;
+        }
+
+        return $this->probeTtId;
+    }
+
     protected function period()
     {
-        $tt = TimeTable::findOrFail(788);
-        $this->assertSame('Monday', $tt->day, 'tt 788 must be a Monday period');
-        $this->assertSame(0, AttendanceSession::whereDate('date', self::PAST_MONDAY)->where('time_table_id', 788)->count(), 'tt 788 must have no session on the probe date');
+        $tt = TimeTable::findOrFail($this->resolveProbeTtId());
+        $this->assertSame('Monday', $tt->day, 'Probe cell must be a Monday period');
+        $this->assertSame(
+            $this->teacher()->id,
+            \App\Support\SectionTeacher::teacherIdFor(76, \App\Models\Subject::findOrFail(79)),
+            'Probe cell effective teacher must be Ananya'
+        );
+        $this->assertSame(0, AttendanceSession::whereDate('date', self::PAST_MONDAY)->where('time_table_id', $tt->id)->count(), 'Probe cell must have no session on the probe date');
 
         return $tt;
     }
 
+    protected function ttId(): int
+    {
+        return $this->resolveProbeTtId();
+    }
+
     protected function rosterIds(): array
     {
-        $ids = StudentRecord::where('grad', 0)->where('my_class_id', 13)->where('section_id', 68)->orderBy('id')->pluck('id')->all();
-        $this->assertSame(40, count($ids), 'Class 12-E roster must be exactly 40');
+        $ids = StudentRecord::where('grad', 0)->where('my_class_id', 13)->where('section_id', 76)->orderBy('id')->pluck('id')->all();
+        $this->assertSame(40, count($ids), 'Probe section roster must be exactly 40');
 
         return $ids;
     }
@@ -191,21 +232,55 @@ class OwnerTeacherPortalRound24Test extends TestCase
 
     protected function sessionCount(string $date = self::PAST_MONDAY): int
     {
-        return AttendanceSession::whereDate('date', $date)->where('time_table_id', 788)->count();
+        return AttendanceSession::whereDate('date', $date)->where('time_table_id', $this->ttId())->count();
     }
 
     protected function entryCount(string $date = self::PAST_MONDAY): int
     {
         return DB::table('attendance_session_entries')->whereIn('session_id', function ($q) use ($date) {
-            $q->select('id')->from('attendance_sessions')->whereDate('date', $date)->where('time_table_id', 788);
+            $q->select('id')->from('attendance_sessions')->whereDate('date', $date)->where('time_table_id', $this->ttId());
         })->count();
     }
 
     // ---------- MARKS ENTRY: own subject works ----------
 
+    /** One of Ritu's live override combos: [exam, class, section, subject]. */
+    protected function rituCombo(): array
+    {
+        $row = DB::table('section_subject_teachers')
+            ->where('teacher_id', $this->ritu()->id)
+            ->orderBy('section_id')->orderBy('subject_id')->first();
+        $this->assertNotNull($row, 'Ritu must hold an override in the seed');
+        $section = \App\Models\Section::findOrFail($row->section_id);
+        return [1, (int) $section->my_class_id, (int) $section->id, (int) $row->subject_id];
+    }
+
+    /** A combo in Ritu's own override class+section for a subject she does NOT teach. */
+    protected function rituForeignCombo(): array
+    {
+        [, $classId, $sectionId, $ownSubjectId] = $this->rituCombo();
+        $subject = \App\Models\Subject::where('my_class_id', $classId)
+            ->where('id', '!=', $ownSubjectId)
+            ->whereExists(function ($q) use ($classId, $sectionId) {
+                $q->select(DB::raw(1))->from('marks')
+                    ->where('marks.subject_id', DB::raw('subjects.id'))
+                    ->where('marks.exam_id', 1)
+                    ->where('marks.my_class_id', $classId)
+                    ->where('marks.section_id', $sectionId);
+            })
+            ->orderBy('id')->first();
+        $this->assertNotNull($subject, 'A foreign subject with marks must exist in her section');
+        $this->assertNotSame(
+            (int) $this->ritu()->id,
+            \App\Support\SectionTeacher::teacherIdFor($sectionId, $subject),
+            'Foreign subject must not resolve to Ritu'
+        );
+        return [1, $classId, $sectionId, (int) $subject->id];
+    }
+
     public function test_ritu_own_override_subject_manage_and_update_work()
     {
-        $combo = [1, 12, 55, 67];
+        $combo = $this->rituCombo();
         $this->actingAs($this->ritu())->get(route('marks.manage', $combo))->assertOk();
 
         [$payload, $markId, $key, $new, $comp] = $this->payloadWithOneChange($combo);
@@ -217,14 +292,14 @@ class OwnerTeacherPortalRound24Test extends TestCase
 
     public function test_ritu_foreign_subject_in_own_class_manage_is_forbidden()
     {
-        // Class 11 Maths (69) is taught by teacher 24; Ritu's Class 11
-        // override covers English (67) only. Class scope alone passes.
-        $this->actingAs($this->ritu())->get(route('marks.manage', [1, 12, 55, 69]))->assertForbidden();
+        // A subject in her own override section that she does not
+        // teach: class scope alone passes, the subject gate refuses.
+        $this->actingAs($this->ritu())->get(route('marks.manage', $this->rituForeignCombo()))->assertForbidden();
     }
 
     public function test_ritu_foreign_subject_in_own_class_update_is_forbidden_and_writes_nothing()
     {
-        $combo = [1, 12, 55, 69];
+        $combo = $this->rituForeignCombo();
         $first = Mark::where($this->comboRow($combo))->orderBy('id')->firstOrFail();
         $before = $first->t1;
         $this->actingAs($this->ritu())->put(route('marks.update', $combo), $this->payloadFor($combo))->assertForbidden();
@@ -243,14 +318,16 @@ class OwnerTeacherPortalRound24Test extends TestCase
 
     public function test_ananya_led_only_class_manage_is_forbidden()
     {
-        // Ananya LEADS Class 8 (sections 31–36) but teaches no Class 8
-        // subject and holds no Class 8 override. Class scope passes.
-        $this->actingAs($this->teacher())->get(route('marks.manage', [1, 8, 31, 43]))->assertForbidden();
+        // Ananya LEADS my_class_id 8 sections 31–36 but teaches no
+        // subject of that class. Since the section segment she
+        // holds an override in section 31 only — section 32 stays
+        // led-only: she leads it, yet the subject gate refuses her.
+        $this->actingAs($this->teacher())->get(route('marks.manage', [1, 8, 32, 43]))->assertForbidden();
     }
 
     public function test_ananya_led_only_class_update_is_forbidden_and_writes_nothing()
     {
-        $combo = [1, 8, 31, 43];
+        $combo = [1, 8, 32, 43];
         $first = Mark::where($this->comboRow($combo))->orderBy('id')->firstOrFail();
         $before = $first->t1;
         $this->actingAs($this->teacher())->put(route('marks.update', $combo), $this->payloadFor($combo))->assertForbidden();
@@ -289,10 +366,10 @@ class OwnerTeacherPortalRound24Test extends TestCase
         $exam = Exam::findOrFail(1);
         $exam->results_published = true;
         $exam->save();
-        // Ananya effectively teaches section 68 English (override
-        // 68/79); section 66 English belongs to override teacher 45
+        // Ananya effectively teaches section 76 English (override
+        // 76/79); section 68 English belongs to override teacher 63
         // and is correctly refused to her since round 24's gate.
-        $combo = [1, 13, 68, 79];
+        $combo = [1, 13, 76, 79];
         $this->actingAs($this->teacher())->put(route('marks.update', $combo), $this->payloadFor($combo))->assertOk();
     }
 
@@ -301,9 +378,9 @@ class OwnerTeacherPortalRound24Test extends TestCase
     public function test_ananya_own_period_take_and_store_work()
     {
         $this->period();
-        $this->actingAs($this->teacher())->get(route('attendance.periods.take', ['tt_id' => 788, 'date' => self::PAST_MONDAY]))->assertOk();
+        $this->actingAs($this->teacher())->get(route('attendance.periods.take', ['tt_id' => $this->ttId(), 'date' => self::PAST_MONDAY]))->assertOk();
 
-        $response = $this->actingAs($this->teacher())->post(route('attendance.periods.store', 788), $this->storePayload(self::PAST_MONDAY));
+        $response = $this->actingAs($this->teacher())->post(route('attendance.periods.store', $this->ttId()), $this->storePayload(self::PAST_MONDAY));
         $response->assertRedirect(route('attendance.periods.index', ['date' => self::PAST_MONDAY]));
         $response->assertSessionHas('flash_success');
         $this->assertSame(1, $this->sessionCount(), 'Own-period submit must create exactly one session');
@@ -318,11 +395,11 @@ class OwnerTeacherPortalRound24Test extends TestCase
         // controller guard is the refusal: redirect to the index
         // with the read-only flash. Admin never submits registers.
         $this->period();
-        $take = $this->actingAs($this->admin())->get(route('attendance.periods.take', ['tt_id' => 788, 'date' => self::PAST_MONDAY]));
+        $take = $this->actingAs($this->admin())->get(route('attendance.periods.take', ['tt_id' => $this->ttId(), 'date' => self::PAST_MONDAY]));
         $take->assertRedirect(route('attendance.periods.index', ['date' => self::PAST_MONDAY]));
         $take->assertSessionHas('flash_danger', 'Period attendance is submitted by the subject teacher — this view is read-only for administrators.');
 
-        $store = $this->actingAs($this->admin())->post(route('attendance.periods.store', 788), $this->storePayload(self::PAST_MONDAY));
+        $store = $this->actingAs($this->admin())->post(route('attendance.periods.store', $this->ttId()), $this->storePayload(self::PAST_MONDAY));
         $store->assertRedirect(route('attendance.periods.index', ['date' => self::PAST_MONDAY]));
         $store->assertSessionHas('flash_danger', 'Period attendance is submitted by the subject teacher — this view is read-only for administrators.');
         $this->assertSame(0, $this->sessionCount(), 'An admin submit must write no session');
@@ -337,8 +414,8 @@ class OwnerTeacherPortalRound24Test extends TestCase
         // ever reaching guardCanTake — only admin reaches the guard.
         $this->period();
         foreach ([$this->principal(), $this->student(), $this->parent(), $this->accountant(), $this->librarian()] as $user) {
-            $this->actingAs($user)->get(route('attendance.periods.take', ['tt_id' => 788, 'date' => self::PAST_MONDAY]))->assertRedirect(route('login'));
-            $this->actingAs($user)->post(route('attendance.periods.store', 788), $this->storePayload(self::PAST_MONDAY))->assertRedirect(route('login'));
+            $this->actingAs($user)->get(route('attendance.periods.take', ['tt_id' => $this->ttId(), 'date' => self::PAST_MONDAY]))->assertRedirect(route('login'));
+            $this->actingAs($user)->post(route('attendance.periods.store', $this->ttId()), $this->storePayload(self::PAST_MONDAY))->assertRedirect(route('login'));
             $this->assertSame(0, $this->sessionCount(), 'A refused submit by '.$user->email.' must write no session');
             $this->assertSame(0, $this->entryCount(), 'A refused submit by '.$user->email.' must write no entries');
         }
@@ -347,8 +424,8 @@ class OwnerTeacherPortalRound24Test extends TestCase
     public function test_attendance_take_and_store_refused_for_super_admin()
     {
         $this->period();
-        $this->actingAs($this->superAdmin())->get(route('attendance.periods.take', ['tt_id' => 788, 'date' => self::PAST_MONDAY]))->assertRedirect(route('dashboard'));
-        $this->actingAs($this->superAdmin())->post(route('attendance.periods.store', 788), $this->storePayload(self::PAST_MONDAY))->assertForbidden();
+        $this->actingAs($this->superAdmin())->get(route('attendance.periods.take', ['tt_id' => $this->ttId(), 'date' => self::PAST_MONDAY]))->assertRedirect(route('dashboard'));
+        $this->actingAs($this->superAdmin())->post(route('attendance.periods.store', $this->ttId()), $this->storePayload(self::PAST_MONDAY))->assertForbidden();
         $this->assertSame(0, $this->sessionCount());
     }
 
@@ -357,8 +434,8 @@ class OwnerTeacherPortalRound24Test extends TestCase
     public function test_attendance_foreign_teacher_take_and_store_are_forbidden()
     {
         $this->period();
-        $this->actingAs($this->ritu())->get(route('attendance.periods.take', ['tt_id' => 788, 'date' => self::PAST_MONDAY]))->assertForbidden();
-        $this->actingAs($this->ritu())->post(route('attendance.periods.store', 788), $this->storePayload(self::PAST_MONDAY))->assertForbidden();
+        $this->actingAs($this->ritu())->get(route('attendance.periods.take', ['tt_id' => $this->ttId(), 'date' => self::PAST_MONDAY]))->assertForbidden();
+        $this->actingAs($this->ritu())->post(route('attendance.periods.store', $this->ttId()), $this->storePayload(self::PAST_MONDAY))->assertForbidden();
         $this->assertSame(0, $this->sessionCount(), 'A refused take/store must write no session');
         $this->assertSame(0, $this->entryCount(), 'A refused take/store must write no entries');
     }
@@ -367,7 +444,7 @@ class OwnerTeacherPortalRound24Test extends TestCase
     {
         $this->period();
         Substitution::create([
-            'time_table_id' => 788,
+            'time_table_id' => $this->ttId(),
             'date' => self::PAST_MONDAY,
             'absent_teacher_id' => $this->teacher()->id,
             'substitute_teacher_id' => $this->ritu()->id,
@@ -379,8 +456,8 @@ class OwnerTeacherPortalRound24Test extends TestCase
         // to her for that window — guardCanTake honours the
         // Substitution row alongside teacherIdFor. The no-row case
         // in the neighbouring test above stays forbidden.
-        $this->actingAs($this->ritu())->get(route('attendance.periods.take', ['tt_id' => 788, 'date' => self::PAST_MONDAY]))->assertOk();
-        $this->actingAs($this->ritu())->post(route('attendance.periods.store', 788), $this->storePayload(self::PAST_MONDAY))->assertRedirect();
+        $this->actingAs($this->ritu())->get(route('attendance.periods.take', ['tt_id' => $this->ttId(), 'date' => self::PAST_MONDAY]))->assertOk();
+        $this->actingAs($this->ritu())->post(route('attendance.periods.store', $this->ttId()), $this->storePayload(self::PAST_MONDAY))->assertRedirect();
         $this->assertSame(1, $this->sessionCount());
         $this->assertGreaterThan(0, $this->entryCount());
     }
@@ -390,9 +467,9 @@ class OwnerTeacherPortalRound24Test extends TestCase
     public function test_attendance_wrong_weekday_is_refused()
     {
         $this->period();
-        $take = $this->actingAs($this->teacher())->get(route('attendance.periods.take', ['tt_id' => 788, 'date' => self::TUESDAY]));
+        $take = $this->actingAs($this->teacher())->get(route('attendance.periods.take', ['tt_id' => $this->ttId(), 'date' => self::TUESDAY]));
         $take->assertSessionHasErrors('date');
-        $store = $this->actingAs($this->teacher())->post(route('attendance.periods.store', 788), $this->storePayload(self::TUESDAY));
+        $store = $this->actingAs($this->teacher())->post(route('attendance.periods.store', $this->ttId()), $this->storePayload(self::TUESDAY));
         $store->assertSessionHasErrors('date');
         $this->assertSame(0, $this->sessionCount(self::TUESDAY));
     }
@@ -401,7 +478,7 @@ class OwnerTeacherPortalRound24Test extends TestCase
     {
         $this->period();
         $futureMonday = Carbon::today()->next(Carbon::MONDAY)->format('Y-m-d');
-        $store = $this->actingAs($this->teacher())->post(route('attendance.periods.store', 788), $this->storePayload($futureMonday));
+        $store = $this->actingAs($this->teacher())->post(route('attendance.periods.store', $this->ttId()), $this->storePayload($futureMonday));
         $store->assertSessionHasErrors('date');
         $this->assertSame(0, $this->sessionCount($futureMonday));
     }
@@ -411,7 +488,7 @@ class OwnerTeacherPortalRound24Test extends TestCase
         $this->period();
         $ids = $this->rosterIds();
         array_pop($ids);
-        $store = $this->actingAs($this->teacher())->post(route('attendance.periods.store', 788), $this->storePayload(self::PAST_MONDAY, $this->statuses($ids)));
+        $store = $this->actingAs($this->teacher())->post(route('attendance.periods.store', $this->ttId()), $this->storePayload(self::PAST_MONDAY, $this->statuses($ids)));
         $store->assertSessionHasErrors('statuses');
         $this->assertSame(0, $this->sessionCount());
         $this->assertSame(0, $this->entryCount());
@@ -423,7 +500,7 @@ class OwnerTeacherPortalRound24Test extends TestCase
         $foreign = StudentRecord::where('grad', 0)->where('my_class_id', 13)->where('section_id', 65)->orderBy('id')->firstOrFail();
         $statuses = $this->statuses();
         $statuses[$foreign->id] = 'present';
-        $store = $this->actingAs($this->teacher())->post(route('attendance.periods.store', 788), $this->storePayload(self::PAST_MONDAY, $statuses));
+        $store = $this->actingAs($this->teacher())->post(route('attendance.periods.store', $this->ttId()), $this->storePayload(self::PAST_MONDAY, $statuses));
         $store->assertSessionHasErrors('statuses');
         $this->assertSame(0, $this->sessionCount());
         $this->assertSame(0, $this->entryCount());
@@ -434,19 +511,19 @@ class OwnerTeacherPortalRound24Test extends TestCase
     public function test_attendance_resubmit_is_locked_and_teacher_view_back_is_forbidden()
     {
         $this->period();
-        $this->actingAs($this->teacher())->post(route('attendance.periods.store', 788), $this->storePayload(self::PAST_MONDAY))->assertRedirect();
+        $this->actingAs($this->teacher())->post(route('attendance.periods.store', $this->ttId()), $this->storePayload(self::PAST_MONDAY))->assertRedirect();
         $this->assertSame(1, $this->sessionCount());
 
-        $again = $this->actingAs($this->teacher())->post(route('attendance.periods.store', 788), $this->storePayload(self::PAST_MONDAY));
+        $again = $this->actingAs($this->teacher())->post(route('attendance.periods.store', $this->ttId()), $this->storePayload(self::PAST_MONDAY));
         $again->assertRedirect(route('attendance.periods.index', ['date' => self::PAST_MONDAY]));
         $again->assertSessionHas('flash_danger', 'Attendance for this period was already submitted and is locked — it cannot be taken again.');
         $this->assertSame(1, $this->sessionCount(), 'A locked re-submit must not duplicate the session');
 
-        $take = $this->actingAs($this->teacher())->get(route('attendance.periods.take', ['tt_id' => 788, 'date' => self::PAST_MONDAY]));
+        $take = $this->actingAs($this->teacher())->get(route('attendance.periods.take', ['tt_id' => $this->ttId(), 'date' => self::PAST_MONDAY]));
         $take->assertRedirect(route('attendance.periods.index', ['date' => self::PAST_MONDAY]));
         $take->assertSessionHas('flash_success', 'Attendance for this period was already submitted.');
 
-        $session = AttendanceSession::whereDate('date', self::PAST_MONDAY)->where('time_table_id', 788)->firstOrFail();
+        $session = AttendanceSession::whereDate('date', self::PAST_MONDAY)->where('time_table_id', $this->ttId())->firstOrFail();
         $this->actingAs($this->teacher())->get(route('attendance.periods.show', $session->id))->assertForbidden();
         $this->actingAs($this->admin())->get(route('attendance.periods.show', $session->id))->assertOk();
     }

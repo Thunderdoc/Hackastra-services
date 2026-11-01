@@ -319,6 +319,7 @@ Route::group(['middleware' => 'auth'], function () {
             // show/tabulation below, untouched.
             Route::group(['middleware' => 'teamSATWrite'], function(){
                 Route::get('/', 'MarkController@index')->name('marks.index');
+                Route::get('entry-state', 'MarkController@entryState')->name('marks.entry_state');
                 Route::get('manage/{exam}/{class}/{section}/{subject}', 'MarkController@manage')->name('marks.manage');
                 Route::put('update/{exam}/{class}/{section}/{subject}', 'MarkController@update')->name('marks.update');
                 Route::post('submit/{exam}/{class}/{section}/{subject}', 'MarkController@submit')->name('marks.submit');

@@ -54,7 +54,7 @@ class HomeController extends Controller
     {
         $data['app_name'] = config('app.name');
         $data['app_url'] = config('app.url');
-        $data['contact_phone'] = Qs::getSetting('phone');
+        $data['contact_phone'] = Qs::getSchoolPhone();
         return view('pages.other.privacy_policy', $data);
     }
 
@@ -62,7 +62,7 @@ class HomeController extends Controller
     {
         $data['app_name'] = config('app.name');
         $data['app_url'] = config('app.url');
-        $data['contact_phone'] = Qs::getSetting('phone');
+        $data['contact_phone'] = Qs::getSchoolPhone();
         return view('pages.other.terms_of_use', $data);
     }
 
@@ -1784,7 +1784,10 @@ class HomeController extends Controller
         $collection_labels = [];
         $collection_values = [];
         foreach ($monthly as $ym => $total) {
-            $collection_labels[] = Carbon::createFromFormat('Y-m', $ym)->format('M Y');
+            // Day anchored to 01: createFromFormat('Y-m', …) fills
+            // the missing day from TODAY, so on the 31st a 30-day
+            // month's label overflowed into the next month.
+            $collection_labels[] = Carbon::createFromFormat('Y-m-d', $ym . '-01')->format('M Y');
             $collection_values[] = (int) $total;
         }
         $collection_period = '';

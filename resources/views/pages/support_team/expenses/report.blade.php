@@ -41,7 +41,10 @@
                     <tbody>
                     @forelse($rows as $row)
                         <tr>
-                            <td>{{ \Carbon\Carbon::createFromFormat('Y-m', $row['month'])->format('F Y') }}</td>
+                            {{-- Day anchored to 01: createFromFormat('Y-m', …) fills the
+                                 missing day from TODAY, so on the 31st a 30-day month
+                                 overflowed into the next month's name (Apr → "May"). --}}
+                            <td>{{ \Carbon\Carbon::createFromFormat('Y-m-d', $row['month'] . '-01')->format('F Y') }}</td>
                             <td>{{ \App\Helpers\Money::inr($row['income']) }}</td>
                             <td>{{ \App\Helpers\Money::inr($row['expenses']) }}</td>
                             <td>{{ \App\Helpers\Money::inr($row['net']) }}</td>

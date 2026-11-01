@@ -68,7 +68,7 @@ class ExamDateSheet
         return [
             'name' => Qs::getSetting('system_name'),
             'address' => Qs::getSetting('address'),
-            'phone' => Qs::getSetting('phone'),
+            'phone' => Qs::getSchoolPhone(),
             'email' => Qs::getSetting('system_email'),
             'logo' => Qs::getSetting('logo'),
             'session' => Qs::getCurrentSession(),

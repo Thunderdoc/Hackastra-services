@@ -13,7 +13,7 @@ use Tests\TestCase;
 /**
  * AUD-PRINT Audit Round 1 (overnight batch, verification only).
  * Item 11 (S5-Print): tabulation watermark must be transform-free.
- * Items 5/6 (S3-Builder): preview == download, >800 cap flash, honest empty.
+ * Items 5/6 (S3-Builder): preview == download, >800 cap truncation, honest empty.
  * Item 12 (S5-Print): timetable View/Print/Validate parity after index redesign.
  * No Chrome/CDP proof is claimed anywhere here (CSS/byte parity only).
  */
@@ -122,18 +122,33 @@ class OwnerAuditOvernightPrintTest extends TestCase
         );
     }
 
-    public function test_items56_over_800_rows_refuses_with_exact_cap_flash_on_both_paths()
+    public function test_items56_over_800_rows_truncates_with_note_on_both_paths()
     {
+        // Re-expressed 2026-10-30 (owner order): the cap no longer
+        // refuses — the document renders its first 800 rows with a
+        // note inside it. Preview and download stay the same
+        // document (byte parity, modulo PDF timestamps/IDs), now
+        // for the truncated over-cap config too.
         $teacher = $this->teacher();
         $huge = $this->config('students', [['key' => 'student', 'label' => 'Student', 'type' => 'text', 'width' => 30]], []);
+        $doc = ReportEngine::resolve(ReportEngine::validateConfig($huge, $teacher), $teacher);
+        $this->assertCount(ReportEngine::MAX_ROWS, $doc['rows']);
+        $this->assertMatchesRegularExpression(
+            '/^Showing first ' . ReportEngine::MAX_ROWS . ' of \d+ rows — narrow by class or section for the complete list\.$/',
+            $doc['truncation_note'] ?? ''
+        );
         $pdf = $this->actingAs($teacher)->from(route('reports.builder'))->post(route('reports.pdf'), ['config' => json_encode($huge)]);
-        $pdf->assertRedirect();
-        $flash = session('flash_danger') ?? '';
-        $this->assertMatchesRegularExpression('/^Too many rows for one PDF \(\d+\)\. Filter by class or section first, then generate\.$/', $flash);
+        $pdf->assertOk();
+        $this->assertStringContainsString('application/pdf', $pdf->headers->get('Content-Type', ''));
+        $this->assertStringStartsWith('%PDF', $pdf->getContent());
         $preview = $this->actingAs($teacher)->post(route('reports.preview'), ['config' => json_encode($huge), 'preview_frame' => '1']);
-        $preview->assertStatus(422);
-        $this->assertStringContainsString('Too many rows for one PDF', $preview->getContent());
-        $this->assertStringContainsString('Filter by class or section first, then generate.', $preview->getContent());
+        $preview->assertOk();
+        $this->assertStringContainsString('application/pdf', $preview->headers->get('Content-Type', ''));
+        $this->assertSame(
+            $this->normalizePdf($preview->getContent()),
+            $this->normalizePdf($pdf->getContent()),
+            'preview and download must be the same truncated document (modulo PDF timestamps/IDs)'
+        );
     }
 
     public function test_items56_empty_result_is_honest_empty_state_never_invented_rows()

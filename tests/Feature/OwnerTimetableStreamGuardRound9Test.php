@@ -166,11 +166,17 @@ class OwnerTimetableStreamGuardRound9Test extends TestCase
             ->get(route('ttr.manage', $record->id));
         $response->assertOk();
         // The out-of-stream subject must not be offered as an
-        // option on this section's Manage page...
-        $response->assertDontSee('value="' . $subject->id . '"', false);
-        // ...while an in-stream subject of the class still is.
+        // option in the Manage page's SUBJECT selects, while an
+        // in-stream subject of the class still is. (Scoped to the
+        // subject selects since the section segment: subject ids
+        // now collide with record ids in the page's record
+        // switcher, so a page-wide value probe false-positives.)
+        preg_match_all('/<select[^>]*name="subject_id"[^>]*>(.*?)<\/select>/s', $response->getContent(), $selects);
+        $this->assertNotEmpty($selects[1], 'Manage page must render subject selects');
+        $offered = implode(' ', $selects[1]);
+        $this->assertStringNotContainsString('value="' . $subject->id . '"', $offered);
         $inStream = Subject::where('my_class_id', $section->my_class_id)->get()
             ->first(fn ($s) => Streams::appliesTo($s, $section->stream));
-        $response->assertSee('value="' . $inStream->id . '"', false);
+        $this->assertStringContainsString('value="' . $inStream->id . '"', $offered);
     }
 }

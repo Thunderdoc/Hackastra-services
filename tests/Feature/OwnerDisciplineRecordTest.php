@@ -34,8 +34,18 @@ class OwnerDisciplineRecordTest extends TestCase
 
     protected function foreignTeacher()
     {
-        // teacher2@teacher.com teaches class 3, not class 1.
-        return User::where('email', 'teacher2@teacher.com')->firstOrFail();
+        // A teacher with NO scope over the student's class.
+        // Resolved live (section segment, 2026-10-30): the old
+        // anchor (teacher2@teacher.com) now holds an override in
+        // the student's class, so it is in scope and may write.
+        $classId = StudentRecord::where('user_id', $this->student()->id)->value('my_class_id');
+        $foreign = User::where('user_type', 'teacher')->orderBy('id')->get()
+            ->first(function ($t) use ($classId) {
+                return !in_array($classId, \App\Support\TeacherScope::classIds($t), true);
+            });
+        $this->assertNotNull($foreign, 'A teacher outside the student class scope must exist');
+
+        return $foreign;
     }
 
     protected function student()

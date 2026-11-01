@@ -252,6 +252,16 @@ class OwnerExpenseTest extends TestCase
         // Distinct months, plus an UNPAID record that must NOT count
         // as income: paid = 1 only.
         $this->seedPaidRecord(10000, '2026-03-15 10:00:00');
+        // April gets a PAID record of its own so the April row's
+        // income figure is this test's fixture, not ambient data
+        // left by another suite test. (The 2026-10-31 failure of
+        // this test was separate: the report VIEW parsed 'Y-m'
+        // with Carbon::createFromFormat, which fills the missing
+        // day from today — on the 31st, April overflowed and the
+        // row rendered as "May 2026". Fixed in the view itself,
+        // plus the two sibling sites in AttendanceController::
+        // monthFromRequest and HomeController's collection chart.)
+        $this->seedPaidRecord(5000, '2026-04-10 10:00:00');
         $anchor = PaymentRecord::where('paid', 1)->firstOrFail();
         $unpaid = PaymentRecord::create([
             'student_id' => $anchor->student_id,

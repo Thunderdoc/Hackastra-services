@@ -30,8 +30,11 @@ class OwnerWave17Test extends TestCase
 
     protected function makeSectionRecord()
     {
+        // Name carries a probe suffix: since the section segment
+        // the seed itself creates a 'Class 1 A Timetable' record
+        // for this section, and record names are UNIQUE.
         $ttr = TimeTableRecord::create([
-            'name' => 'Class 1 A Timetable',
+            'name' => 'Class 1 A Timetable (Wave 17 probe)',
             'my_class_id' => 2,
             'section_id' => 4,
             'exam_id' => null,
@@ -60,7 +63,17 @@ class OwnerWave17Test extends TestCase
 
     protected function classGridRecord()
     {
-        return TimeTableRecord::whereNull('section_id')->where('my_class_id', 2)->first();
+        // Section segment (2026-10-30): the seed no longer holds
+        // whole-class records at all, so the fixture builds the
+        // sectionless shape directly — the show/print labelling
+        // for it ("All Sections") is the property under test.
+        return TimeTableRecord::create([
+            'name' => 'Class 1 Whole-Class Timetable (Wave 17 probe)',
+            'my_class_id' => 2,
+            'section_id' => null,
+            'exam_id' => null,
+            'year' => '2026-2027',
+        ]);
     }
 
     public function test_show_print_validate_show_section()

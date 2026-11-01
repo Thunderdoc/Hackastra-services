@@ -62,6 +62,37 @@ class UsersTableSeeder extends Seeder
             26 => 'Asha Patil', 27 => 'Ravi Kumar', 28 => 'Kavita Singh',
             29 => 'Mohit Jain', 30 => 'Lakshmi Iyer', 31 => 'Vikash Gupta',
             32 => 'Neha Sharma',
+            // Section segment (owner decision 2026-10-30 — "aur
+            // add"): per-section timetables for Prep–Class 10 need
+            // a staff room that can actually carry 76 section
+            // grids. Family-sized by measured demand (junior 324
+            // periods per subject + senior stream demand): English
+            // +6, Hindi +6, Mathematics +7, Science +7, Social +6,
+            // Computer Science +6 = 38 more, room 39 -> 77 — a
+            // 1:39 teacher-student ratio for 3,041 students.
+            33 => 'Aditi Rao', 34 => 'Naveen Chandra', 35 => 'Shalini Verma',
+            36 => 'Imran Khan', 37 => 'Geeta Nair', 38 => 'Prakash Jha',
+            39 => 'Rekha Menon', 40 => 'Sandeep Yadav', 41 => 'Aisha Khan',
+            42 => 'Mohan Raj', 43 => 'Revathi Pillai', 44 => 'Gaurav Pandey',
+            45 => 'Nandini Rao', 46 => 'Yusuf Ali', 47 => 'Shreya Bose',
+            48 => 'Dinesh Kumar', 49 => 'Anitha Raj', 50 => 'Vivek Anand',
+            51 => 'Sarah Thomas', 52 => 'Manish Tiwari', 53 => 'Latha Subramaniam',
+            54 => 'Arif Mohammed', 55 => 'Chitra Devi', 56 => 'Nikhil Verma',
+            57 => 'Renuka Das', 58 => 'Sahil Kapoor', 59 => 'Deepa Nair',
+            60 => 'Ashok Menon', 61 => 'Farzana Sheikh', 62 => 'Kiran Joshi',
+            63 => 'Smita Patil', 64 => 'Tarun Mehta', 65 => 'Anita Deshmukh',
+            66 => 'Rakesh Sinha', 67 => 'Pooja Nair', 68 => 'Sameer Khan',
+            69 => 'Divya Pillai', 70 => 'Manoj Prabhu',
+            // Placement slack (2026-10-30, second pass): at 95%
+            // family slot utilisation the section grids cannot
+            // pack clash-free — 13 more take the room to 90 and
+            // every family's utilisation to ~85% or below, which
+            // is where real schools timetable.
+            71 => 'Kavita Menon', 72 => 'Pankaj Tiwari', 73 => 'Deepak Menon',
+            74 => 'Ritu Malhotra', 75 => 'Anita Menon', 76 => 'Sunita Yadav',
+            77 => 'Ramesh Iyer', 78 => 'Karthik Raja', 79 => 'Seema Verma',
+            80 => 'Suresh Chandra', 81 => 'Rajni Bala', 82 => 'Vijay Prakash',
+            83 => 'Lakshmi Menon',
         ];
         $data = [];
         foreach ($names as $i => $name) {

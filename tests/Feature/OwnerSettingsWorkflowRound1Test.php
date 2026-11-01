@@ -33,6 +33,12 @@ class OwnerSettingsWorkflowRound1Test extends TestCase
 {
     use DatabaseTransactions;
 
+    /** student@'s user id, resolved live — the raw id (57) shifted +51 when the roster grew (section segment, 2026-10-30). */
+    protected function studentId()
+    {
+        return User::where('email', 'student@hackstra.app')->firstOrFail()->id;
+    }
+
     private function admin()
     {
         return User::where('email', 'admin@hackstra.app')->firstOrFail();
@@ -277,7 +283,7 @@ class OwnerSettingsWorkflowRound1Test extends TestCase
         // strtotime('abc') is false, so date() prints 1 Jan 1970.
         // Validating the format (or keeping free text) is an owner call.
         $this->setSetting('term_begins', 'abc');
-        $hash = Qs::hash(57);
+        $hash = Qs::hash($this->studentId());
         $res = $this->actingAs($this->admin())->get("/marks/print/{$hash}/1/2026-2027");
         $res->assertOk();
         $res->assertSee('1st January, 1970', false);
@@ -315,7 +321,7 @@ class OwnerSettingsWorkflowRound1Test extends TestCase
     public function test_marksheet_print_shows_new_branding()
     {
         $this->setG1Branding();
-        $hash = Qs::hash(57);
+        $hash = Qs::hash($this->studentId());
         $res = $this->actingAs($this->admin())->get("/marks/print/{$hash}/1/2026-2027");
         $res->assertOk();
         $res->assertSee('G1 Test Academy', false);
@@ -326,7 +332,7 @@ class OwnerSettingsWorkflowRound1Test extends TestCase
     public function test_annual_print_shows_new_branding()
     {
         $this->setG1Branding();
-        $hash = Qs::hash(57);
+        $hash = Qs::hash($this->studentId());
         $res = $this->actingAs($this->admin())->get("/marks/print_annual/{$hash}/2026-2027");
         $res->assertOk();
         $res->assertSee('G1 Test Academy', false);
@@ -352,7 +358,7 @@ class OwnerSettingsWorkflowRound1Test extends TestCase
     public function test_invoice_shows_new_branding()
     {
         $this->setG1Branding();
-        $hash = Qs::hash(57);
+        $hash = Qs::hash($this->studentId());
         $res = $this->actingAs($this->admin())->get("/payments/invoice/{$hash}/2026-2027");
         $res->assertOk();
         $res->assertSee('G1 Test Academy', false);
@@ -361,7 +367,7 @@ class OwnerSettingsWorkflowRound1Test extends TestCase
     public function test_admit_card_shows_new_branding()
     {
         $this->setG1Branding();
-        $res = $this->actingAs($this->admin())->get('/my-admit-cards/1/57');
+        $res = $this->actingAs($this->admin())->get('/my-admit-cards/1/' . $this->studentId());
         $res->assertOk();
         $res->assertSee('G1 Test Academy', false);
         $res->assertSee('/storage/uploads/g1sig.png', false);
@@ -371,7 +377,7 @@ class OwnerSettingsWorkflowRound1Test extends TestCase
     {
         $this->setG1Branding();
         $cert = Certificate::create([
-            'user_id' => 57, 'student_record_id' => 1, 'type' => 'bonafide',
+            'user_id' => $this->studentId(), 'student_record_id' => 1, 'type' => 'bonafide',
             'serial' => 'G1/2026/0001', 'student_name' => 'Aarav Sharma',
             'adm_no' => 'HA/PN/2026/91300', 'class_name' => 'Prep',
             'section_name' => 'A', 'session' => '2026-2027',

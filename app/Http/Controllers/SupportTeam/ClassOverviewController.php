@@ -153,11 +153,16 @@ class ClassOverviewController extends Controller
         $recordIdToUserId = $records->mapWithKeys(function ($record) {
             return [$record->id => $record->user_id];
         });
+        $recordIdToSectionId = $records->mapWithKeys(function ($record) {
+            return [$record->id => $record->section_id];
+        });
 
         // Attendance, class-wide and per student, from period sessions.
         $attendancePct = null;
         $attendanceMarked = 0;
         $attByUser = [];
+        $attOkBySection = [];
+        $attTotalBySection = [];
         if (Schema::hasTable('attendance_sessions') && Schema::hasTable('attendance_session_entries')) {
             $sessionQuery = DB::table('attendance_sessions')
                 ->where('my_class_id', $classId);
@@ -187,6 +192,11 @@ class ClassOverviewController extends Controller
                     $userId = $recordIdToUserId[$row->student_record_id] ?? null;
                     if ($userId && (int) $row->total > 0) {
                         $attByUser[$userId] = ((int) $row->ok / (int) $row->total) * 100;
+                    }
+                    $sectionId = $recordIdToSectionId[$row->student_record_id] ?? null;
+                    if ($sectionId) {
+                        $attOkBySection[$sectionId] = ($attOkBySection[$sectionId] ?? 0) + (int) $row->ok;
+                        $attTotalBySection[$sectionId] = ($attTotalBySection[$sectionId] ?? 0) + (int) $row->total;
                     }
                 }
             }
@@ -252,6 +262,52 @@ class ClassOverviewController extends Controller
             return strcmp($a['name'], $b['name']);
         });
 
+        // Section comparison (section segment, owner order
+        // 2026-10-29): the same figures per section, so a teacher
+        // can see WHICH section of the class needs attention and
+        // how it compares with the class as a whole. Built from
+        // the exact per-student values above — the only extra
+        // query is the class's section list.
+        $sectionRows = [];
+        foreach (\App\Models\Section::where('my_class_id', $classId)->orderBy('name')->get() as $section) {
+            $sectionUserIds = $records->where('section_id', $section->id)->pluck('user_id')->all();
+            $sectionMarks = [];
+            foreach ($sectionUserIds as $uid) {
+                if (isset($marksByUser[$uid])) {
+                    $sectionMarks[$uid] = $marksByUser[$uid];
+                }
+            }
+            $sectionTopper = null;
+            if (!empty($sectionMarks)) {
+                $topperId = collect($sectionMarks)->sortDesc()->keys()->first();
+                $sectionTopper = [
+                    'name' => $nameByUserId[$topperId] ?? 'Student',
+                    'percent' => $sectionMarks[$topperId],
+                ];
+            }
+            $sectionAtRisk = 0;
+            foreach ($sectionUserIds as $uid) {
+                $lowAttendance = isset($attByUser[$uid]) && $attByUser[$uid] < 50;
+                $lowMarks = isset($marksByUser[$uid]) && $marksByUser[$uid] < 40;
+                if ($lowAttendance || $lowMarks) {
+                    $sectionAtRisk++;
+                }
+            }
+            $total = (int) ($attTotalBySection[$section->id] ?? 0);
+            $sectionRows[] = [
+                'name' => $section->name,
+                'strength' => count($sectionUserIds),
+                'attendance_pct' => $total > 0
+                    ? (((int) ($attOkBySection[$section->id] ?? 0)) / $total) * 100
+                    : null,
+                'marks_avg' => !empty($sectionMarks)
+                    ? array_sum($sectionMarks) / count($sectionMarks)
+                    : null,
+                'topper' => $sectionTopper,
+                'at_risk_count' => $sectionAtRisk,
+            ];
+        }
+
         return [
             'class' => $class,
             'subjects' => $subjectIds ? Subject::whereIn('id', $subjectIds)->orderBy('name')->get() : collect(),
@@ -263,6 +319,7 @@ class ClassOverviewController extends Controller
             'marks_students' => count($marksByUser),
             'topper' => $topper,
             'at_risk' => $atRisk,
+            'sections' => $sectionRows,
         ];
     }
 }

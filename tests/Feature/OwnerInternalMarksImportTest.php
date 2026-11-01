@@ -26,7 +26,7 @@ use Tests\TestCase;
  * typed save, and the older per-module bridge buttons now
  * respect the same lock.
  *
- * Fixture: Term 1 (exam 1), Class 12-E (section 68), English (79)
+ * Fixture: Term 1 (exam 1), Class 12 section 76, English (79)
  * — Internal max 30, effective teacher Ananya.
  */
 class OwnerInternalMarksImportTest extends TestCase
@@ -46,14 +46,14 @@ class OwnerInternalMarksImportTest extends TestCase
     protected function ensureRows()
     {
         $this->actingAs($this->admin())->post(route('marks.selector'), [
-            'exam_id' => 1, 'my_class_id' => 13, 'section_id' => 68, 'subject_id' => 79,
+            'exam_id' => 1, 'my_class_id' => 13, 'section_id' => 76, 'subject_id' => 79,
         ]);
     }
 
     protected function internalScore($userId)
     {
         $mark = Mark::where([
-            'exam_id' => 1, 'my_class_id' => 13, 'section_id' => 68,
+            'exam_id' => 1, 'my_class_id' => 13, 'section_id' => 76,
             'subject_id' => 79, 'year' => '2026-2027', 'student_id' => $userId,
         ])->first();
         $component = InternalMarksImporter::internalComponent(1, 79);
@@ -64,7 +64,7 @@ class OwnerInternalMarksImportTest extends TestCase
     {
         $this->ensureRows();
         $teacher = $this->teacher();
-        $records = StudentRecord::where('section_id', 68)->orderBy('id')->take(3)->get();
+        $records = StudentRecord::where('section_id', 76)->orderBy('id')->take(3)->get();
         [$sA, $sB, $sC] = [$records[0], $records[1], $records[2]];
 
         // Premise: the seed already carries Internal scores for this
@@ -73,7 +73,7 @@ class OwnerInternalMarksImportTest extends TestCase
         $component = InternalMarksImporter::internalComponent(1, 79);
         foreach ($records as $rec) {
             $mark = Mark::where([
-                'exam_id' => 1, 'my_class_id' => 13, 'section_id' => 68,
+                'exam_id' => 1, 'my_class_id' => 13, 'section_id' => 76,
                 'subject_id' => 79, 'year' => '2026-2027', 'student_id' => $rec->user_id,
             ])->first();
             if ($mark) {
@@ -99,7 +99,7 @@ class OwnerInternalMarksImportTest extends TestCase
         AssignmentSubmission::create(['assignment_id' => $a1->id, 'student_id' => $sB->user_id, 'marks_awarded' => 25, 'submitted_at' => now()]);
 
         $import = function ($payload) use ($teacher) {
-            return $this->actingAs($teacher)->post(route('marks.import_internal', [1, 13, 68, 79]), $payload);
+            return $this->actingAs($teacher)->post(route('marks.import_internal', [1, 13, 76, 79]), $payload);
         };
 
         // Average of all: sA (80+40)/2 = 60% of 30 = 18; sB 50% = 15; sC blank.
@@ -118,7 +118,7 @@ class OwnerInternalMarksImportTest extends TestCase
 
         // Quizzes: sA scored 30/40 = 75% → 23 (rounded).
         $quiz = Quiz::create([
-            'teacher_id' => $teacher->id, 'my_class_id' => 13, 'section_id' => 68,
+            'teacher_id' => $teacher->id, 'my_class_id' => 13, 'section_id' => 76,
             'subject_id' => 79, 'title' => 'Import Probe Quiz', 'status' => 'published',
         ]);
         QuizAttempt::create([
@@ -129,13 +129,13 @@ class OwnerInternalMarksImportTest extends TestCase
         $this->assertSame(23, $this->internalScore($sA->user_id));
 
         // The panel is offered on the marks page.
-        $page = $this->actingAs($teacher)->get(route('marks.manage', [1, 13, 68, 79]));
+        $page = $this->actingAs($teacher)->get(route('marks.manage', [1, 13, 76, 79]));
         $page->assertOk();
         $page->assertSee('from assignments or quizzes');
 
         // After submission the import is refused, and the old
         // assignment bridge button respects the same lock.
-        $this->actingAs($teacher)->post(route('marks.submit', [1, 13, 68, 79]))->assertRedirect();
+        $this->actingAs($teacher)->post(route('marks.submit', [1, 13, 76, 79]))->assertRedirect();
         $import(['source_kind' => 'assignments', 'mode' => 'all'])->assertForbidden();
         $this->actingAs($teacher)->post(route('assignments.push_internal', $a1->id), ['exam_id' => 1])
             ->assertRedirect();
@@ -149,7 +149,7 @@ class OwnerInternalMarksImportTest extends TestCase
             'exam_id' => 1, 'my_class_id' => 13, 'subject_id' => 79,
             'exam_date' => '2027-07-16',
         ]);
-        $this->actingAs($this->admin())->post(route('marks.import_internal', [1, 13, 68, 79]), [
+        $this->actingAs($this->admin())->post(route('marks.import_internal', [1, 13, 76, 79]), [
             'source_kind' => 'assignments', 'mode' => 'all',
         ])->assertForbidden();
     }

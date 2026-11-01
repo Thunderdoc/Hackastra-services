@@ -348,7 +348,7 @@
             @if(Qs::getSetting('logo'))<img src="{{ Qs::getSetting('logo') }}" alt="">@endif
             <div>
                 <h1>{{ Qs::getSystemName() }}</h1>
-                <p>{{ Qs::getSetting('address') }}@if(Qs::getSetting('phone')) &middot; Tel: {{ Qs::getSetting('phone') }}@endif @if(Qs::getSetting('system_email')) &middot; {{ Qs::getSetting('system_email') }}@endif</p>
+                <p>{{ Qs::getSetting('address') }}@if(Qs::getSchoolPhone()) &middot; Tel: {{ Qs::getSchoolPhone() }}@endif @if(Qs::getSetting('system_email')) &middot; {{ Qs::getSetting('system_email') }}@endif</p>
             </div>
         </div>
         <div class="l153-inv-band">FEE STATEMENT</div>

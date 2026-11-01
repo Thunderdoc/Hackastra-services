@@ -106,7 +106,7 @@ class OwnerStudentParentResweepRound25Test extends TestCase
         return User::where('email', 'parent@hackstra.app')->firstOrFail();
     }
 
-    /** Aarav Sharma (user 57, student_record 1). */
+    /** Aarav Sharma (student@, student_record 1; id resolved live). */
     protected function ownRecord()
     {
         return StudentRecord::where('user_id', $this->student()->id)->firstOrFail();
@@ -169,19 +169,33 @@ class OwnerStudentParentResweepRound25Test extends TestCase
         $exam->save();
     }
 
+    /**
+     * Settle student@'s seeded dues in-test. Section segment
+     * (2026-10-30): the shifted seed leaves student_record 1
+     * owing 14,400, and the fee-defaulter block (which has its
+     * own coverage in test_my_card_defaulter_block_vs_office)
+     * would mask the publication states exercised below.
+     */
+    protected function settleDues()
+    {
+        \App\Models\PaymentRecord::where('student_id', $this->student()->id)
+            ->update(['paid' => 1]);
+    }
+
     // ---------------- (a) MARKS ----------------
 
     public function test_student_own_marksheet_published()
     {
         $this->publishTerm1();
+        $this->settleDues();
 
         $show = $this->actingAs($this->student())
-            ->get(route('marks.show', [$this->hashId(57), self::YEAR]));
+            ->get(route('marks.show', [$this->hashId($this->student()->id), self::YEAR]));
         $show->assertOk();
         $show->assertSee('Aarav Sharma');
 
         $print = $this->actingAs($this->student())
-            ->get(route('marks.print', [$this->hashId(57), 1, self::YEAR]));
+            ->get(route('marks.print', [$this->hashId($this->student()->id), 1, self::YEAR]));
         $print->assertOk();
         $print->assertSee('Aarav Sharma');
     }
@@ -203,14 +217,15 @@ class OwnerStudentParentResweepRound25Test extends TestCase
     public function test_parent_own_child_marksheet_published()
     {
         $this->publishTerm1();
+        $this->settleDues();
 
         $show = $this->actingAs($this->parent())
-            ->get(route('marks.show', [$this->hashId(57), self::YEAR]));
+            ->get(route('marks.show', [$this->hashId($this->student()->id), self::YEAR]));
         $show->assertOk();
         $show->assertSee('Aarav Sharma');
 
         $print = $this->actingAs($this->parent())
-            ->get(route('marks.print', [$this->hashId(57), 1, self::YEAR]));
+            ->get(route('marks.print', [$this->hashId($this->student()->id), 1, self::YEAR]));
         $print->assertOk();
         $print->assertSee('Aarav Sharma');
     }
@@ -232,19 +247,20 @@ class OwnerStudentParentResweepRound25Test extends TestCase
     public function test_unpublished_exam_honest_empty_state()
     {
         $this->unpublishTerm1();
+        $this->settleDues();
 
         $studentShow = $this->actingAs($this->student())
-            ->get(route('marks.show', [$this->hashId(57), self::YEAR]));
+            ->get(route('marks.show', [$this->hashId($this->student()->id), self::YEAR]));
         $studentShow->assertOk();
         $studentShow->assertSee('Results Not Published Yet');
 
         $parentShow = $this->actingAs($this->parent())
-            ->get(route('marks.show', [$this->hashId(57), self::YEAR]));
+            ->get(route('marks.show', [$this->hashId($this->student()->id), self::YEAR]));
         $parentShow->assertOk();
         $parentShow->assertSee('Results Not Published Yet');
 
         $parentPrint = $this->actingAs($this->parent())
-            ->get(route('marks.print', [$this->hashId(57), 1, self::YEAR]));
+            ->get(route('marks.print', [$this->hashId($this->student()->id), 1, self::YEAR]));
         $parentPrint->assertOk();
         $parentPrint->assertSee('Results Not Published Yet');
     }
@@ -256,7 +272,7 @@ class OwnerStudentParentResweepRound25Test extends TestCase
 
         // Ananya teaches Prep: Aarav's sheet opens.
         $own = $this->actingAs($this->teacher())
-            ->get(route('marks.show', [$this->hashId(57), self::YEAR]));
+            ->get(route('marks.show', [$this->hashId($this->student()->id), self::YEAR]));
         $own->assertOk();
         $own->assertSee('Aarav Sharma');
 
@@ -268,7 +284,7 @@ class OwnerStudentParentResweepRound25Test extends TestCase
         // Accountant is neither teamSA, teacher, parent nor self.
         $accountant = User::where('email', 'accountant@hackstra.app')->firstOrFail();
         $acct = $this->actingAs($accountant)
-            ->get(route('marks.show', [$this->hashId(57), self::YEAR]));
+            ->get(route('marks.show', [$this->hashId($this->student()->id), self::YEAR]));
         $acct->assertRedirect(route('dashboard'));
     }
 
@@ -284,7 +300,7 @@ class OwnerStudentParentResweepRound25Test extends TestCase
             ->map(function ($presented) {
                 return (int) $presented['record']->student_id;
             })->unique()->values()->all();
-        $this->assertSame([57], $ids);
+        $this->assertSame([$this->student()->id], $ids);
     }
 
     public function test_parent_fees_my_children_only()
@@ -302,7 +318,7 @@ class OwnerStudentParentResweepRound25Test extends TestCase
             ->map(function ($child) {
                 return (int) $child['sr']->user_id;
             })->sort()->values()->all();
-        $this->assertSame([57, $this->siblingRecord()->user_id], $childUserIds);
+        $this->assertSame([$this->student()->id, $this->siblingRecord()->user_id], $childUserIds);
     }
 
     public function test_parent_fees_show_own_vs_foreign()
@@ -310,7 +326,7 @@ class OwnerStudentParentResweepRound25Test extends TestCase
         $foreign = $this->foreignRecord();
 
         $own = $this->actingAs($this->parent())
-            ->get(route('my_fees.show', 57));
+            ->get(route('my_fees.show', $this->student()->id));
         $own->assertOk();
 
         $away = $this->actingAs($this->parent())
@@ -350,7 +366,7 @@ class OwnerStudentParentResweepRound25Test extends TestCase
     {
         $foreign = $this->foreignRecord();
         BookRequest::create([
-            'book_id' => 1, 'user_id' => 57,
+            'book_id' => 1, 'user_id' => $this->student()->id,
             'start_date' => '2026-10-20', 'end_date' => '2026-11-20',
             'returned' => false, 'status' => BookRequest::STATUS_ISSUED,
         ]);
@@ -366,7 +382,7 @@ class OwnerStudentParentResweepRound25Test extends TestCase
             ->map(function ($loan) {
                 return (int) $loan->user_id;
             })->unique()->values()->all();
-        $this->assertSame([57], $loanUserIds);
+        $this->assertSame([$this->student()->id], $loanUserIds);
 
         // /library/mine is student-middleware-only: parent bounces.
         $this->actingAs($this->parent())->get(route('student.library'))
@@ -488,7 +504,7 @@ class OwnerStudentParentResweepRound25Test extends TestCase
         PtmBooking::create([
             'ptm_slot_id' => $slotOwn->id,
             'parent_id' => $this->parent()->id,
-            'student_user_id' => 57,
+            'student_user_id' => $this->student()->id,
         ]);
         $slotOther = PtmSlot::create([
             'date' => '2026-11-11', 'start_time' => '10:00', 'end_time' => '10:30',
@@ -520,13 +536,13 @@ class OwnerStudentParentResweepRound25Test extends TestCase
             'section_id' => null, 'created_by' => $this->admin()->id,
         ]);
         $booked = $this->actingAs($this->parent())
-            ->post(route('ptm.book', $slotFree->id), ['student_user_id' => 57]);
+            ->post(route('ptm.book', $slotFree->id), ['student_user_id' => $this->student()->id]);
         $booked->assertRedirect(route('ptm.index'));
         $booked->assertSessionHas('flash_success', 'Slot booked.');
         $this->assertDatabaseHas('ptm_bookings', [
             'ptm_slot_id' => $slotFree->id,
             'parent_id' => $this->parent()->id,
-            'student_user_id' => 57,
+            'student_user_id' => $this->student()->id,
         ]);
 
         $slotFree2 = PtmSlot::create([
@@ -549,7 +565,7 @@ class OwnerStudentParentResweepRound25Test extends TestCase
         $adminId = $this->admin()->id;
 
         $own = HealthRecord::create([
-            'student_id' => 57, 'visit_date' => '2026-10-20',
+            'student_id' => $this->student()->id, 'visit_date' => '2026-10-20',
             'complaint' => 'R25-COMP-A', 'treatment' => 'R25-TREAT-A',
             'recorded_by' => $adminId,
         ]);
@@ -572,7 +588,7 @@ class OwnerStudentParentResweepRound25Test extends TestCase
             ->map(function ($record) {
                 return (int) $record->student_id;
             })->unique()->values()->all();
-        $this->assertSame([57], $studentIds);
+        $this->assertSame([$this->student()->id], $studentIds);
 
         $ownShow = $this->actingAs($this->student())
             ->get(route('health_records.show', $own->id));
@@ -591,7 +607,7 @@ class OwnerStudentParentResweepRound25Test extends TestCase
             ->map(function ($record) {
                 return (int) $record->student_id;
             })->unique()->values()->sort()->values()->all();
-        $this->assertSame([57, $sibling->user_id], $parentIds);
+        $this->assertSame([$this->student()->id, $sibling->user_id], $parentIds);
 
         $childShow = $this->actingAs($this->parent())
             ->get(route('health_records.show', $child->id));
@@ -609,7 +625,7 @@ class OwnerStudentParentResweepRound25Test extends TestCase
         $adminId = $this->admin()->id;
 
         $own = DisciplineRecord::create([
-            'student_id' => 57, 'recorded_by' => $adminId,
+            'student_id' => $this->student()->id, 'recorded_by' => $adminId,
             'incident_date' => '2026-10-20', 'type' => 'late',
             'description' => 'R25-DISC-A', 'action_taken' => 'Warned',
         ]);
@@ -630,7 +646,7 @@ class OwnerStudentParentResweepRound25Test extends TestCase
             ->map(function ($record) {
                 return (int) $record->student_id;
             })->unique()->values()->all();
-        $this->assertSame([57], $studentIds);
+        $this->assertSame([$this->student()->id], $studentIds);
 
         $ownShow = $this->actingAs($this->student())
             ->get(route('discipline_records.show', $own->id));
@@ -665,7 +681,7 @@ class OwnerStudentParentResweepRound25Test extends TestCase
             ->map(function ($child) {
                 return (int) $child->user_id;
             })->sort()->values()->all();
-        $this->assertSame([57, $this->siblingRecord()->user_id], $childUserIds);
+        $this->assertSame([$this->student()->id, $this->siblingRecord()->user_id], $childUserIds);
 
         $this->actingAs($this->student())->get(route('transport.mine'))
             ->assertForbidden();

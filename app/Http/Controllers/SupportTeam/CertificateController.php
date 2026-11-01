@@ -106,7 +106,7 @@ class CertificateController extends Controller
         $settings = [
             'school' => Qs::getSetting('system_name') ?: config('app.name'),
             'address' => Qs::getSetting('address'),
-            'phone' => Qs::getSetting('phone'),
+            'phone' => Qs::getSchoolPhone(),
             'principal' => Qs::getSetting('principal_name'),
             'logo' => $this->settingImage('logo'),
             'stamp' => $this->settingImage('school_stamp'),

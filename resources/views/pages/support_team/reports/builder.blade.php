@@ -14,7 +14,13 @@
        no tabs, no separate preview screen, no Preview button.
        Same engine, sources, routes and config contract as rb4;
        only the page and the preview transport changed. Scoped
-       styles (rb5-) — no shared component is touched. */
+       styles (rb5-) — no shared component is touched.
+       Simplification (owner, 2026-10-30 evening — "fix this, and
+       I do NOT want all this stuff"): the toolbar card is gone;
+       title / subtitle / sort ride as hidden inputs (the document
+       itself is where they are edited); paper + orientation live
+       in a collapsed Page settings section on the left; font
+       family/size controls are gone — the engine defaults apply. */
     .rb5-switcher { display: none; gap: 8px; margin-bottom: 10px; }
     .rb5-switcher .btn { flex: 1; }
     .rb5-wrap { display: flex; gap: 14px; align-items: stretch; }
@@ -24,11 +30,12 @@
     .rb5-left .card-header { background: #f7fafd; border-bottom: 1px solid #dfe8f3; border-radius: 12px 12px 0 0; padding: 10px 16px; }
     .rb5-left .card-title { font-size: 15px; font-weight: 700; color: #10263b; }
     .rb5-left .card-body { padding: 14px 16px; }
-    .rb5-toolbar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; background: #fff; border: 1px solid #c9d6e4; border-radius: 10px; padding: 7px 10px; margin-bottom: 8px; }
-    .rb5-toolbar .form-control { width: auto; height: 32px; padding: 2px 6px; font-size: 13px; }
-    .rb5-tb-btn { border: 1px solid #dfe8f3; background: #f7fafd; color: #10263b; border-radius: 7px; min-width: 32px; height: 32px; font-size: 13px; cursor: pointer; }
-    .rb5-tb-btn:hover { background: #e8f0fc; }
-    .rb5-tb-sep { width: 1px; height: 22px; background: #dfe8f3; margin: 0 2px; }
+    /* Simplification (owner, 2026-10-30 evening): the rb5 toolbar
+       card is DELETED on his order ("I do not want all this
+       stuff"). In its place, ONE slim header row above the
+       document: the "Report: …" summary + Print + Download PDF. */
+    .rb5-docbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; background: #fff; border: 1px solid #c9d6e4; border-radius: 10px; padding: 7px 10px; margin-bottom: 8px; }
+    .rb5-docbar-actions { display: flex; gap: 6px; align-items: center; }
     .rb5-statusbar { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: baseline; padding: 0 2px 8px; min-height: 22px; }
     .rb2-status { font-size: 13px; color: #4a5a6e; }
     .rb2-status-error { color: #b42318; font-weight: 600; }
@@ -46,9 +53,8 @@
     .rb2-col-field { flex: 1; min-width: 86px; }
     .rb2-col-field label { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: #718096; margin-bottom: 2px; display: block; }
     .rb2-col-static { font-size: 13px; padding: 5px 0; color: #4a5a6e; }
-    .rb5-details summary { cursor: pointer; font-weight: 700; color: #10263b; font-size: 15px; padding: 10px 16px; }
-    .rb5-details { background: #fff; border: 1px solid #c9d6e4; border-radius: 12px; box-shadow: 0 1px 3px rgba(16, 38, 59, .07); margin-bottom: 14px; }
-    .rb5-details .card-body { padding-top: 4px; }
+    .rb5-pagesettings-toggle { font-size: 15px; font-weight: 700; color: #10263b; text-decoration: none !important; }
+    .rb5-pagesettings-toggle:hover { color: #1765f5; }
     @media (min-width: 992px) {
         .rb5-wrap { height: calc(100vh - 168px); min-height: 600px; }
         .rb5-left { height: 100%; }
@@ -110,18 +116,17 @@
         <div class="card">
             <div class="card-header"><h5 class="card-title mb-0">Report Details</h5></div>
             <div class="card-body">
+                {{-- Title / subtitle / sort have no visible fields
+                     (owner simplification): they ride as hidden
+                     inputs — the title and subtitle are edited in
+                     the document itself (canvas data-edit sync),
+                     and sort arrives via presets / saved templates. --}}
+                <input type="hidden" id="rbTitle">
+                <input type="hidden" id="rbSubtitle">
+                <input type="hidden" id="rbSortKey" value="">
+                <input type="hidden" id="rbSortDir" value="asc">
                 <div id="rbMarksHint" class="alert alert-info" style="display:none;">
                     Marks reports require an exam, a class and a subject. Component columns (Theory, Internal, Viva, …) are added automatically for configured marking schemes.
-                </div>
-                <div class="form-row">
-                    <div class="form-group col-md-6">
-                        <label>Report title *</label>
-                        <input type="text" id="rbTitle" class="form-control" maxlength="120" placeholder="e.g. Class Roster — Prep A">
-                    </div>
-                    <div class="form-group col-md-6">
-                        <label>Subtitle</label>
-                        <input type="text" id="rbSubtitle" class="form-control" maxlength="200" placeholder="Optional line under the title">
-                    </div>
                 </div>
                 <p class="text-muted mb-2" id="rbNoFilters" style="display:none;">This source has no filters — the report covers everything it holds.</p>
                 <div class="form-row">
@@ -185,19 +190,6 @@
                         <input type="text" id="rbYear" class="form-control" value="{{ $currentSession }}">
                     </div>
                 </div>
-                <div class="form-row mb-0">
-                    <div class="form-group col-md-6 mb-0">
-                        <label>Sort By</label>
-                        <select id="rbSortKey" class="form-control"></select>
-                    </div>
-                    <div class="form-group col-md-6 mb-0">
-                        <label>Sort Order</label>
-                        <select id="rbSortDir" class="form-control">
-                            <option value="asc">Ascending</option>
-                            <option value="desc">Descending</option>
-                        </select>
-                    </div>
-                </div>
             </div>
         </div>
 
@@ -224,37 +216,57 @@
             </div>
         </div>
 
-        <details class="rb5-details">
-            <summary>Header, Footer &amp; Page Settings</summary>
-            <div class="card-body">
-                <div class="form-check"><input type="checkbox" id="rbShowHeader" class="form-check-input" checked> <label class="form-check-label" for="rbShowHeader">Include school header (logo, name, contacts)</label></div>
-                <div class="form-check"><input type="checkbox" id="rbShowMeta" class="form-check-input" checked> <label class="form-check-label" for="rbShowMeta">Include class / subject details line</label></div>
-                <div class="form-check"><input type="checkbox" id="rbShowFooter" class="form-check-input" checked> <label class="form-check-label" for="rbShowFooter">Include footer + page numbers</label></div>
-                <div class="form-check mb-2"><input type="checkbox" id="rbShowSignatures" class="form-check-input"> <label class="form-check-label" for="rbShowSignatures">Include signature lines</label></div>
-                <div class="form-group">
-                    <label>Footer text</label>
-                    <input type="text" id="rbFooterText" class="form-control" maxlength="200" placeholder="Printed at the foot of every page">
-                </div>
-                <div class="form-row">
-                    <div class="form-group col-md-4">
-                        <label>Margins (mm)</label>
-                        <input type="number" id="rbMargin" class="form-control" min="5" max="25" value="10">
+        {{-- Page settings (owner simplification): ONE collapsed
+             section, closed by default. Paper + orientation moved
+             here from the deleted toolbar; the font size control
+             is gone entirely — the engine default applies. --}}
+        <div class="card">
+            <div class="card-header">
+                <button type="button" class="btn btn-link p-0 rb5-pagesettings-toggle" data-toggle="collapse" data-target="#rbPageSettings" aria-expanded="false" aria-controls="rbPageSettings">Page settings</button>
+            </div>
+            <div class="collapse" id="rbPageSettings">
+                <div class="card-body">
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label>Paper size</label>
+                            <select id="rbPaper" class="form-control">
+                                <option value="a4">A4</option>
+                                <option value="letter">Letter</option>
+                            </select>
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label>Orientation</label>
+                            <select id="rbOrientation" class="form-control">
+                                <option value="portrait">Portrait</option>
+                                <option value="landscape">Landscape</option>
+                            </select>
+                        </div>
                     </div>
-                    <div class="form-group col-md-4">
-                        <label>Font size</label>
-                        <input type="number" id="rbFontSize" class="form-control" min="8" max="14" value="11">
+                    <div class="form-check"><input type="checkbox" id="rbShowHeader" class="form-check-input" checked> <label class="form-check-label" for="rbShowHeader">Include school header (logo, name, contacts)</label></div>
+                    <div class="form-check"><input type="checkbox" id="rbShowMeta" class="form-check-input" checked> <label class="form-check-label" for="rbShowMeta">Include class / subject details line</label></div>
+                    <div class="form-check"><input type="checkbox" id="rbShowFooter" class="form-check-input" checked> <label class="form-check-label" for="rbShowFooter">Include footer + page numbers</label></div>
+                    <div class="form-check mb-2"><input type="checkbox" id="rbShowSignatures" class="form-check-input"> <label class="form-check-label" for="rbShowSignatures">Include signature lines</label></div>
+                    <div class="form-group">
+                        <label>Footer text</label>
+                        <input type="text" id="rbFooterText" class="form-control" maxlength="200" placeholder="Printed at the foot of every page">
                     </div>
-                    <div class="form-group col-md-4">
-                        <label>Blank rows</label>
-                        <input type="number" id="rbBlankRows" class="form-control" min="0" max="200" value="0">
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label>Margins (mm)</label>
+                            <input type="number" id="rbMargin" class="form-control" min="5" max="25" value="10">
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label>Blank rows</label>
+                            <input type="number" id="rbBlankRows" class="form-control" min="0" max="200" value="0">
+                        </div>
                     </div>
-                </div>
-                <div class="form-group mb-0">
-                    <label>Instructions (printed at the top of the document)</label>
-                    <textarea id="rbInstructions" class="form-control" rows="2" maxlength="500"></textarea>
+                    <div class="form-group mb-0">
+                        <label>Instructions (printed at the top of the document)</label>
+                        <textarea id="rbInstructions" class="form-control" rows="2" maxlength="500"></textarea>
+                    </div>
                 </div>
             </div>
-        </details>
+        </div>
 
         <div class="card">
             <div class="card-header"><h5 class="card-title mb-0">Save &amp; Export</h5></div>
@@ -302,57 +314,18 @@
 
     {{-- ================= RIGHT — LIVE EDITABLE DOCUMENT ================= --}}
     <div class="rb5-right">
-        <div class="rb5-toolbar" id="rb5Toolbar">
-            <select id="rbTbFont" class="form-control" title="Document font">
-                <option value="">Default font</option>
-                <option value="'DejaVu Sans', Arial, sans-serif">DejaVu Sans</option>
-                <option value="Arial, Helvetica, sans-serif">Arial</option>
-                <option value="Georgia, 'Times New Roman', serif">Georgia</option>
-                <option value="'Times New Roman', Times, serif">Times New Roman</option>
-                <option value="'Courier New', monospace">Courier New</option>
-            </select>
-            <select id="rbTbFontSize" class="form-control" title="Font size">
-                <option value="9">9</option>
-                <option value="10">10</option>
-                <option value="11" selected>11</option>
-                <option value="12">12</option>
-                <option value="13">13</option>
-                <option value="14">14</option>
-            </select>
-            <span class="rb5-tb-sep"></span>
-            <button type="button" class="rb5-tb-btn" id="rbTbBold" title="Bold"><strong>B</strong></button>
-            <button type="button" class="rb5-tb-btn" id="rbTbItalic" title="Italic"><em>I</em></button>
-            <button type="button" class="rb5-tb-btn" id="rbTbUnderline" title="Underline"><u>U</u></button>
-            <input type="color" id="rbTbColor" value="#10263b" title="Text colour" style="width:34px; height:32px; padding:1px; border:1px solid #dfe8f3; border-radius:7px; background:#fff;">
-            <span class="rb5-tb-sep"></span>
-            <button type="button" class="rb5-tb-btn" id="rbTbAlignLeft" title="Align left">⯇</button>
-            <button type="button" class="rb5-tb-btn" id="rbTbAlignCenter" title="Align centre">≡</button>
-            <button type="button" class="rb5-tb-btn" id="rbTbAlignRight" title="Align right">⯈</button>
-            <span class="rb5-tb-sep"></span>
-            <select id="rbPaper" class="form-control" title="Paper size">
-                <option value="a4">A4</option>
-                <option value="letter">Letter</option>
-            </select>
-            <select id="rbOrientation" class="form-control" title="Orientation">
-                <option value="portrait">Portrait</option>
-                <option value="landscape">Landscape</option>
-            </select>
-            <select id="rbTbZoom" class="form-control" title="Zoom">
-                <option value="0.6">60%</option>
-                <option value="0.75">75%</option>
-                <option value="0.9">90%</option>
-                <option value="1" selected>100%</option>
-                <option value="1.25">125%</option>
-                <option value="1.5">150%</option>
-            </select>
-            <span class="rb5-tb-sep"></span>
-            <button type="button" class="rb5-tb-btn" id="rbTbUndo" title="Undo">↺</button>
-            <button type="button" class="rb5-tb-btn" id="rbTbRedo" title="Redo">↻</button>
-            <button type="button" class="btn btn-primary btn-sm" id="rbTbPrint" style="height:32px;"><i class="icon-printer mr-1"></i> Print</button>
+        {{-- Slim document header (owner simplification): the
+             "Report: …" summary + Print + Download PDF. This is
+             the ONLY chrome above the document now. --}}
+        <div class="rb5-docbar">
+            <p id="rbSummary" class="rb2-summary mb-0"></p>
+            <div class="rb5-docbar-actions">
+                <button type="button" class="btn btn-light btn-sm" id="rbDocPrint" style="height:32px;"><i class="icon-printer mr-1"></i> Print</button>
+                <button type="button" class="btn btn-primary btn-sm rb-generate-btn" style="height:32px;"><i class="icon-file-pdf mr-1"></i> Download PDF</button>
+            </div>
         </div>
         <div class="rb5-statusbar">
             <p id="rbPreviewStatus" class="rb2-status mb-0" role="status">Loading the document…</p>
-            <p id="rbSummary" class="rb2-summary mb-0"></p>
             <p id="rbPreviewLoading" class="rb2-loading mb-0" style="display:none;">Updating document…</p>
         </div>
         <div class="rb5-workspace">
@@ -435,7 +408,6 @@
     var previewSeq = 0;
     var autoTitle = '';
     var titleTouched = false;
-    var canvasFont = '';
     function sourceLabel() {
         var s = SOURCES[el('rbSource').value];
         return s ? s.label : 'Report';
@@ -750,23 +722,16 @@
         });
         if (!any) { wrap.textContent = 'Add a numeric column to enable totals.'; }
     }
+    /* Sort has no visible control any more (owner simplification):
+       the key/dir arrive via presets and saved templates and ride
+       in the hidden inputs. renderSort() only keeps the state
+       honest — a sort key whose column was removed falls back to
+       the source order — and mirrors it into the hidden input. */
     function renderSort() {
-        var sel = el('rbSortKey');
-        var prev = sortKey;
-        sel.innerHTML = '';
-        var none = document.createElement('option');
-        none.value = '';
-        none.textContent = 'Source order';
-        sel.appendChild(none);
-        columns.forEach(function (col) {
-            var o = document.createElement('option');
-            o.value = col.key;
-            o.textContent = col.label;
-            if (col.key === prev) { o.selected = true; }
-            sel.appendChild(o);
-        });
-        sortKey = sel.value;
-        sel.addEventListener('change', function () { sortKey = sel.value; schedulePreview(); });
+        var valid = false;
+        columns.forEach(function (col) { if (col.key === sortKey) { valid = true; } });
+        if (!valid) { sortKey = ''; }
+        el('rbSortKey').value = sortKey;
     }
     function collectConfig() {
         var filters = {};
@@ -787,7 +752,8 @@
             paper: el('rbPaper').value,
             footer_text: el('rbFooterText').value,
             margin_mm: parseInt(el('rbMargin').value, 10) || 10,
-            font_size: parseInt(el('rbFontSize').value, 10) || 11,
+            /* No font_size: the control is deleted (owner
+               simplification) — the engine default applies. */
             show_header: el('rbShowHeader').checked,
             show_meta: el('rbShowMeta').checked,
             show_footer: el('rbShowFooter').checked,
@@ -858,8 +824,6 @@
         el('rbPaper').value = o.paper || 'a4';
         el('rbFooterText').value = o.footer_text || SCHOOL_NAME;
         el('rbMargin').value = o.margin_mm || 10;
-        el('rbFontSize').value = o.font_size || 11;
-        el('rbTbFontSize').value = String(o.font_size || 11);
         el('rbBlankRows').value = o.blank_rows || 0;
         el('rbShowHeader').checked = o.show_header !== false;
         el('rbShowMeta').checked = o.show_meta !== false;
@@ -896,7 +860,6 @@
         var frame = el('previewFrame');
         var fdoc = frame.contentDocument;
         if (!fdoc || !fdoc.body) { return; }
-        if (canvasFont) { fdoc.body.style.fontFamily = canvasFont; }
         fdoc.querySelectorAll('[data-edit]').forEach(function (node) {
             var kind = node.getAttribute('data-edit');
             var original = node.textContent;
@@ -929,11 +892,6 @@
             });
         });
     }
-    function frameExec(cmd, val) {
-        var fdoc = el('previewFrame').contentDocument;
-        if (fdoc) { try { fdoc.execCommand(cmd, false, val || null); } catch (e) {} }
-    }
-
     /* ---- events ---- */
     el('rbTitle').addEventListener('input', function () { titleTouched = true; });
     el('rbSource').addEventListener('change', function () {
@@ -981,31 +939,11 @@
         if (ev.target && ev.target.id === 'rbTemplateName') { return; }
         schedulePreview();
     });
-    /* Toolbar controls live outside #rbSettings — wire them too. */
-    el('rbPaper').addEventListener('change', schedulePreview);
-    el('rbOrientation').addEventListener('change', schedulePreview);
-    el('rbTbFontSize').addEventListener('change', function () {
-        el('rbFontSize').value = el('rbTbFontSize').value;
-        schedulePreview();
-    });
-    el('rbTbFont').addEventListener('change', function () {
-        canvasFont = el('rbTbFont').value;
-        var fdoc = el('previewFrame').contentDocument;
-        if (fdoc && fdoc.body) { fdoc.body.style.fontFamily = canvasFont; }
-    });
-    el('rbTbBold').addEventListener('click', function () { frameExec('bold'); });
-    el('rbTbItalic').addEventListener('click', function () { frameExec('italic'); });
-    el('rbTbUnderline').addEventListener('click', function () { frameExec('underline'); });
-    el('rbTbColor').addEventListener('input', function () { frameExec('foreColor', el('rbTbColor').value); });
-    el('rbTbAlignLeft').addEventListener('click', function () { frameExec('justifyLeft'); });
-    el('rbTbAlignCenter').addEventListener('click', function () { frameExec('justifyCenter'); });
-    el('rbTbAlignRight').addEventListener('click', function () { frameExec('justifyRight'); });
-    el('rbTbUndo').addEventListener('click', function () { frameExec('undo'); });
-    el('rbTbRedo').addEventListener('click', function () { frameExec('redo'); });
-    el('rbTbZoom').addEventListener('change', function () {
-        el('previewFrame').style.zoom = el('rbTbZoom').value;
-    });
-    el('rbTbPrint').addEventListener('click', function () {
+    /* Paper / orientation now live INSIDE #rbSettings (Page
+       settings section), so the delegated input/change handlers
+       above already schedule their previews — no separate wiring.
+       The document header's Print button prints the frame. */
+    el('rbDocPrint').addEventListener('click', function () {
         var fw = el('previewFrame').contentWindow;
         if (fw) { fw.focus(); fw.print(); }
     });
@@ -1029,13 +967,7 @@
             if (fdoc && fdoc.body && fdoc.body.getAttribute('data-rb-preview-error')) { isError = true; }
         } catch (e) { isError = false; }
         if (isError) {
-            var tooMany = false;
-            try { tooMany = !!(fdoc && fdoc.body && fdoc.body.textContent && fdoc.body.textContent.indexOf('Too many rows') !== -1); } catch (e) { tooMany = false; }
-            if (tooMany) {
-                setPreviewStatus('Too many rows for one document — pick a class or section on the left and the document will appear here.', false);
-            } else {
-                setPreviewStatus('The document could not be generated — see the message in the document panel, then fix the settings.', true);
-            }
+            setPreviewStatus('The document could not be generated — see the message in the document panel, then fix the settings.', true);
         } else {
             setPreviewStatus('Live document — click its title, subtitle, footer or column headings to edit. Print and the PDF use exactly this document.', false);
             wireCanvas();

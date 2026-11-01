@@ -188,7 +188,10 @@ class OwnerAllotmentRound2Test extends TestCase
         $originalTeacher = SectionTeacher::teacherIdFor(55, $subject);
         $this->assertNotEmpty($originalTeacher);
 
-        $cell = TimeTable::where('ttr_id', 12)->where('subject_id', 69)
+        // (Record resolved by its section — record ids shifted
+        // when every class went per-section.)
+        $record = \App\Models\TimeTableRecord::where('section_id', 55)->firstOrFail();
+        $cell = TimeTable::where('ttr_id', $record->id)->where('subject_id', 69)
             ->orderBy('id')->firstOrFail();
         $date = null;
         $cursor = \Carbon\Carbon::create(2026, 11, 2);

@@ -61,33 +61,59 @@ class OwnerExamDateSheetR25Test extends TestCase
 
     protected function student57()
     {
-        return User::findOrFail(57);
+        // Aarav Sharma (student_record 1). Resolved by email —
+        // the raw id (57) shifted +51 when the roster grew
+        // (section segment, 2026-10-30) and now names a teacher.
+        return User::where('email', 'student@hackstra.app')->firstOrFail();
+    }
+
+    /** Clear the student's seeded dues so myCard renders the card, not the fee block. */
+    protected function clearDues()
+    {
+        // Section segment (2026-10-30): the shifted seed leaves
+        // student_record 1 owing 14,400, and myCard truthfully
+        // renders the fee block (200 + name) for owing students —
+        // which would let these render tests pass on the block
+        // view. Settle the dues in-test so the CARD is what
+        // renders (the fee block has its own coverage — R26).
+        \App\Models\PaymentRecord::where('student_id', $this->student57()->id)
+            ->update(['paid' => 1]);
     }
 
     public function test_student_own_my_card_renders_own_card()
     {
+        $this->clearDues();
         $response = $this->actingAs($this->student57())
-            ->get(route('admit_cards.my_card', ['exam' => 1, 'student_id' => 57]));
+            ->get(route('admit_cards.my_card', ['exam' => 1, 'student_id' => $this->student57()->id]));
 
         $response->assertStatus(200);
         $response->assertSee('Aarav Sharma', false);
+        $response->assertDontSee('Admit Card Cannot Be Generated Yet', false);
     }
 
     public function test_parent_my_card_for_own_child_renders_child_card()
     {
+        $this->clearDues();
         $response = $this->actingAs($this->parent())
-            ->get(route('admit_cards.my_card', ['exam' => 1, 'student_id' => 57]));
+            ->get(route('admit_cards.my_card', ['exam' => 1, 'student_id' => $this->student57()->id]));
 
         $response->assertStatus(200);
         $response->assertSee('Aarav Sharma', false);
+        $response->assertDontSee('Admit Card Cannot Be Generated Yet', false);
     }
 
     public function test_parent_my_card_for_foreign_child_is_refused()
     {
-        // Student user 100: class 1, my_parent_id NULL — truly
-        // foreign to parent@ (whose children are records 1 + 2 only).
+        // A student whose record is NOT parented by parent@
+        // (whose children are records 1 + 2 only) — resolved live.
+        $parentId = $this->parent()->id;
+        $foreign = \App\Models\StudentRecord::where('grad', 0)
+            ->where(function ($q) use ($parentId) {
+                $q->whereNull('my_parent_id')->orWhere('my_parent_id', '!=', $parentId);
+            })
+            ->orderBy('id')->firstOrFail();
         $response = $this->actingAs($this->parent())
-            ->get(route('admit_cards.my_card', ['exam' => 1, 'student_id' => 100]));
+            ->get(route('admit_cards.my_card', ['exam' => 1, 'student_id' => $foreign->user_id]));
 
         $response->assertStatus(403);
     }
@@ -96,9 +122,9 @@ class OwnerExamDateSheetR25Test extends TestCase
     {
         // Teachers are teamSA-gated on bulk print (round 17) and
         // 403 here too: myCard allows self / own child / teamSA
-        // only, and a teacher is none of those for student 57.
+        // only, and a teacher is none of those for this student.
         $response = $this->actingAs($this->teacher())
-            ->get(route('admit_cards.my_card', ['exam' => 1, 'student_id' => 57]));
+            ->get(route('admit_cards.my_card', ['exam' => 1, 'student_id' => $this->student57()->id]));
 
         $response->assertStatus(403);
     }
@@ -106,7 +132,7 @@ class OwnerExamDateSheetR25Test extends TestCase
     public function test_admin_my_card_is_allowed_as_office_use()
     {
         $response = $this->actingAs($this->admin())
-            ->get(route('admit_cards.my_card', ['exam' => 1, 'student_id' => 57]));
+            ->get(route('admit_cards.my_card', ['exam' => 1, 'student_id' => $this->student57()->id]));
 
         $response->assertStatus(200);
         $response->assertSee('Aarav Sharma', false);

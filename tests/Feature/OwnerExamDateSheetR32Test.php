@@ -244,33 +244,47 @@ class OwnerExamDateSheetR32Test extends TestCase
         $this->plantRow($exam->id, 1, $prepSubject->id);
 
         $resp = $this->actingAs($this->student57())
-            ->get(route('admit_cards.my_card', [$exam->id, 57]));
+            ->get(route('admit_cards.my_card', [$exam->id, $this->student57()->id]));
         $resp->assertRedirect(route('admit_cards.my'));
         $this->assertSame(
             $this->scopeMessage('R32 Scope X Class', 'Prep'),
             session('flash_danger'));
     }
 
+    /** Clear student@'s seeded dues so myCard renders the card, not the fee block. */
+    protected function clearDues()
+    {
+        // Section segment (2026-10-30): the shifted seed leaves
+        // student@ owing 14,400, and myCard truthfully renders
+        // the fee block for owing students. The scope properties
+        // below need the card itself, so the dues are settled
+        // in-test (the fee block has its own coverage — R26).
+        \App\Models\PaymentRecord::where('student_id', $this->student57()->id)
+            ->update(['paid' => 1]);
+    }
+
     public function test_mycard_for_scoped_class_own_exam_renders()
     {
+        $this->clearDues();
         $exam = $this->makeExam('R32 Scoped Exam', 'R32 Term', 1);
         $prepSubject = Subject::where('my_class_id', 1)->orderBy('id')->firstOrFail();
         $this->plantRow($exam->id, 1, $prepSubject->id);
 
         $resp = $this->actingAs($this->student57())
-            ->get(route('admit_cards.my_card', [$exam->id, 57]));
+            ->get(route('admit_cards.my_card', [$exam->id, $this->student57()->id]));
         $resp->assertOk();
         $resp->assertSee('Mon, 02 Nov 2026');
     }
 
     public function test_mycard_for_global_exam_renders()
     {
+        $this->clearDues();
         $exam = $this->makeExam('R32 Global Exam', 'R32 Global Term', 0);
         $prepSubject = Subject::where('my_class_id', 1)->orderBy('id')->firstOrFail();
         $this->plantRow($exam->id, 1, $prepSubject->id);
 
         $resp = $this->actingAs($this->student57())
-            ->get(route('admit_cards.my_card', [$exam->id, 57]));
+            ->get(route('admit_cards.my_card', [$exam->id, $this->student57()->id]));
         $resp->assertOk();
         $resp->assertSee('Mon, 02 Nov 2026');
     }

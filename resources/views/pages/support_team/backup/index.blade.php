@@ -14,12 +14,12 @@
     </style>
     <div class="bk-wrap">
         <div class="bk-note">
-            <strong>Read this first.</strong> On the free demo host there is nothing to back up:
-            the demo database is wiped and re-seeded on every deploy, so a demo backup would
-            protect nothing. Real school data is backed up at the host level, not from this
-            page — see the Backup &amp; Restore Runbook. This page only verifies that the
-            checks below pass, and records when they were last verified. There is no
-            database download here, by design.
+            <strong>Read this first.</strong> This page does not download the database —
+            by design. School data lives on the managed database (TiDB Cloud), which
+            keeps its own backups, and deploys do not erase it. For a school on its own
+            host, backups are taken at the host level — see the Backup &amp; Restore
+            Runbook. This page only verifies that the checks below pass, and records
+            when they were last verified.
         </div>
 
         <div class="bk-card">

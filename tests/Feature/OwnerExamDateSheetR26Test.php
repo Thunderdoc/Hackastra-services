@@ -64,15 +64,20 @@ class OwnerExamDateSheetR26Test extends TestCase
 
     protected function student58()
     {
-        return User::findOrFail(58);
+        // The owing student is student_record 2 (linked to
+        // parent@). Resolved through the record — the raw user id
+        // (58) shifted +51 when the roster grew (section segment,
+        // 2026-10-30) and now names a teacher.
+        $record = \App\Models\StudentRecord::findOrFail(2);
+        return User::findOrFail($record->user_id);
     }
 
     public function test_student_58_my_card_shows_fee_block_not_card()
     {
-        // User 58 (student_record 2, linked to parent@): payment
-        // records 4-6 leave 14,400 outstanding in 2026-2027.
+        // Student_record 2 (linked to parent@): payment records
+        // 4-6 leave 14,400 outstanding in 2026-2027.
         $response = $this->actingAs($this->student58())
-            ->get(route('admit_cards.my_card', ['exam' => 1, 'student_id' => 58]));
+            ->get(route('admit_cards.my_card', ['exam' => 1, 'student_id' => $this->student58()->id]));
 
         $response->assertStatus(200);
         $response->assertSee('Admit Card Cannot Be Generated Yet', false);
@@ -90,7 +95,7 @@ class OwnerExamDateSheetR26Test extends TestCase
     public function test_parent_my_card_for_owing_child_shows_fee_block()
     {
         $response = $this->actingAs($this->parent())
-            ->get(route('admit_cards.my_card', ['exam' => 1, 'student_id' => 58]));
+            ->get(route('admit_cards.my_card', ['exam' => 1, 'student_id' => $this->student58()->id]));
 
         $response->assertStatus(200);
         $response->assertSee('Admit Card Cannot Be Generated Yet', false);
@@ -104,7 +109,7 @@ class OwnerExamDateSheetR26Test extends TestCase
         // teamSA office generation is never blocked (code + blade
         // comment both say so); the admin sees the real card.
         $response = $this->actingAs($this->admin())
-            ->get(route('admit_cards.my_card', ['exam' => 1, 'student_id' => 58]));
+            ->get(route('admit_cards.my_card', ['exam' => 1, 'student_id' => $this->student58()->id]));
 
         $response->assertStatus(200);
         $response->assertSee($this->student58()->name, false);
@@ -117,7 +122,7 @@ class OwnerExamDateSheetR26Test extends TestCase
         // a teacher gets 403 even for an owing student, same as the
         // round-25 non-owing control.
         $response = $this->actingAs($this->teacher())
-            ->get(route('admit_cards.my_card', ['exam' => 1, 'student_id' => 58]));
+            ->get(route('admit_cards.my_card', ['exam' => 1, 'student_id' => $this->student58()->id]));
 
         $response->assertStatus(403);
     }

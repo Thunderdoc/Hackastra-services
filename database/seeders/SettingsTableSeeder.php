@@ -22,7 +22,7 @@ class SettingsTableSeeder extends Seeder
             ['type' => 'system_name', 'description' => 'Hackstra Academy'],
             ['type' => 'term_ends', 'description' => '31/3/2027'],
             ['type' => 'term_begins', 'description' => '1/6/2026'],
-            ['type' => 'phone', 'description' => '0123456789'],
+            ['type' => 'phone', 'description' => '+91 98765 43210'],
             ['type' => 'address', 'description' => '18B North Central Park, Behind Central Square Tourist Center'],
             ['type' => 'system_email', 'description' => 'info@hackstra.app'],
             ['type' => 'alt_email', 'description' => ''],

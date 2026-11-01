@@ -9,8 +9,11 @@ use Tests\TestCase;
  * Builder rb5 (owner, 2026-10-30): the editable-document canvas.
  * POST reports/preview-html returns the SAME print view as HTML
  * with editable regions marked; paper size and the footer line
- * are real engine options; the role gate and the row cap hold on
- * the new endpoint exactly as on the PDF paths.
+ * are real engine options; the role gate holds on the new
+ * endpoint exactly as on the PDF paths, and the row cap
+ * TRUNCATES there (owner, 2026-10-30 evening) instead of
+ * refusing — the default Students + All classes state renders a
+ * real document with a note, never a blank page.
  */
 class OwnerBuilderCanvasTest extends TestCase
 {
@@ -75,25 +78,32 @@ class OwnerBuilderCanvasTest extends TestCase
         $this->assertStringContainsString('size: A4', $a4->getContent());
     }
 
-    public function test_canvas_endpoint_keeps_the_role_gate_and_row_cap()
+    public function test_canvas_endpoint_keeps_the_role_gate_and_truncates_over_cap()
     {
         $accountant = $this->user('accountant@hackstra.app');
         $this->actingAs($accountant)->post(route('reports.preview_html'), [
             'config' => json_encode($this->config()),
         ])->assertForbidden();
 
-        // Unfiltered students (3041 on the untouched seed) — the
-        // cap refuses with the engine's own message, as an error
-        // document. The count is read live: another test may have
-        // admitted a student earlier in the run.
+        // Unfiltered students (the whole school) used to be
+        // refused with a 422 error document, leaving the canvas
+        // blank. Now the document renders — real first rows plus
+        // the truncation note. The total is read live: another
+        // test may have admitted a student earlier in the run.
         $admin = $this->user('admin@hackstra.app');
         $cfg = $this->config();
         $cfg['filters'] = [];
         $response = $this->actingAs($admin)->post(route('reports.preview_html'), [
             'config' => json_encode($cfg),
         ]);
-        $response->assertStatus(422);
-        $this->assertStringContainsString('Too many rows for one PDF (' . \App\Models\StudentRecord::where('grad', 0)->count() . ')', $response->getContent());
+        $response->assertOk();
+        $html = $response->getContent();
+        $total = \App\Models\StudentRecord::where('grad', 0)->count();
+        $this->assertStringContainsString(
+            'Showing first ' . \App\Support\Reports\ReportEngine::MAX_ROWS . ' of ' . $total . ' rows — narrow by class or section for the complete list.',
+            $html
+        );
+        $this->assertStringContainsString('Aarav Sharma', $html);
     }
 
     public function test_pdf_download_still_works_with_new_options()

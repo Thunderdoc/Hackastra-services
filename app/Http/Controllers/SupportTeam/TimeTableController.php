@@ -425,30 +425,32 @@ class TimeTableController extends Controller
         foreach ($classes as $c) {
             $cfg = $data['scope'] === 'one' ? $singleCfg : $levelCfgs[$classLevels[$c->id]];
             [$targetSlots, ] = $this->buildSlots($cfg);
-            // Batch 2026-10-26: scope=all must EXPAND a streamed
-            // class into section targets — a class grid for Class
-            // 11/12 would mix every stream's subjects (and, in skip
-            // mode, the old code skipped nothing because streamed
-            // classes have no class grid at all, so it built bogus
-            // mixed grids). A fully-streamed class yields section
-            // targets only; a mixed class yields its section
-            // targets first (they generate first, so their cells
-            // then block the fallback class grid for shared
-            // teachers) plus the class target for untagged sections.
+            // Batch 2026-10-26, generalised 2026-10-30: scope=all
+            // EXPANDS every class that HAS sections into one target
+            // per section — ALL its sections, streamed or not. The
+            // 2026-10-26 rule expanded only streamed classes (a
+            // whole-class grid for Class 11/12 would mix every
+            // stream's subjects, and in skip mode the old code
+            // skipped nothing because streamed classes have no
+            // class grid at all, so it built bogus mixed grids),
+            // and a mixed class also kept a whole-class fallback
+            // target for its untagged sections. The owner's settled
+            // direction is per-section timetables for EVERY class,
+            // and the demo seed builds per-section grids throughout:
+            // a whole-class target for a sectioned class finds no
+            // sectionless record to skip or replace, so it built a
+            // duplicate class grid beside the section grids (11
+            // bogus grids on the seeded school). A class with NO
+            // sections keeps its single whole-class target.
+            // scope=one is untouched: an explicit class/section
+            // choice stays exactly what the admin picked.
             if ($data['scope'] === 'all') {
-                $streamed = Section::where('my_class_id', $c->id)
-                    ->whereNotNull('stream')->orderBy('id')->get();
-                if ($streamed->isNotEmpty()) {
-                    foreach ($streamed as $sec) {
+                $classSections = Section::where('my_class_id', $c->id)
+                    ->orderBy('id')->get();
+                if ($classSections->isNotEmpty()) {
+                    foreach ($classSections as $sec) {
                         $targets[] = [
                             'class' => $c, 'section_id' => $sec->id, 'section' => $sec,
-                            'cfg' => $cfg, 'slots' => $targetSlots,
-                        ];
-                    }
-                    $allSections = Section::where('my_class_id', $c->id)->count();
-                    if ($streamed->count() < $allSections) {
-                        $targets[] = [
-                            'class' => $c, 'section_id' => null, 'section' => null,
                             'cfg' => $cfg, 'slots' => $targetSlots,
                         ];
                     }

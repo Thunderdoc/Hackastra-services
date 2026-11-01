@@ -27,6 +27,12 @@ class OwnerSettingsWorkflowRound6Test extends TestCase
 {
     use DatabaseTransactions;
 
+    /** student@'s user id, resolved live — the raw id (57) shifted +51 when the roster grew (section segment, 2026-10-30). */
+    protected function studentId()
+    {
+        return User::where('email', 'student@hackstra.app')->firstOrFail()->id;
+    }
+
     private function admin()
     {
         return User::where('email', 'admin@hackstra.app')->firstOrFail();
@@ -242,7 +248,7 @@ class OwnerSettingsWorkflowRound6Test extends TestCase
             ->assertSee('Aarav Sharma');
         // And the old marksheet is reachable by direct old-year URL.
         $this->actingAs($this->admin())
-            ->get(route('marks.show', [Qs::hash(57), '2026-2027']))
+            ->get(route('marks.show', [Qs::hash($this->studentId()), '2026-2027']))
             ->assertOk()
             ->assertSee('Aarav Sharma');
     }

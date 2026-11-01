@@ -15,14 +15,15 @@ use Tests\TestCase;
  * idempotently — no duplicate-key 500, no duplicate component rows,
  * no disabled grid — for teachers and Admin alike.
  *
- * Combo under test: Term 1 (exam 1), Class 12 (13), Section E (68),
+ * Combo under test: Term 1 (exam 1), Class 12 (13), section 76,
  * English Language (79, configured scheme). Users are resolved by
- * email, never hardcoded ids. Section 68 (not 66): Ananya is the
- * EFFECTIVE teacher of section 68 English (override row 68/79) —
+ * email, never hardcoded ids. Section 76 (not 66): Ananya is the
+ * EFFECTIVE teacher of section 76 English (override row 76/79) —
  * agent C round 24 tightened marks entry from class scope to
  * effective-teacher scope, so the teacher half of this suite must
  * use a section its teacher actually teaches (section 66 English
- * belongs to override teacher 45).
+ * belongs to override teacher 46). The anchor section moved from
+ * 68 to 76 with the section segment (2026-10-30).
  */
 class OwnerMarksResaveTest extends TestCase
 {
@@ -45,12 +46,12 @@ class OwnerMarksResaveTest extends TestCase
 
     protected function combo(): array
     {
-        return [1, 13, 68, 79];
+        return [1, 13, 76, 79];
     }
 
     protected function comboRow(): array
     {
-        return ['exam_id' => 1, 'my_class_id' => 13, 'section_id' => 68, 'subject_id' => 79];
+        return ['exam_id' => 1, 'my_class_id' => 13, 'section_id' => 76, 'subject_id' => 79];
     }
 
     /** Current stored scores as the manage page renders them. */

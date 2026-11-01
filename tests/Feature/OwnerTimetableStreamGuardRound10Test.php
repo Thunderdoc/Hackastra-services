@@ -196,11 +196,19 @@ class OwnerTimetableStreamGuardRound10Test extends TestCase
 
         // The cell row renders the subject name in a <td>; the
         // add-form options (round-9 filtered) must NOT contain it,
-        // so a <td> hit can only come from the listed cell.
-        $this->actingAs($this->admin())
+        // so a <td> hit can only come from the listed cell. The
+        // not-offered probe is scoped to the subject selects:
+        // subject ids now collide with record ids in the page's
+        // record switcher (section segment, 2026-10-30).
+        $response = $this->actingAs($this->admin())
             ->get(route('ttr.manage', $record->id))
-            ->assertOk()
-            ->assertSee('<td>' . $subject->name . '</td>', false)
-            ->assertDontSee('value="' . $subject->id . '"', false);
+            ->assertOk();
+        $response->assertSee('<td>' . $subject->name . '</td>', false);
+        preg_match_all('/<select[^>]*name="subject_id"[^>]*>(.*?)<\/select>/s', $response->getContent(), $selects);
+        $this->assertNotEmpty($selects[1], 'Manage page must render subject selects');
+        $this->assertStringNotContainsString(
+            'value="' . $subject->id . '"', implode(' ', $selects[1]),
+            'Placed out-of-stream subject must stay listed as a cell but not be offered as an option'
+        );
     }
 }

@@ -35,22 +35,36 @@ class OwnerWave29Test extends TestCase
         return User::where('user_type', 'teacher')->where('id', '!=', $this->teacher()->id)->first();
     }
 
-    /** A Monday class-grid period actually taught by teacher@. */
+    /**
+     * A Monday section period effectively taught by teacher@.
+     * Section segment (2026-10-30): whole-class records no longer
+     * exist, so the probe is a per-section period whose effective
+     * teacher (direct subject teacher or section override) is her,
+     * and rosters are counted per section.
+     */
     protected function takePeriod()
     {
-        return TimeTable::where('day', 'Monday')
-            ->whereHas('subject', function ($q) {
-                $q->where('teacher_id', $this->teacher()->id);
-            })
+        $teacherId = $this->teacher()->id;
+        $cell = TimeTable::with('tt_record')
+            ->where('day', 'Monday')
             ->whereHas('tt_record', function ($q) {
-                $q->whereNull('section_id');
+                $q->whereNotNull('section_id');
             })
-            ->firstOrFail();
+            ->orderBy('id')
+            ->get()
+            ->first(function ($tt) use ($teacherId) {
+                return \App\Support\SectionTeacher::teacherIdFor(
+                    $tt->tt_record->section_id, $tt->subject
+                ) === $teacherId;
+            });
+        $this->assertNotNull($cell, 'A Monday section period taught by teacher@ must exist');
+
+        return $cell;
     }
 
-    protected function rosterCount(int $classId): int
+    protected function rosterCount(int $sectionId): int
     {
-        return StudentRecord::where('my_class_id', $classId)->where('grad', 0)->count();
+        return StudentRecord::where('section_id', $sectionId)->where('grad', 0)->count();
     }
 
     public function test_take_page_shows_system_roll_numbers_in_order()
@@ -68,13 +82,13 @@ class OwnerWave29Test extends TestCase
         $rolls = array_map('intval', $m[1]);
         $this->assertNotEmpty($rolls);
         $this->assertSame(range(1, count($rolls)), $rolls, 'Roll badges must run 1..N in roster order');
-        $this->assertSame($this->rosterCount($tt->tt_record->my_class_id), count($rolls));
+        $this->assertSame($this->rosterCount($tt->tt_record->section_id), count($rolls));
     }
 
     public function test_roster_export_csv_matches_take_page()
     {
         $tt = $this->takePeriod();
-        $expected = $this->rosterCount($tt->tt_record->my_class_id);
+        $expected = $this->rosterCount($tt->tt_record->section_id);
 
         $response = $this->actingAs($this->teacher())->get(route('attendance.periods.roster_export', $tt->id));
         $response->assertOk();
@@ -111,13 +125,14 @@ class OwnerWave29Test extends TestCase
     {
         $tt = $this->takePeriod();
         $classId = $tt->tt_record->my_class_id;
-        $students = StudentRecord::where('my_class_id', $classId)->where('grad', 0)->orderBy('id')->take(3)->get();
+        $sectionId = $tt->tt_record->section_id;
+        $students = StudentRecord::where('section_id', $sectionId)->where('grad', 0)->orderBy('id')->take(3)->get();
 
         $session = AttendanceSession::create([
             'date' => '2026-10-19',
             'time_table_id' => $tt->id,
             'my_class_id' => $classId,
-            'section_id' => null,
+            'section_id' => $sectionId,
             'subject_id' => $tt->subject_id,
             'teacher_id' => $this->teacher()->id,
             'topic' => 'Wave 29 test topic',

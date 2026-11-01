@@ -51,6 +51,22 @@ class OwnerSettingsWorkflowRound4Test extends TestCase
         return User::where('email', 'parent@hackstra.app')->firstOrFail();
     }
 
+    /** parent@'s children's user ids, resolved live (raw ids 57/58 shifted +51 in the section segment). */
+    private function childIds(): array
+    {
+        return \App\Models\StudentRecord::where('my_parent_id', $this->parent()->id)
+            ->pluck('user_id')->map(fn ($id) => (int) $id)->all();
+    }
+
+    /** The second child's user id (the fee-detail surface's subject). */
+    private function siblingId(): int
+    {
+        $ids = $this->childIds();
+        $this->assertNotEmpty($ids, 'parent@ must have linked children in the seed');
+
+        return max($ids);
+    }
+
     private function setting(string $type): ?string
     {
         $row = Setting::where('type', $type)->first();
@@ -237,7 +253,7 @@ class OwnerSettingsWorkflowRound4Test extends TestCase
 
         $this->actingAs($this->parent())->get(route('my_fees'))
             ->assertOk()->assertDontSee('Pay Online');
-        $this->actingAs($this->parent())->get(route('my_fees.show', 58))
+        $this->actingAs($this->parent())->get(route('my_fees.show', $this->siblingId()))
             ->assertOk()->assertDontSee('Pay Online');
     }
 
@@ -277,7 +293,7 @@ class OwnerSettingsWorkflowRound4Test extends TestCase
         // test-mode badge on either surface.
         $this->actingAs($this->parent())->get(route('my_fees'))
             ->assertOk()->assertSee('Pay Online');
-        $this->actingAs($this->parent())->get(route('my_fees.show', 58))
+        $this->actingAs($this->parent())->get(route('my_fees.show', $this->siblingId()))
             ->assertOk()->assertSee('Pay Online')->assertDontSee('Test mode');
 
         // Checkout is where mock-vs-live becomes visible: the banner
@@ -304,7 +320,7 @@ class OwnerSettingsWorkflowRound4Test extends TestCase
         $checkout->assertOk();
 
         $this->actingAs($this->parent())
-            ->from(route('my_fees.show', 58))
+            ->from(route('my_fees.show', $this->siblingId()))
             ->post(route('my_fees.pay_callback'), [
                 'razorpay_order_id' => $checkout->viewData('txn')->order_id,
                 'razorpay_payment_id' => $checkout->viewData('mock_payment_id'),
@@ -330,7 +346,7 @@ class OwnerSettingsWorkflowRound4Test extends TestCase
         ])->assertRedirect(route('settings'));
 
         $foreign = PaymentRecord::where('year', Qs::getCurrentSession())
-            ->whereNotIn('student_id', [57, 58])->with('payment')->get()
+            ->whereNotIn('student_id', $this->childIds())->with('payment')->get()
             ->first(function ($r) {
                 return $r->payment && (int) $r->payment->amount > (int) $r->amt_paid;
             });

@@ -63,7 +63,7 @@
     .mar-chip-late{background:#fdf3e0;}
     .mar-chip-periods{background:#e8effc;}
     .mar-chip-registers{background:#efe9fd;}
-    .mar-table{width:100%;border:1px solid #b9c6d4;table-layout:fixed;}
+    .mar-table{width:100%;border:1px solid #b9c6d4;table-layout:fixed;break-inside:auto;page-break-inside:auto;}
     .mar-table th,.mar-table td{border-bottom:1px solid #e2e8f0;padding:3px 7px;font-size:12px;text-align:center;overflow:hidden;}
     .mar-table thead th{background:#eef2f7;color:#10263b;font-size:11px;letter-spacing:.05em;text-transform:uppercase;border-bottom:1.5px solid #b9c6d4;}
     .mar-table thead{display:table-header-group;}
@@ -89,7 +89,16 @@
     .mar-pill-critical{background:#fdecec;color:#c53030;}
     .mar-pill-none{background:#eef2f7;color:#718096;}
     .mar-policy{color:#718096;font-size:10.5px;margin-top:5px;}
-    .mar-panels{width:100%;margin-top:6px;}
+    /* Print pagination (owner fix 2026-10-30): the long table above
+       fragments freely (break-inside:auto, repeated thead), but the
+       small closing blocks must NEVER split or clip — Chrome was
+       cutting the Class Summary at a page bottom because only its
+       table ROW was unbreakable, not the block itself. Whole-block
+       avoid moves Summary Note + Class Summary + the signature row
+       intact to the next page when they do not fit. */
+    .mar-panels{width:100%;margin-top:6px;break-inside:avoid;page-break-inside:avoid;}
+    .mar-panel{break-inside:avoid;page-break-inside:avoid;}
+    .mar-sign{break-inside:avoid;page-break-inside:avoid;}
     .mar-panels>tbody>tr>td{width:50%;vertical-align:top;}
     .mar-panels>tbody>tr>td:first-child{padding-right:7px;}
     .mar-panels>tbody>tr>td:last-child{padding-left:7px;}

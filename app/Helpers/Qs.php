@@ -631,6 +631,59 @@ class Qs
     }
 
     /**
+     * The school phone FOR PRINTED DOCUMENTS (letterheads, report
+     * cards, receipts, payslips, legal pages): the Settings value,
+     * or NULL when it is blank or still the factory placeholder
+     * '0123456789'. Documents must never print the placeholder —
+     * they simply omit the Tel segment, exactly as they do for a
+     * blank phone. Every document data builder routes through here
+     * so the rule lives in one place.
+     */
+    public static function getSchoolPhone()
+    {
+        $phone = trim((string) self::getSetting('phone'));
+        if ($phone === '') {
+            return null;
+        }
+        if (preg_replace('/\s+/', '', $phone) === '0123456789') {
+            return null;
+        }
+
+        return $phone;
+    }
+
+    /**
+     * PDF generation needs headroom: raise the memory ceiling to
+     * 512M ONLY when the current limit is finite and lower — never
+     * lower a higher ceiling the environment provided. (2026-10-31:
+     * an unconditional ini_set('memory_limit','512M') in five
+     * controllers silently capped every later heavy render in any
+     * long-lived process that had started with more.)
+     */
+    public static function ensurePdfMemory()
+    {
+        $current = ini_get('memory_limit');
+        if ($current === false || $current === '-1' || $current === -1) {
+            return;
+        }
+        $value = trim((string) $current);
+        $bytes = (int) $value;
+        switch (strtolower(substr($value, -1))) {
+            case 'g':
+                $bytes *= 1024;
+                // fallthrough
+            case 'm':
+                $bytes *= 1024;
+                // fallthrough
+            case 'k':
+                $bytes *= 1024;
+        }
+        if ($bytes < 512 * 1024 * 1024) {
+            ini_set('memory_limit', '512M');
+        }
+    }
+
+    /**
      * The school logo for branding spots (sidebar, login, settings preview):
      * the logo uploaded in Settings when one exists, otherwise a bundled
      * default so the <img> is never empty/broken.

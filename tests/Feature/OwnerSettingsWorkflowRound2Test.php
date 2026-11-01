@@ -34,6 +34,12 @@ class OwnerSettingsWorkflowRound2Test extends TestCase
 {
     use DatabaseTransactions;
 
+    /** student@'s user id, resolved live — the raw id (57) shifted +51 when the roster grew (section segment, 2026-10-30). */
+    protected function studentId()
+    {
+        return User::where('email', 'student@hackstra.app')->firstOrFail()->id;
+    }
+
     private function admin()
     {
         return User::where('email', 'admin@hackstra.app')->firstOrFail();
@@ -81,7 +87,7 @@ class OwnerSettingsWorkflowRound2Test extends TestCase
         $this->assertSame('3/4/2026', $this->setting('term_begins'));
         $this->assertSame('77777', $this->setting('next_term_fees_pn'));
 
-        $hash = Qs::hash(57); // Aarav Sharma, Prep, student user id 57
+        $hash = Qs::hash($this->studentId()); // Aarav Sharma, Prep, student@
         $res = $this->actingAs($this->admin())->get("/marks/print/{$hash}/1/2026-2027");
         $res->assertOk();
         $content = $res->getContent();
@@ -104,7 +110,7 @@ class OwnerSettingsWorkflowRound2Test extends TestCase
         $html = $this->actingAs($this->admin())->get(route('settings'))->assertOk()->getContent();
         $this->assertStringContainsString('G2-TERM-ENDS-DISTINCT', $html);
 
-        $hash = Qs::hash(57);
+        $hash = Qs::hash($this->studentId());
         $res = $this->actingAs($this->admin())->get("/marks/print/{$hash}/1/2026-2027");
         $res->assertOk();
         $this->assertStringNotContainsString('G2-TERM-ENDS-DISTINCT', $res->getContent());
@@ -197,7 +203,7 @@ class OwnerSettingsWorkflowRound2Test extends TestCase
         ]);
         $daysLate = 4;
         $loan = BookRequest::create([
-            'book_id' => $book->id, 'user_id' => 57,
+            'book_id' => $book->id, 'user_id' => $this->studentId(),
             'start_date' => Carbon::today()->subDays(10)->format('Y-m-d'),
             'end_date' => Carbon::today()->subDays($daysLate)->format('Y-m-d'),
             'returned' => 0, 'status' => BookRequest::STATUS_ISSUED,

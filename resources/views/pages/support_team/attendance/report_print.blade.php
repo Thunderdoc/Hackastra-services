@@ -10,7 +10,16 @@
         .mar-toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:16px;}
         .mar-toolbar .mar-toolbar-title{font-weight:700;margin-right:auto;}
         .mar-sheet{background:#fff;max-width:900px;margin:0 auto;padding:34px 38px;border:1px solid #d7e0ec;box-shadow:0 10px 34px rgba(16,38,59,.10);}
-        @page{size:A4;margin:13mm 12mm 16mm;
+        @page{size:A4;margin:12mm 12mm 14mm;
+            /* Empty TOP margin boxes: where the engine honours
+               @page margin boxes (Chrome 131+), declaring them —
+               even empty — replaces the browser's own date/URL
+               header, whose reserved strip otherwise repeats as a
+               dead gap at the top of continuation pages. The real
+               footer lives in the bottom boxes. */
+            @top-left{content:"";}
+            @top-center{content:"";}
+            @top-right{content:"";}
             @bottom-left{content:"Attendance Report — {{ $class_label }} · {{ $range_label }}";font-size:9px;color:#718096;}
             @bottom-right{content:"Page " counter(page) " of " counter(pages);font-size:9px;color:#718096;}
         }

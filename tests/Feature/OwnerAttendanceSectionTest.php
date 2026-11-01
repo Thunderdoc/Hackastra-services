@@ -34,11 +34,22 @@ class OwnerAttendanceSectionTest extends TestCase
         return User::where('email', 'admin@hackstra.app')->firstOrFail();
     }
 
+    /** The probe cell: a Monday Class 12 section-76 English period (Ananya's override). */
+    protected function probeCell()
+    {
+        return TimeTable::where('day', 'Monday')->where('subject_id', 79)
+            ->whereHas('tt_record', function ($q) {
+                $q->where('section_id', 76);
+            })
+            ->orderBy('id')->firstOrFail();
+    }
+
     public function test_take_page_section_period_lists_only_section_students()
     {
-        // tt 788: Class 12-E (section 68) English, Monday.
+        // Probe cell: Class 12 section 76 English, Monday (resolved
+        // live — the pre-segment seeded id tt 788 is stale).
         $response = $this->actingAs($this->teacher())
-            ->get(route('attendance.periods.take', [788, 'date' => '2026-11-02']));
+            ->get(route('attendance.periods.take', [$this->probeCell()->id, 'date' => '2026-11-02']));
         $response->assertOk();
         $response->assertSee('40 students');
         $rolls = [];
@@ -53,9 +64,12 @@ class OwnerAttendanceSectionTest extends TestCase
         // which held the legacy shape only in one dev database. A
         // fresh seed's session 11 is a different, modern row, so
         // build the legacy shape directly: a Class 11-A section
-        // period (record 12, Mathematics) whose session is stored
+        // period (section 55's record, Mathematics) whose session is stored
         // with section_id NULL and entries for the WHOLE class.
-        $cell = TimeTable::where('ttr_id', 12)->where('subject_id', 69)
+        // (The record is resolved by its section — record ids
+        // shifted when every class went per-section.)
+        $record = \App\Models\TimeTableRecord::where('section_id', 55)->firstOrFail();
+        $cell = TimeTable::where('ttr_id', $record->id)->where('subject_id', 69)
             ->orderBy('id')->firstOrFail();
         $date = null;
         $cursor = \Carbon\Carbon::create(2026, 11, 2);

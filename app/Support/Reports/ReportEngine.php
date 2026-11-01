@@ -39,6 +39,12 @@ class ReportEngine
         'dropdown', 'yes_no', 'signature', 'remarks', 'blank',
     ];
 
+    /** Hard ceiling on rendered rows (data + blank) in one
+     *  document: dompdf exhausts even the 512M request headroom
+     *  past ~1,500 rows in a single table. 800 covers the largest
+     *  whole class (520) plus blank rows, with headroom. */
+    public const MAX_ROWS = 800;
+
     /**
      * Validate + normalize a raw config for this user.
      * Throws InvalidArgumentException on bad shape, and aborts 403
@@ -207,6 +213,24 @@ class ReportEngine
             $blankRows = 20;
         }
 
+        // Truncation (owner, 2026-10-30): an over-cap report used to
+        // be REFUSED, which left the builder's document blank for
+        // the most natural selection there is (Students + All
+        // classes). The document now renders the first rows that
+        // fit under MAX_ROWS and says so inside itself, so the
+        // canvas preview and the PDF carry the identical note.
+        // Truncating here — before rows, totals and data_count are
+        // derived — keeps every number in the document describing
+        // the rows it actually shows; the note carries the total.
+        $totalDataRows = count($rawRows);
+        $dataCap = max(0, self::MAX_ROWS - $blankRows);
+        $truncationNote = null;
+        if ($totalDataRows > $dataCap) {
+            $rawRows = array_slice($rawRows, 0, $dataCap);
+            $truncationNote = "Showing first {$dataCap} of {$totalDataRows} rows"
+                . ' — narrow by class or section for the complete list.';
+        }
+
         $rows = [];
         foreach ($rawRows as $raw) {
             $cells = [];
@@ -226,18 +250,6 @@ class ReportEngine
                 $rawOut[$col['key']] = null;
             }
             $rows[] = ['cells' => $cells, 'raw' => $rawOut, 'blank' => true];
-        }
-
-        // dompdf exhausts even the 512M request headroom past ~1,500
-        // rows in a single table (proven: unfiltered whole-school
-        // roster 500s with an empty body). Refuse with a plain
-        // message instead of a blank 500. 800 covers the largest
-        // whole class (520) plus blank rows, with headroom.
-        $totalRows = count($rows);
-        if ($totalRows > 800) {
-            throw new \InvalidArgumentException(
-                "Too many rows for one PDF ({$totalRows}). Filter by class or section first, then generate."
-            );
         }
 
         // Totals over data rows only (blank rows never inflate a sum).
@@ -280,6 +292,7 @@ class ReportEngine
             'columns' => $columns,
             'rows' => $rows,
             'data_count' => count($rawRows),
+            'truncation_note' => $truncationNote,
             'totals' => $totals,
             'totals_formatted' => self::formatTotals($totals, $columns),
             'meta' => self::metaLine($config, $user),

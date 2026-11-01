@@ -29,8 +29,9 @@ use Tests\TestCase;
  * accountant, librarian, and Super Admin included);
  * ReportSources::allowedFor still maps 'principal' to 'admin'
  * (platform stays super_admin-only); templates are owner-private
- * (foreign = 403, missing = 404); row cap 800 → redirect + flash,
- * never 500.
+ * (foreign = 403, missing = 404); row cap 800 → the document
+ * renders truncated with an in-document note (owner, 2026-10-30
+ * evening — it used to redirect + flash), never 500.
  */
 class OwnerReportsRoleResweepRound28Test extends TestCase
 {
@@ -302,33 +303,44 @@ class OwnerReportsRoleResweepRound28Test extends TestCase
         ])->assertForbidden();
     }
 
-    public function test_row_cap_principal_and_admin_pdf_and_preview()
+    // Re-expressed 2026-10-30 (owner order): the row cap no
+    // longer refuses with a redirect + flash — the over-cap
+    // document renders truncated, for the admin exactly like
+    // the principal (both resolve school-wide), on the pdf
+    // and the preview path alike. Never a 500, never a blank.
+    //
+    // Split per actor 2026-10-31 (random-order repair): the
+    // combined method made FOUR 800-row DOMPDF renders in one
+    // test; in a long random-order suite run the retained
+    // render graphs plus the process's accumulated memory
+    // crossed the app's own in-request 512M cap (ReportsController
+    // ini_set) and the run died in Cpdf at this method. One
+    // actor per method keeps every assertion identical while
+    // teardown frees each leg's renders before the next begins.
+    public function test_over_cap_report_renders_truncated_for_admin()
     {
-        // The count in the cap message is the LIVE unfiltered
-        // roster size (the engine counts grad=0 records). Another
-        // test may have admitted a student earlier in the run, so
-        // the expectation is built from the same live count.
-        $expected = 'Too many rows for one PDF (' . \App\Models\StudentRecord::where('grad', 0)->count() . '). Filter by class or section first, then generate.';
         $unfiltered = $this->studentsConfig();
         unset($unfiltered['filters']['class_id']);
         $unfiltered['filters'] = [];
 
-        // Owner correction: the admin reaches the row cap exactly
-        // like the principal (redirect + the cap flash).
-        $this->actingAs($this->userByEmail('admin@hackstra.app'))->from(route('reports.builder'))
-            ->post(route('reports.pdf'), ['config' => $unfiltered])
-            ->assertRedirect(route('reports.builder'))
-            ->assertSessionHas('flash_danger', $expected);
-        $this->actingAs($this->userByEmail('admin@hackstra.app'))->from(route('reports.builder'))
-            ->post(route('reports.preview'), ['config' => $unfiltered])
-            ->assertRedirect(route('reports.builder'))
-            ->assertSessionHas('flash_danger', $expected);
+        $admin = $this->userByEmail('admin@hackstra.app');
+        $this->assertPdfResponse($this->actingAs($admin)->from(route('reports.builder'))
+            ->post(route('reports.pdf'), ['config' => $unfiltered]));
+        $this->assertPdfResponse($this->actingAs($admin)->from(route('reports.builder'))
+            ->post(route('reports.preview'), ['config' => $unfiltered]));
+    }
 
-        // Principal pdf: same cap, same flash (principal resolves school-wide).
-        $this->actingAs($this->userByEmail('principal@hackstra.app'))->from(route('reports.builder'))
-            ->post(route('reports.pdf'), ['config' => $unfiltered])
-            ->assertRedirect(route('reports.builder'))
-            ->assertSessionHas('flash_danger', $expected);
+    public function test_over_cap_report_renders_truncated_for_principal()
+    {
+        $unfiltered = $this->studentsConfig();
+        unset($unfiltered['filters']['class_id']);
+        $unfiltered['filters'] = [];
+
+        $principal = $this->userByEmail('principal@hackstra.app');
+        $this->assertPdfResponse($this->actingAs($principal)->from(route('reports.builder'))
+            ->post(route('reports.pdf'), ['config' => $unfiltered]));
+        $this->assertPdfResponse($this->actingAs($principal)->from(route('reports.builder'))
+            ->post(route('reports.preview'), ['config' => $unfiltered]));
     }
 
     public function test_templates_cross_role_privacy_sa_and_principal_variants()

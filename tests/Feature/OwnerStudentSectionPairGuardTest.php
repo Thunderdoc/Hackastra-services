@@ -7,6 +7,7 @@ use App\Models\Section;
 use App\Models\State;
 use App\Models\StudentRecord;
 use App\User;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
 /**
@@ -22,6 +23,14 @@ use Tests\TestCase;
  */
 class OwnerStudentSectionPairGuardTest extends TestCase
 {
+    // Random-order repair (2026-10-31): the matching-pair test
+    // admits a real student through students.store. Without the
+    // trait that write COMMITTED — the shared seed gained a
+    // 3,042nd student in Class 12-A (roster 40 → 41) for every
+    // later test. The trait rolls the admission back; the
+    // before/after count assertions are unchanged.
+    use DatabaseTransactions;
+
     protected function admin(): User
     {
         return User::where('email', 'admin@hackstra.app')->firstOrFail();

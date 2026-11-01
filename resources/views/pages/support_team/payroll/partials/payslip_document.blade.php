@@ -98,7 +98,7 @@
 
 @php
     $psLogo = $logo_pdf ?? Qs::getSetting('logo');
-    $psPhone = Qs::getSetting('phone');
+    $psPhone = Qs::getSchoolPhone();
     $psEmail = Qs::getSetting('system_email');
     $psInitials = '';
     foreach (preg_split('/\s+/', trim((string) $school_name)) as $psWord) {

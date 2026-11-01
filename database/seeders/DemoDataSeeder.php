@@ -198,6 +198,23 @@ class DemoDataSeeder extends Seeder
                 : ($rank < $fullCount + $partialCount ? 'partial' : 'unpaid');
         }
 
+        /* Demo anchors (restored 2026-10-30): the demo student
+           (record 1, Aarav) must owe nothing — his marksheet and
+           admit card render clean by default — and his sibling
+           (record 2) carries the demo's one partial account:
+           nursery-band balances 10,800 + 3,000 + 600 = ₹14,400.
+           The hash ranking above reshuffles whenever user ids
+           shift (the section seed added 51 teachers), so these
+           two buckets are pinned explicitly by record id. */
+        foreach ($students as $s) {
+            if ((int) $s->id === 1) {
+                $bucketByUserId[$s->user_id] = 'full';
+            }
+            if ((int) $s->id === 2) {
+                $bucketByUserId[$s->user_id] = 'partial';
+            }
+        }
+
         /* Per-class inserts (2026-10-24): the old version built ALL
            9,123 payment_record rows + 8,211 receipt rows in memory
            first — each with its own now() Carbon objects — which
@@ -798,9 +815,10 @@ class DemoDataSeeder extends Seeder
             return;
         }
 
-        // Batch 2026-10-26 (streams staffing): staff the senior
-        // section grids through per-section overrides BEFORE any
-        // grid is placed, so the placer below can resolve teachers
+        // Staff EVERY section grid through per-section overrides
+        // BEFORE any grid is placed (senior sections since batch
+        // 2026-10-26; Prep–Class 10 added by the section segment,
+        // 2026-10-30), so the placer below can resolve teachers
         // override-aware instead of piling every section of a
         // subject onto its one class-level teacher.
         $this->seedSeniorSectionTeachers();
@@ -858,37 +876,33 @@ class DemoDataSeeder extends Seeder
         }
 
         foreach (DB::table('my_classes')->orderBy('id')->get() as $class) {
-            // Batch 2026-10-25 (streams): a class with streamed
-            // sections gets one grid per section (stream-filtered
-            // subjects) and no class grid — the section grid is what
-            // the timetable views prefer for that section's students.
-            $streamedSections = DB::table('sections')
-                ->where('my_class_id', $class->id)->whereNotNull('stream')->orderBy('id')->get();
-            if ($streamedSections->isNotEmpty()) {
-                foreach ($streamedSections as $section) {
-                    $subjects = DB::table('subjects')
-                        ->where('my_class_id', $class->id)->orderBy('id')->get()
-                        ->filter(function ($s) use ($section) {
-                            return \App\Support\Streams::appliesTo($s, $section->stream);
-                        })->values();
-                    if ($subjects->isEmpty()) {
-                        continue;
-                    }
-                    $this->seedClassTimetableFor($class, $subjects, $session, $days, $daySlots, $busy, $section);
-                }
-                continue;
-            }
-            $subjects = DB::table('subjects')
+            // Section segment (owner order 2026-10-29, roster
+            // decision 2026-10-30): EVERY class gets one grid per
+            // section and no whole-class grid — a period register
+            // is one section's ~40 students, never the whole
+            // class's 121–280. Streamed sections keep their
+            // stream-filtered subjects; unstreamed sections take
+            // all the class's subjects (Streams::appliesTo passes
+            // everything for a null stream).
+            $sections = DB::table('sections')
                 ->where('my_class_id', $class->id)->orderBy('id')->get();
-            if ($subjects->isEmpty()) {
-                continue;
+            foreach ($sections as $section) {
+                $subjects = DB::table('subjects')
+                    ->where('my_class_id', $class->id)->orderBy('id')->get()
+                    ->filter(function ($s) use ($section) {
+                        return \App\Support\Streams::appliesTo($s, $section->stream);
+                    })->values();
+                if ($subjects->isEmpty()) {
+                    continue;
+                }
+                $this->seedClassTimetableFor($class, $subjects, $session, $days, $daySlots, $busy, $section);
             }
-            $this->seedClassTimetableFor($class, $subjects, $session, $days, $daySlots, $busy);
         }
     }
 
-    /** Staff streamed sections through per-section subject-teacher
-     * overrides, balanced by current load (batch 2026-10-26).
+    /** Staff ALL sections through per-section subject-teacher
+     * overrides, balanced by current load (senior sections batch
+     * 2026-10-26; every class since the section segment 2026-10-30).
      *
      * Why: a streamed class's 22 sections each need 6 periods of
      * every stream subject, but the class-level subject has ONE
@@ -911,16 +925,39 @@ class DemoDataSeeder extends Seeder
             return;
         }
         $eng = ['teacher@hackstra.app', 'teacher1@teacher.com', 'teacher2@teacher.com',
-            'teacher20@teacher.com', 'teacher21@teacher.com', 'teacher22@teacher.com'];
+            'teacher20@teacher.com', 'teacher21@teacher.com', 'teacher22@teacher.com',
+            // Section segment (2026-10-30): the families also
+            // staff the Prep–Class 10 section grids now — sized
+            // by measured demand, see UsersTableSeeder.
+            'teacher33@teacher.com', 'teacher39@teacher.com', 'teacher47@teacher.com',
+            'teacher53@teacher.com', 'teacher59@teacher.com', 'teacher65@teacher.com',
+            'teacher71@teacher.com', 'teacher74@teacher.com', 'teacher79@teacher.com'];
         $sci = ['teacher6@teacher.com', 'teacher7@teacher.com', 'teacher8@teacher.com',
             'teacher26@teacher.com', 'teacher27@teacher.com', 'teacher28@teacher.com',
-            'teacher29@teacher.com'];
+            'teacher29@teacher.com',
+            'teacher35@teacher.com', 'teacher41@teacher.com', 'teacher45@teacher.com',
+            'teacher50@teacher.com', 'teacher54@teacher.com', 'teacher61@teacher.com',
+            'teacher66@teacher.com',
+            'teacher75@teacher.com', 'teacher82@teacher.com'];
         $soc = ['teacher9@teacher.com', 'teacher10@teacher.com', 'teacher11@teacher.com',
-            'teacher30@teacher.com', 'teacher31@teacher.com', 'teacher32@teacher.com'];
+            'teacher30@teacher.com', 'teacher31@teacher.com', 'teacher32@teacher.com',
+            'teacher37@teacher.com', 'teacher43@teacher.com', 'teacher49@teacher.com',
+            'teacher55@teacher.com', 'teacher58@teacher.com', 'teacher69@teacher.com',
+            'teacher77@teacher.com', 'teacher83@teacher.com'];
         $hin = ['teacher12@teacher.com', 'teacher13@teacher.com', 'teacher14@teacher.com',
-            'teacher23@teacher.com', 'teacher24@teacher.com', 'teacher25@teacher.com'];
-        $math = ['teacher3@teacher.com', 'teacher4@teacher.com', 'teacher5@teacher.com'];
-        $cs = ['teacher15@teacher.com', 'teacher16@teacher.com', 'teacher17@teacher.com'];
+            'teacher23@teacher.com', 'teacher24@teacher.com', 'teacher25@teacher.com',
+            'teacher36@teacher.com', 'teacher40@teacher.com', 'teacher44@teacher.com',
+            'teacher52@teacher.com', 'teacher62@teacher.com', 'teacher67@teacher.com',
+            'teacher72@teacher.com', 'teacher76@teacher.com', 'teacher81@teacher.com'];
+        $math = ['teacher3@teacher.com', 'teacher4@teacher.com', 'teacher5@teacher.com',
+            'teacher34@teacher.com', 'teacher38@teacher.com', 'teacher48@teacher.com',
+            'teacher56@teacher.com', 'teacher60@teacher.com', 'teacher64@teacher.com',
+            'teacher70@teacher.com',
+            'teacher73@teacher.com', 'teacher80@teacher.com'];
+        $cs = ['teacher15@teacher.com', 'teacher16@teacher.com', 'teacher17@teacher.com',
+            'teacher42@teacher.com', 'teacher46@teacher.com', 'teacher51@teacher.com',
+            'teacher57@teacher.com', 'teacher63@teacher.com', 'teacher68@teacher.com',
+            'teacher78@teacher.com'];
         $families = [
             'English Language' => $eng, 'Hindi' => $hin, 'Mathematics' => $math,
             'Science' => $sci, 'Physics' => $sci, 'Chemistry' => $sci, 'Biology' => $sci,
@@ -932,24 +969,16 @@ class DemoDataSeeder extends Seeder
         ];
         $teacherIds = DB::table('users')->where('user_type', 'teacher')->pluck('id', 'email');
 
-        // Starting load: class-level periods for NON-streamed
-        // classes only (Prep–Class 10), so the greedy balance below
-        // starts from what each teacher already owes.
-        $streamedClassIds = DB::table('sections')->whereNotNull('stream')
-            ->distinct()->pluck('my_class_id')->all();
+        // Starting load: zero. Since the section segment
+        // (2026-10-30) EVERY class is taught through section
+        // grids, so no class-level subject carries teaching load
+        // any more — the greedy balance below starts clean and
+        // the overrides alone decide who teaches what.
         $load = [];
-        foreach (DB::table('subjects')->get() as $s) {
-            if (in_array($s->my_class_id, $streamedClassIds, true)) {
-                continue;
-            }
-            if ($s->teacher_id) {
-                $load[$s->teacher_id] = ($load[$s->teacher_id] ?? 0) + (int) $s->periods_per_week;
-            }
-        }
 
         foreach (DB::table('my_classes')->orderBy('id')->get() as $class) {
             $sections = DB::table('sections')
-                ->where('my_class_id', $class->id)->whereNotNull('stream')->orderBy('id')->get();
+                ->where('my_class_id', $class->id)->orderBy('id')->get();
             if ($sections->isEmpty()) {
                 continue;
             }
@@ -1132,6 +1161,111 @@ class DemoDataSeeder extends Seeder
                 }
             }
         }
+        // Repair pass (section segment, 2026-10-30): with 76
+        // section grids sharing one staff room, the single
+        // round-robin pass can leave a subject short even though
+        // its teacher still has free slots — inside THIS grid,
+        // those slots were taken by a subject whose teacher had
+        // somewhere else to go. For every short subject, look for
+        // such a slot and swap: the occupying subject moves to an
+        // empty slot where ITS teacher is free, the short subject
+        // takes the freed slot. The busy map is updated with every
+        // swap, so clash-freedom holds by construction; a grid
+        // with no short subject runs no swaps at all.
+        $slotIndexById = [];
+        foreach ($slots as $si => $slot) {
+            $slotIndexById[$slot->id] = $si;
+        }
+        $subjectById = [];
+        foreach ($subjectList as $s) {
+            $subjectById[$s->id] = $s;
+        }
+        $teacherOfSubject = function ($subjectId) use ($teacherOf, $subjectById) {
+            return $teacherOf[$subjectId] ?? ($subjectById[$subjectId]->teacher_id ?? null);
+        };
+        $rowKey = function ($row) use ($slotIndexById) {
+            return $row['day_num'] . ':' . ($slotIndexById[$row['ts_id']] ?? -1);
+        };
+        $progress = true;
+        while ($progress) {
+            $progress = false;
+            foreach ($subjectList as $b) {
+                if (($placed[$b->id] ?? 0) >= ($demand[$b->id] ?? 0)) {
+                    continue;
+                }
+                $tb = $teacherOfSubject($b->id);
+                if (!$tb) {
+                    continue;
+                }
+                $occupied = [];
+                $filledKeys = [];
+                foreach ($rows as $i => $row) {
+                    $occupied[$rowKey($row)] = $i;
+                    $filledKeys[$rowKey($row)] = true;
+                }
+                $emptyKeys = [];
+                for ($dn = 1; $dn <= count($days); $dn++) {
+                    for ($si = 0; $si < count($slots); $si++) {
+                        if (!isset($filledKeys[$dn . ':' . $si])) {
+                            $emptyKeys[] = $dn . ':' . $si;
+                        }
+                    }
+                }
+                if (!$emptyKeys) {
+                    break;
+                }
+                foreach ($occupied as $key => $i) {
+                    if (!empty($busy[$tb][$key])) {
+                        continue;
+                    }
+                    $a = $subjectById[$rows[$i]['subject_id']] ?? null;
+                    if (!$a) {
+                        continue;
+                    }
+                    $ta = $teacherOfSubject($a->id);
+                    if (!$ta || (int) $ta === (int) $tb) {
+                        continue;
+                    }
+                    foreach ($emptyKeys as $eKey) {
+                        if (!empty($busy[$ta][$eKey])) {
+                            continue;
+                        }
+                        // Swap: A moves to the empty key, B takes
+                        // the freed key.
+                        [$eDayNum, $eSlotIdx] = array_map('intval', explode(':', $eKey));
+                        $eSlot = $slots[$eSlotIdx];
+                        $eDay = $days[$eDayNum - 1];
+                        $rows[$i]['ts_id'] = $eSlot->id;
+                        $rows[$i]['day'] = $eDay;
+                        $rows[$i]['day_num'] = $eDayNum;
+                        $rows[$i]['timestamp_from'] = (string) strtotime($eDay . ' ' . $eSlot->time_from);
+                        $rows[$i]['timestamp_to'] = (string) strtotime($eDay . ' ' . $eSlot->time_to);
+                        unset($busy[$ta][$key]);
+                        $busy[$ta][$eKey] = true;
+                        [$kDayNum, $kSlotIdx] = array_map('intval', explode(':', $key));
+                        $kSlot = $slots[$kSlotIdx];
+                        $kDay = $days[$kDayNum - 1];
+                        $rows[] = [
+                            'ttr_id' => $ttrId,
+                            'ts_id' => $kSlot->id,
+                            'subject_id' => $b->id,
+                            'exam_date' => null,
+                            'timestamp_from' => (string) strtotime($kDay . ' ' . $kSlot->time_from),
+                            'timestamp_to' => (string) strtotime($kDay . ' ' . $kSlot->time_to),
+                            'day' => $kDay,
+                            'day_num' => $kDayNum,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ];
+                        $busy[$tb][$key] = true;
+                        $placed[$b->id]++;
+                        $progress = true;
+                        break 2;
+                    }
+                }
+            }
+        }
+
         // insertOrIgnore: a (ttr, slot, day) cell holds ONE subject.
         // If a real timetable entry already occupies a cell, that row
         // is skipped instead of aborting the whole seed with a unique

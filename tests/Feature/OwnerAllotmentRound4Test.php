@@ -142,9 +142,12 @@ class OwnerAllotmentRound4Test extends TestCase
             'teacher_id' => $teacher->id, 'slug' => 'probe-bulk-r4',
             'periods_per_week' => 6,
         ]);
-        DB::table('section_subject_teachers')->insert([
-            'section_id' => 1, 'subject_id' => 2, 'teacher_id' => $teacher->id,
-        ]);
+        // Section segment (2026-10-30): (1, 2) already holds a
+        // seeded override — upsert the probe teacher in.
+        DB::table('section_subject_teachers')->updateOrInsert(
+            ['section_id' => 1, 'subject_id' => 2],
+            ['teacher_id' => $teacher->id, 'created_at' => now(), 'updated_at' => now()]
+        );
         Section::find(1)->update(['teacher_id' => $teacher->id]);
 
         $before = Staffing::report();

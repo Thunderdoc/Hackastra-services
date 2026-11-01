@@ -4,11 +4,13 @@ namespace Tests\Feature;
 
 use App\Helpers\Qs;
 use App\Models\Exam;
+use App\Models\Section;
 use App\Models\StudentRecord;
 use App\Models\Subject;
 use App\Support\TeacherScope;
 use App\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
@@ -92,18 +94,25 @@ class OwnerPortalContainmentRound8Test extends TestCase
     public function test_override_teacher_sheet_open_but_print_and_bulk_closed()
     {
         // Ritu Sharma (teacher20@, id 44): zero direct subjects, zero
-        // led sections, overrides in Class 11 (my_class_id 12),
-        // section 55. Round 8 opened the SHEET for her; print/bulk
-        // stay teamOrPrincipal:SA and must still refuse her.
+        // led sections, overrides only. Round 8 opened the SHEET for
+        // her; print/bulk stay teamOrPrincipal:SA and must still
+        // refuse her. Her override pair is resolved live — the
+        // section segment moved it off (55, 67).
         $ritu = $this->ritu();
+        $row = DB::table('section_subject_teachers')
+            ->where('teacher_id', $ritu->id)
+            ->orderBy('section_id')->orderBy('subject_id')->first();
+        $this->assertNotNull($row, 'Ritu must hold an override in the seed');
+        $section = Section::findOrFail($row->section_id);
+        $classId = (int) $section->my_class_id;
         $this->actingAs($ritu)
-            ->get(route('marks.tabulation', [1, 12, 55]))->assertOk();
+            ->get(route('marks.tabulation', [1, $classId, $section->id]))->assertOk();
         $this->actingAs($ritu)
-            ->get(route('marks.print_tabulation', [1, 12, 55]))->assertStatus(302);
+            ->get(route('marks.print_tabulation', [1, $classId, $section->id]))->assertStatus(302);
         $this->actingAs($ritu)
-            ->get(route('marks.bulk', [12, 55]))->assertStatus(302);
+            ->get(route('marks.bulk', [$classId, $section->id]))->assertStatus(302);
         $this->actingAs($ritu)
-            ->get(route('marks.bulk_download', ['class_id' => 12, 'section_id' => 55]))
+            ->get(route('marks.bulk_download', ['class_id' => $classId, 'section_id' => $section->id]))
             ->assertStatus(302);
     }
 

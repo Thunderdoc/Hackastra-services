@@ -351,6 +351,11 @@ class OwnerPrincipalPortalRound23Test extends TestCase
 
     public function test_principal_publish_cycle_drives_student_and_parent_views()
     {
+        // Section segment (2026-10-30): the shifted seed leaves
+        // student@ owing fees, and the fee block would mask the
+        // publication gate this cycle exercises — settle the dues
+        // in-test (the fee block has its own coverage elsewhere).
+        \App\Models\PaymentRecord::where('student_id', $this->student()->id)->update(['paid' => 1]);
         $exam = $this->term1();
         $this->assertFalse((bool) $exam->results_published, 'Local Term 1 starts unpublished');
         $marksheet = route('marks.print', [Qs::hash($this->student()->id), $exam->id, '2026-2027']);

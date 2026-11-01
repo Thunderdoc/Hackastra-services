@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\User;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
 /**
@@ -18,6 +19,14 @@ use Tests\TestCase;
  */
 class OwnerTeacherWorkloadTest extends TestCase
 {
+    // Random-order repair (2026-10-31): the empty-state test
+    // factory-creates a teacher. Without the trait that write
+    // COMMITTED, adding a 91st teacher to the shared seed — the
+    // same invigilation-pool pollution as
+    // OwnerOneAdminPerSchoolTest (breaks R18/R24 pool arithmetic
+    // when random order runs this file first). Roll it back.
+    use DatabaseTransactions;
+
     protected function teacher(): User
     {
         return User::where('email', 'teacher@hackstra.app')->firstOrFail();

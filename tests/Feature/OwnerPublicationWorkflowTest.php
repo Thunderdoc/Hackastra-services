@@ -38,7 +38,7 @@ class OwnerPublicationWorkflowTest extends TestCase
         return User::where('email', 'principal@hackstra.app')->firstOrFail();
     }
 
-    /** A class-scoped exam with exactly one marks unit: Class 12-E English. */
+    /** A class-scoped exam with exactly one marks unit: Class 12 section-76 English. */
     protected function examWithOneUnit(): Exam
     {
         $id = DB::table('exams')->insertGetId([
@@ -53,7 +53,7 @@ class OwnerPublicationWorkflowTest extends TestCase
         $this->actingAs($this->admin())->post(route('marks.selector'), [
             'exam_id' => $id,
             'my_class_id' => 13,
-            'section_id' => 68,
+            'section_id' => 76,
             'subject_id' => 79,
         ]);
         return Exam::findOrFail($id);
@@ -79,14 +79,14 @@ class OwnerPublicationWorkflowTest extends TestCase
 
         // The Admin reminds the teacher — a bell lands for her.
         $this->actingAs($admin)->post(route('exams.notify_pending', $exam->id), [
-            'section_id' => 68,
+            'section_id' => 76,
             'subject_id' => 79,
         ])->assertRedirect();
         $this->assertTrue(UserNotification::where('user_id', $teacher->id)
             ->where('type', 'marks_pending')->exists());
 
         // The teacher submits; the Admin can now send the request.
-        $this->actingAs($teacher)->post(route('marks.submit', [$exam->id, 13, 68, 79]))
+        $this->actingAs($teacher)->post(route('marks.submit', [$exam->id, 13, 76, 79]))
             ->assertRedirect();
         $page = $this->actingAs($admin)->get(route('exams.publication', $exam->id));
         $page->assertSee('All marks are submitted');

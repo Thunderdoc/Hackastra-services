@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\AttendanceSession;
 use App\Models\MyClass;
 use App\Models\Section;
 use App\Models\Subject;
@@ -38,11 +39,16 @@ use Tests\TestCase;
  *      (= creation) order.
  *  (c) A MIXED scope=all run under cap 2: one class pairs (no
  *      warning) while another class — whose double teacher
- *      carries one kept cell per day from a record NOT being
- *      rebuilt (a section record for an untagged section, which
- *      scope=all never targets) — cannot pair and warns alone.
+ *      carries one kept cell per day from a record the run must
+ *      KEEP (a section grid carrying submitted attendance, which
+ *      replace mode locks; its load still preloads and counts
+ *      against the cap) — cannot pair and warns alone.
  *      The kept-load trick mirrors round 15, extended to all
  *      six days so the cap-2 headroom is exactly 1/day.
+ *      (Re-expressed 2026-10-30: scope=all now expands EVERY
+ *      sectioned class per section, so the kept grid can no
+ *      longer hide behind "never targeted" — the attendance
+ *      lock is what keeps it, which is the stronger premise.)
  *
  * All fixtures fresh and rolled back.
  */
@@ -252,11 +258,13 @@ class OwnerTimetableDoubleWarningRenderRound19Test extends TestCase
         [$pairClass, $pairDouble] = $this->makeSixSubjectClass($pairName);
 
         // Class U: its Science teacher T carries one kept cell per
-        // day from a section record that scope=all never targets
-        // (the section is untagged, so class K yields only its
-        // class-grid target). Kept cells sit at 4:00–4:40 PM,
-        // outside every generated slot, so busy overlap cannot
-        // explain any refusal — only the cap can.
+        // day from a section grid that replace mode must KEEP —
+        // since the per-section expansion (2026-10-30) the section
+        // IS a scope=all target, so the grid is attendance-locked
+        // below: the lock keeps it out of the rebuild while the
+        // busy preload still counts its cells. Kept cells sit at
+        // 4:00–4:40 PM, outside every generated slot, so busy
+        // overlap cannot explain any refusal — only the cap can.
         $keptName = 'R19 Kept ' . uniqid();
         $classK = MyClass::create(['name' => $keptName]);
         $teacherK = $this->teacher('KEPTK');
@@ -311,6 +319,28 @@ class OwnerTimetableDoubleWarningRenderRound19Test extends TestCase
             ]);
         }
 
+        // Lock the kept grid: one submitted attendance session on
+        // its first cell. Replace mode then keeps the record (and
+        // the preload counts its cells toward T's cap) instead of
+        // rebuilding it — the lock replaces the old "untargeted
+        // section" premise now that scope=all targets every
+        // section. The session's teacher is T, the section's
+        // effective teacher for the kept subject via the override.
+        $firstKeptCell = TimeTable::where('ttr_id', $recordK->id)->orderBy('id')->firstOrFail();
+        AttendanceSession::create([
+            'date' => '2026-11-02',
+            'time_table_id' => $firstKeptCell->id,
+            'my_class_id' => $classK->id,
+            'section_id' => $sectionK->id,
+            'subject_id' => $keptSubject->id,
+            'teacher_id' => $teacherT->id,
+            'topic' => 'R19 kept-load lock',
+            'status' => AttendanceSession::STATUS_SUBMITTED,
+            'submitted_at' => now(),
+        ]);
+        $keptCellIds = TimeTable::where('ttr_id', $recordK->id)->orderBy('id')
+            ->pluck('id')->map(fn ($v) => (int) $v)->all();
+
         $this->generateAll(2);
         $flash = session('flash_success') ?? '';
 
@@ -320,6 +350,11 @@ class OwnerTimetableDoubleWarningRenderRound19Test extends TestCase
             "mixed run must warn for the capped-unpaired class; flash: $flash");
         $this->assertSame(1, substr_count($flash, 'double period could not be formed'),
             "exactly one class may warn; flash: $flash");
+        $this->assertStringContainsString('Kept (attendance already submitted, timetable locked this session)', $flash,
+            "the locked section grid must be reported as kept; flash: $flash");
+        $this->assertSame($keptCellIds, TimeTable::where('ttr_id', $recordK->id)->orderBy('id')
+            ->pluck('id')->map(fn ($v) => (int) $v)->all(),
+            'the attendance-locked section grid must survive the run with its exact cells');
 
         // Reality: P pairs, U does not — and U still meets target
         // via singles (1 kept + 1 placed per day = cap 2).

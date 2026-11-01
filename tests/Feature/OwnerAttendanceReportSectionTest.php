@@ -60,13 +60,21 @@ class OwnerAttendanceReportSectionTest extends TestCase
         return $session;
     }
 
+    /** Any seeded cell of the given section (resolved live — cell ids shifted). */
+    protected function cellFor(int $sectionId)
+    {
+        return TimeTable::whereHas('tt_record', function ($q) use ($sectionId) {
+            $q->where('section_id', $sectionId);
+        })->orderBy('id')->firstOrFail();
+    }
+
     protected function setUp(): void
     {
         parent::setUp();
-        // Class 12-E (section 68, tt 788) present; Class 12-B
-        // (section 65, tt 697) absent — both in October 2026.
-        $this->makeSession(788, 68, '2026-10-12', $this->sectionStudents(68), 'present');
-        $this->makeSession(697, 65, '2026-10-13', $this->sectionStudents(65), 'absent');
+        // Class 12-E (section 68) present; Class 12-B (section 65)
+        // absent — both in October 2026. Cells resolved live.
+        $this->makeSession($this->cellFor(68)->id, 68, '2026-10-12', $this->sectionStudents(68), 'present');
+        $this->makeSession($this->cellFor(65)->id, 65, '2026-10-13', $this->sectionStudents(65), 'absent');
     }
 
     protected function names(array $students): array
@@ -155,11 +163,11 @@ class OwnerAttendanceReportSectionTest extends TestCase
     public function test_legacy_null_section_session_matches_its_record_section()
     {
         // A legacy session with section_id NULL but a sectioned
-        // record (tt 788 -> Class 12-E) belongs to that section.
-        $tt = TimeTable::findOrFail(788);
+        // record (a Class 12-E cell) belongs to that section.
+        $tt = $this->cellFor(68);
         $session = AttendanceSession::create([
             'date' => '2026-10-14',
-            'time_table_id' => 788,
+            'time_table_id' => $tt->id,
             'my_class_id' => 13,
             'section_id' => null,
             'subject_id' => $tt->subject_id,
@@ -173,18 +181,25 @@ class OwnerAttendanceReportSectionTest extends TestCase
         $this->assertFalse(
             AttendanceSession::forEffectiveSection(65)->where('id', $session->id)->exists()
         );
-        // And a class-grid session (record section NULL) matches none.
-        $gridSession = AttendanceSession::create([
+        // Re-expressed for the per-section seed (no sectionless
+        // records exist anymore): a null-section session on ANOTHER
+        // section's cell resolves to THAT section only — the
+        // record's section is authoritative, nothing leaks across.
+        $otherCell = $this->cellFor(65);
+        $otherSession = AttendanceSession::create([
             'date' => '2026-10-15',
-            'time_table_id' => 1,
-            'my_class_id' => 1,
+            'time_table_id' => $otherCell->id,
+            'my_class_id' => 13,
             'section_id' => null,
-            'subject_id' => TimeTable::findOrFail(1)->subject_id,
+            'subject_id' => $otherCell->subject_id,
             'teacher_id' => 4,
-            'topic' => 'Class-grid probe',
+            'topic' => 'Cross-section probe',
         ]);
+        $this->assertTrue(
+            AttendanceSession::forEffectiveSection(65)->where('id', $otherSession->id)->exists()
+        );
         $this->assertFalse(
-            AttendanceSession::forEffectiveSection(1)->where('id', $gridSession->id)->exists()
+            AttendanceSession::forEffectiveSection(68)->where('id', $otherSession->id)->exists()
         );
     }
 }

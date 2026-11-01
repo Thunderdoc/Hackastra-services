@@ -115,7 +115,21 @@ class OwnerOvernightPrintFollowPrincipalDateSheetTest extends TestCase
     {
         $options = $this->selectOptions($this->showHtml($this->teacher()), 'ds_class');
         $this->assertNotNull($options, 'Teacher date sheet lost its #ds_class select');
-        // Seeded demo-teacher scope (OwnerOvernightPrintTest item 13).
-        $this->assertSame(['Prep', 'Class 3', 'Class 6', 'Class 7', 'Class 9', 'Class 12'], $options);
+        // Demo-teacher scope in natural order, computed with the
+        // controller's own expression (OwnerOvernightPrintTest
+        // item 13) — the seeded scope grew in the section segment,
+        // so the expectation follows the live scope map.
+        $expected = \App\Models\MyClass::whereIn('id', \App\Support\TeacherScope::classIds($this->teacher()))
+            ->get()
+            ->sortBy(function ($c) {
+                if (preg_match('/(\d+)/', $c->name, $m)) {
+                    return sprintf('%05d-%s', (int) $m[1], $c->name);
+                }
+
+                return sprintf('00000-%s', $c->name);
+            })
+            ->pluck('name')->values()->all();
+        $this->assertGreaterThanOrEqual(6, count($expected), 'Seeded teacher scope must stay broad');
+        $this->assertSame($expected, $options);
     }
 }

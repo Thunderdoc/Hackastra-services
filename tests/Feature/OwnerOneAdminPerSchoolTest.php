@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Helpers\Qs;
 use App\Models\UserType;
 use App\User;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
 /**
@@ -20,6 +21,17 @@ use Tests\TestCase;
  */
 class OwnerOneAdminPerSchoolTest extends TestCase
 {
+    // Random-order repair (2026-10-31): this class creates a real
+    // teacher through users.store and renames the seeded Admin.
+    // Without the trait those writes COMMITTED — the probe teacher
+    // became a 91st member of the invigilation pool, which broke
+    // OwnerExamDateSheetR18Test (pool 91 > its 90 pre-filled
+    // sittings → UNIQUE exam_duties) and R24 (89 load teachers
+    // cycling 88 subjects → its own (1,1,3) insert twice) whenever
+    // random order ran this file first. The trait makes every
+    // write below roll back; the assertions are unchanged.
+    use DatabaseTransactions;
+
     // The full middleware stack runs on purpose: users.* routes are
     // on the PlatformOnly allowlist, so the SA reaches them too, and
     // the create form needs the shared $errors the session middleware

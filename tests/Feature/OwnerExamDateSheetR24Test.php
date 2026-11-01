@@ -132,8 +132,51 @@ class OwnerExamDateSheetR24Test extends TestCase
         // below — reusing them here would violate the UNIQUE
         // (exam_id, my_class_id, subject_id) index.
         $subjects = DB::table('subjects')->whereNotIn('id', [1, 2])->orderBy('id')->get();
+        // Section segment (2026-10-30): the pool grew to 90
+        // teachers but exam 1 holds only 88 spare subjects, and a
+        // sitting takes exactly ONE invigilator — so the last two
+        // seeded teachers get no load duty. They stay out of both
+        // target days without disturbing the flash text: Mon-only
+        // leave (like everyone) covers Mon, and a clashing duty on
+        // a throwaway exam at Thu 09:00 covers Thu (leave on Thu
+        // would add a "filled while on leave" flash segment; a
+        // clash does not). The Thu pick stays deterministic:
+        // every Thu candidate carries exactly one exam-1 duty,
+        // the probe carries 0.
+        $overflow = $seeded->slice(-2)->values();
+        $clashExam = \App\Models\Exam::create([
+            'name' => 'R24 Clash Exam',
+            'term' => 'Term 1',
+            'year' => '2026-2027',
+            'my_class_id' => 0,
+        ]);
+        foreach ($overflow as $k => $teacher) {
+            $clashSitting = ExamDate::create([
+                'exam_id' => $clashExam->id,
+                'my_class_id' => 1,
+                'subject_id' => 3 + $k,
+                'exam_date' => '2026-11-05',
+                'start_time' => '09:00',
+            ]);
+            ExamDuty::create([
+                'exam_date_id' => $clashSitting->id,
+                'teacher_id' => $teacher->id,
+                'assigned_by' => $this->admin()->id,
+            ]);
+        }
+        $overflowIds = $overflow->pluck('id')->all();
         $i = 0;
         foreach ($seeded as $teacher) {
+            if (in_array($teacher->id, $overflowIds, true)) {
+                LeaveRequest::create([
+                    'user_id' => $teacher->id,
+                    'start_date' => '2026-11-02',
+                    'end_date' => '2026-11-02',
+                    'reason' => 'R24 seeded Mon leave',
+                    'status' => 'approved',
+                ]);
+                continue;
+            }
             $subject = $subjects[$i % $subjects->count()];
             $i++;
             $load = ExamDate::create([

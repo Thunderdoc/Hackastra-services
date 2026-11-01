@@ -53,10 +53,16 @@ class OwnerSignatureDocumentsTest extends TestCase
     public function test_teacher_week_print_carries_subject_colour_chips()
     {
         $ananya = User::where('email', 'teacher@hackstra.app')->firstOrFail();
-        // tt 788: Class 12-E's Monday period, effectively hers —
-        // its subject (seed name "English Language") must appear
-        // in her week wearing its own colour.
-        $subjectName = TimeTable::findOrFail(788)->subject->name;
+        // A Monday period of hers (Class 12 section 76 English,
+        // via her override — resolved live; the pre-segment cell
+        // id tt 788 is stale): its subject (seed name "English
+        // Language") must appear in her week wearing its own colour.
+        $cell = TimeTable::where('day', 'Monday')->where('subject_id', 79)
+            ->whereHas('tt_record', function ($q) {
+                $q->where('section_id', 76);
+            })
+            ->orderBy('id')->firstOrFail();
+        $subjectName = $cell->subject->name;
 
         $resp = $this->actingAs($ananya)->get(route('tt.mine_print'));
         $resp->assertOk();

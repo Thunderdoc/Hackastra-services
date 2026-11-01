@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\LeaveRequest;
+use App\Models\StudentRecord;
 use App\Models\Substitution;
 use App\Models\UserNotification;
 use App\Support\LeaveAutoCover;
@@ -69,10 +70,27 @@ class OwnerLeaveApprovePerformanceTest extends TestCase
             ->where('status', 'confirmed')->count());
         // …every substitute got their assignment bell…
         $this->assertSame($planned, UserNotification::where('type', 'substitution_assigned')->count());
-        // …and the student fan-out still happened (whole classes
-        // are belled per period — it is the WRITE SHAPE that was
-        // fixed, not the notifications themselves).
-        $this->assertGreaterThan(1000, UserNotification::where('type', 'period_substitute')->count() - $studentBellsBefore);
+        // …and the student fan-out still happened (each covered
+        // period bells its roster — it is the WRITE SHAPE that was
+        // fixed, not the notifications themselves). The expected
+        // floor is computed from the confirmed plan itself: one
+        // bell per roster student per covered period (free-period
+        // bells only add more). Section segment (2026-10-30):
+        // periods are per-section now, so the floor is the sum of
+        // section rosters, not the old whole-class >1000.
+        $expectedFanOut = 0;
+        $confirmed = Substitution::where('absent_teacher_id', $ananya->id)
+            ->where('status', 'confirmed')->with('time_table.tt_record')->get();
+        foreach ($confirmed as $row) {
+            $record = $row->time_table->tt_record;
+            $expectedFanOut += $record->section_id
+                ? StudentRecord::where('section_id', $record->section_id)->where('grad', 0)->count()
+                : StudentRecord::where('my_class_id', $record->my_class_id)->where('grad', 0)->count();
+        }
+        $this->assertGreaterThan(0, $expectedFanOut, 'Fixture: confirmed plan must carry roster fan-out');
+        $this->assertGreaterThanOrEqual($expectedFanOut,
+            UserNotification::where('type', 'period_substitute')->count() - $studentBellsBefore,
+            'Every covered period must bell its full roster');
 
         // …inside the budget. Broken shape: 5,012 queries.
         $this->assertLessThan(400, $queries,

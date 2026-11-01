@@ -5,7 +5,9 @@ namespace Tests\Feature;
 use App\Models\Assignment;
 use App\Models\LeaveRequest;
 use App\Models\Substitution;
+use App\Models\TimeSlot;
 use App\Models\TimeTable;
+use App\Models\TimeTableRecord;
 use App\Models\UserNotification;
 use App\Support\LeaveCover;
 use App\Support\SectionTeacher;
@@ -254,6 +256,33 @@ class OwnerSubstitutionAccessChainTest extends TestCase
             ->first(function ($c) {
                 return (int) SectionTeacher::teacherIdFor(optional($c->tt_record)->section_id ?? null, $c->subject) === (int) $this->ananya()->id;
             });
+        if (!$cell) {
+            // Weekend runs: her seeded grid has no Saturday/Sunday
+            // periods, so the old fixture found nothing and failed
+            // on the calendar alone (first seen Sat 2026-10-31).
+            // Build today's period on her own Class 12 section
+            // record (section 76 English, where she is the
+            // effective teacher) in a slot still free today — the
+            // property under test (cover-day LMS access) is
+            // unchanged, and the class rolls back with the test
+            // transaction like every other fixture here.
+            $record = TimeTableRecord::where('my_class_id', 13)
+                ->where('section_id', 76)->whereNull('exam_id')->firstOrFail();
+            $slot = TimeSlot::where('ttr_id', $record->id)->orderBy('id')->get()
+                ->first(function ($s) use ($record, $dayName) {
+                    return !TimeTable::where('ttr_id', $record->id)
+                        ->where('ts_id', $s->id)->where('day', $dayName)->exists();
+                });
+            $this->assertNotNull($slot, 'A free slot today is required for the weekend fixture');
+            $cell = TimeTable::create([
+                'ttr_id' => $record->id,
+                'ts_id' => $slot->id,
+                'day' => $dayName,
+                'subject_id' => 79,
+                'timestamp_from' => (string) $slot->timestamp_from,
+                'timestamp_to' => (string) $slot->timestamp_to,
+            ])->load(['subject', 'tt_record']);
+        }
         $this->assertNotNull($cell, 'Ananya must teach some period today for this fixture');
 
         $classId = (int) optional($cell->tt_record)->my_class_id;

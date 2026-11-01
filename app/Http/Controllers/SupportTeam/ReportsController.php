@@ -113,7 +113,7 @@ class ReportsController extends Controller
         // Same request-scoped headroom as the bulk marksheet download:
         // a whole-class sheet can hold hundreds of rows, and dompdf's
         // cell layout exhausts the stock 128M on such tables.
-        ini_set('memory_limit', '512M');
+        Qs::ensurePdfMemory();
         set_time_limit(300);
         $user = Auth::user();
         $config = ReportEngine::validateConfig($this->configFromRequest($request), $user);
@@ -259,7 +259,7 @@ class ReportsController extends Controller
     {
         $this->gateRole();
         try {
-            ini_set('memory_limit', '512M');
+            Qs::ensurePdfMemory();
             set_time_limit(300);
             $user = Auth::user();
             $config = ReportEngine::validateConfig($this->configFromRequest($request), $user);

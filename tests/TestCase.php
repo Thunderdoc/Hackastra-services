@@ -31,4 +31,23 @@ abstract class TestCase extends BaseTestCase
             }
         }
     }
+
+    /**
+     * Harness-ceiling restoration (2026-10-31): several PDF
+     * endpoints (Reports/Mark/Attendance/IdCard controllers) call
+     * ini_set('memory_limit', '512M') for their own request —
+     * harmless per-request in production, but PHPUnit runs the
+     * whole suite in ONE process, so the lowered ceiling leaks
+     * into every later test. A random-order seed-777 run died at
+     * test ~1830/1879 in DOMPDF's Cpdf with the 512M ceiling
+     * despite the suite being launched at 1024M. Restore the
+     * harness ceiling after each test so the launch value is the
+     * ceiling every test actually runs under.
+     */
+    protected function tearDown(): void
+    {
+        ini_set('memory_limit', '1024M');
+
+        parent::tearDown();
+    }
 }

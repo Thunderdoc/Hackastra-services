@@ -14,6 +14,7 @@ use App\Models\TimeTable;
 use App\Support\LeaveBalance;
 use App\Support\SectionTeacher;
 use App\User;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
@@ -35,6 +36,15 @@ use Tests\TestCase;
  */
 class OwnerLeavePayrollWhatsappTest extends TestCase
 {
+    // Random-order repair (2026-10-31): this file's writes used
+    // to COMMIT — a paid_leave_quota_days=12 Setting row (the seed
+    // ships none, and a set quota switches leave from record-only
+    // to deducting), a Feb-2028 payroll, a cover assignment and an
+    // audit row all survived into later tests on the shared seed.
+    // The trait rolls everything back; the tearDown bell cleanup
+    // below stays as intra-run hygiene.
+    use DatabaseTransactions;
+
     protected $bellWatermark = 0;
 
     protected function setUp(): void
@@ -323,5 +333,21 @@ class OwnerLeavePayrollWhatsappTest extends TestCase
         $response->assertSee('Class WhatsApp Group');
         $response->assertSee('My ID Card');
         $response->assertSee('Adm No:');
+    }
+
+    /* Regression pin (owner report 2026-11-01, "Record Not Found"):
+       the {id} route binder decodes hashes, so the dashboard form
+       must post the HASHED section id — the raw id the form used to
+       send decoded to a non-existent section and every save failed.
+       Pin the rendered form action itself, not just the flow. */
+    public function test_teacher_home_whatsapp_form_posts_the_hashed_section_id()
+    {
+        $teacher = $this->teacher();
+        $section = Section::findOrFail(1);
+
+        $response = $this->actingAs($teacher)->get(route('dashboard'));
+        $response->assertOk();
+        $response->assertSee('action="' . route('sections.whatsapp', Qs::hash($section->id)) . '"', false);
+        $response->assertDontSee('action="' . route('sections.whatsapp', $section->id) . '"', false);
     }
 }

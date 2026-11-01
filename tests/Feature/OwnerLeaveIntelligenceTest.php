@@ -6,6 +6,7 @@ use App\Models\LeaveRequest;
 use App\Models\Setting;
 use App\Models\Subject;
 use App\User;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
@@ -19,6 +20,15 @@ use Tests\TestCase;
  */
 class OwnerLeaveIntelligenceTest extends TestCase
 {
+    // Random-order repair (2026-10-31): the balance test writes
+    // a paid_leave_quota_days=12 Setting. The leave rows were
+    // already neutralized by the TestCase baseline, but no
+    // baseline resets settings — the quota row COMMITTED and
+    // silently switched later tests' leave from record-only to
+    // deducting (the same leak fixed in
+    // OwnerLeavePayrollWhatsappTest). Roll everything back.
+    use DatabaseTransactions;
+
     private function user(string $email): User
     {
         return User::where('email', $email)->firstOrFail();

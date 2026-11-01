@@ -85,7 +85,7 @@ class OwnerExamTeacherAdmitPrintR17Test extends TestCase
     public function test_teacher_self_service_card_is_403_and_list_redirects()
     {
         $this->actingAs($this->teacher())
-            ->get(route('admit_cards.my_card', ['exam' => 1, 'student_id' => 57]))
+            ->get(route('admit_cards.my_card', ['exam' => 1, 'student_id' => $this->user('student@hackstra.app')->id]))
             ->assertForbidden();
 
         $this->actingAs($this->teacher())
@@ -105,22 +105,29 @@ class OwnerExamTeacherAdmitPrintR17Test extends TestCase
             ->assertRedirect(route('login'));
 
         $this->actingAs($this->user('principal@hackstra.app'))
-            ->get(route('admit_cards.my_card', ['exam' => 1, 'student_id' => 57]))
+            ->get(route('admit_cards.my_card', ['exam' => 1, 'student_id' => $this->user('student@hackstra.app')->id]))
             ->assertForbidden();
     }
 
     public function test_admin_bulk_print_and_self_service_still_open()
     {
+        // Section segment (2026-10-30): the shifted seed leaves
+        // student@ owing fees, so self-service would render the
+        // fee block (also 200) instead of the card. Settle the
+        // dues in-test so "still open" means the card itself.
+        \App\Models\PaymentRecord::where('student_id', $this->user('student@hackstra.app')->id)
+            ->update(['paid' => 1]);
+
         $this->actingAs($this->user('admin@hackstra.app'))
             ->get(route('admit_cards.print', ['exam' => 1, 'class' => 1]))
             ->assertOk();
 
         $this->actingAs($this->user('student@hackstra.app'))
-            ->get(route('admit_cards.my_card', ['exam' => 1, 'student_id' => 57]))
+            ->get(route('admit_cards.my_card', ['exam' => 1, 'student_id' => $this->user('student@hackstra.app')->id]))
             ->assertOk();
 
         $this->actingAs($this->user('parent@hackstra.app'))
-            ->get(route('admit_cards.my_card', ['exam' => 1, 'student_id' => 57]))
+            ->get(route('admit_cards.my_card', ['exam' => 1, 'student_id' => $this->user('student@hackstra.app')->id]))
             ->assertOk();
     }
 }

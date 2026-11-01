@@ -25,9 +25,11 @@ use Tests\TestCase;
  * third source entirely, and the write paths accepted non-teacher
  * users. Seed anchors used here (verify, do not hardcode blindly
  * if the seed changes): Ritu Sharma (id 44, teacher20@teacher.com)
- * teaches ONLY through overrides — Class 11 sections A/D/G subject
- * 67 and Class 12 sections B/H subject 79 — 30 placed periods,
- * zero class-level subjects, zero led sections.
+ * teaches ONLY through overrides — one English override in each
+ * of classes 2/5/8/11/13 (sections 4/19/34/49/64) since the
+ * section segment (2026-10-30) — 30 placed periods, zero
+ * class-level subjects, zero led sections. Scope assertions
+ * below are computed from her live override map.
  */
 class OwnerAllotmentTest extends TestCase
 {
@@ -51,20 +53,39 @@ class OwnerAllotmentTest extends TestCase
         $this->assertEquals(0, Subject::where('teacher_id', $ritu->id)->count());
         $this->assertEquals(0, Section::where('teacher_id', $ritu->id)->count());
 
-        $this->assertTrue(TeacherScope::canTeachClass($ritu, 12), 'Class 11 via override');
-        $this->assertTrue(TeacherScope::canTeachClass($ritu, 13), 'Class 12 via override');
+        // Her scope is exactly the classes her overrides touch —
+        // computed from the live map (section segment moved her
+        // from classes 12/13 to 2/5/8/11/13), nothing more.
+        $scopeClassIds = Subject::whereIn('id', DB::table('section_subject_teachers')
+            ->where('teacher_id', $ritu->id)->distinct()->pluck('subject_id'))
+            ->pluck('my_class_id')->unique()->all();
+        $this->assertNotEmpty($scopeClassIds, 'Ritu must hold overrides in the seed');
+        foreach (\App\Models\MyClass::orderBy('id')->pluck('id') as $classId) {
+            $this->assertSame(
+                in_array($classId, $scopeClassIds, true),
+                TeacherScope::canTeachClass($ritu, $classId),
+                'canTeachClass(' . $classId . ') must match her override map'
+            );
+        }
         $this->assertFalse(TeacherScope::canTeachClass($ritu, 1), 'Prep: no assignment, must stay closed');
-        $this->assertFalse(TeacherScope::canTeachClass($ritu, 11), 'Class 10: no assignment, must stay closed');
     }
 
     public function test_override_only_teacher_can_open_students_list_and_marks_for_override_class()
     {
+        // Resolve one of her real override triples from the live
+        // map (section segment: her first is section 4 / subject 7).
+        $row = DB::table('section_subject_teachers')
+            ->where('teacher_id', $this->ritu()->id)
+            ->orderBy('section_id')->orderBy('subject_id')->first();
+        $this->assertNotNull($row, 'Ritu must hold an override in the seed');
+        $section = Section::findOrFail($row->section_id);
+
         $this->actingAs($this->ritu())
-            ->get(route('students.list', 12))
+            ->get(route('students.list', $section->my_class_id))
             ->assertOk();
-        // Exam 1 = global Term 1; class 12, section 55, subject 67.
+        // Exam 1 = global Term 1.
         $this->actingAs($this->ritu())
-            ->get(route('marks.manage', [1, 12, 55, 67]))
+            ->get(route('marks.manage', [1, $section->my_class_id, $section->id, $row->subject_id]))
             ->assertOk();
         // And the negative: a class she does not teach stays closed.
         $this->actingAs($this->ritu())
@@ -94,10 +115,14 @@ class OwnerAllotmentTest extends TestCase
     public function test_section_create_refuses_non_teacher_class_teacher()
     {
         $before = Section::count();
+        // A real student user, resolved live (user 57 was a student
+        // before the section segment grew the roster — it is a
+        // teacher now, so never hardcode the id).
+        $student = User::where('user_type', 'student')->orderBy('id')->firstOrFail();
         $this->actingAs($this->admin())->post(route('sections.store'), [
             'name' => 'Probe Section',
             'my_class_id' => 1,
-            'teacher_id' => Qs::hash(57), // Aarav, a student
+            'teacher_id' => Qs::hash($student->id),
         ])->assertSessionHasErrors('teacher_id');
         $this->assertEquals($before, Section::count(), 'No section may be created with a student as class-teacher');
     }
@@ -132,10 +157,16 @@ class OwnerAllotmentTest extends TestCase
 
     public function test_update_teachers_reports_skipped_non_teacher_entries()
     {
-        // Section 55 (Class 11-A) subject 67 already overridden to Ritu (44).
+        // Section 55 (Class 11-A) subject 67 already carries a
+        // seeded override — whoever holds it, a skipped invalid
+        // entry must leave it untouched (the holder changed with
+        // the section segment, so read it live).
         // NOTE: sections.teachers.update uses {id} (Route::bind
         // decodes it), so the id must be hashed — unlike
         // sections.edit which uses {section} and takes raw ids.
+        $existing = (int) DB::table('section_subject_teachers')
+            ->where('section_id', 55)->where('subject_id', 67)->value('teacher_id');
+        $this->assertGreaterThan(0, $existing, 'Seed must hold an override for (55, 67)');
         $response = $this->actingAs($this->admin())->put(
             route('sections.teachers.update', Qs::hash(55)),
             ['teachers' => [67 => Qs::hash(5)]] // parent@, not a teacher
@@ -144,7 +175,7 @@ class OwnerAllotmentTest extends TestCase
         $flash = $response->getSession()->get('flash_success');
         $this->assertStringContainsString('Ignored invalid entries', $flash);
         $this->assertStringContainsString('English Language', $flash);
-        $this->assertEquals(44, (int) DB::table('section_subject_teachers')
+        $this->assertEquals($existing, (int) DB::table('section_subject_teachers')
             ->where('section_id', 55)->where('subject_id', 67)->value('teacher_id'),
             'Skipped row must leave the existing override untouched');
     }
@@ -162,8 +193,10 @@ class OwnerAllotmentTest extends TestCase
         // count over her scope classes (subject classes + override
         // subjects' classes + led sections' classes) — computed
         // exactly as HomeController computes it, so an earlier
-        // test's admission cannot stale the figure (880 on the
-        // untouched seed: Class 11 360 + Class 12 520).
+        // test's admission cannot stale the figure (1360 on the
+        // untouched seed since the section segment: 160+160+240+
+        // 280+520 over classes 2/5/8/11/13). The blade renders it
+        // with number_format, so assert the formatted figure.
         $rituUser = $this->ritu();
         $scopeClassIds = Subject::where('teacher_id', $rituUser->id)->pluck('my_class_id')
             ->merge(Subject::whereIn('id', DB::table('section_subject_teachers')
@@ -173,7 +206,7 @@ class OwnerAllotmentTest extends TestCase
         $expectedStudents = (int) \App\Models\StudentRecord::where('grad', 0)
             ->whereIn('my_class_id', $scopeClassIds)->distinct()->count('user_id');
         $this->assertGreaterThan(0, $expectedStudents);
-        $response->assertSee((string) $expectedStudents, false);
+        $response->assertSee(number_format($expectedStudents), false);
     }
 
     public function test_subject_teacher_with_no_led_sections_dashboard_renders()

@@ -297,6 +297,7 @@ class PaymentController extends Controller
         $d['s'] = Setting::all()->flatMap(function($s){
             return [$s->type => $s->description];
         });
+        $d['s']->put('phone', Qs::getSchoolPhone());
 
         return view('pages.support_team.payments.receipt', $d);
     }
@@ -334,6 +335,7 @@ class PaymentController extends Controller
         $d['s'] = Setting::all()->flatMap(function($s){
             return [$s->type => $s->description];
         });
+        $d['s']->put('phone', Qs::getSchoolPhone());
 
         /* Documents Premium pass: dompdf cannot fetch the logo URL
            (remote images disabled), so the PDF path inlines the

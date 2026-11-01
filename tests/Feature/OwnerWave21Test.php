@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\MyClass;
+use App\Models\Section;
 use App\Models\Setting;
 use App\Models\Subject;
 use App\Models\TimeSlot;
@@ -61,14 +62,24 @@ class OwnerWave21Test extends TestCase
         return $class;
     }
 
-    protected function deleteRecordForClass(int $classId)
+    /**
+     * Section segment (2026-10-30): seeded records are per-section,
+     * so the grid to remove is a SECTION grid. Deletes the
+     * current-session record of the class's first section (resolved
+     * live), with its cells and slots, and returns that section.
+     */
+    protected function deleteFirstSectionRecordForClass(int $classId): Section
     {
-        $record = TimeTableRecord::where('my_class_id', $classId)->whereNull('exam_id')->whereNull('section_id')->first();
+        $section = Section::where('my_class_id', $classId)->orderBy('id')->firstOrFail();
+        $record = TimeTableRecord::where('my_class_id', $classId)->whereNull('exam_id')
+            ->where('section_id', $section->id)->first();
         if ($record) {
             TimeTable::where('ttr_id', $record->id)->delete();
             TimeSlot::where('ttr_id', $record->id)->delete();
             $record->delete();
         }
+
+        return $section;
     }
 
     public function test_generate_form_shows_level_presets_and_subject_picker()
@@ -83,10 +94,19 @@ class OwnerWave21Test extends TestCase
 
     public function test_scope_all_builds_primary_and_secondary_day_lengths()
     {
-        // Class 1 (Prep, primary) loses its grid in-transaction so
-        // scope=all regenerates it; the brand-new class lands in
-        // the secondary bucket by position (after the first 6).
-        $this->deleteRecordForClass(1);
+        // Prep (class 1, primary) loses ONE section grid
+        // in-transaction so scope=all regenerates it — with the
+        // PRIMARY level config, since level follows the class;
+        // the brand-new class lands in the secondary bucket by
+        // position (after the first 6). Section segment
+        // (2026-10-30): seeded records are per-section and
+        // scope=all now expands per section, so every other
+        // seeded section grid already exists and skip mode leaves
+        // the seeded school untouched on its own — the old
+        // sectionless skip-guards are no longer needed. Only the
+        // deleted Prep section and the new class build, exactly
+        // the pair this test has always audited.
+        $prepSection = $this->deleteFirstSectionRecordForClass(1);
         $new = $this->newClassWithSubjects([
             ['name' => 'W21 English', 'teacher_id' => $this->teacher()->id, 'periods_per_week' => 6],
         ]);
@@ -100,9 +120,9 @@ class OwnerWave21Test extends TestCase
             'secondary_periods_per_day' => 8,
         ]));
         $resp->assertRedirect(route('tt.index'));
-        $this->assertStringContainsString('Timetables generated for 2 class(es)', (string) $resp->getSession()->get('flash_success'));
+        $this->assertStringContainsString('Timetables generated for 1 class(es) and 1 section(s)', (string) $resp->getSession()->get('flash_success'));
 
-        $primary = TimeTableRecord::where('my_class_id', 1)->whereNull('exam_id')->whereNull('section_id')->first();
+        $primary = TimeTableRecord::where('my_class_id', 1)->whereNull('exam_id')->where('section_id', $prepSection->id)->first();
         $secondary = TimeTableRecord::where('my_class_id', $new->id)->whereNull('exam_id')->whereNull('section_id')->first();
         $this->assertNotNull($primary);
         $this->assertNotNull($secondary);

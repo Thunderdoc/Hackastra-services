@@ -204,7 +204,7 @@
                         <tr>
                             <td style="white-space:nowrap;"><strong>{{ optional($ledSection->my_class)->name }} {{ $ledSection->name }}</strong></td>
                             <td>
-                                <form method="POST" action="{{ route('sections.whatsapp', $ledSection->id) }}" class="form-inline">
+                                <form method="POST" action="{{ route('sections.whatsapp', Qs::hash($ledSection->id)) }}" class="form-inline">
                                     @csrf
                                     <input type="url" name="whatsapp_link" value="{{ $ledSection->whatsapp_link }}" class="form-control form-control-sm" style="min-width:260px;" placeholder="https://chat.whatsapp.com/…">
                                     <button type="submit" class="btn btn-primary btn-sm ml-1">Save</button>

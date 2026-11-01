@@ -3,8 +3,10 @@
 namespace Tests\Feature;
 
 use App\Models\Section;
+use App\Models\Subject;
 use App\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -58,10 +60,23 @@ class OwnerAllotmentRound8Test extends TestCase
         ]);
     }
 
+    /** One of Ritu's live override triples: [section, subject_id]. */
+    protected function rituOverride(): array
+    {
+        $row = DB::table('section_subject_teachers')
+            ->where('teacher_id', $this->ritu()->id)
+            ->orderBy('section_id')->orderBy('subject_id')->first();
+        $this->assertNotNull($row, 'Ritu must hold an override in the seed');
+        return [Section::findOrFail($row->section_id), (int) $row->subject_id];
+    }
+
     public function test_override_teacher_can_view_tabulation_for_override_section()
     {
+        // Section segment (2026-10-30): her override sections are
+        // resolved live — the anchor pair moved with the seed.
+        [$section] = $this->rituOverride();
         $this->actingAs($this->ritu())
-            ->get(route('marks.tabulation', [1, 12, 55]))
+            ->get(route('marks.tabulation', [1, $section->my_class_id, $section->id]))
             ->assertOk();
     }
 
@@ -73,14 +88,18 @@ class OwnerAllotmentRound8Test extends TestCase
 
         $sectionIds = collect($response->viewData('sections'))
             ->pluck('id')->map(fn ($id) => (int) $id)->all();
-        // All Class 11 sections (override class), incl. her own 55.
-        $this->assertContains(55, $sectionIds);
-        $this->assertContains(56, $sectionIds);
-        $this->assertContains(63, $sectionIds);
-        // And her Class 12 override sections too.
-        $this->assertContains(65, $sectionIds);
-        // But NOT a class she has nothing in (Prep).
+        // Every section of every class she holds an override in
+        // (a subject teacher gets all sections of her classes).
+        $scopeClassIds = Subject::whereIn('id', DB::table('section_subject_teachers')
+            ->where('teacher_id', $this->ritu()->id)->distinct()->pluck('subject_id'))
+            ->pluck('my_class_id')->unique()->all();
+        $this->assertNotEmpty($scopeClassIds);
+        foreach (Section::whereIn('my_class_id', $scopeClassIds)->pluck('id') as $sid) {
+            $this->assertContains((int) $sid, $sectionIds, 'Picker must list section ' . $sid);
+        }
+        // But NOT a class she has nothing in (Prep, Class 11).
         $this->assertNotContains(1, $sectionIds);
+        $this->assertNotContains(55, $sectionIds);
     }
 
     public function test_section_leader_without_subject_sees_only_led_sections()

@@ -193,6 +193,7 @@ class MarkController extends Controller
         $d['s'] = Setting::all()->flatMap(function($s){
             return [$s->type => $s->description];
         });
+        $d['s']->put('phone', Qs::getSchoolPhone());
 
         /* Batch M3: one report-card assembly per exam, shared with
            the printed document (print_view) — screen and print are
@@ -277,6 +278,7 @@ class MarkController extends Controller
         $d['s'] = Setting::all()->flatMap(function($s){
             return [$s->type => $s->description];
         });
+        $d['s']->put('phone', Qs::getSchoolPhone());
 
         /* Batch M3: the printed document renders the same report
            card as the on-screen marksheet — one assembly, one
@@ -302,7 +304,7 @@ class MarkController extends Controller
            this request only — a bounded, one-shot generation. The
            17s a 40-card bundle takes also sits too close to the
            stock 30s execution cap for bigger sections. */
-        ini_set('memory_limit', '512M');
+        Qs::ensurePdfMemory();
         set_time_limit(300);
 
         $exam = $this->exam->find($req->exam_id);
@@ -501,6 +503,7 @@ class MarkController extends Controller
         $d['s'] = Setting::all()->flatMap(function($s){
             return [$s->type => $s->description];
         });
+        $d['s']->put('phone', Qs::getSchoolPhone());
 
         $classMarks = $this->exam->getMark(['my_class_id' => $mc->id, 'year' => $year]);
         if($exams){
@@ -533,6 +536,49 @@ class MarkController extends Controller
             || (int) SectionTeacher::teacherIdFor($sectionId, $subject) !== (int) Auth::user()->id) {
             abort(403, 'You can only manage marks for subjects you teach in this section.');
         }
+    }
+
+    /* Owner order 2026-11-01: the selector's Manage Marks button
+       must read "Not Enabled" when the chosen unit cannot be
+       entered — instead of letting the user click through into a
+       locked or not-yet-open grid. This endpoint mirrors the
+       manage() gates exactly (exam scope, teacher scope,
+       MarkLifecycle) and answers JSON for the selector script;
+       the server-side gates on manage/update/submit are unchanged
+       and remain the real enforcement. */
+    public function entryState(Request $req)
+    {
+        $examId = (int) $req->query('exam_id');
+        $classId = (int) $req->query('class_id');
+        $sectionId = (int) $req->query('section_id');
+        $subjectId = (int) $req->query('subject_id');
+        if (!$examId || !$classId || !$sectionId || !$subjectId) {
+            return response()->json(['enabled' => false, 'reason' => 'Select exam, class, section and subject first.']);
+        }
+
+        $exam = $this->exam->find($examId);
+        if (!$exam || ((int) $exam->my_class_id !== 0 && (int) $exam->my_class_id !== $classId)) {
+            return response()->json(['enabled' => false, 'reason' => 'This exam does not cover the selected class.']);
+        }
+
+        if (Qs::userIsTeacher()) {
+            $subject = Subject::find($subjectId);
+            if (!TeacherScope::canTeachClass(Auth::user(), $classId) || !$subject
+                || (int) $subject->my_class_id !== $classId
+                || (int) SectionTeacher::teacherIdFor($sectionId, $subject) !== (int) Auth::user()->id) {
+                return response()->json(['enabled' => false, 'reason' => 'This subject is not assigned to you for this section.']);
+            }
+        }
+
+        $state = MarkLifecycle::state($examId, $classId, $sectionId, $subjectId);
+        if ($state['submitted']) {
+            return response()->json(['enabled' => false, 'reason' => 'Marks for this unit are already submitted and locked. Ask the school Admin to reopen them if a correction is needed.']);
+        }
+        if (!$state['open']) {
+            return response()->json(['enabled' => false, 'reason' => 'Marks entry opens on ' . $state['opens_on'] . ' — the day after the exam (' . $state['exam_date'] . ').']);
+        }
+
+        return response()->json(['enabled' => true, 'reason' => null]);
     }
 
     public function selector(MarkSelector $req)
@@ -1122,6 +1168,7 @@ class MarkController extends Controller
         $d['s'] = Setting::all()->flatMap(function($s){
             return [$s->type => $s->description];
         });
+        $d['s']->put('phone', Qs::getSchoolPhone());
         //$d['class_type'] = $this->my_class->findTypeByClass($mc->id);
         //$d['ct'] = $ct = $d['class_type']->code;
 

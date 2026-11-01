@@ -66,6 +66,11 @@
         table.items tr.totals-row td { font-weight: bold; border-top: 2px solid #10263b; background: #f7f9fc; }
         .tick { display: inline-block; width: 13px; height: 13px; border: 1.5px solid #334155; }
         .empty-note { color: #718096; font-size: 12px; margin: 18px 0; }
+        /* Truncation note (owner, 2026-10-30): an over-cap report
+           renders its first rows and says so HERE, inside the
+           document, so the canvas preview and the printed PDF
+           carry the identical line. */
+        .truncation-note { color: #4a5a6e; font-size: 11px; font-style: italic; margin: 10px 0 0; }
         /* Orphan-page fix: with 6px cell padding, a full last data page
            left the ~76px signature block alone on its own page (160-row
            landscape case: 11 pages, p.11 = signatures only). 4px rows
@@ -200,6 +205,9 @@
             @endif
         </tbody>
     </table>
+@endif
+@if(!empty($doc['truncation_note']))
+    <p class="truncation-note">{{ $doc['truncation_note'] }}</p>
 @endif
 @if($doc['options']['show_signatures'])
     <table class="sign">

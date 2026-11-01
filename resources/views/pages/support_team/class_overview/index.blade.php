@@ -115,6 +115,61 @@
                 </p>
             </div>
             <div class="panel-body">
+                @if(!empty($detail['sections']))
+                    <h6>Section comparison</h6>
+                    <div class="table-responsive mb-3">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Section</th>
+                                    <th>Strength</th>
+                                    <th>Attendance</th>
+                                    <th>Marks Average</th>
+                                    <th>Topper</th>
+                                    <th>At Risk</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($detail['sections'] as $sec)
+                                    <tr>
+                                        <td data-label="Section">Section {{ $sec['name'] }}</td>
+                                        <td data-label="Strength">{{ number_format($sec['strength']) }}</td>
+                                        <td data-label="Attendance">
+                                            @if($sec['attendance_pct'] === null) —
+                                            @else {{ number_format($sec['attendance_pct'], 1) }}% @endif
+                                        </td>
+                                        <td data-label="Marks Average">
+                                            @if($sec['marks_avg'] === null) —
+                                            @else {{ number_format($sec['marks_avg'], 1) }}% @endif
+                                        </td>
+                                        <td data-label="Topper">
+                                            @if($sec['topper']) {{ $sec['topper']['name'] }} ({{ number_format($sec['topper']['percent'], 1) }}%)
+                                            @else — @endif
+                                        </td>
+                                        <td data-label="At Risk">{{ $sec['at_risk_count'] }}</td>
+                                    </tr>
+                                @endforeach
+                                <tr>
+                                    <td data-label="Section"><strong>Class total</strong></td>
+                                    <td data-label="Strength"><strong>{{ number_format($detail['strength']) }}</strong></td>
+                                    <td data-label="Attendance">
+                                        @if($detail['attendance_pct'] === null) —
+                                        @else <strong>{{ number_format($detail['attendance_pct'], 1) }}%</strong> @endif
+                                    </td>
+                                    <td data-label="Marks Average">
+                                        @if($detail['marks_avg'] === null) —
+                                        @else <strong>{{ number_format($detail['marks_avg'], 1) }}%</strong> @endif
+                                    </td>
+                                    <td data-label="Topper">
+                                        @if($detail['topper']) <strong>{{ $detail['topper']['name'] }} ({{ number_format($detail['topper']['percent'], 1) }}%)</strong>
+                                        @else — @endif
+                                    </td>
+                                    <td data-label="At Risk"><strong>{{ count($detail['at_risk']) }}</strong></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
                 <h6>Students needing attention ({{ count($detail['at_risk']) }})</h6>
                 @if(empty($detail['at_risk']))
                     <p class="text-muted">No students at risk in this class under the thresholds above.</p>

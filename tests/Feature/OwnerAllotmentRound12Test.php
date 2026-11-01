@@ -88,10 +88,14 @@ class OwnerAllotmentRound12Test extends TestCase
 
     private function insertOverride($sectionId, $subjectId, $teacherId)
     {
-        DB::table('section_subject_teachers')->insert([
-            'section_id' => $sectionId, 'subject_id' => $subjectId,
-            'teacher_id' => $teacherId, 'created_at' => now(), 'updated_at' => now(),
-        ]);
+        // Section segment (2026-10-30): the seed now staffs junior
+        // sections through overrides too, so a probe pair may
+        // already hold a seeded row — upsert the probe teacher in
+        // instead of colliding with the unique (section, subject).
+        DB::table('section_subject_teachers')->updateOrInsert(
+            ['section_id' => $sectionId, 'subject_id' => $subjectId],
+            ['teacher_id' => $teacherId, 'created_at' => now(), 'updated_at' => now()]
+        );
     }
 
     private function anchors()

@@ -51,14 +51,19 @@ class OwnerAllotmentRound3Test extends TestCase
 
     public function test_demoted_subject_teacher_flagged_unassigned_on_sections_index()
     {
-        // Prep English (subject 1) is taught by Ananya (id 4).
+        // Prep English (subject 1) is taught by Ananya (id 4) —
+        // both as class teacher and as section 1's override.
         User::findOrFail(4)->update(['user_type' => 'accountant']);
 
+        // Section segment (2026-10-30): sections 2/3 have their
+        // own live override teachers, so their rows legitimately
+        // keep reading 'All staffed' — the flag to pin is section
+        // 1's own unassigned marker for English.
         $this->actingAs($this->admin())
             ->get(route('sections.index', ['class_id' => 1]))
             ->assertOk()
             ->assertSee('English')
-            ->assertDontSee('All staffed');
+            ->assertSee('unassigned: English Language', false);
     }
 
     public function test_suspended_subject_teacher_flagged_unassigned_on_sections_index()
@@ -69,7 +74,7 @@ class OwnerAllotmentRound3Test extends TestCase
             ->get(route('sections.index', ['class_id' => 1]))
             ->assertOk()
             ->assertSee('English')
-            ->assertDontSee('All staffed');
+            ->assertSee('unassigned: English Language', false);
     }
 
     public function test_demoted_teacher_flagged_in_edit_matrix()
@@ -85,9 +90,12 @@ class OwnerAllotmentRound3Test extends TestCase
     public function test_ghost_override_flagged_in_edit_matrix()
     {
         $probe = $this->makeTeacher('PROBE-R3-OV', 'probe-r3-ov@example.com');
-        DB::table('section_subject_teachers')->insert([
-            'section_id' => 1, 'subject_id' => 2, 'teacher_id' => $probe->id,
-        ]);
+        // (1, 2) holds a seeded override since the section
+        // segment — upsert the probe in so the ghost is ours.
+        DB::table('section_subject_teachers')->updateOrInsert(
+            ['section_id' => 1, 'subject_id' => 2],
+            ['teacher_id' => $probe->id, 'created_at' => now(), 'updated_at' => now()]
+        );
         // Ghost: the row is deleted outright, the override stays.
         DB::table('users')->where('id', $probe->id)->delete();
 
@@ -196,9 +204,10 @@ class OwnerAllotmentRound3Test extends TestCase
         // returns the raw id (validator/generation input); only
         // teacherFor resolves to null, and no surface crashes.
         $probe = $this->makeTeacher('PROBE-R3-TF', 'probe-r3-tf@example.com');
-        DB::table('section_subject_teachers')->insert([
-            'section_id' => 1, 'subject_id' => 1, 'teacher_id' => $probe->id,
-        ]);
+        DB::table('section_subject_teachers')->updateOrInsert(
+            ['section_id' => 1, 'subject_id' => 1],
+            ['teacher_id' => $probe->id, 'created_at' => now(), 'updated_at' => now()]
+        );
         DB::table('users')->where('id', $probe->id)->delete();
 
         $this->assertSame($probe->id, SectionTeacher::teacherIdFor(1, Subject::find(1)));
@@ -213,9 +222,10 @@ class OwnerAllotmentRound3Test extends TestCase
         $rowBefore = collect($before['teachers'])->firstWhere('teacher.id', $probe->id);
         $this->assertNotContains('Mathematics', $rowBefore['subjects']);
 
-        DB::table('section_subject_teachers')->insert([
-            'section_id' => 1, 'subject_id' => 2, 'teacher_id' => $probe->id,
-        ]);
+        DB::table('section_subject_teachers')->updateOrInsert(
+            ['section_id' => 1, 'subject_id' => 2],
+            ['teacher_id' => $probe->id, 'created_at' => now(), 'updated_at' => now()]
+        );
 
         $after = Staffing::report();
         $rowAfter = collect($after['teachers'])->firstWhere('teacher.id', $probe->id);

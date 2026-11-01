@@ -21,10 +21,13 @@ use Tests\TestCase;
  *    redirect that loads the builder page inside the frame.
  *  - Item 5: two-panel builder page (settings left, preview right)
  *    with an honest status line and auto-update hooks.
- *  - Standing rule: resolve() still refuses >800 rows with the exact
- *    flash, on both the pdf and the preview path; preview never
- *    invents records (an empty result is the print blade's own
- *    "No records found" note, covered by the engine doc assertion).
+ *  - Standing rule (re-expressed 2026-10-30 evening, owner order):
+ *    resolve() still CAPS a document at 800 rows, but an over-cap
+ *    report is no longer refused — it renders truncated with a
+ *    note inside the document, on both the pdf and the preview
+ *    path; preview never invents records (an empty result is the
+ *    print blade's own "No records found" note, covered by the
+ *    engine doc assertion).
  */
 class OwnerOvernightBuilderTest extends TestCase
 {
@@ -177,20 +180,33 @@ class OwnerOvernightBuilderTest extends TestCase
         $this->assertStringContainsString('report title', strtolower(session('flash_danger') ?? ''));
     }
 
-    public function test_preview_and_pdf_both_refuse_over_800_rows_with_exact_flash()
+    public function test_preview_and_pdf_render_over_cap_report_truncated_not_refused()
     {
         $teacher = $this->userByEmail('teacher@hackstra.app');
         $huge = $this->config('students', [
             ['key' => 'student', 'label' => 'Student', 'type' => 'text', 'width' => 30],
         ], []);
+        // Engine level: the teacher's scoped roster (read live)
+        // exceeds the cap, and resolve() truncates it with a note
+        // instead of throwing.
+        $total = count(\App\Support\Reports\ReportSources::rows('students', [], $teacher));
+        $this->assertGreaterThan(\App\Support\Reports\ReportEngine::MAX_ROWS, $total);
+        $validated = \App\Support\Reports\ReportEngine::validateConfig($huge, $teacher);
+        $doc = \App\Support\Reports\ReportEngine::resolve($validated, $teacher);
+        $this->assertCount(\App\Support\Reports\ReportEngine::MAX_ROWS, $doc['rows']);
+        $this->assertSame(
+            'Showing first ' . \App\Support\Reports\ReportEngine::MAX_ROWS . ' of ' . $total . ' rows — narrow by class or section for the complete list.',
+            $doc['truncation_note']
+        );
+        // Both HTTP paths serve the truncated document: the
+        // download is a real PDF (no redirect, no flash), and the
+        // iframe preview is the same PDF inline (no 422 document).
         $pdf = $this->actingAs($teacher)->from(route('reports.builder'))->post(route('reports.pdf'), ['config' => json_encode($huge)]);
-        $pdf->assertRedirect();
-        $this->assertStringContainsString('Too many rows for one PDF', session('flash_danger') ?? '');
-        $this->assertStringContainsString('Filter by class or section first, then generate.', session('flash_danger') ?? '');
-        // Iframe path: same refusal, as a 422 error document, never a redirect-in-frame.
+        $this->assertPdfResponse($pdf);
+        $this->assertStringContainsString('attachment', $pdf->headers->get('Content-Disposition', ''));
         $preview = $this->actingAs($teacher)->post(route('reports.preview'), ['config' => json_encode($huge), 'preview_frame' => '1']);
-        $preview->assertStatus(422);
-        $this->assertStringContainsString('Too many rows for one PDF', $preview->getContent());
+        $this->assertPdfResponse($preview);
+        $this->assertStringContainsString('inline', $preview->headers->get('Content-Disposition', ''));
     }
 
     public function test_preview_never_invents_records_for_empty_result()
@@ -216,16 +232,18 @@ class OwnerOvernightBuilderTest extends TestCase
     {
         // Builder rb5 (2026-10-30, owner order — full replacement):
         // ONE screen, two panels — #rbSettings configures on the
-        // left, the editable document (toolbar + #previewFrame
-        // canvas) sits on the right. No wizard tabs, no source
-        // tiles, no Preview button; the document refreshes through
-        // the preview-html endpoint.
+        // left, the editable document (#previewFrame canvas under
+        // the slim rb5-docbar header) sits on the right. No wizard
+        // tabs, no source tiles, no Preview button, and — since
+        // the owner's same-evening simplification — no toolbar:
+        // the document refreshes through the preview-html endpoint.
         $response = $this->actingAs($this->userByEmail('teacher@hackstra.app'))->get(route('reports.builder'));
         $response->assertOk();
         $response->assertSee('rb5-wrap', false);
         $response->assertSee('id="rbSettings"', false);
         $response->assertSee('id="previewFrame"', false);
-        $response->assertSee('rb5-toolbar', false);
+        $response->assertSee('rb5-docbar', false);
+        $response->assertDontSee('rb5-toolbar', false);
         $response->assertSee('data-filter-group', false);
         $response->assertSee('FILTER_MAP', false);
         $response->assertSee('rbPreviewStatus', false);

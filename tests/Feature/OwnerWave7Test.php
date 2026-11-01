@@ -34,8 +34,20 @@ class OwnerWave7Test extends TestCase
 
     protected function cleanRecord()
     {
-        return TimeTableRecord::where('year', Qs::getCurrentSession())
-            ->whereNull('section_id')->first();
+        // Section segment (2026-10-30): whole-class records no
+        // longer exist, so "the clean seeded record" is found by
+        // running the product's own validator over the seeded
+        // (now per-section) records and taking the first with
+        // zero errors — the property (a clash-free record turns
+        // green) is unchanged.
+        foreach (TimeTableRecord::where('year', Qs::getCurrentSession())->orderBy('id')->get() as $record) {
+            $report = \App\Support\TimetableValidator::report($record);
+            if (empty($report['errors'])) {
+                return $record;
+            }
+        }
+
+        return null;
     }
 
     public function test_clean_validation_shows_green_banner()
@@ -69,11 +81,20 @@ class OwnerWave7Test extends TestCase
         $cell = TimeTable::where('ttr_id', $record->id)->first();
         $this->assertNotNull($cell, 'seed record must hold cells');
 
-        // Forge the "no teacher assigned" error: vacancy on the cell's
-        // subject (teacher_id is nullable since 2026-10-23).
+        // Forge the "no teacher assigned" error: vacancy on the
+        // cell's subject (teacher_id is nullable since 2026-10-23).
+        // A section cell's teacher can also come from the section
+        // override, so the forge clears BOTH sources — the vacancy
+        // must be real for the validator to flag it.
         $subject = Subject::find($cell->subject_id);
         $subject->teacher_id = null;
         $subject->save();
+        if ($record->section_id) {
+            \Illuminate\Support\Facades\DB::table('section_subject_teachers')
+                ->where('section_id', $record->section_id)
+                ->where('subject_id', $subject->id)
+                ->delete();
+        }
 
         $this->actingAs($this->admin())
             ->get(route('ttr.validate', $record->id))

@@ -67,6 +67,187 @@ class PeriodAttendanceSeeder extends Seeder
                 $this->seedSession($period, $date);
             }
         }
+
+        $this->backfillTermAttendance();
+    }
+
+    /**
+     * Term backfill (owner fix 2026-10-30): the six-day window above
+     * left most of the term empty — the Monthly Attendance Report
+     * for Sep–Oct showed all zeros for any class the rotation never
+     * reached (Class 12 had NO sessions at all). Every timetable
+     * record now also gets a deterministic spread of submitted
+     * registers across 1 Sep – 21 Oct 2026 (17–24 sessions per
+     * record, hash-quota'd, stride-picked so they spread over days
+     * and subjects), each with a topic and a full-roster entry set
+     * in the same ~92/5/3 present/late/absent mix as the six-day
+     * pass. Dates stop at 21 Oct so the six-day window (22–29 Oct)
+     * stays exactly as the demo has always shown it, and every
+     * seeded date stays inside Sep 1 – Oct 29.
+     *
+     * EXCLUDED_DATES are pinned test-probe days: the suite plants
+     * its own sessions / take-attendance probes on them (section
+     * 65/68 report fixtures on 12–15 Oct; the 19–20 Oct teacher
+     * take/store probes), and a seeded register on those cells
+     * would collide with or pre-empt the probes. Non-teaching day
+     * types (holiday/closure/event/exam days) are skipped too when
+     * a school has them configured.
+     */
+    protected const BACKFILL_FROM = '2026-09-01';
+    protected const BACKFILL_TO = '2026-10-21';
+    protected const EXCLUDED_DATES = [
+        '2026-10-12', '2026-10-13', '2026-10-14',
+        '2026-10-15', '2026-10-19', '2026-10-20',
+    ];
+
+    protected function backfillTermAttendance(): void
+    {
+        $from = Carbon::createFromFormat('Y-m-d', self::BACKFILL_FROM);
+        $to = Carbon::createFromFormat('Y-m-d', self::BACKFILL_TO);
+
+        $skipDates = array_fill_keys(self::EXCLUDED_DATES, true);
+        if (Schema::hasTable('school_day_types')) {
+            foreach (DB::table('school_day_types')
+                         ->whereIn('type', ['holiday', 'closure', 'event_only', 'exam_day'])
+                         ->get() as $row) {
+                $skipDates[substr((string) $row->date, 0, 10)] = true;
+            }
+        }
+
+        $days = [];
+        for ($cursor = $from->copy(); $cursor->lte($to); $cursor->addDay()) {
+            if ($cursor->isWeekday() && !isset($skipDates[$cursor->toDateString()])) {
+                $days[] = $cursor->copy();
+            }
+        }
+        if (!$days) {
+            return;
+        }
+
+        // Existing registers inside the window (idempotent re-runs
+        // top up to the quota instead of duplicating).
+        $existingPairs = [];
+        $existingPerRecord = [];
+        $cellRecord = TimeTable::pluck('ttr_id', 'id');
+        foreach (AttendanceSession::whereBetween('date', [self::BACKFILL_FROM, self::BACKFILL_TO])->get(['date', 'time_table_id']) as $s) {
+            $existingPairs[$s->time_table_id . '|' . substr((string) $s->date, 0, 10)] = true;
+            $rid = $cellRecord[$s->time_table_id] ?? null;
+            if ($rid) {
+                $existingPerRecord[$rid] = ($existingPerRecord[$rid] ?? 0) + 1;
+            }
+        }
+
+        $rosters = [];
+        foreach (DB::table('student_records')->where('grad', 0)->orderBy('id')
+                     ->get(['id', 'my_class_id', 'section_id']) as $sr) {
+            $rosters[$sr->my_class_id . ':' . ($sr->section_id ?: 0)][] = $sr->id;
+        }
+
+        $records = \App\Models\TimeTableRecord::orderBy('id')->get();
+        $now = now();
+
+        foreach ($records as $record) {
+            $cells = TimeTable::with(['subject', 'time_slot'])
+                ->where('ttr_id', $record->id)
+                ->whereNotNull('subject_id')
+                ->orderBy('id')
+                ->get()
+                ->filter(function ($cell) {
+                    return $cell->subject && $cell->subject->teacher_id;
+                });
+            if ($cells->isEmpty()) {
+                continue;
+            }
+
+            $roster = $rosters[$record->my_class_id . ':' . ($record->section_id ?: 0)] ?? [];
+            if (!$roster) {
+                continue;
+            }
+
+            $quota = 17 + $this->hashOf('attquota|' . $record->id) % 8;
+            $needed = $quota - ($existingPerRecord[$record->id] ?? 0);
+            if ($needed <= 0) {
+                continue;
+            }
+
+            $byDay = $cells->groupBy('day');
+            $candidates = [];
+            foreach ($days as $date) {
+                foreach ($byDay->get($date->format('l'), []) as $cell) {
+                    if (!isset($existingPairs[$cell->id . '|' . $date->toDateString()])) {
+                        $candidates[] = [$date, $cell];
+                    }
+                }
+            }
+            if (!$candidates) {
+                continue;
+            }
+
+            $total = count($candidates);
+            $take = min($needed, $total);
+            $picks = [];
+            for ($i = 0; $i < $take; $i++) {
+                $picks[] = $candidates[(int) floor(($i + 0.5) * $total / $take)];
+            }
+
+            $sessionRows = [];
+            foreach ($picks as [$date, $cell]) {
+                $dateStr = $date->toDateString();
+                $submittedAt = $date->copy()->setTime(15, 0);
+                $slot = $cell->time_slot;
+                if ($slot && $slot->time_to) {
+                    $parsed = strtotime($dateStr . ' ' . $slot->time_to);
+                    if ($parsed !== false) {
+                        $submittedAt = Carbon::createFromTimestamp($parsed);
+                    }
+                }
+                $sessionRows[] = [
+                    'date' => $dateStr,
+                    'time_table_id' => $cell->id,
+                    'my_class_id' => $record->my_class_id,
+                    'section_id' => $record->section_id,
+                    'subject_id' => $cell->subject_id,
+                    'teacher_id' => $cell->subject->teacher_id,
+                    'topic' => $this->topicFor($cell->subject->name, $cell->subject_id, $cell->id, $dateStr),
+                    'status' => AttendanceSession::STATUS_SUBMITTED,
+                    'submitted_at' => $submittedAt,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+            }
+            DB::table('attendance_sessions')->insert($sessionRows);
+
+            // A cell repeats across dates in the picks, so key
+            // the entry build by (cell, date), not by cell alone.
+            $idByPair = [];
+            foreach (AttendanceSession::whereIn('time_table_id', array_column($sessionRows, 'time_table_id'))
+                         ->whereBetween('date', [self::BACKFILL_FROM, self::BACKFILL_TO])
+                         ->get(['id', 'time_table_id', 'date']) as $s) {
+                $idByPair[$s->time_table_id . '|' . substr((string) $s->date, 0, 10)] = $s->id;
+            }
+
+            $entries = [];
+            foreach ($picks as [$date, $cell]) {
+                $dateStr = $date->toDateString();
+                $sessionId = $idByPair[$cell->id . '|' . $dateStr] ?? null;
+                if (!$sessionId) {
+                    continue;
+                }
+                foreach ($roster as $studentId) {
+                    $roll = $this->hashOf('pa|' . $cell->id . '|' . $dateStr . '|' . $studentId) % 100;
+                    $entries[] = [
+                        'session_id' => $sessionId,
+                        'student_record_id' => $studentId,
+                        'status' => $roll < 92 ? 'present' : ($roll < 97 ? 'late' : 'absent'),
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ];
+                }
+            }
+            foreach (array_chunk($entries, 500) as $chunk) {
+                DB::table('attendance_session_entries')->insert($chunk);
+            }
+        }
     }
 
     /**

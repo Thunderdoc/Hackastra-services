@@ -77,9 +77,15 @@ class OwnerAllotmentRound9Test extends TestCase
     public function test_override_teacher_sheet_view_still_open()
     {
         // Contrast control: the round-8 widening itself still holds
-        // — the sheet view is 200 for her own override section.
+        // — the sheet view is 200 for her own override section
+        // (resolved live; the section segment moved her pair).
+        $row = DB::table('section_subject_teachers')
+            ->where('teacher_id', $this->ritu()->id)
+            ->orderBy('section_id')->orderBy('subject_id')->first();
+        $this->assertNotNull($row, 'Ritu must hold an override in the seed');
+        $section = \App\Models\Section::findOrFail($row->section_id);
         $this->actingAs($this->ritu())
-            ->get(route('marks.tabulation', [1, 12, 55]))
+            ->get(route('marks.tabulation', [1, $section->my_class_id, $section->id]))
             ->assertOk();
     }
 

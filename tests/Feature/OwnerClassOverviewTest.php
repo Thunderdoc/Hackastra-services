@@ -71,28 +71,64 @@ class OwnerClassOverviewTest extends TestCase
 
     public function test_attendance_pct_is_within_zero_to_one_hundred()
     {
+        // Re-expressed 2026-10-31: the overview renders a PER-CLASS
+        // percentage (the controller filters sessions by class +
+        // teacher + that class's effective subjects), so the
+        // expectation is computed per class exactly as the
+        // controller does. The old version pooled every class into
+        // one blended % and asserted that string appeared — it
+        // matched by luck while the seed held only six days of
+        // registers; the term backfill (1 Sep – 21 Oct 2026) made
+        // each class's real % distinct from the blend.
         $teacher = $this->teacher();
-        $subjectIds = Subject::where('teacher_id', $teacher->id)->pluck('id');
-        $sessionIds = AttendanceSession::where('teacher_id', $teacher->id)
-            ->whereIn('subject_id', $subjectIds)
-            ->pluck('id');
-        $marked = DB::table('attendance_session_entries')
-            ->whereIn('session_id', $sessionIds)->count();
-        $ok = DB::table('attendance_session_entries')
-            ->whereIn('session_id', $sessionIds)
-            ->whereIn('status', ['present', 'late'])->count();
+
+        $ownByClass = Subject::where('teacher_id', $teacher->id)->get()
+            ->groupBy('my_class_id');
+        $overrideSubjects = collect();
+        if (Schema::hasTable('section_subject_teachers')) {
+            $overrideIds = DB::table('section_subject_teachers')
+                ->where('teacher_id', $teacher->id)->pluck('subject_id');
+            $overrideSubjects = $overrideIds->isEmpty()
+                ? collect()
+                : Subject::whereIn('id', $overrideIds)->get();
+        }
+        $overrideByClass = $overrideSubjects->groupBy('my_class_id');
 
         $response = $this->actingAs($teacher)->get(route('class_overview.index'));
         $response->assertOk();
 
-        if ($marked > 0) {
+        $checked = 0;
+        foreach ($this->teacherClassIds() as $classId) {
+            $subjectIds = collect($ownByClass->get($classId, collect()))->pluck('id')
+                ->merge(collect($overrideByClass->get($classId, collect()))->pluck('id'))
+                ->unique()->values();
+            if ($subjectIds->isEmpty()) {
+                continue;
+            }
+            $sessionIds = AttendanceSession::where('my_class_id', $classId)
+                ->where('teacher_id', $teacher->id)
+                ->whereIn('subject_id', $subjectIds)
+                ->pluck('id');
+            if ($sessionIds->isEmpty()) {
+                continue;
+            }
+            $marked = DB::table('attendance_session_entries')
+                ->whereIn('session_id', $sessionIds)->count();
+            if ($marked === 0) {
+                continue;
+            }
+            $ok = DB::table('attendance_session_entries')
+                ->whereIn('session_id', $sessionIds)
+                ->whereIn('status', ['present', 'late'])->count();
             $pct = ($ok / $marked) * 100;
             $this->assertGreaterThanOrEqual(0, $pct);
             $this->assertLessThanOrEqual(100, $pct);
             $response->assertSee(number_format($pct, 1));
-        } else {
-            $this->assertSame(0, $marked);
+            $checked++;
         }
+
+        // The check must not pass vacuously on an empty seed.
+        $this->assertGreaterThan(0, $checked);
     }
 
     public function test_topper_name_matches_db_for_prep_class()

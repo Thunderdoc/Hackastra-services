@@ -125,7 +125,7 @@ class IdCardController extends Controller
     {
         /* A whole class can be 520 cards: the stock 128M limit and
            30s cap die mid-render (same lesson as Mark bulkDownload). */
-        ini_set('memory_limit', '512M');
+        Qs::ensurePdfMemory();
         set_time_limit(300);
 
         $classId = (int) $request->query('class_id');

@@ -50,6 +50,12 @@ class OwnerSettingsWorkflowRound5Test extends TestCase
 {
     use DatabaseTransactions;
 
+    /** student@'s user id, resolved live — the raw id (57) shifted +51 when the roster grew (section segment, 2026-10-30). */
+    protected function studentId()
+    {
+        return User::where('email', 'student@hackstra.app')->firstOrFail()->id;
+    }
+
     private const ADDR = 'G5 Test Street 123';
     private const PHONE = '9998887777';
     private const EMAIL = 'g5office@example.school';
@@ -143,7 +149,7 @@ class OwnerSettingsWorkflowRound5Test extends TestCase
     public function test_invoice_shows_new_address_phone_email()
     {
         $this->saveG5Profile();
-        $hash = Qs::hash(57);
+        $hash = Qs::hash($this->studentId());
         $res = $this->actingAs($this->admin())
             ->get("/payments/invoice/{$hash}/2026-2027");
         $res->assertOk();
@@ -155,7 +161,7 @@ class OwnerSettingsWorkflowRound5Test extends TestCase
     public function test_marksheet_print_shows_new_address()
     {
         $this->saveG5Profile();
-        $hash = Qs::hash(57);
+        $hash = Qs::hash($this->studentId());
         $res = $this->actingAs($this->admin())
             ->get("/marks/print/{$hash}/1/2026-2027");
         $res->assertOk();
@@ -165,7 +171,7 @@ class OwnerSettingsWorkflowRound5Test extends TestCase
     public function test_annual_print_shows_new_address()
     {
         $this->saveG5Profile();
-        $hash = Qs::hash(57);
+        $hash = Qs::hash($this->studentId());
         $res = $this->actingAs($this->admin())
             ->get("/marks/print_annual/{$hash}/2026-2027");
         $res->assertOk();
@@ -184,7 +190,7 @@ class OwnerSettingsWorkflowRound5Test extends TestCase
     public function test_admit_card_shows_new_address_phone_email()
     {
         $this->saveG5Profile();
-        $res = $this->actingAs($this->admin())->get('/my-admit-cards/1/57');
+        $res = $this->actingAs($this->admin())->get('/my-admit-cards/1/' . $this->studentId());
         $res->assertOk();
         $res->assertSee(self::ADDR, false);
         $res->assertSee('Tel: ' . self::PHONE, false);
@@ -195,7 +201,7 @@ class OwnerSettingsWorkflowRound5Test extends TestCase
     {
         $this->saveG5Profile();
         $cert = Certificate::create([
-            'user_id' => 57, 'student_record_id' => 1, 'type' => 'bonafide',
+            'user_id' => $this->studentId(), 'student_record_id' => 1, 'type' => 'bonafide',
             'serial' => 'G5/2026/0001', 'student_name' => 'Aarav Sharma',
             'adm_no' => 'HA/PN/2026/91300', 'class_name' => 'Prep',
             'section_name' => 'A', 'session' => '2026-2027',

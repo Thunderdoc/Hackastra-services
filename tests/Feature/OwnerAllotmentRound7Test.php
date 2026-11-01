@@ -360,18 +360,33 @@ class OwnerAllotmentRound7Test extends TestCase
 
         $response = $this->actingAs($ritu)->get(route('class_overview.index'));
         $response->assertOk();
-        // Under any raw-subject scope this page would be empty for her.
-        $response->assertSee('Class 11');
-        $response->assertSee('Class 12');
+        // Under any raw-subject scope this page would be empty for
+        // her. Pin the exact visible set from her live scope
+        // (direct subjects + override subjects — the section
+        // segment moved her classes, so compute, don't hardcode).
+        $expected = Subject::where('teacher_id', $ritu->id)->pluck('my_class_id')
+            ->merge(Subject::whereIn('id', DB::table('section_subject_teachers')
+                ->where('teacher_id', $ritu->id)->distinct()->pluck('subject_id'))->pluck('my_class_id'))
+            ->filter()->unique()->map(fn ($id) => (int) $id)->sort()->values()->all();
+        $this->assertNotEmpty($expected);
+        $visible = collect($response->viewData('overviews'))
+            ->pluck('class.id')->map(fn ($id) => (int) $id)->sort()->values()->all();
+        $this->assertSame($expected, $visible, 'Overview must list exactly her override classes');
         $response->assertDontSee('Prep');
     }
 
     public function test_override_teacher_overview_detail_uses_override_subject_figures()
     {
         $ritu = $this->ritu();
-        $classId = 12; // Class 11
+        // Her first override class, resolved live (the section
+        // segment moved her out of Class 11 into classes
+        // 2/5/8/11/13 — the mirror below is class-agnostic).
+        $firstSubjectId = DB::table('section_subject_teachers')
+            ->where('teacher_id', $ritu->id)->orderBy('subject_id')->value('subject_id');
+        $this->assertNotNull($firstSubjectId, 'Ritu must hold overrides in the seed');
+        $classId = (int) Subject::findOrFail($firstSubjectId)->my_class_id;
         $subjectIds = $this->rituSubjectIdsInClass($classId);
-        $this->assertNotEmpty($subjectIds, 'Ritu must hold overrides in Class 11');
+        $this->assertNotEmpty($subjectIds, 'Ritu must hold overrides in the probe class');
 
         $strength = StudentRecord::where('grad', 0)->where('my_class_id', $classId)->count();
 
@@ -447,7 +462,7 @@ class OwnerAllotmentRound7Test extends TestCase
         $response = $this->actingAs($ritu)
             ->get(route('class_overview.index', ['class_id' => $classId]));
         $response->assertOk();
-        $response->assertSee('Class 11 — Detail');
+        $response->assertSee(\App\Models\MyClass::findOrFail($classId)->name . ' — Detail');
         $response->assertSee('Strength: ' . number_format($strength) . ' students.');
         if ($marksAvg !== null) {
             $response->assertSee(number_format($marksAvg, 1) . '%');
