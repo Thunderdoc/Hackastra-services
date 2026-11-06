@@ -7824,3 +7824,14 @@ html.hk-dark .gen-radio.on{background:rgba(46,107,230,.13)}
 .hk-bn-greet{font-size:27px;font-weight:800;color:#10263b;line-height:1.16}
 .hk-bn-sub{margin-top:6px;font-size:13.5px;font-weight:600;color:#46617d}
 @media (max-width:767px){.hk-banner-hero{height:128px}.hk-bn-overlay{width:82%;padding-left:16px}.hk-bn-greet{font-size:19px}.hk-bn-sub{font-size:11.5px}}
+
+/* Sidebar active state — Premium Tree B values, restated with winning
+   specificity (2026-11-06 live finding: the older #2563eb solid-pill
+   rules above outranked the item-9 subtle rules, and the top-level
+   active row was never restated at all). Active = soft blue wash +
+   white semibold label, no shadow pill; the tree node keeps its white
+   core + steel ring + glow. Ancestor trail rules stay as they were. */
+body:not(.sidebar-xs) .sidebar.sidebar-main.sidebar-dark .nav-sidebar>.nav-item>.nav-link.active,
+body:not(.sidebar-xs) .sidebar.sidebar-main .nav-sidebar>.nav-item>.nav-link.active{background:rgba(64,156,255,.13);box-shadow:none;color:#fff;font-weight:600}
+body:not(.sidebar-xs) .sidebar.sidebar-main.sidebar-dark .nav-sidebar .nav-group-sub>.nav-item:not(.nav-item-submenu)>.nav-link.active{background:rgba(64,156,255,.13);box-shadow:none;color:#fff;font-weight:600}
+body:not(.sidebar-xs) .sidebar.sidebar-main .nav-sidebar>.nav-item>.nav-group-sub>li>.nav-link.active::before{background:#fff;border-color:#59a9ff;box-shadow:0 0 0 4px rgba(89,169,255,.25),0 0 12px rgba(89,169,255,.8)}

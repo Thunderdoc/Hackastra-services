@@ -46,9 +46,10 @@
      is out of the admin menu too — the 2026-10-25 ruling (library
      is the Librarian's, not the Admin's) now covers reservations
      as well, and the controller refuses admin with a 403. --}}
-<li class="nav-item">
-    <a href="{{ route('health_records.index') }}" class="nav-link {{ (Route::is('health_records.*')) ? 'active' : '' }}"><i class="icon-users"></i> <span>Health Records</span></a>
-</li>
+{{-- Owner order 2026-11-06: Health Records is out of the admin menu —
+     the clinic belongs to the Nurse login now, and the controller
+     refuses admin with a 403. Link removed only; the route stays for
+     nurse/teacher/parent/student. --}}
 {{-- Overnight menus (2026-10-29, item 16): Discipline Records,
      Documents Vault, Alumni Directory, Elective Choices and Role
      Permissions are out of the admin menu (link only; every

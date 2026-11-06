@@ -4,7 +4,7 @@
      themselves are nurse-gated in HealthRecordController. --}}
 <li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Clinic</div><i class="icon-menu" title="Clinic"></i></li>
 <li class="nav-item">
-    <a href="{{ route('dashboard') }}" class="nav-link {{ (Route::is('dashboard')) ? 'active' : '' }}"><i class="icon-home4"></i> <span>Dashboard</span></a>
+    <a href="{{ route('dashboard') }}" class="nav-link {{ in_array(request()->path(), ['/', 'home', 'dashboard']) ? 'active' : '' }}"><i class="icon-home4"></i> <span>Dashboard</span></a>
 </li>
 <li class="nav-item">
     <a href="{{ route('health_records.index') }}" class="nav-link {{ (Route::is('health_records.*')) ? 'active' : '' }}"><i class="icon-heart6"></i> <span>Health Records</span></a>

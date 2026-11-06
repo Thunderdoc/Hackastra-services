@@ -12,7 +12,7 @@
      Headers only — no item name, link or order changed. --}}
 <li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Overview</div><i class="icon-menu" title="Overview"></i></li>
 <li class="nav-item">
-    <a href="{{ route('dashboard') }}" class="nav-link {{ Route::is('dashboard') ? 'active' : '' }}"><i class="icon-home4"></i> <span>Dashboard</span></a>
+    <a href="{{ route('dashboard') }}" class="nav-link {{ in_array(request()->path(), ['/', 'home', 'dashboard']) ? 'active' : '' }}"><i class="icon-home4"></i> <span>Dashboard</span></a>
 </li>
 <li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Academics</div><i class="icon-menu" title="Academics"></i></li>
 <li class="nav-item">

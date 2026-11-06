@@ -55,7 +55,7 @@
                 @include('pages.principal.menu')
             @elseif(Qs::userIsTeacher())
                 <li class="nav-item">
-                    <a href="{{ route('dashboard') }}" class="nav-link {{ (Route::is('dashboard')) ? 'active' : '' }}">
+                    <a href="{{ route('dashboard') }}" class="nav-link {{ in_array(request()->path(), ['/', 'home', 'dashboard']) ? 'active' : '' }}">
                         <i class="icon-home4"></i>
                         <span>Dashboard</span>
                     </a>
@@ -287,14 +287,14 @@
                      school sections below are not rendered for it. --}}
                 <li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Portals</div><i class="icon-menu" title="Portals"></i></li>
                 <li class="nav-item">
-                    <a href="{{ route('dashboard') }}" class="nav-link {{ (Route::is('dashboard') || Route::is('home')) ? 'active' : '' }}">
+                    <a href="{{ route('dashboard') }}" class="nav-link {{ in_array(request()->path(), ['/', 'home', 'dashboard']) ? 'active' : '' }}">
                         <i class="icon-office"></i>
                         <span>Platform Overview</span>
                     </a>
                 </li>
                 @else
                 <li class="nav-item">
-                    <a href="{{ route('dashboard') }}" class="nav-link {{ (Route::is('dashboard')) ? 'active' : '' }}">
+                    <a href="{{ route('dashboard') }}" class="nav-link {{ in_array(request()->path(), ['/', 'home', 'dashboard']) ? 'active' : '' }}">
                         <i class="icon-home4"></i>
                         <span>Dashboard</span>
                     </a>

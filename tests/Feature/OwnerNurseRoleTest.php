@@ -63,6 +63,17 @@ class OwnerNurseRoleTest extends TestCase
         $this->assertStringNotContainsString(route('payments.manage'), $html);
     }
 
+    public function test_admin_menu_has_no_health_records_link()
+    {
+        // Owner order 2026-11-06: the clinic moved to the Nurse. The
+        // controller already 403s admin; the sidebar must not offer a
+        // link that can only dead-end (honest-buttons rule). This pin
+        // exists because the link survived the first sweep in the menu
+        // blade while the access was already removed.
+        $html = $this->actingAs($this->admin())->get(route('dashboard'))->assertOk()->getContent();
+        $this->assertStringNotContainsString(route('health_records.index'), $html);
+    }
+
     public function test_nurse_sees_every_students_records()
     {
         $students = StudentRecord::where('grad', 0)->orderBy('id')->take(2)->get();
