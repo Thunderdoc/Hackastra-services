@@ -18,7 +18,7 @@ class LeaveRequestController extends Controller
      *  (owner order 2026-10-28) — their class teacher decides,
      *  not the Admin. Parents and the platform Super Admin never
      *  apply. */
-    public const APPLICANTS = ['teacher', 'accountant', 'librarian', 'admin', 'student', 'principal'];
+    public const APPLICANTS = ['teacher', 'accountant', 'librarian', 'admin', 'student', 'principal', 'nurse'];
 
     protected function mustBeApplicant()
     {
@@ -48,7 +48,7 @@ class LeaveRequestController extends Controller
             // Paid-leave balance for staff (owner order 2026-10-30):
             // quota, taken, remaining, extra — always visible where
             // they apply. Students have no salary quota: null.
-            'leave_balance' => in_array(Auth::user()->user_type, ['teacher', 'accountant', 'librarian', 'admin', 'principal'], true)
+            'leave_balance' => in_array(Auth::user()->user_type, ['teacher', 'accountant', 'librarian', 'admin', 'principal', 'nurse'], true)
                 ? \App\Support\LeaveBalance::summary(Auth::id(), (int) now()->format('Y'))
                 : null,
         ]);

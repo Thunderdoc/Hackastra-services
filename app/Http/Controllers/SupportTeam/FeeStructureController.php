@@ -187,8 +187,15 @@ class FeeStructureController extends Controller
     {
         $d['heads'] = FeeHead::with('my_class')->orderBy('year', 'desc')->orderBy('title')->get();
         $d['selected_head'] = $req->query('fee_head') ? FeeHead::find($req->query('fee_head')) : null;
-        $d['students'] = StudentRecord::with(['user', 'my_class'])->where('grad', 0)
-            ->get()->sortBy(function ($sr) { return optional($sr->user)->name; });
+        // Picker cascade (owner, 2026-11-01): the form walks
+        // Class > Section > Student via the shared feeds instead
+        // of listing every student in the school. The class and
+        // section selects are filter-only; only a pre-chosen
+        // student is resolved server-side.
+        $d['classes'] = MyClass::orderBy('id')->get();
+        $d['preselected'] = old('student_record_id')
+            ? StudentRecord::with(['user', 'my_class', 'section'])->find(old('student_record_id'))
+            : null;
 
         return view('pages.support_team.fee_structure.concessions.create', $d);
     }
@@ -205,10 +212,13 @@ class FeeStructureController extends Controller
 
     public function concessionEdit($concession)
     {
-        $d['concession'] = Concession::with(['fee_head', 'student_record.user'])->findOrFail($concession);
+        $d['concession'] = Concession::with(['fee_head', 'student_record.user', 'student_record.my_class', 'student_record.section'])->findOrFail($concession);
         $d['heads'] = FeeHead::with('my_class')->orderBy('year', 'desc')->orderBy('title')->get();
-        $d['students'] = StudentRecord::with(['user', 'my_class'])->where('grad', 0)
-            ->get()->sortBy(function ($sr) { return optional($sr->user)->name; });
+        // Picker cascade (owner, 2026-11-01): see concessionCreate.
+        $d['classes'] = MyClass::orderBy('id')->get();
+        $d['preselected'] = old('student_record_id')
+            ? StudentRecord::with(['user', 'my_class', 'section'])->find(old('student_record_id'))
+            : $d['concession']->student_record;
 
         return view('pages.support_team.fee_structure.concessions.edit', $d);
     }

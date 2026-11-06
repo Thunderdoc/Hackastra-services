@@ -332,12 +332,12 @@ class OwnerTimetableScopedExamGridRound29Test extends TestCase
         TimeTable::create([
             'ttr_id' => $record->id,
             'ts_id' => $slot->id,
-            'exam_date' => '2026-11-02',
+            'exam_date' => '2027-01-04',
             'day' => null,
             'day_num' => null,
             'subject_id' => $subject->id,
-            'timestamp_from' => strtotime('2026-11-02 09:00:00'),
-            'timestamp_to' => strtotime('2026-11-02 09:40:00'),
+            'timestamp_from' => strtotime('2027-01-04 09:00:00'),
+            'timestamp_to' => strtotime('2027-01-04 09:40:00'),
         ]);
 
         // The subject teacher's bell carries the sitting.

@@ -34,8 +34,8 @@ class PlatformOnly
         // still apply inside UserController).
         'users.index', 'users.create', 'users.store', 'users.show',
         'users.edit', 'users.update', 'users.destroy', 'users.reset_pass',
-        // Platform audit log.
-        'audit_logs.index',
+        // Platform audit log (+ Item 19: CSV export of the same trail).
+        'audit_logs.index', 'audit_logs.export',
         // School Feedback inbox — forwarded reports only (Workstream
         // CW); the controller 404s anything not forwarded to the SA.
         'feedback.sa_index', 'feedback.sa_show', 'feedback.sa_update', 'feedback.sa_bulk_close',

@@ -84,7 +84,8 @@ class OwnerMarksLifecycleTest extends TestCase
 
         $page = $this->actingAs($this->teacher())->get(route('marks.manage', [1, 13, 76, 79]));
         $page->assertOk();
-        $page->assertSee('Marks entry opens on');
+        // Item 11 re-expression: the strip's line carries the same fact.
+        $page->assertSee('Entry opens');
         $page->assertSee('17 Jul 2027');
 
         // Saves and submits are both refused before the date.
@@ -120,8 +121,9 @@ class OwnerMarksLifecycleTest extends TestCase
             ->assertForbidden();
         $page = $this->actingAs($teacher)->get(route('marks.manage', [1, 13, 76, 79]));
         $page->assertOk();
-        $page->assertSee('Marks submitted');
-        $page->assertSee('locked for editing');
+        // Item 11 re-expression: the submission pill carries the state.
+        $page->assertSee('Submitted — Locked');
+        $page->assertDontSee('Submit Marks');
 
         // Neither the teacher nor the principal can reopen — the
         // teacher reaches the controller and is refused; the
@@ -171,7 +173,8 @@ class OwnerMarksLifecycleTest extends TestCase
 
         $page = $this->actingAs($this->teacher())->get(route('marks.manage', [1, 13, 76, 79]));
         $page->assertOk();
-        $page->assertSee('Draft — not yet submitted');
+        // Item 11 re-expression: the draft pill carries the state.
+        $page->assertSee('Your marks: Draft');
         $page->assertSee('Submit Marks');
 
         $this->actingAs($this->teacher())->put(route('marks.update', [1, 13, 76, 79]), $this->fullPayload())

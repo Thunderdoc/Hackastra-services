@@ -46,13 +46,18 @@ class CertificateController extends Controller
                 ->where('adm_no', strtoupper(trim((string) $request->get('adm_no'))))
                 ->first();
         }
-        $students = StudentRecord::with(['user', 'my_class', 'section'])
-            ->where('grad', 0)->orderBy('id')->get();
-        if ($preselected && !$students->contains('id', $preselected->id)) {
-            $students->prepend($preselected);
+        // Picker cascade (owner, 2026-11-01): the form walks
+        // Class > Section > Student via the shared feeds instead
+        // of listing every student in the school. Only the
+        // preselected student (deep link, admission-no lookup or a
+        // validation bounce) is resolved server-side — a graduated
+        // preselected student keeps working, exactly as before.
+        if (!$preselected && old('student_record_id')) {
+            $preselected = StudentRecord::with(['user', 'my_class', 'section'])
+                ->find(old('student_record_id'));
         }
         return view('pages.support_team.certificates.create', [
-            'students' => $students,
+            'classes' => \App\Models\MyClass::orderBy('id')->get(),
             'preselected' => $preselected,
             'type' => $request->get('type', 'bonafide'),
         ]);

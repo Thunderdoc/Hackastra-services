@@ -159,14 +159,18 @@ class OwnerBuilderTruncationTest extends TestCase
         }
 
         // The keep-list: template pick, data source, class,
-        // section, columns chooser, Print, Download PDF.
+        // section, columns chooser, Download PDF, Download Word.
+        // (Print was on this list until 2026-11-01 — the owner
+        // removed the browser-Print button: it printed the frame
+        // with the PDF-only letterhead layout broken in Chrome.)
         $response->assertSee('id="rbPreset"', false);
         $response->assertSee('id="rbSource"', false);
         $response->assertSee('id="rbClass"', false);
         $response->assertSee('id="rbSection"', false);
         $response->assertSee('id="rbColBody"', false);
-        $response->assertSee('id="rbDocPrint"', false);
+        $response->assertDontSee('id="rbDocPrint"', false);
         $response->assertSee('Download PDF', false);
+        $response->assertSee('Download Word', false);
 
         // Page settings: ONE collapsed section in the left panel,
         // closed by default, holding paper + orientation.

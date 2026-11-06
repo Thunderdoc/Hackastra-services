@@ -198,7 +198,10 @@ class TransportController extends Controller
     public function assignments()
     {
         $d['assignments'] = TransportAssignment::with(['studentRecord.user', 'studentRecord.my_class', 'vehicle.route', 'stop'])->orderBy('id')->get();
-        $d['students'] = StudentRecord::with(['user', 'my_class'])->orderBy('id')->get();
+        // Picker cascade (owner, 2026-11-01): classes for the
+        // Class > Section > Student walk; the student list comes
+        // from the shared by-section feed (active students only).
+        $d['classes'] = \App\Models\MyClass::orderBy('id')->get();
         $d['vehicles'] = TransportVehicle::with('route')->orderBy('vehicle_no')->get();
         $d['stops'] = TransportStop::with('route')->orderBy('transport_route_id')->orderBy('sequence')->get();
 

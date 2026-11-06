@@ -11,12 +11,25 @@
             <form method="POST" action="{{ route('documents.store') }}" enctype="multipart/form-data">
                 @csrf
                 <div class="form-group">
-                    <label for="student_record_id">Student <span class="text-danger">*</span></label>
-                    <select name="student_record_id" id="student_record_id" class="form-control @error('student_record_id') is-invalid @enderror" required>
-                        <option value="">Choose a student…</option>
-                        @foreach($students as $st)
-                            <option value="{{ $st->id }}" {{ old('student_record_id') == $st->id ? 'selected' : '' }}>{{ $st->user->name }} ({{ $st->adm_no }}) — {{ optional($st->my_class)->name }} {{ optional($st->section)->name }}</option>
+                    <label>Class</label>
+                    <select class="form-control hk-cascade-class">
+                        <option value="">Choose a class…</option>
+                        @foreach($classes as $hkClass)
+                            <option value="{{ $hkClass->id }}">{{ $hkClass->name }}</option>
                         @endforeach
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Section</label>
+                    <select class="form-control hk-cascade-section">
+                        <option value="">Choose a class first</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="student_record_id">Student <span class="text-danger">*</span></label>
+                    <select name="student_record_id" id="student_record_id" class="form-control hk-cascade-student @error('student_record_id') is-invalid @enderror" required data-value-key="id"
+                            @if($preselected) data-preselect-class="{{ $preselected->my_class_id }}" data-preselect-section="{{ $preselected->section_id }}" data-preselect-value="{{ $preselected->id }}" data-preselect-label="{{ optional($preselected->user)->name }} ({{ $preselected->adm_no }})" @endif>
+                        <option value="">Choose a student…</option>
                     </select>
                     @error('student_record_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
@@ -35,4 +48,8 @@
             </form>
         </div>
     </div>
+@endsection
+
+@section('scripts')
+    @include('partials.student_cascade_js')
 @endsection

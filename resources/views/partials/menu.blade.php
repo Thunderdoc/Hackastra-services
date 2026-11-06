@@ -259,7 +259,13 @@
                         <i class="icon-stack"></i>
                         <span>My Feedback</span>
                     </a>
-                </li>@elseif(auth()->user() && auth()->user()->user_type === 'hostel')
+                </li>@elseif(Qs::userIsNurse())
+                {{-- Nurse navigation (owner order 2026-11-06): the
+                     clinic runs on its own login — Health Records
+                     only, nothing else. The records themselves are
+                     nurse-gated in HealthRecordController. --}}
+                @include('pages.nurse.menu')
+            @elseif(auth()->user() && auth()->user()->user_type === 'hostel')
                 {{-- Overnight menus (2026-10-29): the Hostel Warden
                      logs in to their own narrow menu — dorms, rooms
                      and allocations, nothing else. The warden's

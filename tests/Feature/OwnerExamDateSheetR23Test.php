@@ -53,8 +53,9 @@ use Tests\TestCase;
  * behavior and must be updated if the rule ever tightens.
  *
  * Anchors: exam 1 (global Term 1), Prep = class 1, subjects
- * 1–6. Today in the test env is 2026-10-28, so 2026-11-* are
- * future. All probe rows live inside DatabaseTransactions
+ * 1–6. The "future" fixtures use Jan 2027 dates (moved from
+ * Nov 2026, same weekday, when those became past in the real
+ * clock). All probe rows live inside DatabaseTransactions
  * and roll back.
  */
 class OwnerExamDateSheetR23Test extends TestCase
@@ -131,17 +132,17 @@ class OwnerExamDateSheetR23Test extends TestCase
         // Subject 2 already sits in the stored sheet at the slot.
         // Only subject 1 is submitted — the clash partner is never
         // posted, so a submission-only check would miss it.
-        $this->store(2, '2026-11-05', '09:00');
+        $this->store(2, '2027-01-07', '09:00');
         $before = $this->rows();
         $n1 = Subject::find(1)->name;
         $n2 = Subject::find(2)->name;
 
         $resp = $this->postSave([
-            1 => ['exam_date' => '2026-11-05', 'start_time' => '09:00'],
+            1 => ['exam_date' => '2027-01-07', 'start_time' => '09:00'],
         ]);
         $resp->assertRedirect($this->manageUrl());
         $resp->assertSessionHas('flash_danger',
-            "Two papers cannot share one session: {$n1} and {$n2} are both on 2026-11-05 at 09:00. Move one to another session.");
+            "Two papers cannot share one session: {$n1} and {$n2} are both on 2027-01-07 at 09:00. Move one to another session.");
         $this->assertSame($before, $this->rows());
     }
 
@@ -151,16 +152,16 @@ class OwnerExamDateSheetR23Test extends TestCase
         // Subject 2 has a date but NO start time: by construction
         // clashGroups skips time-less rows, so it is not a session
         // and cannot block subject 1's timed paper on the same date.
-        $this->store(2, '2026-11-05', null);
+        $this->store(2, '2027-01-07', null);
 
         $resp = $this->postSave([
-            1 => ['exam_date' => '2026-11-05', 'start_time' => '09:00'],
+            1 => ['exam_date' => '2027-01-07', 'start_time' => '09:00'],
         ]);
         $resp->assertRedirect($this->manageUrl());
         $resp->assertSessionHas('flash_success');
         $this->assertSame([
-            [1, '2026-11-05', '09:00'],
-            [2, '2026-11-05', null],
+            [1, '2027-01-07', '09:00'],
+            [2, '2027-01-07', null],
         ], $this->rows());
     }
 }

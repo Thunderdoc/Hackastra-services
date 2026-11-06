@@ -29,6 +29,18 @@ class MyClassController extends Controller
     public function index()
     {
         $d['my_classes'] = $this->my_class->all();
+
+        // Item 21: the table carries Sections and Students counts —
+        // one aggregate query keyed by class id, not per-row lookups.
+        $counts = \App\Models\MyClass::withCount([
+            'section',
+            'student_record' => function ($q) { $q->where('grad', 0); },
+        ])->get()->keyBy('id');
+        foreach ($d['my_classes'] as $c) {
+            $row = $counts->get($c->id);
+            $c->section_count = $row ? $row->section_count : 0;
+            $c->student_record_count = $row ? $row->student_record_count : 0;
+        }
         $d['class_types'] = $this->my_class->getTypes();
 
         return view('pages.support_team.classes.index', $d);

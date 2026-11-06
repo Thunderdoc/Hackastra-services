@@ -42,7 +42,7 @@ class DashboardSearchController extends Controller
             if (strlen($term) >= 2) {
                 $like = '%' . $term . '%';
 
-                $data['staff'] = User::whereIn('user_type', ['teacher', 'admin', 'super_admin', 'accountant', 'librarian'])
+                $data['staff'] = User::whereIn('user_type', ['teacher', 'admin', 'super_admin', 'accountant', 'librarian', 'nurse'])
                     ->where(function ($q) use ($like) {
                         $q->where('name', 'like', $like)->orWhere('email', 'like', $like);
                     })
@@ -78,7 +78,7 @@ class DashboardSearchController extends Controller
             // search (the SA users list already hides school roles
             // from the SA side). 'super_admin' stays in the SA's own
             // branch above, which is platform-only by design.
-            $data['staff'] = User::whereIn('user_type', ['teacher', 'admin', 'accountant', 'librarian', 'principal'])
+            $data['staff'] = User::whereIn('user_type', ['teacher', 'admin', 'accountant', 'librarian', 'principal', 'nurse'])
                 ->where(function ($q) use ($like) {
                     $q->where('name', 'like', $like)->orWhere('email', 'like', $like);
                 })

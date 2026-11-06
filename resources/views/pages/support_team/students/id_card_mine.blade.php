@@ -40,8 +40,17 @@
         </div>
 
         @if($sr)
-            <div class="idc-stage">
-                @include('pages.support_team.students.partials.id_card', ['sr' => $sr])
+            @include('pages.support_team.partials.id_card_styles')
+    @include('pages.support_team.partials.id_card_screen_fx')
+            <style>
+                .idc2-stage{display:flex;flex-wrap:wrap;gap:26px;justify-content:center;background:#eef2f7;border:1px solid #e4eaf1;border-radius:12px;margin-top:22px;padding:30px 18px}
+                @media screen{ .idc2-zoom{zoom:1.45;display:flex;gap:26px;flex-wrap:wrap;justify-content:center} }
+                @media print{ .idc2-stage{background:#fff;border:none;padding:0} }
+            </style>
+            <div class="idc2-stage">
+                <div class="idc2-zoom">
+                    @include('pages.support_team.partials.id_card_design', ['card' => $card, 'brand' => $brand])
+                </div>
             </div>
         @endif
     </div>

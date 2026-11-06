@@ -38,6 +38,8 @@
                                 {{ optional(optional($period->tt_record)->my_class)->name }}
                                 @if(optional($period->tt_record)->section)
                                     — {{ $period->tt_record->section->name }}
+                                @else
+                                    — All sections
                                 @endif
                                 — {{ optional($period->subject)->name }} ({{ $period->day }} {{ optional($period->time_slot)->full }})
                             </option>

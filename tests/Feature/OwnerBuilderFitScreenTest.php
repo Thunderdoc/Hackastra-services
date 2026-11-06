@@ -12,13 +12,17 @@ use Tests\TestCase;
  * configuration on the left (43%), the live EDITABLE document
  * on the right (57%). No wizard tabs, no separate preview
  * screen, no Preview button: the document on the right IS the
- * preview, and Print prints only it.
+ * preview, and the downloads are generated from it.
  *
  * Simplification (owner, same evening — "fix this, and I do NOT
  * want all this stuff"): the right-panel toolbar card is DELETED
  * (font family/size, bold/italic/underline, colour, alignment,
  * zoom, undo/redo — all gone). Above the document sits ONE slim
- * header row: the "Report: …" summary + Print + Download PDF.
+ * header row: the "Report: …" summary + Download PDF + Download
+ * Word. (The browser-Print button that originally sat there was
+ * removed on 2026-11-01: Chrome printed the PDF-only letterhead
+ * layout broken — blank page tops, no band after page 1. PDF is
+ * the pakka final copy, Word the editable worksheet.)
  * Paper + orientation moved into a collapsed "Page settings"
  * section in the LEFT panel. Report title / Subtitle / Sort By /
  * Sort Order have no visible fields — they ride as hidden inputs
@@ -41,10 +45,13 @@ class OwnerBuilderFitScreenTest extends TestCase
         $response->assertSee('id="rbSettings"', false);
 
         // The document side: slim header + canvas. No toolbar.
+        // Print died on 2026-11-01 (owner): the docbar carries the
+        // two downloads now — PDF (final) and Word (worksheet).
         $response->assertSee('rb5-docbar', false);
         $response->assertSee('id="rbSummary"', false);
-        $response->assertSee('id="rbDocPrint"', false);
+        $response->assertDontSee('id="rbDocPrint"', false);
         $response->assertSee('Download PDF', false);
+        $response->assertSee('Download Word', false);
         $response->assertSee('id="previewFrame"', false);
 
         // The deleted toolbar: every control is absent, not hidden.

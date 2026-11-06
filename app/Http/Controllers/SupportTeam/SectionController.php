@@ -212,6 +212,14 @@ class SectionController extends Controller
      * may also set it); students see it beside their class on
      * their dashboard. Only real WhatsApp invite hosts are
      * accepted, and an empty value clears the link.
+     *
+     * LOCK (owner order 2026-11-01, restated in MEMORY: "ek baar
+     * link insert ho gaya toh edit nahi hoga"): once a link is
+     * saved, the TEACHER can never change or clear it — a typo
+     * would otherwise silently break the class group for every
+     * student. The school Admin (teamSAWrite) keeps the escape
+     * hatch and may replace or clear it (the section edit page
+     * carries the reset control).
      */
     public function updateWhatsapp(Request $req, $id)
     {
@@ -235,6 +243,10 @@ class SectionController extends Controller
             }],
         ]);
         $link = isset($data['whatsapp_link']) ? trim((string) $data['whatsapp_link']) : '';
+        $stored = trim((string) ($section->whatsapp_link ?? ''));
+        if ($stored !== '' && !Qs::userIsTeamSAWrite() && $link !== $stored) {
+            return back()->with('flash_danger', 'The WhatsApp group link for ' . optional($section->my_class)->name . ' ' . $section->name . ' is already saved and locked — it cannot be changed. If it is wrong, ask the school Admin to reset it.');
+        }
         $section->update(['whatsapp_link' => $link !== '' ? $link : null]);
 
         return back()->with('flash_success', $link !== ''

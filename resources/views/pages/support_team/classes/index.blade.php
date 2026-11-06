@@ -32,6 +32,8 @@
                     <th>S/N</th>
                     <th>Name</th>
                     <th>Class Type</th>
+                    <th>Sections</th>
+                    <th>Students</th>
                     <th>Action</th>
                 </tr>
                 </thead>
@@ -41,6 +43,8 @@
                         <td data-label="S/N">{{ $loop->iteration }}</td>
                         <td data-label="Name">{{ $c->name }}</td>
                         <td data-label="Class Type">{{ $c->class_type->name }}</td>
+                        <td data-label="Sections">{{ $c->section_count ?? 0 }}</td>
+                        <td data-label="Students">{{ $c->student_record_count ?? 0 }}</td>
                         <td class="text-center" data-label="Action">
                             @if(Qs::userIsTeamSAWrite())
                                 <a href="{{ route('classes.edit', $c->id) }}" class="btn btn-sm btn-primary"><i class="icon-pencil"></i> Edit</a>

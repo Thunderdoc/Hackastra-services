@@ -226,9 +226,32 @@ class OwnerDisciplineRecordTest extends TestCase
 
     public function test_create_page_lists_only_writable_students_for_teacher()
     {
-        $this->actingAs($this->teacher())->get(route('discipline_records.create'))
+        // Cascade era (owner, 2026-11-01): the create page no
+        // longer renders ANY student options — the picker walks
+        // Class > Section > Student and the names come from the
+        // scoped by-section feed. The intent is unchanged (a
+        // teacher can only reach writable students): her class
+        // options carry the student's class, and the feed for the
+        // student's own section returns that student to her.
+        $student = $this->student();
+        $record = \App\Models\StudentRecord::where('user_id', $student->id)->firstOrFail();
+
+        $page = $this->actingAs($this->teacher())->get(route('discipline_records.create'))
             ->assertOk()
-            ->assertSee($this->student()->name);
+            ->assertSee('hk-cascade-student', false)
+            ->getContent();
+        $this->assertStringContainsString(
+            '<option value="' . $record->my_class_id . '">',
+            $page,
+            'the teacher picker must offer the writable student\'s class'
+        );
+
+        $feed = $this->actingAs($this->teacher())
+            ->get(route('get_section_students', ['section_id' => $record->section_id]))
+            ->assertOk()
+            ->json();
+        $this->assertContains($student->id, array_column($feed, 'user_id'));
+
         $this->actingAs($this->parent())->get(route('discipline_records.create'))
             ->assertForbidden();
     }

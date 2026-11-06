@@ -7231,3 +7231,596 @@ body:not(.sidebar-xs) .sidebar-main .nav-group-sub .nav-link.active::before{back
 
 /* Marks selector: the "Not Enabled" reason line (owner order 2026-11-01) */
 .l84-entry-note{margin:10px 2px 0;font-size:13px;line-height:1.45;color:#b45309}
+
+/* Stat icon tiles (owner, 2026-11-01): the flex centring was
+   already right, but the icomoon glyph sat visibly high — the
+   inner icon inherits the page line-height (~1.5), so flex
+   centred the inflated line box instead of the glyph. Pinning
+   line-height:1 makes the glyph's own em box what gets centred. */
+.l86-stat-ic,.dashboard-stat-icon,.acct-stat-icon{line-height:1}
+
+/* --- Sidebar Premium Tree (owner choice B, 2026-11-01): the
+   Oct-29 tree, premium execution - gradient connector line,
+   ~11px ringed nodes, the open page's node white-hot with a
+   blue glow, its row on a soft blue tint. Expanded sidebar
+   only; the collapsed rail is untouched. --- */
+body:not(.sidebar-xs) .sidebar-main .nav-group-sub::before{width:2px;left:5.5px;background:linear-gradient(180deg, rgba(94,168,255,.55), rgba(94,168,255,.08))}
+body:not(.sidebar-xs) .sidebar-main .nav-group-sub .nav-link{border-radius:8px}
+body:not(.sidebar-xs) .sidebar-main .nav-group-sub .nav-link::before{left:1px;width:11px;height:11px;margin-top:-5.5px;background:#0d2238;border:2px solid #33597d;box-sizing:border-box}
+body:not(.sidebar-xs) .sidebar-main .nav-group-sub .nav-link:hover{background:rgba(255,255,255,.04)}
+body:not(.sidebar-xs) .sidebar-main .nav-group-sub .nav-link:hover::before{background:#16324f;border-color:#5b84ad;box-shadow:none;transform:none}
+body:not(.sidebar-xs) .sidebar-main .nav-group-sub .nav-link.active{background:rgba(64,156,255,.13);color:#fff;font-weight:600}
+body:not(.sidebar-xs) .sidebar-main .nav-group-sub .nav-link.active::before{background:#fff;border-color:#59a9ff;box-shadow:0 0 0 4px rgba(89,169,255,.25), 0 0 12px rgba(89,169,255,.8);transform:none}
+body:not(.sidebar-xs) .sidebar-main .nav-group-sub .nav-link i{font-size:15px;color:#6f96b8}
+body:not(.sidebar-xs) .sidebar-main .nav-group-sub .nav-link:hover i{color:#8fc2ff}
+body:not(.sidebar-xs) .sidebar-main .nav-group-sub .nav-link.active i{color:#8fc2ff}
+
+/* --- Marks selector Light Luxe (item 10, owner choice, 2026-11-01):
+   slim header, ONE card, horizontal stepper, real-data stat tiles,
+   status line + gradient action. New l10- classes only; the l84
+   stepper mechanics (is-done / is-current) are reused. --- */
+.l10-head{display:flex;align-items:center;gap:14px;margin-bottom:16px}
+.l10-head-tile{align-items:center;background:linear-gradient(135deg,#2f8ded,#1663b8);border-radius:14px;box-shadow:0 10px 20px rgba(38,132,237,.35);color:#fff;display:inline-flex;flex:none;font-size:20px;height:48px;justify-content:center;width:48px}
+.l10-head-text{flex:1;min-width:0}
+.l10-head-text h5{color:#172536;font-size:1.25rem;font-weight:800;margin:0}
+.l10-head-text p{color:#5b6b7f;font-size:.85rem;margin:2px 0 0}
+.l10-chip{align-items:center;background:#fff;border:1px solid #e0e9f2;border-radius:999px;color:#34506b;display:inline-flex;flex:none;font-size:.8rem;font-weight:600;gap:7px;padding:8px 14px}
+.l10-chip i{color:#2f7fd0}
+.l10-steps{margin:0;padding:20px 22px 2px}
+.l10-steps .l84-step-dot{background:#fff;border-color:#cfdfef;height:30px;width:30px}
+.l10-steps .l84-step.is-done .l84-step-dot{background:#1d9d61;border-color:#1d9d61;color:#fff}
+.l10-steps .l84-step.is-current .l84-step-dot{background:#fff;border-color:#2f7fd0;box-shadow:0 0 0 5px rgba(47,127,208,.14);color:#2f7fd0}
+.l10-steps .l84-step:not(:last-child)::after{background:#e3edf6;border-radius:3px;height:3px;left:44px;top:15px}
+.l10-steps .l84-step.is-done:not(:last-child)::after{background:linear-gradient(90deg,#1d9d61,#2f7fd0)}
+.l10-steps .l84-step-text small{display:none}
+.l10-fld-ic{color:#7fa3c4;margin-right:6px}
+.l10-tiles{display:grid;gap:14px;grid-template-columns:repeat(4,1fr);margin-top:16px}
+.l10-tile{align-items:center;background:#f7fafd;border:1px solid #e8eff6;border-radius:14px;display:flex;gap:12px;min-width:0;padding:13px 15px}
+.l10-tile-ic{align-items:center;border-radius:11px;display:inline-flex;flex:none;font-size:18px;height:42px;justify-content:center;line-height:1;width:42px}
+.l10-tone-blue{background:#eef3fb;color:#3478f6}
+.l10-tone-violet{background:#f2eafd;color:#7a4fd0}
+.l10-tone-green{background:#e9f9f0;color:#1d9d61}
+.l10-tone-amber{background:#fff1df;color:#b7791f}
+.l10-tile-body{display:flex;flex-direction:column;min-width:0}
+.l10-tile-n{color:#10263b;font-size:1.02rem;font-weight:800;line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.l10-tile-l{color:#718096;font-size:.72rem;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.l10-actionbar{align-items:center;display:flex;flex-wrap:wrap;gap:12px}
+.l10-status{align-items:center;color:#3c5a76;display:flex;font-size:.85rem;font-weight:500;gap:9px;min-width:0}
+.l10-pulse{background:#9fb0c3;border-radius:50%;flex:none;height:9px;width:9px}
+.l10-pulse-ok{background:#1d9d61;box-shadow:0 0 0 4px rgba(29,157,97,.18)}
+.l10-pulse-bad{background:#d64545;box-shadow:0 0 0 4px rgba(214,69,69,.15)}
+.l10-sp{flex:1}
+.l10-manage-btn{background:linear-gradient(90deg,#2f8ded,#1663b8);border:none;box-shadow:0 8px 18px rgba(38,132,237,.30)}
+html.hk-dark .l10-head-text h5{color:#f0f0f1}
+html.hk-dark .l10-head-text p{color:#a4a7ac}
+html.hk-dark .l10-chip{background:#212225;border-color:#3d3f44;color:#d7dade}
+html.hk-dark .l10-steps .l84-step-dot{background:#26282c;border-color:#3d3f44}
+html.hk-dark .l10-steps .l84-step.is-done .l84-step-dot{background:#1d9d61;border-color:#1d9d61;color:#fff}
+html.hk-dark .l10-steps .l84-step.is-current .l84-step-dot{background:#26282c;border-color:#2f7fd0;color:#8fc2ff}
+html.hk-dark .l10-steps .l84-step:not(:last-child)::after{background:#3d3f44}
+html.hk-dark .l10-steps .l84-step.is-done:not(:last-child)::after{background:linear-gradient(90deg,#1d9d61,#2f7fd0)}
+html.hk-dark .l10-tile{background:#26282c;border-color:#3d3f44}
+html.hk-dark .l10-tile-n{color:#eeeeef}
+html.hk-dark .l10-tile-l{color:#a4a7ac}
+html.hk-dark .l10-status{color:#c9ccd1}
+@media (max-width:900px){.l10-tiles{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:520px){.l10-tiles{grid-template-columns:1fr}.l10-chip{display:none}.l10-steps{padding:14px 12px 0}.l10-steps .l84-step{gap:6px}.l10-steps .l84-step-text strong{font-size:.68rem;white-space:normal}.l10-head-text h5{font-size:1.05rem}}
+
+/* --- Marks entry status strip (item 11, owner, 2026-11-01): the
+   two tall banners collapse into one slim row — publication pill,
+   submission pill, one short line, the action at the right end. --- */
+.l11-strip{align-items:center;background:#f7fafd;border:1px solid #e4eaf1;border-radius:10px;display:flex;flex-wrap:wrap;gap:9px;margin-bottom:14px;min-height:44px;padding:7px 12px}
+.l11-pill{align-items:center;border-radius:999px;display:inline-flex;font-size:.78rem;font-weight:700;gap:6px;line-height:1;padding:6px 12px}
+.l11-pill i{font-size:.85rem;line-height:1}
+.l11-pill-pub{background:#e9f9f0;color:#177245}
+.l11-pill-off{background:#eef1f5;color:#5b6b7f}
+.l11-pill-draft{background:#eef3fb;color:#2456a6}
+.l11-pill-lock{background:#fdeeee;color:#b3352c}
+.l11-line{color:#3c5a76;font-size:.83rem;font-weight:600}
+html.hk-dark .l11-strip{background:#26282c;border-color:#3d3f44}
+html.hk-dark .l11-pill-pub{background:rgba(29,157,97,.18);color:#5fce7f}
+html.hk-dark .l11-pill-off{background:#2e3034;color:#a4a7ac}
+html.hk-dark .l11-pill-draft{background:rgba(52,120,246,.16);color:#8fc2ff}
+html.hk-dark .l11-pill-lock{background:rgba(214,69,69,.16);color:#ff9d94}
+html.hk-dark .l11-line{color:#c9ccd1}
+
+/* --- Class Overview Light Luxe (item 12, owner, 2026-11-01):
+   summary tiles + one card per class; the section-comparison
+   detail renders inside the expanded card. --- */
+.l12-tiles{display:grid;gap:14px;grid-template-columns:repeat(4,1fr);margin-bottom:16px}
+.l12-tiles .l10-tile{background:#fff;border-color:#e3ebf3}
+.l12-tone-red{background:#fdeaea;color:#d64545}
+.l12-card{background:#fff;border:1px solid #e3ebf3;border-radius:16px;box-shadow:0 6px 18px rgba(16,38,59,.04);margin-bottom:14px;padding:16px 18px}
+.l12-row{align-items:center;display:flex;flex-wrap:wrap;gap:14px 22px}
+.l12-name{min-width:150px}
+.l12-cn{color:#10263b;font-size:1.05rem;font-weight:800;line-height:1.15}
+.l12-subjects{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px}
+.l12-subj{background:#f2eafd;border-radius:999px;color:#7a4fd0;font-size:.7rem;font-weight:700;padding:3px 9px}
+.l12-stat{display:flex;flex-direction:column;gap:3px;min-width:92px}
+.l12-cl{color:#718096;font-size:.68rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.l12-cv{color:#172536;font-size:.98rem;font-weight:700}
+.l12-cv small{color:#718096;font-size:.72rem;font-weight:600}
+.l12-muted{color:#9fb0c3;font-weight:600}
+.l12-bar{background:#e3edf6;border-radius:3px;display:block;height:5px;margin-top:2px;width:104px}
+.l12-bar i{background:linear-gradient(90deg,#2f8ded,#1663b8);border-radius:3px;display:block;height:100%}
+.l12-bar-marks i{background:linear-gradient(90deg,#7a4fd0,#2f7fd0)}
+.l12-topper{align-items:center;display:flex;gap:9px}
+.l12-tav{align-items:center;background:#3478f6;border-radius:50%;color:#fff;display:inline-flex;flex:none;font-size:.72rem;font-weight:800;height:34px;justify-content:center;width:34px}
+.l12-tbody{display:flex;flex-direction:column;line-height:1.2}
+.l12-tn{color:#172536;font-size:.86rem;font-weight:700}
+.l12-tp{color:#718096;font-size:.76rem;font-weight:600}
+.l12-risk{border-radius:999px;font-size:.76rem;font-weight:700;padding:5px 11px;text-align:center}
+.l12-risk-zero{background:#eef1f5;color:#5b6b7f}
+.l12-risk-on{background:#fdeaea;color:#b3352c}
+.l12-vbtn{margin-left:auto}
+.l12-detail{border-top:1px solid #e8eff6;margin-top:14px;padding-top:13px}
+.l12-dh{color:#10263b;font-size:.9rem;font-weight:800;margin:10px 0 7px}
+.l12-dh:first-child{margin-top:0}
+.l12-dsum{color:#46586c;font-size:.85rem;margin:0 0 6px}
+.l12-srows{display:flex;flex-direction:column;gap:6px}
+.l12-srow{align-items:center;background:#f7fafd;border:1px solid #e8eff6;border-radius:10px;display:flex;flex-wrap:wrap;gap:6px 20px;padding:8px 13px}
+.l12-srow-total{background:#eef3fb}
+.l12-sn{color:#172536;font-size:.85rem;font-weight:800;min-width:96px}
+.l12-sv{color:#5b6b7f;font-size:.82rem}
+.l12-sv b{color:#172536;font-weight:700}
+html.hk-dark .l12-tiles .l10-tile{background:#26282c;border-color:#3d3f44}
+html.hk-dark .l12-card{background:#212225;border-color:#3d3f44}
+html.hk-dark .l12-cn{color:#f0f0f1}
+html.hk-dark .l12-cv{color:#eeeeef}
+html.hk-dark .l12-tn{color:#eeeeef}
+html.hk-dark .l12-detail{border-color:#3d3f44}
+html.hk-dark .l12-dh{color:#f0f0f1}
+html.hk-dark .l12-dsum{color:#bcbec3}
+html.hk-dark .l12-srow{background:#26282c;border-color:#3d3f44}
+html.hk-dark .l12-srow-total{background:#2a2c2f}
+html.hk-dark .l12-sn{color:#eeeeef}
+html.hk-dark .l12-sv{color:#a4a7ac}
+html.hk-dark .l12-sv b{color:#eeeeef}
+html.hk-dark .l12-bar{background:#3d3f44}
+@media (max-width:900px){.l12-tiles{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:520px){.l12-tiles{grid-template-columns:1fr}.l12-vbtn{margin-left:0}.l12-bar{width:84px}}
+
+/* --- My Extra Classes Light Luxe (item 13, owner, 2026-11-01):
+   three tiles + period cards with a time rail, grouped by day. --- */
+.l13-tiles{display:grid;gap:14px;grid-template-columns:repeat(3,1fr);margin-bottom:16px}
+.l13-tiles .l10-tile{background:#fff;border-color:#e3ebf3}
+.l13-empty{align-items:center;background:#fff;border:1px solid #e3ebf3;border-radius:16px;display:flex;gap:14px;padding:20px 22px}
+.l13-empty-ic{align-items:center;background:#eef3fb;border-radius:12px;color:#3478f6;display:inline-flex;flex:none;font-size:19px;height:44px;justify-content:center;width:44px}
+.l13-empty p{color:#46586c;font-size:.92rem;margin:0}
+.l13-day{color:#10263b;font-size:.95rem;font-weight:800;margin:16px 0 9px}
+.l13-card{background:#fff;border:1px solid #e3ebf3;border-radius:16px;box-shadow:0 6px 18px rgba(16,38,59,.04);display:flex;margin-bottom:11px;overflow:hidden}
+.l13-rail{align-items:center;background:linear-gradient(180deg,#eef5fd,#e6f0fa);border-right:1px solid #e0e9f2;display:flex;flex:0 0 118px;flex-direction:column;gap:3px;justify-content:center;padding:16px 8px;text-align:center}
+.l13-pn{color:#2f7fd0;font-size:.68rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+.l13-pt{color:#10263b;font-size:1rem;font-weight:800;line-height:1.1}
+.l13-pt2{color:#718096;font-size:.72rem}
+.l13-body{flex:1;min-width:0;padding:13px 16px}
+.l13-row1{align-items:center;display:flex;flex-wrap:wrap;gap:7px 10px}
+.l13-class{color:#10263b;font-size:1rem;font-weight:800}
+.l13-conf{align-items:center;background:#e9f9f0;border-radius:999px;color:#177245;display:inline-flex;font-size:.72rem;font-weight:700;gap:6px;padding:4px 10px}
+.l13-conf i{background:#1d9d61;border-radius:50%;height:7px;width:7px}
+.l13-plan{align-items:center;background:#fff4d6;border-radius:999px;color:#8a6d1a;display:inline-flex;font-size:.72rem;font-weight:700;gap:6px;padding:4px 10px}
+.l13-plan i{background:#d9a41a;border-radius:50%;height:7px;width:7px}
+.l13-date{color:#718096;font-size:.78rem;font-weight:600;margin-left:auto}
+.l13-for{align-items:center;color:#46586c;display:flex;font-size:.86rem;gap:9px;margin-top:8px}
+.l13-fav{align-items:center;background:#7a4fd0;border-radius:50%;color:#fff;display:inline-flex;flex:none;font-size:.68rem;font-weight:800;height:30px;justify-content:center;width:30px}
+.l13-actions{margin-top:10px}
+.l13-card-past{opacity:.82}
+html.hk-dark .l13-tiles .l10-tile{background:#26282c;border-color:#3d3f44}
+html.hk-dark .l13-empty{background:#212225;border-color:#3d3f44}
+html.hk-dark .l13-empty p{color:#bcbec3}
+html.hk-dark .l13-day{color:#f0f0f1}
+html.hk-dark .l13-card{background:#212225;border-color:#3d3f44}
+html.hk-dark .l13-rail{background:#26282c;border-color:#3d3f44}
+html.hk-dark .l13-pt{color:#eeeeef}
+html.hk-dark .l13-class{color:#f0f0f1}
+html.hk-dark .l13-for{color:#bcbec3}
+@media (max-width:900px){.l13-tiles{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:520px){.l13-tiles{grid-template-columns:1fr}.l13-rail{flex-basis:92px}.l13-pt{font-size:.9rem}}
+
+/* Item 15 (2026-11-01) — Class WhatsApp Groups panel (teacher home):
+   green tile header, linked-progress, amber warning strip, sections
+   grouped by class; a SAVED link renders as a locked chip + badge
+   (no input — the server refuses teacher changes outright). */
+.wa-tile{width:44px;height:44px;border-radius:12px;background:#0e9f5d;background:linear-gradient(135deg,#2bd06b,#0e9f5d);display:inline-flex;align-items:center;justify-content:center;box-shadow:0 8px 16px rgba(14,159,93,.30);flex:0 0 44px}
+.wa-prog{margin-left:auto;text-align:right}
+.wa-prog b{font-size:15px;color:#0e9f5d}
+.wa-prog span{display:block;font-size:11px;color:#8aa0b4;margin-top:1px}
+.wa-warn{margin:0 0 4px;background:#fff8e6;border:1px solid #f3dfae;color:#8a6414;font-size:12.5px;font-weight:600;border-radius:10px;padding:9px 13px;display:flex;gap:8px;align-items:center}
+.wa-group{padding:10px 2px 2px}
+.wa-glabel{font-size:10.5px;font-weight:800;letter-spacing:.12em;color:#8aa0b4;margin-bottom:4px}
+.wa-row{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid #eef3f8;flex-wrap:wrap}
+.wa-row:last-child{border-bottom:none}
+.wa-name{font-size:14px;font-weight:700;color:#10263b;width:110px;flex:0 0 110px}
+.wa-chip{flex:1;min-width:140px;background:#f2f8f4;border:1px solid #cdeeda;color:#0b6b43;font-family:Consolas,monospace;font-size:12.5px;padding:8px 12px;border-radius:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wa-lock{background:#e2f7ec;color:#12805c;font-size:11px;font-weight:800;padding:6px 11px;border-radius:999px;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.wa-lock i{font-size:11px}
+.wa-open{white-space:nowrap}
+.wa-form{display:flex;gap:8px;flex:1;align-items:center}
+.wa-form .form-control{flex:1}
+.wa-foot{padding:10px 2px 2px;font-size:12px;color:#8aa0b4}
+html.hk-dark .wa-name{color:#e8eef5}
+html.hk-dark .wa-row{border-bottom-color:rgba(255,255,255,.07)}
+html.hk-dark .wa-chip{background:rgba(14,159,93,.12);border-color:rgba(14,159,93,.35);color:#7bd8a8}
+html.hk-dark .wa-warn{background:rgba(240,161,58,.10);border-color:rgba(240,161,58,.35);color:#f0c069}
+@media (max-width:520px){.wa-name{width:100%;flex:1 1 100%}}
+
+/* Item 3 visual pass (2026-11-01, tt-v3 — the site's own style):
+   slim headbar with pastel icon circle + scoped stats + session
+   chip; uniform class cards with a counts row, a full-width app-blue
+   Open button and a status foot line; a teacher's own section chips
+   fill blue (her narrowed chip set, marked by .tt3-teacher). */
+.tt3-head{display:flex;align-items:center;gap:12px;padding:13px 18px;margin-bottom:14px;flex-wrap:wrap}
+.tt3-hicon{width:40px;height:40px;border-radius:50%;background:#e8f1fc;color:#17507f;display:inline-flex;align-items:center;justify-content:center;flex:0 0 40px;font-size:18px}
+.tt3-hcopy h2{font-size:18px;color:#10263b;margin:0}
+.tt3-hcopy p{font-size:12px;color:#8aa0b4;margin:1px 0 0}
+.tt3-hright{margin-left:auto;display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.tt3-hstat{text-align:center;padding:0 13px;border-left:1px solid #e8eef5}
+.tt3-hstat b{font-size:16px;color:#10263b;display:block;line-height:1.15}
+.tt3-hstat span{font-size:9.5px;letter-spacing:.08em;color:#8aa0b4;font-weight:700;text-transform:uppercase}
+.tt3-sess{background:#eef4fa;border:1px solid #dde8f2;color:#34506b;font-size:12px;font-weight:700;padding:6px 13px;border-radius:999px;margin-left:8px}
+.ttc-grid .ttc-card{display:flex;flex-direction:column}
+.tt3-counts{display:flex;gap:18px;margin-top:12px}
+.tt3-counts div b{font-size:16px;color:#10263b;display:block;line-height:1.15}
+.tt3-counts div span{font-size:9.5px;letter-spacing:.08em;color:#8aa0b4;font-weight:700;text-transform:uppercase}
+.tt3-open{margin-top:13px;width:100%;font-weight:700}
+.tt3-foot{margin-top:10px;font-size:11.5px;color:#8aa0b4;display:flex;gap:6px;align-items:center}
+.tt3-dot{width:7px;height:7px;border-radius:50%;background:#2fbf71;display:inline-block;flex:0 0 7px}
+.ttc-grid.tt3-teacher .ttc-chip{background:#2e6be6;border-color:#2e6be6;color:#fff}
+.ttc-list-card .ttc-record{border-bottom:1px solid #eef3f8}
+.ttc-list-card .ttc-record:last-child{border-bottom:none}
+html.hk-dark .tt3-hcopy h2,html.hk-dark .tt3-hstat b,html.hk-dark .tt3-counts div b{color:#e8eef5}
+html.hk-dark .tt3-hstat{border-left-color:rgba(255,255,255,.10)}
+html.hk-dark .tt3-sess{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.12);color:#c9d6e4}
+@media (max-width:640px){.tt3-hright{margin-left:0}.tt3-hstat{padding:0 9px}}
+
+/* Item 16 (2026-11-01) — Workload Analysis redesign (site style):
+   header strip, four flat pastel tiles with solid bars, day-by-day
+   segment bars and where-periods-go rows; side panels stretch to
+   equal height with rows spread to fill (full-screen rule). */
+.l16-head{display:flex;align-items:center;gap:12px;padding:13px 18px;flex-wrap:wrap}
+.l16-title{font-size:18px;font-weight:800;color:#10263b;margin:0}
+.l16-sub{font-size:12px;color:#8aa0b4;margin:2px 0 0}
+.l16-acts{margin-left:auto;display:flex;gap:9px;flex-wrap:wrap}
+.l16-tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:14px}
+.l16-tile{border:1px solid #e2ecf5;border-radius:16px;padding:15px 17px 14px;background:#fff}
+.l16-tone-blue{background:#eef5ff}.l16-tone-amber{background:#fdf3e3}.l16-tone-green{background:#e9f9f1}.l16-tone-red{background:#fdeeee}
+.l16-tl{font-size:10.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#5a7186}
+.l16-tone-blue .l16-tl{color:#17507f}.l16-tone-amber .l16-tl{color:#a86a08}.l16-tone-green .l16-tl{color:#0b7a47}.l16-tone-red .l16-tl{color:#b03a2e}
+.l16-tv{font-size:27px;font-weight:800;color:#10263b;margin-top:5px}
+.l16-tv small{font-size:13px;color:#718096;font-weight:700}
+.l16-td{font-size:11.5px;color:#718096;margin-top:2px}
+.l16-bar{height:7px;border-radius:99px;background:rgba(16,38,59,.08);margin-top:10px;overflow:hidden}
+.l16-bar i{display:block;height:100%;border-radius:99px}
+.l16-tone-blue .l16-bar i{background:#2f7fe0}.l16-tone-amber .l16-bar i{background:#e8930c}.l16-tone-green .l16-bar i{background:#0b7a47}.l16-tone-red .l16-bar i{background:#d34a24}
+.l16-cols{display:grid;grid-template-columns:1fr 1.25fr;gap:16px;margin-top:16px;align-items:stretch}
+.l16-panel{padding:16px 18px 12px;display:flex;flex-direction:column}
+.l16-panel h3{font-size:15px;color:#10263b;margin:0 0 6px}
+.l16-rows{flex:1;display:flex;flex-direction:column;justify-content:space-between}
+.l16-drow{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid #eef3f8}
+.l16-drow:last-child{border-bottom:none}
+.l16-dname{width:86px;flex:0 0 86px;font-size:13.5px;font-weight:700;color:#10263b}
+.l16-segs{flex:1;display:flex;gap:3px;min-width:60px}
+.l16-seg{flex:1;height:13px;border-radius:4px;background:#e8eef5}
+.l16-seg.blue{background:#2f7fe0}
+.l16-seg.warm{background:#e85d3d}
+.l16-dcount{width:64px;flex:0 0 64px;text-align:right;font-size:12.5px;color:#718096;font-weight:600}
+.l16-badge{font-size:10.5px;font-weight:800;padding:3px 10px;border-radius:999px;white-space:nowrap}
+.l16-badge.full,.l16-badge.over{background:#fde9e2;color:#d34a24}
+.l16-badge.ok{background:#e2f7ec;color:#12805c}
+.l16-prow{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #eef3f8}
+.l16-prow:last-child{border-bottom:none}
+.l16-cchip{width:38px;height:38px;border-radius:11px;background:#e8f1fc;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#17507f;flex:0 0 38px}
+.l16-pc{font-size:14px;font-weight:700;color:#10263b}
+.l16-subj{margin-left:auto;background:#f2f6fb;border:1px solid #dde8f2;color:#34506b;font-size:11.5px;font-weight:700;padding:4px 11px;border-radius:999px;white-space:nowrap}
+.l16-pwk{font-size:15px;font-weight:800;color:#10263b;width:74px;flex:0 0 74px;text-align:right}
+.l16-pwk small{display:block;font-size:9.5px;color:#8aa0b4;font-weight:700;letter-spacing:.06em}
+.l16-total{display:flex;justify-content:space-between;gap:10px;padding:11px 2px 6px;font-size:13px;font-weight:800;color:#10263b;margin-top:auto}
+html.hk-dark .l16-title,html.hk-dark .l16-panel h3,html.hk-dark .l16-tv,html.hk-dark .l16-dname,html.hk-dark .l16-pc,html.hk-dark .l16-pwk,html.hk-dark .l16-total{color:#e8eef5}
+html.hk-dark .l16-tile{border-color:rgba(255,255,255,.10)}
+html.hk-dark .l16-tone-blue{background:rgba(47,127,224,.14)}html.hk-dark .l16-tone-amber{background:rgba(232,147,12,.13)}html.hk-dark .l16-tone-green{background:rgba(11,122,71,.15)}html.hk-dark .l16-tone-red{background:rgba(211,74,36,.13)}
+html.hk-dark .l16-drow,html.hk-dark .l16-prow{border-bottom-color:rgba(255,255,255,.07)}
+html.hk-dark .l16-seg{background:rgba(255,255,255,.10)}
+html.hk-dark .l16-subj{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.12);color:#c9d6e4}
+@media (max-width:991px){.l16-cols{grid-template-columns:1fr}.l16-tiles{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:520px){.l16-tiles{grid-template-columns:1fr}.l16-dname{width:70px;flex-basis:70px}.l16-dcount{width:52px;flex-basis:52px}.l16-acts{margin-left:0}}
+
+/* Item 3 full-screen rule: grid rows stretch to equal height and
+   the Open button sits at the card's foot, so no card leaves dead
+   space under a taller neighbour. */
+.ttc-grid{align-items:stretch}
+.ttc-grid .ttc-card{height:100%}
+.ttc-grid .tt3-open{margin-top:auto}
+.ttc-grid .tt3-counts{margin-bottom:13px}
+
+/* Item 17 (2026-11-01) — Admin dashboard redesign (site style):
+   KPI cards with a thin accent strip (no sparkline filler), Quick
+   Action tiles, equal-height duo panels (full-screen rule), fee
+   bar + fill rows, enrollment bars, recent rows, and the rail —
+   Calendar / Needs Your Attention / Upcoming Events — stretched
+   level with the main column. */
+.l17-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px}
+.l17-kpi{background:#fff;border:1px solid #e2ecf5;border-radius:14px;padding:15px 17px 16px;position:relative;overflow:hidden;display:block;color:inherit}
+.l17-kpi:hover{text-decoration:none;color:inherit;box-shadow:0 10px 24px rgba(23,50,77,.08)}
+.l17-kpi::after{content:'';position:absolute;left:0;right:0;bottom:0;height:4px;background:var(--acc,#17507f)}
+.l17-krow{display:flex;align-items:center;gap:11px}
+.l17-kicon{width:42px;height:42px;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;flex:0 0 42px;font-size:19px}
+.dashboard-stat-blue .l17-kicon{background:#e8f1fc;color:#17507f}.dashboard-stat-green .l17-kicon{background:#e2f4ee;color:#0b7a47}.dashboard-stat-orange .l17-kicon{background:#fdf0dd;color:#b26a00}.dashboard-stat-purple .l17-kicon{background:#efe7fd;color:#5b2ea6}
+.l17-kl{display:block;font-size:10.5px;font-weight:800;letter-spacing:.1em;color:#8aa0b4;text-transform:uppercase}
+.l17-kv{display:block;font-size:26px;font-weight:800;color:#10263b;line-height:1.05}
+.l17-kd{display:block;font-size:11.5px;margin-top:7px;font-weight:600;color:#12805c}
+.l17-main{display:grid;grid-template-columns:1fr 322px;gap:16px;align-items:stretch}
+.l17-left{display:flex;flex-direction:column;gap:16px;min-width:0}
+.l17-rail{display:flex;flex-direction:column;gap:16px;min-width:0}
+.l17-grow{flex:1}
+.l17-qa{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:0 18px 18px}
+.l17-qatile{border:1.5px solid #e2ecf5;border-radius:14px;padding:14px 13px 12px;background:#fbfdff;color:inherit;display:block}
+.l17-qatile:hover{text-decoration:none;color:inherit;border-color:#c9dcf2}
+.l17-qi{width:38px;height:38px;border-radius:11px;display:inline-flex;align-items:center;justify-content:center;font-size:17px}
+.l17-tone-blue{background:#e8f1fc;color:#17507f}.l17-tone-green{background:#e2f4ee;color:#0b7a47}.l17-tone-amber{background:#fdf0dd;color:#b26a00}.l17-tone-purple{background:#efe7fd;color:#5b2ea6}
+.l17-qatile b{display:block;font-size:13.5px;color:#10263b;margin-top:9px}
+.l17-qatile>span:last-child{font-size:11px;color:#8aa0b4}
+.l17-duo{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:stretch}
+.l17-fill{display:flex;flex-direction:column;height:100%}
+.l17-feebody{padding:2px 18px 18px;display:flex;flex-direction:column;flex:1}
+.l17-feebar{height:10px;border-radius:99px;background:#eef3f8;overflow:hidden;display:flex}
+.l17-feebar-got{background:#0b7a47;display:block;height:100%}
+.l17-feebar-rest{background:#f3dfae;display:block;height:100%}
+.l17-feerow{display:flex;justify-content:space-between;gap:10px;font-size:12px;color:#718096;margin-top:9px}
+.l17-feerow b{color:#10263b}
+.l17-feerow-sep{border-top:1px solid #eef3f8;padding-top:9px}
+.l17-alert{margin-top:auto;background:#fdf3e3;border:1px solid #f3dfae;color:#8a6414;font-size:12px;font-weight:600;border-radius:10px;padding:8px 12px}
+.l17-feebody .l17-alert{margin-top:auto}
+.l17-feerow + .l17-alert{margin-top:12px}
+.l17-trend{display:flex;gap:7px;align-items:flex-end;height:128px;padding:2px 18px 16px}
+.l17-tcol{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;justify-content:flex-end;height:100%}
+.l17-tcol b{font-size:11px;color:#34506b}
+.l17-tcol i{width:100%;border-radius:6px 6px 0 0;display:block;background:#2f7fe0}
+.l17-tcol span{font-size:10px;color:#8aa0b4;font-weight:700}
+.l17-rows{padding:2px 18px 12px}
+.l17-rrow{display:flex;align-items:center;gap:11px;padding:9px 0;border-bottom:1px solid #eef3f8;color:inherit}
+.l17-rrow:last-child{border-bottom:none}
+a.l17-arow:hover{text-decoration:none;color:inherit;background:#f7fafc}
+.l17-ava{width:34px;height:34px;border-radius:50%;color:#fff;font-size:11.5px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;flex:0 0 34px}
+.l17-rt{font-size:13px;font-weight:700;color:#10263b}
+.l17-rm{font-size:11px;color:#8aa0b4}
+.l17-rv{margin-left:auto;font-size:13px;font-weight:800;color:#10263b;text-align:right}
+.l17-rv small{display:block;font-size:10px;color:#718096;font-weight:700}
+.l17-rv .l17-ok{color:#12805c}
+.l17-rv .l17-warn{color:#b26a00}
+.l17-caughtup{font-size:12.5px;color:#12805c;font-weight:600;padding:6px 0 10px}
+html.hk-dark .l17-kpi{background:#16283c;border-color:rgba(255,255,255,.09)}
+html.hk-dark .l17-kv,html.hk-dark .l17-qatile b,html.hk-dark .l17-rt,html.hk-dark .l17-rv,html.hk-dark .l17-feerow b,html.hk-dark .l17-tcol b{color:#e8eef5}
+html.hk-dark .l17-qatile{background:rgba(255,255,255,.03);border-color:rgba(255,255,255,.10)}
+html.hk-dark .l17-rrow{border-bottom-color:rgba(255,255,255,.07)}
+html.hk-dark .l17-feerow-sep{border-top-color:rgba(255,255,255,.08)}
+html.hk-dark .l17-alert{background:rgba(240,161,58,.10);border-color:rgba(240,161,58,.35);color:#f0c069}
+@media (max-width:1199px){.l17-main{grid-template-columns:1fr}.l17-kpis{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:767px){.l17-duo{grid-template-columns:1fr}.l17-qa{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:520px){.l17-kpis{grid-template-columns:1fr}.l17-qa{grid-template-columns:1fr}}
+
+/* Item 18 (2026-11-01) — Auto-Generate Timetables rebuild (site
+   style): two columns, segmented Generate-for, level preset cards,
+   live day timeline, subject pills + one open panel, sticky action
+   bar. */
+.gen-head{display:flex;align-items:center;gap:12px;padding:12px 18px;margin-bottom:16px;flex-wrap:wrap}
+.gen-head h2{font-size:18px;color:#10263b;margin:0}
+.gen-head p{font-size:12px;color:#8aa0b4;margin:1px 0 0}
+.gen-back{white-space:nowrap}
+.gen-steps{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:#8aa0b4}
+.gen-step{display:flex;align-items:center;gap:7px}
+.gen-step i{width:22px;height:22px;border-radius:50%;background:#2e6be6;color:#fff;font-style:normal;font-size:11.5px;display:inline-flex;align-items:center;justify-content:center;font-weight:800}
+.gen-step.idle i{background:#dbe5ef;color:#718096}
+.gen-step.on{color:#10263b}
+.gen-sline{width:26px;height:2px;background:#dbe5ef;border-radius:2px}
+.gen-layout{display:grid;grid-template-columns:372px 1fr;gap:16px;align-items:start}
+.gen-panel{padding:16px 18px}
+.gen-panel h3{font-size:14.5px;color:#10263b;margin:0;display:flex;align-items:center;gap:8px}
+.gen-tag{margin-left:auto;font-size:10.5px;font-weight:800;background:#eef4fa;color:#34506b;padding:3px 9px;border-radius:999px;letter-spacing:.04em}
+.gen-seg{display:flex;background:#eef3f8;border-radius:11px;padding:4px;margin-top:13px}
+.gen-seg button{flex:1;text-align:center;font-size:13px;font-weight:700;color:#718096;padding:8px 0;border-radius:8px;border:none;background:transparent;cursor:pointer}
+.gen-seg button.on{background:#fff;color:#10263b;box-shadow:0 2px 8px rgba(16,38,59,.10)}
+.gen-fgrid{display:grid;grid-template-columns:1fr 1fr;gap:11px 12px;margin-top:14px}
+.gen-fld label{display:block;font-size:10px;font-weight:800;letter-spacing:.07em;color:#8aa0b4;margin-bottom:5px;text-transform:uppercase}
+.gen-fld label b{color:#e85d3d}
+.gen-fixed{border:1.5px solid #d7e3ef;border-radius:9px;padding:7px 11px;font-size:13.5px;color:#16283c;background:#fbfdff}
+.gen-fixed small{color:#8aa0b4;font-size:11px}
+.gen-days{display:flex;gap:5px}
+.gen-days span{flex:1;text-align:center;font-size:11px;font-weight:800;padding:7px 0;border-radius:8px;background:#e8f1fc;color:#17507f}
+.gen-days span.off{background:#f2f5f9;color:#b3c2d1}
+.gen-note{font-size:11.5px;color:#8aa0b4;margin-top:11px;line-height:1.55}
+.gen-lvl{border:1.5px solid #e3eaf2;border-radius:12px;padding:11px 13px;margin-top:10px;display:flex;align-items:center;gap:11px}
+.gen-lvl-ic{width:36px;height:36px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex:0 0 36px}
+.gen-tone-amber{background:#fdf0dd;color:#b26a00}.gen-tone-blue{background:#e8f1fc;color:#17507f}
+.gen-lvl b{font-size:13.5px;color:#10263b;display:block}
+.gen-lvl .gen-lvl-sum{font-size:11.5px;color:#8aa0b4}
+.gen-lvl-edit{margin-left:auto;font-weight:700}
+.gen-lvl-fields{border:1.5px solid #e3eaf2;border-top:none;border-radius:0 0 12px 12px;padding:4px 13px 13px;margin-top:-6px}
+.gen-radio{border:1.5px solid #d7e3ef;border-radius:12px;padding:11px 13px;margin-top:10px;display:flex;gap:10px;align-items:flex-start;cursor:pointer;font-weight:400}
+.gen-radio.on{border-color:#2e6be6;background:#f4f9ff}
+.gen-radio input{margin-top:3px}
+.gen-radio b{font-size:13px;color:#10263b;display:block}
+.gen-radio span span{font-size:11.5px;color:#8aa0b4}
+.gen-tl-switch{display:inline-flex;background:#eef3f8;border-radius:9px;padding:3px;margin-top:11px}
+.gen-tl-switch button{border:none;background:transparent;font-size:12px;font-weight:700;color:#718096;padding:5px 12px;border-radius:7px;cursor:pointer}
+.gen-tl-switch button.on{background:#fff;color:#10263b;box-shadow:0 2px 6px rgba(16,38,59,.10)}
+.gen-timeline{display:flex;gap:4px;margin-top:13px;flex-wrap:wrap}
+.gen-blk{flex:1;min-width:52px;text-align:center;border-radius:9px;padding:8px 2px 7px;background:#e8f1fc}
+.gen-blk b{display:block;font-size:12px;color:#17507f}
+.gen-blk span{font-size:9.5px;color:#5a7b9c;font-weight:700}
+.gen-blk.brk{background:#fdf0dd}.gen-blk.brk b{color:#b26a00}.gen-blk.brk span{color:#b98d4f}
+.gen-blk.lun{background:#fde9e2;flex-grow:1.3}.gen-blk.lun b{color:#d34a24}.gen-blk.lun span{color:#c07a64}
+.gen-tend{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:11.5px;color:#8aa0b4;margin-top:9px}
+.gen-tend b{color:#10263b}
+.gen-search{margin-top:13px}
+.gen-grouplabel{font-size:10px;font-weight:800;letter-spacing:.1em;color:#8aa0b4;margin-top:14px;text-transform:uppercase}
+.gen-classrow{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px}
+.gen-cpill{border:1.5px solid #dde8f2;background:#fbfdff;border-radius:999px;padding:6px 12px;font-size:12px;font-weight:700;color:#34506b;cursor:pointer}
+.gen-cpill b{color:#12805c}
+.gen-cpill.open{background:#17507f;color:#fff;border-color:#17507f}
+.gen-cpill.open b{color:#9fe8c3}
+.gen-subjbox{border:1.5px solid #e3eaf2;border-radius:12px;padding:13px 14px;margin-top:12px}
+.gen-subjhead{display:flex;align-items:center;font-size:13px;font-weight:800;color:#10263b;flex-wrap:wrap;gap:6px}
+.gen-subj-tools{margin-left:auto}
+.gen-streamhead{display:flex;align-items:center;gap:4px;margin-top:8px}
+.gen-streamhead .btn{font-weight:700}
+.gen-subjgrid{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px}
+.gen-subj{border:1.5px solid #cdeeda;background:#f2f8f4;color:#0b6b43;border-radius:999px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;margin:0}
+.gen-subj input{position:absolute;opacity:0;pointer-events:none}
+.gen-subj.off{border-color:#e3eaf2;background:#f7fafc;color:#a3b4c4;text-decoration:line-through}
+.gen-subj.warn{border-color:#f3dfae;background:#fff8e6;color:#8a6414}
+.gen-rules{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:12px}
+.gen-rules div{font-size:12px;color:#5a7186;line-height:1.65}
+.gen-rules b{color:#10263b;display:block;font-size:12.5px;margin-bottom:3px}
+.gen-sticky{position:sticky;bottom:14px;margin-top:16px;background:#10263b;border-radius:14px;padding:13px 18px;display:flex;align-items:center;gap:14px;box-shadow:0 16px 34px rgba(16,38,59,.30);z-index:5;flex-wrap:wrap}
+.gen-sum{color:#fff;font-size:13px;font-weight:700}
+.gen-sum small{display:block;color:rgba(255,255,255,.6);font-weight:600;font-size:11px;margin-top:1px}
+.gen-cancel{margin-left:auto;color:rgba(255,255,255,.75);font-size:13px;font-weight:700}
+.gen-cancel:hover{color:#fff;text-decoration:none}
+.gen-genbtn{background:#2e6be6;color:#fff;border:none;font-size:13.5px;font-weight:800;padding:11px 22px;border-radius:10px}
+html.hk-dark .gen-head h2,html.hk-dark .gen-panel h3,html.hk-dark .gen-lvl b,html.hk-dark .gen-subjhead,html.hk-dark .gen-tend b,html.hk-dark .gen-rules b{color:#e8eef5}
+html.hk-dark .gen-seg,html.hk-dark .gen-tl-switch{background:rgba(255,255,255,.07)}
+html.hk-dark .gen-seg button.on,html.hk-dark .gen-tl-switch button.on{background:#22364e;color:#fff}
+html.hk-dark .gen-cpill{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.14);color:#c9d6e4}
+html.hk-dark .gen-subjbox,html.hk-dark .gen-lvl,html.hk-dark .gen-lvl-fields,html.hk-dark .gen-radio{border-color:rgba(255,255,255,.12)}
+html.hk-dark .gen-fixed{background:rgba(255,255,255,.04);color:#e8eef5}
+@media (max-width:991px){.gen-layout{grid-template-columns:1fr}.gen-steps{display:none}}
+@media (max-width:520px){.gen-fgrid{grid-template-columns:1fr}.gen-rules{grid-template-columns:1fr}}
+
+/* Item 19 (2026-11-01) — Audit Log tooling (site style). */
+.au-head{display:flex;align-items:center;gap:12px;padding:12px 18px;margin-bottom:14px;flex-wrap:wrap}
+.au-head h2{font-size:18px;color:#10263b;margin:0}
+.au-head p{font-size:12px;color:#8aa0b4;margin:1px 0 0}
+.au-ic{width:40px;height:40px;border-radius:50%;background:#e8f1fc;color:#17507f;display:inline-flex;align-items:center;justify-content:center;font-size:18px;flex:0 0 40px}
+.au-count{margin-left:auto;background:#eef4fa;border:1px solid #dde8f2;color:#34506b;font-size:12px;font-weight:700;padding:6px 13px;border-radius:999px}
+.au-export{font-weight:700}
+.au-filters{padding:13px 16px;margin-bottom:14px}
+.au-fform{display:flex;gap:11px;align-items:flex-end;flex-wrap:wrap}
+.au-fld{display:flex;flex-direction:column;gap:5px}
+.au-fld.au-grow{flex:1;min-width:180px}
+.au-fld label{font-size:10px;font-weight:800;letter-spacing:.09em;color:#8aa0b4;text-transform:uppercase;margin:0}
+.au-fbtns{display:flex;gap:8px}
+.au-quick{display:flex;gap:7px;margin-top:13px;flex-wrap:wrap}
+.au-qpill{border:1.5px solid #dde8f2;background:#fbfdff;border-radius:999px;padding:6px 13px;font-size:12px;font-weight:700;color:#34506b}
+.au-qpill:hover{text-decoration:none}
+.au-qpill b{color:#12805c}
+.au-qpill.on{background:#17507f;color:#fff;border-color:#17507f}
+.au-qpill.on b{color:#9fe8c3}
+.au-tablecard{padding:0;overflow:hidden}
+.au-table{width:100%;border-collapse:collapse;margin:0}
+.au-table th{text-align:left;font-size:10.5px;letter-spacing:.09em;color:#8aa0b4;font-weight:800;padding:13px 18px 10px;text-transform:uppercase}
+.au-table td{padding:11px 18px;border-top:1px solid #eef3f8;font-size:13px;color:#34506b;vertical-align:middle}
+.au-when b{display:block;color:#10263b;font-size:13px}
+.au-when span{font-size:11px;color:#8aa0b4}
+.au-user{display:flex;align-items:center;gap:9px}
+.au-ava{width:30px;height:30px;border-radius:50%;background:#17507f;color:#fff;font-size:10.5px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;flex:0 0 30px}
+.au-user b{color:#10263b;font-size:13px;display:block}
+.au-user span span{font-size:11px;color:#8aa0b4}
+.au-act{font-size:11px;font-weight:800;padding:4px 11px;border-radius:999px;white-space:nowrap}
+.au-act.login{background:#e8f1fc;color:#17507f}
+.au-act.marks{background:#fdf0dd;color:#b26a00}
+.au-act.report{background:#e2f4ee;color:#0b7a47}
+.au-act.sub{background:#efe7fd;color:#5b2ea6}
+.au-subj b{color:#10263b;font-weight:700}
+.au-subj span{display:block;font-size:11.5px;color:#8aa0b4}
+.au-nowrap{white-space:nowrap}
+.au-pager{display:flex;align-items:center;gap:10px;padding:12px 18px;border-top:1px solid #eef3f8;font-size:12.5px;color:#718096;flex-wrap:wrap}
+.au-pglinks{margin-left:auto}
+.au-pglinks .pagination{margin:0}
+.au-empty{padding:26px}
+html.hk-dark .au-head h2,html.hk-dark .au-table td b,html.hk-dark .au-when b,html.hk-dark .au-user b,html.hk-dark .au-subj b{color:#e8eef5}
+html.hk-dark .au-qpill{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.14);color:#c9d6e4}
+html.hk-dark .au-table td{border-top-color:rgba(255,255,255,.07)}
+@media (max-width:520px){.au-count{margin-left:0}}
+
+/* Item 20 (2026-11-01) — student-side pack: next-day empty state,
+   My Timetable today row + summary strip, marksheet latest-result
+   card, My Attendance month strip. */
+.sd-nextday{display:flex;gap:12px;align-items:center;background:#eef6ff;border:1px dashed #bcd7f5;border-radius:12px;padding:14px 16px;color:#34506b;font-size:13.5px;text-align:left}
+.sd-nextday-ic{width:38px;height:38px;border-radius:50%;background:#e8f1fc;color:#17507f;display:inline-flex;align-items:center;justify-content:center;font-size:17px;flex:0 0 38px}
+.ttx-grid tr.ttx-today td{background:#fdf6e3}
+.ttx-grid tr.ttx-today td.ttx-day-col{box-shadow:inset 3px 0 0 #e6a817}
+.ttx-today-chip{background:#e6a817;color:#fff;font-size:9.5px;font-weight:800;padding:2px 7px;border-radius:999px;margin-left:6px;letter-spacing:.05em}
+.sd-ttstrip{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.sd-ttstrip span{flex:1;min-width:170px;background:#f4f9ff;border:1px solid #dde8f2;border-radius:11px;padding:10px 14px;font-size:13px;color:#34506b}
+.sd-ttstrip strong{color:#10263b}
+.sd-latest-result{display:flex;align-items:center;gap:13px;padding:14px 18px;margin-bottom:16px;flex-wrap:wrap}
+.sd-lr-ic{width:42px;height:42px;border-radius:50%;background:#e2f4ee;color:#0b7a47;display:inline-flex;align-items:center;justify-content:center;font-size:18px;flex:0 0 42px}
+.sd-lr-copy{flex:1;min-width:200px}
+.sd-lr-copy strong{display:block;font-size:15px;color:#10263b}
+.sd-lr-copy span{font-size:12.5px;color:#718096}
+.sd-monthstrip{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:16px}
+.sd-monthchip{flex:1;min-width:150px;border:1.5px solid #dde8f2;border-radius:11px;padding:10px 14px;background:#fbfdff;color:#34506b}
+.sd-monthchip:hover{text-decoration:none;border-color:#2e6be6}
+.sd-monthchip strong{display:block;color:#10263b;font-size:13.5px}
+.sd-monthchip span{font-size:12px;color:#718096}
+html.hk-dark .sd-nextday,html.hk-dark .sd-ttstrip span,html.hk-dark .sd-monthchip{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.14);color:#c9d6e4}
+html.hk-dark .sd-lr-copy strong,html.hk-dark .sd-monthchip strong,html.hk-dark .sd-ttstrip strong{color:#e8eef5}
+html.hk-dark .ttx-grid tr.ttx-today td{background:rgba(230,168,23,.13)}
+
+/* Item 21 (2026-11-01) — admin quick wins: users search row, leave
+   filter labels, settings section nav. */
+.l106-users-search{margin-bottom:12px}
+.lv-fld{display:inline-flex;flex-direction:column;gap:2px}
+.lv-fld label{font-size:10px;font-weight:800;letter-spacing:.07em;color:#8aa0b4;text-transform:uppercase;margin:0}
+.set-nav{display:flex;gap:7px;flex-wrap:wrap;margin:0 0 14px}
+.set-nav a{border:1.5px solid #dde8f2;background:#fbfdff;border-radius:999px;padding:6px 13px;font-size:12px;font-weight:700;color:#34506b}
+.set-nav a:hover{text-decoration:none;border-color:#2e6be6}
+.pat-form-section[id]{scroll-margin-top:90px}
+html.hk-dark .set-nav a{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.14);color:#c9d6e4}
+
+/* ==== Post-review fix round (2026-11-01): defects caught by eye on
+   rendered pages after the batch build. (1) .card carries
+   flex-direction:column from Bootstrap — the tt3/gen headbars are
+   row bars by design (tt-v3 / gen-redesign) and rendered stacked
+   and centred. (2) Timetable grid cards: counts/open/foot align
+   with the card head's 16px inset. (3) Marks Light Luxe stepper:
+   the progress track ran across the step labels; mask it behind
+   the label text (card surface) so it shows only between steps.
+   (4) Generate page dark parity: step + radio titles kept their
+   light-theme navy on dark cards and vanished. */
+.tt3-head,.gen-head{flex-direction:row}
+.ttc-card .tt3-counts{margin-left:16px;margin-right:16px}
+.ttc-card .tt3-foot{margin-left:16px;margin-right:16px}
+.ttc-card .tt3-open{margin-left:16px;margin-right:16px;width:auto}
+.l10-steps .l84-step-text{position:relative;z-index:1}
+.l10-steps .l84-step-text strong{background:#fff;padding:0 5px 0 1px;border-radius:2px}
+html.hk-dark .l10-steps .l84-step-text strong{background:#26272a}
+html.hk-dark .gen-step.on{color:#e8eef5}
+html.hk-dark .gen-radio b{color:#e8eef5}
+html.hk-dark .gen-radio.on{background:rgba(46,107,230,.13)}
+
+/* ==== Visual parity — marks Light Luxe sample (2026-11-01):
+   (1) Stepper: the step labels sit BELOW their dots, centred —
+   the track runs dot-centre to dot-centre and no longer crosses
+   the text (the mask on the strong from the fix round is retired
+   on this stepper). (2) Fields: plain caps labels; each field's
+   icon sits INSIDE the select box (l10-sel-wrap/l10-sel-ic) with
+   the value text padded clear of it, native + select2 alike. */
+.l10-steps{padding-bottom:13px}
+.l10-steps .l84-step{flex-direction:column;align-items:center;gap:7px}
+.l10-steps .l84-step:not(:last-child)::after{left:calc(50% + 21px);right:calc(-50% + 21px)}
+.l10-steps .l84-step-text{align-items:center;text-align:center}
+.l10-steps .l84-step-text strong{background:transparent;padding:0}
+.l10-sel-wrap{position:relative}
+.l10-sel-ic{color:#7fa3c4;font-size:15px;left:12px;line-height:1;pointer-events:none;position:absolute;top:50%;transform:translateY(-50%);z-index:6}
+.l10-sel-wrap select.form-control{padding-left:34px}
+.l10-sel-wrap .select2-container .select2-selection--single .select2-selection__rendered{padding-left:34px}
+.gen-sumtitle{font-size:11px;font-weight:800;letter-spacing:.07em;color:#8aa0b4;text-transform:uppercase;margin-top:14px}
+.hk-banner-hero{height:168px;border-radius:14px;border:1px solid #e3eaf2;background-size:cover;background-position:center 50%;background-repeat:no-repeat;margin-bottom:20px}
+.hk-bn-admin{background-image:url('../img/banners/role-admin.jpg')}
+.hk-bn-principal{background-image:url('../img/banners/role-principal.jpg')}
+.hk-bn-teacher{background-image:url('../img/banners/role-teacher.jpg')}
+.hk-bn-student{background-image:url('../img/banners/role-student.jpg')}
+.hk-bn-parent{background-image:url('../img/banners/role-parent.jpg')}
+.hk-bn-accountant{background-image:url('../img/banners/role-accountant.jpg')}
+.hk-bn-librarian{background-image:url('../img/banners/role-librarian.jpg')}
+.hk-bn-nurse{background-image:url('../img/banners/role-nurse.jpg')}
+.hk-bn-superadmin{background-image:url('../img/banners/role-superadmin.jpg')}
+@media (max-width:767px){.hk-banner-hero{height:104px;margin-bottom:14px}}
+
+/* Role banner hero: greeting overlay (owner, 2026-11-06) */
+.hk-banner-hero{position:relative;height:192px}
+.hk-bn-overlay{position:absolute;left:0;top:0;bottom:0;width:54%;display:flex;flex-direction:column;justify-content:center;padding:0 12px 0 28px;background:linear-gradient(90deg,rgba(255,255,255,.85),rgba(255,255,255,0))}
+.hk-bn-greet{font-size:27px;font-weight:800;color:#10263b;line-height:1.16}
+.hk-bn-sub{margin-top:6px;font-size:13.5px;font-weight:600;color:#46617d}
+@media (max-width:767px){.hk-banner-hero{height:128px}.hk-bn-overlay{width:82%;padding-left:16px}.hk-bn-greet{font-size:19px}.hk-bn-sub{font-size:11.5px}}

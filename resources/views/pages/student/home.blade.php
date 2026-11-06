@@ -2,6 +2,7 @@
 @section('page_title', 'Dashboard')
 @section('hide_page_header', true)
 @section('content')
+    @include('partials.role_banner', ['hkRole' => 'student', 'hkLabel' => 'Student'])
     {{-- Loop 99: student home — premium dashboard pass, same standard
          as the teacher (Loop 79), accountant (Loop 92) and parent
          (Loop 96) homes. Every number and row is the signed-in
@@ -14,7 +15,6 @@
          flow and its publish gate. --}}
     <div class="dashboard-hero mb-4">
         <div>
-            <h2 class="mb-1">{{ $greeting }}, {{ Auth::user()->name }} <span aria-hidden="true">👋</span></h2>
             <p class="mb-0 dashboard-muted">
                 @if($student_record)
                     {{ optional($student_record->my_class)->name ?: 'Class —' }} &middot; {{ optional($student_record->section)->name ?: 'Section —' }} &middot; Here&rsquo;s your school day at a glance.
@@ -62,7 +62,7 @@
             <span class="dashboard-stat-copy">
                 <span class="dashboard-stat-label">Open Assignments</span>
                 <strong>{{ $open_assignments_count }}</strong>
-                <small>{{ $open_assignments_count > 0 ? 'Still to submit' : ($open_assignments_submitted > 0 ? 'All caught up — ' . $open_assignments_submitted . ' open, already submitted' : 'Nothing open right now') }}</small>
+                <small>{{ ($open_assignments_given ?? 0) > 0 ? $open_assignments_given . ' given · ' . $open_assignments_submitted . ' submitted' : 'Nothing open right now' }}</small>
             </span>
         </a>
         <div class="dashboard-stat-card {{ $fees['has_records'] && $fees['due'] > 0 ? 'dashboard-stat-orange' : 'dashboard-stat-purple' }}">
@@ -106,7 +106,16 @@
                                 <td><span class="dashboard-status stu-status-{{ \Illuminate\Support\Str::slug($period['status']) }}">{{ $period['status'] }}</span></td>
                             </tr>
                         @empty
-                            <tr><td colspan="4" class="dashboard-empty">No classes are scheduled for your class today.</td></tr>
+                            <tr><td colspan="4">
+                                @if(!empty($next_school_day))
+                                    <div class="sd-nextday">
+                                        <span class="sd-nextday-ic"><i class="icon-calendar3"></i></span>
+                                        <span><strong>No classes today.</strong> Next school day is <strong>{{ $next_school_day['day'] }}, {{ $next_school_day['date'] }}</strong> — first period: {{ $next_school_day['subject'] }} ({{ $next_school_day['time'] }}).</span>
+                                    </div>
+                                @else
+                                    <span class="dashboard-empty" style="display:block">No classes are scheduled for your class today.</span>
+                                @endif
+                            </td></tr>
                         @endforelse
                         </tbody>
                     </table>

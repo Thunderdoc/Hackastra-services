@@ -86,8 +86,16 @@ class OwnerWave5Test extends TestCase
             ->assertStatus(200)
             ->assertDontSee('records/validate');
 
+        // Owner layout change, 2026-11-01: record rows (and their
+        // actions) render in the single-class LIST view — the same
+        // gate is asserted there, for her own class and as admin.
+        $this->actingAs($this->teacher())
+            ->get(route('tt.index', ['class_id' => 1]))
+            ->assertStatus(200)
+            ->assertDontSee('records/validate');
+
         $this->actingAs($this->admin())
-            ->get(route('tt.index'))
+            ->get(route('tt.index', ['class_id' => 13]))
             ->assertStatus(200)
             ->assertSee('records/validate');
     }

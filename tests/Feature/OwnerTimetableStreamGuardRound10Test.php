@@ -101,7 +101,7 @@ class OwnerTimetableStreamGuardRound10Test extends TestCase
     }
 
     /** A streamed triple whose record is current-session, clean, + uniquely named on the index. */
-    protected function uniqueStreamedTriple(string $indexHtml): array
+    protected function uniqueStreamedTriple(): array
     {
         $session = \App\Helpers\Qs::getCurrentSession();
         $cleanIds = TimetableValidator::cleanRecordIds($session);
@@ -110,7 +110,10 @@ class OwnerTimetableStreamGuardRound10Test extends TestCase
             if (!$record || $record->year !== $session || !in_array($record->id, $cleanIds, true)) {
                 continue;
             }
-            if (substr_count($indexHtml, '<strong>' . $record->name . '</strong>') !== 1) {
+            // Owner layout change, 2026-11-01: record rows no
+            // longer render on the unfiltered index, so uniqueness
+            // is taken from the records table itself (stronger).
+            if (TimeTableRecord::where('name', $record->name)->count() !== 1) {
                 continue;
             }
             foreach (Subject::where('my_class_id', $section->my_class_id)->get() as $subject) {
@@ -152,15 +155,14 @@ class OwnerTimetableStreamGuardRound10Test extends TestCase
     public function test_index_withholds_green_pill_for_dirty_record()
     {
         $admin = $this->admin();
-        $before = $this->actingAs($admin)->get(route('tt.index'))->getContent();
-        [$section, $record, $subject] = $this->uniqueStreamedTriple($before);
+        [$section, $record, $subject] = $this->uniqueStreamedTriple();
         // The record must start clean, so the withheld pill is
         // attributable to the placed cell and nothing else.
         $this->assertContains($record->id, TimetableValidator::cleanRecordIds($record->year));
         $this->placeCell($record, $subject);
         $this->assertNotContains($record->id, TimetableValidator::cleanRecordIds($record->year));
 
-        $html = $this->actingAs($admin)->get(route('tt.index'))->getContent();
+        $html = $this->actingAs($admin)->get(route('tt.index', ['class_id' => $record->my_class_id]))->getContent();
         $card = $this->indexCardSegment($html, $record->fresh());
         $this->assertStringNotContainsString('l81-status-validated', $card);
         $this->assertStringNotContainsString('>Validated<', $card);
@@ -173,18 +175,20 @@ class OwnerTimetableStreamGuardRound10Test extends TestCase
         // still earn its pill — the round-9 change must not have
         // blanked the pill globally.
         $session = \App\Helpers\Qs::getCurrentSession();
-        $html = $this->actingAs($this->admin())->get(route('tt.index'))->getContent();
         $clean = null;
         foreach (TimetableValidator::cleanRecordIds($session) as $id) {
             $candidate = TimeTableRecord::find($id);
             if ($candidate && $candidate->year === $session
-                && substr_count($html, '<strong>' . $candidate->name . '</strong>') === 1) {
+                && TimeTableRecord::where('name', $candidate->name)->count() === 1) {
                 $clean = $candidate;
                 break;
             }
         }
         $this->assertNotNull($clean, 'No uniquely-named clean current-session record');
 
+        // Owner layout change, 2026-11-01: the record's row lives
+        // in its class's LIST view on the index now.
+        $html = $this->actingAs($this->admin())->get(route('tt.index', ['class_id' => $clean->my_class_id]))->getContent();
         $card = $this->indexCardSegment($html, $clean);
         $this->assertStringContainsString('l81-status-validated', $card);
     }

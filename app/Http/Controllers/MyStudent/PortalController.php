@@ -140,6 +140,9 @@ class PortalController extends Controller
             'status' => $status,
             'badge' => $badge,
             'has_receipts' => $record->receipt->isNotEmpty(),
+            // Item 20d: when the latest payment was made, and how.
+            'last_date' => optional($record->receipt->sortByDesc('created_at')->first())->created_at,
+            'last_method' => optional($record->receipt->sortByDesc('created_at')->first())->method,
         ];
     }
 }

@@ -8,6 +8,7 @@ use App\Models\AttendanceSessionEntry;
 use App\Models\AuditLog;
 use App\Models\DisciplineRecord;
 use App\Models\ExamDate;
+use App\Models\HealthRecord;
 use App\Models\ExamRecord;
 use App\Models\Expense;
 use App\Models\LeaveRequest;
@@ -148,6 +149,15 @@ class HomeController extends Controller
         // catalogue, loans out, and what is due or overdue.
         if ($user_type === 'librarian') {
             return view('pages.librarian.home', array_merge($d, $this->librarianHomeData($now)));
+        }
+
+        // Nurse role (owner order 2026-11-06): Health Records live
+        // with the Nurse login — her home is the clinic board:
+        // record totals, today's and this month's visits, referrals,
+        // and the most recent visits (metadata only, like the
+        // health index — complaint text never lists).
+        if ($user_type === 'nurse') {
+            return view('pages.nurse.home', array_merge($d, $this->nurseHomeData($now)));
         }
 
         // Workstream R: the platform owner lands on a platform home —
@@ -481,6 +491,19 @@ class HomeController extends Controller
             $d['payment_percent'] = $d['payment_total'] > 0
                 ? (int) round(($d['payment_collected'] / $d['payment_total']) * 100)
                 : 0;
+            // Item 17 (2026-11-01): the Fee Collection card's
+            // defaulter rows + the rail's Needs-Your-Attention card
+            // run on real counts, same year scope as the totals
+            // above: distinct students whose records for the year
+            // are not fully paid, and leave requests still waiting
+            // for a decision.
+            $d['fee_defaulter_count'] = (int) DB::table('payment_records')
+                ->join('payments', 'payments.id', '=', 'payment_records.payment_id')
+                ->whereYear('payment_records.updated_at', $selected_year)
+                ->whereRaw('payment_records.amt_paid < payments.amount')
+                ->pluck('payment_records.student_id')->unique()->count();
+            $d['pending_leave_count'] = (int) \App\Models\LeaveRequest::where('status', 'pending')->count();
+
             $d['fees_collected_this_month'] = (int) DB::table('payment_records')
                 ->whereYear('updated_at', $now->year)
                 ->whereMonth('updated_at', $now->month)
@@ -1548,6 +1571,8 @@ class HomeController extends Controller
             })->count();
             $open_assignments_submitted = $open->count() - $open_assignments_count;
 
+            $open_assignments_given = $open->count();
+
             $open_assignments = $open
                 ->sortBy(function ($a) {
                     return [
@@ -1560,9 +1585,39 @@ class HomeController extends Controller
                 ->values();
         }
 
+        // Item 20a: on a day with no classes (Sunday / holiday), the
+        // dashboard names the NEXT school day and its first period
+        // instead of a bare "no classes" line.
+        $next_school_day = null;
+        if ($class_id && $today_periods->isEmpty() && Schema::hasTable('time_tables')) {
+            for ($offset = 1; $offset <= 7 && !$next_school_day; $offset++) {
+                $day = $now->copy()->addDays($offset);
+                $rows = TimeTable::with(['subject', 'time_slot'])
+                    ->where('day', $day->format('l'))
+                    ->whereHas('tt_record', function ($q) use ($class_id) {
+                        $q->where('my_class_id', $class_id);
+                    })
+                    ->get()
+                    ->sortBy(function ($period) {
+                        return optional($period->time_slot)->timestamp_from ?? $period->ts_id;
+                    });
+                if ($rows->isNotEmpty()) {
+                    $first = $rows->first();
+                    $next_school_day = [
+                        'day' => $day->format('l'),
+                        'date' => $day->format('d M'),
+                        'subject' => optional($first->subject)->name ?: '—',
+                        'time' => optional($first->time_slot)->full ?: '—',
+                    ];
+                }
+            }
+        }
+
         return [
             'lms_due_week' => $lms_due_week,
             'fees' => $fees,
+            'next_school_day' => $next_school_day,
+            'open_assignments_given' => $open_assignments_given ?? 0,
             'open_assignments' => $open_assignments,
             'open_assignments_count' => $open_assignments_count,
             'open_assignments_submitted' => $open_assignments_submitted,
@@ -2002,6 +2057,19 @@ class HomeController extends Controller
             'has_records' => $owed > 0 || $paid > 0,
         ];
     }
+    protected function nurseHomeData(Carbon $now): array
+    {
+        return [
+            'health_total' => HealthRecord::count(),
+            'health_today' => HealthRecord::whereDate('visit_date', $now->toDateString())->count(),
+            'health_month' => HealthRecord::whereYear('visit_date', $now->year)
+                ->whereMonth('visit_date', $now->month)->count(),
+            'health_referred' => HealthRecord::where('is_referred', 1)->count(),
+            'health_recent' => HealthRecord::with(['student', 'recorder'])
+                ->orderBy('visit_date', 'desc')->orderBy('id', 'desc')->take(8)->get(),
+        ];
+    }
+
     protected function librarianHomeData(Carbon $now): array
     {
         $today = $now->toDateString();

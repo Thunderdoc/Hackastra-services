@@ -76,46 +76,44 @@
     </div>
     <div class="card l76-grid-card">
 
-    @if($m->exam->results_published)
-        {{-- Batch 114 (Part A): publishing is a visibility gate, not an
-             edit lock — the grid stays editable by design. The page
-             must SAY the results are live instead of letting a teacher
-             silently change marks students can already see. --}}
-        <div class="l86-pub-banner">
-            <i class="icon-eye2"></i>
-            <span><strong>Results published.</strong> Students and parents can see these marks now. Changes you save update the published results immediately, and every change is recorded in the audit log.</span>
-        </div>
-    @endif
-
-    {{-- Marks lifecycle (owner order 2026-10-29): entry opens on the
-         subject's exam date; submitting locks the unit for the
-         teacher; only the school Admin can reopen it. --}}
-    @if(!empty($lifecycle['submitted']))
-        <div class="l86-pub-banner">
-            <i class="icon-lock2"></i>
-            <span><strong>Marks submitted.</strong> {{ optional($lifecycle['submitted']->submitter)->name }} submitted these marks on {{ $lifecycle['submitted']->created_at->format('d M Y, g:i A') }}. They are locked for editing.@if(\App\Helpers\Qs::userIsAdmin()) Use Reopen only for a genuine correction — reopening is recorded in the audit log.@endif</span>
+    {{-- Item 11 (owner, 2026-11-01): the two tall banners (published
+         notice + lifecycle notice) collapse into ONE slim status
+         strip. Same conditions drive it — publication state pill,
+         submission state pill, the one operationally important line
+         for the published+draft combination, and the Submit Marks /
+         admin Reopen actions exactly as wired before. The
+         not-yet-open state keeps its opening date as the strip's
+         line (that date is the one fact that state must not lose). --}}
+    <div class="l11-strip">
+        @if($m->exam->results_published)
+            <span class="l11-pill l11-pill-pub"><i class="icon-eye2"></i> Results: Published</span>
+        @else
+            <span class="l11-pill l11-pill-off"><i class="icon-eye-blocked"></i> Results: Not published</span>
+        @endif
+        @if(!empty($lifecycle['submitted']))
+            <span class="l11-pill l11-pill-lock"><i class="icon-lock2"></i> Submitted — Locked</span>
+        @else
+            <span class="l11-pill l11-pill-draft"><i class="icon-pencil7"></i> Your marks: Draft</span>
+        @endif
+        @if($m->exam->results_published && empty($lifecycle['submitted']) && empty($lifecycle['opens_on']))
+            <span class="l11-line">Saving updates the live result.</span>
+        @elseif(!empty($lifecycle['opens_on']))
+            <span class="l11-line">Entry opens {{ $lifecycle['opens_on'] }} — the day after the exam ({{ $lifecycle['exam_date'] }}).</span>
+        @endif
+        @if(!empty($lifecycle['submitted']))
             @if(\App\Helpers\Qs::userIsAdmin())
                 <form method="POST" action="{{ route('marks.reopen', [$exam_id, $my_class_id, $section_id, $subject_id]) }}" onsubmit="return confirm('Reopen these marks for correction? The reopening is recorded in the audit log.');" style="margin-left:auto;">
                     @csrf
                     <button type="submit" class="btn btn-warning btn-sm">Reopen for correction</button>
                 </form>
             @endif
-        </div>
-    @elseif(!empty($lifecycle['opens_on']))
-        <div class="l86-pub-banner">
-            <i class="icon-lock2"></i>
-            <span><strong>Marks entry opens on {{ $lifecycle['opens_on'] }} — the day after the exam ({{ $lifecycle['exam_date'] }}).</strong> The class list is visible now; marks can be entered and submitted from that date, once the paper is corrected.</span>
-        </div>
-    @else
-        <div class="l86-pub-banner">
-            <i class="icon-pencil7"></i>
-            <span><strong>Draft — not yet submitted.</strong> Save as often as needed. When the marks are final, submit them: after submission they are locked and only the school Admin can reopen them.</span>
+        @elseif(empty($lifecycle['opens_on']))
             <form method="POST" action="{{ route('marks.submit', [$exam_id, $my_class_id, $section_id, $subject_id]) }}" onsubmit="return confirm('Submit these marks? After submission you will not be able to edit them.');" style="margin-left:auto;">
                 @csrf
                 <button type="submit" class="btn btn-success btn-sm">Submit Marks</button>
             </form>
-        </div>
-    @endif
+        @endif
+    </div>
 
     {{-- Internal-marks importer (owner order 2026-10-29): fill the
          Internal component from the teacher's assignments or

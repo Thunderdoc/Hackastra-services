@@ -100,4 +100,35 @@ class OwnerDocumentPhoneGuardTest extends TestCase
         $this->reportCardPrint()->assertOk()
             ->assertSee('Tel: ' . self::REAL_PHONE, false);
     }
+
+    protected function builderDocument()
+    {
+        $config = [
+            'title' => 'Students',
+            'source' => 'students',
+            'filters' => [],
+            'columns' => [
+                ['key' => 'student', 'label' => 'Student', 'type' => 'text', 'width' => 30],
+            ],
+            'options' => [],
+        ];
+
+        return $this->actingAs($this->admin())
+            ->post(route('reports.preview_html'), ['config' => json_encode($config)]);
+    }
+
+    public function test_builder_document_omits_tel_for_placeholder_and_shows_it_for_a_real_number()
+    {
+        // The builder's canvas (and its PDF, same settings array)
+        // was the one hole left (owner, 2026-11-01): it printed the
+        // raw Settings phone while every other document guarded it.
+        $this->setPhone('0123456789');
+        $this->builderDocument()->assertOk()
+            ->assertDontSee('0123456789')
+            ->assertDontSee('Tel:', false);
+
+        $this->setPhone(self::REAL_PHONE);
+        $this->builderDocument()->assertOk()
+            ->assertSee('Tel: ' . self::REAL_PHONE, false);
+    }
 }

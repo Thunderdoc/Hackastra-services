@@ -60,6 +60,7 @@ class Circular extends Eloquent
                 return ['all', 'teachers', 'staff'];
             case 'accountant':
             case 'librarian':
+            case 'nurse':
                 return ['all', 'staff'];
             case 'admin':
             case 'super_admin':

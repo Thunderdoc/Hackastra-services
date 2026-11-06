@@ -53,7 +53,9 @@ class OwnerTimetableApprovalTest extends TestCase
         $this->assertSame('draft', $record->approval_status);
 
         // Admin sees it (index + record page); the teacher does not.
-        $this->actingAs($this->admin())->get(route('tt.index'))->assertSee('Approval Probe Grid');
+        // Owner layout change, 2026-11-01: the record's row lives
+        // in its class's LIST view on the index now.
+        $this->actingAs($this->admin())->get(route('tt.index', ['class_id' => 13, 'section_id' => 68]))->assertSee('Approval Probe Grid');
         $this->actingAs($this->teacher())->get(route('tt.index'))->assertDontSee('Approval Probe Grid');
         $this->actingAs($this->teacher())->get(route('ttr.show', $record->id))->assertForbidden();
         $this->actingAs($this->admin())->get(route('ttr.show', $record->id))->assertOk();

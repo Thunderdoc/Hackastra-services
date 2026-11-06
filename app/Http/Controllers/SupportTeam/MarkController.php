@@ -15,6 +15,7 @@ use App\Support\ReportCard;
 use App\Support\SectionTeacher;
 use App\Support\TeacherScope;
 use App\Models\Section;
+use App\Models\StudentRecord;
 use App\Models\Subject;
 use App\Http\Requests\Mark\MarkComponentUpdate;
 use App\Http\Requests\Mark\MarkSelector;
@@ -28,6 +29,8 @@ use App\Repositories\StudentRepo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use App\User;
 
 class MarkController extends Controller
 {
@@ -55,8 +58,11 @@ class MarkController extends Controller
         // Batch S: a teacher's selector offers only their own
         // classes and subjects (manage() already re-filters subjects
         // per teacher; the landing pickers now match it).
+        // Item 4 (owner, 2026-11-01): the class list tightens from
+        // TeacherScope classes to classes with at least one
+        // ENTERABLE unit — what is not hers must not show at all.
         if(Qs::userIsTeacher()){
-            $d['my_classes'] = $d['my_classes']->whereIn('id', TeacherScope::classIds(Auth::user()))->values();
+            $d['my_classes'] = $d['my_classes']->whereIn('id', $this->teacherUnits(Auth::user())['class_ids'])->values();
             $d['subjects'] = $this->my_class->findSubjectByTeacher(Auth::user()->id);
         }
 
@@ -571,14 +577,110 @@ class MarkController extends Controller
         }
 
         $state = MarkLifecycle::state($examId, $classId, $sectionId, $subjectId);
+
+        // Item 10 (Light Luxe selector): the stat tiles' real data rides
+        // this same response - roster count for the chosen section, the
+        // subject, and the unit's configured scheme/max. Computed only
+        // AFTER the teacher-assignment gate above has passed, so the
+        // numbers never describe a unit the caller may not enter.
+        $scheme = MarkScheme::forExamSubject($examId, $subjectId);
+        $summary = [
+            'students' => StudentRecord::where('section_id', $sectionId)->where('grad', 0)->count(),
+            'subject' => optional(Subject::find($subjectId))->name,
+            'max' => $scheme['max_total'],
+            'scheme' => collect($scheme['components'])->map(function ($c) {
+                return $c['name'] . ' ' . $c['max_marks'];
+            })->implode(' + '),
+        ];
+
         if ($state['submitted']) {
-            return response()->json(['enabled' => false, 'reason' => 'Marks for this unit are already submitted and locked. Ask the school Admin to reopen them if a correction is needed.']);
+            return response()->json(['enabled' => false, 'reason' => 'Marks for this unit are already submitted and locked. Ask the school Admin to reopen them if a correction is needed.', 'summary' => $summary + ['entry_label' => 'Locked', 'entry_sub' => 'Already submitted']]);
         }
         if (!$state['open']) {
-            return response()->json(['enabled' => false, 'reason' => 'Marks entry opens on ' . $state['opens_on'] . ' — the day after the exam (' . $state['exam_date'] . ').']);
+            return response()->json(['enabled' => false, 'reason' => 'Marks entry opens on ' . $state['opens_on'] . ' — the day after the exam (' . $state['exam_date'] . ').', 'summary' => $summary + ['entry_label' => 'Locked', 'entry_sub' => 'Opens ' . $state['opens_on']]]);
         }
 
-        return response()->json(['enabled' => true, 'reason' => null]);
+        return response()->json(['enabled' => true, 'reason' => null, 'summary' => $summary + ['entry_label' => 'Open', 'entry_sub' => 'Entry is open']]);
+    }
+
+    /* Owner order 2026-11-01 (item 4): the marks selector's own
+       options feed. The shared get_class_subjects endpoint serves
+       many pages with class-level rules; the marks picker needs
+       SECTION-effective scoping for a teacher — only the sections
+       where she has at least one enterable unit, and for a chosen
+       section only the subjects she effectively teaches in it
+       (override-only units included, units overridden away from
+       her excluded). Admin keeps the full lists. JSON, read-only,
+       presentation only — the selector()/manage()/entryState
+       gates are unchanged and remain the enforcement. */
+    public function selectorOptions(Request $req)
+    {
+        $classId = (int) $req->query('class_id');
+        $sectionId = (int) $req->query('section_id');
+
+        $sections = $classId ? $this->my_class->getClassSections($classId) : collect();
+        $subjects = $classId ? $this->my_class->findSubjectByClass($classId) : collect();
+
+        if ($classId && Qs::userIsTeacher()) {
+            $units = $this->teacherUnits(Auth::user());
+            $herSections = $units['sections_by_class'][$classId] ?? [];
+            $sections = $sections->whereIn('id', $herSections)->values();
+            if ($sectionId) {
+                $subjects = $subjects->whereIn('id', $units['subjects_by_section'][$sectionId] ?? [])->values();
+            } else {
+                $union = [];
+                foreach ($herSections as $sid) {
+                    $union = array_merge($union, $units['subjects_by_section'][$sid] ?? []);
+                }
+                $subjects = $subjects->whereIn('id', array_unique($union))->values();
+            }
+        }
+
+        return response()->json([
+            'sections' => $sections->map(function ($s) { return ['id' => $s->id, 'name' => $s->name]; })->values(),
+            'subjects' => $subjects->map(function ($s) { return ['id' => $s->id, 'name' => $s->name]; })->values(),
+        ]);
+    }
+
+    /**
+     * A teacher's enterable marks units: the classes, the sections
+     * per class, and the subjects per section where she is the
+     * EFFECTIVE teacher (SectionTeacher::teacherIdFor semantics —
+     * the section override wins, else the subject's teacher). The
+     * override map is loaded once and resolved in memory. Drives
+     * every marks-selector option list for a teacher.
+     */
+    protected function teacherUnits(User $user): array
+    {
+        $overrides = [];
+        if (Schema::hasTable('section_subject_teachers')) {
+            $overrides = DB::table('section_subject_teachers')->get()
+                ->groupBy('section_id')
+                ->map(function ($rows) {
+                    return $rows->pluck('teacher_id', 'subject_id')
+                        ->map(function ($t) { return (int) $t; })->all();
+                })->all();
+        }
+
+        $units = ['class_ids' => [], 'sections_by_class' => [], 'subjects_by_section' => []];
+        $subjectsByClass = Subject::all()->groupBy('my_class_id');
+        foreach (Section::all() as $sec) {
+            $mine = [];
+            foreach ($subjectsByClass[$sec->my_class_id] ?? [] as $sub) {
+                $tid = $overrides[$sec->id][$sub->id] ?? ($sub->teacher_id ? (int) $sub->teacher_id : null);
+                if ($tid === (int) $user->id) {
+                    $mine[] = (int) $sub->id;
+                }
+            }
+            if ($mine) {
+                $units['sections_by_class'][(int) $sec->my_class_id][] = (int) $sec->id;
+                $units['subjects_by_section'][(int) $sec->id] = $mine;
+                $units['class_ids'][] = (int) $sec->my_class_id;
+            }
+        }
+        $units['class_ids'] = array_values(array_unique($units['class_ids']));
+
+        return $units;
     }
 
     public function selector(MarkSelector $req)
@@ -657,7 +759,19 @@ class MarkController extends Controller
         $d['sections'] = $this->my_class->getAllSections();
         $d['subjects'] = $this->my_class->getAllSubjects();
         if(Qs::userIsTeacher()){
-            $d['subjects'] = $this->my_class->findSubjectByTeacher(Auth::user()->id)->where('my_class_id', $class_id);
+            // Item 4 (owner, 2026-11-01): the manage page's selector
+            // offers the same scoped options as the landing picker —
+            // her enterable classes, her sections, and for the
+            // current section only her effective subjects.
+            $units = $this->teacherUnits(Auth::user());
+            $d['my_classes'] = $d['my_classes']->whereIn('id', $units['class_ids'])->values();
+            $herSections = [];
+            foreach ($units['sections_by_class'] as $secs) {
+                $herSections = array_merge($herSections, $secs);
+            }
+            $d['sections'] = $d['sections']->whereIn('id', $herSections)->values();
+            $d['subjects'] = $this->my_class->findSubjectByClass($class_id)
+                ->whereIn('id', $units['subjects_by_section'][(int) $section_id] ?? []);
         }
         $d['selected'] = true;
         $d['class_type'] = $this->my_class->findTypeByClass($class_id);
@@ -1266,6 +1380,32 @@ class MarkController extends Controller
             if($student_exists && $years->count() > 0)
             {
                 $d =['years' => $years, 'student_id' => Qs::hash($student_id)];
+
+                // Item 20c: a student (or their parent) landing here
+                // sees their latest PUBLISHED result summarised
+                // inline — exam, overall % from their own exam
+                // records, and a straight link to the marksheet —
+                // instead of a bare year form.
+                if (Qs::userIsStudent() || Qs::userIsParent()) {
+                    $published = \App\Models\Exam::where('results_published', true)
+                        ->whereIn('year', $years->pluck('year'))
+                        ->orderByDesc('year')->orderByDesc('id')->get();
+                    foreach ($published as $exam) {
+                        $aves = \App\Models\ExamRecord::where('exam_id', $exam->id)
+                            ->where('student_id', $student_id)
+                            ->whereNotNull('ave')->pluck('ave');
+                        if ($aves->isNotEmpty()) {
+                            $d['latest_result'] = [
+                                'exam' => $exam->name,
+                                'term' => $exam->term,
+                                'year' => $exam->year,
+                                'percent' => round($aves->avg(), 1),
+                                'subjects' => $aves->count(),
+                            ];
+                            break;
+                        }
+                    }
+                }
 
                 return view('pages.support_team.marks.select_year', $d);
             }

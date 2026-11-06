@@ -1,9 +1,14 @@
 {{-- Workstream BW: the marks picker rebuilt on the pattern field
      grid (pat-fields/pat-field + pat-actionbar). Same POST to
-     marks.selector, same four selects with the same ids, names,
-     bindings and the getClassSubjects() cascade — only the layout
-     language changed (was Bootstrap col-md-3 form-groups). Included
-     by marks/index and marks/manage inside a pat-form-card.
+     marks.selector, same four selects with the same ids, names and
+     bindings — only the layout language changed (was Bootstrap
+     col-md-3 form-groups). Included by marks/index and marks/manage
+     inside a pat-form-card.
+     Item 4 (owner, 2026-11-01): the cascade is the marks selector's
+     OWN feed (getMarkClassSubjects → marks.selector_options), which
+     scopes a teacher's sections/subjects to her effective units;
+     picking a section refines the subjects via refineMarkSubjects.
+     The shared getClassSubjects endpoint is untouched.
      Loop 84: marks/index includes it with $marks_selector_full,
      which adds the helper line, a Reset button and the gated submit
      id — all presentation only; without the flag the output is the
@@ -14,13 +19,18 @@
      ONE row on wide screens, and the plain-mode submit becomes a
      quiet "Change" button (the manage page's Examination Details
      card has no primary action in the reference; the button must
-     stay because changing a select does not navigate by itself). --}}
+     stay because changing a select does not navigate by itself).
+     Visual parity (Light Luxe sample, 2026-11-01): the labels stay
+     plain, and each field's icon now sits INSIDE its select box via
+     the l10-sel-wrap / l10-sel-ic pair — same icon classes as the
+     old label icons, same fields, ids and cascade. --}}
 <form class="pat-form l115-selector-form" method="post" action="{{ route('marks.selector') }}">
     @csrf
     <div class="pat-form-section">
         <div class="pat-fields">
             <div class="pat-field">
                 <label for="exam_id"><span>Exam</span> <span class="l84-req" aria-hidden="true">*</span></label>
+                <div class="l10-sel-wrap"><span class="l10-sel-ic"><i class="icon-calendar3"></i></span>
                 <select required id="exam_id" name="exam_id" data-placeholder="Select Exam" class="form-control select">
                     @foreach($exams as $ex)
                         {{-- Wave 8: data-scope drives the class filter
@@ -29,28 +39,34 @@
                         <option data-scope="{{ $ex->my_class_id }}" {{ $selected && $exam_id == $ex->id ? 'selected' : '' }} value="{{ $ex->id }}">{{ $ex->name }}</option>
                     @endforeach
                 </select>
+                </div>
             </div>
             <div class="pat-field">
                 <label for="my_class_id"><span>Class</span> <span class="l84-req" aria-hidden="true">*</span></label>
-                <select required onchange="getClassSubjects(this.value); filterExamsByClass(this.value)" id="my_class_id" name="my_class_id" class="form-control select">
+                <div class="l10-sel-wrap"><span class="l10-sel-ic"><i class="icon-home4"></i></span>
+                <select required onchange="getMarkClassSubjects(this.value); filterExamsByClass(this.value)" id="my_class_id" name="my_class_id" class="form-control select">
                     <option value="">Select Class</option>
                     @foreach($my_classes as $c)
                         <option {{ ($selected && $my_class_id == $c->id) ? 'selected' : '' }} value="{{ $c->id }}">{{ $c->name }}</option>
                     @endforeach
                 </select>
+                </div>
             </div>
             <div class="pat-field">
                 <label for="section_id"><span>Section</span> <span class="l84-req" aria-hidden="true">*</span></label>
-                <select required id="section_id" name="section_id" data-placeholder="Select Class First" class="form-control select">
+                <div class="l10-sel-wrap"><span class="l10-sel-ic"><i class="icon-users"></i></span>
+                <select required onchange="refineMarkSubjects()" id="section_id" name="section_id" data-placeholder="Select Class First" class="form-control select">
                     @if($selected)
                         @foreach($sections->where('my_class_id', $my_class_id) as $s)
                             <option {{ $section_id == $s->id ? 'selected' : '' }} value="{{ $s->id }}">{{ $s->name }}</option>
                         @endforeach
                     @endif
                 </select>
+                </div>
             </div>
             <div class="pat-field">
                 <label for="subject_id"><span>Subject</span> <span class="l84-req" aria-hidden="true">*</span></label>
+                <div class="l10-sel-wrap"><span class="l10-sel-ic"><i class="icon-books"></i></span>
                 <select required id="subject_id" name="subject_id" data-placeholder="Select Class First" class="form-control select-search">
                     @if($selected)
                         @foreach($subjects->where('my_class_id', $my_class_id) as $s)
@@ -58,32 +74,46 @@
                         @endforeach
                     @endif
                 </select>
+                </div>
             </div>
         </div>
     </div>
     @if(!empty($marks_selector_full))
-        {{-- Loop 84: helper line + Reset + gated submit, only in the
-             full-chrome rendering (marks/index). marks/manage includes
-             this partial without the flag and keeps the plain bar. --}}
-        <div class="l84-info-line">
-            <i class="icon-info3"></i>
-            <span>After selecting exam, class, section and subject, you will be able to view the list of students and enter their marks.</span>
+        {{-- Item 10 (Light Luxe): the four stat tiles. They show REAL
+             data only, filled by the marks/index script from the
+             entry-state response once a full unit is chosen; before
+             that every value is the neutral placeholder. --}}
+        <div class="l10-tiles" id="l10-tiles">
+            <div class="l10-tile">
+                <span class="l10-tile-ic l10-tone-blue"><i class="icon-users"></i></span>
+                <span class="l10-tile-body"><span class="l10-tile-n" id="l10-t-students">&mdash;</span><span class="l10-tile-l" id="l10-t-students-l">Students</span></span>
+            </div>
+            <div class="l10-tile">
+                <span class="l10-tile-ic l10-tone-violet"><i class="icon-books"></i></span>
+                <span class="l10-tile-body"><span class="l10-tile-n" id="l10-t-subject">&mdash;</span><span class="l10-tile-l">Subject</span></span>
+            </div>
+            <div class="l10-tile">
+                <span class="l10-tile-ic l10-tone-green"><i class="icon-stats-bars2"></i></span>
+                <span class="l10-tile-body"><span class="l10-tile-n" id="l10-t-max">&mdash;</span><span class="l10-tile-l" id="l10-t-max-l">Max marks</span></span>
+            </div>
+            <div class="l10-tile">
+                <span class="l10-tile-ic l10-tone-amber"><i class="icon-lock2"></i></span>
+                <span class="l10-tile-body"><span class="l10-tile-n" id="l10-t-entry">&mdash;</span><span class="l10-tile-l" id="l10-t-entry-l">Entry state</span></span>
+            </div>
         </div>
     @endif
-    <div class="pat-actionbar">
+    <div class="pat-actionbar l10-actionbar">
         @if(!empty($marks_selector_full))
+            {{-- The entry-state reason line lives here now (item 10):
+                 pulse + text on the left, Reset + Manage Marks on the
+                 right. #l84-entry-note keeps its id and role; the
+                 marks/index script fills it for every state. --}}
+            <span class="l10-status"><span class="l10-pulse" id="l10-pulse"></span><span id="l84-entry-note" role="status">Select exam, class, section and subject — the entry state will show here.</span></span>
+            <span class="l10-sp"></span>
             <button type="button" id="l84-reset-btn" class="btn btn-light l84-reset-btn">Reset</button>
-            <button type="submit" id="l84-manage-btn" class="btn btn-primary"><span id="l84-manage-btn-label">Manage Marks</span> <i class="icon-paperplane ml-2"></i></button>
+            <button type="submit" id="l84-manage-btn" class="btn btn-primary l10-manage-btn"><span id="l84-manage-btn-label">Manage Marks</span> <i class="icon-paperplane ml-2"></i></button>
         @else
             <button type="submit" class="btn btn-light l115-change-btn">Change</button>
         @endif
     </div>
-    @if(!empty($marks_selector_full))
-        {{-- Owner order 2026-11-01: when the chosen unit is not
-             enabled (exam still ahead, or marks already submitted),
-             the button above reads "Not Enabled" and this line says
-             why — filled by the marks/index script from the
-             entry-state endpoint, hidden otherwise. --}}
-        <p id="l84-entry-note" class="l84-entry-note" style="display:none" role="status"></p>
-    @endif
 </form>

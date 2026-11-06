@@ -423,7 +423,7 @@ class OwnerRolesRound3Test extends TestCase
         // PTM masking: a booking by another family shows as
         // "Booked" to a parent — never the other child's name.
         $slot = PtmSlot::create([
-            'date' => '2026-11-03', 'start_time' => '09:00:00', 'end_time' => '09:30:00',
+            'date' => '2027-01-15', 'start_time' => '09:00:00', 'end_time' => '09:30:00',
             'teacher_id' => $this->teacher()->id, 'my_class_id' => 1, 'section_id' => 1,
             'created_by' => $this->admin()->id,
         ]);

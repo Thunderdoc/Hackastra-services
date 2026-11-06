@@ -156,18 +156,25 @@ class OwnerTimetableValidatePillRound23Test extends TestCase
         [$dirty] = $this->fixture(true);
         [$clean] = $this->fixture(false);
 
-        $html = $this->actingAs($this->admin())
-            ->get(route('tt.index'))
+        // Owner layout change, 2026-11-01: each fixture record
+        // lives in its own class, and rows render in that class's
+        // LIST view — one fetch per record, same assertions.
+        $dirtyHtml = $this->actingAs($this->admin())
+            ->get(route('tt.index', ['class_id' => $dirty->my_class_id]))
+            ->assertOk()
+            ->getContent();
+        $cleanHtml = $this->actingAs($this->admin())
+            ->get(route('tt.index', ['class_id' => $clean->my_class_id]))
             ->assertOk()
             ->getContent();
 
-        $dirtySegment = $this->cardSegment($html, $dirty->name);
+        $dirtySegment = $this->cardSegment($dirtyHtml, $dirty->name);
         $this->assertStringNotContainsString(
             'l81-status-validated', $dirtySegment,
             'Dirty record card must not carry the green Validated pill'
         );
 
-        $cleanSegment = $this->cardSegment($html, $clean->name);
+        $cleanSegment = $this->cardSegment($cleanHtml, $clean->name);
         $this->assertStringContainsString(
             'l81-status-validated', $cleanSegment,
             'Clean record card keeps the green Validated pill'

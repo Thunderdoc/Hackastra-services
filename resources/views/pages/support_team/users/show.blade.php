@@ -38,6 +38,12 @@
                         @endif
                     </ul>
 
+                    @if(Qs::userIsTeamSA() && \App\Support\IdCardFactory::forStaff($user))
+                        {{-- Item 14: staff ID card (admin/SA surface only,
+                             matching the staff.id_card route's teamSA gate). --}}
+                        <a href="{{ route('staff.id_card', $user->id) }}" class="btn btn-light btn-block mb-2"><i class="icon-printer mr-2"></i>Print ID Card</a>
+                    @endif
+
                     @if((Qs::userIsSuperAdmin() && in_array($user->user_type, ['super_admin', 'admin'], true)) || (Qs::userIsAdmin() && $user->user_type !== 'super_admin'))
                         <a href="{{ route('users.edit', Qs::hash($user->id)) }}" class="btn btn-primary btn-block profile-edit-btn"><i class="icon-pencil7 mr-2"></i>Edit Profile</a>
 

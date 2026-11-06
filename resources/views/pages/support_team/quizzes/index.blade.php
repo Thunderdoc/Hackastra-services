@@ -12,9 +12,6 @@
     <div class="card">
         <div class="card-header">
             <h5 class="card-title">Quizzes</h5>
-            @if (Qs::userIsTeacher())
-                <a href="{{ route('quizzes.create') }}" class="btn btn-primary btn-sm float-right">New Quiz</a>
-            @endif
         </div>
         <div class="card-body">
             @if(session('flash_success'))

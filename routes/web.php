@@ -320,6 +320,7 @@ Route::group(['middleware' => 'auth'], function () {
             Route::group(['middleware' => 'teamSATWrite'], function(){
                 Route::get('/', 'MarkController@index')->name('marks.index');
                 Route::get('entry-state', 'MarkController@entryState')->name('marks.entry_state');
+                Route::get('selector-options', 'MarkController@selectorOptions')->name('marks.selector_options');
                 Route::get('manage/{exam}/{class}/{section}/{subject}', 'MarkController@manage')->name('marks.manage');
                 Route::put('update/{exam}/{class}/{section}/{subject}', 'MarkController@update')->name('marks.update');
                 Route::post('submit/{exam}/{class}/{section}/{subject}', 'MarkController@submit')->name('marks.submit');
@@ -417,10 +418,13 @@ Route::group(['middleware' => 'auth'], function () {
         Route::get('attendance', 'AttendanceController@index')->name('attendance.index');
         Route::post('attendance', 'AttendanceController@store')->name('attendance.store');
         Route::get('attendance/report', 'AttendanceController@report')->name('attendance.report');
+        Route::get('attendance/report/results', 'AttendanceController@reportResults')->name('attendance.report.results');
+        Route::get('attendance/report/sections', 'AttendanceController@reportSections')->name('attendance.report.sections');
         Route::get('attendance/report/export', 'AttendanceController@export')->name('attendance.export');
         Route::get('attendance/report/print', 'AttendanceController@reportPrint')->name('attendance.report.print');
         Route::get('attendance/report/pdf', 'AttendanceController@reportPdf')->name('attendance.report.pdf');
         Route::get('attendance/defaulters', 'AttendanceController@defaulters')->name('attendance.defaulters');
+        Route::get('attendance/defaulters/results', 'AttendanceController@defaultersResults')->name('attendance.defaulters.results');
         Route::get('attendance/defaulters/export', 'AttendanceController@defaultersExport')->name('attendance.defaulters.export');
         Route::get('attendance/defaulters/pdf', 'AttendanceController@defaultersPdf')->name('attendance.defaulters.pdf');
         Route::get('attendance/student/{student_id}', 'AttendanceController@studentReport')->name('attendance.student_report');
@@ -463,6 +467,7 @@ Route::group(['middleware' => 'auth'], function () {
             Route::post('preview', 'ReportsController@preview')->name('reports.preview');
             Route::post('preview-html', 'ReportsController@previewHtml')->name('reports.preview_html');
             Route::post('pdf', 'ReportsController@pdf')->name('reports.pdf');
+            Route::post('word', 'ReportsController@word')->name('reports.word');
             Route::post('templates', 'ReportsController@storeTemplate')->name('reports.templates.store');
             Route::put('templates/{template}', 'ReportsController@updateTemplate')->name('reports.templates.update');
             Route::delete('templates/{template}', 'ReportsController@destroyTemplate')->name('reports.templates.destroy');
@@ -599,6 +604,11 @@ Route::group(['middleware' => 'auth'], function () {
         /*************** Bulk ID Cards (Wave 2) *****************/
         Route::get('students/id_cards/bulk', 'IdCardController@bulkSelector')->name('students.id_cards.bulk')->middleware('teamSAT');
         Route::get('students/id_cards/bulk/pdf', 'IdCardController@bulk')->name('students.id_cards.bulk.pdf')->middleware('teamSAT');
+
+        /*************** Staff ID Cards (Item 14) *****************/
+        Route::get('staff/id_card/{user_id}', 'IdCardController@staffShow')->name('staff.id_card')->middleware('teamSA');
+        Route::get('staff/id_cards/bulk', 'IdCardController@staffBulkSelector')->name('staff.id_cards.bulk')->middleware('teamSA');
+        Route::get('staff/id_cards/bulk/pdf', 'IdCardController@staffBulk')->name('staff.id_cards.bulk.pdf')->middleware('teamSA');
 
         /*************** Inventory / Store (Wave 2) *****************/
         Route::group(['prefix' => 'inventory'], function(){
@@ -795,6 +805,8 @@ Route::group(['middleware' => 'auth'], function () {
         Route::get('get_lga/{state_id}', 'AjaxController@get_lga')->name('get_lga');
         Route::get('get_class_sections/{class_id}', 'AjaxController@get_class_sections')->name('get_class_sections');
         Route::get('get_class_subjects/{class_id}', 'AjaxController@get_class_subjects')->name('get_class_subjects');
+        Route::get('get_section_students/{section_id}', 'AjaxController@get_section_students')->name('get_section_students');
+        Route::get('get_student_by_adm_no', 'AjaxController@get_student_by_adm_no')->name('get_student_by_adm_no');
     });
 
 });
@@ -833,6 +845,7 @@ Route::group(['namespace' => 'SuperAdmin','middleware' => 'teamSA', 'prefix' => 
 Route::group(['namespace' => 'SuperAdmin','middleware' => 'teamOrPrincipal:SA', 'prefix' => 'super_admin'], function(){
 
     Route::get('/audit-logs', 'AuditLogController@index')->name('audit_logs.index');
+    Route::get('/audit-logs/export', 'AuditLogController@export')->name('audit_logs.export');
 
 });
 

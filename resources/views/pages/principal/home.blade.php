@@ -1,6 +1,7 @@
 @extends('layouts.master')
 @section('page_title', 'Principal Dashboard')
 @section('content')
+    @include('partials.role_banner', ['hkRole' => 'principal', 'hkLabel' => 'Principal'])
 <style>
 .pr-wrap{color:#10263b}
 .pr-hero{background:#10263b;color:#fff;border-radius:12px;padding:22px 24px;margin-bottom:18px}
@@ -51,7 +52,6 @@ html.hk-dark .pr-wrap .pr-card h5{color:#10263b}
 <div class="pr-wrap">
     <div class="pr-hero">
         <div class="pr-eyebrow">School Command Center</div>
-        <h2>{{ $greeting }}, {{ Auth::user()->name }}</h2>
         <p>Whole-school situation at a glance — academics, attendance, staffing and decisions.</p>
         <div class="pr-date">{{ $today->format('l, d F Y') }} &middot; Session {{ $current_session }}</div>
     </div>

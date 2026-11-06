@@ -82,13 +82,24 @@ class OwnerOvernightAttendanceTest extends TestCase
             ->assertOk()
             ->getContent();
 
-        // The KPI total is the scoped enrolment, not the school.
-        $this->assertStringContainsString(number_format($scoped), $html);
-        $this->assertStringNotContainsString(number_format($wholeSchool), $html);
-        // ... and the wording must say so.
-        $this->assertStringContainsString('Across your assigned classes', $html);
+        // SAAB ITEM 7 re-expression (2026-11-01): the pre-selection KPI total
+        // and its 'Across your assigned classes' wording were retired by the
+        // owner's empty-first design. The scoped-total intent is pinned
+        // through the results endpoint for one of her sections instead: the
+        // total is that section's enrolment, never the whole school's, and the
+        // filter still labels her scope honestly.
         $this->assertStringNotContainsString('Across all classes', $html);
         $this->assertStringContainsString('All assigned classes', $html);
+
+        $ownSection = \App\Models\Section::whereIn('my_class_id', TeacherScope::classIds($teacher))
+            ->orderBy('id')->first();
+        $ownEnrolment = StudentRecord::where('section_id', $ownSection->id)->where('grad', 0)->count();
+        $stats = $this->actingAs($teacher)->getJson(route('attendance.defaulters.results', [
+            'class_id' => $ownSection->my_class_id, 'section_id' => $ownSection->id, 'month' => '2026-10',
+        ]))->assertOk()->json('stats');
+        $this->assertStringContainsString(number_format($ownEnrolment), $stats);
+        $this->assertStringNotContainsString(number_format($wholeSchool), $stats);
+        $this->assertStringContainsString('Enrolled in the selected scope', $stats);
     }
 
     public function test_teacher_defaulter_out_of_scope_class_is_403()
@@ -106,8 +117,13 @@ class OwnerOvernightAttendanceTest extends TestCase
             ->assertOk()
             ->getContent();
 
-        $this->assertStringContainsString('Across all classes', $html);
+        // SAAB ITEM 7 re-expression (2026-11-01): 'Across all classes' was the
+        // pre-selection KPI wording, retired with the empty-first design. The
+        // admin/teacher wording split now lives in the filter labels: admin
+        // gets 'All Classes', never the teacher's 'assigned' wording.
+        $this->assertStringContainsString('>All Classes</option>', $html);
         $this->assertStringNotContainsString('Across your assigned classes', $html);
+        $this->assertStringNotContainsString('All assigned classes', $html);
     }
 
     public function test_teacher_monthly_report_all_classes_label_is_assigned()

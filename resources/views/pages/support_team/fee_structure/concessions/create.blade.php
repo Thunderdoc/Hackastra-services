@@ -19,12 +19,25 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <label>Student</label>
-                    <select name="student_record_id" class="form-control" required>
-                        <option value="">Select student</option>
-                        @foreach($students as $sr)
-                            <option value="{{ $sr->id }}" {{ old('student_record_id') == $sr->id ? 'selected' : '' }}>{{ optional($sr->user)->name }} — {{ optional($sr->my_class)->name }} ({{ $sr->adm_no }})</option>
+                    <label>Class</label>
+                    <select class="form-control hk-cascade-class">
+                        <option value="">Choose a class…</option>
+                        @foreach($classes as $hkClass)
+                            <option value="{{ $hkClass->id }}">{{ $hkClass->name }}</option>
                         @endforeach
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Section</label>
+                    <select class="form-control hk-cascade-section">
+                        <option value="">Choose a class first</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Student</label>
+                    <select name="student_record_id" class="form-control hk-cascade-student" required data-value-key="id"
+                            @if($preselected) data-preselect-class="{{ $preselected->my_class_id }}" data-preselect-section="{{ $preselected->section_id }}" data-preselect-value="{{ $preselected->id }}" data-preselect-label="{{ optional($preselected->user)->name }} ({{ $preselected->adm_no }})" @endif>
+                        <option value="">Choose a student…</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -48,4 +61,8 @@
             </form>
         </div>
     </div>
+@endsection
+
+@section('scripts')
+    @include('partials.student_cascade_js')
 @endsection

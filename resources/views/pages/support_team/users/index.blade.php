@@ -30,6 +30,17 @@
                  side (divider between them) on desktop, stacking only
                  on narrow screens. Links, values and active states are
                  unchanged. --}}
+            <form method="GET" action="{{ route('users.index') }}" class="l106-users-search">
+                @if($selected_user_type)<input type="hidden" name="user_type" value="{{ $selected_user_type }}">@endif
+                @if($selected_status)<input type="hidden" name="status" value="{{ $selected_status }}">@endif
+                <div class="input-group">
+                    <input type="text" name="q" value="{{ $search_q ?? '' }}" class="form-control" placeholder="Search by name, username or email…">
+                    <div class="input-group-append">
+                        <button type="submit" class="btn btn-primary"><i class="icon-search4"></i> Search</button>
+                        @if(!empty($search_q))<a href="{{ route('users.index', array_filter(['user_type' => $selected_user_type, 'status' => $selected_status])) }}" class="btn btn-light">Clear</a>@endif
+                    </div>
+                </div>
+            </form>
             <div class="l106-users-filters">
                 <div class="l106-users-filter-group">
                     <span class="l106-users-filter-label">Role</span>

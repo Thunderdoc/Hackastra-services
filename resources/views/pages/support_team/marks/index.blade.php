@@ -11,78 +11,47 @@
     @endif
 @endsection
 @section('content')
-    {{-- Loop 84 (marks selector redesign): the page is the exam /
-         class / section / subject picker. New chrome around the
-         shared selector form — a slim info banner, a four-step
-         progress indicator driven by the form's real selections,
-         the "Select Exam Details" card frame and three info cards.
-         The form itself (marks/selector partial, full-chrome mode)
-         keeps its POST, field names, ids and cascade untouched. --}}
+    {{-- Marks selector page. Loop 84 built the gated stepper +
+         entry-state flow; item 10 (Light Luxe) rebuilt the chrome:
+         slim header, ONE card holding the stepper, the four selects,
+         the real-data stat tiles and the status line + actions. The
+         form (marks/selector partial, full-chrome mode) keeps its
+         POST, field names, ids and cascade untouched. --}}
 
-    <div class="l84-banner">
-        <span class="l84-banner-icon"><i class="icon-profile"></i></span>
-        <div class="l84-banner-text">
-            <h5>Record and manage student marks</h5>
-            <p>Select the details below to view the list of students and enter or edit their marks securely.</p>
+    {{-- Item 10 (Light Luxe): slim header — gradient icon tile,
+         title, ONE subtitle line, session chip. The promo banner
+         and its checklist are gone by owner choice. --}}
+    <div class="l10-head">
+        <span class="l10-head-tile"><i class="icon-profile"></i></span>
+        <div class="l10-head-text">
+            <h5>Manage Exam Marks</h5>
+            <p>Pick the exam, class, section and subject — the student list opens from here.</p>
         </div>
-        <ul class="l84-banner-points">
-            <li><i class="icon-checkmark3"></i> Supports all exam types</li>
-            <li><i class="icon-checkmark3"></i> Class &amp; section wise</li>
-            <li><i class="icon-checkmark3"></i> Easy mark entry and updates</li>
-        </ul>
+        <span class="l10-chip"><i class="icon-calendar3"></i>Session {{ Qs::getCurrentSession() }}</span>
     </div>
 
-    <ol class="l84-steps" id="l84-steps" aria-label="Selection progress">
+    <div class="card pat-form-card l84-card l10-card">
+    <ol class="l84-steps l10-steps" id="l84-steps" aria-label="Selection progress">
         <li class="l84-step" data-step="1">
             <span class="l84-step-dot"><span class="l84-step-num">1</span><i class="icon-checkmark3 l84-step-check"></i></span>
-            <span class="l84-step-text"><strong>Select Exam</strong><small>Choose exam type</small></span>
+            <span class="l84-step-text"><strong>Exam</strong></span>
         </li>
         <li class="l84-step" data-step="2">
             <span class="l84-step-dot"><span class="l84-step-num">2</span><i class="icon-checkmark3 l84-step-check"></i></span>
-            <span class="l84-step-text"><strong>Select Class</strong><small>Choose class &amp; section</small></span>
+            <span class="l84-step-text"><strong>Class</strong></span>
         </li>
         <li class="l84-step" data-step="3">
             <span class="l84-step-dot"><span class="l84-step-num">3</span><i class="icon-checkmark3 l84-step-check"></i></span>
-            <span class="l84-step-text"><strong>Select Subject</strong><small>Choose subject</small></span>
+            <span class="l84-step-text"><strong>Subject</strong></span>
         </li>
         <li class="l84-step" data-step="4">
             <span class="l84-step-dot"><span class="l84-step-num">4</span><i class="icon-checkmark3 l84-step-check"></i></span>
-            <span class="l84-step-text"><strong>Manage Marks</strong><small>View &amp; enter marks</small></span>
+            <span class="l84-step-text"><strong>Manage Marks</strong></span>
         </li>
     </ol>
-
-    <div class="card pat-form-card l84-card">
-        <div class="pat-form-head l84-card-head">
-            <h5 class="pat-form-title"><i class="icon-list mr-2"></i>Select Exam Details</h5>
-            <span class="l84-req-note">Fields marked with <span class="l84-req" aria-hidden="true">*</span> are required</span>
-        </div>
         @include('pages.support_team.marks.selector', ['marks_selector_full' => true])
     </div>
 
-    <div class="l84-info-cards">
-        <div class="l84-info-card">
-            <span class="l84-info-icon l84-tone-blue"><i class="icon-books"></i></span>
-            <div>
-                <h6>Supported Exam Types</h6>
-                @php $l84ExamTypes = $exams->pluck('name')->unique()->values(); @endphp
-                <p>@if($l84ExamTypes->count()){{ $l84ExamTypes->implode(', ') }} — every exam created for the current session.@else No exams have been created for the current session yet. @endif</p>
-            </div>
-        </div>
-        <div class="l84-info-card">
-            <span class="l84-info-icon l84-tone-violet"><i class="icon-checkmark-circle2"></i></span>
-            <div>
-                <h6>Automatic Calculations</h6>
-                <p>Totals, percentages and grades are calculated automatically.</p>
-            </div>
-        </div>
-        <div class="l84-info-card">
-            <span class="l84-info-icon l84-tone-amber"><i class="icon-shield-check"></i></span>
-            <div>
-                <h6>Secure &amp; Reliable</h6>
-                <p>Your data is safe and accessible only to authorized users.</p>
-            </div>
-        </div>
-    </div>
 @endsection
 @section('scripts')
 <script>
@@ -108,8 +77,38 @@
            server-side gates remain the real enforcement; a failed
            check fails OPEN to them rather than stranding the user. */
         var $note = $('#l84-entry-note'), $label = $('#l84-manage-btn-label'),
+            $pulse = $('#l10-pulse'),
             entryStateUrl = '{{ route('marks.entry_state') }}',
             entrySeq = 0, entryOk = false, entryPending = false, lastEntryKey = '';
+
+        /* Item 10: ONE flow drives the stepper, the stat tiles, the
+           status line and the button together, all from the same
+           entry-state response. The note text lives in the card's
+           status line now; it is always visible (the prompt text
+           below is its resting state). */
+        function setStatus(mode, text) {
+            $note.text(text);
+            $pulse.attr('class', 'l10-pulse' + (mode ? ' l10-pulse-' + mode : ''));
+        }
+
+        function resetTiles() {
+            $('#l10-t-students').text('\u2014'); $('#l10-t-students-l').text('Students');
+            $('#l10-t-subject').text('\u2014');
+            $('#l10-t-max').text('\u2014'); $('#l10-t-max-l').text('Max marks');
+            $('#l10-t-entry').text('\u2014'); $('#l10-t-entry-l').text('Entry state');
+        }
+
+        function fillTiles(data) {
+            if (!data || !data.summary) { return; }
+            var sm = data.summary;
+            $('#l10-t-students').text(sm.students);
+            $('#l10-t-students-l').text('Students \u00b7 ' + $cls.find('option:selected').text() + ' (' + $sec.find('option:selected').text() + ')');
+            $('#l10-t-subject').text(sm.subject || '\u2014');
+            $('#l10-t-max').text(sm.max);
+            $('#l10-t-max-l').text(sm.scheme ? ('Max \u00b7 ' + sm.scheme) : 'Max marks');
+            $('#l10-t-entry').text(sm.entry_label || '\u2014');
+            $('#l10-t-entry-l').text(sm.entry_sub || 'Entry state');
+        }
 
         function checkEntry() {
             var key = [val($exam), val($cls), val($sec), val($sub)].join(':');
@@ -123,22 +122,22 @@
             }}).done(function (data) {
                 if (seq !== entrySeq) { return; }
                 entryPending = false;
+                fillTiles(data);
                 if (data && data.enabled) {
                     entryOk = true;
                     $label.text('Manage Marks');
-                    $note.hide().text('');
+                    setStatus('ok', 'Ready \u2014 marks entry is open for this unit.');
                 } else {
                     entryOk = false;
                     $label.text('Not Enabled');
-                    if (data && data.reason) { $note.text(data.reason).show(); }
-                    else { $note.hide().text(''); }
+                    setStatus('bad', (data && data.reason) ? data.reason : 'This unit is not enabled.');
                 }
                 evalState();
             }).fail(function () {
                 if (seq !== entrySeq) { return; }
                 entryPending = false; entryOk = true;
                 $label.text('Manage Marks');
-                $note.hide().text('');
+                setStatus('', 'Entry state could not be checked \u2014 the server confirms it when you open the marks.');
                 evalState();
             });
         }
@@ -147,7 +146,8 @@
             var done1 = val($exam) !== '',
                 done2 = val($cls) !== '' && val($sec) !== '' && !cascadePending,
                 done3 = val($sub) !== '' && !cascadePending,
-                done = [done1, done2, done3, false],
+                complete = done1 && done2 && done3,
+                done = [done1, done2, done3, complete && entryOk],
                 current = done.indexOf(false); // first incomplete step (0-based)
 
             $steps.each(function (i) {
@@ -157,12 +157,12 @@
                 if (i === current) { $li.attr('aria-current', 'step'); } else { $li.removeAttr('aria-current'); }
             });
 
-            var complete = done1 && done2 && done3;
             if (complete) { checkEntry(); }
             else {
                 entrySeq++; entryOk = false; entryPending = false; lastEntryKey = '';
                 $label.text('Manage Marks');
-                $note.hide().text('');
+                setStatus('', 'Select exam, class, section and subject \u2014 the entry state will show here.');
+                resetTiles();
             }
             $btn.prop('disabled', !complete || entryPending || !entryOk);
         }
@@ -178,7 +178,7 @@
         /* The cascade fills section/subject without firing change on
            them; re-evaluate once its request settles (success or not). */
         $(document).on('ajaxComplete', function (e, xhr, settings) {
-            if (settings && settings.url && settings.url.indexOf('get_class_subjects') !== -1) {
+            if (settings && settings.url && (settings.url.indexOf('get_class_subjects') !== -1 || settings.url.indexOf('selector-options') !== -1)) {
                 cascadePending = false;
                 evalState();
             }

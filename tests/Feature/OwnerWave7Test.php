@@ -64,8 +64,26 @@ class OwnerWave7Test extends TestCase
 
     public function test_index_shows_validated_pill_for_admin_only()
     {
+        // Owner layout change, 2026-11-01 (item 3): record rows —
+        // and their Validated pill — render in the single-class
+        // LIST view, not on the unfiltered card grid. Same intent,
+        // new home (mirrors the OwnerWave5Test re-expression):
+        // find a class whose list carries a validated record and
+        // assert the pill there, for admin only.
+        $cleanIds = \App\Support\TimetableValidator::cleanRecordIds(\App\Helpers\Qs::getCurrentSession());
+        $validatedClassId = null;
+        foreach (\App\Models\TimeTableRecord::where('year', \App\Helpers\Qs::getCurrentSession())->get() as $rec) {
+            if (in_array($rec->id, $cleanIds, true)) {
+                $validatedClassId = $rec->my_class_id;
+                break;
+            }
+        }
+        if ($validatedClassId === null) {
+            $this->markTestSkipped('no validated record on the seed to assert against');
+        }
+
         $this->actingAs($this->admin())
-            ->get(route('tt.index'))
+            ->get(route('tt.index', ['class_id' => $validatedClassId]))
             ->assertStatus(200)
             ->assertSee('Validated');
 

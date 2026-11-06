@@ -112,4 +112,20 @@ class OwnerMarksEntryStateButtonTest extends TestCase
         $res->assertSee('marks/entry-state', false);
         $res->assertSee('Not Enabled', false);
     }
+
+    public function test_stat_icon_tiles_centre_their_glyphs()
+    {
+        // Owner, 2026-11-01 (live marks entry page): the stat
+        // tiles' icons sat visibly high in their boxes. The tiles
+        // were already flex-centred — the glyph's inherited
+        // line-height (~1.5) inflated the line box flex centres.
+        // The fix is one appended stylesheet rule pinning
+        // line-height:1 on the stat-tile pattern; this pin keeps
+        // it from silently regressing.
+        $css = file_get_contents(public_path('assets/css/qs.css'));
+        $this->assertStringContainsString(
+            '.l86-stat-ic,.dashboard-stat-icon,.acct-stat-icon{line-height:1}',
+            $css
+        );
+    }
 }

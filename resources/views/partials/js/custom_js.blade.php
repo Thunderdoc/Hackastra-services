@@ -52,6 +52,93 @@
         })
     }
 
+    /* Scoped variant (owner, 2026-11-01): same fill contract, but
+       the feed is asked for its opt-in effective mode — a teacher
+       is offered only the sections she effectively teaches in.
+       Used by the LMS create forms (assignments, materials) whose
+       stores enforce exactly that scope. */
+    function getClassSectionsTabulation(class_id, destination){
+        var url = '{{ route('get_class_sections', [':id']) }}';
+        url = url.replace(':id', class_id) + '?scope=tabulation';
+        var section = destination ? $(destination) : $('#section_id');
+
+        $.ajax({
+            dataType: 'json',
+            url: url,
+            success: function (resp) {
+                var keep = section.find('option[value=""]').first().clone();
+                section.empty();
+                if (keep.length) { section.append(keep); }
+                $.each(resp, function (i, data) {
+                    section.append($('<option>', {
+                        value: data.id,
+                        text: data.name
+                    }));
+                });
+                section.trigger('change');
+            }
+        });
+    }
+
+    function getClassSectionsScoped(class_id, destination){
+        var url = '{{ route('get_class_sections', [':id']) }}';
+        url = url.replace(':id', class_id) + '?effective=1';
+        var section = destination ? $(destination) : $('#section_id');
+
+        $.ajax({
+            dataType: 'json',
+            url: url,
+            success: function (resp) {
+                var keep = section.find('option[value=""]').first().clone();
+                section.empty();
+                if (keep.length) { section.append(keep); }
+                $.each(resp, function (i, data) {
+                    section.append($('<option>', {
+                        value: data.id,
+                        text: data.name
+                    }));
+                });
+                section.trigger('change');
+
+            }
+        })
+    }
+
+    function getClassSubjectsScoped(class_id){
+        var url = '{{ route('get_class_subjects', [':id']) }}';
+        url = url.replace(':id', class_id) + '?effective=1';
+        var section = $('#section_id');
+        var subject = $('#subject_id');
+
+        $.ajax({
+            dataType: 'json',
+            url: url,
+            success: function (resp) {
+                var keepSection = section.find('option[value=""]').first().clone();
+                var keepSubject = subject.find('option[value=""]').first().clone();
+                section.empty();
+                subject.empty();
+                if (keepSection.length) { section.append(keepSection); }
+                if (keepSubject.length) { subject.append(keepSubject); }
+                $.each(resp.sections, function (i, data) {
+                    section.append($('<option>', {
+                        value: data.id,
+                        text: data.name
+                    }));
+                });
+                $.each(resp.subjects, function (i, data) {
+                    subject.append($('<option>', {
+                        value: data.id,
+                        text: data.name
+                    }));
+                });
+                section.trigger('change');
+                subject.trigger('change');
+
+            }
+        })
+    }
+
     function getClassSubjects(class_id){
         var url = '{{ route('get_class_subjects', [':id']) }}';
         url = url.replace(':id', class_id);
@@ -87,6 +174,80 @@
                 section.trigger('change');
                 subject.trigger('change');
 
+            }
+        })
+    }
+
+    /* Marks selector feed (owner item 4, 2026-11-01): same fill
+       contract as getClassSubjects, but served by the marks
+       selector's own endpoint, which scopes a teacher's sections
+       and subjects to her effective units. Other pages keep using
+       getClassSubjects untouched. */
+    function getMarkClassSubjects(class_id){
+        var url = '{{ route('marks.selector_options') }}';
+        var section = $('#section_id');
+        var subject = $('#subject_id');
+
+        $.ajax({
+            dataType: 'json',
+            url: url,
+            data: { class_id: class_id },
+            success: function (resp) {
+                var keepSection = section.find('option[value=""]').first().clone();
+                var keepSubject = subject.find('option[value=""]').first().clone();
+                section.empty();
+                subject.empty();
+                if (keepSection.length) { section.append(keepSection); }
+                if (keepSubject.length) { subject.append(keepSubject); }
+                $.each(resp.sections, function (i, data) {
+                    section.append($('<option>', {
+                        value: data.id,
+                        text: data.name
+                    }));
+                });
+                $.each(resp.subjects, function (i, data) {
+                    subject.append($('<option>', {
+                        value: data.id,
+                        text: data.name
+                    }));
+                });
+                section.trigger('change');
+                subject.trigger('change');
+
+            }
+        })
+    }
+
+    /* Marks selector: a section was picked — narrow the subjects
+       to the ones the caller effectively teaches in THAT section
+       (the endpoint returns the full class list for non-teachers,
+       so their picker is unchanged). A still-offered current
+       subject survives the refill. */
+    function refineMarkSubjects(){
+        var class_id = $('#my_class_id').val();
+        var section = $('#section_id');
+        var subject = $('#subject_id');
+        if (!class_id || !section.val() || !subject.length) { return; }
+        var current = subject.val();
+
+        $.ajax({
+            dataType: 'json',
+            url: '{{ route('marks.selector_options') }}',
+            data: { class_id: class_id, section_id: section.val() },
+            success: function (resp) {
+                var keepSubject = subject.find('option[value=""]').first().clone();
+                subject.empty();
+                if (keepSubject.length) { subject.append(keepSubject); }
+                $.each(resp.subjects, function (i, data) {
+                    subject.append($('<option>', {
+                        value: data.id,
+                        text: data.name
+                    }));
+                });
+                if (current && subject.find('option[value="' + current + '"]').length) {
+                    subject.val(current);
+                }
+                subject.trigger('change');
             }
         })
     }

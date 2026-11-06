@@ -137,10 +137,16 @@ class OwnerStudentSearchFiltersTest extends TestCase
 
     public function test_picker_contract_is_unchanged_without_a_search()
     {
+        // Item 21 re-expression (2026-11-01): the duplicate
+        // "Choose a Class" picker block was REMOVED on owner order —
+        // the Search Students form is the one mechanism (its own
+        // class filter reaches the same students). The rest of the
+        // contract is unchanged: no search state without ?search,
+        // and ?class_id still redirects to the per-class list.
         $this->actingAs($this->admin())
             ->get(route('students.list'))
             ->assertOk()
-            ->assertSee('Choose a Class')
+            ->assertDontSee('Choose a Class')
             ->assertSee('Search Students')
             ->assertViewMissing('searched');
 

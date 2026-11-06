@@ -95,6 +95,55 @@ class TimeTableController extends Controller
         return false;
     }
 
+    /**
+     * The sections a teacher actually touches, grouped by class:
+     * she leads the section (sections.teacher_id), holds an
+     * override inside it, or is the EFFECTIVE teacher of one of
+     * its subjects (SectionTeacher::teacherIdFor semantics — the
+     * override map is loaded once and resolved in memory, exactly
+     * like SectionTeacher::effectiveLoads). Used to narrow the
+     * index's records, chips and Section filter to her assignment
+     * (owner addendum, 2026-11-01).
+     */
+    protected function teacherSectionIdsByClass(User $user, array $classIds): array
+    {
+        if (!$classIds) {
+            return [];
+        }
+
+        $overrides = [];
+        if (\Illuminate\Support\Facades\Schema::hasTable('section_subject_teachers')) {
+            $overrides = DB::table('section_subject_teachers')->get()
+                ->groupBy('section_id')
+                ->map(function ($rows) {
+                    return $rows->pluck('teacher_id', 'subject_id')
+                        ->map(function ($t) { return (int) $t; })->all();
+                })->all();
+        }
+        $subjectsByClass = Subject::whereIn('my_class_id', $classIds)
+            ->get()->groupBy('my_class_id');
+
+        $out = [];
+        foreach (Section::whereIn('my_class_id', $classIds)->get() as $sec) {
+            $touches = (int) $sec->teacher_id === (int) $user->id;
+            if (!$touches) {
+                foreach ($subjectsByClass[$sec->my_class_id] ?? [] as $sub) {
+                    $tid = $overrides[$sec->id][$sub->id]
+                        ?? ($sub->teacher_id ? (int) $sub->teacher_id : null);
+                    if ($tid === (int) $user->id) {
+                        $touches = true;
+                        break;
+                    }
+                }
+            }
+            if ($touches) {
+                $out[(int) $sec->my_class_id][] = (int) $sec->id;
+            }
+        }
+
+        return $out;
+    }
+
     /** Record-level guard for show/print: foreign class => 403. */
     protected function guardRecordScope($ttr)
     {
@@ -136,6 +185,25 @@ class TimeTableController extends Controller
             $all = $all->filter(function ($ttr) { return $ttr->isInForce(); })->values();
         }
 
+        /* Teacher scoping (owner addendum, 2026-11-01 — "here too,
+           show only as much as is assigned"): the class set already
+           comes from TeacherScope; this narrows her records to the
+           sections she actually touches — class teacher of the
+           section, an override inside it, or the effective teacher
+           of one of its subjects. Whole-class records stay (she
+           teaches the class). Stats, years and the listing all
+           derive from this set, so every count on her page
+           describes what she can see. */
+        $d['teacher_sections'] = null;
+        if (Qs::userIsTeacher()) {
+            $d['teacher_sections'] = $this->teacherSectionIdsByClass(Auth::user(), $scope ?? []);
+            $herSections = $d['teacher_sections'];
+            $all = $all->filter(function ($ttr) use ($herSections) {
+                return !$ttr->section_id
+                    || in_array((int) $ttr->section_id, $herSections[(int) $ttr->my_class_id] ?? [], true);
+            })->values();
+        }
+
         $d['tt_records_all'] = $all;
 
         /* Loop 81: summary cards — module totals over every record
@@ -155,6 +223,7 @@ class TimeTableController extends Controller
         $d['f_q'] = trim((string) $req->query('q', ''));
         $d['f_class'] = $req->query('class_id');
         $d['f_year'] = $req->query('year');
+        $d['f_section'] = $req->query('section_id');
 
         $d['tt_records'] = $all->filter(function ($ttr) use ($d) {
             if ($d['f_q'] !== '') {
@@ -166,6 +235,9 @@ class TimeTableController extends Controller
                 }
             }
             if ($d['f_class'] !== null && $d['f_class'] !== '' && (int) $ttr->my_class_id !== (int) $d['f_class']) {
+                return false;
+            }
+            if ($d['f_section'] !== null && $d['f_section'] !== '' && (int) $ttr->section_id !== (int) $d['f_section']) {
                 return false;
             }
             if ($d['f_year'] !== null && $d['f_year'] !== '' && (string) $ttr->year !== (string) $d['f_year']) {
@@ -180,6 +252,40 @@ class TimeTableController extends Controller
            by class, and per-record period/subject counts. */
         $d['sections_by_class'] = Section::orderBy('name')
             ->get()->groupBy('my_class_id');
+
+        /* Section filter + chips (owner, 2026-11-01): the filter's
+           options stay inside the caller's class scope, and for a
+           teacher the chips and the options list only the sections
+           she touches. The create form below keeps the full
+           sections_by_class — it is an office form, not her view. */
+        $d['chip_sections_by_class'] = $d['sections_by_class'];
+        $d['filter_sections'] = Section::orderBy('name')->get()
+            ->filter(function ($sec) use ($scope) {
+                return $scope === null || in_array((int) $sec->my_class_id, $scope, true);
+            })->values();
+        if ($d['teacher_sections'] !== null) {
+            $herSections = $d['teacher_sections'];
+            $onlyHers = function ($sec) use ($herSections) {
+                return in_array((int) $sec->id, $herSections[(int) $sec->my_class_id] ?? [], true);
+            };
+            $d['chip_sections_by_class'] = collect($d['sections_by_class'])
+                ->map(function ($secs) use ($onlyHers) {
+                    return $secs->filter($onlyHers)->values();
+                });
+            $d['filter_sections'] = $d['filter_sections']->filter($onlyHers)->values();
+        }
+        /* The single-class LIST layout renders when a class filter
+           is chosen (owner, 2026-11-01): unfiltered = uniform
+           summary cards only, so no card can outgrow the others. */
+        $d['list_class_id'] = ($d['f_class'] !== null && $d['f_class'] !== '') ? (int) $d['f_class'] : null;
+        /* Parity (tt-v3 sample): the filter bar carries only Class
+           + Section and auto-submits, so once a class is chosen the
+           Section options are narrowed to that class server-side
+           (the old client-side option hiding is gone). */
+        if ($d['list_class_id']) {
+            $d['filter_sections'] = $d['filter_sections']
+                ->where('my_class_id', $d['list_class_id'])->values();
+        }
         $d['record_stats'] = [];
         $slotCounts = TimeSlot::select('ttr_id')->get()->groupBy('ttr_id')->map->count();
         foreach (TimeTable::select('ttr_id', 'subject_id', 'day')->get()->groupBy('ttr_id') as $ttrId => $cells) {
@@ -193,6 +299,23 @@ class TimeTableController extends Controller
                 'free' => max(0, $capacity - $cells->count()),
             ];
         }
+
+        /* Parity (tt-v3 sample): the headbar shows Classes /
+           Sections / Periods-per-week over the SAME scoped set as
+           the listing — for a teacher, the sections she touches
+           and the cells of the records she can see; for office
+           roles, every section of the listed classes and every
+           cell of their records. */
+        $d['stats']['sections'] = $d['teacher_sections'] !== null
+            ? array_sum(array_map('count', $d['teacher_sections']))
+            : $d['sections_by_class']
+                ->filter(function ($secs, $cid) use ($d) {
+                    return $d['my_classes']->contains('id', $cid);
+                })
+                ->sum(function ($secs) { return $secs->count(); });
+        $d['stats']['periods'] = $all->sum(function ($ttr) use ($d) {
+            return $d['record_stats'][$ttr->id]['periods'] ?? 0;
+        });
 
         /* Wave 7 — green validation: for the Admin, the current
            session's records whose validator verdict is clean (zero
@@ -1225,6 +1348,28 @@ class TimeTableController extends Controller
                     $d['days'] = $grid['days'];
                     $d['slots'] = $grid['slots'];
                     $d['map'] = $grid['map'];
+
+                    // Item 20b: summary strip under the grid, from
+                    // the SAME map — periods today / this week /
+                    // free slots across the shown week.
+                    $todayName = Carbon::now()->format('l');
+                    $weekCount = 0; $todayCount = 0; $cellCount = 0;
+                    foreach ($grid['days'] as $dayName) {
+                        foreach ($grid['slots'] as $slot) {
+                            $cellCount++;
+                            $cell = $grid['map'][$dayName][$slot->full] ?? null;
+                            if ($cell && !empty($cell['title'])) {
+                                $weekCount++;
+                                if ($dayName === $todayName) { $todayCount++; }
+                            }
+                        }
+                    }
+                    $d['mine_summary'] = [
+                        'today' => $todayCount,
+                        'week' => $weekCount,
+                        'free' => max(0, $cellCount - $weekCount),
+                        'today_name' => $todayName,
+                    ];
                 }
             }
 

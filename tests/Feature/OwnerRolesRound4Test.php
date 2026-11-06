@@ -329,7 +329,7 @@ class OwnerRolesRound4Test extends TestCase
     public function test_ptm_cancel_cleans_the_teachers_bell_item()
     {
         $slot = PtmSlot::create([
-            'date' => '2026-11-05', 'start_time' => '14:00:00', 'end_time' => '15:00:00',
+            'date' => '2027-01-07', 'start_time' => '14:00:00', 'end_time' => '15:00:00',
             'teacher_id' => $this->teacher()->id, 'my_class_id' => 1, 'section_id' => null,
             'created_by' => $this->admin()->id,
         ]);
@@ -340,7 +340,7 @@ class OwnerRolesRound4Test extends TestCase
         $booking = PtmBooking::where('ptm_slot_id', $slot->id)->firstOrFail();
         $bell = UserNotification::where('user_id', $this->teacher()->id)
             ->where('type', 'ptm_booked')
-            ->where('title', 'PTM slot booked: 05 Nov 2026 14:00');
+            ->where('title', 'PTM slot booked: 07 Jan 2027 14:00');
         $this->assertEquals(1, $bell->count());
 
         // The booking parent cancels: booking AND bell item go away.
@@ -356,7 +356,7 @@ class OwnerRolesRound4Test extends TestCase
     public function test_ptm_foreign_cancel_refused()
     {
         $slot = PtmSlot::create([
-            'date' => '2026-11-03', 'start_time' => '10:00:00', 'end_time' => '11:00:00',
+            'date' => '2027-01-05', 'start_time' => '10:00:00', 'end_time' => '11:00:00',
             'teacher_id' => $this->teacher()->id, 'my_class_id' => 1, 'section_id' => null,
             'created_by' => $this->admin()->id,
         ]);

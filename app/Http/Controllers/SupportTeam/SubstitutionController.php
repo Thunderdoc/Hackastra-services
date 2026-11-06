@@ -80,7 +80,16 @@ class SubstitutionController extends Controller
                     // A garbled date filter shows the whole sheet.
                 }
             }
-            $d['substitutions'] = $query->get();
+            // Item 21: within each day the sheet reads in PERIOD
+            // order (slot start), not insertion order.
+            $d['substitutions'] = $query->get()->sort(function ($a, $b) {
+                $da = $a->date instanceof Carbon ? $a->date->toDateString() : (string) $a->date;
+                $db = $b->date instanceof Carbon ? $b->date->toDateString() : (string) $b->date;
+                if ($da !== $db) { return strcmp($db, $da); }
+                $ta = (int) (optional(optional($a->time_table)->time_slot)->timestamp_from ?? PHP_INT_MAX);
+                $tb = (int) (optional(optional($b->time_table)->time_slot)->timestamp_from ?? PHP_INT_MAX);
+                return $ta <=> $tb ?: $a->id <=> $b->id;
+            })->values();
         } else {
             abort(403, 'Substitutions are managed by administrators.');
         }
@@ -98,7 +107,12 @@ class SubstitutionController extends Controller
             'time_table.subject', 'time_table.time_slot',
             'time_table.tt_record.my_class', 'time_table.tt_record.section',
             'absent_teacher', 'substitute',
-        ])->pending()->orderBy('date')->orderBy('id')->get();
+        ])->pending()->orderBy('date')->orderBy('id')->get()
+            ->sortBy(function ($row) {
+                $dkey = $row->date instanceof Carbon ? $row->date->toDateString() : (string) $row->date;
+                $tkey = (int) (optional(optional($row->time_table)->time_slot)->timestamp_from ?? PHP_INT_MAX);
+                return $dkey . '-' . str_pad((string) $tkey, 12, '0', STR_PAD_LEFT) . '-' . str_pad((string) $row->id, 10, '0', STR_PAD_LEFT);
+            })->values();
         $d['pending_groups'] = $pendingRows->groupBy(function (Substitution $row) {
             $d = $row->date instanceof Carbon ? $row->date->toDateString() : (string) $row->date;
             return (int) $row->absent_teacher_id . '|' . $d;

@@ -7,7 +7,9 @@ use App\Http\Controllers\Controller;
 use App\Models\MyClass;
 use App\Models\Section;
 use App\Models\StudentRecord;
+use App\Support\IdCardFactory;
 use App\Support\TeacherScope;
+use App\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
@@ -33,6 +35,8 @@ class IdCardController extends Controller
             $d['sr'] = Qs::findStudentRecord($user->id);
             if ($d['sr']) {
                 $d['sr']->loadMissing(['user', 'my_class', 'section']);
+                $d['card'] = IdCardFactory::forStudent($d['sr']);
+                $d['brand'] = IdCardFactory::brand();
             }
             return view('pages.support_team.students.id_card_mine', $d);
         }
@@ -45,6 +49,8 @@ class IdCardController extends Controller
             $sr = $children->firstWhere('id', (int) $request->query('child')) ?: $children->first();
             if ($sr) {
                 $sr->loadMissing(['user', 'my_class', 'section']);
+                $d['card'] = IdCardFactory::forStudent($sr);
+                $d['brand'] = IdCardFactory::brand();
             }
             $d['sr'] = $sr;
             return view('pages.support_team.students.id_card_mine', $d);
@@ -69,7 +75,11 @@ class IdCardController extends Controller
             return Qs::goWithDanger();
         }
 
-        return view('pages.support_team.students.id_card', ['sr' => $sr]);
+        return view('pages.support_team.students.id_card', [
+            'sr' => $sr,
+            'card' => IdCardFactory::forStudent($sr),
+            'brand' => IdCardFactory::brand(),
+        ]);
     }
 
     /**
@@ -139,28 +149,102 @@ class IdCardController extends Controller
             return back()->with('flash_info', 'No students found for this class and section.');
         }
 
-        /* dompdf cannot fetch asset/storage URLs: a REAL uploaded
-           photo is inlined as a data URI (same pattern as Mark
-           bulkDownload). No real photo -> the blade renders the
-           Qs::initials() tile; the stock silhouette is never used. */
-        foreach ($students as $sr) {
-            $sr->pdf_photo = null;
-            $photo = optional($sr->user)->photo;
-            if (Qs::hasRealPhoto($photo)) {
-                $sr->pdf_photo = $this->pdfImageDataUri($photo);
-            }
-        }
+        /* Item 14 design: every card is built by IdCardFactory
+           (photos inlined as data URIs for dompdf; no real photo ->
+           the initials tile; branding from Settings). One card per
+           CR80-vertical page pair: front page, then back page. */
+        $brand = IdCardFactory::brand(true);
+        $cards = $students->map(function ($sr) {
+            return IdCardFactory::forStudent($sr, true);
+        });
 
         $pdfName = 'ID_Cards_' . Str::slug($mc->name)
             . ($section ? '_' . Str::slug($section->name) : '_All_Sections') . '.pdf';
 
         return PDF::loadView('pages.support_team.students.id_card_bulk_pdf', [
-            'students' => $students,
+            'cards' => $cards,
+            'brand' => $brand,
             'my_class' => $mc,
             'section' => $section,
-            'school' => (string) Qs::getSystemName(),
-            'session' => Qs::getCurrentSession(),
-        ])->setPaper('a4')->download($pdfName);
+        ])->setPaper([0, 0, 153, 242.6])->download($pdfName);
+    }
+
+    /**
+     * Staff single card (teamSA route): any school staff member's
+     * card, from their profile. Eligible types are exactly the
+     * factory's roles (teacher, principal, admin, accountant,
+     * librarian); super_admin is platform staff and has no school
+     * card. The {user_id} param is deliberately NOT named {id}
+     * (no hash binding applies to it).
+     */
+    public function staffShow($user_id)
+    {
+        $user = User::find((int) $user_id);
+        $card = $user ? IdCardFactory::forStaff($user) : null;
+        if (!$card) {
+            return Qs::goWithDanger();
+        }
+
+        return view('pages.support_team.users.id_card', [
+            'staff' => $user,
+            'card' => $card,
+            'brand' => IdCardFactory::brand(),
+        ]);
+    }
+
+    /** Staff bulk selector (teamSA): pick a role, preview the list. */
+    public function staffBulkSelector(Request $request)
+    {
+        $role = (string) $request->query('role', '');
+        $staff = $this->staffQuery($role)->get();
+
+        return view('pages.support_team.users.id_cards_bulk', [
+            'role' => $role,
+            'roles' => array_keys(IdCardFactory::ROLE_META),
+            'staff' => $staff,
+        ]);
+    }
+
+    /** Staff bulk PDF (teamSA): front+back per member, CR80 pages. */
+    public function staffBulk(Request $request)
+    {
+        Qs::ensurePdfMemory();
+        set_time_limit(300);
+
+        $role = (string) $request->query('role', '');
+        $staff = $this->staffQuery($role)->get();
+        if ($staff->isEmpty()) {
+            return back()->with('flash_info', 'No staff found for this selection.');
+        }
+
+        $brand = IdCardFactory::brand(true);
+        $cards = $staff->map(function ($u) {
+            return IdCardFactory::forStaff($u, true);
+        })->filter()->values();
+
+        $pdfName = 'Staff_ID_Cards' . ($role ? '_' . Str::slug($role) : '_All') . '.pdf';
+
+        return PDF::loadView('pages.support_team.students.id_card_bulk_pdf', [
+            'cards' => $cards,
+            'brand' => $brand,
+            'my_class' => null,
+            'section' => null,
+        ])->setPaper([0, 0, 153, 242.6])->download($pdfName);
+    }
+
+    /** School staff = the factory's card-eligible user types. */
+    protected function staffQuery(string $role)
+    {
+        $types = ['teacher', 'principal', 'admin', 'accountant', 'librarian', 'nurse'];
+        if ($role !== '' && !in_array($role, $types, true)) {
+            $role = '';
+        }
+
+        return User::whereIn('user_type', $types)
+            ->when($role !== '', function ($q) use ($role) {
+                $q->where('user_type', $role);
+            })
+            ->orderBy('name');
     }
 
     /**

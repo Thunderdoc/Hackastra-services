@@ -31,5 +31,8 @@ class DatabaseSeeder extends Seeder
         $this->call(DemoDataSeeder::class);
         $this->call(PeriodAttendanceSeeder::class);
         $this->call(PayrollSeeder::class);
+        $this->call(UserCardDataSeeder::class);
+        $this->call(DemoBrandSeeder::class);
+        $this->call(DemoCoverSeeder::class);
     }
 }

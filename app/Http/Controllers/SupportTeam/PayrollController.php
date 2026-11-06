@@ -35,7 +35,7 @@ use Illuminate\Support\Facades\Auth;
 class PayrollController extends Controller
 {
     /** User types that receive a salary (super_admin is the platform owner, excluded). */
-    public const STAFF_TYPES = ['admin', 'teacher', 'accountant', 'librarian'];
+    public const STAFF_TYPES = ['admin', 'teacher', 'accountant', 'librarian', 'nurse'];
 
     public function __construct()
     {

@@ -80,6 +80,27 @@ class ReportPresets
                 ],
             ],
             [
+                'key' => 'teacher_marks_entry_sheet', 'label' => 'Marks Entry Sheet', 'source' => 'marks',
+                'roles' => ['teacher', 'admin'],
+                'config' => [
+                    'title' => 'Marks Entry Sheet', 'source' => 'marks', 'filters' => [],
+                    'columns' => [
+                        ['key' => 'roll_no', 'label' => 'Roll No', 'type' => 'number', 'width' => 8],
+                        ['key' => 'student', 'label' => 'Student', 'type' => 'text', 'width' => 28],
+                        ['key' => 'adm_no', 'label' => 'Admission No', 'type' => 'text', 'width' => 16],
+                        ['key' => 'section', 'label' => 'Section', 'type' => 'text', 'width' => 10],
+                        ['key' => 'total', 'label' => 'Total', 'type' => 'number', 'width' => 10],
+                    ],
+                    // blank_marks (owner, 2026-11-01): the component
+                    // columns the engine adds automatically and the
+                    // Total render EMPTY on this sheet — it is the
+                    // handwriting sheet the teacher fills in class,
+                    // even though the marks already exist in the app.
+                    'options' => array_merge($std, ['blank_marks' => true, 'show_signatures' => true]),
+                    'instructions' => 'Write each mark by hand. Component columns (Theory, Internal, Viva, …) are added automatically for configured marking schemes.',
+                ],
+            ],
+            [
                 'key' => 'teacher_homework_tracker', 'label' => 'Homework/Assignment Tracker', 'source' => 'blank',
                 'roles' => ['teacher', 'admin'],
                 'config' => [

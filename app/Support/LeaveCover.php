@@ -417,7 +417,7 @@ class LeaveCover
                 'day' => $cell->day,
                 'period' => $maps[$cell->day][(int) $cell->id] ?? null,
                 'class' => $record ? (optional($record->my_class)->name ?: '—') : '—',
-                'section' => $record && $record->section ? $record->section->name : '—',
+                'section' => $record && $record->section ? $record->section->name : 'All sections',
                 'subject' => $cell->subject ? $cell->subject->name : '—',
                 'room' => $cell->room ? $cell->room->name : '—',
             ];

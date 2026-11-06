@@ -102,6 +102,30 @@ class OwnerAuditOvernightPrintTest extends TestCase
         return $out ?? $bytes;
     }
 
+    /**
+     * Parity re-expression (2026-11-01, full-suite flake root-caused):
+     * the byte-parity form of these two pins can NEVER hold when the
+     * two generations straddle a minute boundary — the document
+     * footer prints a wall clock ("Generated on: ... | 7:16 PM"),
+     * and a different minute digit changes the font subset streams,
+     * shifting compressed lengths by a byte (proven by generating
+     * the same config 68s apart: identical input, 1-byte-different
+     * PDFs whose only text diff is the footer minute). The intent —
+     * preview and download are the SAME document — is therefore
+     * asserted on the extracted text with the footer clock masked:
+     * every row, total and note still compares exactly.
+     */
+    protected function pdfText(string $bytes): string
+    {
+        $tmp = tempnam(sys_get_temp_dir(), 'pdfparity') . '.pdf';
+        file_put_contents($tmp, $bytes);
+        $text = shell_exec('pdftotext -layout ' . escapeshellarg($tmp) . ' - 2>/dev/null');
+        @unlink($tmp);
+        $this->assertNotEmpty($text, 'pdftotext must extract the document text');
+        $text = preg_replace('/Generated on: [^\n]*/', 'Generated on: <time>', (string) $text);
+        return $text ?? '';
+    }
+
     public function test_items56_preview_bytes_match_download_bytes_for_same_config()
     {
         $teacher = $this->teacher();
@@ -116,9 +140,9 @@ class OwnerAuditOvernightPrintTest extends TestCase
         $this->assertStringContainsString('attachment', $download->headers->get('Content-Disposition', ''));
         $this->assertStringStartsWith('%PDF', $download->getContent());
         $this->assertSame(
-            $this->normalizePdf($preview->getContent()),
-            $this->normalizePdf($download->getContent()),
-            'preview and download must be the same document (modulo PDF timestamps/IDs)'
+            $this->pdfText($preview->getContent()),
+            $this->pdfText($download->getContent()),
+            'preview and download must be the same document (modulo the footer clock)'
         );
     }
 
@@ -145,9 +169,9 @@ class OwnerAuditOvernightPrintTest extends TestCase
         $preview->assertOk();
         $this->assertStringContainsString('application/pdf', $preview->headers->get('Content-Type', ''));
         $this->assertSame(
-            $this->normalizePdf($preview->getContent()),
-            $this->normalizePdf($pdf->getContent()),
-            'preview and download must be the same truncated document (modulo PDF timestamps/IDs)'
+            $this->pdfText($preview->getContent()),
+            $this->pdfText($pdf->getContent()),
+            'preview and download must be the same truncated document (modulo the footer clock)'
         );
     }
 
@@ -178,7 +202,9 @@ class OwnerAuditOvernightPrintTest extends TestCase
         $record = TimeTableRecord::orderBy('id')->first();
         $this->assertNotNull($record, 'snapshot must contain at least one timetable record');
         $admin = $this->admin();
-        $index = $this->actingAs($admin)->get(route('tt.index'))->assertOk();
+        // Owner layout change, 2026-11-01: the record's row lives
+        // in its class's LIST view on the index now.
+        $index = $this->actingAs($admin)->get(route('tt.index', ['class_id' => $record->my_class_id]))->assertOk();
         $indexHtml = $index->getContent();
         $this->assertStringContainsString(route('ttr.show', $record->id), $indexHtml);
         $this->assertStringContainsString(route('ttr.print', $record->id), $indexHtml);

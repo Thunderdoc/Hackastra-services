@@ -2,6 +2,7 @@
 @section('page_title', 'Platform Overview')
 @section('hide_page_header', true)
 @section('content')
+    @include('partials.role_banner', ['hkRole' => 'superadmin', 'hkLabel' => 'Super Admin'])
     {{-- Workstream R: Platform Super Admin home — platform oversight
          (users & roles, audit & security), deliberately
          separate from the school's daily-operations dashboard.
@@ -18,7 +19,6 @@
     <div class="l106 l106-platform">
     <div class="dashboard-hero mb-4">
         <div>
-            <h2 class="mb-1">{{ $greeting }}, {{ Auth::user()->name }} <span aria-hidden="true">👋</span></h2>
             <p class="mb-0 dashboard-muted">Hackstra platform overview for {{ $school_name ?: 'your school' }} — user accounts and security activity at a glance.</p>
         </div>
         <div class="dashboard-hero-side">

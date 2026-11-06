@@ -31,6 +31,8 @@
                         <th>Fee</th>
                         <th class="text-right">Amount</th>
                         <th class="text-right">Paid</th>
+                        <th>Last Paid On</th>
+                        <th>Method</th>
                         <th class="text-right">Balance</th>
                         <th>Status</th>
                         <th>Receipt</th>
@@ -43,6 +45,8 @@
                             <td class="font-weight-bold">{{ $row['title'] }}</td>
                             <td class="text-right">{{ \App\Helpers\Money::inr($row['total']) }}</td>
                             <td class="text-right text-blue font-weight-bold">{{ \App\Helpers\Money::inr($row['paid']) }}</td>
+                            <td>{{ !empty($row['last_date']) ? \Carbon\Carbon::parse($row['last_date'])->format('d M Y') : '—' }}</td>
+                            <td>{{ !empty($row['last_method']) ? ucfirst($row['last_method']) : '—' }}</td>
                             <td class="text-right text-danger font-weight-bold">{{ \App\Helpers\Money::inr($row['balance']) }}</td>
                             <td><span class="badge {{ $row['badge'] }}">{{ $row['status'] }}</span></td>
                             <td>
@@ -61,7 +65,7 @@
                         <th class="text-right">{{ \App\Helpers\Money::inr($uncleared->sum('total')) }}</th>
                         <th class="text-right">{{ \App\Helpers\Money::inr($uncleared->sum('paid')) }}</th>
                         <th class="text-right">{{ \App\Helpers\Money::inr($uncleared->sum('balance')) }}</th>
-                        <th colspan="2"></th>
+                        <th colspan="4"></th>
                     </tr>
                     </tfoot>
                 </table>
@@ -83,6 +87,8 @@
                         <th>Fee</th>
                         <th class="text-right">Amount</th>
                         <th class="text-right">Paid</th>
+                        <th>Paid On</th>
+                        <th>Method</th>
                         <th>Status</th>
                         <th>Receipt</th>
                     </tr>
@@ -94,6 +100,8 @@
                             <td class="font-weight-bold">{{ $row['title'] }}</td>
                             <td class="text-right">{{ \App\Helpers\Money::inr($row['total']) }}</td>
                             <td class="text-right text-blue font-weight-bold">{{ \App\Helpers\Money::inr($row['paid']) }}</td>
+                            <td>{{ !empty($row['last_date']) ? \Carbon\Carbon::parse($row['last_date'])->format('d M Y') : '—' }}</td>
+                            <td>{{ !empty($row['last_method']) ? ucfirst($row['last_method']) : '—' }}</td>
                             <td><span class="badge {{ $row['badge'] }}">{{ $row['status'] }}</span></td>
                             <td>
                                 @if($row['has_receipts'])
@@ -110,7 +118,7 @@
                         <th colspan="2">Total</th>
                         <th class="text-right">{{ \App\Helpers\Money::inr($cleared->sum('total')) }}</th>
                         <th class="text-right">{{ \App\Helpers\Money::inr($cleared->sum('paid')) }}</th>
-                        <th colspan="2"></th>
+                        <th colspan="4"></th>
                     </tr>
                     </tfoot>
                 </table>

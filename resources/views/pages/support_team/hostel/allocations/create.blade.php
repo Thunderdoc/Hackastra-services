@@ -16,12 +16,24 @@
             <form method="post" action="{{ route('hostel.allocations.store') }}">
                 @csrf
                 <div class="form-group">
-                    <label for="student_record_id">Student *</label>
-                    <select id="student_record_id" name="student_record_id" required class="form-control">
-                        <option value="">Select student</option>
-                        @foreach($students as $student)
-                            <option value="{{ $student->id }}" {{ old('student_record_id') == $student->id ? 'selected' : '' }}>{{ optional($student->user)->name }} ({{ $student->adm_no }})</option>
+                    <label>Class</label>
+                    <select class="form-control hk-cascade-class">
+                        <option value="">Choose a class…</option>
+                        @foreach($classes as $hkClass)
+                            <option value="{{ $hkClass->id }}">{{ $hkClass->name }}</option>
                         @endforeach
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Section</label>
+                    <select class="form-control hk-cascade-section">
+                        <option value="">Choose a class first</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="student_record_id">Student *</label>
+                    <select id="student_record_id" name="student_record_id" required class="form-control hk-cascade-student" data-value-key="id">
+                        <option value="">Choose a student…</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -48,4 +60,8 @@
             </form>
         </div>
     </div>
+@endsection
+
+@section('scripts')
+    @include('partials.student_cascade_js')
 @endsection

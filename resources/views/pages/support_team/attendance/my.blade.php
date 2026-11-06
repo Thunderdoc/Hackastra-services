@@ -31,8 +31,14 @@
                     @endif
                     <div class="pat-filter-field">
                         <label for="att_my_month">Month</label>
-                        <input id="att_my_month" type="month" name="month" class="form-control" value="{{ $month->format('Y-m') }}" onchange="this.form.submit()">
+                        <input id="att_my_month" type="month" name="month" class="form-control" value="{{ $view === 'month' ? $month->format('Y-m') : '' }}" onchange="this.form.submit()">
                     </div>
+                    @if($view === 'month')
+                        <div class="pat-filter-field">
+                            <label>&nbsp;</label>
+                            <a class="btn btn-light" href="{{ route('attendance.my', $student ? ['student_id' => $student->id] : []) }}">Whole session</a>
+                        </div>
+                    @endif
                     <div class="pat-filter-action">
                         <span class="text-muted">{{ optional($student->my_class)->name }}@if($student->section) &middot; {{ $student->section->name }}@endif</span>
                     </div>
@@ -48,8 +54,22 @@
                     @endif
                 </div>
 
+                @if($view === 'session')
+                    <p class="mb-2"><strong>Whole session</strong> <span class="text-muted">— every month so far. Pick a month to see its period registers.</span></p>
+                    @if(isset($months) && $months->isNotEmpty())
+                        <div class="sd-monthstrip">
+                            @foreach($months as $m)
+                                <a class="sd-monthchip" href="{{ route('attendance.my', ['month' => $m['key'], 'student_id' => $student->id]) }}">
+                                    <strong>{{ $m['label'] }}</strong>
+                                    <span>{{ $m['percent'] === null ? '—' : $m['percent'] . '%' }} · {{ $m['marked'] }} periods</span>
+                                </a>
+                            @endforeach
+                        </div>
+                    @endif
+                @endif
+
                 @if($entries->isEmpty())
-                    <p class="text-muted mb-0">No period attendance was recorded in {{ $month->format('F Y') }}.</p>
+                    <p class="text-muted mb-0">{{ $view === 'session' ? 'No period attendance has been recorded yet this session.' : 'No period attendance was recorded in ' . $month->format('F Y') . '.' }}</p>
                 @else
                     @if($summary['percent'] !== null)
                         <div class="progress mb-3" style="height:8px">
@@ -76,6 +96,7 @@
                         </table>
                     </div>
 
+                    @if($view === 'month')
                     <h6 class="mb-2">Period Registers</h6>
                     <div class="table-responsive">
                         <table class="table table-striped l108-stack">
@@ -100,6 +121,7 @@
                             </tbody>
                         </table>
                     </div>
+                    @endif
                     <p class="text-muted mb-0"><small>Attendance % = (present + late) / periods marked. Periods with no submitted register are not counted as absent.</small></p>
                 @endif
             @endif

@@ -160,6 +160,9 @@ class ReportEngine
                 'show_footer' => !isset($options['show_footer']) || (bool) $options['show_footer'],
                 'show_signatures' => !empty($options['show_signatures']),
                 'blank_rows' => max(0, min(200, (int) ($options['blank_rows'] ?? 0))),
+                // Marks Entry Sheet (owner, 2026-11-01): marks-source
+                // sheets whose mark cells render blank for handwriting.
+                'blank_marks' => !empty($options['blank_marks']),
                 'totals' => $totals,
                 'sort' => $sort,
             ],
@@ -231,12 +234,27 @@ class ReportEngine
                 . ' — narrow by class or section for the complete list.';
         }
 
+        // Marks Entry Sheet (owner, 2026-11-01): with blank_marks the
+        // sheet lists the students but every mark cell — scheme
+        // components, total, grade, position — renders EMPTY, so the
+        // teacher writes the marks by hand even though values exist
+        // in the database. Totals for those keys are suppressed too:
+        // a handwriting sheet must not print the real sums.
+        $blankMarks = $source === 'marks' && !empty($config['options']['blank_marks']);
+        $isMarkCell = function ($key) {
+            return $key === 'total' || $key === 'grade' || $key === 'position'
+                || strpos($key, 'comp_') === 0;
+        };
+
         $rows = [];
         foreach ($rawRows as $raw) {
             $cells = [];
             $rawOut = [];
             foreach ($columns as $col) {
                 $value = $raw[$col['key']] ?? null;
+                if ($blankMarks && $isMarkCell($col['key'])) {
+                    $value = null;
+                }
                 $cells[$col['key']] = self::formatCell($value, $col['type']);
                 $rawOut[$col['key']] = is_numeric($value) ? $value + 0 : null;
             }
@@ -255,6 +273,9 @@ class ReportEngine
         // Totals over data rows only (blank rows never inflate a sum).
         $totals = [];
         foreach ($config['options']['totals'] as $key => $op) {
+            if ($blankMarks && $isMarkCell($key)) {
+                continue;
+            }
             $values = [];
             foreach ($rawRows as $raw) {
                 if (isset($raw[$key]) && is_numeric($raw[$key])) {

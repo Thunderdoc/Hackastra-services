@@ -164,18 +164,21 @@ class OwnerIdCardBulkTest extends TestCase
         $students = $this->sectionRoster();
         $this->assertCount(41, $students);
 
+        // Item 14 re-expression: the bulk view's contract is now the
+        // factory's card list + brand (front + back per student).
         $html = view('pages.support_team.students.id_card_bulk_pdf', [
-            'students' => $students,
+            'cards' => $students->map(function ($sr) {
+                return \App\Support\IdCardFactory::forStudent($sr, true);
+            }),
+            'brand' => \App\Support\IdCardFactory::brand(true),
             'my_class' => $students->first()->my_class,
             'section' => $students->first()->section,
-            'school' => 'Hackstra Academy',
-            'session' => '2026-2027',
         ])->render();
 
         $this->assertSame(
             41,
-            substr_count($html, '<div class="bdc-card">'),
-            'One card per roster student, no more, no fewer'
+            substr_count($html, '<div class="idc2-bcode">'),
+            'One card (one barcode) per roster student, no more, no fewer'
         );
     }
 
@@ -186,15 +189,21 @@ class OwnerIdCardBulkTest extends TestCase
         $students = $this->sectionRoster();
 
         $html = view('pages.support_team.students.id_card_bulk_pdf', [
-            'students' => $students,
+            'cards' => $students->map(function ($sr) {
+                return \App\Support\IdCardFactory::forStudent($sr, true);
+            }),
+            'brand' => \App\Support\IdCardFactory::brand(true),
             'my_class' => $students->first()->my_class,
             'section' => $students->first()->section,
-            'school' => 'Hackstra Academy',
-            'session' => '2026-2027',
         ])->render();
 
-        $this->assertStringNotContainsStringIgnoringCase('QR', $html);
-        $this->assertStringNotContainsStringIgnoringCase('qrcode', $html);
+        // The cards now carry a real Code39 barcode image (a PNG data
+        // URI). Strip data URIs before the QR assertions: base64 noise
+        // is not markup, and the intent — no QR element, text or
+        // claim anywhere in the card markup — is unchanged.
+        $markup = preg_replace('/src="data:[^"]*"/', 'src="data:"', $html);
+        $this->assertStringNotContainsStringIgnoringCase('QR', $markup);
+        $this->assertStringNotContainsStringIgnoringCase('qrcode', $markup);
         // Photo rule: the stock silhouette must never pose as a photo.
         $this->assertStringNotContainsString('user.png', $html);
         // ...but the school name and a real admission number must be there.

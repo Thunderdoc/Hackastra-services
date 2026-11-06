@@ -148,12 +148,13 @@ class OwnerPrintOrphanTest extends TestCase
 
     public function test_id_card_bulk_html_has_initials_tiles_and_photo_column_rule()
     {
-        // The bulk card's initials used to overflow into the student
-        // name ("JSJayson"): the body table had no fixed layout and the
-        // outer grid's `td { width: 50% }` beat the photo width. The
-        // fix is a fixed-layout table with a percent photo column
-        // (dompdf drops absolute widths in fixed layout) + initials in
-        // their own tile block.
+        // Re-expressed 2026-11-01 (item 14): the bulk card design
+        // was rebuilt wholesale (owner-approved idcard-final9) —
+        // the old bdc- table layout and its photo-column CSS rule
+        // no longer exist. The intent survives on the new surface:
+        // every card carries its OWN initials tile in the photo
+        // block (no photo/initials bleed into the name), one per
+        // card. The view's contract is now factory-built cards.
         $students = StudentRecord::with(['user', 'my_class', 'section'])
             ->where('my_class_id', 11)
             ->where('section_id', 48)
@@ -162,23 +163,28 @@ class OwnerPrintOrphanTest extends TestCase
             ->get();
         $this->assertNotEmpty($students);
 
+        $cards = $students->map(function ($sr) {
+            return \App\Support\IdCardFactory::forStudent($sr, true);
+        })->all();
         $html = view('pages.support_team.students.id_card_bulk_pdf', [
-            'students' => $students,
+            'cards' => $cards,
+            'brand' => \App\Support\IdCardFactory::brand(true),
             'my_class' => $students->first()->my_class,
             'section' => $students->first()->section,
-            'school' => 'Hackstra Academy',
-            'session' => '2026-2027',
         ])->render();
 
-        // Count the tile DIVS, not the class name: the CSS rule itself
-        // contains 'bdc-initials' once, which threw this count off by
-        // one (41 vs 40) on the first run.
+        // One front photo block per card, and an initials tile for
+        // every student without a real photo (the seed's case).
         $this->assertSame(
             $students->count(),
-            substr_count($html, '<div class="bdc-initials">'),
-            'One initials tile per card, no photo overlap path'
+            substr_count($html, '<span class="idc2-photo">'),
+            'One photo block per card'
         );
-        $this->assertStringContainsString('td.bdc-photo { width: 24%', $html);
+        $this->assertSame(
+            $students->count(),
+            substr_count($html, '<span class="idc2-ini">'),
+            'One initials tile per card, in its own photo block'
+        );
     }
 
     /**

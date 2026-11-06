@@ -349,6 +349,19 @@ class AssignmentController extends Controller
         $d = $this->formData();
         $d['assignment'] = $assignment;
 
+        // Round-18 exemption companion: an assignment whose section
+        // she no longer effectively teaches stays EDITABLE in place
+        // (the store exempts non-retargeting updates) — so its own
+        // section must remain selectable on the form even though
+        // formData now offers only her effective sections.
+        if ($assignment->section_id
+            && !$d['sections']->contains('id', (int) $assignment->section_id)) {
+            $own = Section::find($assignment->section_id);
+            if ($own) {
+                $d['sections'] = $d['sections']->push($own);
+            }
+        }
+
         return view('pages.support_team.assignments.edit', $d);
     }
 
@@ -921,10 +934,20 @@ class AssignmentController extends Controller
             ->get();
         $classIds = $subjects->pluck('my_class_id')->unique();
 
+        // Scoped options (owner, 2026-11-01): sections narrow to
+        // the ones where she is the EFFECTIVE teacher of some
+        // subject — the store refuses every other (section,
+        // subject) pair, so it must not be offered.
+        $unitSections = SectionTeacher::unitSectionIdsByClass(Auth::user());
+        $sectionIds = [];
+        foreach ($classIds as $cid) {
+            $sectionIds = array_merge($sectionIds, $unitSections[(int) $cid] ?? []);
+        }
+
         return [
             'subjects' => $subjects,
             'classes' => \App\Models\MyClass::whereIn('id', $classIds)->get(),
-            'sections' => Section::whereIn('my_class_id', $classIds)->get(),
+            'sections' => Section::whereIn('id', $sectionIds)->get(),
         ];
     }
 

@@ -446,12 +446,12 @@ class OwnerPortalDeepAuditRound7Test extends TestCase
         $foreignUser = User::findOrFail($foreign->user_id);
 
         $slot = PtmSlot::create([
-            'date' => '2026-11-04', 'start_time' => '09:00:00', 'end_time' => '09:30:00',
+            'date' => '2027-01-06', 'start_time' => '09:00:00', 'end_time' => '09:30:00',
             'teacher_id' => $this->teacher()->id, 'my_class_id' => 1, 'section_id' => 1,
             'created_by' => $this->admin()->id,
         ]);
         $slot2 = PtmSlot::create([
-            'date' => '2026-11-04', 'start_time' => '10:00:00', 'end_time' => '10:30:00',
+            'date' => '2027-01-06', 'start_time' => '10:00:00', 'end_time' => '10:30:00',
             'teacher_id' => $this->teacher()->id, 'my_class_id' => 1, 'section_id' => 1,
             'created_by' => $this->admin()->id,
         ]);

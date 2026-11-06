@@ -40,7 +40,7 @@ class OwnerWave23Test extends TestCase
         $resp = $this->post(route('exam_dates.generate'), [
             'exam_id' => 1,
             'scope' => 'all',
-            'start_date' => '2026-11-02',
+            'start_date' => '2027-01-04',
             'exam_days' => 12,
             'papers_per_day' => 2,
             'session1_time' => '09:00',

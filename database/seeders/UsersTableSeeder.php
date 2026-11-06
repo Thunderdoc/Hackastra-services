@@ -181,6 +181,16 @@ class UsersTableSeeder extends Seeder
                 'code' => strtoupper(Str::random(10)),
                 'remember_token' => Str::random(10),
             ],
+
+            ['name' => 'Sunita Menon',
+                'email' => 'nurse@hackstra.app',
+                'phone' => '+91 98110 00006',
+                'user_type' => 'nurse',
+                'username' => 'nurse',
+                'password' => $password,
+                'code' => strtoupper(Str::random(10)),
+                'remember_token' => Str::random(10),
+            ],
         ];
         DB::table('users')->insert($d);
     }

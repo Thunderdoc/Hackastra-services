@@ -51,6 +51,7 @@ class ReportSources
             'students' => [
                 'label' => 'Students',
                 'roles' => ['teacher', 'admin'],
+                'filters' => ['class_id', 'section_id'],
                 'columns' => [
                     // Shares rebalanced (owner screenshot, 2026-10-29):
                     // "HA/PN/2026/42211" and "+91 98…" broke mid-token
@@ -67,12 +68,14 @@ class ReportSources
                     'dob' => ['Date of Birth', 'date', 16],
                     'phone' => ['Phone', 'text', 20],
                     'parent' => ['Parent / Guardian', 'text', 15],
+                    'parent_phone' => ['Parent / Father No.', 'text', 15],
                     'house' => ['House', 'text', 8],
                 ],
             ],
             'marks' => [
                 'label' => 'Marks',
                 'roles' => ['teacher', 'admin'],
+                'filters' => ['class_id', 'section_id', 'subject_id', 'exam_id'],
                 'columns' => [
                     'roll_no' => ['Roll No', 'number', 8],
                     'student' => ['Student', 'text', 24],
@@ -89,6 +92,7 @@ class ReportSources
             'attendance' => [
                 'label' => 'Attendance (submitted registers)',
                 'roles' => ['teacher', 'admin'],
+                'filters' => ['class_id', 'section_id', 'subject_id', 'date_from', 'date_to'],
                 'columns' => [
                     'date' => ['Date', 'date', 12],
                     'student' => ['Student', 'text', 24],
@@ -104,6 +108,7 @@ class ReportSources
             'assignments' => [
                 'label' => 'Assignments',
                 'roles' => ['admin'],
+                'filters' => ['class_id', 'section_id', 'subject_id', 'date_from', 'date_to'],
                 'columns' => [
                     'title' => ['Title', 'text', 26],
                     'class' => ['Class', 'text', 12],
@@ -118,6 +123,7 @@ class ReportSources
             'fees' => [
                 'label' => 'Fee Records',
                 'roles' => ['accountant', 'admin'],
+                'filters' => ['class_id', 'section_id', 'year', 'date_from', 'date_to'],
                 'columns' => [
                     'student' => ['Student', 'text', 22],
                     'adm_no' => ['Admission No', 'text', 14],
@@ -134,6 +140,7 @@ class ReportSources
             'defaulters' => [
                 'label' => 'Fee Defaulters',
                 'roles' => ['accountant', 'admin'],
+                'filters' => ['class_id', 'section_id', 'status', 'year'],
                 'columns' => [
                     'student' => ['Student', 'text', 22],
                     'adm_no' => ['Admission No', 'text', 14],
@@ -149,6 +156,7 @@ class ReportSources
             'fines' => [
                 'label' => 'Library Fines',
                 'roles' => ['accountant', 'librarian', 'admin'],
+                'filters' => ['status'],
                 'columns' => [
                     'student' => ['Student', 'text', 22],
                     'book' => ['Book', 'text', 24],
@@ -162,6 +170,7 @@ class ReportSources
             'books' => [
                 'label' => 'Books',
                 'roles' => ['librarian', 'admin'],
+                'filters' => ['class_id'],
                 'columns' => [
                     'name' => ['Book Title', 'text', 28],
                     'class' => ['Class', 'text', 11],
@@ -176,6 +185,7 @@ class ReportSources
             'issues' => [
                 'label' => 'Book Issues / Returns',
                 'roles' => ['librarian', 'admin'],
+                'filters' => ['status'],
                 'columns' => [
                     'book' => ['Book', 'text', 26],
                     'borrower' => ['Borrower', 'text', 22],
@@ -188,6 +198,7 @@ class ReportSources
             'staff' => [
                 'label' => 'Staff',
                 'roles' => ['admin'],
+                'filters' => [],
                 'columns' => [
                     'name' => ['Name', 'text', 24],
                     'email' => ['Email', 'text', 24],
@@ -200,6 +211,7 @@ class ReportSources
             'admissions' => [
                 'label' => 'Admission Enquiries',
                 'roles' => ['admin'],
+                'filters' => ['class_id', 'status'],
                 'columns' => [
                     'name' => ['Name', 'text', 24],
                     'phone' => ['Phone', 'text', 14],
@@ -211,6 +223,7 @@ class ReportSources
             'certificates' => [
                 'label' => 'Certificates Issued',
                 'roles' => ['admin'],
+                'filters' => ['status'],
                 'columns' => [
                     'student_name' => ['Student', 'text', 22],
                     'adm_no' => ['Admission No', 'text', 14],
@@ -225,6 +238,7 @@ class ReportSources
             'classes' => [
                 'label' => 'Classes',
                 'roles' => ['admin'],
+                'filters' => [],
                 'columns' => [
                     'name' => ['Class', 'text', 20],
                     'sections' => ['Sections', 'number', 12],
@@ -234,6 +248,7 @@ class ReportSources
             'circulars' => [
                 'label' => 'Circulars',
                 'roles' => ['admin'],
+                'filters' => ['status'],
                 'columns' => [
                     'title' => ['Title', 'text', 30],
                     'audience' => ['Audience', 'text', 14],
@@ -246,6 +261,7 @@ class ReportSources
             'timetables' => [
                 'label' => 'Timetables',
                 'roles' => ['admin'],
+                'filters' => ['class_id', 'section_id'],
                 'columns' => [
                     'name' => ['Timetable', 'text', 26],
                     'class' => ['Class', 'text', 12],
@@ -257,6 +273,7 @@ class ReportSources
             'fee_summary' => [
                 'label' => 'Fee Summary (per fee)',
                 'roles' => ['accountant', 'admin'],
+                'filters' => ['class_id', 'year'],
                 'columns' => [
                     'fee_title' => ['Fee Title', 'text', 24],
                     'class' => ['Class', 'text', 12],
@@ -269,6 +286,7 @@ class ReportSources
             'attendance_summary' => [
                 'label' => 'Attendance Summary',
                 'roles' => ['admin'],
+                'filters' => ['class_id', 'subject_id', 'date_from', 'date_to'],
                 'columns' => [
                     'class' => ['Class', 'text', 12],
                     'subject' => ['Subject', 'text', 20],
@@ -282,6 +300,7 @@ class ReportSources
             'results_summary' => [
                 'label' => 'Results Summary (per exam + class)',
                 'roles' => ['admin'],
+                'filters' => ['class_id', 'exam_id'],
                 'columns' => [
                     'exam' => ['Exam', 'text', 24],
                     'class' => ['Class', 'text', 12],
@@ -292,6 +311,7 @@ class ReportSources
             'library_summary' => [
                 'label' => 'Library Summary (per type)',
                 'roles' => ['librarian', 'admin'],
+                'filters' => [],
                 'columns' => [
                     'book_type' => ['Type', 'text', 20],
                     'titles' => ['Titles', 'number', 10],
@@ -303,6 +323,7 @@ class ReportSources
             'platform' => [
                 'label' => 'Platform Metrics',
                 'roles' => ['super_admin'],
+                'filters' => [],
                 'columns' => [
                     'metric' => ['Metric', 'text', 40],
                     'value' => ['Value', 'number', 20],
@@ -311,6 +332,7 @@ class ReportSources
             'blank' => [
                 'label' => 'Blank Sheet (manual writing)',
                 'roles' => ['teacher', 'accountant', 'librarian', 'admin'],
+                'filters' => [],
                 'columns' => [],
             ],
         ];
@@ -495,6 +517,7 @@ class ReportSources
                 'dob' => optional($sr->user)->dob,
                 'phone' => optional($sr->user)->phone,
                 'parent' => optional($sr->my_parent)->name,
+                'parent_phone' => optional($sr->my_parent)->phone,
                 'house' => $sr->house,
             ];
         }

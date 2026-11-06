@@ -41,8 +41,8 @@
         </thead>
         <tbody>
         @foreach($days as $day)
-            <tr>
-                <td class="ttx-day-col"><strong>{{ $day_labels[$day] ?? $day }}</strong></td>
+            <tr class="{{ $day === \Carbon\Carbon::now()->format('l') ? 'ttx-today' : '' }}">
+                <td class="ttx-day-col"><strong>{{ $day_labels[$day] ?? $day }}</strong>@if($day === \Carbon\Carbon::now()->format('l')) <span class="ttx-today-chip">Today</span>@endif</td>
                 @foreach($ttxCols as $ttxCol)
                     @if($ttxCol['gap'])
                         <td class="ttx-gap-col"><span class="ttx-gap-label">{{ $ttxCol['label'] }}</span></td>

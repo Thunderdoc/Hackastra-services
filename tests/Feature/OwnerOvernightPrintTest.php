@@ -106,10 +106,13 @@ class OwnerOvernightPrintTest extends TestCase
 
         $page = $this->actingAs($this->admin())->get(route('tt.index'))->assertOk()->getContent();
         $this->assertStringContainsString('ttc-grid', $page);
-        // Same actions/routes as before the redesign.
-        $this->assertStringContainsString('View', $page);
-        $this->assertStringContainsString('Print', $page);
-        $this->assertStringContainsString('Validate', $page);
+        // Same actions/routes as before the redesign — record rows
+        // render in the single-class list view since the owner
+        // layout change of 2026-11-01, so they are asserted there.
+        $list = $this->actingAs($this->admin())->get(route('tt.index', ['class_id' => 13]))->assertOk()->getContent();
+        $this->assertStringContainsString('View', $list);
+        $this->assertStringContainsString('Print', $list);
+        $this->assertStringContainsString('Validate', $list);
     }
 
     /* ---------------- Item 13: date-sheet dropdown order ---------------- */

@@ -2,6 +2,7 @@
 @section('page_title', 'Dashboard')
 @section('hide_page_header', true)
 @section('content')
+    @include('partials.role_banner', ['hkRole' => 'accountant', 'hkLabel' => 'Accountant'])
     {{-- Loop 92: accountant home — premium fee-office dashboard.
          Every figure comes from HomeController@accountantHomeData:
          collections from the receipts ledger (the collection report's
@@ -19,7 +20,6 @@
     @endphp
     <div class="dashboard-hero mb-4">
         <div>
-            <h2 class="mb-1">{{ $greeting }}, {{ Auth::user()->name }} <span aria-hidden="true">👋</span></h2>
             <p class="mb-0 dashboard-muted">Fee office overview — collections, outstanding balances and recent payments.</p>
         </div>
         <div class="dashboard-hero-side">

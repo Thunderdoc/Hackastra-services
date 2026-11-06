@@ -20,7 +20,23 @@
          Data + routes are the pre-redesign ones; writes stay
          teamSAWrite-gated exactly as before. --}}
 
-    <p class="ma-intro">View and manage class timetables for the current academic session.</p>
+    {{-- Item 3 visual pass (owner-approved tt-v3, site style):
+         slim headbar — pastel icon circle, role-aware subtitle,
+         the SAME $stats figures as the old cards (scoped for
+         teachers by the controller), session chip. No new data. --}}
+    <div class="card tt3-head">
+        <span class="tt3-hicon"><i class="icon-table2"></i></span>
+        <div class="tt3-hcopy">
+            <h2>Timetables</h2>
+            <p>{{ Qs::userIsTeacher() ? 'Showing only the classes you teach in' : 'View and manage class timetables for the current academic session.' }}</p>
+        </div>
+        <div class="tt3-hright tt-index-stats">
+            <div class="tt3-hstat" style="border:none;"><b>{{ $stats['classes'] }}</b><span>{{ Qs::userIsTeacher() ? 'My Classes' : 'Classes' }}</span></div>
+            <div class="tt3-hstat"><b>{{ $stats['sections'] }}</b><span>Sections</span></div>
+            <div class="tt3-hstat"><b>{{ $stats['periods'] }}</b><span>Periods / Week</span></div>
+            <span class="tt3-sess">Session {{ $stats['session'] }}</span>
+        </div>
+    </div>
 
     {{-- Batch 2026-10-26 (admin phone UX): on a phone the four
          summary cards stacked into a full screen of stats before
@@ -35,64 +51,40 @@
         }
     </style>
     <div class="card tt-stats-strip"><div class="card-body py-2">
-        <span class="text-muted">{{ $stats['total'] }} timetables &middot; {{ $stats['active'] }} active &middot; {{ $stats['classes'] }} classes &middot; {{ $stats['session'] }}</span>
+        <span class="text-muted">{{ $stats['classes'] }} classes &middot; {{ $stats['sections'] }} sections &middot; {{ $stats['periods'] }} periods/week across {{ $stats['total'] }} timetables &middot; {{ $stats['session'] }}</span>
     </div></div>
 
-    <div class="row dashboard-stats tt-index-stats">
-        @foreach([
-            ['label' => 'Total Timetables', 'value' => $stats['total'], 'sub' => '', 'icon' => 'icon-table2', 'tone' => 'blue'],
-            ['label' => 'Active Timetables', 'value' => $stats['active'], 'sub' => '', 'icon' => 'icon-checkmark-circle2', 'tone' => 'green'],
-            ['label' => 'Classes', 'value' => $stats['classes'], 'sub' => '', 'icon' => 'icon-users', 'tone' => 'purple'],
-            ['label' => 'Current Session', 'value' => $stats['session'], 'sub' => '', 'icon' => 'icon-calendar52', 'tone' => 'orange'],
-        ] as $stat)
-            <div class="col-sm-6 col-xl-3">
-                <div class="dashboard-stat-card dashboard-stat-{{ $stat['tone'] }}">
-                    <span class="dashboard-stat-top">
-                        <span class="dashboard-stat-icon"><i class="{{ $stat['icon'] }}"></i></span>
-                    </span>
-                    <span class="dashboard-stat-copy">
-                        <span class="dashboard-stat-label">{{ $stat['label'] }}</span>
-                        <strong>{{ $stat['value'] }}</strong>
-                        <small>{{ $stat['sub'] }}</small>
-                    </span>
-                </div>
-            </div>
-        @endforeach
-    </div>
-
+    {{-- Parity (tt-v3 sample, 2026-11-01): the filter bar carries
+         ONLY Class + Section and applies on change — no Search, no
+         Year, no Filter/Reset buttons. The controller still honours
+         q/year when they arrive in a URL; they are simply no longer
+         offered here. Once a class is chosen, the controller narrows
+         the Section options to that class. --}}
     <div class="pat-filters">
         <form method="get" action="{{ route('tt.index') }}" class="pat-filter-form">
-            <div class="pat-filter-field" style="flex:2 1 240px">
-                <label for="tt-q">Search</label>
-                <input type="text" id="tt-q" name="q" value="{{ $f_q }}" class="form-control" placeholder="Search timetables by class name&hellip;">
-            </div>
             <div class="pat-filter-field">
                 <label for="tt-class">Class</label>
-                <select id="tt-class" name="class_id" class="form-control">
-                    <option value="">All Classes</option>
+                <select id="tt-class" name="class_id" class="form-control" data-placeholder="{{ Qs::userIsTeacher() ? 'All my classes' : 'All Classes' }}" onchange="document.getElementById('tt-section').value=''; this.form.submit()">
+                    <option value="">{{ Qs::userIsTeacher() ? 'All my classes' : 'All Classes' }}</option>
                     @foreach($my_classes as $mc)
                         <option value="{{ $mc->id }}" {{ (string) $f_class === (string) $mc->id ? 'selected' : '' }}>{{ $mc->name }}</option>
                     @endforeach
                 </select>
             </div>
             <div class="pat-filter-field">
-                <label for="tt-year">Year</label>
-                <select id="tt-year" name="year" class="form-control">
-                    <option value="">All Years</option>
-                    @foreach($years as $y)
-                        <option value="{{ $y }}" {{ (string) $f_year === (string) $y ? 'selected' : '' }}>{{ $y }}</option>
+                <label for="tt-section">Section</label>
+                <select id="tt-section" name="section_id" class="form-control" data-placeholder="{{ $f_class ? 'All Sections' : 'Select a class first' }}" onchange="this.form.submit()">
+                    <option value="">{{ $f_class ? 'All Sections' : 'Select a class first' }}</option>
+                    @foreach($filter_sections as $sec)
+                        <option value="{{ $sec->id }}" data-class="{{ $sec->my_class_id }}" {{ (string) $f_section === (string) $sec->id ? 'selected' : '' }}>{{ $sec->name }}</option>
                     @endforeach
                 </select>
-            </div>
-            <div class="pat-filter-action">
-                <button class="btn btn-primary" type="submit"><i class="icon-filter3 mr-1"></i> Filter</button>
-                <a href="{{ route('tt.index') }}" class="btn btn-light"><i class="icon-reset mr-1"></i> Reset</a>
             </div>
         </form>
     </div>
 
     @php
-        $ttFiltersActive = $f_q !== '' || ($f_class !== null && $f_class !== '') || ($f_year !== null && $f_year !== '');
+        $ttFiltersActive = $f_q !== '' || ($f_class !== null && $f_class !== '') || ($f_year !== null && $f_year !== '') || ($f_section !== null && $f_section !== '');
         $ttVisibleGroups = 0;
     @endphp
 
@@ -118,16 +110,70 @@
             </div></div>
         @endif
 
-        <div class="ttc-grid">
+        @php $ttLedClassIds = Qs::userIsTeacher() ? \App\Models\Section::where('teacher_id', Auth::id())->pluck('my_class_id')->unique()->all() : []; @endphp
+        <div class="ttc-grid{{ Qs::userIsTeacher() ? ' tt3-teacher' : '' }}">
         @foreach($my_classes as $mc)
+            @if($list_class_id && (int) $mc->id === (int) $list_class_id) @continue @endif
             @php
                 $records = $tt_records->where('my_class_id', $mc->id)->values();
                 $primary = $records->first(function ($r) use ($stats) { return !$r->exam_id && $r->year === $stats['session'] && !$r->section_id; }) ?: $records->first(function ($r) use ($stats) { return !$r->exam_id && $r->year === $stats['session']; }) ?: $records->first();
-                $sections = $sections_by_class[$mc->id] ?? collect();
+                $sections = $chip_sections_by_class[$mc->id] ?? collect();
             @endphp
             @if($records->count() || !$ttFiltersActive)
                 @php $ttVisibleGroups++; @endphp
                 <div class="card ttc-card">
+                    <div class="ttc-head">
+                        <span class="l81-group-tile"><i class="icon-graduation2"></i></span>
+                        <div class="ttc-head-copy">
+                            <span class="ttc-name">{{ $mc->name }}</span>
+                            @if(Qs::userIsTeacher())
+                                <span class="ttc-sub">{{ in_array($mc->id, $ttLedClassIds) ? 'You are class teacher' : 'Your sections only' }}</span>
+                            @else
+                                <span class="ttc-sub">{{ $records->count() }} timetable{{ $records->count() === 1 ? '' : 's' }} · {{ $sections->count() }} section{{ $sections->count() === 1 ? '' : 's' }}</span>
+                            @endif
+                        </div>
+                    </div>
+                    @php
+                        $ttCardPeriods = 0; $ttCardSubjects = 0;
+                        foreach ($records as $ttRec) { $ttRs = $record_stats[$ttRec->id] ?? ['periods' => 0, 'subjects' => 0]; $ttCardPeriods += $ttRs['periods']; $ttCardSubjects += $ttRs['subjects']; }
+                        $ttActiveCount = $records->where('year', $stats['session'])->count();
+                    @endphp
+                    <div class="tt3-counts">
+                        <div><b>{{ $records->count() }}</b><span>Timetables</span></div>
+                        <div><b>{{ $ttCardPeriods }}</b><span>Periods</span></div>
+                        <div><b>{{ $ttCardSubjects }}</b><span>Subjects</span></div>
+                    </div>
+                    @if($sections->count())
+                        <div class="ttc-sections">
+                            @foreach($sections as $sec)<span class="ttc-chip">{{ $sec->name }}</span>@endforeach
+                        </div>
+                    @endif
+                    @if($primary)
+                        <a href="{{ route('ttr.show', $primary->id) }}" class="btn btn-primary tt3-open">Open Timetable</a>
+                    @elseif(Qs::userIsTeamSAWrite())
+                        <a href="{{ route('tt.generate.form', ['class_id' => $mc->id]) }}" class="btn btn-success tt3-open"><i class="icon-magic-wand mr-1"></i> Generate</a>
+                    @endif
+                    <div class="tt3-foot"><span class="tt3-dot"></span>@if($records->count() === 0) No timetable yet @elseif($ttActiveCount === $records->count()) All active @else {{ $ttActiveCount }} active · {{ $records->count() - $ttActiveCount }} past session @endif</div>
+                </div>
+            @endif
+        @endforeach
+        </div>
+
+        {{-- Filtered single-class view (owner, 2026-11-01): the
+             chosen class renders full-width as a LIST with its
+             complete record rows and every action; the grid above
+             carries summary cards only, so no card can outgrow the
+             others. --}}
+        @if($list_class_id)
+            @foreach($my_classes as $mc)
+                @if((int) $mc->id === (int) $list_class_id)
+                    @php
+                        $records = $tt_records->where('my_class_id', $mc->id)->values();
+                        $primary = $records->first(function ($r) use ($stats) { return !$r->exam_id && $r->year === $stats['session'] && !$r->section_id; }) ?: $records->first(function ($r) use ($stats) { return !$r->exam_id && $r->year === $stats['session']; }) ?: $records->first();
+                        $sections = $chip_sections_by_class[$mc->id] ?? collect();
+                        $ttVisibleGroups++;
+                    @endphp
+                    <div class="card ttc-list-card">
                     <div class="ttc-head">
                         <span class="l81-group-tile"><i class="icon-graduation2"></i></span>
                         <div class="ttc-head-copy">
@@ -200,10 +246,10 @@
                         <div class="ttc-empty">No timetable yet for this class.</div>
                     @endforelse
                     </div>
-                </div>
-            @endif
-        @endforeach
-        </div>
+                    </div>
+                @endif
+            @endforeach
+        @endif
 
         @if($ttVisibleGroups === 0)
             <div class="card"><div class="card-body">
@@ -222,7 +268,7 @@
          .ajax-store POST to ttr.store, same fields/bindings. Loop 81
          moved it below the list and anchored it (#tt-create) so the
          header's Create Timetable button lands on the real flow. --}}
-    <div id="tt-create">
+    <div id="tt-create" style="scroll-margin-top:90px; margin-top:20px;">
     @component('partials.patterns.form_page', [
         'form_action' => route('ttr.store'),
         'form_class' => 'ajax-store',
@@ -240,7 +286,7 @@
                 </div>
                 <div class="pat-field">
                     <label for="my_class_id">Class <span class="text-danger">*</span></label>
-                    <select required data-placeholder="Select Class" class="form-control select" name="my_class_id" id="my_class_id" onchange="getClassSections(this.value, '#section_id')">
+                    <select required class="form-control" name="my_class_id" id="my_class_id" onchange="getClassSections(this.value, '#section_id')">
                         @foreach($my_classes as $mc)
                             <option {{ old('my_class_id') == $mc->id ? 'selected' : '' }} value="{{ $mc->id }}">{{ $mc->name }}</option>
                         @endforeach
@@ -248,7 +294,7 @@
                 </div>
                 <div class="pat-field">
                     <label for="section_id">Section</label>
-                    <select class="form-control select" name="section_id" id="section_id">
+                    <select class="form-control" name="section_id" id="section_id">
                         <option value="">Whole class (all sections)</option>
                         @foreach(($sections_by_class[old('my_class_id') ?: ($my_classes->first()->id ?? null)] ?? collect()) as $sec)
                             <option {{ old('section_id') == $sec->id ? 'selected' : '' }} value="{{ $sec->id }}">{{ $sec->name }}</option>
@@ -257,7 +303,7 @@
                 </div>
                 <div class="pat-field">
                     <label for="exam_id">Type (Class or Exam)</label>
-                    <select class="select form-control" name="exam_id" id="exam_id">
+                    <select class="form-control" name="exam_id" id="exam_id">
                         <option value="">Class Timetable</option>
                         @foreach($exams as $ex)
                             <option {{ old('exam_id') == $ex->id ? 'selected' : '' }} value="{{ $ex->id }}">{{ $ex->name }}</option>

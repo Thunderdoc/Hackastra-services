@@ -1,6 +1,7 @@
 @extends('layouts.master')
 @section('page_title', 'Dashboard')
 @section('content')
+    @include('partials.role_banner', ['hkRole' => 'teacher', 'hkLabel' => 'Teacher'])
     {{-- Loop 79 (Teacher dashboard redesign): welcome strip, real
          KPI cards, Today's Timetable + right rail (Quick Actions,
          Today's Tasks, Notifications), then this month's attendance
@@ -14,13 +15,6 @@
          rides in the Today's Tasks panel sub-line so the figure stays
          on the page in every state, including zero. --}}
     <div class="t10-welcome">
-        <div class="t10-welcome-main">
-            <h2>{{ $greeting }}, {{ Auth::user()->name }} <span aria-hidden="true">👋</span></h2>
-            {{-- Take Attendance renders ONCE on this page — the top-right
-                 button in the subheader strip (partials/header). The hero
-                 copy was removed 2026-10-29 night: the owner flagged the
-                 same button appearing twice on the teacher dashboard. --}}
-        </div>
         <aside class="t10-quote">
             <i class="icon-quotes-left" aria-hidden="true"></i>
             <blockquote>&ldquo;Teaching is not just a profession, but a chance to make a difference every day.&rdquo;</blockquote>
@@ -116,14 +110,13 @@
             </div>
             <div class="t10-table-wrap">
                 <table class="t10-table">
-                    <thead><tr><th>Time</th><th>Subject</th><th>Class &amp; Section</th><th>Room</th><th>Status</th><th>Actions</th></tr></thead>
+                    <thead><tr><th>Time</th><th>Subject</th><th>Class &amp; Section</th><th>Status</th><th>Actions</th></tr></thead>
                     <tbody>
                     @forelse($today_periods as $row)
                         <tr>
                             <td class="t10-time">{{ $row['time_label'] }}</td>
                             <td><span class="t10-subject">{{ $row['subject_name'] }}</span></td>
-                            <td>{{ $row['class_name'] }}@if(!empty($row['section_name'])) &middot; {{ $row['section_name'] }}@elseif(!empty($row['sections'])) &middot; {{ implode(', ', $row['sections']) }}@endif</td>
-                            <td>—</td>
+                            <td>{{ $row['class_name'] }}@if(!empty($row['section_name'])) &middot; {{ $row['section_name'] }}@else &middot; All sections @endif</td>
                             <td><span class="t10-status t10-status-{{ $row['status'] }}">{{ $row['status_label'] }}</span></td>
                             <td>
                                 @if(!empty($row['session_id']))
@@ -134,7 +127,7 @@
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="6" class="t10-empty"><i class="icon-calendar3"></i> No classes scheduled for today. <a href="{{ route('tt.index') }}">View full timetable</a></td></tr>
+                        <tr><td colspan="5" class="t10-empty"><i class="icon-calendar3"></i> No classes scheduled for today. <a href="{{ route('tt.index') }}">View full timetable</a></td></tr>
                     @endforelse
                     </tbody>
                 </table>
@@ -182,42 +175,55 @@
             </div>
         </section>
 
-        {{-- WhatsApp group links (owner order 2026-10-30): each
-             class teacher keeps ONE group link per section they
-             lead; students see it beside their class on their
-             dashboard. --}}
+        {{-- WhatsApp group links (owner order 2026-10-30; redesign
+             + LOCK RULE 2026-11-01): one group link per section the
+             teacher leads, grouped by class. A SAVED link renders
+             locked — chip + badge + Open Group, no input, no Save —
+             and the server refuses teacher changes outright; only
+             the school Admin can reset a wrong link. --}}
         @if(isset($sections_led) && $sections_led->isNotEmpty())
-        <section class="t10-panel" id="whatsapp-groups">
+        @php
+            $waTotal = $sections_led->count();
+            $waLinked = $sections_led->filter(function ($s) { return !empty($s->whatsapp_link); })->count();
+            $waGroups = [];
+            foreach ($sections_led as $ledSection) {
+                $waGroups[optional($ledSection->my_class)->name ?: 'Class'][] = $ledSection;
+            }
+        @endphp
+        <section class="t10-panel wa-panel" id="whatsapp-groups">
             <div class="t10-panel-head">
                 <div class="t10-panel-title">
-                    <span class="t10-panel-icon t10-tone-green"><i class="icon-bubbles2"></i></span>
+                    <span class="wa-tile"><svg width="23" height="23" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.6-6.1c-.3-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4 0-.5.2-.8l.6-.7c.1-.2 0-.4 0-.5l-.8-1.9c-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.2.3-.9.9-.9 2.2s1 2.5 1.1 2.7c.1.2 2 3 4.8 4.2.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.6-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.2-.2-.5-.3z"/></svg></span>
                     <div>
                         <h5>Class WhatsApp Groups</h5>
                         <p class="t10-panel-sub">One group link per section you lead — students see it on their dashboard</p>
                     </div>
                 </div>
+                <div class="wa-prog"><b>{{ $waLinked }} of {{ $waTotal }}</b><span>groups linked</span></div>
             </div>
-            <div class="t10-table-wrap">
-                <table class="t10-table">
-                    <tbody>
-                    @foreach($sections_led as $ledSection)
-                        <tr>
-                            <td style="white-space:nowrap;"><strong>{{ optional($ledSection->my_class)->name }} {{ $ledSection->name }}</strong></td>
-                            <td>
-                                <form method="POST" action="{{ route('sections.whatsapp', Qs::hash($ledSection->id)) }}" class="form-inline">
+            <div class="wa-warn"><i class="icon-warning2"></i> Dhyan se submit karein — link ek baar save hone ke baad badla nahi ja sakta.</div>
+            @foreach($waGroups as $waClass => $waSections)
+                <div class="wa-group">
+                    <div class="wa-glabel">{{ strtoupper($waClass) }}</div>
+                    @foreach($waSections as $ledSection)
+                        <div class="wa-row">
+                            <span class="wa-name">{{ $waClass }} {{ $ledSection->name }}</span>
+                            @if($ledSection->whatsapp_link)
+                                <span class="wa-chip" title="{{ $ledSection->whatsapp_link }}">{{ $ledSection->whatsapp_link }}</span>
+                                <span class="wa-lock"><i class="icon-lock2"></i> Saved · Locked</span>
+                                <a href="{{ $ledSection->whatsapp_link }}" target="_blank" rel="noopener" class="btn btn-light btn-sm wa-open">Open Group</a>
+                            @else
+                                <form method="POST" action="{{ route('sections.whatsapp', Qs::hash($ledSection->id)) }}" class="wa-form">
                                     @csrf
-                                    <input type="url" name="whatsapp_link" value="{{ $ledSection->whatsapp_link }}" class="form-control form-control-sm" style="min-width:260px;" placeholder="https://chat.whatsapp.com/…">
-                                    <button type="submit" class="btn btn-primary btn-sm ml-1">Save</button>
-                                    @if($ledSection->whatsapp_link)
-                                        <a href="{{ $ledSection->whatsapp_link }}" target="_blank" rel="noopener" class="btn btn-light btn-sm ml-1">Open Group</a>
-                                    @endif
+                                    <input type="url" name="whatsapp_link" value="" class="form-control form-control-sm" placeholder="https://chat.whatsapp.com/…">
+                                    <button type="submit" class="btn btn-primary btn-sm">Save</button>
                                 </form>
-                            </td>
-                        </tr>
+                            @endif
+                        </div>
                     @endforeach
-                    </tbody>
-                </table>
-            </div>
+                </div>
+            @endforeach
+            <div class="wa-foot">Galat link save ho jaye toh sirf school Admin use reset kar sakta hai — teacher se edit nahi hoga.</div>
         </section>
         @endif
 

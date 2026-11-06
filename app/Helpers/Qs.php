@@ -506,6 +506,11 @@ class Qs
         return Auth::check() && Auth::user()->user_type == 'principal';
     }
 
+    public static function userIsNurse()
+    {
+        return Auth::check() && Auth::user()->user_type == 'nurse';
+    }
+
     public static function getUserType()
     {
         return Auth::user()->user_type;
@@ -538,7 +543,7 @@ class Qs
 
     public static function getStaff($remove=[])
     {
-        $data =  ['super_admin', 'admin', 'teacher', 'accountant', 'librarian'];
+        $data =  ['super_admin', 'admin', 'teacher', 'accountant', 'librarian', 'nurse'];
         return $remove ? array_values(array_diff($data, $remove)) : $data;
     }
 

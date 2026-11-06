@@ -147,14 +147,16 @@ class OwnerTimetableRemediationRound14Test extends TestCase
 
     protected function assertPillShown(TimeTableRecord $record): void
     {
-        $html = $this->actingAs($this->admin())->get(route('tt.index'))->getContent();
+        // Owner layout change, 2026-11-01: rows live in the class LIST view.
+        $html = $this->actingAs($this->admin())->get(route('tt.index', ['class_id' => $record->my_class_id]))->getContent();
         $card = $this->indexCardSegment($html, $record->fresh());
         $this->assertStringContainsString('l81-status-validated', $card);
     }
 
     protected function assertPillWithheld(TimeTableRecord $record): void
     {
-        $html = $this->actingAs($this->admin())->get(route('tt.index'))->getContent();
+        // Owner layout change, 2026-11-01: rows live in the class LIST view.
+        $html = $this->actingAs($this->admin())->get(route('tt.index', ['class_id' => $record->my_class_id]))->getContent();
         $card = $this->indexCardSegment($html, $record->fresh());
         $this->assertStringNotContainsString('l81-status-validated', $card);
         $this->assertStringNotContainsString('>Validated<', $card);

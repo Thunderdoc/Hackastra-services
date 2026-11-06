@@ -319,6 +319,12 @@ class MyAccountController extends Controller
                     ['icon' => 'icon-book', 'label' => 'Books', 'value' => Book::count()],
                     ['icon' => 'icon-users', 'label' => 'Loans Out', 'value' => BookRequest::where('returned', 0)->count()],
                 ];
+
+            case 'nurse':
+                return [
+                    ['icon' => 'icon-heart6', 'label' => 'Health Records', 'value' => \App\Models\HealthRecord::count()],
+                    ['icon' => 'icon-users', 'label' => 'Referred', 'value' => \App\Models\HealthRecord::where('is_referred', 1)->count()],
+                ];
         }
 
         return [];

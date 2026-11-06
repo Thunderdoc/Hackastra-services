@@ -32,16 +32,27 @@ class OwnerTimetablePairGuardTest extends TestCase
     /** A record plus one of its slots and a day with no cell yet. */
     protected function fixture(): array
     {
+        // Fixture hardening (2026-11-01, gate #2): this class saves
+        // REAL cells (no transactions), so repeated suite runs fill
+        // the first slot's days one by one — after seven runs the
+        // old first-slot-only search found no free day and the
+        // fixture failed on ambient state, not on the guard. The
+        // search now spans every slot x day of the record; the two
+        // tests' assertions are unchanged.
         $record = TimeTableRecord::where('my_class_id', 13)->firstOrFail();
-        $slot = TimeSlot::where('ttr_id', $record->id)->orderBy('id')->firstOrFail();
+        $slots = TimeSlot::where('ttr_id', $record->id)->orderBy('id')->get();
+        $slot = null;
         $day = null;
-        foreach (['Saturday', 'Sunday', 'Friday', 'Thursday', 'Wednesday', 'Tuesday', 'Monday'] as $candidate) {
-            $from = strtotime($candidate . ' ' . $slot->time_from);
-            $to = strtotime($candidate . ' ' . $slot->time_to);
-            if (!TimeTable::where('ttr_id', $record->id)
-                ->where('timestamp_from', $from)->where('timestamp_to', $to)->exists()) {
-                $day = $candidate;
-                break;
+        foreach ($slots as $candidateSlot) {
+            foreach (['Saturday', 'Sunday', 'Friday', 'Thursday', 'Wednesday', 'Tuesday', 'Monday'] as $candidate) {
+                $from = strtotime($candidate . ' ' . $candidateSlot->time_from);
+                $to = strtotime($candidate . ' ' . $candidateSlot->time_to);
+                if (!TimeTable::where('ttr_id', $record->id)
+                    ->where('timestamp_from', $from)->where('timestamp_to', $to)->exists()) {
+                    $slot = $candidateSlot;
+                    $day = $candidate;
+                    break 2;
+                }
             }
         }
         $this->assertNotNull($day, 'fixture needs one free slot/day on the Class 12 record');

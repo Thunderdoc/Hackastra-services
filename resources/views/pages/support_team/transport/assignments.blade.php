@@ -40,12 +40,24 @@
         @slot('title') New Assignment @endslot
         <div class="pat-form-section"><div class="pat-fields">
             <div class="pat-field">
-                <label for="student_record_id">Student *</label>
-                <select id="student_record_id" name="student_record_id" required class="form-control">
-                    <option value="">Select student</option>
-                    @foreach($students as $s)
-                    <option value="{{ $s->id }}">{{ $s->user ? $s->user->name : 'Student' }}{{ $s->my_class ? ' — '.$s->my_class->name : '' }}</option>
+                <label>Class</label>
+                <select class="form-control hk-cascade-class">
+                    <option value="">Choose a class…</option>
+                    @foreach($classes as $hkClass)
+                    <option value="{{ $hkClass->id }}">{{ $hkClass->name }}</option>
                     @endforeach
+                </select>
+            </div>
+            <div class="pat-field">
+                <label>Section</label>
+                <select class="form-control hk-cascade-section">
+                    <option value="">Choose a class first</option>
+                </select>
+            </div>
+            <div class="pat-field">
+                <label for="student_record_id">Student *</label>
+                <select id="student_record_id" name="student_record_id" required class="form-control hk-cascade-student" data-value-key="id">
+                    <option value="">Choose a student…</option>
                 </select>
             </div>
             <div class="pat-field">
@@ -69,4 +81,8 @@
         </div></div>
     @endcomponent
     @endif
+@endsection
+
+@section('scripts')
+    @include('partials.student_cascade_js')
 @endsection

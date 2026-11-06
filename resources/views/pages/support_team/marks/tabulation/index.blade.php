@@ -31,7 +31,7 @@
                         </div>
                         <div class="pat-field">
                             <label for="my_class_id">Class:</label>
-                            <select onchange="getClassSections(this.value)" required id="my_class_id" name="my_class_id" class="form-control select" data-placeholder="Select Class">
+                            <select onchange="getClassSectionsTabulation(this.value)" required id="my_class_id" name="my_class_id" class="form-control select" data-placeholder="Select Class">
                                 <option value=""></option>
                                 @foreach($my_classes as $c)
                                     <option {{ ($selected && $my_class_id == $c->id) ? 'selected' : '' }} value="{{ $c->id }}">{{ $c->name }}</option>

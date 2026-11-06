@@ -201,7 +201,16 @@ class QuizController extends Controller
         }
         $subjects = $this->teacherSubjects(Auth::id());
         $classIds = $subjects->pluck('my_class_id')->unique()->values();
-        $sections = Section::whereIn('my_class_id', $classIds)->orderBy('my_class_id')->orderBy('id')->get();
+        // Scoped options (owner, 2026-11-01): sections narrow to
+        // the ones where she is the EFFECTIVE teacher of some
+        // subject — the store refuses every other (section,
+        // subject) pair, so it must not be offered.
+        $unitSections = SectionTeacher::unitSectionIdsByClass(Auth::user());
+        $sectionIds = [];
+        foreach ($classIds as $cid) {
+            $sectionIds = array_merge($sectionIds, $unitSections[(int) $cid] ?? []);
+        }
+        $sections = Section::whereIn('id', $sectionIds)->orderBy('my_class_id')->orderBy('id')->get();
         return view('pages.support_team.quizzes.create', compact('subjects', 'sections'));
     }
 

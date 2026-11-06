@@ -463,12 +463,24 @@ class OwnerAllotmentRound7Test extends TestCase
             ->get(route('class_overview.index', ['class_id' => $classId]));
         $response->assertOk();
         $response->assertSee(\App\Models\MyClass::findOrFail($classId)->name . ' — Detail');
-        $response->assertSee('Strength: ' . number_format($strength) . ' students.');
+        // Parity (overview-redesign sample, 2026-11-01): the detail
+        // no longer carries the summary-sentences paragraph; the
+        // same independently computed strength rides the compact
+        // comparison's Class total row instead.
+        $response->assertSee('Section comparison');
+        $response->assertSee('Class total');
+        $response->assertSee(number_format($strength));
         if ($marksAvg !== null) {
             $response->assertSee(number_format($marksAvg, 1) . '%');
             $response->assertSee($topperName);
         }
-        $response->assertSee('Students needing attention (' . $atRisk . ')');
+        // Parity (same sample rule): the attention block renders
+        // only when the class actually has at-risk students.
+        if ($atRisk > 0) {
+            $response->assertSee('Students needing attention (' . $atRisk . ')');
+        } else {
+            $response->assertDontSee('Students needing attention');
+        }
     }
 
     public function test_override_teacher_overview_foreign_class_forbidden()

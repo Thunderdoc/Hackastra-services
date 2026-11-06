@@ -56,6 +56,25 @@
         </div>
     @endcomponent
 
+    {{-- WhatsApp group link — ADMIN RESET (owner order 2026-11-01):
+         a saved link is LOCKED for the section's teacher (the
+         server refuses teacher changes); this page is reachable
+         only by teamSAWrite, so the reset lives here — clearing
+         the link re-opens the teacher's Save box on their home. --}}
+    <div class="card mt-3"><div class="card-body">
+        <h6 class="font-weight-bold">WhatsApp group link</h6>
+        @if($s->whatsapp_link)
+            <p class="text-muted mb-2">Saved link (locked for the class teacher): <a href="{{ $s->whatsapp_link }}" target="_blank" rel="noopener">{{ $s->whatsapp_link }}</a></p>
+            <form method="post" action="{{ route('sections.whatsapp', Qs::hash($s->id)) }}" onsubmit="return confirm('Reset the WhatsApp group link for this section? The class teacher will be able to save a new one.');">
+                @csrf
+                <input type="hidden" name="whatsapp_link" value="">
+                <button type="submit" class="btn btn-warning btn-sm"><i class="icon-reset mr-1"></i> Reset link</button>
+            </form>
+        @else
+            <p class="text-muted mb-0">No group link saved for this section yet — the class teacher adds it from their home page, and it locks once saved.</p>
+        @endif
+    </div></div>
+
     {{-- Section build (2026-10-25): per-section subject teachers.
          Blank = the subject's class teacher teaches this section;
          a chosen teacher teaches that subject in THIS section only.

@@ -2,6 +2,7 @@
 @section('page_title', 'Dashboard')
 @section('hide_page_header', true)
 @section('content')
+    @include('partials.role_banner', ['hkRole' => 'librarian', 'hkLabel' => 'Librarian'])
     {{-- Loop 100: librarian home premium pass — every figure is computed in
          HomeController::librarianHomeData from the books catalogue and the
          book_requests loan ledger; nothing here is decorative data.
@@ -11,7 +12,6 @@
          drawn from the same ledger (HomeController::libraryTrend). --}}
     <div class="dashboard-hero mb-4">
         <div>
-            <h2 class="mb-1">{{ $greeting }}, {{ Auth::user()->name }} <span aria-hidden="true">👋</span></h2>
             <p class="mb-0 dashboard-muted">Here&rsquo;s your library overview for today.</p>
         </div>
         <div class="dashboard-hero-side">

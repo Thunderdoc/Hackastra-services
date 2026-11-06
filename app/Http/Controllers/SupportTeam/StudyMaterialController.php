@@ -118,9 +118,21 @@ class StudyMaterialController extends Controller
         $d['card_subjects'] = (clone $query)->distinct()->count('subject_id');
         $d['card_classes'] = (clone $query)->distinct()->count('my_class_id');
         $d['card_recent'] = (clone $query)->where('created_at', '>=', now()->subDays(7))->count();
-        $d['filter_subjects'] = Subject::whereIn('id', (clone $query)->distinct()->pluck('subject_id'))
+        // ENGINE PARITY (live 500, 2026-11-01): the filter id lists
+        // are DISTINCT plucks. The base query carries the listing
+        // orders (class, subject, latest) — pluck() keeps them
+        // while selecting ONLY the plucked column, producing
+        // "SELECT DISTINCT subject_id … ORDER BY my_class_id,
+        // created_at", which MySQL/TiDB refuse (error 3065:
+        // ORDER BY column not in SELECT list is incompatible with
+        // DISTINCT) while SQLite silently accepts it. Every local
+        // gate and CI run is SQLite, so the page passed everywhere
+        // except production. reorder() strips the listing orders
+        // from these two derived queries — the id lists are
+        // re-ordered by name on the Subject/MyClass side anyway.
+        $d['filter_subjects'] = Subject::whereIn('id', (clone $query)->reorder()->distinct()->pluck('subject_id'))
             ->orderBy('name')->get();
-        $d['filter_classes'] = MyClass::whereIn('id', (clone $query)->distinct()->pluck('my_class_id'))
+        $d['filter_classes'] = MyClass::whereIn('id', (clone $query)->reorder()->distinct()->pluck('my_class_id'))
             ->orderBy('name')->get();
         $d['scope_subjects'] = $scopeSubjects;
         $d['filters_active'] = $req->filled('q') || $req->filled('subject_id')
@@ -187,10 +199,20 @@ class StudyMaterialController extends Controller
             ->get();
         $classIds = $subjects->pluck('my_class_id')->unique();
 
+        // Scoped options (owner, 2026-11-01): sections narrow to
+        // the ones where she is the EFFECTIVE teacher of some
+        // subject — the store refuses every other (section,
+        // subject) pair, so it must not be offered.
+        $unitSections = SectionTeacher::unitSectionIdsByClass(Auth::user());
+        $sectionIds = [];
+        foreach ($classIds as $cid) {
+            $sectionIds = array_merge($sectionIds, $unitSections[(int) $cid] ?? []);
+        }
+
         $d = [
             'subjects' => $subjects,
             'classes' => MyClass::whereIn('id', $classIds)->get(),
-            'sections' => Section::whereIn('my_class_id', $classIds)->get(),
+            'sections' => Section::whereIn('id', $sectionIds)->get(),
         ];
 
         return view('pages.support_team.materials.create', $d);

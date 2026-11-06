@@ -93,6 +93,11 @@
         [data-edit] { cursor: text; }
         [data-edit]:hover { outline: 1px dashed rgba(23, 101, 245, .55); outline-offset: 2px; }
         [data-edit]:focus { outline: 2px solid rgba(23, 101, 245, .8); outline-offset: 2px; }
+        /* An untouched subtitle still needs its editable zone on
+           the canvas, or there is nothing to click and type into;
+           the hint is pseudo-content only — never document text,
+           so it cannot leak into the PDF or the saved config. */
+        .rp-header .subtitle:empty:before { content: 'Click to add a subtitle'; color: #a0aec0; }
         @endif
     </style>
 </head>
@@ -124,7 +129,7 @@
         <tr>
             <td>
                 <div class="doc-title"@if(!empty($canvas)) data-edit="title" contenteditable="true" spellcheck="false"@endif>{{ strtoupper($doc['title']) }}</div>
-                @if($doc['subtitle'] !== '')
+                @if($doc['subtitle'] !== '' || !empty($canvas))
                     <div class="subtitle"@if(!empty($canvas)) data-edit="subtitle" contenteditable="true" spellcheck="false"@endif>{{ $doc['subtitle'] }}</div>
                 @endif
             </td>

@@ -105,6 +105,16 @@ class UserController extends Controller
         /* Account lifecycle filter (Workstream DF): ?status= narrows
            the list to one lifecycle state; the states themselves are
            managed by suspend()/activate()/terminate() below. */
+        /* Item 21: name / username / email search — ?q= narrows
+           the (already role-scoped) list by text. */
+        $d['search_q'] = trim((string) request('q', ''));
+        if ($d['search_q'] !== '') {
+            $needle = mb_strtolower($d['search_q']);
+            $d['users'] = $d['users']->filter(function ($u) use ($needle) {
+                return strpos(mb_strtolower($u->name . ' ' . $u->email . ' ' . ($u->username ?? '')), $needle) !== false;
+            })->values();
+        }
+
         $status = request('status');
         $d['selected_status'] = in_array($status, ['active', 'suspended', 'terminated'], true) ? $status : null;
         if ($d['selected_status']) {

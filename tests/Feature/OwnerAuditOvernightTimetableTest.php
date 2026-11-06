@@ -103,7 +103,9 @@ class OwnerAuditOvernightTimetableTest extends TestCase
         $record = TimeTableRecord::where('year', Qs::getCurrentSession())->first();
         $this->assertNotNull($record, 'No current-session timetable record to probe (seeded fixture missing)');
 
-        $html = $this->actingAs($admin)->get(route('tt.index'))->assertOk()->getContent();
+        // Owner layout change, 2026-11-01: the record's row lives
+        // in its class's LIST view on the index now.
+        $html = $this->actingAs($admin)->get(route('tt.index', ['class_id' => $record->my_class_id]))->assertOk()->getContent();
 
         // Same actions as before the redesign, on the record's own row.
         $this->assertStringContainsString(route('ttr.show', $record->id), $html, 'View link missing on tt.index');

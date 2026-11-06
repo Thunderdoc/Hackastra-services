@@ -272,6 +272,7 @@
             <div class="card-header"><h5 class="card-title mb-0">Save &amp; Export</h5></div>
             <div class="card-body">
                 <button type="button" id="rbPdfBtn" class="btn btn-primary btn-block btn-lg rb-generate-btn"><i class="icon-file-pdf mr-2"></i> Download PDF</button>
+                <button type="button" id="rbWordBtn" class="btn btn-light btn-block rb-word-btn mt-2"><i class="icon-file-word mr-2"></i> Download Word</button>
                 <div class="form-row align-items-end mt-3">
                     <div class="form-group col-8 mb-0">
                         <label>Save as my template</label>
@@ -315,13 +316,13 @@
     {{-- ================= RIGHT — LIVE EDITABLE DOCUMENT ================= --}}
     <div class="rb5-right">
         {{-- Slim document header (owner simplification): the
-             "Report: …" summary + Print + Download PDF. This is
+             "Report: …" summary + the two downloads. This is
              the ONLY chrome above the document now. --}}
         <div class="rb5-docbar">
             <p id="rbSummary" class="rb2-summary mb-0"></p>
             <div class="rb5-docbar-actions">
-                <button type="button" class="btn btn-light btn-sm" id="rbDocPrint" style="height:32px;"><i class="icon-printer mr-1"></i> Print</button>
                 <button type="button" class="btn btn-primary btn-sm rb-generate-btn" style="height:32px;"><i class="icon-file-pdf mr-1"></i> Download PDF</button>
+                <button type="button" class="btn btn-light btn-sm rb-word-btn" style="height:32px;"><i class="icon-file-word mr-1"></i> Download Word</button>
             </div>
         </div>
         <div class="rb5-statusbar">
@@ -331,13 +332,16 @@
         <div class="rb5-workspace">
             <iframe id="previewFrame" name="previewFrame" src="about:blank" title="Report document"></iframe>
         </div>
-        <p class="text-muted mt-2 mb-0" style="font-size:12.5px;">The document is live: click its title, subtitle, footer line or any column heading to edit it in place. Data rows come straight from the school records — they are never typed by hand. Print prints only this document; Download PDF produces the identical file.</p>
     </div>
 </div>
 
 <form id="rbPdfForm" method="POST" action="{{ route('reports.pdf') }}" style="display:none;">
     @csrf
     <input type="hidden" name="config" id="rbPdfConfig">
+</form>
+<form id="rbWordForm" method="POST" action="{{ route('reports.word') }}" style="display:none;">
+    @csrf
+    <input type="hidden" name="config" id="rbWordConfig">
 </form>
 <form id="rbSaveForm" method="POST" action="{{ route('reports.templates.store') }}" style="display:none;">
     @csrf
@@ -353,40 +357,44 @@
     var SUBJECTS = @json($subjectsMap);
     var TEMPLATES = @json($templatesMap);
     var SCHOOL_NAME = @json(\App\Helpers\Qs::getSetting('system_name') ?: 'Hackstra Academy');
+    var CURRENT_SESSION = @json($currentSession);
     var PREVIEW_HTML_URL = @json(route('reports.preview_html'));
     var COL_TYPES = ['text', 'number', 'currency', 'date', 'checkbox', 'box', 'dropdown', 'yes_no', 'signature', 'remarks', 'blank'];
 
-    /* Which filter groups each source actually reads (grounded in
-       ReportSources' row builders) — the Details card shows exactly
-       these groups and hides the rest. */
-    var FILTER_MAP = {
-        students: ['class', 'section'],
-        marks: ['class', 'section', 'subject', 'exam'],
-        attendance: ['class', 'section', 'subject', 'dates'],
-        assignments: ['class', 'section', 'subject', 'dates'],
-        fees: ['class', 'section', 'dates', 'session'],
-        defaulters: ['class', 'section', 'status', 'session'],
-        fines: ['status'],
-        books: ['class'],
-        issues: ['status'],
-        staff: [],
-        admissions: ['class', 'status', 'session'],
-        certificates: ['status'],
-        circulars: ['status'],
-        classes: [],
-        timetables: ['class', 'section'],
-        fee_summary: ['class', 'session'],
-        attendance_summary: ['class', 'subject', 'dates'],
-        results_summary: ['class', 'exam'],
-        library_summary: [],
-        platform: [],
-        blank: []
-    };
+    /* Which filter groups each source shows — derived from the
+       declaration the server puts on every source
+       (ReportSources::definitions()['filters']: the exact keys
+       that source's row builder reads), so the Details card can
+       never offer a filter the source would ignore. One
+       declaration, in one place, for UI and resolver alike. */
+    var FILTER_KEY_GROUPS = { class_id: 'class', section_id: 'section', subject_id: 'subject', exam_id: 'exam', date_from: 'dates', date_to: 'dates', year: 'session', status: 'status' };
+    var FILTER_MAP = {};
+    Object.keys(SOURCES).forEach(function (srcKey) {
+        var groups = [];
+        (SOURCES[srcKey].filters || []).forEach(function (filterKey) {
+            var g = FILTER_KEY_GROUPS[filterKey];
+            if (g && groups.indexOf(g) === -1) { groups.push(g); }
+        });
+        FILTER_MAP[srcKey] = groups;
+    });
+    var FILTER_GROUP_INPUTS = { class: ['rbClass'], section: ['rbSection'], subject: ['rbSubject'], exam: ['rbExam'], dates: ['rbDateFrom', 'rbDateTo'], status: ['rbStatus'], session: ['rbYear'] };
     function el(id) { return document.getElementById(id); }
     function applyFilterVisibility() {
         var groups = FILTER_MAP[el('rbSource').value] || [];
         document.querySelectorAll('.rb2-filter').forEach(function (node) {
-            node.style.display = groups.indexOf(node.getAttribute('data-filter-group')) !== -1 ? '' : 'none';
+            var g = node.getAttribute('data-filter-group');
+            var show = groups.indexOf(g) !== -1;
+            node.style.display = show ? '' : 'none';
+            if (!show) {
+                /* A hidden filter is a cleared filter (owner,
+                   2026-11-01): its old value must never ride along
+                   into this source's config. The session box resets
+                   to the current session, its standing default. */
+                (FILTER_GROUP_INPUTS[g] || []).forEach(function (inputId) {
+                    var input = el(inputId);
+                    if (input) { input.value = inputId === 'rbYear' ? CURRENT_SESSION : ''; }
+                });
+            }
         });
         el('rbNoFilters').style.display = groups.length ? 'none' : '';
     }
@@ -440,19 +448,28 @@
     function updateSummary() {
         var out = el('rbSummary');
         if (!out) { return; }
-        var clsSel = el('rbClass');
-        var clsLabel = 'All classes';
-        if (clsSel && clsSel.value) {
-            for (var ci = 0; ci < clsSel.options.length; ci++) {
-                if (clsSel.options[ci].value === clsSel.value) {
-                    clsLabel = clsSel.options[ci].textContent.trim();
-                    break;
-                }
+        /* The summary is computed from collectConfig() — the very
+           object the preview and the downloads are built from — on
+           every change, so the bar can never describe a different
+           report than the settings on the left (owner, 2026-11-01:
+           it kept reading Students / All classes after the source
+           and class had already changed). */
+        var cfg = collectConfig();
+        function optionLabel(selId, value) {
+            var sel = el(selId);
+            if (!sel) { return ''; }
+            for (var i = 0; i < sel.options.length; i++) {
+                if (sel.options[i].value === String(value)) { return sel.options[i].textContent.trim(); }
             }
+            return '';
         }
-        var visible = 0;
-        columns.forEach(function (c) { if (!c.hidden) { visible++; } });
-        out.textContent = 'Report: ' + sourceLabel() + ' • Class: ' + clsLabel + ' • ' + visible + ' column' + (visible === 1 ? '' : 's');
+        var parts = ['Report: ' + sourceLabel()];
+        parts.push('Class: ' + (cfg.filters.class_id ? (optionLabel('rbClass', cfg.filters.class_id) || 'All classes') : 'All classes'));
+        if (cfg.filters.section_id) { parts.push('Section: ' + optionLabel('rbSection', cfg.filters.section_id)); }
+        if (cfg.filters.subject_id) { parts.push('Subject: ' + optionLabel('rbSubject', cfg.filters.subject_id)); }
+        if (cfg.filters.exam_id) { parts.push('Exam: ' + optionLabel('rbExam', cfg.filters.exam_id)); }
+        parts.push(cfg.columns.length + ' column' + (cfg.columns.length === 1 ? '' : 's'));
+        out.textContent = parts.join(' • ');
     }
     function schedulePreview() {
         updateSummary();
@@ -469,7 +486,7 @@
         previewTimer = null;
         var cfg = collectConfig();
         var problem = previewDraftProblem(cfg);
-        if (problem) { setPreviewLoading(false); setPreviewStatus(problem, false); return; }
+        if (problem) { setPreviewLoading(false); setPreviewStatus('Document not updated — ' + problem + ' The document below still shows the previous settings.', true); return; }
         var seq = ++previewSeq;
         previewRequested = true;
         setPreviewLoading(true);
@@ -488,18 +505,11 @@
                 if (seq !== previewSeq) { return; }
                 previewRequested = false;
                 setPreviewLoading(false);
-                setPreviewStatus('Could not reach the server — the document will refresh when the connection returns.', true);
+                setPreviewStatus('Document not updated — could not reach the server. The document below still shows the previous settings.', true);
             });
     }
 
     function isCustomKey(k) { return /^custom_\d+$/.test(k); }
-    function nextCustomKey() {
-        var n = 1;
-        var used = {};
-        columns.forEach(function (c) { used[c.key] = true; });
-        while (used['custom_' + n]) { n++; }
-        return 'custom_' + n;
-    }
     function sourceCols() {
         var s = SOURCES[el('rbSource').value];
         return s ? s.columns : [];
@@ -529,10 +539,6 @@
                 sel.appendChild(o);
             }
         });
-        var oc = document.createElement('option');
-        oc.value = '__custom';
-        oc.textContent = 'Custom column…';
-        sel.appendChild(oc);
     }
     function renderColumns() {
         var body = el('rbColBody');
@@ -734,19 +740,24 @@
         el('rbSortKey').value = sortKey;
     }
     function collectConfig() {
+        /* Only the filters the current source declares are sent —
+           a value left in a hidden field can never leak into the
+           config (the visibility pass clears them too; this is the
+           guarantee, that is the hygiene). */
+        var groups = FILTER_MAP[el('rbSource').value] || [];
         var filters = {};
         var classId = el('rbClass').value;
         var sectionId = el('rbSection').value;
         var subjectId = el('rbSubject').value;
         var examId = el('rbExam').value;
-        if (classId) { filters.class_id = parseInt(classId, 10); }
-        if (sectionId) { filters.section_id = parseInt(sectionId, 10); }
-        if (subjectId) { filters.subject_id = parseInt(subjectId, 10); }
-        if (examId) { filters.exam_id = parseInt(examId, 10); }
-        if (el('rbYear').value) { filters.year = el('rbYear').value; }
-        if (el('rbDateFrom').value) { filters.date_from = el('rbDateFrom').value; }
-        if (el('rbDateTo').value) { filters.date_to = el('rbDateTo').value; }
-        if (el('rbStatus').value) { filters.status = el('rbStatus').value; }
+        if (classId && groups.indexOf('class') !== -1) { filters.class_id = parseInt(classId, 10); }
+        if (sectionId && groups.indexOf('section') !== -1) { filters.section_id = parseInt(sectionId, 10); }
+        if (subjectId && groups.indexOf('subject') !== -1) { filters.subject_id = parseInt(subjectId, 10); }
+        if (examId && groups.indexOf('exam') !== -1) { filters.exam_id = parseInt(examId, 10); }
+        if (el('rbYear').value && groups.indexOf('session') !== -1) { filters.year = el('rbYear').value; }
+        if (el('rbDateFrom').value && groups.indexOf('dates') !== -1) { filters.date_from = el('rbDateFrom').value; }
+        if (el('rbDateTo').value && groups.indexOf('dates') !== -1) { filters.date_to = el('rbDateTo').value; }
+        if (el('rbStatus').value && groups.indexOf('status') !== -1) { filters.status = el('rbStatus').value; }
         var options = {
             orientation: el('rbOrientation').value,
             paper: el('rbPaper').value,
@@ -913,15 +924,14 @@
         }
     });
     el('rbAddBtn').addEventListener('click', function () {
+        /* Real source columns only (owner, 2026-11-01): a report's
+           data always comes from the school records — there is no
+           hand-typed custom column any more. Old templates that
+           carry custom_N columns still load and render. */
         var val = el('rbAddCol').value;
-        if (val === '__custom') {
-            var key = nextCustomKey();
-            columns.push({ key: key, label: 'Field ' + key.replace('custom_', ''), type: 'text', width: 15 });
-        } else {
-            var found = null;
-            sourceCols().forEach(function (c) { if (c.key === val) { found = c; } });
-            if (found) { columns.push({ key: found.key, label: found.label, type: found.type, width: 12 }); }
-        }
+        var found = null;
+        sourceCols().forEach(function (c) { if (c.key === val) { found = c; } });
+        if (found) { columns.push({ key: found.key, label: found.label, type: found.type, width: 12 }); }
         renderColumns();
     });
     el('rbRestoreCols').addEventListener('click', function () {
@@ -942,11 +952,10 @@
     /* Paper / orientation now live INSIDE #rbSettings (Page
        settings section), so the delegated input/change handlers
        above already schedule their previews — no separate wiring.
-       The document header's Print button prints the frame. */
-    el('rbDocPrint').addEventListener('click', function () {
-        var fw = el('previewFrame').contentWindow;
-        if (fw) { fw.focus(); fw.print(); }
-    });
+       The old browser-Print button is gone (owner, 2026-11-01):
+       printing the frame applied the PDF-only letterhead layout
+       in Chrome — giant blank page tops, no letterhead after
+       page 1. The PDF and Word downloads are the document. */
     el('rb5SwConfig').addEventListener('click', function () {
         el('rb5Wrap').classList.remove('rb5-show-doc');
         el('rb5SwConfig').className = 'btn btn-primary';
@@ -967,9 +976,9 @@
             if (fdoc && fdoc.body && fdoc.body.getAttribute('data-rb-preview-error')) { isError = true; }
         } catch (e) { isError = false; }
         if (isError) {
-            setPreviewStatus('The document could not be generated — see the message in the document panel, then fix the settings.', true);
+            setPreviewStatus('Document not updated — the document could not be generated with these settings; see the message in the document panel.', true);
         } else {
-            setPreviewStatus('Live document — click its title, subtitle, footer or column headings to edit. Print and the PDF use exactly this document.', false);
+            setPreviewStatus('Document updated.', false);
             wireCanvas();
         }
         updateSummary();
@@ -980,6 +989,14 @@
             if (!validForSubmit(cfg)) { return; }
             el('rbPdfConfig').value = JSON.stringify(cfg);
             el('rbPdfForm').submit();
+        });
+    });
+    document.querySelectorAll('.rb-word-btn').forEach(function (wordBtn) {
+        wordBtn.addEventListener('click', function () {
+            var cfg = collectConfig();
+            if (!validForSubmit(cfg)) { return; }
+            el('rbWordConfig').value = JSON.stringify(cfg);
+            el('rbWordForm').submit();
         });
     });
     el('rbSaveBtn').addEventListener('click', function () {

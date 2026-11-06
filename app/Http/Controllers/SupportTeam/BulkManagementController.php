@@ -319,7 +319,7 @@ class BulkManagementController extends Controller
      */
     public function exportsStaff()
     {
-        $users = \App\User::whereIn('user_type', ['teacher', 'accountant', 'librarian'])
+        $users = \App\User::whereIn('user_type', ['teacher', 'accountant', 'librarian', 'nurse'])
             ->orderBy('user_type')->orderBy('id')->get();
         $staffRecords = \App\Models\StaffRecord::whereIn('user_id', $users->pluck('id'))
             ->get()->keyBy('user_id');

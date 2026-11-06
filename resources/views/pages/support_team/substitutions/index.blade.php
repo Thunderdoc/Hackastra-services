@@ -40,6 +40,8 @@
                                             {{ optional(optional(optional($row->time_table)->tt_record)->my_class)->name ?: '—' }}
                                             @if(optional(optional($row->time_table)->tt_record)->section)
                                                 — {{ $row->time_table->tt_record->section->name }}
+                                            @else
+                                                — All sections
                                             @endif
                                             · {{ optional(optional($row->time_table)->subject)->name }}
                                         </td>
@@ -104,6 +106,8 @@
                                             {{ optional(optional(optional($sub->time_table)->tt_record)->my_class)->name ?: '—' }}
                                             @if(optional(optional($sub->time_table)->tt_record)->section)
                                                 — {{ $sub->time_table->tt_record->section->name }}
+                                            @else
+                                                — All sections
                                             @endif
                                         </td>
                                         <td data-label="Subject">{{ optional(optional($sub->time_table)->subject)->name ?: '—' }}</td>

@@ -181,13 +181,21 @@ class DisciplineRecordController extends Controller
         // The student picker only ever offers students the caller
         // may actually record about — a teacher cannot even pick a
         // foreign-class student, and store() re-checks server-side.
-        $students = User::where('user_type', 'student')
-            ->whereIn('id', $this->visibleStudentIds($user))
-            ->orderBy('name')
-            ->get();
+        // Picker cascade (owner, 2026-11-01): the class options are
+        // the classes of the caller's visible students, and the
+        // student list comes from the scoped by-section feed —
+        // visibleStudentIds() still defines the scope.
+        $visibleIds = $this->visibleStudentIds($user);
+        $classIds = StudentRecord::whereIn('user_id', $visibleIds)
+            ->pluck('my_class_id')->unique()->all();
+        $preselected = old('student_id')
+            ? StudentRecord::with(['user', 'my_class', 'section'])
+                ->where('user_id', (int) old('student_id'))->first()
+            : null;
 
         return view('pages.support_team.discipline_records.create', [
-            'students' => $students,
+            'classes' => \App\Models\MyClass::whereIn('id', $classIds)->orderBy('id')->get(),
+            'preselected' => $preselected,
             'types' => DisciplineRecord::typeLabels(),
         ]);
     }

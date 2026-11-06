@@ -190,8 +190,10 @@ class OwnerTimetableCombinedErrorsRound12Test extends TestCase
     {
         [$record] = $this->combinedFixture();
 
+        // Owner layout change, 2026-11-01: the record's row lives
+        // in its class's LIST view on the index now.
         $html = $this->actingAs($this->admin())
-            ->get(route('tt.index'))
+            ->get(route('tt.index', ['class_id' => $record->my_class_id]))
             ->assertOk()
             ->getContent();
 

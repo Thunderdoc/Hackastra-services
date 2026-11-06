@@ -20,7 +20,7 @@ class StaffAttendanceController extends Controller
     public function index(Request $request)
     {
         $date = $request->get('date', date('Y-m-d'));
-        $staff = User::whereIn('user_type', ['teacher', 'accountant', 'librarian', 'admin'])
+        $staff = User::whereIn('user_type', ['teacher', 'accountant', 'librarian', 'admin', 'nurse'])
             ->orderBy('user_type')->orderBy('name')->get();
         $marks = StaffAttendance::where('date', $date)->get()->keyBy('user_id');
         return view('pages.support_team.staff_attendance.index', [

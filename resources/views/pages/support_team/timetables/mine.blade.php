@@ -213,6 +213,13 @@
                     </div>
                 @else
                     @include('pages.support_team.timetables.partials.grid')
+                    @if(!empty($mine_summary))
+                        <div class="sd-ttstrip">
+                            <span><i class="icon-calendar3"></i> <strong>{{ $mine_summary['today'] }}</strong> periods today ({{ $mine_summary['today_name'] }})</span>
+                            <span><i class="icon-stack"></i> <strong>{{ $mine_summary['week'] }}</strong> periods this week</span>
+                            <span><i class="icon-alarm"></i> <strong>{{ $mine_summary['free'] }}</strong> free periods</span>
+                        </div>
+                    @endif
                 @endif
             </div>
         </div>

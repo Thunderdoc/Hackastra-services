@@ -11,6 +11,7 @@ use App\Support\TeacherScope;
 use Illuminate\Support\Facades\Auth;
 use App\Models\MyClass;
 use App\Models\Section;
+use App\Support\SectionTeacher;
 use App\Models\StudentRecord;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
@@ -129,9 +130,62 @@ class AttendanceController extends Controller
      */
     public function report(Request $request)
     {
-        $d = $this->monthlyReportData($request);
+        $d = $this->monthlyReportData($request, true);
 
         return view('pages.support_team.attendance.report', $d);
+    }
+
+    /**
+     * Item 7 (owner, 2026-11-01): the monthly report's results
+     * region as JSON html for the page's AJAX refresh — changing a
+     * filter swaps only the stat cards + student table, with no
+     * page reload. Screen-mode data: empty until class + section.
+     */
+    public function reportResults(Request $request)
+    {
+        $d = $this->monthlyReportData($request, true);
+
+        return response()->json([
+            'results' => view('pages.support_team.attendance.partials.report_results', $d)->render(),
+        ]);
+    }
+
+    /**
+     * Section options for the attendance report filters (monthly +
+     * defaulters share the rule): every section of the class for
+     * office roles; for a teacher only the sections she teaches in
+     * or leads. A foreign class answers empty for a teacher.
+     */
+    public function reportSections(Request $request)
+    {
+        $classId = (int) $request->query('class_id');
+        if (!$classId) {
+            return response()->json([]);
+        }
+        if (Qs::userIsTeacher() && !TeacherScope::canTeachClass(Auth::user(), $classId)) {
+            return response()->json([]);
+        }
+
+        $sections = Section::where('my_class_id', $classId)->orderBy('id')->get();
+        if (Qs::userIsTeacher()) {
+            $sections = $sections->whereIn('id', $this->teacherSectionIds(Auth::user(), $classId))->values();
+        }
+
+        return response()->json($sections->map(function ($s) {
+            return ['id' => $s->id, 'name' => $s->name];
+        })->values());
+    }
+
+    /** Sections of one class a teacher may pick on report filters:
+        her effective-unit sections plus the sections she leads. */
+    private function teacherSectionIds($user, int $classId): array
+    {
+        $unit = SectionTeacher::unitSectionIdsByClass($user);
+        $led = Section::where('my_class_id', $classId)
+            ->where('teacher_id', $user->id)->pluck('id')
+            ->map(function ($id) { return (int) $id; })->all();
+
+        return array_values(array_unique(array_merge($unit[$classId] ?? [], $led)));
     }
 
     /**
@@ -226,7 +280,7 @@ class AttendanceController extends Controller
      * class summary figures, and the school identity block the
      * document letterhead renders.
      */
-    protected function monthlyReportData(Request $request): array
+    protected function monthlyReportData(Request $request, bool $forScreen = false): array
     {
         if ($request->query('class_id') !== 'all') {
             $this->guardClassScope($request->query('class_id'));
@@ -243,7 +297,7 @@ class AttendanceController extends Controller
             ? null
             : ($request->query('class_id')
                 ? $d['classes']->firstWhere('id', (int) $request->query('class_id'))
-                : $d['classes']->first());
+                : ($forScreen ? null : $d['classes']->first()));
         /* Section filter (owner order 2026-10-28, "section wise"):
            only for a single selected class — in all-classes mode
            the filter is ignored. A section from another class falls
@@ -254,6 +308,14 @@ class AttendanceController extends Controller
         $d['selected_section'] = null;
         if (!$d['all_classes'] && $d['selected_class']) {
             $d['sections'] = Section::where('my_class_id', $d['selected_class']->id)->orderBy('id')->get();
+            if (Qs::userIsTeacher()) {
+                // Scoped options (owner, 2026-11-01): her sections
+                // only — a picked foreign section resolves to null
+                // below, exactly like a section of another class.
+                $d['sections'] = $d['sections']
+                    ->whereIn('id', $this->teacherSectionIds(Auth::user(), (int) $d['selected_class']->id))
+                    ->values();
+            }
             if ($request->query('section_id')) {
                 $d['selected_section'] = $d['sections']->firstWhere('id', (int) $request->query('section_id'));
             }
@@ -281,9 +343,21 @@ class AttendanceController extends Controller
         $d['generated_on'] = now();
         $d['school'] = $this->schoolIdentity();
 
+        /* Screen mode (item 7, owner 2026-11-01): the on-screen
+           list starts EMPTY and loads only once BOTH a class and a
+           section are chosen — no default-class pre-load, and the
+           all-classes aggregate is a document feature, not a
+           screen pre-load. Print / PDF / export call without the
+           flag and keep their whole-class behaviour. */
+        $d['needs_selection'] = $forScreen
+            && ($d['all_classes'] || !$d['selected_class'] || !$d['selected_section']);
+
         $reportClasses = $d['all_classes']
             ? $d['classes']
             : ($d['selected_class'] ? collect([$d['selected_class']]) : collect());
+        if ($d['needs_selection']) {
+            $reportClasses = collect();
+        }
         $totalStudents = 0;
 
         foreach ($reportClasses as $reportClass) {
@@ -446,7 +520,7 @@ class AttendanceController extends Controller
      */
     public function defaulters(Request $request)
     {
-        $d = $this->defaulterData($request);
+        $d = $this->defaulterData($request, true);
 
         // The screen table is paginated (15/page, the house pattern);
         // $d['rows'] keeps the FULL filtered set so the print
@@ -463,6 +537,61 @@ class AttendanceController extends Controller
         );
 
         return view('pages.support_team.attendance.defaulters', $d);
+    }
+
+    /**
+     * Item 7 (owner, 2026-11-01): the Low Attendance page's AJAX
+     * refresh — the KPI strip and the table region as JSON html;
+     * only those swap when a filter changes. Screen-mode data:
+     * empty until class + section are both chosen.
+     */
+    public function defaultersResults(Request $request)
+    {
+        $d = $this->defaulterData($request, true);
+
+        $perPage = 15;
+        $page = LengthAwarePaginator::resolveCurrentPage();
+        $d['paginator'] = new LengthAwarePaginator(
+            $d['rows']->forPage($page, $perPage)->values(),
+            $d['rows']->count(),
+            $perPage,
+            $page,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
+
+        return response()->json([
+            'stats' => view('pages.support_team.attendance.partials.defaulters_stats', $d)->render(),
+            'results' => view('pages.support_team.attendance.partials.defaulters_results', $d)->render(),
+            'print' => view('pages.support_team.attendance.partials.defaulters_print', $d)->render(),
+            'band_line' => $this->defaulterBandLine($d),
+            'filter_line' => 'Low Attendance (Below ' . $d['threshold'] . '%) — '
+                . $this->defaulterFilterLine($d) . ' · Generated by Hackstra',
+            'has_rows' => $d['rows']->isNotEmpty(),
+        ]);
+    }
+
+    /** The filter line the Low Attendance documents carry. */
+    private function defaulterFilterLine(array $d): string
+    {
+        return $d['month']->format('F Y')
+            . ($d['selected_class'] ? ' · Class: ' . $d['selected_class']->name
+                : (Qs::userIsTeacher() ? ' · Assigned Classes' : ' · All Classes'))
+            . ($d['selected_section'] ? ' · Section: ' . $d['selected_section']->name : '')
+            . ($d['search'] !== '' ? ' · Search: "' . $d['search'] . '"' : '');
+    }
+
+    /** The print band's summary line, as plain text for the AJAX swap. */
+    private function defaulterBandLine(array $d): string
+    {
+        $avg = $d['summary']['average'] !== null
+            ? rtrim(rtrim(number_format($d['summary']['average'], 1), '0'), '.') . '%'
+            : '—';
+
+        return 'Low Attendance (Below ' . $d['threshold'] . '%) — '
+            . $this->defaulterFilterLine($d)
+            . ' · ' . $d['summary']['below'] . ' student(s) below the line'
+            . ' · ' . $d['summary']['critical'] . ' critical (below 50%)'
+            . ' · Average ' . $avg;
     }
 
     /**
@@ -506,7 +635,7 @@ class AttendanceController extends Controller
      * of the listed students' percentages, and total enrolled
      * students in the class/section scope.
      */
-    private function defaulterData(Request $request): array
+    private function defaulterData(Request $request, bool $forScreen = false): array
     {
         $d['thresholds'] = [50, 60, 70, 75, 80, 90];
         $threshold = (int) $request->query('threshold', 75);
@@ -523,10 +652,33 @@ class AttendanceController extends Controller
         $d['sections'] = $d['selected_class']
             ? Section::where('my_class_id', $d['selected_class']->id)->orderBy('name')->get()
             : collect();
+        if ($d['selected_class'] && Qs::userIsTeacher()) {
+            // Scoped options (owner, 2026-11-01): her sections only.
+            $d['sections'] = $d['sections']
+                ->whereIn('id', $this->teacherSectionIds(Auth::user(), (int) $d['selected_class']->id))
+                ->values();
+        }
         $d['selected_section'] = ($d['selected_class'] && $request->query('section_id'))
             ? $d['sections']->firstWhere('id', (int) $request->query('section_id'))
             : null;
         $d['search'] = trim((string) $request->query('search', ''));
+
+        /* Screen mode (item 7, owner 2026-11-01): the list starts
+           EMPTY and loads only once BOTH a class and a section are
+           chosen — the all-classes scan stays a document/export
+           behaviour. Nothing is scanned before a selection exists. */
+        $d['needs_selection'] = $forScreen && (!$d['selected_class'] || !$d['selected_section']);
+        if ($d['needs_selection']) {
+            $d['total_students'] = 0;
+            $d['rows'] = collect();
+            $d['scanned'] = 0;
+            $d['summary'] = [
+                'below' => 0, 'critical' => 0, 'classes' => 0,
+                'average' => null, 'total_students' => 0,
+            ];
+
+            return $d;
+        }
 
         $scope = function (bool $withSearch) use ($d) {
             return StudentRecord::with('user', 'my_class', 'section')
@@ -631,6 +783,11 @@ class AttendanceController extends Controller
 
         $user = $request->user();
         $d['month'] = $this->monthFromRequest($request);
+        // Item 20e: the page OPENS on the whole session (totals that
+        // match the dashboard's attendanceSummary) — a bare current
+        // month opened empty whenever the month had no registers
+        // yet. ?month=YYYY-MM still selects the per-month view.
+        $d['view'] = $request->filled('month') ? 'month' : 'session';
         $d['is_parent'] = Qs::userIsParent();
 
         $records = StudentRecord::with('user', 'my_class', 'section')
@@ -652,11 +809,35 @@ class AttendanceController extends Controller
             $from = $d['month']->copy()->startOfMonth();
             $to = $d['month']->copy()->endOfMonth();
 
-            $entries = AttendanceSessionEntry::with(['session.subject', 'session.time_table.time_slot'])
-                ->where('student_record_id', $selected->id)
-                ->whereHas('session', function ($q) use ($from, $to) {
+            $entriesQuery = AttendanceSessionEntry::with(['session.subject', 'session.time_table.time_slot'])
+                ->where('student_record_id', $selected->id);
+            if ($d['view'] === 'month') {
+                $entriesQuery->whereHas('session', function ($q) use ($from, $to) {
                     $q->betweenDates($from, $to);
-                })
+                });
+            }
+
+            // Item 20e: per-month strip for the session view —
+            // computed from the same entries, one row per month
+            // that has registers.
+            $allEntries = $d['view'] === 'session'
+                ? (clone $entriesQuery)->get()
+                : AttendanceSessionEntry::with('session')
+                    ->where('student_record_id', $selected->id)->get();
+            $byMonth = [];
+            foreach ($allEntries as $e) {
+                $key = $e->session->date->format('Y-m');
+                $byMonth[$key] = $byMonth[$key] ?? ['key' => $key, 'label' => $e->session->date->format('F Y'), 'present' => 0, 'absent' => 0, 'late' => 0, 'marked' => 0];
+                if (isset($byMonth[$key][$e->status])) { $byMonth[$key][$e->status]++; }
+                $byMonth[$key]['marked']++;
+            }
+            ksort($byMonth);
+            $d['months'] = collect($byMonth)->map(function ($m) {
+                $m['percent'] = $this->percentFor($m['present'], $m['late'], $m['marked']);
+                return $m;
+            })->values();
+
+            $entries = $entriesQuery
                 ->get()
                 ->sortByDesc(function ($entry) {
                     return $entry->session->date->format('Y-m-d') . '-' . str_pad((string) $entry->session_id, 10, '0', STR_PAD_LEFT);

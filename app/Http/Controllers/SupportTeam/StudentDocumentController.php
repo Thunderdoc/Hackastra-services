@@ -95,9 +95,18 @@ class StudentDocumentController extends Controller
         if (!Qs::userIsAdmin()) {
             abort(403, __('msg.denied'));
         }
-        $students = StudentRecord::with(['user', 'my_class', 'section'])
-            ->where('grad', 0)->orderBy('id')->get();
-        return view('pages.support_team.documents.create', ['students' => $students]);
+        // Picker cascade (owner, 2026-11-01): the form walks
+        // Class > Section > Student via the shared feeds instead
+        // of listing every student in the school. The class and
+        // section selects are filter-only; only a pre-chosen
+        // student is resolved server-side.
+        $preselected = old('student_record_id')
+            ? StudentRecord::with(['user', 'my_class', 'section'])->find(old('student_record_id'))
+            : null;
+        return view('pages.support_team.documents.create', [
+            'classes' => \App\Models\MyClass::orderBy('id')->get(),
+            'preselected' => $preselected,
+        ]);
     }
 
     public function store(Request $request)

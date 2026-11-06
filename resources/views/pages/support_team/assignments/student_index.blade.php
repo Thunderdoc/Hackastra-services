@@ -78,7 +78,7 @@
                         </div>
                         <a href="{{ route('assignments.show', $assignment->id) }}" class="lms-card-title">{{ $assignment->title }}</a>
                         @if($assignment->description)
-                            <div class="text-muted lms82-clamp2">{{ \Illuminate\Support\Str::limit($assignment->description, 130) }}</div>
+                            <div class="text-muted">{{ $assignment->description }}</div>
                         @endif
                         <div class="text-muted mt-1">
                             <i class="icon-user mr-1"></i>{{ optional($assignment->teacher)->name ?? 'Teacher' }}

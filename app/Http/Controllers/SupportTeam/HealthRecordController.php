@@ -26,11 +26,14 @@ use Illuminate\Support\Facades\Schema;
  *
  * Routes carry NO team middleware, so this controller gates
  * everything (controller-guarded, like the other Wave 3 routes):
- * - WRITE: admin + teacher only.
- * - READ: admin (all), teacher (own classes only), parent (only
- *   their own children, via StudentRecord.my_parent_id), student
- *   (only self). Everyone else (accountant, librarian,
- *   super_admin, ...) gets 403 on every action.
+ * - WRITE: nurse + teacher only.
+ * - READ: nurse (all — the clinic serves the whole school),
+ *   teacher (own classes only), parent (only their own children,
+ *   via StudentRecord.my_parent_id), student (only self).
+ *   Everyone else (admin included — owner order 2026-11-06:
+ *   health records live with the Nurse login, not the Admin —
+ *   accountant, librarian, super_admin, ...) gets 403 on every
+ *   action.
  *
  * TEACHER SCOPE — "teacher only for students in classes they
  * teach" is resolved as the union of:
@@ -65,7 +68,7 @@ class HealthRecordController extends Controller
             ->orderBy('visit_date', 'desc')
             ->orderBy('id', 'desc');
 
-        if (Qs::userIsAdmin()) {
+        if (Qs::userIsNurse()) {
             // All records.
         } elseif (Qs::userIsTeacher()) {
             $query->whereIn('student_id', $this->teacherStudentUserIds($user));
@@ -79,26 +82,39 @@ class HealthRecordController extends Controller
 
         return view('pages.support_team.health_records.index', [
             'records' => $query->get(),
-            'can_write' => Qs::userIsAdmin() || Qs::userIsTeacher(),
+            'can_write' => Qs::userIsNurse() || Qs::userIsTeacher(),
         ]);
     }
 
     public function create()
     {
         $user = Auth::user();
-        if (!Qs::userIsAdmin() && !Qs::userIsTeacher()) {
+        if (!Qs::userIsNurse() && !Qs::userIsTeacher()) {
             abort(403);
         }
 
+        // Picker cascade (owner, 2026-11-01): the class options
+        // are the classes of the caller's writable students — for
+        // a teacher, only classes she may actually record for —
+        // and the student list comes from the scoped by-section
+        // feed. writableStudents() still defines the scope.
+        $writable = $this->writableStudents($user);
+        $preselected = old('student_id')
+            ? StudentRecord::with(['user', 'my_class', 'section'])
+                ->where('user_id', (int) old('student_id'))->first()
+            : null;
+
         return view('pages.support_team.health_records.create', [
-            'students' => $this->writableStudents($user),
+            'classes' => \App\Models\MyClass::whereIn('id', $writable->pluck('my_class_id')->unique()->all())
+                ->orderBy('id')->get(),
+            'preselected' => $preselected,
         ]);
     }
 
     public function store(Request $request)
     {
         $user = Auth::user();
-        if (!Qs::userIsAdmin() && !Qs::userIsTeacher()) {
+        if (!Qs::userIsNurse() && !Qs::userIsTeacher()) {
             abort(403);
         }
 
@@ -140,7 +156,7 @@ class HealthRecordController extends Controller
             abort(403);
         }
 
-        if (Qs::userIsAdmin()) {
+        if (Qs::userIsNurse()) {
             // All records.
         } elseif (Qs::userIsTeacher()) {
             $studentRecord = StudentRecord::where('user_id', (int) $health->student_id)->first();

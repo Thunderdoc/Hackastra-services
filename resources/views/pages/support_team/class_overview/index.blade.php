@@ -5,209 +5,160 @@
     <a href="{{ route('dashboard') }}" class="btn btn-default">Back to Dashboard</a>
 @endsection
 @section('content')
-    <div class="panel panel-flat">
-        <div class="panel-heading">
-            <h5 class="panel-title">Class Overview</h5>
-            <p class="text-muted" style="margin: 6px 0 0;">
-                Live snapshot from existing records only — nothing here is stored or estimated.
-                Strength counts active student records (grad = 0). Attendance is (present + late) / marked
-                across the teacher's own period sessions in the class. Marks use the latest exam that has
-                marks for the teacher's subjects in the class: each student's figure is the mean of
-                (tca + exm) as a percentage of that subject's exam total, and the class average is the
-                mean of the student figures. A student is at-risk when their attendance is below 50%
-                or their marks are below 40% of the exam total; students with no marked periods are
-                never counted as 0% attendance.
-                @if($is_admin)
-                    As admin you see every class, with all subjects and sessions in each class.
-                @else
-                    You see only the classes you teach, and only your own subjects and periods in them.
-                @endif
-            </p>
+    {{-- Item 12 (Light Luxe): slim header + summary tiles + one card
+         per class replace the panel + table. The long methodology
+         paragraph is gone (one subtitle line instead). Every number
+         is the same figure the table showed — the tiles are sums and
+         means of the per-class rows below them, computed here from
+         the controller's own data. The detail (section comparison +
+         students needing attention) renders INSIDE the expanded
+         card, reached by the same class_id mechanism as before. --}}
+    <div class="l10-head">
+        <span class="l10-head-tile"><i class="icon-home4"></i></span>
+        <div class="l10-head-text">
+            <h5>Class Overview</h5>
+            <p>@if($is_admin) Every class at a glance — attendance, marks and toppers across the school. @else Your classes at a glance — attendance, marks and toppers for your own subjects and periods. @endif</p>
         </div>
-        <div class="panel-body">
-            @if($overviews->isEmpty())
-                <p class="text-muted">No classes found for this account yet.</p>
-            @else
-                <div class="table-responsive">
-                    <table class="table table-striped">
-                        <thead>
-                            <tr>
-                                <th>Class</th>
-                                <th>Subjects</th>
-                                <th>Strength</th>
-                                <th>Attendance</th>
-                                <th>Marks average</th>
-                                <th>Topper</th>
-                                <th>At-risk</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($overviews as $row)
-                                <tr>
-                                    <td data-label="Class">{{ $row['class']->name }}</td>
-                                    <td data-label="Subjects">{{ $row['subjects']->pluck('name')->implode(', ') }}</td>
-                                    <td data-label="Strength">{{ number_format($row['strength']) }}</td>
-                                    <td data-label="Attendance">
-                                        @if($row['attendance_pct'] === null)
-                                            —
-                                        @else
-                                            {{ number_format($row['attendance_pct'], 1) }}%
-                                        @endif
-                                    </td>
-                                    <td data-label="Marks average">
-                                        @if($row['marks_avg'] === null)
-                                            —
-                                        @else
-                                            {{ number_format($row['marks_avg'], 1) }}%
-                                            @if($row['exam'])
-                                                <small class="text-muted">({{ $row['exam']->name }})</small>
-                                            @endif
-                                        @endif
-                                    </td>
-                                    <td data-label="Topper">
-                                        @if($row['topper'])
-                                            {{ $row['topper']['name'] }} ({{ number_format($row['topper']['percent'], 1) }}%)
-                                        @else
-                                            —
-                                        @endif
-                                    </td>
-                                    <td data-label="At-risk">{{ count($row['at_risk']) }}</td>
-                                    <td>
-                                        <a href="{{ route('class_overview.index', ['class_id' => $row['class']->id]) }}" class="btn btn-sm btn-primary">View detail</a>
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            @endif
-        </div>
+        <span class="l10-chip"><i class="icon-calendar3"></i>Session {{ Qs::getCurrentSession() }}</span>
     </div>
 
-    @if($detail)
-        <div class="panel panel-flat">
-            <div class="panel-heading">
-                <h5 class="panel-title">{{ $detail['class']->name }} — Detail</h5>
-                <p class="text-muted" style="margin: 6px 0 0;">
-                    Strength: {{ number_format($detail['strength']) }} students.
-                    Attendance:
-                    @if($detail['attendance_pct'] === null)
-                        no marked periods yet.
-                    @else
-                        {{ number_format($detail['attendance_pct'], 1) }}% across {{ number_format($detail['attendance_marked']) }} marked entries.
-                    @endif
-                    Marks:
-                    @if($detail['marks_avg'] === null)
-                        no marks yet.
-                    @else
-                        {{ number_format($detail['marks_avg'], 1) }}% average
-                        @if($detail['exam'])
-                            ({{ $detail['exam']->name }}, {{ $detail['marks_students'] }} students with marks).
-                        @endif
-                    @endif
-                    Topper:
-                    @if($detail['topper'])
-                        {{ $detail['topper']['name'] }} ({{ number_format($detail['topper']['percent'], 1) }}%).
-                    @else
-                        none yet.
-                    @endif
-                </p>
-            </div>
-            <div class="panel-body">
-                @if(!empty($detail['sections']))
-                    <h6>Section comparison</h6>
-                    <div class="table-responsive mb-3">
-                        <table class="table table-striped">
-                            <thead>
-                                <tr>
-                                    <th>Section</th>
-                                    <th>Strength</th>
-                                    <th>Attendance</th>
-                                    <th>Marks Average</th>
-                                    <th>Topper</th>
-                                    <th>At Risk</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($detail['sections'] as $sec)
-                                    <tr>
-                                        <td data-label="Section">Section {{ $sec['name'] }}</td>
-                                        <td data-label="Strength">{{ number_format($sec['strength']) }}</td>
-                                        <td data-label="Attendance">
-                                            @if($sec['attendance_pct'] === null) —
-                                            @else {{ number_format($sec['attendance_pct'], 1) }}% @endif
-                                        </td>
-                                        <td data-label="Marks Average">
-                                            @if($sec['marks_avg'] === null) —
-                                            @else {{ number_format($sec['marks_avg'], 1) }}% @endif
-                                        </td>
-                                        <td data-label="Topper">
-                                            @if($sec['topper']) {{ $sec['topper']['name'] }} ({{ number_format($sec['topper']['percent'], 1) }}%)
-                                            @else — @endif
-                                        </td>
-                                        <td data-label="At Risk">{{ $sec['at_risk_count'] }}</td>
-                                    </tr>
-                                @endforeach
-                                <tr>
-                                    <td data-label="Section"><strong>Class total</strong></td>
-                                    <td data-label="Strength"><strong>{{ number_format($detail['strength']) }}</strong></td>
-                                    <td data-label="Attendance">
-                                        @if($detail['attendance_pct'] === null) —
-                                        @else <strong>{{ number_format($detail['attendance_pct'], 1) }}%</strong> @endif
-                                    </td>
-                                    <td data-label="Marks Average">
-                                        @if($detail['marks_avg'] === null) —
-                                        @else <strong>{{ number_format($detail['marks_avg'], 1) }}%</strong> @endif
-                                    </td>
-                                    <td data-label="Topper">
-                                        @if($detail['topper']) <strong>{{ $detail['topper']['name'] }} ({{ number_format($detail['topper']['percent'], 1) }}%)</strong>
-                                        @else — @endif
-                                    </td>
-                                    <td data-label="At Risk"><strong>{{ count($detail['at_risk']) }}</strong></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                @endif
-                <h6>Students needing attention ({{ count($detail['at_risk']) }})</h6>
-                @if(empty($detail['at_risk']))
-                    <p class="text-muted">No students at risk in this class under the thresholds above.</p>
-                @else
-                    <div class="table-responsive">
-                        <table class="table table-striped">
-                            <thead>
-                                <tr>
-                                    <th>Student</th>
-                                    <th>Attendance</th>
-                                    <th>Marks</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($detail['at_risk'] as $student)
-                                    <tr>
-                                        <td data-label="Student">{{ $student['name'] }}</td>
-                                        <td data-label="Attendance">
-                                            @if($student['attendance_pct'] === null)
-                                                —
-                                            @else
-                                                {{ number_format($student['attendance_pct'], 1) }}%
-                                            @endif
-                                        </td>
-                                        <td data-label="Marks">
-                                            @if($student['marks_pct'] === null)
-                                                —
-                                            @else
-                                                {{ number_format($student['marks_pct'], 1) }}%
-                                            @endif
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                @endif
+    @if($overviews->isEmpty())
+        <div class="card pat-form-card">
+            <div class="card-body">
+                <p class="text-muted mb-0">No classes found for this account yet.</p>
             </div>
         </div>
+    @else
+        @php
+            $tileStudents = $overviews->sum('strength');
+            $tileMarks = $overviews->pluck('marks_avg')->filter(function ($v) { return $v !== null; });
+            $tileMarksAvg = $tileMarks->count() ? $tileMarks->avg() : null;
+            $tileExamNames = $overviews->pluck('exam')->filter()->pluck('name')->unique()->values();
+            $tileAtRisk = $overviews->sum(function ($r) { return count($r['at_risk']); });
+        @endphp
+        <div class="l12-tiles">
+            <div class="l10-tile">
+                <span class="l10-tile-ic l10-tone-blue"><i class="icon-home4"></i></span>
+                <span class="l10-tile-body"><span class="l10-tile-n">{{ number_format($overviews->count()) }}</span><span class="l10-tile-l">{{ $is_admin ? 'Classes' : 'My Classes' }}</span></span>
+            </div>
+            <div class="l10-tile">
+                <span class="l10-tile-ic l10-tone-violet"><i class="icon-users"></i></span>
+                <span class="l10-tile-body"><span class="l10-tile-n">{{ number_format($tileStudents) }}</span><span class="l10-tile-l">Students</span></span>
+            </div>
+            <div class="l10-tile">
+                <span class="l10-tile-ic l10-tone-green"><i class="icon-stats-bars2"></i></span>
+                <span class="l10-tile-body"><span class="l10-tile-n">@if($tileMarksAvg === null) &mdash; @else {{ number_format($tileMarksAvg, 1) }}% @endif</span><span class="l10-tile-l">Marks Average{{ $tileExamNames->count() === 1 ? ' · ' . $tileExamNames->first() : '' }}</span></span>
+            </div>
+            <div class="l10-tile">
+                <span class="l10-tile-ic l12-tone-red"><i class="icon-warning2"></i></span>
+                <span class="l10-tile-body"><span class="l10-tile-n">{{ number_format($tileAtRisk) }}</span><span class="l10-tile-l">At-Risk Students</span></span>
+            </div>
+        </div>
+
+        @foreach($overviews as $row)
+            @php $isDetail = $detail && (int) $detail['class']->id === (int) $row['class']->id; @endphp
+            <div class="l12-card">
+                <div class="l12-row">
+                    <div class="l12-name">
+                        <div class="l12-cn">{{ $row['class']->name }}</div>
+                        <div class="l12-subjects">@foreach($row['subjects'] as $sub)<span class="l12-subj">{{ $sub->name }}</span>@endforeach</div>
+                    </div>
+                    <div class="l12-stat">
+                        <span class="l12-cl">Strength</span>
+                        <span class="l12-cv">{{ number_format($row['strength']) }} <small>students</small></span>
+                    </div>
+                    <div class="l12-stat">
+                        <span class="l12-cl">Attendance</span>
+                        @if($row['attendance_pct'] === null)
+                            <span class="l12-cv l12-muted">&mdash; <small>no periods yet</small></span>
+                        @else
+                            <span class="l12-cv">{{ number_format($row['attendance_pct'], 1) }}%</span>
+                            <span class="l12-bar"><i style="width:{{ min(100, $row['attendance_pct']) }}%"></i></span>
+                        @endif
+                    </div>
+                    <div class="l12-stat">
+                        <span class="l12-cl">Marks Average</span>
+                        @if($row['marks_avg'] === null)
+                            <span class="l12-cv l12-muted">&mdash;</span>
+                        @else
+                            <span class="l12-cv">{{ number_format($row['marks_avg'], 1) }}%@if($row['exam']) <small>({{ $row['exam']->name }})</small>@endif</span>
+                            <span class="l12-bar l12-bar-marks"><i style="width:{{ min(100, $row['marks_avg']) }}%"></i></span>
+                        @endif
+                    </div>
+                    <div class="l12-stat">
+                        <span class="l12-cl">Topper</span>
+                        @if($row['topper'])
+                            @php
+                                $tp = preg_split('/\s+/', trim($row['topper']['name']));
+                                $tIni = strtoupper(substr($tp[0], 0, 1) . (count($tp) > 1 ? substr(end($tp), 0, 1) : ''));
+                            @endphp
+                            <span class="l12-topper"><span class="l12-tav">{{ $tIni }}</span><span class="l12-tbody"><span class="l12-tn">{{ $row['topper']['name'] }}</span><span class="l12-tp">{{ number_format($row['topper']['percent'], 1) }}%</span></span></span>
+                        @else
+                            <span class="l12-cv l12-muted">&mdash;</span>
+                        @endif
+                    </div>
+                    <div class="l12-stat">
+                        <span class="l12-cl">At-Risk</span>
+                        <span class="l12-risk {{ count($row['at_risk']) ? 'l12-risk-on' : 'l12-risk-zero' }}">{{ count($row['at_risk']) }} students</span>
+                    </div>
+                    @if($isDetail)
+                        <a href="{{ route('class_overview.index') }}" class="btn btn-light btn-sm l12-vbtn">Hide detail</a>
+                    @else
+                        <a href="{{ route('class_overview.index', ['class_id' => $row['class']->id]) }}" class="btn btn-light btn-sm l12-vbtn">View detail</a>
+                    @endif
+                </div>
+
+                @if($isDetail)
+                    {{-- Parity (overview-redesign sample, 2026-11-01):
+                         the detail is the compact comparison only —
+                         one row per section (Section / Strength /
+                         Attendance / Marks Avg / At-Risk) plus the
+                         Class total row in the same five cells. The
+                         summary-sentences paragraph and the
+                         per-section Topper cells are gone (the class
+                         topper stays on the card above), and the
+                         Students needing attention block renders only
+                         when the class actually has at-risk students. --}}
+                    <div class="l12-detail">
+                        <h6 class="l12-dh">{{ $detail['class']->name }} — Detail</h6>
+
+                        @if(!empty($detail['sections']))
+                            <h6 class="l12-dh">Section comparison</h6>
+                            <div class="l12-srows">
+                                @foreach($detail['sections'] as $sec)
+                                    <div class="l12-srow">
+                                        <span class="l12-sn">Section {{ $sec['name'] }}</span>
+                                        <span class="l12-sv">Strength <b>{{ number_format($sec['strength']) }}</b></span>
+                                        <span class="l12-sv">Attendance <b>@if($sec['attendance_pct'] === null) &mdash; @else {{ number_format($sec['attendance_pct'], 1) }}% @endif</b></span>
+                                        <span class="l12-sv">Marks Avg <b>@if($sec['marks_avg'] === null) &mdash; @else {{ number_format($sec['marks_avg'], 1) }}% @endif</b></span>
+                                        <span class="l12-sv">At-Risk <b>{{ $sec['at_risk_count'] }}</b></span>
+                                    </div>
+                                @endforeach
+                                <div class="l12-srow l12-srow-total">
+                                    <span class="l12-sn">Class total</span>
+                                    <span class="l12-sv">Strength <b>{{ number_format($detail['strength']) }}</b></span>
+                                    <span class="l12-sv">Attendance <b>@if($detail['attendance_pct'] === null) &mdash; @else {{ number_format($detail['attendance_pct'], 1) }}% @endif</b></span>
+                                    <span class="l12-sv">Marks Avg <b>@if($detail['marks_avg'] === null) &mdash; @else {{ number_format($detail['marks_avg'], 1) }}% @endif</b></span>
+                                    <span class="l12-sv">At-Risk <b>{{ count($detail['at_risk']) }}</b></span>
+                                </div>
+                            </div>
+                        @endif
+
+                        @if(!empty($detail['at_risk']))
+                            <h6 class="l12-dh">Students needing attention ({{ count($detail['at_risk']) }})</h6>
+                            <div class="l12-srows">
+                                @foreach($detail['at_risk'] as $student)
+                                    <div class="l12-srow">
+                                        <span class="l12-sn">{{ $student['name'] }}</span>
+                                        <span class="l12-sv">Attendance <b>@if($student['attendance_pct'] === null) &mdash; @else {{ number_format($student['attendance_pct'], 1) }}% @endif</b></span>
+                                        <span class="l12-sv">Marks <b>@if($student['marks_pct'] === null) &mdash; @else {{ number_format($student['marks_pct'], 1) }}% @endif</b></span>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
+                    </div>
+                @endif
+            </div>
+        @endforeach
     @endif
 @endsection

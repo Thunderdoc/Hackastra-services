@@ -80,9 +80,9 @@ class OwnerExamDateSheetR30Test extends TestCase
     protected function seedKeptRows($class, $subjects)
     {
         ExamDate::create(['exam_id' => 1, 'my_class_id' => $class->id, 'subject_id' => $subjects[0]->id,
-            'exam_date' => '2026-11-02', 'start_time' => '09:00:00', 'note' => 'R30-KEPT-A']);
+            'exam_date' => '2027-01-04', 'start_time' => '09:00:00', 'note' => 'R30-KEPT-A']);
         ExamDate::create(['exam_id' => 1, 'my_class_id' => $class->id, 'subject_id' => $subjects[1]->id,
-            'exam_date' => '2026-11-03', 'start_time' => '13:00:00', 'note' => 'R30-KEPT-B']);
+            'exam_date' => '2027-01-05', 'start_time' => '13:00:00', 'note' => 'R30-KEPT-B']);
     }
 
     public function test_manage_save_adds_missing_subject_and_keeps_hand_kept_rows_identical()
@@ -99,9 +99,9 @@ class OwnerExamDateSheetR30Test extends TestCase
             'exam_id' => 1,
             'class_id' => $class->id,
             'dates' => [
-                $subjects[0]->id => ['exam_date' => '2026-11-02', 'start_time' => '09:00', 'note' => 'R30-KEPT-A'],
-                $subjects[1]->id => ['exam_date' => '2026-11-03', 'start_time' => '13:00', 'note' => 'R30-KEPT-B'],
-                $subjects[2]->id => ['exam_date' => '2026-11-04', 'start_time' => '09:00', 'note' => 'R30-NEW-C'],
+                $subjects[0]->id => ['exam_date' => '2027-01-04', 'start_time' => '09:00', 'note' => 'R30-KEPT-A'],
+                $subjects[1]->id => ['exam_date' => '2027-01-05', 'start_time' => '13:00', 'note' => 'R30-KEPT-B'],
+                $subjects[2]->id => ['exam_date' => '2027-01-06', 'start_time' => '09:00', 'note' => 'R30-NEW-C'],
             ],
         ]);
         $resp->assertRedirect(route('exam_dates.manage', ['exam_id' => 1, 'class_id' => $class->id]));
@@ -114,7 +114,7 @@ class OwnerExamDateSheetR30Test extends TestCase
             'Kept row A must survive the Manage save with same id, date, time and note');
         $this->assertSame($before['R30-MANAGE-B'], $after['R30-MANAGE-B'],
             'Kept row B must survive the Manage save with same id, date, time and note');
-        $this->assertSame('2026-11-04', $after['R30-MANAGE-C'][1]);
+        $this->assertSame('2027-01-06', $after['R30-MANAGE-C'][1]);
         $this->assertSame('09:00', $after['R30-MANAGE-C'][2]);
         $this->assertSame('R30-NEW-C', $after['R30-MANAGE-C'][3]);
     }
@@ -133,15 +133,15 @@ class OwnerExamDateSheetR30Test extends TestCase
             'class_id' => $class->id,
             'dates' => [
                 // Move A onto B's slot; B stays put. Post-save map
-                // then holds two papers at 2026-11-03 13:00.
-                $subjects[0]->id => ['exam_date' => '2026-11-03', 'start_time' => '13:00', 'note' => 'R30-KEPT-A'],
-                $subjects[1]->id => ['exam_date' => '2026-11-03', 'start_time' => '13:00', 'note' => 'R30-KEPT-B'],
+                // then holds two papers at 2027-01-05 13:00.
+                $subjects[0]->id => ['exam_date' => '2027-01-05', 'start_time' => '13:00', 'note' => 'R30-KEPT-A'],
+                $subjects[1]->id => ['exam_date' => '2027-01-05', 'start_time' => '13:00', 'note' => 'R30-KEPT-B'],
             ],
         ]);
         $resp->assertRedirect();
         $resp->assertSessionHas('flash_danger');
         $this->assertStringContainsString('Two papers cannot share one session:', session('flash_danger'));
-        $this->assertStringContainsString('are both on 2026-11-03 at 13:00', session('flash_danger'));
+        $this->assertStringContainsString('are both on 2027-01-05 at 13:00', session('flash_danger'));
 
         $this->assertSame($before, $this->rowMap($class->id),
             'A refused Manage save must write nothing: kept rows byte-identical, no new row');
@@ -160,7 +160,7 @@ class OwnerExamDateSheetR30Test extends TestCase
             'exam_id' => 1,
             'class_id' => $class->id,
             'dates' => [
-                $subjects[2]->id => ['exam_date' => '2026-11-04', 'start_time' => '09:00', 'note' => 'R30-NEW-C'],
+                $subjects[2]->id => ['exam_date' => '2027-01-06', 'start_time' => '09:00', 'note' => 'R30-NEW-C'],
             ],
         ]);
         $resp->assertRedirect(route('exam_dates.manage', ['exam_id' => 1, 'class_id' => $class->id]));
@@ -171,6 +171,6 @@ class OwnerExamDateSheetR30Test extends TestCase
         $this->assertCount(3, $after);
         $this->assertSame($before['R30-PARTIAL-A'], $after['R30-PARTIAL-A']);
         $this->assertSame($before['R30-PARTIAL-B'], $after['R30-PARTIAL-B']);
-        $this->assertSame('2026-11-04', $after['R30-PARTIAL-C'][1]);
+        $this->assertSame('2027-01-06', $after['R30-PARTIAL-C'][1]);
     }
 }

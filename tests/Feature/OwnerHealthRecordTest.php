@@ -24,6 +24,11 @@ class OwnerHealthRecordTest extends TestCase
         return User::where('email', 'admin@hackstra.app')->firstOrFail();
     }
 
+    protected function nurse()
+    {
+        return User::where('email', 'nurse@hackstra.app')->firstOrFail();
+    }
+
     protected function teacher()
     {
         return User::where('email', 'teacher@hackstra.app')->firstOrFail();
@@ -61,22 +66,43 @@ class OwnerHealthRecordTest extends TestCase
             ->firstOrFail();
     }
 
-    public function test_admin_creates_record_and_is_recorded_by()
+    public function test_nurse_creates_record_and_is_recorded_by()
     {
         $student = $this->student();
-        $response = $this->actingAs($this->admin())->post(route('health_records.store'), [
+        $response = $this->actingAs($this->nurse())->post(route('health_records.store'), [
             'student_id' => $student->id,
             'visit_date' => '2026-10-28',
-            'complaint' => 'PROBE-HEALTH admin complaint',
-            'treatment' => 'PROBE-HEALTH admin treatment',
+            'complaint' => 'PROBE-HEALTH nurse complaint',
+            'treatment' => 'PROBE-HEALTH nurse treatment',
             'is_referred' => 0,
             'referred_to' => null,
         ]);
         $response->assertRedirect();
-        $record = HealthRecord::where('complaint', 'PROBE-HEALTH admin complaint')->firstOrFail();
+        $record = HealthRecord::where('complaint', 'PROBE-HEALTH nurse complaint')->firstOrFail();
         $this->assertEquals($student->id, $record->student_id);
-        $this->assertEquals($this->admin()->id, $record->recorded_by);
+        $this->assertEquals($this->nurse()->id, $record->recorded_by);
         $this->assertFalse($record->is_referred);
+    }
+
+    /** Owner order 2026-11-06: health records live with the Nurse
+     *  login — the school Admin is fully out (no read, no write). */
+    public function test_admin_is_fully_out_of_health_records()
+    {
+        $record = HealthRecord::create([
+            'student_id' => $this->student()->id,
+            'visit_date' => '2026-10-28',
+            'complaint' => 'PROBE-HEALTH admin-lockout complaint',
+            'recorded_by' => $this->nurse()->id,
+        ]);
+        $this->actingAs($this->admin())->get(route('health_records.index'))->assertForbidden();
+        $this->actingAs($this->admin())->get(route('health_records.create'))->assertForbidden();
+        $this->actingAs($this->admin())->get(route('health_records.show', $record->id))->assertForbidden();
+        $this->actingAs($this->admin())->post(route('health_records.store'), [
+            'student_id' => $this->student()->id,
+            'visit_date' => '2026-10-28',
+            'complaint' => 'PROBE-HEALTH admin attempt',
+        ])->assertForbidden();
+        $this->assertNull(HealthRecord::where('complaint', 'PROBE-HEALTH admin attempt')->first());
     }
 
     public function test_teacher_creates_record_for_student_in_own_class()
@@ -117,7 +143,7 @@ class OwnerHealthRecordTest extends TestCase
             'student_id' => $out->user_id,
             'visit_date' => '2026-10-28',
             'complaint' => 'PROBE-HEALTH hidden complaint',
-            'recorded_by' => $this->admin()->id,
+            'recorded_by' => $this->nurse()->id,
         ]);
         $this->actingAs($this->teacher())->get(route('health_records.index'))
             ->assertOk()
@@ -133,7 +159,7 @@ class OwnerHealthRecordTest extends TestCase
             'student_id' => $child->id,
             'visit_date' => '2026-10-28',
             'complaint' => 'PROBE-HEALTH child complaint',
-            'recorded_by' => $this->admin()->id,
+            'recorded_by' => $this->nurse()->id,
         ]);
         $this->actingAs($this->parent())->get(route('health_records.show', $record->id))
             ->assertOk()
@@ -144,7 +170,7 @@ class OwnerHealthRecordTest extends TestCase
             'student_id' => $other->user_id,
             'visit_date' => '2026-10-28',
             'complaint' => 'PROBE-HEALTH other child complaint',
-            'recorded_by' => $this->admin()->id,
+            'recorded_by' => $this->nurse()->id,
         ]);
         $this->actingAs($this->parent())->get(route('health_records.show', $otherRecord->id))
             ->assertForbidden();
@@ -157,7 +183,7 @@ class OwnerHealthRecordTest extends TestCase
             'student_id' => $self->id,
             'visit_date' => '2026-10-28',
             'complaint' => 'PROBE-HEALTH self complaint',
-            'recorded_by' => $this->admin()->id,
+            'recorded_by' => $this->nurse()->id,
         ]);
         $this->actingAs($self)->get(route('health_records.show', $record->id))->assertOk();
 
@@ -166,14 +192,16 @@ class OwnerHealthRecordTest extends TestCase
             'student_id' => $other->user_id,
             'visit_date' => '2026-10-28',
             'complaint' => 'PROBE-HEALTH other student complaint',
-            'recorded_by' => $this->admin()->id,
+            'recorded_by' => $this->nurse()->id,
         ]);
         $this->actingAs($self)->get(route('health_records.show', $otherRecord->id))->assertForbidden();
     }
 
     public function test_create_page_is_write_roles_only()
     {
+        $this->actingAs($this->nurse())->get(route('health_records.create'))->assertOk();
         $this->actingAs($this->teacher())->get(route('health_records.create'))->assertOk();
+        $this->actingAs($this->admin())->get(route('health_records.create'))->assertForbidden();
         $this->actingAs($this->parent())->get(route('health_records.create'))->assertForbidden();
         $this->actingAs($this->student())->get(route('health_records.create'))->assertForbidden();
     }

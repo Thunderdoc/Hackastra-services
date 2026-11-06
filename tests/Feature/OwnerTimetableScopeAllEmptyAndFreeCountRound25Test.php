@@ -210,7 +210,9 @@ class OwnerTimetableScopeAllEmptyAndFreeCountRound25Test extends TestCase
         $this->assertSame(10, $placed, 'fixture must hold exactly 10 placed cells');
         $this->assertSame(8, $slots * $days - $placed, 'stated formula must yield 8');
 
-        $response = $this->actingAs($this->admin())->get(route('tt.index'));
+        // Owner layout change, 2026-11-01: the record's counts live
+        // on its LIST row in its class's filtered view now.
+        $response = $this->actingAs($this->admin())->get(route('tt.index', ['class_id' => $record->my_class_id]));
         $response->assertOk();
         $segment = $this->cardSegment($response->getContent(), $record->name);
         $this->assertStringContainsString('10 periods', $segment,
@@ -232,7 +234,9 @@ class OwnerTimetableScopeAllEmptyAndFreeCountRound25Test extends TestCase
         $this->assertSame(12, $placed);
         $this->assertSame(0, $slots * $days - $placed);
 
-        $response = $this->actingAs($this->admin())->get(route('tt.index'));
+        // Owner layout change, 2026-11-01: the record's counts live
+        // on its LIST row in its class's filtered view now.
+        $response = $this->actingAs($this->admin())->get(route('tt.index', ['class_id' => $record->my_class_id]));
         $response->assertOk();
         $segment = $this->cardSegment($response->getContent(), $record->name);
         $this->assertStringContainsString('12 periods', $segment,

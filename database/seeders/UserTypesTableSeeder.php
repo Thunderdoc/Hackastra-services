@@ -32,6 +32,10 @@ class UserTypesTableSeeder extends Seeder
                Enabled at level 6 (below every existing type, so the
                level gates in UserController keep their meaning). */
             ['title' => 'librarian', 'name' => 'Librarian', 'level' => 6],
+            /* Nurse role (owner order 2026-11-06): Health Records
+               moved out of Admin to a dedicated Nurse login. Level 7,
+               below every existing type, same reasoning as R-15. */
+            ['title' => 'nurse', 'name' => 'Nurse', 'level' => 7],
         ];
         DB::table('user_types')->insert($data);
     }

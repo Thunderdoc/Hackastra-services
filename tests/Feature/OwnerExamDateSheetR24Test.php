@@ -39,7 +39,7 @@ use Tests\TestCase;
  * sitting and still FILLABLE for a Thu sitting. The fixture
  * makes the Thu pick deterministic, not name-order luck: every
  * seeded pool teacher carries exactly one existing duty on this
- * exam (load sittings 2026-11-20, already assigned so autoAssign
+ * exam (load sittings 2027-01-22, already assigned so autoAssign
  * skips them), so the fresh probe teacher at 0 duties is
  * strictly fewest-first; seeded leave covers Mon only, so the
  * Thu candidate set is full and the probe wins on count alone.
@@ -47,8 +47,8 @@ use Tests\TestCase;
  * (round-19 trap: re-querying after probe creation leaves the
  * probes out of the seeded set too).
  *
- * Dates are relative to the real today (2026-10-28): targets
- * 2026-11-02 (Mon) and 2026-11-05 (Thu) are future, so the
+ * Dates must stay ahead of the real today: targets
+ * 2027-01-04 (Mon) and 2027-01-07 (Thu) are future, so the
  * past-skip branch (round 2) cannot interfere. Exam 1 is the
  * global Term 1 exam; on a fresh snapshot it holds no sittings
  * except the fixtures below.
@@ -126,7 +126,7 @@ class OwnerExamDateSheetR24Test extends TestCase
         $seeded = $this->seededPool();
 
         // Every seeded pool teacher carries exactly one existing
-        // duty on exam 1 (load sitting 2026-11-20, already
+        // duty on exam 1 (load sitting 2027-01-22, already
         // assigned, so autoAssign skips it but counts it).
         // Subjects 1 and 2 are reserved for the target sittings
         // below — reusing them here would violate the UNIQUE
@@ -155,7 +155,7 @@ class OwnerExamDateSheetR24Test extends TestCase
                 'exam_id' => $clashExam->id,
                 'my_class_id' => 1,
                 'subject_id' => 3 + $k,
-                'exam_date' => '2026-11-05',
+                'exam_date' => '2027-01-07',
                 'start_time' => '09:00',
             ]);
             ExamDuty::create([
@@ -170,8 +170,8 @@ class OwnerExamDateSheetR24Test extends TestCase
             if (in_array($teacher->id, $overflowIds, true)) {
                 LeaveRequest::create([
                     'user_id' => $teacher->id,
-                    'start_date' => '2026-11-02',
-                    'end_date' => '2026-11-02',
+                    'start_date' => '2027-01-04',
+                    'end_date' => '2027-01-04',
                     'reason' => 'R24 seeded Mon leave',
                     'status' => 'approved',
                 ]);
@@ -183,7 +183,7 @@ class OwnerExamDateSheetR24Test extends TestCase
                 'exam_id' => 1,
                 'my_class_id' => $subject->my_class_id,
                 'subject_id' => $subject->id,
-                'exam_date' => '2026-11-20',
+                'exam_date' => '2027-01-22',
                 'start_time' => '09:00',
             ]);
             ExamDuty::create([
@@ -191,11 +191,11 @@ class OwnerExamDateSheetR24Test extends TestCase
                 'teacher_id' => $teacher->id,
                 'assigned_by' => $this->admin()->id,
             ]);
-            // Seeded leave covers Mon 2026-11-02 ONLY.
+            // Seeded leave covers Mon 2027-01-04 ONLY.
             LeaveRequest::create([
                 'user_id' => $teacher->id,
-                'start_date' => '2026-11-02',
-                'end_date' => '2026-11-02',
+                'start_date' => '2027-01-04',
+                'end_date' => '2027-01-04',
                 'reason' => 'R24 seeded Mon leave',
                 'status' => 'approved',
             ]);
@@ -212,29 +212,29 @@ class OwnerExamDateSheetR24Test extends TestCase
         ]);
         LeaveRequest::create([
             'user_id' => $probe->id,
-            'start_date' => '2026-11-02',
-            'end_date' => '2026-11-04',
+            'start_date' => '2027-01-04',
+            'end_date' => '2027-01-06',
             'reason' => 'R24 probe Mon-Wed leave',
             'status' => 'approved',
         ]);
 
         // Direct range check, both ends.
-        $this->assertTrue(Invigilation::isOnApprovedLeave($probe->id, '2026-11-02'));
-        $this->assertFalse(Invigilation::isOnApprovedLeave($probe->id, '2026-11-05'));
+        $this->assertTrue(Invigilation::isOnApprovedLeave($probe->id, '2027-01-04'));
+        $this->assertFalse(Invigilation::isOnApprovedLeave($probe->id, '2027-01-07'));
 
         // Target sittings: Prep English Mon, Prep Maths Thu.
         $mon = ExamDate::create([
             'exam_id' => 1,
             'my_class_id' => 1,
             'subject_id' => 1,
-            'exam_date' => '2026-11-02',
+            'exam_date' => '2027-01-04',
             'start_time' => '09:00',
         ]);
         $thu = ExamDate::create([
             'exam_id' => 1,
             'my_class_id' => 1,
             'subject_id' => 2,
-            'exam_date' => '2026-11-05',
+            'exam_date' => '2027-01-07',
             'start_time' => '09:00',
         ]);
 
@@ -244,7 +244,7 @@ class OwnerExamDateSheetR24Test extends TestCase
         $response->assertRedirect(route('exam_duties.index'));
         $response->assertSessionHas('flash_danger',
             'Auto-assignment complete: 1 sitting(s) got an invigilator.'
-            . ' Could not fill: 2026-11-02 09:00 — every teacher already has a duty at this time (or no teachers exist).'
+            . ' Could not fill: 2027-01-04 09:00 — every teacher already has a duty at this time (or no teachers exist).'
             . ' Teachers on approved leave were not assigned.');
 
         // Mon sitting: NO duty at all (every pool teacher on
@@ -261,6 +261,6 @@ class OwnerExamDateSheetR24Test extends TestCase
         $bells = UserNotification::where('user_id', $probe->id)
             ->where('type', 'duty_assigned')->get();
         $this->assertSame(1, $bells->count());
-        $this->assertStringContainsString('2026-11-05', $bells->first()->body);
+        $this->assertStringContainsString('2027-01-07', $bells->first()->body);
     }
 }

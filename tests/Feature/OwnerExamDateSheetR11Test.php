@@ -22,8 +22,9 @@ use Tests\TestCase;
  *
  * Anchors: exam 1 (global Term 1), Prep = class 1, subjects 1–6
  * (English Language, Mathematics, Science, Social Science, Hindi,
- * Computer Science). Today in the test env is 2026-10-28, so
- * 2026-10-01 / 2026-10-20 are past and 2026-11-* are future.
+ * Computer Science). 2026-10-01 / 2026-10-20 are past; the
+ * "future" fixtures use Jan 2027 dates (moved from Nov 2026,
+ * same weekdays, when those became past in the real clock).
  * Toast format (partials/js/custom_js): flash({msg : '...',
  * type : 'danger'}); assertSee needs escape=false because ' is
  * escaped to &#039; by default (round-10 lesson).
@@ -94,12 +95,12 @@ class OwnerExamDateSheetR11Test extends TestCase
         $n2 = Subject::find(2)->name;
 
         $resp = $this->postSave([
-            1 => ['exam_date' => '2026-11-05', 'start_time' => '09:00'],
-            2 => ['exam_date' => '2026-11-05', 'start_time' => '09:00'],
+            1 => ['exam_date' => '2027-01-07', 'start_time' => '09:00'],
+            2 => ['exam_date' => '2027-01-07', 'start_time' => '09:00'],
         ]);
         $resp->assertRedirect($this->manageUrl());
         $resp->assertSessionHas('flash_danger',
-            "Two papers cannot share one session: {$n1} and {$n2} are both on 2026-11-05 at 09:00. Move one to another session.");
+            "Two papers cannot share one session: {$n1} and {$n2} are both on 2027-01-07 at 09:00. Move one to another session.");
         $this->assertSame($before, $this->rows());
     }
 
@@ -111,13 +112,13 @@ class OwnerExamDateSheetR11Test extends TestCase
 
         $resp = $this->postSave([
             1 => ['exam_date' => '2026-10-20', 'start_time' => '09:00'], // unchanged past date
-            2 => ['exam_date' => '2026-11-04', 'start_time' => '09:00'], // unrelated edit
+            2 => ['exam_date' => '2027-01-06', 'start_time' => '09:00'], // unrelated edit
         ]);
         $resp->assertRedirect($this->manageUrl());
         $resp->assertSessionHas('flash_success');
         $this->assertSame([
             [1, '2026-10-20', '09:00'],
-            [2, '2026-11-04', '09:00'],
+            [2, '2027-01-06', '09:00'],
         ], $this->rows());
     }
 
@@ -130,14 +131,14 @@ class OwnerExamDateSheetR11Test extends TestCase
         $resp = $this->postSave([
             1 => ['exam_date' => '2026-11-05', 'start_time' => '09:00'],
             2 => ['exam_date' => '2026-11-05', 'start_time' => '09:00'],
-            3 => ['exam_date' => '2026-11-06', 'start_time' => '09:00'],
+            3 => ['exam_date' => '2027-01-08', 'start_time' => '09:00'],
         ]);
         $resp->assertRedirect($this->manageUrl());
         $resp->assertSessionHas('flash_success');
         $this->assertSame([
             [1, '2026-11-05', '09:00'],
             [2, '2026-11-05', '09:00'],
-            [3, '2026-11-06', '09:00'],
+            [3, '2027-01-08', '09:00'],
         ], $this->rows());
     }
 

@@ -110,6 +110,9 @@ class WorkloadController extends Controller
             'cover_total' => $coverTotal,
             'cover_upcoming' => $coverUpcoming,
             'led_sections' => $ledSections,
+            // Item 16 redesign: the led tile's bar is the led share
+            // of the school's sections — a proportion of real counts.
+            'sections_total' => Section::count(),
         ]);
     }
 }

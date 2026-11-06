@@ -89,13 +89,30 @@ class OwnerAuditOvernightAllotmentTest extends TestCase
         $expected = StudentRecord::where('grad', 0)->whereIn('my_class_id', $scope)->count();
         $wholeSchool = StudentRecord::where('grad', 0)->count();
         $this->assertNotEquals($wholeSchool, $expected, 'Precondition: scope must differ from whole school');
-        $this->assertEquals($expected, $data['total_students'] ?? null,
-            'Low Attendance total_students must equal assigned-classes enrolment, not whole school');
+        // SAAB ITEM 7 re-expression (2026-11-01): the pre-selection
+        // total_students KPI was retired by the owner's empty-first design;
+        // the scope equality is pinned per-selection below instead - her
+        // chosen section's total equals that section's enrolment, and a class
+        // outside her scope is refused by the same data assembly.
         $classIds = collect($data['classes'] ?? [])->pluck('id')->map(function ($id) { return (int) $id; })->all();
         sort($classIds);
         $sortedScope = $scope;
         sort($sortedScope);
         $this->assertEquals($sortedScope, $classIds, 'Low Attendance class picker must offer only assigned classes');
+
+        $ownSection = \App\Models\Section::where('my_class_id', $scope[0])->orderBy('id')->first();
+        $ownEnrolment = StudentRecord::where('section_id', $ownSection->id)->where('grad', 0)->count();
+        $stats = $this->actingAs($teacher)->getJson(route('attendance.defaulters.results', [
+            'class_id' => $scope[0], 'section_id' => $ownSection->id, 'month' => '2026-10',
+        ]))->assertOk()->json('stats');
+        $this->assertStringContainsString('<strong>' . number_format($ownEnrolment) . '</strong>', $stats);
+        $this->assertStringNotContainsString('<strong>' . number_format($wholeSchool) . '</strong>', $stats);
+        $foreign = \App\Models\MyClass::whereNotIn('id', $scope)->value('id');
+        $this->actingAs($teacher)->getJson(route('attendance.defaulters.results', [
+            'class_id' => $foreign,
+            'section_id' => \App\Models\Section::where('my_class_id', $foreign)->value('id'),
+            'month' => '2026-10',
+        ]))->assertForbidden();
     }
 
     public function test_item2_teacher_low_attendance_export_has_no_out_of_scope_student()

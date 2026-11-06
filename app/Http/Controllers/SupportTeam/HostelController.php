@@ -190,7 +190,10 @@ class HostelController extends Controller
     public function allocationCreate()
     {
         $this->guardHostel();
-        $d['students'] = StudentRecord::with('user')->orderBy('id')->get();
+        // Picker cascade (owner, 2026-11-01): classes for the
+        // Class > Section > Student walk; the student list comes
+        // from the shared by-section feed (active students only).
+        $d['classes'] = \App\Models\MyClass::orderBy('id')->get();
         $d['dorms'] = Dorm::orderBy('name')->get();
         $d['rooms'] = HostelRoom::with('dorm')->orderBy('dorm_id')->orderBy('room_no')->get();
         return view('pages.support_team.hostel.allocations.create', $d);

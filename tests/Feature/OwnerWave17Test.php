@@ -101,9 +101,17 @@ class OwnerWave17Test extends TestCase
 
     public function test_picker_cascade_uses_rebuild_not_disabled_options()
     {
+        // Re-expressed 2026-11-01 (item 21): the "Choose a Class"
+        // picker block — whose cascade comment this pin quoted —
+        // was REMOVED on owner order (one search mechanism). The
+        // surviving cascade on the same page is the Search form's,
+        // built on the same rebuild pattern (options rebuilt from a
+        // cached clone via $sectionSel.empty() + re-append, never
+        // the old disabled-options pass). Same intent, new surface.
         $this->actingAs($this->admin());
         $this->get(route('students.list'))->assertOk()
-            ->assertSee('from a cached clone', false)
+            ->assertSee('Same cascade for the Search Students form', false)
+            ->assertSee('$sectionSel.empty()', false)
             ->assertDontSee('options.forEach(function (opt)', false);
     }
 

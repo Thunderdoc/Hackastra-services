@@ -2,6 +2,7 @@
 @section('page_title', 'Dashboard')
 @section('hide_page_header', true)
 @section('content')
+    @include('partials.role_banner', ['hkRole' => 'parent', 'hkLabel' => 'Parent'])
     {{-- Loop 96 — Parent dashboard premium pass (2026-10-22). Rebuilt
          to the Loop 79 / Loop 92 design standard: greeting header, five
          KPI cards, per-child cards, a combined Fees Due panel with the
@@ -15,7 +16,6 @@
          items change; the session stays in the topbar only. --}}
     <div class="p96-welcome">
         <div class="p96-welcome-main">
-            <h2>{{ $greeting }}, {{ Auth::user()->name }}</h2>
             <p>
                 @if($children->isNotEmpty())
                     {{ $children->count() }} {{ $children->count() === 1 ? 'child' : 'children' }} linked to your account — attendance, fees and school news at a glance.

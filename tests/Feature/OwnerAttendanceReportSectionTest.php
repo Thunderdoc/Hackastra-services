@@ -140,8 +140,20 @@ class OwnerAttendanceReportSectionTest extends TestCase
         // Section 4 belongs to Class 1, not Class 12.
         $b = $this->sectionStudents(65);
 
-        $response = $this->actingAs($this->admin())
+        // SAAB ITEM 7 re-expression (2026-11-01): the screen is empty-first -
+        // an invalid class/section pair selects nothing on screen. The
+        // whole-class fallback survives on the DOCUMENT path (print keeps the
+        // old behaviour), which is where it is pinned now.
+        $screen = $this->actingAs($this->admin())
             ->get('/attendance/report?class_id=13&section_id=4&month=2026-10');
+        $screen->assertOk();
+        $screen->assertSeeText('Select a class and section to see the monthly attendance report.');
+        foreach ($this->names($b) as $name) {
+            $screen->assertDontSee($name);
+        }
+
+        $response = $this->actingAs($this->admin())
+            ->get('/attendance/report/print?class_id=13&section_id=4&month=2026-10');
         $response->assertOk();
         foreach ($this->names($b) as $name) {
             $response->assertSee($name);
@@ -153,8 +165,16 @@ class OwnerAttendanceReportSectionTest extends TestCase
         $prep = StudentRecord::where('my_class_id', 1)->where('grad', 0)->orderBy('id')->firstOrFail();
         $c12 = StudentRecord::where('my_class_id', 13)->where('grad', 0)->orderBy('id')->firstOrFail();
 
+        // SAAB ITEM 7 re-expression (2026-11-01): class_id=all is not a
+        // complete screen selection anymore (empty-first rule); the aggregate
+        // lives on the document path, pinned there.
+        $this->actingAs($this->admin())
+            ->get('/attendance/report?class_id=all&section_id=68&month=2026-10')
+            ->assertOk()
+            ->assertSeeText('Select a class and section to see the monthly attendance report.');
+
         $response = $this->actingAs($this->admin())
-            ->get('/attendance/report?class_id=all&section_id=68&month=2026-10');
+            ->get('/attendance/report/print?class_id=all&section_id=68&month=2026-10');
         $response->assertOk();
         $response->assertSee(User::find($prep->user_id)->name);
         $response->assertSee(User::find($c12->user_id)->name);

@@ -14,6 +14,7 @@ use App\Support\Audit;
 use App\Support\Reports\ReportEngine;
 use App\Support\Reports\ReportPresets;
 use App\Support\Reports\ReportSources;
+use App\Support\SectionTeacher;
 use App\Support\TeacherScope;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -87,6 +88,12 @@ class ReportsController extends Controller
         $s = Setting::all()->flatMap(function ($setting) {
             return [$setting->type => $setting->description];
         })->all();
+        // Phone guard (owner, 2026-11-01 — the builder document was
+        // the one hole left): the band must print the school's real
+        // number or NO number, never the seeded placeholder. Every
+        // other document already routes through Qs::getSchoolPhone();
+        // the builder's canvas and PDF now do the same.
+        $s['phone'] = Qs::getSchoolPhone();
         if (!empty($s['logo'])) {
             $s['logo'] = $this->pdfImageDataUri($s['logo']);
         }
@@ -160,8 +167,19 @@ class ReportsController extends Controller
         if (TeacherScope::appliesTo($user)) {
             $classIds = TeacherScope::classIds($user);
             $classes = MyClass::whereIn('id', $classIds)->orderBy('id')->get();
-            $sections = Section::whereIn('my_class_id', $classIds)->orderBy('id')->get();
-            $subjects = Subject::whereIn('my_class_id', $classIds)->orderBy('id')->get();
+            // Scoped options (owner, 2026-11-01): her sections are
+            // the sections she teaches in (effective units) plus
+            // the sections she LEADS as class teacher; her subjects
+            // are the ones she owns or holds overrides for — the
+            // same footprint ReportSources enforces server-side.
+            $unitSections = SectionTeacher::unitSectionIdsByClass($user);
+            $herSectionIds = Section::where('teacher_id', $user->id)->pluck('id')
+                ->map(function ($id) { return (int) $id; })->all();
+            foreach ($unitSections as $secs) {
+                $herSectionIds = array_merge($herSectionIds, $secs);
+            }
+            $sections = Section::whereIn('id', array_unique($herSectionIds))->orderBy('id')->get();
+            $subjects = Subject::whereIn('id', SectionTeacher::unitSubjectIds($user))->orderBy('id')->get();
         } else {
             $classes = MyClass::orderBy('id')->get();
             $sections = Section::orderBy('id')->get();
@@ -175,7 +193,15 @@ class ReportsController extends Controller
             foreach ($def['columns'] as $colKey => $colDef) {
                 $cols[] = ['key' => $colKey, 'label' => $colDef[0], 'type' => $colDef[1]];
             }
-            $sources[$key] = ['label' => $def['label'], 'columns' => $cols];
+            $sources[$key] = [
+                'label' => $def['label'],
+                'columns' => $cols,
+                // Source-aware filters (owner, 2026-11-01): the
+                // builder shows exactly the filters this source's
+                // resolver actually reads — declared once, here in
+                // ReportSources, so UI and resolver cannot disagree.
+                'filters' => array_values($def['filters'] ?? []),
+            ];
         }
 
         return view('pages.support_team.reports.builder', [
@@ -286,6 +312,31 @@ class ReportsController extends Controller
             \App\Support\PdfFooter::stampPageNumbers($pdf, $config['options']['orientation']);
             Audit::log('report.exported', null, 'Report PDF exported: ' . $config['title'] . ' (source: ' . $config['source'] . ').');
             return $pdf->download(Str::slug($config['title']) . '.pdf');
+        } catch (\InvalidArgumentException $e) {
+            return redirect()->back()->with('flash_danger', $e->getMessage());
+        }
+    }
+
+    /**
+     * Download the same document as a Word file (owner, 2026-11-01):
+     * the PDF is the pakka final copy; Word is the editable
+     * worksheet a teacher can write on. Same validated config, same
+     * resolved rows — only the rendering differs.
+     */
+    public function word(Request $request)
+    {
+        $this->gateRole();
+        try {
+            set_time_limit(300);
+            $user = Auth::user();
+            $config = ReportEngine::validateConfig($this->configFromRequest($request), $user);
+            $doc = ReportEngine::resolve($config, $user);
+            $bytes = \App\Support\Reports\WordExporter::build($doc, $this->settingsForPrint());
+            Audit::log('report.exported', null, 'Report Word exported: ' . $config['title'] . ' (source: ' . $config['source'] . ').');
+            return response($bytes, 200, [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'Content-Disposition' => 'attachment; filename="' . Str::slug($config['title']) . '.docx"',
+            ]);
         } catch (\InvalidArgumentException $e) {
             return redirect()->back()->with('flash_danger', $e->getMessage());
         }

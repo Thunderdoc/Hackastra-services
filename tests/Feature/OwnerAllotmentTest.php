@@ -24,8 +24,10 @@ use Tests\TestCase;
  * found the class-level scope and the planning loads ignored the
  * third source entirely, and the write paths accepted non-teacher
  * users. Seed anchors used here (verify, do not hardcode blindly
- * if the seed changes): Ritu Sharma (id 44, teacher20@teacher.com)
- * teaches ONLY through overrides — one English override in each
+ * if the seed changes): Ritu Sharma (teacher20@teacher.com;
+ * her id is resolved by email — the nurse demo user added
+ * 2026-11-06 shifted generated ids by +1) teaches ONLY
+ * through overrides — one English override in each
  * of classes 2/5/8/11/13 (sections 4/19/34/49/64) since the
  * section segment (2026-10-30) — 30 placed periods, zero
  * class-level subjects, zero led sections. Scope assertions
@@ -96,17 +98,21 @@ class OwnerAllotmentTest extends TestCase
     public function test_effective_loads_count_override_cells()
     {
         $loads = SectionTeacher::effectiveLoads();
-        // Ananya (id 4): 36 placed cells (probe-verified).
-        $this->assertEquals(36, $loads[4] ?? 0, 'Ananya effective load');
-        // Ritu (id 44): 30 placed cells, zero class-level periods.
-        $this->assertEquals(30, $loads[44] ?? 0, 'Ritu effective load');
+        // Resolve by email, never by hardcoded id: the nurse
+        // demo user (2026-11-06) shifted every generated user
+        // id by +1, which silently re-pointed the old literals.
+        $ananya = User::where('email', 'teacher@hackstra.app')->firstOrFail();
+        // Ananya: 36 placed cells (probe-verified).
+        $this->assertEquals(36, $loads[$ananya->id] ?? 0, 'Ananya effective load');
+        // Ritu: 30 placed cells, zero class-level periods.
+        $this->assertEquals(30, $loads[$this->ritu()->id] ?? 0, 'Ritu effective load');
         $this->assertEquals($loads, Allocation::teacherLoads(), 'Allocation engine must use the same loads');
     }
 
     public function test_staffing_report_shows_override_teacher_committed_load()
     {
         $report = Staffing::report();
-        $row = collect($report['teachers'])->firstWhere('teacher.id', 44);
+        $row = collect($report['teachers'])->firstWhere('teacher.id', $this->ritu()->id);
         $this->assertNotNull($row, 'Ritu must appear in the staffing report');
         $this->assertEquals(30, $row['committed'], 'Committed must be placed cells, not the old 0');
         $this->assertContains('English Language', $row['subjects'], 'Override subjects must be listed');
@@ -220,20 +226,27 @@ class OwnerAllotmentTest extends TestCase
 
     public function test_apply_allocation_notes_kept_overrides()
     {
-        // Subject 79 (Class 12 English): class teacher Ananya (4),
-        // 13 section overrides. Moving it to teacher 8 (eligible
-        // for English) must say the overrides stay put.
-        $this->assertEquals(4, (int) Subject::find(79)->teacher_id);
+        // Subject 79 (Class 12 English): class teacher Ananya,
+        // 13 section overrides. Moving it to teacher1@ (the
+        // class-level English teacher for classes 2/5/8/11, so
+        // eligible for English) must say the overrides stay put.
+        // Users are resolved by email: the nurse demo user
+        // (2026-11-06) shifted generated ids by +1, and the old
+        // literal 8 now lands on a filler account that is not
+        // eligible for English, so the apply was refused.
+        $ananya = User::where('email', 'teacher@hackstra.app')->firstOrFail();
+        $target = User::where('email', 'teacher1@teacher.com')->firstOrFail();
+        $this->assertEquals($ananya->id, (int) Subject::find(79)->teacher_id);
         $response = $this->actingAs($this->admin())->post(route('planning.allocation.apply'), [
             'subject_id' => 79,
-            'teacher_id' => 8,
+            'teacher_id' => $target->id,
             'override_cap' => 1,
             'override_reason' => 'probe',
         ]);
         $response->assertRedirect();
         $flash = $response->getSession()->get('flash_success');
         $this->assertStringContainsString('keep their override teacher', $flash);
-        $this->assertEquals(8, (int) Subject::find(79)->teacher_id);
+        $this->assertEquals($target->id, (int) Subject::find(79)->teacher_id);
         $this->assertEquals(13, DB::table('section_subject_teachers')
             ->where('subject_id', 79)->count(), 'Overrides must survive a class-teacher move');
     }

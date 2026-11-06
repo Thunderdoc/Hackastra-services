@@ -93,7 +93,7 @@ class OwnerExamDateSheetR31Test extends TestCase
         $params = [
             'exam_id' => $examId,
             'scope' => $scope,
-            'start_date' => '2026-12-01',
+            'start_date' => '2027-02-02',
             'exam_days' => 10,
             'papers_per_day' => 2,
             'session1_time' => '09:00',
@@ -102,7 +102,7 @@ class OwnerExamDateSheetR31Test extends TestCase
             'skip_sunday' => 1,
             'gap_every' => 2,
             'gap_days' => 1,
-            'skip_dates' => '2026-12-05',
+            'skip_dates' => '2027-02-06',
             'mode' => 'replace',
         ];
         if ($classId !== null) {
@@ -204,7 +204,7 @@ class OwnerExamDateSheetR31Test extends TestCase
             'exam_id' => $exam->id,
             'class_id' => $classY->id,
             'dates' => [
-                $subjectsY[0]->id => ['exam_date' => '2026-11-02', 'start_time' => '09:00', 'note' => 'R31-SAVE-Y'],
+                $subjectsY[0]->id => ['exam_date' => '2027-01-04', 'start_time' => '09:00', 'note' => 'R31-SAVE-Y'],
             ],
         ]);
         $resp->assertRedirect();
@@ -221,7 +221,7 @@ class OwnerExamDateSheetR31Test extends TestCase
             'exam_id' => $exam->id,
             'class_id' => $classX->id,
             'dates' => [
-                $subjectsX[0]->id => ['exam_date' => '2026-11-02', 'start_time' => '09:00', 'note' => 'R31-SAVE-X'],
+                $subjectsX[0]->id => ['exam_date' => '2027-01-04', 'start_time' => '09:00', 'note' => 'R31-SAVE-X'],
             ],
         ]);
         $resp->assertRedirect(route('exam_dates.manage', ['exam_id' => $exam->id, 'class_id' => $classX->id]));

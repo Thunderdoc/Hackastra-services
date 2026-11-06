@@ -9,12 +9,25 @@
             <form method="post" action="{{ route('discipline_records.store') }}">
                 @csrf
                 <div class="form-group">
-                    <label for="student_id">Student</label>
-                    <select name="student_id" id="student_id" class="form-control" required>
-                        <option value="">Select student</option>
-                        @foreach($students as $student)
-                            <option value="{{ $student->id }}" {{ old('student_id') == $student->id ? 'selected' : '' }}>{{ $student->name }}</option>
+                    <label>Class</label>
+                    <select class="form-control hk-cascade-class">
+                        <option value="">Choose a class…</option>
+                        @foreach($classes as $hkClass)
+                            <option value="{{ $hkClass->id }}">{{ $hkClass->name }}</option>
                         @endforeach
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Section</label>
+                    <select class="form-control hk-cascade-section">
+                        <option value="">Choose a class first</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="student_id">Student</label>
+                    <select name="student_id" id="student_id" class="form-control hk-cascade-student" required data-value-key="user_id"
+                            @if($preselected) data-preselect-class="{{ $preselected->my_class_id }}" data-preselect-section="{{ $preselected->section_id }}" data-preselect-value="{{ $preselected->user_id }}" data-preselect-label="{{ optional($preselected->user)->name }} ({{ $preselected->adm_no }})" @endif>
+                        <option value="">Choose a student…</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -45,4 +58,8 @@
             </form>
         </div>
     </div>
+@endsection
+
+@section('scripts')
+    @include('partials.student_cascade_js')
 @endsection

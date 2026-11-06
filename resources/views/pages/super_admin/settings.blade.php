@@ -63,8 +63,20 @@
             School profile, calendar and fees for the whole school.
         @endslot
 
+        <nav class="set-nav" aria-label="Settings sections">
+            <a href="#set-profile">School Profile</a>
+            <a href="#set-admission-numbers">Admission Numbers</a>
+            <a href="#set-calendar">Academic Calendar</a>
+            <a href="#set-teaching-load">Teaching Load &amp; Library</a>
+            <a href="#set-next-term-fees">Next Term Fees</a>
+            <a href="#set-online-payments">Online Payments</a>
+            <a href="#set-ai-assistant">AI Assistant</a>
+            <a href="#set-report-card">Report Card</a>
+            @if(Qs::userIsSuperAdmin())<a href="#set-platform">Platform</a>@endif
+        </nav>
+
         {{-- ======================= School Profile ======================= --}}
-        <div class="pat-form-section">
+        <div class="pat-form-section" id="set-profile">
             <div class="pat-form-section-title">School Profile</div>
             <div class="pat-form-section-sub">The school's identity, shown across the app and on printed documents.</div>
             <div class="pat-fields">
@@ -126,7 +138,7 @@
         </div>
 
         {{-- ======================= Admission Numbers ======================= --}}
-        <div class="pat-form-section">
+        <div class="pat-form-section" id="set-admission-numbers">
             <div class="pat-form-section-title">Admission Numbers</div>
             <div class="pat-form-section-sub">Every new student gets an admission number automatically. Just pick how it should look — the green example below shows exactly what new students will get. It applies everywhere: the Admit Student form, Quick Admit and bulk import.</div>
             <div class="pat-fields">
@@ -189,7 +201,7 @@
         </div>
 
         {{-- ===================== Academic Calendar ===================== --}}
-        <div class="pat-form-section">
+        <div class="pat-form-section" id="set-calendar">
             <div class="pat-form-section-title">Academic Calendar</div>
             <div class="pat-form-section-sub">Key dates for the current term.</div>
             <div class="pat-fields">
@@ -209,18 +221,18 @@
         </div>
 
         {{-- ======================= Teaching Load & Library ======================= --}}
-        <div class="pat-form-section">
+        <div class="pat-form-section" id="set-teaching-load">
             <div class="pat-form-section-title">Teaching Load &amp; Library</div>
-            <div class="pat-form-section-sub">Limits the staffing and timetable engines respect, and the library's late-return fine. Leave blank to keep the built-in defaults (8 periods a day, 40 a week, ₹10 a day).</div>
+            <div class="pat-form-section-sub">Limits the staffing and timetable engines respect, and the library's late-return fine. The values shown are the ones in force — the built-in defaults (8 periods a day, 40 a week, ₹10 a day) until you save your own.</div>
             <div class="pat-fields">
                 <div class="pat-field">
                     <label for="teacher_max_periods_day">Max Periods per Teacher — Day</label>
-                    <input name="teacher_max_periods_day" id="teacher_max_periods_day" value="{{ $s['teacher_max_periods_day'] ?? '' }}" type="number" min="1" max="14" class="form-control @error('teacher_max_periods_day') is-invalid @enderror" placeholder="Default 8">
+                    <input name="teacher_max_periods_day" id="teacher_max_periods_day" value="{{ $s['teacher_max_periods_day'] ?? \App\Support\Staffing::maxPeriodsPerDay() }}" type="number" min="1" max="14" class="form-control @error('teacher_max_periods_day') is-invalid @enderror" placeholder="Default 8">
                     @include('partials.errors.field', ['field' => 'teacher_max_periods_day'])
                 </div>
                 <div class="pat-field">
                     <label for="teacher_max_periods_week">Max Periods per Teacher — Week</label>
-                    <input name="teacher_max_periods_week" id="teacher_max_periods_week" value="{{ $s['teacher_max_periods_week'] ?? '' }}" type="number" min="1" max="70" class="form-control @error('teacher_max_periods_week') is-invalid @enderror" placeholder="Default 40">
+                    <input name="teacher_max_periods_week" id="teacher_max_periods_week" value="{{ $s['teacher_max_periods_week'] ?? \App\Support\Staffing::maxPeriodsPerWeek() }}" type="number" min="1" max="70" class="form-control @error('teacher_max_periods_week') is-invalid @enderror" placeholder="Default 40">
                     @include('partials.errors.field', ['field' => 'teacher_max_periods_week'])
                 </div>
                 <div class="pat-field">
@@ -244,7 +256,7 @@
         </div>
 
         {{-- ======================= Next Term Fees ======================= --}}
-        <div class="pat-form-section">
+        <div class="pat-form-section" id="set-next-term-fees">
             <div class="pat-form-section-title">Next Term Fees</div>
             <div class="pat-form-section-sub">Default fee for each class type next term.</div>
             <div class="pat-fields">
@@ -259,7 +271,7 @@
         </div>
 
         {{-- ======================= Online Fee Payments (Workstream CU) ======================= --}}
-        <div class="pat-form-section">
+        <div class="pat-form-section" id="set-online-payments">
             <div class="pat-form-section-title">Online Fee Payments (Razorpay)</div>
             <div class="pat-form-section-sub">Let parents pay fees online from their fees page. Money lands in the school's Razorpay account; the payment, receipt and balances are recorded here automatically. Keys come from your Razorpay dashboard (Settings → API Keys) and the webhook secret from your Razorpay webhook settings. Point the Razorpay webhook to <code>{{ url('/webhooks/razorpay') }}</code> for the <code>payment.captured</code> and <code>payment.failed</code> events.</div>
             <div class="pat-fields">
@@ -297,7 +309,7 @@
         {{-- Workstream CX: AI Assist v1. The API key is write-only — the
              field always renders empty; a saved key shows only a status
              hint, never any part of the key itself. --}}
-        <div class="pat-form-section">
+        <div class="pat-form-section" id="set-ai-assistant">
             <div class="pat-form-section-title">AI Assistant</div>
             <div class="pat-form-section-sub">Optional AI drafting help for circulars and report-card comments. AI only suggests text — a person always reviews and saves. The product works fully with this off.</div>
             <div class="pat-fields">
@@ -347,7 +359,7 @@
         .tt-upload-previews .file-footer-caption { font-size: 12px; }
         </style>
         {{-- ======================= Report Card ======================= --}}
-        <div class="pat-form-section tt-upload-previews">
+        <div class="pat-form-section tt-upload-previews" id="set-report-card">
             <div class="pat-form-section-title">Report Card</div>
             <div class="pat-form-section-sub">The principal's name, digital signature and the school stamp printed on report cards and admit cards.</div>
             <div class="pat-fields">
@@ -501,7 +513,7 @@
             <form method="POST" action="{{ route('settings.update') }}">
                 @csrf
                 @method('PUT')
-                <div class="pat-form-section">
+                <div class="pat-form-section" id="set-platform">
                     <div class="pat-form-section-title">Platform</div>
                     <div class="pat-form-section-sub">Settings that belong to the Hackstra platform itself, not to any one school.</div>
                     <div class="pat-fields">

@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\Section;
 use App\Models\Subject;
 use App\User;
 use Illuminate\Support\Facades\DB;
@@ -97,6 +98,59 @@ class SectionTeacher
     {
         $id = static::teacherIdFor($sectionId, $subject);
         return $id ? User::find($id) : null;
+    }
+
+    /**
+     * The teacher's effective units, grouped for option lists
+     * (scoped-options audit, owner 2026-11-01): section ids by
+     * class where she is the EFFECTIVE teacher of at least one
+     * subject (teacherIdFor semantics — the override map is loaded
+     * once and resolved in memory, like effectiveLoads). Picker
+     * forms narrow their section options to this set so an offered
+     * section can never be one the store would refuse.
+     */
+    public static function unitSectionIdsByClass(User $user): array
+    {
+        $overrides = [];
+        if (Schema::hasTable('section_subject_teachers')) {
+            $overrides = DB::table('section_subject_teachers')->get()
+                ->groupBy('section_id')
+                ->map(function ($rows) {
+                    return $rows->pluck('teacher_id', 'subject_id')
+                        ->map(function ($t) { return (int) $t; })->all();
+                })->all();
+        }
+        $subjectsByClass = Subject::all()->groupBy('my_class_id');
+
+        $out = [];
+        foreach (Section::all() as $sec) {
+            foreach ($subjectsByClass[$sec->my_class_id] ?? [] as $sub) {
+                $tid = $overrides[$sec->id][$sub->id] ?? ($sub->teacher_id ? (int) $sub->teacher_id : null);
+                if ($tid === (int) $user->id) {
+                    $out[(int) $sec->my_class_id][] = (int) $sec->id;
+                    break;
+                }
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * The subjects that are "hers" for option lists: she owns them
+     * at class level OR holds at least one section override for
+     * them — the same definition the LMS create forms already use.
+     */
+    public static function unitSubjectIds(User $user): array
+    {
+        $direct = Subject::where('teacher_id', $user->id)->pluck('id');
+        $override = Schema::hasTable('section_subject_teachers')
+            ? DB::table('section_subject_teachers')->where('teacher_id', $user->id)->pluck('subject_id')
+            : collect();
+
+        return $direct->merge($override)
+            ->map(function ($id) { return (int) $id; })
+            ->unique()->values()->all();
     }
 
     /**

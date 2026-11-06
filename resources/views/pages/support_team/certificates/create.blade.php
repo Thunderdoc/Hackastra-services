@@ -18,15 +18,28 @@
                             <button type="button" id="adm_no_lookup_btn" class="btn btn-light">Find</button>
                         </div>
                     </div>
-                    <small id="adm_no_lookup_msg" class="form-text text-muted">Type an admission number and press Find — the student below is selected automatically. You can also type the number straight into the student list's search.</small>
+                    <small id="adm_no_lookup_msg" class="form-text text-muted">Type an admission number and press Find — the class, section and student below are selected automatically.</small>
+                </div>
+                <div class="form-group">
+                    <label>Class</label>
+                    <select class="form-control hk-cascade-class">
+                        <option value="">Choose a class…</option>
+                        @foreach($classes as $hkClass)
+                            <option value="{{ $hkClass->id }}">{{ $hkClass->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Section</label>
+                    <select class="form-control hk-cascade-section">
+                        <option value="">Choose a class first</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label for="student_record_id">Student <span class="text-danger">*</span></label>
-                    <select name="student_record_id" id="student_record_id" class="form-control @error('student_record_id') is-invalid @enderror" required>
+                    <select name="student_record_id" id="student_record_id" class="form-control hk-cascade-student @error('student_record_id') is-invalid @enderror" required data-value-key="id"
+                            @if($preselected) data-preselect-class="{{ $preselected->my_class_id }}" data-preselect-section="{{ $preselected->section_id }}" data-preselect-value="{{ $preselected->id }}" data-preselect-label="{{ optional($preselected->user)->name }} ({{ $preselected->adm_no }})" @endif>
                         <option value="">Choose a student…</option>
-                        @foreach($students as $st)
-                            <option value="{{ $st->id }}" data-adm-no="{{ $st->adm_no }}" {{ (old('student_record_id', $preselected->id ?? '') == $st->id) ? 'selected' : '' }}>{{ $st->user->name }} ({{ $st->adm_no }}) — {{ optional($st->my_class)->name }} {{ optional($st->section)->name }}</option>
-                        @endforeach
                     </select>
                 </div>
                 <div class="form-group">
@@ -48,24 +61,27 @@
 @endsection
 
 @section('scripts')
+    @include('partials.student_cascade_js')
     <script>
         (function ($) {
             function findByAdmNo() {
-                var typed = $.trim($('#adm_no_lookup').val()).toUpperCase();
+                var typed = $.trim($('#adm_no_lookup').val());
                 var $msg = $('#adm_no_lookup_msg');
                 if (!typed) {
                     $msg.text('Type an admission number first.').removeClass('text-success').addClass('text-danger');
                     return;
                 }
-                var $opt = $('#student_record_id option').filter(function () {
-                    return (($(this).data('adm-no') || '') + '').toUpperCase() === typed;
+                $.getJSON(@json(route('get_student_by_adm_no')), { adm_no: typed }, function (record) {
+                    if (record && record.id) {
+                        window.hkCascadeSetStudent(record, function (ok) {
+                            if (ok) {
+                                $msg.text('Found: ' + record.name + ' (' + record.adm_no + ')').removeClass('text-danger').addClass('text-success');
+                            }
+                        });
+                    } else {
+                        $msg.text('No student with admission no. ' + typed.toUpperCase() + '.').removeClass('text-success').addClass('text-danger');
+                    }
                 });
-                if ($opt.length) {
-                    $('#student_record_id').val($opt.val()).trigger('change');
-                    $msg.text('Found: ' + $opt.text()).removeClass('text-danger').addClass('text-success');
-                } else {
-                    $msg.text('No student with admission no. ' + typed + '.').removeClass('text-success').addClass('text-danger');
-                }
             }
             $('#adm_no_lookup_btn').on('click', findByAdmNo);
             $('#adm_no_lookup').on('keydown', function (e) {

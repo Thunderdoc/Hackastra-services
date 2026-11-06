@@ -85,27 +85,27 @@
         </div>
         <div class="card-body">
             @isset($filters)
-            <form method="GET" action="{{ route('leave.index') }}" class="form-inline mb-2" style="gap:6px; flex-wrap:wrap">
-                <input type="text" name="q" value="{{ $filters['q'] }}" class="form-control form-control-sm" placeholder="Search by staff name">
-                <select name="status" class="form-control form-control-sm">
+            <form method="GET" action="{{ route('leave.index') }}" class="form-inline mb-2 lv-filters" style="gap:6px; flex-wrap:wrap">
+                <span class="lv-fld"><label for="lv_q">Search</label><input type="text" id="lv_q" name="q" value="{{ $filters['q'] }}" class="form-control form-control-sm" placeholder="Search by staff name"></span>
+                <span class="lv-fld"><label for="lv_status">Status</label><select id="lv_status" name="status" class="form-control form-control-sm">
                     <option value="">All Status</option>
                     <option value="pending" @if($filters['status'] === 'pending') selected @endif>Pending</option>
                     <option value="approved" @if($filters['status'] === 'approved') selected @endif>Approved</option>
                     <option value="rejected" @if($filters['status'] === 'rejected') selected @endif>Rejected</option>
-                </select>
-                <select name="leave_type" class="form-control form-control-sm">
+                </select></span>
+                <span class="lv-fld"><label for="lv_leave_type">Type</label><select id="lv_leave_type" name="leave_type" class="form-control form-control-sm">
                     <option value="">All Types</option>
                     <option value="normal" @if($filters['leave_type'] === 'normal') selected @endif>Normal</option>
                     <option value="emergency" @if($filters['leave_type'] === 'emergency') selected @endif>Emergency</option>
-                </select>
-                <select name="coverage" class="form-control form-control-sm">
+                </select></span>
+                <span class="lv-fld"><label for="lv_coverage">Coverage</label><select id="lv_coverage" name="coverage" class="form-control form-control-sm">
                     <option value="">All Coverage</option>
                     <option value="covered" @if($filters['coverage'] === 'covered') selected @endif>Covered</option>
                     <option value="partial" @if($filters['coverage'] === 'partial') selected @endif>Partially Covered</option>
                     <option value="none" @if($filters['coverage'] === 'none') selected @endif>Not Covered</option>
-                </select>
-                <input type="date" name="from" value="{{ $filters['from'] }}" class="form-control form-control-sm">
-                <input type="date" name="to" value="{{ $filters['to'] }}" class="form-control form-control-sm">
+                </select></span>
+                <span class="lv-fld"><label for="lv_from">From</label><input type="date" id="lv_from" name="from" value="{{ $filters['from'] }}" class="form-control form-control-sm"></span>
+                <span class="lv-fld"><label for="lv_to">To</label><input type="date" id="lv_to" name="to" value="{{ $filters['to'] }}" class="form-control form-control-sm"></span>
                 <button type="submit" class="btn btn-sm btn-primary">Filter</button>
                 <a href="{{ route('leave.index') }}" class="btn btn-sm btn-light">Reset</a>
             </form>

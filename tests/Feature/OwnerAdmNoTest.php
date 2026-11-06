@@ -179,7 +179,14 @@ class OwnerAdmNoTest extends TestCase
 
         $this->assertStringContainsString('Find by Admission No.', $page);
         $this->assertStringContainsString('adm_no_lookup', $page);
-        $this->assertStringContainsString('data-adm-no="' . $admNo . '"', $page);
+        // Cascade era (owner, 2026-11-01): the matched student is
+        // no longer an option carrying data-adm-no in a giant list
+        // — the page preselects him through the cascade (record id
+        // + the label that restores his option), and the Find box
+        // resolves through the admission-number lookup feed.
+        $this->assertStringContainsString('data-preselect-value="' . $record->id . '"', $page);
+        $this->assertStringContainsString('(' . $admNo . ')', $page);
+        $this->assertStringContainsString('get_student_by_adm_no', $page);
 
         // Lowercase input resolves too (stored numbers are uppercase).
         $this->actingAs($this->admin())
