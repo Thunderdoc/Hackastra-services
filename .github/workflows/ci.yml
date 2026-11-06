@@ -17,6 +17,8 @@ jobs:
           php-version: '8.3'
           extensions: bcmath, gmp, mbstring, pdo_sqlite, sqlite3, dom, curl, zip, gd, intl
           coverage: none
+      - name: Install poppler-utils (pdftotext for the print tests)
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils
       - name: Install dependencies
         run: composer install --no-interaction --prefer-dist
       - name: Prepare environment
