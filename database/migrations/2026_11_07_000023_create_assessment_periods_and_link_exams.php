@@ -89,8 +89,14 @@ class CreateAssessmentPeriodsAndLinkExams extends Migration
         }
 
         // Unique swap (design §3.2).
-        $indexes = collect(DB::select("PRAGMA index_list('exams')"))->pluck('name')->all();
+        // The PRAGMA runs ONLY on sqlite — it is sqlite syntax and
+        // TiDB/MySQL rejects it (this exact line aborted the live
+        // deploy on 2026-11-07: the fetch originally ran before the
+        // driver check, on every engine).
         $isSqlite = DB::getDriverName() === 'sqlite';
+        $indexes = $isSqlite
+            ? collect(DB::select("PRAGMA index_list('exams')"))->pluck('name')->all()
+            : [];
         $hasOld = $isSqlite
             ? in_array('exams_term_year_my_class_id_unique', $indexes, true)
             : Schema::hasIndex('exams', 'exams_term_year_my_class_id_unique');
