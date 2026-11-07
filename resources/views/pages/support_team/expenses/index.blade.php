@@ -32,7 +32,12 @@
             </form>
 
             <div class="table-responsive">
-                <table class="table table-striped">
+                <table class="table table-striped hk-std hk-std-880">
+                    @if(Qs::userIsTeamAccountWrite())
+                        <colgroup><col style="width:20%"><col style="width:12%"><col style="width:10%"><col style="width:11%"><col style="width:13%"><col style="width:20%"><col style="width:14%"></colgroup>
+                    @else
+                        <colgroup><col style="width:22%"><col style="width:13%"><col style="width:11%"><col style="width:12%"><col style="width:15%"><col style="width:27%"></colgroup>
+                    @endif
                     <thead>
                     <tr>
                         <th>Title</th>
@@ -51,14 +56,14 @@
                         <tr>
                             <td>{{ $expense->title }}</td>
                             <td>{{ $expense->category }}</td>
-                            <td>{{ $expense->expense_date->format('d M Y') }}</td>
-                            <td>{{ \App\Helpers\Money::inr($expense->amount) }}</td>
+                            <td class="hk-nw">{{ $expense->expense_date->format('d M Y') }}</td>
+                            <td class="hk-nw">{{ \App\Helpers\Money::inr($expense->amount) }}</td>
                             <td>{{ optional($expense->recorder)->name ?: '-' }}</td>
                             <td>{{ $expense->note ?: '-' }}</td>
                             @if(Qs::userIsTeamAccountWrite())
                             <td>
                                 <a href="{{ route('expenses.edit', $expense) }}" class="btn btn-light btn-sm">Edit</a>
-                                <form method="POST" action="{{ route('expenses.destroy', $expense) }}" style="display:inline;" onsubmit="return confirm('Delete this expense?');">
+                                <form method="POST" action="{{ route('expenses.destroy', $expense) }}" style="display:inline;" data-confirm="Delete expense {{ $expense->title }}? This cannot be undone." data-confirm-title="Delete Expense" data-confirm-action="Delete" data-confirm-danger>
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="btn btn-light btn-sm">Delete</button>
@@ -67,13 +72,13 @@
                             @endif
                         </tr>
                     @empty
-                        <tr><td colspan="{{ Qs::userIsTeamAccountWrite() ? 7 : 6 }}">No expenses recorded yet.</td></tr>
+                        <tr><td colspan="{{ Qs::userIsTeamAccountWrite() ? 7 : 6 }}">@include('partials.patterns.empty_state', ['icon' => 'icon-cash2', 'message' => 'No expenses recorded yet.'])</td></tr>
                     @endforelse
                     </tbody>
                     <tfoot>
                     <tr>
                         <th colspan="3">Total</th>
-                        <th>{{ \App\Helpers\Money::inr($total) }}</th>
+                        <th class="hk-nw">{{ \App\Helpers\Money::inr($total) }}</th>
                         <th colspan="{{ Qs::userIsTeamAccountWrite() ? 3 : 2 }}"></th>
                     </tr>
                     </tfoot>

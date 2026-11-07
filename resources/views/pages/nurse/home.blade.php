@@ -84,7 +84,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="text-center text-muted">No clinic visits recorded yet.</td>
+                            <td colspan="5">@include('partials.patterns.empty_state', ['icon' => 'icon-heart6', 'message' => 'No clinic visits recorded yet.', 'compact' => true])</td>
                         </tr>
                     @endforelse
                 </tbody>

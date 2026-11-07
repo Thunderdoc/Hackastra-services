@@ -24,9 +24,22 @@ class Substitution extends Eloquent
         return $this->status !== 'pending';
     }
 
+    /** The office cancelled this period outright (Round 3, owner
+     *  order 2026-11-07): there is no class and no cover — the
+     *  period is resolved, neither covered nor uncovered. */
+    public function isCancelled(): bool
+    {
+        return $this->status === 'cancelled';
+    }
+
     public function scopeConfirmed($query)
     {
         return $query->where('status', 'confirmed');
+    }
+
+    public function scopeCancelled($query)
+    {
+        return $query->where('status', 'cancelled');
     }
 
     public function scopePending($query)

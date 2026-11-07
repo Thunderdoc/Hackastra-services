@@ -11,6 +11,9 @@ use App\User;
 use App\Repositories\MyClassRepo;
 use App\Repositories\UserRepo;
 use App\Http\Controllers\Controller;
+use App\Support\CsvExport;
+use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -35,15 +38,29 @@ class UserController extends Controller
         // userIsAdmin/userIsSuperAdmin-gated in the blade, so a
         // principal viewer sees no action buttons by construction.
         $this->middleware('teamSA', ['only' => ['create', 'store', 'edit', 'update'] ]);
-        $this->middleware('teamOrPrincipal:SA', ['only' => ['index'] ]);
-        $this->middleware('teamSA', ['only' => ['reset_pass','destroy','suspend','activate','terminate'] ]);
+        $this->middleware('teamOrPrincipal:SA', ['only' => ['index', 'export', 'exportSelected'] ]);
+        $this->middleware('teamSA', ['only' => ['reset_pass','destroy','suspend','activate','terminate','bulkStatus'] ]);
 
         $this->user = $user;
         $this->loc = $loc;
         $this->my_class = $my_class;
     }
 
-    public function index()
+    /**
+     * Round 5 Slice 3 (P12) — the users list's ONE filtered set.
+     *
+     * This list has always filtered an in-memory collection
+     * (UserRepo::getPTAUsers loads the scoped roster, then the
+     * viewer's role scope, the role/status pills and the q search
+     * narrow it) — that mechanics stays, honestly named, and both
+     * index() and export() now consume it, so the CSV is always
+     * exactly the set on screen. Sorting joins the same pass:
+     * sort is whitelisted to name / username / created_at, dir to
+     * asc / desc, defaulting to name/asc (the repo's own order).
+     *
+     * @return array{users: \Illuminate\Support\Collection, user_types: \Illuminate\Support\Collection, selected_user_type: ?string, selected_status: ?string, search_q: string, sort: string, dir: string}
+     */
+    protected function filteredCollection(Request $request): array
     {
         $ut = $this->user->getAllTypes();
         // Workstream CM: the school Admin manages every school account
@@ -97,7 +114,7 @@ class UserController extends Controller
         /* Batch 5A: server-side role filter for the rebuilt index —
            ?user_type=<title> narrows the list to that role; anything
            else (absent/unknown) shows every non-student user. */
-        $selected = request('user_type');
+        $selected = $request->input('user_type');
         $d['selected_user_type'] = $d['user_types']->contains('title', $selected) ? $selected : null;
         if ($d['selected_user_type']) {
             $d['users'] = $d['users']->where('user_type', $d['selected_user_type']);
@@ -108,7 +125,7 @@ class UserController extends Controller
            managed by suspend()/activate()/terminate() below. */
         /* Item 21: name / username / email search — ?q= narrows
            the (already role-scoped) list by text. */
-        $d['search_q'] = trim((string) request('q', ''));
+        $d['search_q'] = trim((string) $request->input('q', ''));
         if ($d['search_q'] !== '') {
             $needle = mb_strtolower($d['search_q']);
             $d['users'] = $d['users']->filter(function ($u) use ($needle) {
@@ -116,15 +133,265 @@ class UserController extends Controller
             })->values();
         }
 
-        $status = request('status');
+        $status = $request->input('status');
         $d['selected_status'] = in_array($status, ['active', 'suspended', 'terminated'], true) ? $status : null;
         if ($d['selected_status']) {
-            $d['users'] = $d['users']->filter(function ($u) {
-                return ($u->getAttribute('status') ?: 'active') === request('status');
+            $selectedStatus = $d['selected_status'];
+            $d['users'] = $d['users']->filter(function ($u) use ($selectedStatus) {
+                return ($u->getAttribute('status') ?: 'active') === $selectedStatus;
             });
         }
 
+        /* P12 sorting: whitelisted column + direction, applied to
+           the filtered collection so screen order and export order
+           can never disagree. Name/username compare case-folded
+           (the same key the tests recompute their expectation
+           with); created_at compares by timestamp. */
+        $d['sort'] = in_array($request->input('sort'), ['name', 'username', 'created_at'], true)
+            ? $request->input('sort') : 'name';
+        $d['dir'] = $request->input('dir') === 'desc' ? 'desc' : 'asc';
+        $sort = $d['sort'];
+        $sortKey = function ($u) use ($sort) {
+            if ($sort === 'username') {
+                return mb_strtolower((string) ($u->username ?? ''));
+            }
+            if ($sort === 'created_at') {
+                return $u->created_at ? $u->created_at->timestamp : 0;
+            }
+            return mb_strtolower((string) $u->name);
+        };
+        $d['users'] = ($d['dir'] === 'desc'
+            ? $d['users']->sortByDesc($sortKey)
+            : $d['users']->sortBy($sortKey))->values();
+
+        return $d;
+    }
+
+    public function index(Request $request)
+    {
+        $d = $this->filteredCollection($request);
+
+        /* P12: server pagination, 25 to a page, query string
+           preserved — previously the whole filtered collection
+           rendered on one page. Built by hand (LengthAwarePaginator
+           over the filtered collection) because the set itself is
+           a collection; the students list paginates the same way. */
+        $filtered = $d['users'];
+        $perPage = 25;
+        $page = max(1, (int) $request->input('page', 1));
+        $d['users'] = new LengthAwarePaginator(
+            $filtered->forPage($page, $perPage),
+            $filtered->count(),
+            $perPage,
+            $page,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
+
         return view('pages.support_team.users.index', $d);
+    }
+
+    /**
+     * P12: CSV export of the SAME filtered set index() shows —
+     * role scope, role/status pills, q and sort all honoured;
+     * pagination ignored (the export is the whole set).
+     */
+    public function export(Request $request)
+    {
+        $filtered = $this->filteredCollection($request);
+
+        $rows = $filtered['users']->map(function ($u) {
+            return [
+                $u->name,
+                $u->username,
+                $u->email,
+                $u->user_type,
+                $u->getAttribute('status') ?: 'active',
+                $u->created_at ? $u->created_at->format('d M Y') : '',
+            ];
+        });
+
+        return CsvExport::download(
+            'users-' . now()->format('Ymd-Hi') . '.csv',
+            ['Name', 'Username', 'Email', 'Role', 'Status', 'Joined'],
+            $rows
+        );
+    }
+
+    /**
+     * Round 5 Slice 3 (P10) — validated bulk ids from a request:
+     * an array of positive ints, de-duplicated, order preserved.
+     * Anything else (strings, zero, negatives) is dropped, never
+     * trusted — the ids travel in the POST body (the {id} route
+     * params in this app are hash-bound, so a bulk list must never
+     * travel in a URL; the students bulk-delete precedent).
+     */
+    protected function bulkIds(Request $request, string $key = 'ids'): array
+    {
+        $raw = $request->input($key, []);
+        if (!is_array($raw)) {
+            return [];
+        }
+
+        return collect($raw)
+            ->filter(function ($id) { return is_numeric($id); })
+            ->map(function ($id) { return (int) $id; })
+            ->filter(function ($id) { return $id > 0; })
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * P10 — bulk Suspend / Activate over the users list selection.
+     *
+     * Every id is re-checked against the SAME per-row rules
+     * changeAccountStatus() enforces for the single-row flows:
+     * nobody acts on their own account, the head Super Admin is
+     * untouchable, mayWriteUserTarget() decides who may touch
+     * whom, and the platform keeps at least one active Super
+     * Admin. An id already in the target state is skipped too.
+     * Ineligible ids are SKIPPED and reported in the flash —
+     * one bad id never fails the whole batch (the bulk rollback
+     * precedent). Suspending a teacher runs the same substitution
+     * heal as the single-row flow. One Audit row summarises the
+     * batch (the student.bulk_deleted shape).
+     */
+    public function bulkStatus(Request $request)
+    {
+        $status = $request->input('status');
+        if (!in_array($status, ['suspended', 'active'], true)) {
+            return back()->with('flash_danger', 'Choose Suspend or Activate for the selected users.');
+        }
+
+        $ids = $this->bulkIds($request);
+        if (!$ids) {
+            return back()->with('flash_danger', 'Nothing selected — tick at least one user first.');
+        }
+
+        $newStatus = $status === 'suspended' ? User::STATUS_SUSPENDED : User::STATUS_ACTIVE;
+        $verb = $status === 'suspended' ? 'suspended' : 'reactivated';
+        $updated = 0;
+        $reasons = [];
+        $healNotes = [];
+        $skip = function (string $reason) use (&$reasons) {
+            $reasons[$reason] = ($reasons[$reason] ?? 0) + 1;
+        };
+
+        foreach ($ids as $id) {
+            if ((int) $id === (int) Auth::id()) {
+                $skip('your own account');
+                continue;
+            }
+            if (Qs::headSA($id)) {
+                $skip('the head Super Admin is protected');
+                continue;
+            }
+            $user = $this->user->find($id);
+            if (!$user) {
+                $skip('not found');
+                continue;
+            }
+            if (!$this->mayWriteUserTarget($user->user_type)) {
+                $skip('outside your permission');
+                continue;
+            }
+            if (($user->getAttribute('status') ?: User::STATUS_ACTIVE) === $newStatus) {
+                $skip($status === 'suspended' ? 'already suspended' : 'already active');
+                continue;
+            }
+            if ($newStatus !== User::STATUS_ACTIVE && $user->user_type === 'super_admin') {
+                $otherActive = User::where('user_type', 'super_admin')
+                    ->where('status', User::STATUS_ACTIVE)
+                    ->where('id', '!=', $user->id)
+                    ->count();
+                if ($otherActive === 0) {
+                    $skip('the last active Super Admin');
+                    continue;
+                }
+            }
+
+            $this->user->update($user->id, ['status' => $newStatus, 'status_at' => now()]);
+            $updated++;
+
+            /* Same heal as changeAccountStatus(): a suspended
+               teacher cannot hold substitution cover. */
+            if ($newStatus !== User::STATUS_ACTIVE && $user->user_type === 'teacher') {
+                $heal = \App\Support\LeaveAutoCover::reassignForDepartedTeacher(
+                    $user, (int) Auth::id(), $verb);
+                if ($heal['reassigned'] > 0) {
+                    $healNotes[] = $heal['reassigned'] . ' substitution cover(s) moved to other teachers.';
+                }
+                if ($heal['lost'] > 0) {
+                    $healNotes[] = $heal['lost'] . ' period(s) could not be re-covered — admins and the principal have been alerted.';
+                }
+            }
+        }
+
+        $skipped = array_sum($reasons);
+        $reasonSummary = collect($reasons)
+            ->map(function ($count, $reason) { return $count . ' ' . $reason; })
+            ->implode(', ');
+
+        Audit::log(
+            $status === 'suspended' ? 'user.bulk_suspended' : 'user.bulk_activated',
+            User::class,
+            'Bulk ' . $verb . ' ' . $updated . ' user(s); ' . $skipped . ' skipped'
+                . ($reasonSummary !== '' ? ' (' . $reasonSummary . ')' : '') . '.'
+        );
+
+        if ($updated === 0) {
+            return back()->with('flash_danger',
+                '0 updated, ' . $skipped . ' skipped: ' . $reasonSummary . '.');
+        }
+
+        $message = $updated . ' updated, ' . $skipped . ' skipped'
+            . ($skipped > 0 ? ': ' . $reasonSummary : '') . '.';
+        if ($healNotes) {
+            $message .= ' ' . implode(' ', $healNotes);
+        }
+
+        return back()->with('flash_success', $message);
+    }
+
+    /**
+     * P10 — CSV export of the SELECTED users only: the P12 export
+     * column set, filtered to the posted ids AND to the viewer's
+     * scoped list (filteredCollection), so a tampered id can never
+     * leak a row the viewer cannot see — an admin's export never
+     * carries a Super Admin row, whatever ids are posted.
+     */
+    public function exportSelected(Request $request)
+    {
+        $ids = $this->bulkIds($request);
+        if (!$ids) {
+            return back()->with('flash_danger', 'Nothing selected — tick at least one user first.');
+        }
+
+        $scoped = $this->filteredCollection($request)['users'];
+        $selected = $scoped->whereIn('id', $ids)->values();
+        if ($selected->isEmpty()) {
+            return back()->with('flash_danger', 'None of the selected users are in your list.');
+        }
+
+        Audit::log('user.bulk_exported', User::class,
+            'Exported ' . $selected->count() . ' selected user(s) to CSV.');
+
+        $rows = $selected->map(function ($u) {
+            return [
+                $u->name,
+                $u->username,
+                $u->email,
+                $u->user_type,
+                $u->getAttribute('status') ?: 'active',
+                $u->created_at ? $u->created_at->format('d M Y') : '',
+            ];
+        });
+
+        return CsvExport::download(
+            'users-selected-' . now()->format('Ymd-Hi') . '.csv',
+            ['Name', 'Username', 'Email', 'Role', 'Status', 'Joined'],
+            $rows
+        );
     }
 
     public function edit($id)

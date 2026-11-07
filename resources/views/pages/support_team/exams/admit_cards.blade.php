@@ -63,9 +63,10 @@
                 </div>
 
                 @if($students->isEmpty())
-                    <div class="lav-empty">
-                        <p>No active students found in this class/section.</p>
-                    </div>
+                    @include('partials.patterns.empty_state', [
+                        'icon' => 'icon-users',
+                        'message' => 'No active students found in this class/section.',
+                    ])
                 @else
                     <div class="table-responsive">
                         <table class="table">
@@ -104,9 +105,10 @@
                     </div>
                 @endif
             @else
-                <div class="lav-empty">
-                    <p>Select an exam and a class to see the students whose admit cards you can print.</p>
-                </div>
+                @include('partials.patterns.empty_state', [
+                    'icon' => 'icon-profile',
+                    'message' => 'Select an exam and a class to see the students whose admit cards you can print.',
+                ])
             @endif
         </div>
     </div>

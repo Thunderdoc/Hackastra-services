@@ -186,7 +186,14 @@ class MarkController extends Controller
            reach the view, and when nothing is published the honest
            not-published page renders instead of an empty sheet. */
         if(!Qs::userIsTeamSAT()){
-            $published_ids = $d['exams']->filter(function($ex){ return $ex->results_published; })->pluck('id');
+            // Phase 1 (R1 §5.2): unit-period exams never get a
+            // student card of their own — their marks reach the
+            // student once, inside the parent term card's Internal
+            // column — so a published unit exam is excluded here.
+            $published_ids = $d['exams']->filter(function($ex){
+                return $ex->results_published
+                    && !($ex->period && $ex->period->kind === 'unit');
+            })->pluck('id');
             $d['exams'] = $d['exams']->whereIn('id', $published_ids);
             $d['exam_records'] = $exr = $d['exam_records']->whereIn('exam_id', $published_ids);
             $d['marks'] = $d['marks']->whereIn('exam_id', $published_ids);
@@ -510,6 +517,18 @@ class MarkController extends Controller
         $wh = ['student_id' => $student_id, 'year' => $year];
         $d['marks'] = $this->exam->getMark($wh);
         $d['exams'] = $exams ?: $this->exam->getExam(['year' => $year]);
+        // Phase 1 (R1 §5.3): the annual set is the exams whose
+        // period counts toward annual (unit periods never do —
+        // their marks already sit inside their term's Internal);
+        // an exam with no period is included, exactly as before.
+        // Order: period sort_order, then the legacy term number.
+        $d['exams'] = $d['exams']->filter(function ($ex) {
+            return !$ex->period || $ex->period->counts_toward_annual;
+        })->sort(function ($a, $b) {
+            $sa = $a->period ? (int) $a->period->sort_order : ((int) $a->term) * 10;
+            $sb = $b->period ? (int) $b->period->sort_order : ((int) $b->term) * 10;
+            return ($sa <=> $sb) ?: ((int) $a->term <=> (int) $b->term);
+        })->values();
         $d['sr'] = $sr = $this->student->getRecord(['user_id' => $student_id])->first();
         $d['my_class'] = $mc = $this->my_class->getMC(['id' => $sr->my_class_id])->first();
         $d['class_type'] = $this->my_class->findTypeByClass($mc->id);
@@ -543,6 +562,61 @@ class MarkController extends Controller
      * including a colleague's subject and a class she only leads.
      * Admins are unaffected (non-teachers always pass).
      */
+    /**
+     * Marks-entry safety (R1 §6 S7): an exam whose period has no
+     * legacy term number has no tex{term} store yet (deferral
+     * D1), so every entry path refuses it with one plain reason
+     * instead of ever reaching a tex0 write. One helper —
+     * Exam::marksEnterable() — decides; entryState reports it,
+     * manage/update/submit/importInternal enforce it.
+     */
+    protected function guardMarksEnterable($exam): void
+    {
+        if ($exam && !$exam->marksEnterable()) {
+            abort(403, 'Marks entry for this period opens in a later update.');
+        }
+    }
+
+    /**
+     * The derived unit-test sources for a target exam's Internal
+     * import (R1 §4.1): source exams whose period is a unit
+     * feeding the target's period, same session, scope covering
+     * the class, with this subject present (scheme or mark rows).
+     * Each entry carries its submitted state for the section —
+     * only submitted sources may feed an import (§4.2).
+     */
+    protected function derivedUnitSources($targetExam, $classId, $sectionId, $subjectId)
+    {
+        $out = collect();
+        if (!$targetExam || !$targetExam->period || $targetExam->period->kind !== 'term') {
+            return $out;
+        }
+        $sourcePeriodIds = \App\Models\AssessmentPeriod::where('feeds_period_id', $targetExam->period_id)
+            ->where('kind', 'unit')->where('year', $targetExam->year)->pluck('id');
+        if ($sourcePeriodIds->isEmpty()) {
+            return $out;
+        }
+        $sources = \App\Models\Exam::whereIn('period_id', $sourcePeriodIds)
+            ->where('year', $targetExam->year)
+            ->where(function ($q) use ($classId) {
+                $q->where('my_class_id', 0)->orWhere('my_class_id', (int) $classId);
+            })->get();
+        foreach ($sources as $src) {
+            $hasSubject = MarkScheme::isConfigured($src->id, $subjectId)
+                || \App\Models\Mark::where(['exam_id' => $src->id, 'subject_id' => $subjectId])->exists();
+            if (!$hasSubject) {
+                continue;
+            }
+            $out->push([
+                'exam' => $src,
+                'period' => $src->period,
+                'max' => MarkScheme::maxTotal($src->id, $subjectId),
+                'submitted' => MarkSubmission::forUnit($src->id, $sectionId, $subjectId) !== null,
+            ]);
+        }
+        return $out;
+    }
+
     protected function denyUnlessEffectiveTeacher($classId, $sectionId, $subjectId)
     {
         if (!Qs::userIsTeacher()) {
@@ -576,6 +650,10 @@ class MarkController extends Controller
         $exam = $this->exam->find($examId);
         if (!$exam || ((int) $exam->my_class_id !== 0 && (int) $exam->my_class_id !== $classId)) {
             return response()->json(['enabled' => false, 'reason' => 'This exam does not cover the selected class.']);
+        }
+
+        if (!$exam->marksEnterable()) {
+            return response()->json(['enabled' => false, 'reason' => 'Marks entry for this period opens in a later update.']);
         }
 
         if (Qs::userIsTeacher()) {
@@ -712,6 +790,9 @@ class MarkController extends Controller
         if (!$exam || ((int) $exam->my_class_id !== 0 && (int) $exam->my_class_id !== (int) $req->my_class_id)) {
             return back()->with('pop_error', 'The selected exam does not belong to the selected class.');
         }
+        if (!$exam->marksEnterable()) {
+            return back()->with('pop_error', 'Marks entry for this period opens in a later update.');
+        }
 
         $data = $req->only(['exam_id', 'my_class_id', 'section_id', 'subject_id']);
         $d2 = $req->only(['exam_id', 'my_class_id', 'section_id']);
@@ -747,6 +828,7 @@ class MarkController extends Controller
         if (!$exam || ((int) $exam->my_class_id !== 0 && (int) $exam->my_class_id !== (int) $class_id)) {
             abort(404);
         }
+        $this->guardMarksEnterable($exam);
 
         $d = ['exam_id' => $exam_id, 'my_class_id' => $class_id, 'section_id' => $section_id, 'subject_id' => $subject_id, 'year' => $this->year];
 
@@ -800,7 +882,11 @@ class MarkController extends Controller
             : null;
         $d['import_quizzes'] = collect();
         $d['import_assignment_count'] = 0;
+        $d['import_unit_sources'] = collect();
         if ($d['internal_component']) {
+            // Phase 1 (R1 §4): the derived unit-test sources that
+            // feed this term exam, with their submitted state.
+            $d['import_unit_sources'] = $this->derivedUnitSources($exam, $class_id, $section_id, $subject_id);
             $subject = Subject::find($subject_id);
             $effectiveTeacherId = $subject ? SectionTeacher::teacherIdFor($section_id, $subject) : null;
             if ($effectiveTeacherId) {
@@ -832,6 +918,7 @@ class MarkController extends Controller
         if (!$exam || ((int) $exam->my_class_id !== 0 && (int) $exam->my_class_id !== (int) $class_id)) {
             abort(404);
         }
+        $this->guardMarksEnterable($exam);
 
         // Marks lifecycle (owner order 2026-10-29): no saves before
         // the subject's exam date, and no saves at all once the
@@ -946,6 +1033,7 @@ class MarkController extends Controller
         if (!$exam || ((int) $exam->my_class_id !== 0 && (int) $exam->my_class_id !== (int) $class_id)) {
             abort(404);
         }
+        $this->guardMarksEnterable($exam);
 
         MarkLifecycle::guard($exam_id, $class_id, $section_id, $subject_id);
 
@@ -960,11 +1048,29 @@ class MarkController extends Controller
             return back()->with('pop_error', 'No teacher is assigned to this subject for this section.');
         }
 
-        $kind = $req->input('source_kind') === 'quizzes' ? 'quizzes' : 'assignments';
-        if ($kind === 'assignments') {
-            $percents = InternalMarksImporter::assignmentPercents($teacherId, $class_id, $subject_id);
-            $sourceLabel = 'assignments';
-        } else {
+        if ($req->input('source_kind') === 'units') {
+            // Phase 1 (R1 §4): fill from the unit tests that feed
+            // this term — derived sources only, and only the ones
+            // whose (exam, section, subject) unit is SUBMITTED.
+            $sources = $this->derivedUnitSources($exam, $class_id, $section_id, $subject_id);
+            if ($sources->isEmpty()) {
+                return back()->with('pop_error', 'No unit tests feed this term for this class and subject — nothing was filled.');
+            }
+            $chosen = collect((array) $req->input('unit_exam_ids', []))->map(function ($id) { return (int) $id; })->all();
+            $eligible = $sources->filter(function ($s) use ($chosen) {
+                return $s['submitted'] && in_array((int) $s['exam']->id, $chosen, true);
+            })->values();
+            if ($eligible->isEmpty()) {
+                return back()->with('pop_error', 'None of the chosen unit tests has submitted marks for this section yet — unsubmitted unit tests are excluded, so nothing was filled.');
+            }
+            $percents = InternalMarksImporter::examPercents(
+                $eligible->map(function ($s) { return (int) $s['exam']->id; })->all(),
+                $class_id,
+                $subject_id
+            );
+            $sourceLabel = 'unit tests (' . $eligible->map(function ($s) { return $s['exam']->name; })->implode(', ') . ')';
+        } elseif ($req->input('source_kind') === 'quizzes') {
+            $kind = 'quizzes';
             $quizIds = collect((array) $req->input('quiz_ids', []))->map(function ($id) { return (int) $id; })->all();
             $validIds = Quiz::where('teacher_id', $teacherId)
                 ->where('my_class_id', $class_id)->where('subject_id', $subject_id)
@@ -974,6 +1080,10 @@ class MarkController extends Controller
             }
             $percents = InternalMarksImporter::quizPercents($validIds);
             $sourceLabel = 'quizzes';
+        } else {
+            $kind = 'assignments';
+            $percents = InternalMarksImporter::assignmentPercents($teacherId, $class_id, $subject_id);
+            $sourceLabel = 'assignments';
         }
 
         $choice = InternalMarksImporter::modeFromRequest($req);
@@ -1027,6 +1137,7 @@ class MarkController extends Controller
         if (!$exam || ((int) $exam->my_class_id !== 0 && (int) $exam->my_class_id !== (int) $class_id)) {
             abort(404);
         }
+        $this->guardMarksEnterable($exam);
 
         $state = MarkLifecycle::state($exam_id, $class_id, $section_id, $subject_id);
         if ($state['submitted']) {

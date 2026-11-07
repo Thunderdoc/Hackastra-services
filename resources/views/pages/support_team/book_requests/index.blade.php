@@ -5,8 +5,9 @@
          legacy card with header-elements chrome. Behaviour unchanged:
          same status filter links, same loan rows, same Mark Returned
          flow (styled-confirm attributes intact), same pagination.
-         The table carries l108-stack so every column stays visible
-         on phone widths. --}}
+         The table rides the shared data_table pattern (Round 5
+         P11, hk-std-loans): phones scroll it sideways inside its
+         one responsive wrapper. --}}
     <div class="pat-list">
         <div class="pat-toolbar">
             <div class="pat-toolbar-text">
@@ -31,48 +32,57 @@
 
         <div class="card pat-card">
             <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table l108-stack">
-                        <thead><tr><th>Book</th><th>Borrower</th><th>Issued</th><th>Due</th><th>Status</th><th>Action</th></tr></thead>
-                        <tbody>
-                        @forelse($loans as $loan)
-                            <tr>
-                                <td data-label="Book">
-                                    <strong>{{ $loan->book->name ?? '—' }}</strong>
-                                    @if($loan->book && $loan->book->author)<div class="text-muted">by {{ $loan->book->author }}</div>@endif
-                                </td>
-                                <td data-label="Borrower">
-                                    {{ $loan->user->name ?? '—' }}
-                                    @if($loan->user)<div class="text-muted">{{ ucfirst(str_replace('_', ' ', $loan->user->user_type)) }}</div>@endif
-                                </td>
-                                <td data-label="Issued">{{ $loan->start_date ? $loan->start_date->format('d M Y') : '—' }}</td>
-                                <td data-label="Due">
-                                    {{ $loan->end_date ? $loan->end_date->format('d M Y') : '—' }}
-                                    @if($loan->isOverdue())<div class="text-danger font-weight-bold">Overdue</div>@endif
-                                </td>
-                                <td data-label="Status">
-                                    @if($loan->returned)
-                                        <span class="badge badge-success">Returned</span>
-                                    @elseif($loan->isOverdue())
-                                        <span class="badge badge-danger">Overdue</span>
-                                    @else
-                                        <span class="badge badge-info">Issued</span>
-                                    @endif
-                                </td>
-                                <td data-label="Action">
-                                    @if(!$loan->returned)
-                                        <form method="post" action="{{ route('book_requests.return', Qs::hash($loan->id)) }}" style="display:inline">@csrf @method('patch')<button type="submit" class="btn btn-light btn-sm" data-confirm="Mark this book as returned?" data-confirm-title="Mark as Returned" data-confirm-action="Mark Returned">Mark Returned</button></form>
-                                    @else
-                                        <span class="text-muted">—</span>
-                                    @endif
-                                </td>
-                            </tr>
-                        @empty
-                            <tr><td colspan="6" class="text-center text-muted">No loans found. Issue a book to see it here.</td></tr>
-                        @endforelse
-                        </tbody>
-                    </table>
-                </div>
+                @component('partials.patterns.data_table', [
+                    'columns' => [
+                        ['key' => 'book', 'label' => 'Book', 'width' => 28, 'class' => 'hk-ellip'],
+                        ['key' => 'borrower', 'label' => 'Borrower', 'width' => 22, 'class' => 'hk-ellip'],
+                        ['key' => 'issued', 'label' => 'Issued', 'width' => 12, 'class' => 'hk-nw'],
+                        ['key' => 'due', 'label' => 'Due', 'width' => 13, 'class' => 'hk-nw'],
+                        ['key' => 'status', 'label' => 'Status', 'width' => 11, 'class' => 'hk-nw'],
+                        ['key' => 'action', 'label' => 'Action', 'width' => 14],
+                    ],
+                    'variant' => 'loans',
+                    'min_width' => 820,
+                    'is_empty' => $loans->isEmpty(),
+                    'empty' => [
+                        'icon' => 'icon-books',
+                        'message' => 'No loans found. Issue a book to see it here.',
+                    ],
+                ])
+                    @foreach($loans as $loan)
+                        <tr>
+                            <td>
+                                <strong>{{ $loan->book->name ?? '—' }}</strong>
+                                @if($loan->book && $loan->book->author)<div class="text-muted">by {{ $loan->book->author }}</div>@endif
+                            </td>
+                            <td>
+                                {{ $loan->user->name ?? '—' }}
+                                @if($loan->user)<div class="text-muted">{{ ucfirst(str_replace('_', ' ', $loan->user->user_type)) }}</div>@endif
+                            </td>
+                            <td>{{ $loan->start_date ? $loan->start_date->format('d M Y') : '—' }}</td>
+                            <td>
+                                {{ $loan->end_date ? $loan->end_date->format('d M Y') : '—' }}
+                                @if($loan->isOverdue())<div class="text-danger font-weight-bold">Overdue</div>@endif
+                            </td>
+                            <td>
+                                @if($loan->returned)
+                                    <span class="badge badge-success">Returned</span>
+                                @elseif($loan->isOverdue())
+                                    <span class="badge badge-danger">Overdue</span>
+                                @else
+                                    <span class="badge badge-info">Issued</span>
+                                @endif
+                            </td>
+                            <td>
+                                @if(!$loan->returned)
+                                    <form method="post" action="{{ route('book_requests.return', Qs::hash($loan->id)) }}" style="display:inline">@csrf @method('patch')<button type="submit" class="btn btn-light btn-sm" data-confirm="Mark this book as returned?" data-confirm-title="Mark as Returned" data-confirm-action="Mark Returned">Mark Returned</button></form>
+                                @else
+                                    <span class="text-muted">—</span>
+                                @endif
+                            </td>
+                        </tr>
+                    @endforeach
+                @endcomponent
                 {{ $loans->appends(request()->query())->links() }}
             </div>
         </div>

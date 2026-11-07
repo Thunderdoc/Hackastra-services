@@ -10,7 +10,12 @@
         'form_action' => route('assignments.store'),
         'form_enctype' => 'multipart/form-data',
         'back' => route('assignments.index'),
+        'form_draft' => 'u'.Auth::id().'-assignment-new',
     ])
+        {{-- Round 5 Slice 2 (P6): hk-draft autosave opt-in. The
+             form tag is rendered by the form_page partial, so the
+             opt-in rides as an in-form marker with the full
+             per-user key. --}}
         @slot('title')
             New Assignment
         @endslot

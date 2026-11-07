@@ -12,11 +12,16 @@ Route::get('/terms-of-use', 'HomeController@terms_of_use')->name('terms_of_use')
 /* Wave 12 — public admission enquiries (no login): a parent asking
    about a seat. Kept outside the auth group on purpose. */
 Route::get('/admission-enquiry', 'HomeController@admission_form')->name('admission_enquiry.form');
-Route::post('/admission-enquiry', 'HomeController@admission_store')->name('admission_enquiry.store');
+Route::post('/admission-enquiry', 'HomeController@admission_store')->name('admission_enquiry.store')->middleware('throttle:public-form');
 
 /* Wave 15 — health endpoint for uptime monitors (no login, no
    sensitive data; 503 when the database is unreachable). */
 Route::get('/health', 'HomeController@health')->name('health');
+
+/* F5 (design §3.4B) — signed fee-reminder ping for a free external
+   daily pinger. No session: the token is the credential (404 until
+   a token is configured, 403 on mismatch, hash_equals compared). */
+Route::get('/cron/fee-reminders/{token}', '\App\Http\Controllers\SupportTeam\FeeReminderController@ping')->name('cron.fee_reminders');
 
 
 Route::group(['middleware' => 'auth'], function () {
@@ -26,6 +31,7 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get('/dashboard', 'HomeController@dashboard')->name('dashboard');
     Route::get('/dashboard/school', 'HomeController@schoolDashboard')->name('dashboard.school');
     Route::get('/dashboard/search', 'DashboardSearchController')->name('dashboard.search');
+    Route::get('/dashboard/search.json', 'DashboardSearchController@palette')->name('dashboard.search_json');
 
     // Workstream CZ (LMS): bell notifications — opening the bell
     // marks the caller's per-user notifications read.
@@ -40,6 +46,7 @@ Route::group(['middleware' => 'auth'], function () {
         Route::post('/preferences', 'MyAccountController@update_preferences')->name('my_account.preferences');
         Route::post('/theme', 'MyAccountController@update_theme')->name('my_account.theme');
         Route::post('/bell-sound', 'MyAccountController@update_bell_sound')->name('my_account.bell_sound');
+    Route::post('/sidebar-state', 'MyAccountController@update_sidebar_state')->name('my_account.sidebar_state');
         Route::get('/download', 'MyAccountController@download_data')->name('my_account.download');
     });
 
@@ -65,7 +72,8 @@ Route::group(['middleware' => 'auth'], function () {
             Route::get('import', 'StudentBulkController@import')->name('students.import');
             Route::get('import/template', 'StudentBulkController@importTemplate')->name('students.import.template');
             Route::post('import', 'StudentBulkController@importStore')->name('students.import.store');
-            Route::post('bulk_delete', 'StudentBulkController@bulkDelete')->name('students.bulk_delete');
+            Route::post('bulk_delete', 'StudentBulkController@bulkDelete')->name('students.bulk_delete')->middleware('throttle:web-write');
+            Route::post('export_selected', 'StudentRecordController@exportSelected')->name('students.export_selected')->middleware('teamSAT');
 
             /* Quick Admit (2026-10-22): essentials-only admission.
                Gated teamSAWrite in StudentRecordController's
@@ -95,13 +103,13 @@ Route::group(['middleware' => 'auth'], function () {
             Route::get('students/edit', 'BulkManagementController@studentsEdit')->name('bulk.students.edit');
             Route::get('staff/add', 'BulkManagementController@staffAdd')->name('bulk.staff.add');
             Route::get('staff/edit', 'BulkManagementController@staffEdit')->name('bulk.staff.edit');
-            Route::post('upload', 'BulkManagementController@upload')->name('bulk.upload');
+            Route::post('upload', 'BulkManagementController@upload')->name('bulk.upload')->middleware('throttle:imports');
             Route::get('jobs/{job}', 'BulkManagementController@show')->name('bulk.jobs.show');
             Route::get('jobs/{job}/errors', 'BulkManagementController@errors')->name('bulk.jobs.errors');
-            Route::post('jobs/{job}/confirm', 'BulkManagementController@confirm')->name('bulk.jobs.confirm');
-            Route::post('jobs/{job}/apply', 'BulkManagementController@apply')->name('bulk.jobs.apply');
-            Route::post('jobs/{job}/discard', 'BulkManagementController@discard')->name('bulk.jobs.discard');
-            Route::post('jobs/{job}/rollback', 'BulkManagementController@rollback')->name('bulk.jobs.rollback');
+            Route::post('jobs/{job}/confirm', 'BulkManagementController@confirm')->name('bulk.jobs.confirm')->middleware('throttle:imports');
+            Route::post('jobs/{job}/apply', 'BulkManagementController@apply')->name('bulk.jobs.apply')->middleware('throttle:web-write');
+            Route::post('jobs/{job}/discard', 'BulkManagementController@discard')->name('bulk.jobs.discard')->middleware('throttle:web-write');
+            Route::post('jobs/{job}/rollback', 'BulkManagementController@rollback')->name('bulk.jobs.rollback')->middleware('throttle:web-write');
             Route::get('templates/students-edit', 'BulkManagementController@studentsEditTemplate')->name('bulk.templates.students_edit');
             Route::get('templates/staff-add', 'BulkManagementController@staffAddTemplate')->name('bulk.templates.staff_add');
             Route::get('templates/staff-edit', 'BulkManagementController@staffEditTemplate')->name('bulk.templates.staff_edit');
@@ -131,7 +139,7 @@ Route::group(['middleware' => 'auth'], function () {
             Route::post('my', 'LeaveRequestController@store')->name('leave.store');
             Route::get('/', 'LeaveRequestController@index')->name('leave.index')->middleware('teamOrPrincipal:SAWrite');
             Route::get('student-requests', 'LeaveRequestController@studentRequests')->name('leave.student_requests');
-            Route::post('{leave}/decide', 'LeaveRequestController@decide')->name('leave.decide');
+            Route::post('{leave}/decide', 'LeaveRequestController@decide')->name('leave.decide')->middleware('throttle:web-write');
         });
 
         /*************** Certificates (Wave 14) ***************/
@@ -151,14 +159,26 @@ Route::group(['middleware' => 'auth'], function () {
             Route::post('{id}/suspend', 'UserController@suspend')->name('users.suspend');
             Route::post('{id}/activate', 'UserController@activate')->name('users.activate');
             Route::post('{id}/terminate', 'UserController@terminate')->name('users.terminate');
+            /* Round 5 Slice 3 (P12): CSV export of the filtered
+               users list — same filteredCollection as the index. */
+            Route::get('export', 'UserController@export')->name('users.export');
+            /* Round 5 Slice 3 (P10): bulk status + export of the
+               ticked selection — ids travel in the POST body. */
+            Route::post('bulk-status', 'UserController@bulkStatus')->name('users.bulk_status');
+            Route::post('export-selected', 'UserController@exportSelected')->name('users.export_selected');
         });
+
+        /*************** Saved Views (Round 5 Slice 3, P12) *****************/
+        Route::post('saved-views', 'SavedViewController@store')->name('saved_views.store');
+        Route::get('saved-views/{saved_view}/apply', 'SavedViewController@apply')->name('saved_views.apply');
+        Route::delete('saved-views/{saved_view}', 'SavedViewController@destroy')->name('saved_views.destroy');
 
         /*************** TimeTables *****************/
         Route::group(['prefix' => 'timetables'], function(){
             Route::get('/', 'TimeTableController@index')->name('tt.index');
             Route::group(['middleware' => 'teamSAWrite'], function(){
                 Route::get('generate', 'TimeTableController@generateForm')->name('tt.generate.form');
-                Route::post('generate', 'TimeTableController@generate')->name('tt.generate');
+                Route::post('generate', 'TimeTableController@generate')->name('tt.generate')->middleware('throttle:generate');
             });
             Route::get('mine', 'TimeTableController@mine')->name('tt.mine');
             /* Teacher Workload Analysis (owner ask 2026-10-30): the
@@ -241,8 +261,8 @@ Route::group(['middleware' => 'auth'], function () {
             Route::get('pdf_receipts/{id}', 'PaymentController@pdf_receipts')->name('payments.pdf_receipts');
             Route::post('select_year', 'PaymentController@select_year')->name('payments.select_year');
             Route::post('select_class', 'PaymentController@select_class')->name('payments.select_class');
-            Route::delete('reset_record/{id}', 'PaymentController@reset_record')->name('payments.reset_record');
-            Route::post('pay_now/{id}', 'PaymentController@pay_now')->name('payments.pay_now');
+            Route::delete('reset_record/{id}', 'PaymentController@reset_record')->name('payments.reset_record')->middleware('throttle:web-write');
+            Route::post('pay_now/{id}', 'PaymentController@pay_now')->name('payments.pay_now')->middleware('throttle:web-write');
 
             /* Online payments (Workstream CU) — staff transaction log */
             Route::get('gateway-transactions', 'PaymentController@gateway_transactions')->name('payments.gateway_transactions');
@@ -255,13 +275,18 @@ Route::group(['middleware' => 'auth'], function () {
             Route::get('reports/collection/export', 'FeeReportController@collectionExport')->name('payments.collection.export');
             Route::get('reports/collection/pdf', 'FeeReportController@collectionPdf')->name('payments.collection.pdf');
             Route::get('reports/collection/day', 'FeeReportController@collectionDay')->name('payments.collection.day');
+            /* F5 — Fee Reminders panel + log (Admin + Accountant
+               only; teamAccountWrite in the controller). */
+            Route::get('reports/reminders', 'FeeReminderController@index')->name('payments.reminders');
+            Route::post('reports/reminders/run', 'FeeReminderController@runNow')->name('payments.reminders.run');
+            Route::get('reports/reminders/export', 'FeeReminderController@export')->name('payments.reminders.export');
         });
 
         /*************** Payroll (Workstream AI) *****************/
         Route::group(['prefix' => 'payroll'], function(){
             Route::get('/', 'PayrollController@index')->name('payroll.index');
             Route::post('/', 'PayrollController@store')->name('payroll.store');
-            Route::post('generate', 'PayrollController@generate')->name('payroll.generate');
+            Route::post('generate', 'PayrollController@generate')->name('payroll.generate')->middleware('throttle:generate');
             Route::put('{payroll}', 'PayrollController@update')->name('payroll.update');
             Route::post('{payroll}/pay', 'PayrollController@pay')->name('payroll.pay');
             Route::get('{payroll}/payslip', 'PayrollController@payslip')->name('payroll.payslip');
@@ -331,9 +356,9 @@ Route::group(['middleware' => 'auth'], function () {
                 Route::get('selector-options', 'MarkController@selectorOptions')->name('marks.selector_options');
                 Route::get('manage/{exam}/{class}/{section}/{subject}', 'MarkController@manage')->name('marks.manage');
                 Route::put('update/{exam}/{class}/{section}/{subject}', 'MarkController@update')->name('marks.update');
-                Route::post('submit/{exam}/{class}/{section}/{subject}', 'MarkController@submit')->name('marks.submit');
+                Route::post('submit/{exam}/{class}/{section}/{subject}', 'MarkController@submit')->name('marks.submit')->middleware('throttle:web-write');
                 Route::post('import-internal/{exam}/{class}/{section}/{subject}', 'MarkController@importInternal')->name('marks.import_internal');
-                Route::post('reopen/{exam}/{class}/{section}/{subject}', 'MarkController@reopen')->name('marks.reopen');
+                Route::post('reopen/{exam}/{class}/{section}/{subject}', 'MarkController@reopen')->name('marks.reopen')->middleware('throttle:web-write');
                 Route::put('comment_update/{exr_id}', 'MarkController@comment_update')->name('marks.comment_update');
                 Route::put('skills_update/{skill}/{exr_id}', 'MarkController@skills_update')->name('marks.skills_update');
                 Route::post('selector', 'MarkController@selector')->name('marks.selector');
@@ -359,8 +384,8 @@ Route::group(['middleware' => 'auth'], function () {
 
         /* Result Publish switch (Workstream BH) — registered before the
            exams resource so the action names win cleanly. */
-        Route::post('exams/{exam}/publish-results', 'ExamController@publishResults')->name('exams.publish_results');
-        Route::post('exams/{exam}/unpublish-results', 'ExamController@unpublishResults')->name('exams.unpublish_results');
+        Route::post('exams/{exam}/publish-results', 'ExamController@publishResults')->name('exams.publish_results')->middleware('throttle:web-write');
+        Route::post('exams/{exam}/unpublish-results', 'ExamController@unpublishResults')->name('exams.unpublish_results')->middleware('throttle:web-write');
         Route::get('exams/{exam}/publication', 'ExamController@publication')->name('exams.publication');
         Route::post('exams/{exam}/notify-pending', 'ExamController@notifyPending')->name('exams.notify_pending');
         Route::post('exams/{exam}/request-publication', 'ExamController@requestPublication')->name('exams.request_publication');
@@ -376,7 +401,7 @@ Route::group(['middleware' => 'auth'], function () {
         Route::get('exams/date-sheet/manage', 'ExamDateController@manage')->name('exam_dates.manage');
         Route::post('exams/date-sheet/manage', 'ExamDateController@save')->name('exam_dates.save');
         Route::get('exams/date-sheet/generate', 'ExamDateController@generateForm')->name('exam_dates.generate.form');
-        Route::post('exams/date-sheet/generate', 'ExamDateController@generate')->name('exam_dates.generate');
+        Route::post('exams/date-sheet/generate', 'ExamDateController@generate')->name('exam_dates.generate')->middleware('throttle:generate');
         /* Date sheet approval (overnight menus 2026-10-29, item 22):
            admin submits, principal approves (= publishes). The
            submit is teamSAWrite (controller middleware); the
@@ -392,6 +417,24 @@ Route::group(['middleware' => 'auth'], function () {
         Route::post('exams/duties/assign-bulk', 'ExamDutyController@assignBulk')->name('exam_duties.assign_bulk');
         Route::post('exams/duties/auto', 'ExamDutyController@auto')->name('exam_duties.auto');
         Route::get('exams/my-duties', 'ExamDutyController@myDuties')->name('exam_duties.my');
+        /* F3 Exam Seating (Round 4): one plan per exam slot, packed
+           deterministically into the school's halls (capacity HARD).
+           Label is "Exam Seating" — "Seating Plan" is an unrelated
+           Reports preset. Read = teamSA (+ Principal on show /
+           approvals, guarded in the controller), generate/submit =
+           teamSAWrite, publish = Principal alone, teachers get only
+           their own published hall sheets (my_halls). */
+        Route::get('exams/seating', 'ExamSeatingController@index')->name('exam_seating.index');
+        Route::post('exams/seating/generate', 'ExamSeatingController@generate')->name('exam_seating.generate')->middleware('throttle:generate');
+        Route::get('exams/seating/approvals', 'ExamSeatingController@approvals')->name('exam_seating.approvals');
+        Route::post('exams/seating/approve', 'ExamSeatingController@approve')->name('exam_seating.approve');
+        Route::get('exams/seating/my-halls', 'ExamSeatingController@myHalls')->name('exam_seating.my_halls');
+        Route::get('exams/seating/my-halls/{plan_id}/{room_id}', 'ExamSeatingController@myHallSheet')->name('exam_seating.my_hall_sheet');
+        Route::get('exams/seating/{plan_id}', 'ExamSeatingController@show')->name('exam_seating.show');
+        Route::post('exams/seating/{plan_id}/submit', 'ExamSeatingController@submit')->name('exam_seating.submit');
+        Route::get('exams/seating/{plan_id}/hall-sheet', 'ExamSeatingController@hallSheet')->name('exam_seating.hall_sheet');
+        Route::get('exams/seating/{plan_id}/hall-sheet/pdf', 'ExamSeatingController@hallSheetPdf')->name('exam_seating.hall_sheet_pdf');
+
         Route::get('exam-dates/show', 'ExamDateController@show')->name('exam_dates.show');
         Route::get('exam-dates/print', 'ExamDateController@printSheet')->name('exam_dates.print');
         Route::get('exam-dates/pdf', 'ExamDateController@pdf')->name('exam_dates.pdf');
@@ -412,6 +455,22 @@ Route::group(['middleware' => 'auth'], function () {
         Route::get('planning/eligibility', 'PlanningController@eligibility')->name('planning.eligibility');
         Route::post('planning/eligibility', 'PlanningController@saveEligibility')->name('planning.eligibility.save');
         Route::resource('grades', 'GradeController');
+
+        /* Exam Pattern (Round 3 R1): assessment periods for the
+           current session. Registered BEFORE the exams resource so
+           'periods' is never swallowed by exams/{exam}. Gates live
+           in AssessmentPeriodController (reads teamOrPrincipal:SA,
+           writes teamSAWrite — ExamController's shape). */
+        Route::get('exams/periods', 'AssessmentPeriodController@index')->name('exams.periods.index');
+        Route::post('exams/periods', 'AssessmentPeriodController@store')->name('exams.periods.store');
+        Route::post('exams/periods/apply-preset', 'AssessmentPeriodController@applyPreset')->name('exams.periods.apply_preset');
+        Route::post('exams/periods/copy-to-session', 'AssessmentPeriodController@copyToSession')->name('exams.periods.copy_to_session');
+        Route::post('exams/periods/link-unlinked', 'AssessmentPeriodController@linkUnlinked')->name('exams.periods.link_unlinked');
+        Route::put('exams/periods/{period}', 'AssessmentPeriodController@update')->name('exams.periods.update');
+        Route::delete('exams/periods/{period}', 'AssessmentPeriodController@destroy')->name('exams.periods.destroy');
+        Route::post('exams/periods/{period}/deactivate', 'AssessmentPeriodController@deactivate')->name('exams.periods.deactivate');
+        Route::post('exams/periods/{period}/move', 'AssessmentPeriodController@move')->name('exams.periods.move');
+
         Route::resource('exams', 'ExamController');
 
         /*************** Marking Schemes (Batch M1, teamSA in controller) *****************/
@@ -515,6 +574,9 @@ Route::group(['middleware' => 'auth'], function () {
         });
         Route::group(['prefix' => 'substitutions'], function() {
             Route::get('/', 'SubstitutionController@index')->name('substitutions.index');
+            Route::get('uncovered', 'SubstitutionController@uncovered')->name('substitutions.uncovered');
+            Route::post('allot', 'SubstitutionController@allot')->name('substitutions.allot');
+            Route::post('cancel-class', 'SubstitutionController@cancelClass')->name('substitutions.cancel_class');
             Route::get('mine', 'SubstitutionController@mine')->name('substitutions.mine');
             Route::get('create', 'SubstitutionController@create')->name('substitutions.create');
             Route::post('/', 'SubstitutionController@store')->name('substitutions.store');
@@ -533,6 +595,30 @@ Route::group(['middleware' => 'auth'], function () {
             Route::get('{question}/edit', 'QuestionBankController@edit')->name('question_bank.edit');
             Route::put('{question}', 'QuestionBankController@update')->name('question_bank.update');
             Route::delete('{question}', 'QuestionBankController@destroy')->name('question_bank.destroy');
+        });
+
+        /* F4 Question Papers (2026-11-07): controller-guarded like
+           quizzes/question-bank (no team middleware); params are
+           {paper}/{suggestion}, never {id}. AI routes are declared
+           BEFORE {paper} so 'ai' can never bind as a paper. */
+        Route::group(['prefix' => 'question-papers'], function() {
+            Route::get('/', 'QuestionPaperController@index')->name('question_papers.index');
+            Route::get('create', 'QuestionPaperController@create')->name('question_papers.create');
+            Route::post('preview-selection', 'QuestionPaperController@preview')->name('question_papers.preview');
+            Route::post('/', 'QuestionPaperController@store')->name('question_papers.store');
+            Route::post('ai/generate', 'QuestionPaperController@aiGenerate')->name('question_papers.ai_generate');
+            Route::get('ai/suggestions', 'QuestionPaperController@aiIndex')->name('question_papers.ai_index');
+            Route::put('ai/suggestions/{suggestion}', 'QuestionPaperController@aiUpdate')->name('question_papers.ai_update');
+            Route::post('ai/suggestions/{suggestion}/approve', 'QuestionPaperController@aiApprove')->name('question_papers.ai_approve');
+            Route::post('ai/suggestions/{suggestion}/reject', 'QuestionPaperController@aiReject')->name('question_papers.ai_reject');
+            Route::get('{paper}', 'QuestionPaperController@show')->name('question_papers.show');
+            Route::post('{paper}/regenerate', 'QuestionPaperController@regenerate')->name('question_papers.regenerate');
+            Route::post('{paper}/finalise', 'QuestionPaperController@finalise')->name('question_papers.finalise');
+            Route::delete('{paper}', 'QuestionPaperController@destroy')->name('question_papers.destroy');
+            Route::get('{paper}/pdf', 'QuestionPaperController@pdf')->name('question_papers.pdf');
+            Route::get('{paper}/answer-key', 'QuestionPaperController@answerKey')->name('question_papers.answer_key');
+            Route::get('{paper}/print', 'QuestionPaperController@printPage')->name('question_papers.print');
+            Route::post('{paper}/save-pdf', 'QuestionPaperController@savePdf')->name('question_papers.save_pdf');
         });
 
         /*************** Wave 2: admin/operations features *****************/
@@ -657,6 +743,12 @@ Route::group(['middleware' => 'auth'], function () {
         /* T3 rooms & labs: physical spaces the generator assigns. */
         Route::resource('rooms', 'RoomController')->only(['index', 'store', 'update', 'destroy']);
 
+        /*************** WhatsApp Log (F1) *****************/
+        /* Index gates in the controller (Admin + Principal + Super
+           Admin view); retry is teamSAWrite — school Admin only. */
+        Route::get('whatsapp-log', 'WhatsAppLogController@index')->name('whatsapp_log.index');
+        Route::post('whatsapp-log/{id}/retry', 'WhatsAppLogController@retry')->name('whatsapp_log.retry')->middleware('teamSAWrite');
+
         /*************** Circulars *****************/
         Route::patch('circulars/{circular}/toggle-publish', 'CircularController@togglePublish')->name('circulars.toggle_publish');
         Route::get('circulars/{circular}/print', 'CircularController@print')->name('circulars.print');
@@ -684,6 +776,7 @@ Route::group(['middleware' => 'auth'], function () {
             Route::get('{assignment}/internal/preview', 'AssignmentController@internalPreview')->name('assignments.internal_preview');
             Route::post('{assignment}/internal/push', 'AssignmentController@pushInternal')->name('assignments.push_internal');
             Route::get('{assignment}/download', 'AssignmentController@download')->name('assignments.download');
+            Route::get('{assignment}/view', 'AssignmentController@view')->name('assignments.view');
             Route::get('{assignment}/share', 'AssignmentController@share')->name('assignments.share');
             Route::post('{assignment}/share', 'AssignmentController@shareStore')->name('assignments.share.store');
             Route::get('{assignment}', 'AssignmentController@show')->name('assignments.show');
@@ -699,6 +792,8 @@ Route::group(['middleware' => 'auth'], function () {
             Route::get('create', 'StudyMaterialController@create')->name('materials.create');
             Route::post('/', 'StudyMaterialController@store')->name('materials.store');
             Route::get('download/{material}', 'StudyMaterialController@download')->name('materials.download');
+            Route::get('{material}/view', 'StudyMaterialController@view')->name('materials.view');
+            Route::get('{material}/viewer', 'StudyMaterialController@viewerPage')->name('materials.viewer');
             Route::get('{material}/share', 'StudyMaterialController@share')->name('materials.share');
             Route::post('{material}/share', 'StudyMaterialController@shareStore')->name('materials.share.store');
             Route::delete('{material}', 'StudyMaterialController@destroy')->name('materials.destroy');
@@ -727,8 +822,8 @@ Route::group(['middleware' => 'auth'], function () {
            review in the form; saving happens through the normal
            circular / marks-comment paths. Gates live in the controller
            (teamSA for circulars, teamSAT for report comments). */
-        Route::post('ai/circular-draft', 'AiAssistController@circularDraft')->name('ai.circular_draft');
-        Route::post('ai/report-comment', 'AiAssistController@reportComment')->name('ai.report_comment');
+        Route::post('ai/circular-draft', 'AiAssistController@circularDraft')->name('ai.circular_draft')->middleware('throttle:ai-assist');
+        Route::post('ai/report-comment', 'AiAssistController@reportComment')->name('ai.report_comment')->middleware('throttle:ai-assist');
         /*************** Ask Hackstra — RAG chat (Workstream DH) *****************/
         /* Answers come only from the permission-filtered corpus
            (circulars + Knowledge Base policies); the service enforces
@@ -738,6 +833,10 @@ Route::group(['middleware' => 'auth'], function () {
         Route::post('ask', 'AskController@ask')->name('ask.ask');
 
         /*************** Library *****************/
+        /* Round 5 Slice 3 (P12): CSV export of the filtered books list. */
+        Route::get('books/export', 'BookController@export')->name('books.export');
+        /* Round 5 Slice 3 (P10): CSV export of the ticked books only. */
+        Route::post('books/export-selected', 'BookController@exportSelected')->name('books.export_selected');
         Route::resource('books', 'BookController')->except(['show']);
         Route::resource('book_requests', 'BookRequestController')->only(['index', 'create', 'store']);
         Route::patch('book_requests/{id}/return', 'BookRequestController@markReturned')->name('book_requests.return');
@@ -787,6 +886,7 @@ Route::group(['middleware' => 'auth'], function () {
             Route::get('create', 'StudentDocumentController@create')->name('documents.create');
             Route::post('/', 'StudentDocumentController@store')->name('documents.store');
             Route::get('{document}/download', 'StudentDocumentController@download')->name('documents.download');
+            Route::get('{document}/view', 'StudentDocumentController@view')->name('documents.view');
             Route::delete('{document}', 'StudentDocumentController@destroy')->name('documents.destroy');
         });
         Route::group(['prefix' => 'alumni'], function() {
@@ -868,10 +968,28 @@ Route::group(['namespace' => 'SuperAdmin','middleware' => 'super_admin', 'prefix
 
 });
 
+/************************ LICENCE + REFERRALS (Round 5 Slice 4: Super Admin only) ****************************/
+Route::group(['namespace' => 'SuperAdmin','middleware' => 'super_admin', 'prefix' => 'super_admin'], function(){
+
+    Route::get('/platform/licence', 'LicenceController@edit')->name('platform_licence.edit');
+    Route::post('/platform/licence', 'LicenceController@update')->name('platform_licence.update');
+
+    Route::get('/platform/referrals', 'ReferralController@index')->name('platform_referrals.index');
+    Route::post('/platform/referrals', 'ReferralController@store')->name('platform_referrals.store');
+    Route::post('/platform/referrals/programme', 'ReferralController@updateProgramme')->name('platform_referrals.programme');
+    Route::post('/platform/referrals/regenerate-code', 'ReferralController@regenerateCode')->name('platform_referrals.regenerate_code');
+    Route::post('/platform/referrals/{referral}/status', 'ReferralController@updateStatus')->name('platform_referrals.status');
+
+});
+
 /************************ PARENT ****************************/
 Route::group(['namespace' => 'MyParent','middleware' => 'my_parent',], function(){
 
     Route::get('/my_children', 'MyController@children')->name('my_children');
+
+    /* F2 — Parent Progress (term-wise marks trend + attendance
+       trend per linked child; published results only). */
+    Route::get('/my_progress', 'ProgressController@index')->name('my_progress');
 
     /* Fees portal (Loop 9, Workstream O) — parameter names avoid {id} on
        purpose: {id} is bound through Qs::decodeHash app-wide, while these
@@ -902,3 +1020,10 @@ Route::group(['namespace' => 'MyStudent', 'middleware' => 'student'], function (
 /* Public endpoint called by Razorpay's servers. CSRF-exempt (see
    VerifyCsrfToken) — the webhook signature is the credential. */
 Route::post('/webhooks/razorpay', 'GatewayWebhookController@razorpay')->name('webhooks.razorpay');
+
+/************************ WHATSAPP WEBHOOK (F1) ****************************/
+/* Public endpoints called by Meta's servers. CSRF-exempt (see
+   VerifyCsrfToken) — the verify token + HMAC signature are the
+   credentials. GET is Meta's one-time verification handshake. */
+Route::get('/webhooks/whatsapp', 'WhatsAppWebhookController@verify')->name('webhooks.whatsapp.verify');
+Route::post('/webhooks/whatsapp', 'WhatsAppWebhookController@handle')->name('webhooks.whatsapp');

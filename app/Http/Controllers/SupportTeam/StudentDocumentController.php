@@ -165,6 +165,31 @@ class StudentDocumentController extends Controller
         return Storage::disk('public')->download($document->stored_path, $document->original_name);
     }
 
+    /**
+     * Inline view beside download() (R3 LMS, P7): PDFs only, gated
+     * by the same canAccess() + documents/ prefix guard, served via
+     * response()->file() so the browser PDF viewer gets Range
+     * support. Non-PDF rows keep Download only and refuse here
+     * exactly like a missing file (404).
+     */
+    public function view(StudentDocument $document)
+    {
+        $sr = $document->studentRecord;
+        if (!$sr || !$this->canAccess($sr, Auth::user())) {
+            abort(403, __('msg.denied'));
+        }
+        if (!Str::startsWith($document->stored_path, 'documents/')
+            || ($document->mime_type ?? null) !== 'application/pdf'
+            || !Storage::disk('public')->exists($document->stored_path)) {
+            abort(404);
+        }
+        $path = Storage::disk('public')->path($document->stored_path);
+        return response()->file($path, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="' . $document->original_name . '"',
+        ]);
+    }
+
     public function destroy(StudentDocument $document)
     {
         // Grant add-on (2026-10-28): admin OR grant — base rule unchanged.

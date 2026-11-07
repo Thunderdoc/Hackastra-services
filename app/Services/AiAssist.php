@@ -177,6 +177,31 @@ class AiAssist
                     . "Student's answer: {$context['answer']}\n"
                     . "Reply with ONLY a JSON object: {\"suggested_marks\": <number between 0 and {$context['max_marks']}>, \"feedback\": \"<2-3 sentences of constructive feedback addressed to the student>\"}";
 
+            case 'question_generate':
+                // F4 Slice 3 (design §4.1): context is assembled by
+                // the caller from REAL records only (school, class,
+                // subject, the teacher's own chapter label). The
+                // model must reply with ONLY a JSON array; every
+                // item is re-validated by the caller against the
+                // same per-type rules as a hand-banked question.
+                $type = $context['question_type'] ?? 'mcq';
+                $shape = $type === 'mcq'
+                    ? '{"question": "<question text>", "options": ["<option 1>", "<option 2>", "<option 3>", "<option 4>"], "correct_index": <0-based index of the correct option>, "model_answer": null, "marks": ' . ($context['marks'] ?? 1) . ', "difficulty": "<easy|medium|hard>"}'
+                    : '{"question": "<question text>", "options": null, "correct_index": null, "model_answer": "<the model answer>", "marks": ' . ($context['marks'] ?? 1) . ', "difficulty": "<easy|medium|hard>"}';
+                $prompt = "You are writing exam questions for {$context['school_name']}.\n"
+                    . "Class: {$context['class_name']}. Subject: {$context['subject_name']}."
+                    . (!empty($context['chapter']) ? " Chapter/topic: {$context['chapter']}." : '')
+                    . " Write exactly {$context['count']} questions of type {$type}, each worth {$context['marks']} marks"
+                    . (!empty($context['difficulty']) ? ", difficulty {$context['difficulty']}" : '')
+                    . ". Use ONLY the class, subject and chapter given; do not invent a different syllabus topic.\n";
+                if (!empty($context['exemplars'])) {
+                    $prompt .= "The teacher's own questions on this topic, for style only:\n- "
+                        . implode("\n- ", $context['exemplars']) . "\n";
+                }
+                $prompt .= "Reply with ONLY a JSON array of objects shaped like: {$shape}";
+
+                return $prompt;
+
             default:
                 return (string) ($context['prompt'] ?? '');
         }
@@ -238,6 +263,16 @@ class AiAssist
 
             case 'grade_suggestion':
                 $text = json_encode(static::mockGrade($context));
+                break;
+
+            case 'question_generate':
+                // Deterministic templated questions built ONLY from
+                // the caller's real context. F4's controller never
+                // reaches this transport (its gate is stricter: no
+                // mock questions are ever saved or printed) — this
+                // exists so AiAssist::generate stays total for the
+                // task in non-F4 test contexts.
+                $text = json_encode(static::mockQuestions($context));
                 break;
 
             default:
@@ -316,6 +351,38 @@ class AiAssist
         return ['suggested_marks' => $marks, 'feedback' => $feedback];
     }
 
+    protected static function mockQuestions(array $context): array
+    {
+        $topic = $context['chapter'] ?? $context['subject_name'] ?? 'the topic';
+        $type = $context['question_type'] ?? 'mcq';
+        $count = max(1, min(20, (int) ($context['count'] ?? 1)));
+        $marks = (int) ($context['marks'] ?? 1);
+        $items = [];
+        for ($i = 1; $i <= $count; $i++) {
+            if ($type === 'mcq') {
+                $items[] = [
+                    'question' => "Mock question {$i} about {$topic} ({$context['subject_name']}).",
+                    'options' => ['Option A', 'Option B', 'Option C', 'Option D'],
+                    'correct_index' => 0,
+                    'model_answer' => null,
+                    'marks' => $marks,
+                    'difficulty' => $context['difficulty'] ?? 'medium',
+                ];
+            } else {
+                $items[] = [
+                    'question' => "Mock question {$i} about {$topic} ({$context['subject_name']}).",
+                    'options' => null,
+                    'correct_index' => null,
+                    'model_answer' => "Mock model answer {$i} for {$topic}.",
+                    'marks' => $marks,
+                    'difficulty' => $context['difficulty'] ?? 'medium',
+                ];
+            }
+        }
+
+        return $items;
+    }
+
     /* -----------------------------------------------------------------
      | Helpers
      | --------------------------------------------------------------- */
@@ -342,6 +409,26 @@ class AiAssist
         $text = preg_replace('/^```(?:json)?\s*|\s*```$/m', '', $text);
         $start = strpos($text, '{');
         $end = strrpos($text, '}');
+        if ($start === false || $end === false || $end <= $start) {
+            return null;
+        }
+        $data = json_decode(substr($text, $start, $end - $start + 1), true);
+
+        return is_array($data) ? $data : null;
+    }
+
+    /**
+     * Extract a JSON ARRAY from model output — the same
+     * fence-stripping extraction discipline as decodeJson(),
+     * bracket-matched for arrays (F4 question_generate). Wraps the
+     * one parser pattern; there is no second parser.
+     */
+    public static function decodeJsonArray(string $text): ?array
+    {
+        $text = trim($text);
+        $text = preg_replace('/^```(?:json)?\s*|\s*```$/m', '', $text);
+        $start = strpos($text, '[');
+        $end = strrpos($text, ']');
         if ($start === false || $end === false || $end <= $start) {
             return null;
         }

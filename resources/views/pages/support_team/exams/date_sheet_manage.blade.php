@@ -8,6 +8,7 @@
             <div class="header-elements">
                 <a href="{{ route('exam_dates.generate.form') }}" class="btn btn-success btn-sm"><i class="icon-magic-wand mr-1"></i> Auto-Generate Date Sheet</a>
                 <a href="{{ route('exam_duties.index') }}" class="btn btn-light btn-sm"><i class="icon-eye mr-1"></i> Invigilation Duties</a>
+                <a href="{{ route('exam_seating.index') }}" class="btn btn-light btn-sm"><i class="icon-grid mr-1"></i> Exam Seating</a>
             </div>
             {!! Qs::getPanelOptions() !!}
         </div>

@@ -118,7 +118,7 @@
                 </form>
                 @endif
                 @if($day_types->isEmpty())
-                    <p class="text-muted mb-0 mt-2">No special dates set — every date is a normal school day.</p>
+                    @include('partials.patterns.empty_state', ['icon' => 'icon-calendar3', 'message' => 'No special dates set — every date is a normal school day.'])
                 @else
                     <div class="table-responsive mt-2">
                         <table class="table table-sm">

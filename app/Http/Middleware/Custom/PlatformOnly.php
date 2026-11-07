@@ -46,14 +46,24 @@ class PlatformOnly
         'settings_unlock.index', 'settings_unlock.decide',
         // Platform Mail (Workstream DF): SA-to-users mail + sent log.
         'platform_mail.create', 'platform_mail.send', 'platform_mail.index',
+        // Licence + Referrals (Round 5 Slice 4): the SA's own
+        // platform records — licence manage + referral programme/log.
+        'platform_licence.edit', 'platform_licence.update',
+        'platform_referrals.index', 'platform_referrals.store',
+        'platform_referrals.programme', 'platform_referrals.regenerate_code',
+        'platform_referrals.status',
+        // WhatsApp Log (F1): the Super Admin views the school's
+        // WhatsApp sent-log read-only (design §9) — the retry POST
+        // is NOT listed, so SA can never resend a school message.
+        'whatsapp_log.index',
         // User lifecycle actions (Workstream DF) — platform accounts.
         'users.suspend', 'users.activate', 'users.terminate',
         // Own account pages.
         'my_account', 'my_account.update', 'my_account.change_pass',
-        'my_account.preferences', 'my_account.theme', 'my_account.download',
+        'my_account.preferences', 'my_account.theme', 'my_account.download', 'my_account.sidebar_state',
         // Topbar search endpoint — DashboardSearchController scopes
         // Super Admin results to platform accounts only.
-        'dashboard.search',
+        'dashboard.search', 'dashboard.search_json',
         // Reports & PDF Builder (wave 31b) — the controller still
         // denies the Super Admin every school source; only the
         // platform source renders for it.

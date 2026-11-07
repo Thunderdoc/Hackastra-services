@@ -118,9 +118,20 @@
             var p = params(), my = ++seq;
             syncActions(p);
             $updating.show();
+            /* Round 5 Slice 1 (P2): the wait is a skeleton table, not
+               stale rows. Only for a complete selection — an
+               incomplete one resolves straight to the pick-a-class
+               prompt. A failed fetch restores the previous rows and
+               the shared error floor says what happened. */
+            var skel = ready(p) && window.hkSkel;
+            if (skel) { window.hkSkel($results[0], true, { type: 'table', rows: 6 }); }
             $.getJSON(resultsUrl, p).done(function (d) {
                 if (my !== seq) { return; }
+                if (window.hkSkel) { window.hkSkel($results[0], false); }
                 $results.html(d.results);
+            }).fail(function () {
+                if (my !== seq) { return; }
+                if (skel) { window.hkSkel($results[0], false, { restore: true }); }
             }).always(function () {
                 if (my === seq) { $updating.hide(); }
             });

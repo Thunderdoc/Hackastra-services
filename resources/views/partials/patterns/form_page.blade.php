@@ -66,7 +66,8 @@
 @endphp
 <form method="{{ $patMethod === 'GET' ? 'GET' : 'POST' }}" action="{{ $form_action ?? '' }}" class="pat-form{{ !empty($form_class ?? null) ? ' '.$form_class : '' }}"
       @if(!empty($form_enctype ?? null)) enctype="{{ $form_enctype }}" @endif
-      @if(!empty($form_reload ?? null)) data-reload="{{ $form_reload }}" @endif>
+      @if(!empty($form_reload ?? null)) data-reload="{{ $form_reload }}" @endif
+      @if(!empty($form_draft ?? null)) data-hk-draft="{{ $form_draft }}" @endif>
     @if($patMethod !== 'GET')
         @csrf
     @endif

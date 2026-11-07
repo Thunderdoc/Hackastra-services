@@ -28,7 +28,7 @@
                 </div>
                 {{ $students->links() }}
             @else
-                <p>No students found.</p>
+                @include('partials.patterns.empty_state', ['icon' => 'icon-users', 'message' => 'No students found.'])
             @endif
         </div>
     </div>

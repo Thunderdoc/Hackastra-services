@@ -90,7 +90,7 @@
                     @php $l92Pairs = collect($collection_values)->map(function ($v, $i) use ($collection_labels) { return $collection_labels[$i] . ' ' . \App\Helpers\Money::inr($v); })->implode(' · '); @endphp
                     <p class="mb-0" style="padding:0 22px 20px;">Collected so far: <strong>{{ \App\Helpers\Money::inr(array_sum($collection_values)) }}</strong> — {{ $l92Pairs }}. The monthly chart appears once three or more months hold collections.</p>
                 @else
-                    <p class="dashboard-empty">No collections recorded this session yet.</p>
+                    @include('partials.patterns.empty_state', ['icon' => 'icon-cash2', 'message' => 'No collections recorded this session yet.', 'compact' => true])
                 @endif
             </section>
 
@@ -119,7 +119,7 @@
                                 <td><a target="_blank" href="{{ route('payments.receipts', \App\Helpers\Qs::hash($row['pr_id'])) }}" class="l92-row-action" title="View receipt"><i class="icon-printer"></i></a></td>
                             </tr>
                         @empty
-                            <tr><td colspan="9" class="dashboard-empty">No payments recorded yet.</td></tr>
+                            <tr><td colspan="9">@include('partials.patterns.empty_state', ['icon' => 'icon-cash2', 'message' => 'No payments recorded yet.', 'compact' => true])</td></tr>
                         @endforelse
                         </tbody>
                     </table>
@@ -217,7 +217,7 @@
                         <strong class="acc-defaulter-amount">{{ \App\Helpers\Money::inr($row['total_due']) }}</strong>
                     </div>
                 @empty
-                    <div class="dashboard-empty dashboard-event-empty">No outstanding fees — every student is paid up for this session.</div>
+                    @include('partials.patterns.empty_state', ['icon' => 'icon-checkmark-circle2', 'message' => 'No outstanding fees — every student is paid up for this session.', 'compact' => true])
                 @endforelse
             </section>
 
@@ -239,7 +239,7 @@
                         </span>
                     </a>
                 @empty
-                    <div class="dashboard-empty dashboard-event-empty">No circulars right now.</div>
+                    @include('partials.patterns.empty_state', ['icon' => 'icon-megaphone', 'message' => 'No circulars right now.', 'compact' => true])
                 @endforelse
             </section>
         </div>

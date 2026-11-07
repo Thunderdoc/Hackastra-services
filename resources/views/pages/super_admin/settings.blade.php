@@ -55,7 +55,16 @@
         'form_method'  => 'PUT',
         'form_enctype' => 'multipart/form-data',
         'submit_label' => 'Save Settings',
+        'form_draft'   => 'u'.Auth::id().'-settings',
     ])
+        {{-- Round 5 Slice 2 (P6): hk-draft autosave opt-in for the
+             MAIN school-profile/settings form (the form_page form
+             above — school identity, calendar, fees). The form tag
+             itself is rendered by the form_page partial, so the
+             opt-in rides as an in-form marker carrying the full
+             per-user key; hackstra-ux.js resolves it to this form.
+             The separate Platform / AI / Knowledge Base forms on
+             this page are NOT opted in. --}}
         @slot('title')
             Update System Settings
         @endslot
@@ -70,6 +79,7 @@
             <a href="#set-teaching-load">Teaching Load &amp; Library</a>
             <a href="#set-next-term-fees">Next Term Fees</a>
             <a href="#set-online-payments">Online Payments</a>
+            <a href="#set-whatsapp">WhatsApp</a>
             <a href="#set-ai-assistant">AI Assistant</a>
             <a href="#set-report-card">Report Card</a>
             @if(Qs::userIsSuperAdmin())<a href="#set-platform">Platform</a>@endif
@@ -254,6 +264,10 @@
                     @include('partials.errors.field', ['field' => 'term_begins'])
                 </div>
             </div>
+            <div class="alert alert-info border-0 mt-3 mb-0">
+                <strong>Exam Pattern:</strong> the terms, unit tests and other assessment periods of the current session are managed on their own page —
+                <a href="{{ route('exams.periods.index') }}">open the Exam Pattern page</a>.
+            </div>
         </div>
 
         {{-- ======================= Teaching Load & Library ======================= --}}
@@ -352,6 +366,148 @@
                     <input name="razorpay_webhook_secret" id="razorpay_webhook_secret" value="" type="password" class="form-control @error('razorpay_webhook_secret') is-invalid @enderror" placeholder="{{ !empty($s['razorpay_webhook_secret']) ? '•••••••••• (saved — leave blank to keep)' : 'Not saved yet' }}" autocomplete="new-password">
                     @include('partials.errors.field', ['field' => 'razorpay_webhook_secret'])
                     <small class="form-text text-muted">The secret you set on the Razorpay webhook. Used to verify every webhook call. Write-only, like the key secret.</small>
+                </div>
+            </div>
+        </div>
+
+        {{-- ======================= WhatsApp (F1) ======================= --}}
+        <div class="pat-form-section" id="set-whatsapp">
+            <div class="pat-form-section-head">
+                <span class="set-sec-ic set-sec-ic-green"><i class="icon-bubbles4"></i></span>
+                <div>
+                    <div class="pat-form-section-title">WhatsApp Messages (Meta Cloud API)</div>
+                    <div class="pat-form-section-sub">Automatic WhatsApp messages to parents for absence, fee reminders, results, circulars and homework. Point the Meta webhook to <code>{{ url('/webhooks/whatsapp') }}</code>. Status: <strong>{{ \App\Support\WhatsApp\WhatsAppGateway::statusLabel() }}</strong></div>
+                </div>
+            </div>
+            <div class="pat-fields">
+                <div class="pat-field">
+                    <label for="whatsapp_enabled">WhatsApp Messages</label>
+                    <select class="form-control select @error('whatsapp_enabled') is-invalid @enderror" name="whatsapp_enabled" id="whatsapp_enabled">
+                        <option {{ ($s['whatsapp_enabled'] ?? '0') == '1' ? 'selected' : '' }} value="1">Enabled</option>
+                        <option {{ ($s['whatsapp_enabled'] ?? '0') == '1' ? '' : 'selected' }} value="0">Disabled</option>
+                    </select>
+                    @include('partials.errors.field', ['field' => 'whatsapp_enabled'])
+                    <small class="form-text text-muted">Until Meta credentials are saved below, messages run in MOCK mode — they are logged on the WhatsApp Log page, not sent. Templates must be approved in WhatsApp Manager before live sending, and school-initiated messages are paid template messages.</small>
+                </div>
+                <div class="pat-field">
+                    <label for="whatsapp_absent_enabled">Absence Messages</label>
+                    <select class="form-control select @error('whatsapp_absent_enabled') is-invalid @enderror" name="whatsapp_absent_enabled" id="whatsapp_absent_enabled">
+                        <option {{ ($s['whatsapp_absent_enabled'] ?? '1') == '1' ? 'selected' : '' }} value="1">Enabled</option>
+                        <option {{ ($s['whatsapp_absent_enabled'] ?? '1') == '1' ? '' : 'selected' }} value="0">Disabled</option>
+                    </select>
+                    @include('partials.errors.field', ['field' => 'whatsapp_absent_enabled'])
+                </div>
+                <div class="pat-field">
+                    <label for="whatsapp_fee_enabled">Fee Reminder Messages</label>
+                    <select class="form-control select @error('whatsapp_fee_enabled') is-invalid @enderror" name="whatsapp_fee_enabled" id="whatsapp_fee_enabled">
+                        <option {{ ($s['whatsapp_fee_enabled'] ?? '1') == '1' ? 'selected' : '' }} value="1">Enabled</option>
+                        <option {{ ($s['whatsapp_fee_enabled'] ?? '1') == '1' ? '' : 'selected' }} value="0">Disabled</option>
+                    </select>
+                    @include('partials.errors.field', ['field' => 'whatsapp_fee_enabled'])
+                </div>
+                <div class="pat-field">
+                    <label for="whatsapp_result_enabled">Result Published Messages</label>
+                    <select class="form-control select @error('whatsapp_result_enabled') is-invalid @enderror" name="whatsapp_result_enabled" id="whatsapp_result_enabled">
+                        <option {{ ($s['whatsapp_result_enabled'] ?? '1') == '1' ? 'selected' : '' }} value="1">Enabled</option>
+                        <option {{ ($s['whatsapp_result_enabled'] ?? '1') == '1' ? '' : 'selected' }} value="0">Disabled</option>
+                    </select>
+                    @include('partials.errors.field', ['field' => 'whatsapp_result_enabled'])
+                </div>
+                <div class="pat-field">
+                    <label for="whatsapp_circular_enabled">Circular Messages</label>
+                    <select class="form-control select @error('whatsapp_circular_enabled') is-invalid @enderror" name="whatsapp_circular_enabled" id="whatsapp_circular_enabled">
+                        <option {{ ($s['whatsapp_circular_enabled'] ?? '1') == '1' ? 'selected' : '' }} value="1">Enabled</option>
+                        <option {{ ($s['whatsapp_circular_enabled'] ?? '1') == '1' ? '' : 'selected' }} value="0">Disabled</option>
+                    </select>
+                    @include('partials.errors.field', ['field' => 'whatsapp_circular_enabled'])
+                    <small class="form-text text-muted">Circulars message parents as soon as you publish them.</small>
+                </div>
+                <div class="pat-field">
+                    <label for="whatsapp_homework_enabled">Homework Messages</label>
+                    <select class="form-control select @error('whatsapp_homework_enabled') is-invalid @enderror" name="whatsapp_homework_enabled" id="whatsapp_homework_enabled">
+                        <option {{ ($s['whatsapp_homework_enabled'] ?? '1') == '1' ? 'selected' : '' }} value="1">Enabled</option>
+                        <option {{ ($s['whatsapp_homework_enabled'] ?? '1') == '1' ? '' : 'selected' }} value="0">Disabled</option>
+                    </select>
+                    @include('partials.errors.field', ['field' => 'whatsapp_homework_enabled'])
+                </div>
+                <div class="pat-field">
+                    <label for="whatsapp_phone_number_id">Phone Number ID</label>
+                    <input name="whatsapp_phone_number_id" id="whatsapp_phone_number_id" value="{{ $s['whatsapp_phone_number_id'] ?? '' }}" type="text" class="form-control @error('whatsapp_phone_number_id') is-invalid @enderror" placeholder="e.g. 123456789012345" autocomplete="off">
+                    @include('partials.errors.field', ['field' => 'whatsapp_phone_number_id'])
+                    <small class="form-text text-muted">From the Meta app's WhatsApp → API Setup. Leave blank to keep the saved value.</small>
+                </div>
+                <div class="pat-field">
+                    <label for="whatsapp_business_id">WhatsApp Business Account ID</label>
+                    <input name="whatsapp_business_id" id="whatsapp_business_id" value="{{ $s['whatsapp_business_id'] ?? '' }}" type="text" class="form-control @error('whatsapp_business_id') is-invalid @enderror" placeholder="e.g. 123456789012345" autocomplete="off">
+                    @include('partials.errors.field', ['field' => 'whatsapp_business_id'])
+                </div>
+                <div class="pat-field">
+                    <label for="whatsapp_access_token">Access Token</label>
+                    <input name="whatsapp_access_token" id="whatsapp_access_token" value="" type="password" class="form-control @error('whatsapp_access_token') is-invalid @enderror" placeholder="{{ !empty($s['whatsapp_access_token']) ? '•••••••••• (saved — leave blank to keep)' : 'Not saved yet' }}" autocomplete="new-password">
+                    @include('partials.errors.field', ['field' => 'whatsapp_access_token'])
+                    <small class="form-text text-muted">The permanent system-user token. Write-only: the saved token is never shown. A token starting with test_ forces MOCK mode.</small>
+                </div>
+                <div class="pat-field">
+                    <label for="whatsapp_app_secret">App Secret</label>
+                    <input name="whatsapp_app_secret" id="whatsapp_app_secret" value="" type="password" class="form-control @error('whatsapp_app_secret') is-invalid @enderror" placeholder="{{ !empty($s['whatsapp_app_secret']) ? '•••••••••• (saved — leave blank to keep)' : 'Not saved yet' }}" autocomplete="new-password">
+                    @include('partials.errors.field', ['field' => 'whatsapp_app_secret'])
+                    <small class="form-text text-muted">From Meta App Settings → Basic. Used only to verify webhook signatures. Write-only.</small>
+                </div>
+                <div class="pat-field">
+                    <label for="whatsapp_verify_token">Webhook Verify Token</label>
+                    <input name="whatsapp_verify_token" id="whatsapp_verify_token" value="" type="password" class="form-control @error('whatsapp_verify_token') is-invalid @enderror" placeholder="{{ !empty($s['whatsapp_verify_token']) ? '•••••••••• (saved — leave blank to keep)' : 'Not saved yet' }}" autocomplete="new-password">
+                    @include('partials.errors.field', ['field' => 'whatsapp_verify_token'])
+                    <small class="form-text text-muted">Any long random string you invent — enter the same string in the Meta webhook configuration. Write-only.</small>
+                </div>
+                <div class="pat-field">
+                    <label for="whatsapp_template_language">Template Language</label>
+                    <input name="whatsapp_template_language" id="whatsapp_template_language" value="{{ $s['whatsapp_template_language'] ?? 'en' }}" type="text" class="form-control @error('whatsapp_template_language') is-invalid @enderror" placeholder="en" autocomplete="off">
+                    @include('partials.errors.field', ['field' => 'whatsapp_template_language'])
+                    <small class="form-text text-muted">Must match the approved templates' language exactly (e.g. en, en_US).</small>
+                </div>
+            </div>
+        </div>
+
+        {{-- ======================= Fee Reminders (F5) ======================= --}}
+        <div class="pat-form-section" id="set-fee-reminders">
+            <div class="pat-form-section-head">
+                <span class="set-sec-ic set-sec-ic-blue"><i class="icon-bell2"></i></span>
+                <div>
+                    <div class="pat-form-section-title">Fee Reminders</div>
+                    <div class="pat-form-section-sub">Automatic reminders to students and parents with fees outstanding, on the days you choose around each instalment's due date. Manual reminders from the Fee Defaulters page work whether this is on or off.</div>
+                </div>
+            </div>
+            <div class="pat-fields">
+                <div class="pat-field">
+                    <label for="fee_reminders_enabled">Automatic Fee Reminders</label>
+                    <select class="form-control select @error('fee_reminders_enabled') is-invalid @enderror" name="fee_reminders_enabled" id="fee_reminders_enabled">
+                        <option {{ ($s['fee_reminders_enabled'] ?? '0') == '1' ? 'selected' : '' }} value="1">Enabled</option>
+                        <option {{ ($s['fee_reminders_enabled'] ?? '0') == '1' ? '' : 'selected' }} value="0">Disabled</option>
+                    </select>
+                    @include('partials.errors.field', ['field' => 'fee_reminders_enabled'])
+                </div>
+                <div class="pat-field">
+                    <label for="fee_reminder_offsets">Reminder Days (offsets)</label>
+                    <input name="fee_reminder_offsets" id="fee_reminder_offsets" value="{{ $s['fee_reminder_offsets'] ?? '-3,0,7' }}" type="text" class="form-control @error('fee_reminder_offsets') is-invalid @enderror" placeholder="-3,0,7">
+                    @include('partials.errors.field', ['field' => 'fee_reminder_offsets'])
+                    <small class="form-text text-muted">Comma-separated days around a due date: -3 = 3 days before, 0 = on the day, 7 = 7 days after. Up to 5 values, each between -30 and +60.</small>
+                </div>
+                <div class="pat-field">
+                    <label for="fee_reminder_channel_bell">In-App Bell Reminders</label>
+                    <select class="form-control select @error('fee_reminder_channel_bell') is-invalid @enderror" name="fee_reminder_channel_bell" id="fee_reminder_channel_bell">
+                        <option {{ ($s['fee_reminder_channel_bell'] ?? '1') == '1' ? 'selected' : '' }} value="1">Enabled</option>
+                        <option {{ ($s['fee_reminder_channel_bell'] ?? '1') == '1' ? '' : 'selected' }} value="0">Disabled</option>
+                    </select>
+                    @include('partials.errors.field', ['field' => 'fee_reminder_channel_bell'])
+                </div>
+                <div class="pat-field">
+                    <label for="fee_reminder_channel_whatsapp">WhatsApp Reminders</label>
+                    <select class="form-control select @error('fee_reminder_channel_whatsapp') is-invalid @enderror" name="fee_reminder_channel_whatsapp" id="fee_reminder_channel_whatsapp">
+                        <option {{ ($s['fee_reminder_channel_whatsapp'] ?? '0') == '1' ? 'selected' : '' }} value="1">Enabled</option>
+                        <option {{ ($s['fee_reminder_channel_whatsapp'] ?? '0') == '1' ? '' : 'selected' }} value="0">Disabled</option>
+                    </select>
+                    @include('partials.errors.field', ['field' => 'fee_reminder_channel_whatsapp'])
+                    <small class="form-text text-muted">WhatsApp reminders require WhatsApp setup — until the school's WhatsApp is connected, WhatsApp reminders are skipped and shown as skipped in the reminder log.</small>
                 </div>
             </div>
         </div>
@@ -711,7 +867,7 @@
                     </form>
                 </div>
             @empty
-                <p class="text-muted mb-0">No policy documents yet. Add the first one above — admission rules, uniform policy, leave policy — whatever parents and staff ask the office about.</p>
+                @include('partials.patterns.empty_state', ['icon' => 'icon-file-text2', 'message' => 'No policy documents yet. Add the first one above — admission rules, uniform policy, leave policy — whatever parents and staff ask the office about.', 'compact' => true])
             @endforelse
         </div>
     </div>

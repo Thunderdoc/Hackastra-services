@@ -29,7 +29,7 @@
 
             {{--Delete--}}
             @if(Qs::userIsTeamSAWrite())
-                <a id="{{ Qs::hash($s->user->id) }}" onclick="confirmDelete(this.id)" href="#" class="dropdown-item"><i class="icon-trash"></i> Delete</a>
+                <a id="{{ Qs::hash($s->user->id) }}" data-item-name="{{ $s->user->name }}" onclick="confirmDelete(this.id, this.dataset.itemName)" href="#" class="dropdown-item"><i class="icon-trash"></i> Delete</a>
                 <form method="post" id="item-delete-{{ Qs::hash($s->user->id) }}" action="{{ route('students.destroy', Qs::hash($s->user->id)) }}" class="hidden">@csrf @method('delete')</form>
             @endif
         </div>

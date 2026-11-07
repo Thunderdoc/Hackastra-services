@@ -32,7 +32,7 @@
                                     <td>{{ $allocation->dorm_room_no }}</td>
                                     <td>
                                         @if(auth()->user() && auth()->user()->user_type === 'hostel')
-                                            <form method="post" action="{{ route('hostel.allocations.destroy', ['hostel_record' => $allocation->id]) }}" class="d-inline" onsubmit="return confirm('Deallocate this student from the hostel?')">
+                                            <form method="post" action="{{ route('hostel.allocations.destroy', ['hostel_record' => $allocation->id]) }}" class="d-inline" data-confirm="Deallocate {{ optional($allocation->user)->name ?: 'this student' }} from the hostel?" data-confirm-title="Deallocate Student" data-confirm-action="Deallocate" data-confirm-danger>
                                                 @csrf @method('delete')
                                                 <button type="submit" class="btn btn-sm btn-danger">Deallocate</button>
                                             </form>
@@ -44,7 +44,10 @@
                     </table>
                 </div>
             @else
-                <p>No students are currently allocated to a hostel.</p>
+                @include('partials.patterns.empty_state', [
+                    'icon' => 'icon-users',
+                    'message' => 'No students are currently allocated to a hostel.',
+                ])
             @endif
         </div>
     </div>

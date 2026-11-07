@@ -47,7 +47,15 @@ class IdCardFactory
     public static function brand(bool $forPdf = false): array
     {
         $name = (string) Qs::getSystemName();
-        $logo = Qs::getSetting('logo');
+        /* Round 2 (live defect 2026-11-07): the raw 'logo' setting
+           can point at an upload whose file is not in this install's
+           webroot (the demo seed's storage URL) — the card header
+           then rendered a broken-image icon on the live single-card
+           page, front and back. Resolve through Qs::getLogo(), the
+           same existence-checked path as the login/sidebar logos:
+           configured logo when its file really exists, else the
+           bundled school logo — never a dead URL. */
+        $logo = Qs::getLogo();
 
         return [
             'name' => $name,
@@ -280,7 +288,12 @@ class IdCardFactory
             return null;
         }
         if (!$forPdf) {
-            return $url;
+            /* Screen: never hand the blade a local URL whose file is
+               missing — the <img> would render as a broken icon (the
+               logo defect above; the same latent trap covered the
+               stamp and signature). Null makes the blade fall back
+               (monogram / no stamp), exactly as the PDF path does. */
+            return Qs::logoUrlFileExists($url) ? $url : null;
         }
         $path = parse_url($url, PHP_URL_PATH);
         if ($path && Str::endsWith(strtolower($path), '.svg')) {

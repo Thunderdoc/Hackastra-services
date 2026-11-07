@@ -97,10 +97,10 @@
          inside the card with all their existing actions. --}}
     @if($my_classes->count() === 0)
         <div class="card"><div class="card-body">
-            <div class="ttx-empty-state">
-                <i class="icon-table2"></i>
-                <p>No classes exist yet — add classes first, then generate their timetables.</p>
-            </div>
+            @include('partials.patterns.empty_state', [
+                'icon' => 'icon-table2',
+                'message' => 'No classes exist yet — add classes first, then generate their timetables.',
+            ])
         </div></div>
     @else
         @if($tt_records_all->count() === 0 && Qs::userIsTeamSAWrite())
@@ -244,7 +244,7 @@
                                         <div class="dropdown-menu dropdown-menu-right">
                                             <a class="dropdown-item" href="{{ route('ttr.manage', $ttr->id) }}"><i class="icon-plus-circle2 mr-2"></i> Manage</a>
                                             <a class="dropdown-item" href="{{ route('ttr.edit', $ttr->id) }}"><i class="icon-pencil mr-2"></i> Edit</a>
-                                            <a class="dropdown-item text-danger" id="{{ $ttr->id }}" onclick="confirmDelete(this.id)" href="#"><i class="icon-trash mr-2"></i> Delete</a>
+                                            <a class="dropdown-item text-danger" id="{{ $ttr->id }}" data-item-name="{{ $ttr->name }}" onclick="confirmDelete(this.id, this.dataset.itemName)" href="#"><i class="icon-trash mr-2"></i> Delete</a>
                                         </div>
                                     </div>
                                     <form method="post" id="item-delete-{{ $ttr->id }}" action="{{ route('ttr.destroy', $ttr->id) }}" class="hidden">@csrf @method('delete')</form>
@@ -268,10 +268,11 @@
 
         @if($ttVisibleGroups === 0)
             <div class="card"><div class="card-body">
-                <div class="ttx-empty-state">
-                    <i class="icon-search4"></i>
-                    <p>No timetables match your filters. <a href="{{ route('tt.index') }}">Reset the filters</a> to see all timetables.</p>
-                </div>
+                @include('partials.patterns.empty_state', [
+                    'icon' => 'icon-search4',
+                    'message' => 'No timetables match your filters.',
+                    'action_html' => '<a class="btn btn-primary" href="' . route('tt.index') . '">Reset the filters</a>',
+                ])
             </div></div>
         @elseif($ttFiltersActive)
             <p class="text-muted l81-filter-note">Showing {{ $tt_records->count() }} of {{ $stats['total'] }} timetables — filters are on. <a href="{{ route('tt.index') }}">Reset</a></p>

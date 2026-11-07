@@ -5,6 +5,8 @@ namespace App\Support;
 use App\Helpers\Qs;
 use App\Models\Exam;
 use App\Models\ExamDate;
+use App\Models\FeeHead;
+use App\Models\FeeInstallment;
 use App\Models\MyClass;
 use App\Models\Section;
 use App\Models\StudentRecord;
@@ -39,6 +41,21 @@ class Readiness
         $name = Qs::getSetting('system_name');
         $add($name ? 'ok' : 'fail', 'School identity',
             $name ? $name . ' · ' . (Qs::getSetting('address') ?: 'address missing') : 'School name is not set.',
+            'settings');
+        /* Logo (Round 5 P15): the setting alone proves nothing —
+           it can point at a storage file that is not on disk, in
+           which case Qs::getLogo() silently serves the bundled
+           placeholder. Test the uploaded file's existence with the
+           same logic getLogo() itself uses, so this check can
+           never call a placeholder a logo. */
+        $logoSetting = Qs::getSetting('logo');
+        $logoOnDisk = $logoSetting && Qs::logoUrlFileExists($logoSetting);
+        $add($logoOnDisk ? 'ok' : 'warn', 'School logo uploaded',
+            $logoOnDisk
+                ? 'School logo is uploaded and its file is on disk.'
+                : ($logoSetting
+                    ? 'A logo is set in Settings but its file is missing on disk — the bundled placeholder is shown instead. Re-upload the logo.'
+                    : 'No school logo uploaded yet — the bundled placeholder is shown. Upload one in Settings.'),
             'settings');
 
         /* Structure */
@@ -101,6 +118,26 @@ class Readiness
         $add($stamp && $sig ? 'ok' : 'warn', 'Report-card stamp & signature',
             ($stamp ? 'Stamp uploaded. ' : 'No stamp uploaded. ') . ($sig ? 'Principal signature uploaded.' : 'No principal signature uploaded.'),
             'settings');
+
+        /* Fee structure (Round 5 P15): the ledger checks below
+           pass on a school that cannot bill anyone — they never
+           count fee heads. A school with zero fee heads for the
+           current session has no fee structure at all (fail);
+           heads without any instalments can only be collected in
+           one lump (warn). Counts are live, scoped to the session
+           the heads themselves are recorded against (FeeHead.year
+           holds the session label, exactly as the Fee Structure
+           pages group them). */
+        $feeHeadIds = FeeHead::where('year', $session)->pluck('id');
+        $feeHeads = $feeHeadIds->count();
+        $feeInstalments = $feeHeads ? FeeInstallment::whereIn('fee_head_id', $feeHeadIds)->count() : 0;
+        $add($feeHeads === 0 ? 'fail' : ($feeInstalments === 0 ? 'warn' : 'ok'), 'Fee structure defined',
+            $feeHeads === 0
+                ? 'No fee heads defined for ' . ($session ?: 'the current session') . ' — the school cannot bill anyone yet. Define the fee structure first.'
+                : ($feeInstalments === 0
+                    ? $feeHeads . ' fee head(s) for ' . $session . ' but no instalments defined — fees can only be collected in one lump. Add instalments on the Fee Structure page.'
+                    : $feeHeads . ' fee head(s) for ' . $session . ', ' . $feeInstalments . ' instalment(s) defined.'),
+            'fee_structure.index');
 
         /* Money — ledger integrity (Phase 6): every balance must
            recompute from its payment and collections. */

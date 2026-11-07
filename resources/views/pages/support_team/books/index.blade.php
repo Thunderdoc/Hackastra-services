@@ -30,6 +30,7 @@
             <i class="icon-books mr-2"></i> Library Books
         @endslot
         @slot('action')
+            <a href="{{ route('books.export', request()->query()) }}" class="btn btn-light"><i class="icon-download mr-1"></i> Export CSV</a>
             <a href="{{ route('book_requests.index') }}" class="btn btn-light"><i class="icon-list mr-1"></i> Loans &amp; Requests</a>
             @if(Qs::userIsTeamLibraryWrite())
             <a href="{{ route('books.create') }}" class="btn btn-primary"><i class="icon-plus2 mr-1"></i> New Book</a>
@@ -108,16 +109,29 @@
             </form>
         @endslot
 
+        {{-- Round 5 Slice 3 (P10): shared bulk bar — Export selected
+             only. There is deliberately NO bulk delete: catalogue
+             rows carry loans. The hidden form lives here; the bar's
+             JS appends the checked ids[] on submit. --}}
+        <form id="books-bulk-export-form" method="post" action="{{ route('books.export_selected') }}" class="d-none">@csrf</form>
+        @include('partials.patterns.bulk_bar', [
+            'bulk_id' => 'books',
+            'bulk_actions' => [
+                ['label' => 'Export selected', 'form' => 'books-bulk-export-form', 'class' => 'btn-light btn-sm', 'icon' => 'icon-download'],
+            ],
+        ])
+
         <div class="table-responsive">
         <table class="table hk-std hk-std-books">
             <caption class="qs-table-caption">Showing {{ $books->firstItem() ?? 0 }} to {{ $books->lastItem() ?? 0 }} of {{ $books->total() }} books</caption>
             {{-- Beauty Batch 4 (audit D1): fixed layout, widths sum to 100%.
                  Actions carries the inline Edit+Delete pair, Status must fit
                  the "Partially Issued" pill — Book (the wrapping text column)
-                 yields the width. --}}
-            <colgroup><col style="width:24%"><col style="width:8%"><col style="width:8%"><col style="width:11%"><col style="width:13%"><col style="width:12%"><col style="width:24%"></colgroup>
+                 yields the width. P10: the checkbox column takes 4% from Book. --}}
+            <colgroup><col style="width:4%"><col style="width:20%"><col style="width:8%"><col style="width:8%"><col style="width:11%"><col style="width:13%"><col style="width:12%"><col style="width:24%"></colgroup>
             <thead>
             <tr>
+                <th><span class="sr-only">Select</span></th>
                 <th>Book</th>
                 <th>Type</th>
                 <th>Class</th>
@@ -143,6 +157,7 @@
                     }
                 @endphp
                 <tr>
+                    <td><input type="checkbox" class="hk-bulk-check" value="{{ $book->id }}" title="Select {{ $book->name }}"></td>
                     <td>
                         <div class="qs-book-cell">
                             <span class="qs-book-thumb"><i class="icon-book"></i></span>
@@ -169,7 +184,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="7">
+                    <td colspan="8">
                         @if(request()->filled('q') || request()->filled('type') || request()->filled('class_id') || request()->filled('availability'))
                             @include('partials.patterns.empty_state', [
                                 'icon' => 'icon-books',

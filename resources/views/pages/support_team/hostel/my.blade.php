@@ -28,7 +28,7 @@
                     </table>
                 </div>
             @else
-                <p>No hostel allocation found.</p>
+                @include('partials.patterns.empty_state', ['icon' => 'icon-home9', 'message' => 'No hostel allocation found.'])
             @endif
         </div>
     </div>

@@ -22,7 +22,7 @@
     @if($overviews->isEmpty())
         <div class="card pat-form-card">
             <div class="card-body">
-                <p class="text-muted mb-0">No classes found for this account yet.</p>
+                @include('partials.patterns.empty_state', ['icon' => 'icon-users', 'message' => 'No classes found for this account yet.'])
             </div>
         </div>
     @else

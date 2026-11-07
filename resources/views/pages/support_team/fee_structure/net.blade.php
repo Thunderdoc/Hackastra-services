@@ -36,7 +36,7 @@
                     </table>
                 </div>
             @else
-                <p>No fee heads defined for this student's class yet.</p>
+                @include('partials.patterns.empty_state', ['icon' => 'icon-cash2', 'message' => 'No fee heads defined for this student\'s class yet.'])
             @endif
         </div>
     </div>

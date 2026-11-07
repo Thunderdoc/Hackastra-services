@@ -15,15 +15,6 @@
             @if(session('flash_danger'))
                 <div class="alert alert-danger">{{ session('flash_danger') }}</div>
             @endif
-            @if ($errors->any())
-                <div class="alert alert-danger">
-                    <ul class="mb-0">
-                        @foreach ($errors->all() as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
-                </div>
-            @endif
             <p class="text-muted">
                 {{ $quiz->subject ? $quiz->subject->name : '' }}
                 @if ($quiz->my_class)
@@ -60,7 +51,7 @@
                             @method('PUT')
                             <div class="form-group">
                                 <label>Question</label>
-                                <textarea name="question" class="form-control" rows="2" required>{{ $question->question }}</textarea>
+                                <textarea name="question" class="form-control @error('question') is-invalid @enderror" rows="2" required>{{ $question->question }}</textarea>@include('partials.errors.field', ['field' => 'question'])
                             </div>
                             @foreach (($question->options ?: []) as $i => $opt)
                                 <div class="form-group">
@@ -77,11 +68,11 @@
                             @endforeach
                             <div class="form-group">
                                 <label>Marks</label>
-                                <input type="number" name="marks" class="form-control" value="{{ $question->marks }}" min="1" max="100">
+                                <input type="number" name="marks" class="form-control @error('marks') is-invalid @enderror" value="{{ $question->marks }}" min="1" max="100">@include('partials.errors.field', ['field' => 'marks'])
                             </div>
                             <button type="submit" class="btn btn-primary btn-sm">Save question</button>
                         </form>
-                        <form method="post" action="{{ route('quizzes.questions.destroy', [$quiz->id, $question->id]) }}" class="mt-2">
+                        <form method="post" action="{{ route('quizzes.questions.destroy', [$quiz->id, $question->id]) }}" class="mt-2" data-confirm="Delete the question “{{ \Illuminate\Support\Str::limit($question->question, 60) }}”? This cannot be undone." data-confirm-title="Delete Question" data-confirm-action="Delete" data-confirm-danger>
                             @csrf
                             @method('DELETE')
                             <button type="submit" class="btn btn-light btn-sm">Delete question</button>
@@ -96,7 +87,7 @@
                     @endif
                 </div>
             @empty
-                <p class="text-muted">No questions yet.</p>
+                @include('partials.patterns.empty_state', ['icon' => 'icon-books', 'message' => 'No questions yet.'])
             @endforelse
 
             @if ($canEdit)
@@ -106,7 +97,7 @@
                         @csrf
                         <div class="form-group">
                             <label>Question</label>
-                            <textarea name="question" class="form-control" rows="2" required></textarea>
+                            <textarea name="question" class="form-control @error('question') is-invalid @enderror" rows="2" required></textarea>@include('partials.errors.field', ['field' => 'question'])
                         </div>
                         @for ($o = 0; $o < 4; $o++)
                             <div class="form-group">
@@ -123,7 +114,7 @@
                         @endfor
                         <div class="form-group">
                             <label>Marks</label>
-                            <input type="number" name="marks" class="form-control" value="1" min="1" max="100">
+                            <input type="number" name="marks" class="form-control @error('marks') is-invalid @enderror" value="1" min="1" max="100">@include('partials.errors.field', ['field' => 'marks'])
                         </div>
                         <button type="submit" class="btn btn-primary btn-sm">Add question</button>
                     </form>
@@ -135,15 +126,15 @@
                         @csrf
                         <div class="form-group">
                             <label for="available_from">Available from (leave blank for immediately)</label>
-                            <input type="datetime-local" name="available_from" id="available_from" class="form-control" value="{{ $quiz->available_from ? $quiz->available_from->format('Y-m-d\TH:i') : '' }}">
+                            <input type="datetime-local" name="available_from" id="available_from" class="form-control @error('available_from') is-invalid @enderror" value="{{ $quiz->available_from ? $quiz->available_from->format('Y-m-d\TH:i') : '' }}">@include('partials.errors.field', ['field' => 'available_from'])
                         </div>
                         <div class="form-group">
                             <label for="available_until">Available until (leave blank for no end)</label>
-                            <input type="datetime-local" name="available_until" id="available_until" class="form-control" value="{{ $quiz->available_until ? $quiz->available_until->format('Y-m-d\TH:i') : '' }}">
+                            <input type="datetime-local" name="available_until" id="available_until" class="form-control @error('available_until') is-invalid @enderror" value="{{ $quiz->available_until ? $quiz->available_until->format('Y-m-d\TH:i') : '' }}">@include('partials.errors.field', ['field' => 'available_until'])
                         </div>
                         <div class="form-group">
                             <label for="time_limit_minutes">Time limit (minutes, optional — the attempt page counts down and auto-submits)</label>
-                            <input type="number" name="time_limit_minutes" id="time_limit_minutes" class="form-control" value="{{ $quiz->time_limit_minutes }}" min="1" max="600">
+                            <input type="number" name="time_limit_minutes" id="time_limit_minutes" class="form-control @error('time_limit_minutes') is-invalid @enderror" value="{{ $quiz->time_limit_minutes }}" min="1" max="600">@include('partials.errors.field', ['field' => 'time_limit_minutes'])
                         </div>
                         <button type="submit" class="btn btn-primary">{{ $quiz->status === 'published' ? 'Update timings' : 'Publish quiz' }}</button>
                     </form>

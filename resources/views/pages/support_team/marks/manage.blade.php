@@ -70,7 +70,7 @@
             <span class="l86-chip-ic l86-chip-ic-exam"><i class="icon-calendar"></i></span>
             <div class="l86-chip-body">
                 <strong>Exam: {{ $m->exam->name }}</strong>
-                <span>Academic Session: {{ $m->year }}</span>
+                <span>{{ $m->exam->periodLabel() }} &middot; Academic Session: {{ $m->year }}</span>
             </div>
         </div>
     </div>
@@ -102,13 +102,13 @@
         @endif
         @if(!empty($lifecycle['submitted']))
             @if(\App\Helpers\Qs::userIsAdmin())
-                <form method="POST" action="{{ route('marks.reopen', [$exam_id, $my_class_id, $section_id, $subject_id]) }}" onsubmit="return confirm('Reopen these marks for correction? The reopening is recorded in the audit log.');" style="margin-left:auto;">
+                <form method="POST" action="{{ route('marks.reopen', [$exam_id, $my_class_id, $section_id, $subject_id]) }}" data-confirm="Reopen these marks for correction? The reopening is recorded in the audit log." data-confirm-title="Reopen Marks" data-confirm-action="Reopen" style="margin-left:auto;">
                     @csrf
                     <button type="submit" class="btn btn-warning btn-sm">Reopen for correction</button>
                 </form>
             @endif
         @elseif(empty($lifecycle['opens_on']))
-            <form method="POST" action="{{ route('marks.submit', [$exam_id, $my_class_id, $section_id, $subject_id]) }}" onsubmit="return confirm('Submit these marks? After submission you will not be able to edit them.');" style="margin-left:auto;">
+            <form method="POST" action="{{ route('marks.submit', [$exam_id, $my_class_id, $section_id, $subject_id]) }}" data-confirm="Submit these marks? After submission you will not be able to edit them." data-confirm-title="Submit Marks" data-confirm-action="Submit" style="margin-left:auto;">
                 @csrf
                 <button type="submit" class="btn btn-primary btn-sm">Submit Marks</button>
             </form>
@@ -126,7 +126,7 @@
                 <h6 class="card-title"><i class="icon-import mr-2"></i>Fill {{ $internal_component['name'] }} marks (max {{ $internal_component['max_marks'] }}) from assignments or quizzes</h6>
             </div>
             <div class="card-body">
-                <form method="POST" action="{{ route('marks.import_internal', [$exam_id, $my_class_id, $section_id, $subject_id]) }}" onsubmit="return confirm('Fill the {{ $internal_component['name'] }} marks from the chosen source? Existing {{ $internal_component['name'] }} scores in this grid will be replaced for students who have graded work.');">
+                <form method="POST" action="{{ route('marks.import_internal', [$exam_id, $my_class_id, $section_id, $subject_id]) }}" data-confirm="Fill the {{ $internal_component['name'] }} marks from the chosen source? Existing {{ $internal_component['name'] }} scores in this grid will be replaced for students who have graded work." data-confirm-title="Fill Internal Marks" data-confirm-action="Fill Marks">
                     @csrf
                     <div class="row">
                         <div class="col-md-4">
@@ -134,6 +134,7 @@
                             <select name="source_kind" id="rbImportKind" class="form-control">
                                 <option value="assignments">Assignments ({{ $import_assignment_count }} for this subject)</option>
                                 <option value="quizzes" @if($import_quizzes->isEmpty()) disabled @endif>Quizzes</option>
+                                <option value="units" @if(empty($import_unit_sources) || $import_unit_sources->isEmpty()) disabled @endif>Unit Tests (feeds this term)</option>
                             </select>
                         </div>
                         <div class="col-md-3">
@@ -163,7 +164,28 @@
                             @endforeach
                         </div>
                     @endif
+                    @if(!empty($import_unit_sources) && $import_unit_sources->isNotEmpty())
+                        <div id="rbImportUnits" style="display:none; margin-top:12px;">
+                            <label>Unit tests to include</label>
+                            @foreach($import_unit_sources as $us)
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="unit_exam_ids[]" value="{{ $us['exam']->id }}" id="ut{{ $us['exam']->id }}" @if($us['submitted']) checked @else disabled @endif>
+                                    <label class="form-check-label" for="ut{{ $us['exam']->id }}">
+                                        {{ $us['exam']->name }} — {{ $us['period']->name }} (max {{ $us['max'] }} for this subject)
+                                        @if($us['submitted'])
+                                            <span class="badge badge-success">Submitted</span>
+                                        @else
+                                            <span class="badge badge-secondary">Not submitted — will be excluded</span>
+                                        @endif
+                                    </label>
+                                </div>
+                            @endforeach
+                        </div>
+                    @endif
                     <p class="text-muted" style="margin-top:10px;">Each score becomes a percentage of its own maximum first; the chosen average is then scaled onto {{ $internal_component['max_marks'] }}. Only students with graded work are filled — the rest stay blank.</p>
+                    @if(!empty($import_unit_sources) && $import_unit_sources->isNotEmpty())
+                    <p class="text-muted" style="margin-top:4px;">Each unit-test score becomes a percentage of its own maximum first; the chosen average is then scaled onto {{ $internal_component['max_marks'] }}. Only students with entered unit-test marks are filled — the rest stay blank.</p>
+                    @endif
                 </form>
             </div>
         </div>
@@ -171,8 +193,12 @@
             (function(){
                 var kind = document.getElementById('rbImportKind');
                 var box = document.getElementById('rbImportQuizzes');
-                if(!kind || !box) return;
-                kind.addEventListener('change', function(){ box.style.display = kind.value === 'quizzes' ? 'block' : 'none'; });
+                var units = document.getElementById('rbImportUnits');
+                if(!kind) return;
+                kind.addEventListener('change', function(){
+                    if (box) { box.style.display = kind.value === 'quizzes' ? 'block' : 'none'; }
+                    if (units) { units.style.display = kind.value === 'units' ? 'block' : 'none'; }
+                });
             })();
         </script>
     @endif

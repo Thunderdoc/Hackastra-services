@@ -201,6 +201,7 @@ class ReportsController extends Controller
                 // resolver actually reads — declared once, here in
                 // ReportSources, so UI and resolver cannot disagree.
                 'filters' => array_values($def['filters'] ?? []),
+                'status_options' => $def['status_options'] ?? null,
             ];
         }
 
@@ -295,7 +296,11 @@ class ReportsController extends Controller
                 's' => $this->settingsForPrint(),
                 'canvas' => true,
             ])->render();
-            return response($html, 200, ['Content-Type' => 'text/html; charset=utf-8']);
+            return response($html, 200, [
+                'Content-Type' => 'text/html; charset=utf-8',
+                'X-RB-Generated-At' => now()->toIso8601String(),
+                'X-RB-Records' => (string) ($doc['data_count'] ?? 0),
+            ]);
         } catch (\InvalidArgumentException $e) {
             return response($this->previewErrorHtml($e->getMessage()), 422, [
                 'Content-Type' => 'text/html; charset=utf-8',

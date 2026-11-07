@@ -184,7 +184,7 @@
                         </div>
                     </div>
                 @else
-                    <div class="dashboard-empty">No books in the catalogue yet. Add a book and the category mix will appear here.</div>
+                    @include('partials.patterns.empty_state', ['icon' => 'icon-books', 'message' => 'No books in the catalogue yet. Add a book and the category mix will appear here.', 'compact' => true])
                 @endif
             </section>
         </div>
@@ -233,7 +233,7 @@
                                 </td>
                             </tr>
                         @empty
-                            <tr><td colspan="7" class="dashboard-empty">No loans yet. Issue a book and it will appear here.</td></tr>
+                            <tr><td colspan="7">@include('partials.patterns.empty_state', ['icon' => 'icon-books', 'message' => 'No loans yet. Issue a book and it will appear here.', 'compact' => true])</td></tr>
                         @endforelse
                         </tbody>
                     </table>
@@ -318,7 +318,7 @@
                         @endif
                     </a>
                 @empty
-                    <div class="dashboard-empty">No circulars for you right now.</div>
+                    @include('partials.patterns.empty_state', ['icon' => 'icon-megaphone', 'message' => 'No circulars for you right now.', 'compact' => true])
                 @endforelse
             </section>
         </div>

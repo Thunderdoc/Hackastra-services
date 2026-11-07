@@ -21,12 +21,24 @@
                     <input id="name" name="name" value="{{ $ex->name }}" required type="text" class="form-control" placeholder="Name of Exam">
                 </div>
                 <div class="pat-field">
-                    <label for="term">Term</label>
-                    <select data-placeholder="Select Term" class="form-control select-search" name="term" id="term">
-                        <option {{ $ex->term == 1 ? 'selected' : '' }} value="1">First Term</option>
-                        <option {{ $ex->term == 2 ? 'selected' : '' }} value="2">Second Term</option>
-                        <option {{ $ex->term == 3 ? 'selected' : '' }} value="3">Third Term</option>
+                    <label for="period_id">Assessment Period</label>
+                    <select data-placeholder="Select Period" class="form-control select-search" name="period_id" id="period_id" @if(!empty($has_marks)) disabled @endif>
+                        @foreach(['term' => 'Terms', 'unit' => 'Unit Tests', 'standalone' => 'Other'] as $pk => $plabel)
+                            @php $group = $periods->where('kind', $pk); @endphp
+                            @if($group->isNotEmpty())
+                            <optgroup label="{{ $plabel }}">
+                                @foreach($group as $per)
+                                    <option {{ (int) $ex->period_id === (int) $per->id ? 'selected' : '' }} value="{{ $per->id }}">{{ $per->name }}@if($per->kind === 'unit' && $per->feedsPeriod) (feeds {{ $per->feedsPeriod->name }})@endif</option>
+                                @endforeach
+                            </optgroup>
+                            @endif
+                        @endforeach
                     </select>
+                    @if(!empty($has_marks))
+                        <small class="text-muted">Period is locked: this exam already has marks, and moving it would re-point those marks' totals.</small>
+                    @elseif(!$ex->period_id)
+                        <small class="text-muted">This exam is not linked to a period yet — pick one to link it.</small>
+                    @endif
                 </div>
                 <div class="pat-field">
                     <label>Class scope</label>

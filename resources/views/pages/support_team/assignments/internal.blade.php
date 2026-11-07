@@ -107,7 +107,7 @@
 
             @isset($preview)
                 <div class="table-responsive mt-3">
-                    <table class="table lms-table">
+                    <table class="table lms-table l108-stack">
                         <thead>
                         <tr>
                             <th>Student</th>
@@ -125,14 +125,14 @@
                                 $rowAdm = data_get($row, 'adm_no') ?? optional(optional($rowStudent)->student_record)->adm_no;
                             @endphp
                             <tr>
-                                <td>
+                                <td data-label="Student">
                                     <strong>{{ $rowName }}</strong>
                                     @if($rowAdm)<div class="text-muted">Adm No: {{ $rowAdm }}</div>@endif
                                 </td>
-                                <td>{{ data_get($row, 'graded_count', 0) }}</td>
-                                <td>{{ data_get($row, 'counted', data_get($row, 'graded_count', 0)) }} of {{ data_get($row, 'graded_count', 0) }}</td>
-                                <td>{{ data_get($row, 'average_percent') !== null ? rtrim(rtrim(number_format((float) data_get($row, 'average_percent'), 1), '0'), '.') . '%' : '—' }}</td>
-                                <td><strong>{{ data_get($row, 'internal_marks', '—') }}</strong></td>
+                                <td data-label="Graded Submissions">{{ data_get($row, 'graded_count', 0) }}</td>
+                                <td data-label="Counted in Average">{{ data_get($row, 'counted', data_get($row, 'graded_count', 0)) }} of {{ data_get($row, 'graded_count', 0) }}</td>
+                                <td data-label="Average">{{ data_get($row, 'average_percent') !== null ? rtrim(rtrim(number_format((float) data_get($row, 'average_percent'), 1), '0'), '.') . '%' : '—' }}</td>
+                                <td data-label="Internal Marks (scaled)"><strong>{{ data_get($row, 'internal_marks', '—') }}</strong></td>
                             </tr>
                         @empty
                             <tr>

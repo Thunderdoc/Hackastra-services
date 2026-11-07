@@ -46,7 +46,8 @@
 
         @if($selected)
             <div class="table-responsive">
-            <table class="table">
+            <table class="table hk-std hk-std-760">
+                <colgroup><col style="width:8%"><col style="width:12%"><col style="width:36%"><col style="width:20%"><col style="width:24%"></colgroup>
                 <thead>
                 <tr>
                     <th>S/N</th>
@@ -62,7 +63,7 @@
                         <td>{{ $loop->iteration }}</td>
                         <td>@if(Qs::hasRealPhoto($s->user->photo))<img class="rounded-circle" style="height: 40px; width: 40px;" src="{{ $s->user->photo }}" alt="photo">@else<span class="hk-ini" style="width:40px;height:40px;font-size:.8rem" aria-hidden="true">{{ Qs::initials($s->user->name) }}</span>@endif</td>
                         <td>{{ $s->user->name }}</td>
-                        <td>{{ $s->adm_no }}</td>
+                        <td class="hk-nw">{{ $s->adm_no }}</td>
                         <td><a class="btn btn-danger" href="{{ route('marks.year_select', Qs::hash($s->user_id)) }}">View Marksheet</a></td>
                     </tr>
                 @endforeach

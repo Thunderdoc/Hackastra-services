@@ -29,6 +29,21 @@ class SettingController extends Controller
         'principal_signature',
         'adm_no_format', 'adm_no_serial_start', 'adm_no_serial_width',
         'adm_no_custom_pattern',
+        // F5 (Round 4): fee-reminder schedule keys are school
+        // fields — the school Admin writes them, the SA reads.
+        // fee_reminder_last_run is deliberately NOT here (or in
+        // ALLOWED_FIELDS): it is internal engine state written
+        // via SettingRepo, never postable.
+        'fee_reminders_enabled', 'fee_reminder_offsets',
+        'fee_reminder_channel_bell', 'fee_reminder_channel_whatsapp',
+        // F1 (Round 4): WhatsApp keys are school fields — the
+        // school Admin writes them, the SA reads.
+        'whatsapp_enabled', 'whatsapp_absent_enabled',
+        'whatsapp_fee_enabled', 'whatsapp_result_enabled',
+        'whatsapp_circular_enabled', 'whatsapp_homework_enabled',
+        'whatsapp_phone_number_id', 'whatsapp_business_id',
+        'whatsapp_access_token', 'whatsapp_app_secret',
+        'whatsapp_verify_token', 'whatsapp_template_language',
     ];
 
     public const PLATFORM_FIELDS = [
@@ -36,6 +51,10 @@ class SettingController extends Controller
         // public sign-in page. Platform-level (the domain belongs to the
         // platform, not to any one school), so the Super Admin owns it.
         'google_site_verification',
+        // Round 5 Slice 4 (P16): referral programme keys are
+        // platform-owned — the SA sets the code + reward text;
+        // the school Admin only ever reads them.
+        'referral_code', 'referral_reward_text',
     ];
 
     /*
@@ -60,6 +79,7 @@ class SettingController extends Controller
         'principal_name', 'logo', 'school_stamp',
         'principal_signature',
         'google_site_verification',
+        'referral_code', 'referral_reward_text',
         'gateway_enabled', 'razorpay_key_id', 'razorpay_key_secret',
         'razorpay_webhook_secret',
         'ai_enabled', 'ai_provider', 'ai_model', 'ai_api_key',
@@ -68,6 +88,14 @@ class SettingController extends Controller
         'adm_no_format', 'adm_no_serial_start', 'adm_no_serial_width',
         'adm_no_custom_pattern',
         'paid_leave_quota_days', 'leave_deduction_percent',
+        'fee_reminders_enabled', 'fee_reminder_offsets',
+        'fee_reminder_channel_bell', 'fee_reminder_channel_whatsapp',
+        'whatsapp_enabled', 'whatsapp_absent_enabled',
+        'whatsapp_fee_enabled', 'whatsapp_result_enabled',
+        'whatsapp_circular_enabled', 'whatsapp_homework_enabled',
+        'whatsapp_phone_number_id', 'whatsapp_business_id',
+        'whatsapp_access_token', 'whatsapp_app_secret',
+        'whatsapp_verify_token', 'whatsapp_template_language',
     ];
 
     protected $setting, $my_class;
@@ -150,7 +178,7 @@ class SettingController extends Controller
            means "keep what is saved", never "wipe it". Same for the
            key id — an accidental empty submit must not break a live
            gateway configuration. */
-        foreach (['razorpay_key_secret', 'razorpay_webhook_secret', 'razorpay_key_id'] as $secret_key) {
+        foreach (['razorpay_key_secret', 'razorpay_webhook_secret', 'razorpay_key_id', 'whatsapp_access_token', 'whatsapp_app_secret', 'whatsapp_verify_token', 'whatsapp_phone_number_id'] as $secret_key) {
             if (array_key_exists($secret_key, $sets) && trim((string) $sets[$secret_key]) === '') {
                 unset($sets[$secret_key]);
             }
@@ -169,6 +197,22 @@ class SettingController extends Controller
         }
         if (isset($sets['ai_enabled'])) {
             $sets['ai_enabled'] = $sets['ai_enabled'] == 1 ? 1 : 0;
+        }
+        /* F5: store the offsets canonicalised — trimmed,
+           de-duplicated, sorted (e.g. "7,-3,7,0" -> "-3,0,7") —
+           so the engine never parses creatively. Validity (ints
+           in range, 1–5 after dedupe) is SettingUpdate's job. */
+        if (isset($sets['fee_reminder_offsets']) && trim((string) $sets['fee_reminder_offsets']) !== '') {
+            $offsets = [];
+            foreach (explode(',', (string) $sets['fee_reminder_offsets']) as $part) {
+                $part = trim($part);
+                if ($part !== '') {
+                    $offsets[] = (int) $part;
+                }
+            }
+            $offsets = array_values(array_unique($offsets));
+            sort($offsets);
+            $sets['fee_reminder_offsets'] = implode(',', $offsets);
         }
         $keys = array_keys($sets);
         $values = array_values($sets);

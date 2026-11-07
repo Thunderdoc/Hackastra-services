@@ -35,6 +35,12 @@
             the table markup. The 'title' slot is RETIRED (Loop 46):
             the common layout header renders the page title once, so
             this pattern prints no heading of its own.
+    Props:  pat_no_wrap (optional, Round 5 P11) — pass it truthy
+            in the component data when the default slot already
+            provides its own table-responsive wrapper (the
+            data_table pattern does): the shell then renders the
+            slot bare instead of wrapping it a second time. Every
+            existing caller keeps the default wrap, byte-identical.
     Styles: public/assets/css/qs.css — "Loop 28" (.pat-* classes).
     The card/table/button styling itself comes from the shared
     .content .card / .table / .btn tokens; this pattern only adds
@@ -74,9 +80,13 @@
 
     <div class="card pat-card">
         <div class="card-body">
-            <div class="table-responsive">
+            @if(!empty($pat_no_wrap ?? null))
                 {!! $slot !!}
-            </div>
+            @else
+                <div class="table-responsive">
+                    {!! $slot !!}
+                </div>
+            @endif
         </div>
     </div>
 </div>

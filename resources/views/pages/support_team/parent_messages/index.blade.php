@@ -19,7 +19,10 @@
             @endif
 
             @if($messages->count() === 0)
-                <p class="text-muted">{{ $is_parent ? 'No messages for your children yet.' : 'No messages sent yet.' }}</p>
+                @include('partials.patterns.empty_state', [
+                    'icon' => 'icon-envelop5',
+                    'message' => $is_parent ? 'No messages for your children yet.' : 'No messages sent yet.',
+                ])
             @else
                 <div class="table-responsive">
                     <table class="table">

@@ -1,5 +1,6 @@
 <html>
 <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <title>Exam Date Sheet - {{ $exam->name }} - {{ $my_class->name }}</title>
     {{-- Exam Date Sheet document (owner-ordered module, 2026-10-22):
          fed by the SAME App\Support\ExamDateSheet assembly as the

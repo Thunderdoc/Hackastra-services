@@ -213,7 +213,7 @@
            click on a disabled button does not submit at all). */
         $btn.closest('form').on('submit', function () {
             if ($btn.prop('disabled')) { return false; }
-            $btn.prop('disabled', true).addClass('l84-loading');
+            $btn.prop('disabled', true).addClass('is-loading');
         });
 
         evalState();

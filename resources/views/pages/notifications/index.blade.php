@@ -34,7 +34,10 @@
         </div>
         <div class="card-body">
             @if($notifications->isEmpty())
-                <p class="text-muted mb-0">{{ $only_unread ? 'Nothing unread — you are all caught up.' : 'No notifications yet. When something happens for you, it will appear here.' }}</p>
+                @include('partials.patterns.empty_state', [
+                    'icon' => 'icon-bell2',
+                    'message' => $only_unread ? 'Nothing unread — you are all caught up.' : 'No notifications yet. When something happens for you, it will appear here.',
+                ])
             @else
                 <div class="list-group">
                     @foreach($notifications as $notif)

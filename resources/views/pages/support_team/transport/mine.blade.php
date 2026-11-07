@@ -24,7 +24,7 @@
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="6">None of your children has a transport assignment yet.</td></tr>
+                <tr><td colspan="6">@include('partials.patterns.empty_state', ['icon' => 'icon-truck', 'message' => 'None of your children has a transport assignment yet.'])</td></tr>
             @endforelse
             </tbody>
         </table>

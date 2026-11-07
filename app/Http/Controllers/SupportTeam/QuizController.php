@@ -142,56 +142,103 @@ class QuizController extends Controller
         return null;
     }
 
-    public function index()
+    public function index(Request $req)
     {
         $user = Auth::user();
 
+        // R3 LMS P3: server-side search + status/subject filters and
+        // pagination (15) on the shared list pattern. Role behaviour
+        // is unchanged: teacher = own quizzes, admin = all, student =
+        // own class/section, published-in-window plus own attempts.
+        // Stats describe the WHOLE scoped set; filters only narrow
+        // the listing. Distinct plucks use reorder() first (TiDB
+        // error-3065 parity, OwnerMaterialsIndexEngineParityTest).
+        $isStudent = Qs::userIsStudent();
+        $record = null;
+
         if (Qs::userIsTeacher()) {
-            $quizzes = Quiz::with(['subject', 'my_class', 'section', 'teacher'])
-                ->withCount('questions')
-                ->where('teacher_id', $user->id)
-                ->latest()
-                ->get();
+            $scope = function () use ($user) {
+                return Quiz::where('teacher_id', $user->id);
+            };
         } elseif (Qs::userIsAdmin()) {
-            $quizzes = Quiz::with(['subject', 'my_class', 'section', 'teacher'])
-                ->withCount('questions')
-                ->latest()
-                ->get();
-        } elseif (Qs::userIsStudent()) {
+            $scope = function () {
+                return Quiz::query();
+            };
+        } elseif ($isStudent) {
             $record = $this->studentRecord();
             if (!$record) {
                 abort(403);
             }
-            $quizzes = Quiz::with(['subject', 'my_class', 'section', 'teacher'])
-                ->withCount('questions')
-                ->where('my_class_id', $record->my_class_id)
-                ->where(function ($q) use ($record) {
-                    $q->whereNull('section_id')->orWhere('section_id', $record->section_id);
-                })
-                ->latest()
-                ->get();
-            // Students see published quizzes inside their window — plus
-            // quizzes they already attempted (an expired window must
-            // never hide a student's own result).
-            $attemptedIds = QuizAttempt::where('student_record_id', $record->id)->pluck('quiz_id')->all();
-            $quizzes = $quizzes->filter(function ($quiz) use ($attemptedIds) {
-                return $this->isAvailable($quiz) || in_array($quiz->id, $attemptedIds);
-            })->values();
+            $scope = function () use ($record) {
+                return Quiz::where('my_class_id', $record->my_class_id)
+                    ->where(function ($q) use ($record) {
+                        $q->whereNull('section_id')->orWhere('section_id', $record->section_id);
+                    });
+            };
         } else {
             abort(403);
         }
 
-        $attempts = [];
-        if (Qs::userIsStudent()) {
-            $record = $this->studentRecord();
-            if ($record) {
-                $attempts = QuizAttempt::where('student_record_id', $record->id)
-                    ->get()
-                    ->keyBy('quiz_id');
-            }
+        $card_total = $scope()->count();
+        $card_published = $scope()->where('status', 'published')->count();
+        $card_draft = $scope()->where('status', 'draft')->count();
+        $card_subjects = $scope()->reorder()->distinct()->count('subject_id');
+        $filter_subjects = Subject::whereIn('id', $scope()->reorder()->distinct()->pluck('subject_id'))
+            ->orderBy('name')->get();
+        $filters_active = $req->filled('q') || $req->filled('subject_id') || $req->filled('status');
+
+        $query = $scope()
+            ->with(['subject', 'my_class', 'section', 'teacher'])
+            ->withCount('questions')
+            ->latest();
+        if ($req->filled('q')) {
+            $term = '%' . trim((string) $req->query('q')) . '%';
+            $query->where(function ($q) use ($term) {
+                $q->where('title', 'like', $term)
+                    ->orWhereHas('subject', function ($s) use ($term) {
+                        $s->where('name', 'like', $term);
+                    })
+                    ->orWhereHas('my_class', function ($c) use ($term) {
+                        $c->where('name', 'like', $term);
+                    });
+            });
+        }
+        if ($req->filled('subject_id')) {
+            $query->where('subject_id', (int) $req->query('subject_id'));
+        }
+        if (in_array($req->query('status'), ['published', 'draft'], true)) {
+            $query->where('status', $req->query('status'));
         }
 
-        return view('pages.support_team.quizzes.index', compact('quizzes', 'attempts'));
+        $attempts = [];
+        if ($isStudent) {
+            $attempts = QuizAttempt::where('student_record_id', $record->id)
+                ->get()
+                ->keyBy('quiz_id');
+            // Students see published quizzes inside their window — plus
+            // quizzes they already attempted (an expired window must
+            // never hide a student's own result).
+            $attemptedIds = $attempts->keys()->all();
+            $all = $query->get()->filter(function ($quiz) use ($attemptedIds) {
+                return $this->isAvailable($quiz) || in_array($quiz->id, $attemptedIds);
+            })->values();
+            $page = (int) $req->query('page', 1);
+            $perPage = 15;
+            $quizzes = new \Illuminate\Pagination\LengthAwarePaginator(
+                $all->forPage($page, $perPage)->values(),
+                $all->count(),
+                $perPage,
+                $page,
+                ['path' => $req->url(), 'query' => $req->query()]
+            );
+        } else {
+            $quizzes = $query->paginate(15)->appends($req->only(['q', 'subject_id', 'status']));
+        }
+
+        return view('pages.support_team.quizzes.index', compact(
+            'quizzes', 'attempts', 'card_total', 'card_published', 'card_draft',
+            'card_subjects', 'filter_subjects', 'filters_active'
+        ));
     }
 
     public function create()

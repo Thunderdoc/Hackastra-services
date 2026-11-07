@@ -11,9 +11,15 @@
          page is the one place both sides work from. --}}
     <div class="card">
         <div class="card-header">
-            <h5 class="card-title"><i class="icon-eye mr-2"></i>{{ $exam->name }} — Term {{ $exam->term }}, {{ $exam->year }}</h5>
+            <h5 class="card-title"><i class="icon-eye mr-2"></i>{{ $exam->name }} — {{ $exam->periodLabel() }}, {{ $exam->year }}</h5>
         </div>
         <div class="card-body">
+            @if($exam->period && $exam->period->kind === 'unit')
+                <div class="alert alert-info border-0">
+                    <strong>Unit-test results are not published on their own.</strong>
+                    They are reported through {{ $exam->period->feedsPeriod->name ?? 'the term' }}'s report card, inside the Internal marks — so this exam has no publish step.
+                </div>
+            @else
             @if($exam->results_published)
                 <div class="alert alert-success border-0">
                     <strong>Results published.</strong> Students and parents can see these results now.
@@ -122,6 +128,7 @@
                 @else
                     <p class="text-muted">The publication request unlocks when every subject's marks are submitted.</p>
                 @endif
+            @endif
             @endif
         </div>
     </div>

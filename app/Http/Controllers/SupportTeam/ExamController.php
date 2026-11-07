@@ -36,12 +36,48 @@ class ExamController extends Controller
     {
         $d['exams'] = $this->exam->all();
         $d['my_classes'] = \App\Models\MyClass::orderBy('id')->get();
+        $d['periods'] = \App\Models\AssessmentPeriod::forYear(Qs::getSetting('current_session'))
+            ->where('is_active', true)->get();
         return view('pages.support_team.exams.index', $d);
+    }
+
+    /**
+     * The legacy term mirror for a period (R1 §1.3): a term
+     * period contributes its legacy_term (0 when NULL); a unit
+     * period contributes its parent term period's legacy_term
+     * (0 when NULL); standalone contributes 0.
+     */
+    public static function derivedTerm(\App\Models\AssessmentPeriod $period): int
+    {
+        if ($period->kind === 'unit') {
+            $parent = $period->feedsPeriod;
+            return $parent && $parent->legacy_term !== null ? (int) $parent->legacy_term : 0;
+        }
+        return $period->legacy_term !== null ? (int) $period->legacy_term : 0;
+    }
+
+    /**
+     * Compat shim: an older post carrying only 'term' maps to the
+     * session's term period for that legacy number, creating the
+     * backfill-shaped period when the session has none (§3.1).
+     */
+    protected function periodForLegacyTerm($term, $year): \App\Models\AssessmentPeriod
+    {
+        $period = \App\Models\AssessmentPeriod::where('year', $year)
+            ->where('kind', 'term')->where('legacy_term', (int) $term)->first();
+        if (!$period) {
+            $period = \App\Models\AssessmentPeriod::create([
+                'year' => $year, 'name' => 'Term ' . (int) $term, 'kind' => 'term',
+                'feeds_period_id' => null, 'counts_toward_annual' => true,
+                'sort_order' => ((int) $term) * 10, 'legacy_term' => (int) $term, 'is_active' => true,
+            ]);
+        }
+        return $period;
     }
 
     public function store(ExamCreate $req)
     {
-        $data = $req->only(['name', 'term', 'my_class_id']);
+        $data = $req->only(['name', 'my_class_id']);
         $data['year'] = Qs::getSetting('current_session');
         // Class scope (owner build 2026-10-25): 0 = every class
         // (the historical global exam); anything else = one class.
@@ -51,12 +87,25 @@ class ExamController extends Controller
             return back()->with('flash_danger', 'Unknown class.')->withInput();
         }
 
-        // Partition rule: for one (term, session), a class is
-        // covered by at most one exam — a global exam blocks class
-        // exams for that term and vice versa. The DB unique
-        // (term, year, my_class_id) is the backstop; this refusal
-        // is the polite message instead of an exception.
-        if ($conflict = $this->examScopeConflict($data['term'], $data['year'], $data['my_class_id'])) {
+        // Phase 1: the exam belongs to a period; 'term' is the
+        // derived legacy mirror, never posted by the new form.
+        $period = $req->filled('period_id')
+            ? \App\Models\AssessmentPeriod::find((int) $req->input('period_id'))
+            : $this->periodForLegacyTerm($req->input('term'), $data['year']);
+        if (!$period) {
+            return back()->with('flash_danger', 'Unknown assessment period.')->withInput();
+        }
+        $data['period_id'] = $period->id;
+        $data['term'] = self::derivedTerm($period);
+
+        // Partition rule (re-keyed to the period, R1 §2.4): for
+        // one (period, session), a class is covered by at most one
+        // exam — a global exam blocks class exams for that period
+        // and vice versa. The DB unique (period_id, year,
+        // my_class_id) is the backstop; this refusal is the polite
+        // message instead of an exception. A unit-test exam and
+        // its term exam for the same class now coexist.
+        if ($conflict = $this->examScopeConflict($data['period_id'], $data['year'], $data['my_class_id'])) {
             return back()->with('flash_danger', $conflict)->withInput();
         }
 
@@ -66,26 +115,40 @@ class ExamController extends Controller
     }
 
     /**
-     * The partition refusal for one (term, session, scope): null
-     * when the exam may be created, else the message. A NULL
+     * The partition refusal for one (period, session, scope):
+     * null when the exam may be created, else the message. A NULL
      * my_class_id (pre-migration rows) counts as global.
      */
-    protected function examScopeConflict($term, $year, $scope): ?string
+    protected function examScopeConflict($periodId, $year, $scope, $ignoreExamId = null): ?string
     {
-        $termExams = $this->exam->getExam(['term' => $term, 'year' => $year]);
+        $periodExams = $this->exam->getExam(['period_id' => $periodId, 'year' => $year]);
+        // Unlinked exams (period_id NULL — seeded rows before the
+        // pattern page links them) still belong to the period their
+        // term mirrors: without this merge, a second exam could be
+        // created over an unlinked one and the partition would have
+        // a hole until the link fixup runs.
+        $period = \App\Models\AssessmentPeriod::find($periodId);
+        if ($period && $period->legacy_term !== null) {
+            $unlinked = $this->exam->getExam(['year' => $year, 'term' => (int) $period->legacy_term])
+                ->filter(function ($e) { return empty($e->period_id); });
+            $periodExams = $periodExams->merge($unlinked);
+        }
+        if ($ignoreExamId) {
+            $periodExams = $periodExams->filter(function ($e) use ($ignoreExamId) { return (int) $e->id !== (int) $ignoreExamId; });
+        }
         if ($scope === 0) {
-            if ($termExams->isNotEmpty()) {
-                return 'An exam already exists for this term in the current session ('.$year.'). A global exam covers every class — edit the existing exam instead of adding another.';
+            if ($periodExams->isNotEmpty()) {
+                return 'An exam already exists for this period in the current session ('.$year.'). A global exam covers every class — edit the existing exam instead of adding another.';
             }
             return null;
         }
-        $global = $termExams->filter(function ($e) { return empty($e->my_class_id); });
+        $global = $periodExams->filter(function ($e) { return empty($e->my_class_id); });
         if ($global->isNotEmpty()) {
-            return 'A global exam ('.$global->first()->name.') already covers this term for every class — a class exam cannot be added for the same term.';
+            return 'A global exam ('.$global->first()->name.') already covers this period for every class — a class exam cannot be added for the same period.';
         }
-        $same = $termExams->filter(function ($e) use ($scope) { return (int) $e->my_class_id === $scope; });
+        $same = $periodExams->filter(function ($e) use ($scope) { return (int) $e->my_class_id === $scope; });
         if ($same->isNotEmpty()) {
-            return 'An exam for this class and term already exists in the current session ('.$year.'). Edit the existing exam instead.';
+            return 'An exam for this class and period already exists in the current session ('.$year.'). Edit the existing exam instead.';
         }
         return null;
     }
@@ -98,15 +161,52 @@ class ExamController extends Controller
         // a genuinely missing exam lands on the index with a warning
         // like the sibling modules, never a 500.
         $d['ex'] = $ex = $this->exam->find(Qs::resolveId($id));
+        if (is_null($ex)) {
+            return Qs::goWithDanger('exams.index');
+        }
+        $d['periods'] = \App\Models\AssessmentPeriod::forYear($ex->year)
+            ->where('is_active', true)->get();
+        // Phase 1: the period is locked once marks exist (moving
+        // an exam between periods would re-point its rows' totals).
+        $d['has_marks'] = \App\Models\Mark::where('exam_id', $ex->id)->exists();
 
-        return is_null($ex) ? Qs::goWithDanger('exams.index') : view('pages.support_team.exams.edit', $d);
+        return view('pages.support_team.exams.edit', $d);
     }
 
     public function update(ExamUpdate $req, $id)
     {
-        $data = $req->only(['name', 'term']);
+        $examId = Qs::resolveId($id);
+        $exam = $this->exam->find($examId);
+        if (!$exam) {
+            return Qs::goWithDanger('exams.index');
+        }
+        $data = $req->only(['name']);
 
-        $this->exam->update(Qs::resolveId($id), $data);
+        // Phase 1: a period change is allowed only while the exam
+        // has ZERO mark rows; the legacy 'term' post maps through
+        // the same period machinery (compat shim).
+        $targetPeriod = null;
+        if ($req->filled('period_id')) {
+            $targetPeriod = \App\Models\AssessmentPeriod::find((int) $req->input('period_id'));
+        } elseif ($req->filled('term')) {
+            $targetPeriod = \App\Models\AssessmentPeriod::where('year', $exam->year)
+                ->where('kind', 'term')->where('legacy_term', (int) $req->input('term'))->first();
+        }
+        if ($targetPeriod && (int) $targetPeriod->id !== (int) $exam->period_id) {
+            if (\App\Models\Mark::where('exam_id', $exam->id)->exists()) {
+                return back()->with('flash_danger', 'This exam already has marks, so its period cannot be changed.')->withInput();
+            }
+            // The period partition applies to moves too.
+            if ($conflict = $this->examScopeConflict($targetPeriod->id, $exam->year, (int) $exam->my_class_id, $exam->id)) {
+                // The exam itself is excluded from the check (an
+                // unlinked exam may match its own legacy mirror).
+                return back()->with('flash_danger', $conflict)->withInput();
+            }
+            $data['period_id'] = $targetPeriod->id;
+            $data['term'] = self::derivedTerm($targetPeriod);
+        }
+
+        $this->exam->update($examId, $data);
         // Loop 112: post-save lands on the exams index (owner ruling) —
         // was back() to the edit form.
         return Qs::updateOk('exams.index');

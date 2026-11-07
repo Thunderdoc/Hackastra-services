@@ -39,10 +39,14 @@
             </form>
 
             @if($alumni->isEmpty())
-                <p class="text-muted">No graduated students found. Try clearing the filters, or check back after students graduate.</p>
+                @include('partials.patterns.empty_state', [
+                    'icon' => 'icon-search4',
+                    'message' => 'No graduated students found. Try clearing the filters, or check back after students graduate.',
+                    'action_html' => '<a class="btn btn-primary" href="' . route('alumni.index') . '">Clear filters</a>',
+                ])
             @else
                 <div class="table-responsive">
-                    <table class="table table-striped">
+                    <table class="table table-striped l108-stack">
                         <thead>
                             <tr>
                                 <th>Student</th>

@@ -44,7 +44,7 @@
                         <span class="badge badge-warning sub-group-badge">{{ $rows->count() }} period(s) · Planned — goes live when the leave is approved</span>
                     </h6>
                     <div class="table-responsive mb-3">
-                        <table class="table table-sm sub-table sub-plan-table">
+                        <table class="table table-sm sub-table sub-plan-table hk-std hk-std-subplan">
                             <colgroup><col style="width:24%"><col style="width:24%"><col style="width:22%"><col style="width:30%"></colgroup>
                             <thead>
                                 <tr>
@@ -86,6 +86,7 @@
         <div class="card-header">
             <h5 class="card-title">Substitution Sheet</h5>
             <p class="text-muted mb-0">Who covered whom, period by period. The sheet updates itself — approvals, switches and re-covers appear here as they happen.</p>
+            <p class="mb-0 mt-2"><a href="{{ route('substitutions.uncovered') }}" class="btn btn-sm btn-warning"><i class="icon-alarm mr-1"></i> Uncovered periods</a> <span class="text-muted">Periods still without cover — allot a teacher or cancel the class there.</span></p>
         </div>
         <div class="card-body">
             <form method="GET" action="{{ route('substitutions.index') }}" class="form-inline mb-3">
@@ -106,7 +107,31 @@
             </form>
 
             @if($substitutions->isEmpty())
-                <p class="text-muted mb-0">{{ !empty($filter_date) ? 'No substitutions on this date.' : 'No substitutions arranged yet — this sheet covers every date; pick a date above to see a single day.' }}</p>
+                {{-- Round 5 P11: the empty board renders the sheet
+                     itself with the pat-empty table-row form (the
+                     leave/my precedent) instead of a bare text
+                     line, so the empty state carries the standard
+                     too. Messages unchanged. --}}
+                <div class="table-responsive mb-3">
+                    <table class="table table-sm sub-table sub-sheet-table hk-std hk-std-subsheet">
+                        <colgroup><col style="width:15%"><col style="width:15%"><col style="width:14%"><col style="width:15%"><col style="width:15%"><col style="width:10%"><col style="width:8%"><col style="width:8%"></colgroup>
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Class</th>
+                                <th>Subject</th>
+                                <th>Absent Faculty</th>
+                                <th>Substitute Faculty</th>
+                                <th>Arranged By</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td colspan="8">@include('partials.patterns.empty_state', ['icon' => 'icon-calendar2', 'message' => !empty($filter_date) ? 'No substitutions on this date.' : 'No substitutions arranged yet — this sheet covers every date; pick a date above to see a single day.'])</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             @else
                 @foreach($substitutions->groupBy(function ($s) { return $s->date ? $s->date->toDateString() : ''; }) as $dateStr => $rows)
                     <h6 class="mb-2 mt-3">
@@ -114,7 +139,7 @@
                         <span class="badge badge-light">{{ $rows->count() }} period(s)</span>
                     </h6>
                     <div class="table-responsive mb-3">
-                        <table class="table table-sm sub-table sub-sheet-table">
+                        <table class="table table-sm sub-table sub-sheet-table hk-std hk-std-subsheet">
                             <colgroup><col style="width:15%"><col style="width:15%"><col style="width:14%"><col style="width:15%"><col style="width:15%"><col style="width:10%"><col style="width:8%"><col style="width:8%"></colgroup>
                             <thead>
                                 <tr>
@@ -142,10 +167,12 @@
                                         </td>
                                         <td data-label="Subject">{{ optional(optional($sub->time_table)->subject)->name ?: '—' }}</td>
                                         <td data-label="Absent Faculty">{{ optional($sub->absent_teacher)->name ?: '—' }}</td>
-                                        <td data-label="Substitute Faculty"><strong>{{ optional($sub->substitute)->name ?: '—' }}</strong></td>
+                                        <td data-label="Substitute Faculty">@if($sub->isCancelled())<span class="text-muted">— Class cancelled —</span>@else<strong>{{ optional($sub->substitute)->name ?: '—' }}</strong>@endif</td>
                                         <td data-label="Arranged By">{{ $sub->creator ? $sub->creator->name : 'System (auto)' }}</td>
                                         <td data-label="Status" class="sub-nowrap">
-                                            @if($sub->isPending())
+                                            @if($sub->isCancelled())
+                                                <span class="badge badge-secondary">Cancelled</span>
+                                            @elseif($sub->isPending())
                                                 <span class="badge badge-warning">Planned</span>
                                             @else
                                                 <span class="badge badge-success">Live</span>
@@ -153,7 +180,7 @@
                                         </td>
                                         <td data-label="Action">
                                             @if($can_delete($sub))
-                                                <form method="POST" action="{{ route('substitutions.destroy', $sub->id) }}" onsubmit="return confirm('Remove this substitution?')">
+                                                <form method="POST" action="{{ route('substitutions.destroy', $sub->id) }}" data-confirm="Remove this substitution? This cannot be undone." data-confirm-title="Remove Substitution" data-confirm-action="Remove" data-confirm-danger>
                                                     @csrf
                                                     @method('delete')
                                                     <button type="submit" class="btn btn-sm btn-danger"><i class="icon-trash"></i> Remove</button>

@@ -41,6 +41,13 @@ class FeeDefaulter
             ->when($filters['section_id'] ?? null, function ($q, $section_id) {
                 return $q->where('section_id', $section_id);
             })
+            /* P10 (Round 5 Slice 3): an explicit selection narrows
+               the set further — checked student USER ids from the
+               Defaulters page's bulk bar, intersected with every
+               other filter above (checked ids ∩ filtered set). */
+            ->when(!empty($filters['user_ids']), function ($q) use ($filters) {
+                return $q->whereIn('user_id', $filters['user_ids']);
+            })
             ->when($filters['q'] ?? null, function ($q, $term) {
                 return $q->where(function ($sub) use ($term) {
                     $sub->where('adm_no', 'like', '%' . $term . '%')
@@ -125,7 +132,7 @@ class FeeDefaulter
             ->get();
 
         return (int) $records->sum(function ($r) {
-            return $r->balance ?: $r->payment->amount;
+            return $r->balance ?: optional($r->payment)->amount;
         });
     }
 

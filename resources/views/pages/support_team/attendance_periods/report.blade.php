@@ -86,7 +86,8 @@
 
             <h6 class="mb-2">Per-student attendance in this subject</h6>
             <div class="table-responsive mb-4">
-                <table class="table">
+                <table class="table hk-std hk-std-760">
+                    <colgroup><col style="width:26%"><col style="width:12%"><col style="width:12%"><col style="width:11%"><col style="width:11%"><col style="width:10%"><col style="width:18%"></colgroup>
                     <thead>
                     <tr>
                         <th>Student</th>
@@ -103,10 +104,10 @@
                         <tr>
                             <td><strong>{{ optional($row['student']->user)->name }}</strong></td>
                             <td>{{ optional($row['student']->section)->name ?: '—' }}</td>
-                            <td>{{ $row['held'] }}</td>
-                            <td>{{ $row['present'] }}</td>
-                            <td>{{ $row['absent'] }}</td>
-                            <td>{{ $row['late'] }}</td>
+                            <td class="hk-nw">{{ $row['held'] }}</td>
+                            <td class="hk-nw">{{ $row['present'] }}</td>
+                            <td class="hk-nw">{{ $row['absent'] }}</td>
+                            <td class="hk-nw">{{ $row['late'] }}</td>
                             <td>
                                 @if($row['percent'] === null)
                                     <span class="text-muted">—</span>
@@ -122,7 +123,8 @@
 
             <h6 class="mb-2">Session log</h6>
             <div class="table-responsive">
-                <table class="table">
+                <table class="table hk-std hk-std-760">
+                    <colgroup><col style="width:16%"><col style="width:16%"><col style="width:20%"><col style="width:32%"><col style="width:16%"></colgroup>
                     <thead>
                     <tr>
                         <th>Date</th>
@@ -135,10 +137,10 @@
                     <tbody>
                     @foreach($log as $entry)
                         <tr>
-                            <td style="white-space: nowrap">{{ $entry['date']->format('d M Y') }}</td>
-                            <td style="white-space: nowrap">{{ $entry['time_label'] }}</td>
+                            <td class="hk-nw">{{ $entry['date']->format('d M Y') }}</td>
+                            <td class="hk-nw">{{ $entry['time_label'] }}</td>
                             <td>{{ $entry['teacher_name'] }}</td>
-                            <td>
+                            <td class="hk-ellip" title="{{ $entry['topic'] }}">
                                 <a href="{{ route('attendance.periods.show', $entry['session']->id) }}">{{ $entry['topic'] }}</a>
                             </td>
                             <td>{{ $entry['present'] }} of {{ $entry['total'] }}</td>

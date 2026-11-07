@@ -73,22 +73,28 @@
                 Marking a salary <strong>Paid</strong> records that it was disbursed — no bank transfer is made from this page.
             </p>
 
-            <div class="table-responsive">
-                <table class="table table-striped pay-table">
-                    <thead>
-                    <tr>
-                        <th>Staff Member</th>
-                        <th>Code</th>
-                        <th>Role</th>
-                        <th class="text-right">Basic</th>
-                        <th class="text-right">Allowances</th>
-                        <th class="text-right">Deductions</th>
-                        <th class="text-right">Net Pay</th>
-                        <th>Status</th>
-                        <th class="text-right">Actions</th>
-                    </tr>
-                    </thead>
-                    <tbody>
+            {{-- Round 5 P11: the payroll table rides the shared
+                 data_table pattern with its settled column widths
+                 (15/8/7/8/9/9/9/10/25, sum 100) and the existing
+                 hk-std-payroll variant, so its rendered colgroup
+                 and header classes are unchanged. The per-staff
+                 edit rows stay in the body slot, forms intact. --}}
+            @component('partials.patterns.data_table', [
+                'columns' => [
+                    ['key' => 'staff', 'label' => 'Staff Member', 'width' => 14],
+                    ['key' => 'code', 'label' => 'Code', 'width' => 10, 'class' => 'hk-nw'],
+                    ['key' => 'role', 'label' => 'Role', 'width' => 9],
+                    ['key' => 'basic', 'label' => 'Basic', 'width' => 8, 'align' => 'right'],
+                    ['key' => 'allowances', 'label' => 'Allowances', 'width' => 9, 'align' => 'right'],
+                    ['key' => 'deductions', 'label' => 'Deductions', 'width' => 9, 'align' => 'right'],
+                    ['key' => 'net', 'label' => 'Net Pay', 'width' => 9, 'class' => 'hk-nw', 'align' => 'right'],
+                    ['key' => 'status', 'label' => 'Status', 'width' => 10, 'class' => 'hk-nw'],
+                    ['key' => 'actions', 'label' => 'Actions', 'width' => 22, 'align' => 'right'],
+                ],
+                'variant' => 'payroll',
+                'min_width' => 1020,
+                'table_class' => 'table-striped pay-table',
+            ])
                     @foreach($staff as $member)
                         @php $rec = $records->get($member->id); @endphp
                         <tr>
@@ -96,13 +102,13 @@
                                 <strong>{{ $member->name }}</strong>
                                 <div class="text-muted font-size-sm">{{ $member->email }}</div>
                             </td>
-                            <td>{{ $member->code ?: '—' }}</td>
+                            <td class="hk-nw">{{ $member->code ?: '—' }}</td>
                             <td>{{ ucwords(str_replace('_', ' ', $member->user_type)) }}</td>
                             @if($rec)
-                                <td class="text-right">{{ \App\Helpers\Money::inr($rec->basic_salary) }}</td>
-                                <td class="text-right">{{ \App\Helpers\Money::inr($rec->allowances) }}</td>
-                                <td class="text-right">{{ \App\Helpers\Money::inr($rec->deductions) }}</td>
-                                <td class="text-right font-weight-bold">{{ \App\Helpers\Money::inr($rec->net_pay) }}</td>
+                                <td class="text-right hk-nw">{{ \App\Helpers\Money::inr($rec->basic_salary) }}</td>
+                                <td class="text-right hk-nw">{{ \App\Helpers\Money::inr($rec->allowances) }}</td>
+                                <td class="text-right hk-nw">{{ \App\Helpers\Money::inr($rec->deductions) }}</td>
+                                <td class="text-right font-weight-bold hk-nw">{{ \App\Helpers\Money::inr($rec->net_pay) }}</td>
                                 <td>
                                     @if($rec->isPaid())
                                         <span class="badge pay-badge-paid">Paid</span>
@@ -185,9 +191,7 @@
                             </td>
                         </tr>
                     @endforeach
-                    </tbody>
-                </table>
-            </div>
+            @endcomponent
         </div>
     </div>
 

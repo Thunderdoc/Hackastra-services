@@ -15,7 +15,7 @@
                 <div class="alert alert-danger">{{ session('flash_danger') }}</div>
             @endif
             @if ($grants->isEmpty())
-                <p class="text-muted">No grants yet.</p>
+                @include('partials.patterns.empty_state', ['icon' => 'icon-lock', 'message' => 'No grants yet.'])
             @else
                 <div class="table-responsive">
                     <table class="table table-striped">
@@ -38,7 +38,7 @@
                                     <td>{{ optional($grant->granter)->name ?: '-' }}</td>
                                     <td>{{ $grant->created_at }}</td>
                                     <td>
-                                        <form method="POST" action="{{ route('role_permissions.destroy', $grant->id) }}" onsubmit="return confirm('Revoke this grant? The base rule will apply again.');">
+                                        <form method="POST" action="{{ route('role_permissions.destroy', $grant->id) }}" data-confirm="Revoke the {{ $grant->permission }} grant for {{ optional($grant->user)->name ?: 'this user' }}? The base rule will apply again." data-confirm-title="Revoke Grant" data-confirm-action="Revoke" data-confirm-danger>
                                             @csrf
                                             @method('delete')
                                             <button type="submit" class="btn btn-danger btn-sm">Revoke</button>

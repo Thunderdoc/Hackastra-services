@@ -203,8 +203,8 @@
                 <div class="form-row">
                     <div class="form-group col-md-6 rb2-filter" data-filter-group="status">
                         <label>Status</label>
-                        <input type="text" id="rbStatus" class="form-control" placeholder="e.g. overdue">
-                        <small class="form-text text-muted">Source-specific: overdue, issued, partial, …</small>
+                        <span id="rbStatusWrap"><input type="text" id="rbStatus" class="form-control" placeholder="e.g. overdue"></span>
+                        <small class="form-text text-muted" id="rbStatusHint">Source-specific: overdue, issued, partial, …</small>
                     </div>
                     <div class="form-group col-md-6 rb2-filter" data-filter-group="session">
                         <label>Academic Year / Session</label>
@@ -303,7 +303,7 @@
                         <input type="text" id="rbTemplateName" class="form-control" maxlength="80" placeholder="Template name">
                     </div>
                     <div class="form-group col-4 mb-0">
-                        <button type="button" id="rbSaveBtn" class="btn btn-light btn-block">Save Template</button>
+                        <button type="button" id="rbSaveBtn" class="btn btn-light btn-block" data-hx-guard data-hx-guard-ms="6000">Save Template</button>
                     </div>
                 </div>
             </div>
@@ -323,7 +323,7 @@
                                 @csrf
                                 <button type="submit" class="btn btn-sm btn-light">Duplicate</button>
                             </form>
-                            <form method="POST" action="{{ route('reports.templates.destroy', [$template->id]) }}" style="display:inline;" onsubmit="return confirm('Delete this template?');">
+                            <form method="POST" action="{{ route('reports.templates.destroy', [$template->id]) }}" style="display:inline;" data-confirm="Delete template {{ $template->name }}? This cannot be undone." data-confirm-title="Delete Template" data-confirm-action="Delete" data-confirm-danger>
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit" class="btn btn-sm btn-light">Delete</button>
@@ -345,15 +345,19 @@
         <div class="rb5-docbar">
             <p id="rbSummary" class="rb2-summary mb-0"></p>
             <div class="rb5-docbar-actions">
-                <button type="button" class="btn btn-primary btn-sm rb-generate-btn" style="height:32px;"><i class="icon-file-pdf mr-1"></i> Download PDF</button>
-                <button type="button" class="btn btn-light btn-sm rb-word-btn" style="height:32px;"><i class="icon-file-word mr-1"></i> Download Word</button>
+                <button type="button" class="btn btn-primary btn-sm rb-generate-btn" style="height:32px;" data-hx-guard data-hx-guard-ms="6000"><i class="icon-file-pdf mr-1"></i> Download PDF</button>
+                <button type="button" class="btn btn-light btn-sm rb-word-btn" style="height:32px;" data-hx-guard data-hx-guard-ms="6000"><i class="icon-file-word mr-1"></i> Download Word</button>
             </div>
         </div>
         <div class="rb5-statusbar">
             <p id="rbPreviewStatus" class="rb2-status mb-0" role="status">Loading the document…</p>
             <p id="rbPreviewLoading" class="rb2-loading mb-0" style="display:none;">Updating document…</p>
+            <button type="button" id="rbRefreshData" class="btn btn-link btn-sm p-0">↻ Refresh data</button>
+            <span id="rbDraftNote" class="rb2-status" style="display:none;">Restored your unsaved draft — <button type="button" id="rbStartFresh" class="btn btn-link btn-sm p-0">Start fresh</button></span>
         </div>
+        <div class="hk-skel-bar" id="rbSkelBar" style="display:none;" aria-hidden="true"></div>
         <div class="rb5-workspace">
+            <div class="hk-skel-overlay" id="rbSkelOverlay">@include('partials.patterns.skeleton', ['type' => 'frame', 'rows' => 8])</div>
             <iframe id="previewFrame" name="previewFrame" src="about:blank" title="Report document"></iframe>
         </div>
     </div>
@@ -383,6 +387,8 @@
     var SCHOOL_NAME = @json(\App\Helpers\Qs::getSetting('system_name') ?: 'School');
     var CURRENT_SESSION = @json($currentSession);
     var PREVIEW_HTML_URL = @json(route('reports.preview_html'));
+    var RB_USER_ID = @json(auth()->id());
+    var DRAFT_KEY = 'rb5-draft-' + RB_USER_ID;
     var COL_TYPES = ['text', 'number', 'currency', 'date', 'checkbox', 'box', 'dropdown', 'yes_no', 'signature', 'remarks', 'blank'];
 
     /* Which filter groups each source shows — derived from the
@@ -403,6 +409,51 @@
     });
     var FILTER_GROUP_INPUTS = { class: ['rbClass'], section: ['rbSection'], subject: ['rbSubject'], exam: ['rbExam'], dates: ['rbDateFrom', 'rbDateTo'], status: ['rbStatus'], session: ['rbYear'] };
     function el(id) { return document.getElementById(id); }
+    /* Status control (Phase-1 live-edit fix): when the source's
+       definition carries status_options, the status filter is a
+       SELECT whose values are the stored keys and whose labels are
+       the displayed words — the user can no longer type the
+       displayed word ("Partial") and silently get zero rows.
+       Sources without options keep the free-text box. Switching
+       source re-renders the control and drops a value the new
+       source does not offer. */
+    function renderStatusControl() {
+        var wrap = el('rbStatusWrap');
+        if (!wrap) { return; }
+        var srcDef = SOURCES[el('rbSource').value] || {};
+        var options = srcDef.status_options || null;
+        var current = el('rbStatus');
+        var prev = current ? current.value : '';
+        wrap.innerHTML = '';
+        var hint = el('rbStatusHint');
+        if (options) {
+            var sel = document.createElement('select');
+            sel.id = 'rbStatus';
+            sel.className = 'form-control';
+            var anyOpt = document.createElement('option');
+            anyOpt.value = '';
+            anyOpt.textContent = 'Any';
+            sel.appendChild(anyOpt);
+            Object.keys(options).forEach(function (k) {
+                var o = document.createElement('option');
+                o.value = k;
+                o.textContent = options[k];
+                sel.appendChild(o);
+            });
+            sel.value = Object.prototype.hasOwnProperty.call(options, prev) ? prev : '';
+            wrap.appendChild(sel);
+            if (hint) { hint.textContent = 'Choose the status to include — Any shows all.'; }
+        } else {
+            var inp = document.createElement('input');
+            inp.type = 'text';
+            inp.id = 'rbStatus';
+            inp.className = 'form-control';
+            inp.placeholder = 'e.g. overdue';
+            inp.value = prev;
+            wrap.appendChild(inp);
+            if (hint) { hint.textContent = 'Source-specific: overdue, issued, partial, …'; }
+        }
+    }
     function applyFilterVisibility() {
         var groups = FILTER_MAP[el('rbSource').value] || [];
         document.querySelectorAll('.rb2-filter').forEach(function (node) {
@@ -421,6 +472,7 @@
             }
         });
         el('rbNoFilters').style.display = groups.length ? 'none' : '';
+        renderStatusControl();
     }
     function refreshTemplateDesc() {
         var s = SOURCES[el('rbSource').value];
@@ -437,7 +489,17 @@
 
     var previewTimer = null;
     var previewRequested = false;
+    var rbFirstDocLoaded = false;
     var previewSeq = 0;
+    var previewAbort = null;
+    var lastPreviewHtml = '';
+    var lastRenderedConfigJson = '';
+    var lastRenderTime = 0;
+    var pendingGenAt = '';
+    var pendingRecords = '';
+    var pendingConfigJson = '';
+    var pendingScroll = null;
+    var suppressPresetReset = false;
     var autoTitle = '';
     var titleTouched = false;
     function sourceLabel() {
@@ -468,6 +530,13 @@
     }
     function setPreviewLoading(on) {
         el('rbPreviewLoading').style.display = on ? '' : 'none';
+        /* Round 5 Slice 1 (P2): once the first document has loaded,
+           updates show the slim skeleton bar — the paper on screen is
+           never blanked while the next render is in flight. Before
+           the first load, the skeleton overlay over the frame (hidden
+           by the load listener) is the loading state. */
+        var bar = el('rbSkelBar');
+        if (bar && rbFirstDocLoaded) { bar.style.display = on ? '' : 'none'; }
     }
     function updateSummary() {
         var out = el('rbSummary');
@@ -492,26 +561,81 @@
         if (cfg.filters.section_id) { parts.push('Section: ' + optionLabel('rbSection', cfg.filters.section_id)); }
         if (cfg.filters.subject_id) { parts.push('Subject: ' + optionLabel('rbSubject', cfg.filters.subject_id)); }
         if (cfg.filters.exam_id) { parts.push('Exam: ' + optionLabel('rbExam', cfg.filters.exam_id)); }
+        if (cfg.filters.status) { parts.push('Status: ' + cfg.filters.status); }
+        if (cfg.filters.date_from || cfg.filters.date_to) { parts.push('Dates: ' + (cfg.filters.date_from || '…') + ' to ' + (cfg.filters.date_to || '…')); }
         parts.push(cfg.columns.length + ' column' + (cfg.columns.length === 1 ? '' : 's'));
         out.textContent = parts.join(' • ');
     }
-    function schedulePreview() {
-        updateSummary();
-        if (previewTimer) { clearTimeout(previewTimer); }
-        setPreviewLoading(true);
-        previewTimer = setTimeout(runPreview, 350);
+    /* Draft autosave (Phase-1 live-edit fix): every schedule saves
+       the current config to localStorage under a per-user key, so a
+       reload — including the Save / Duplicate / Delete template
+       page reloads — restores the work instead of losing it. */
+    function saveDraft() {
+        try {
+            var payload = { config: collectConfig(), preset: el('rbPreset') ? el('rbPreset').value : '' };
+            localStorage.setItem(DRAFT_KEY, JSON.stringify(payload));
+        } catch (e) { /* storage full / blocked — editing still works */ }
     }
+    /* Single scheduler (Phase-1 live-edit fix): every change flows
+       through markDirty(). Typing-class changes debounce 600 ms,
+       discrete changes 250 ms. Three truthful statusbar states:
+       Editing… (dirty, not yet sent), Updating document… (in
+       flight), Updated HH:MM:SS • N records (done, from the
+       X-RB-* response headers). Any manual change also resets the
+       preset select to Custom, so a preset can always be
+       re-applied. */
+    function markDirty(source) {
+        if (!suppressPresetReset && source !== 'preset' && source !== 'restore') {
+            var presetEl = el('rbPreset');
+            if (presetEl && presetEl.value) { presetEl.value = ''; }
+        }
+        updateSummary();
+        saveDraft();
+        if (previewTimer) { clearTimeout(previewTimer); }
+        setPreviewStatus('Editing…', false);
+        setPreviewLoading(true);
+        var delay = source === 'typing' ? 600 : 250;
+        previewTimer = setTimeout(runPreview, delay);
+    }
+    function schedulePreview() { markDirty('discrete'); }
     /* rb5 transport: the document is HTML (the same print view),
        fetched and swapped into the frame. A sequence number
        discards stale responses, so a slow earlier render can never
-       overwrite a newer one. Text edits inside the document stay
-       local and sync into the config — they never trigger this. */
+       overwrite a newer one, and an AbortController cancels the
+       superseded request itself. Response discipline (Phase-1):
+       ONLY an HTTP 200 swaps the frame; 422 keeps the existing
+       error-document path; 401/419 means the session expired and
+       is NEVER loaded into the frame; any other failure keeps the
+       old document and says so. Freshness is true by construction:
+       every successful preview is a fresh DB resolve — nothing is
+       cached client- or server-side (cache: 'no-store'). Text
+       edits inside the document stay local and sync into the
+       config — they never trigger this. */
     function runPreview() {
         previewTimer = null;
         var cfg = collectConfig();
         var problem = previewDraftProblem(cfg);
         if (problem) { setPreviewLoading(false); setPreviewStatus('Document not updated — ' + problem + ' The document below still shows the previous settings.', true); return; }
         var seq = ++previewSeq;
+        if (previewAbort) { try { previewAbort.abort(); } catch (e) { /* already settled */ } }
+        previewAbort = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+        /* Swap preservation: capture the frame scroll (and whether
+           the user was mid-edit in the canvas) before the swap, so
+           the new document lands where the old one was read. */
+        pendingScroll = null;
+        try {
+            var frameEl = el('previewFrame');
+            var fw = frameEl.contentWindow;
+            var fdoc0 = frameEl.contentDocument;
+            var focusKind = null;
+            if (fdoc0 && fdoc0.activeElement) {
+                var ae = fdoc0.activeElement;
+                if (ae.getAttribute && ae.getAttribute('data-edit')) { focusKind = ae.getAttribute('data-edit'); }
+                else if (ae.contentEditable === 'true') { focusKind = 'heading'; }
+            }
+            pendingScroll = { x: fw ? (fw.scrollX || 0) : 0, y: fw ? (fw.scrollY || 0) : 0, focusKind: focusKind };
+        } catch (e) { pendingScroll = null; }
+        pendingConfigJson = JSON.stringify(cfg);
         previewRequested = true;
         setPreviewLoading(true);
         setPreviewStatus('Updating document…', false);
@@ -519,18 +643,60 @@
         var tokenInput = el('rbSaveForm').querySelector('input[name="_token"]');
         fd.append('_token', tokenInput ? tokenInput.value : '');
         fd.append('config', JSON.stringify(cfg));
-        fetch(PREVIEW_HTML_URL, { method: 'POST', body: fd, credentials: 'same-origin' })
-            .then(function (r) { return r.text().then(function (t) { return { ok: r.ok, text: t }; }); })
+        var fetchOpts = { method: 'POST', body: fd, credentials: 'same-origin', cache: 'no-store' };
+        if (previewAbort) { fetchOpts.signal = previewAbort.signal; }
+        fetch(PREVIEW_HTML_URL, fetchOpts)
+            .then(function (r) { return r.text().then(function (t) { return { status: r.status, ok: r.ok, text: t, genAt: r.headers.get('X-RB-Generated-At') || '', records: r.headers.get('X-RB-Records') || '' }; }); })
             .then(function (res) {
                 if (seq !== previewSeq) { return; }
+                if (res.status === 401 || res.status === 419) {
+                    previewRequested = false;
+                    setPreviewLoading(false);
+                    setPreviewStatus('Session expired — your draft is saved on this device; reload to sign in again', true);
+                    return;
+                }
+                if (res.status === 422) {
+                    pendingGenAt = '';
+                    pendingRecords = '';
+                    el('previewFrame').srcdoc = res.text;
+                    return;
+                }
+                if (!res.ok) {
+                    previewRequested = false;
+                    setPreviewLoading(false);
+                    setPreviewStatus('Document not updated — server error. The document below still shows the previous settings.', true);
+                    return;
+                }
+                pendingGenAt = res.genAt;
+                pendingRecords = res.records;
+                if (lastPreviewHtml && res.text === lastPreviewHtml) {
+                    /* Byte-identical refresh: skip the swap so
+                       scroll and focus survive untouched. */
+                    previewRequested = false;
+                    setPreviewLoading(false);
+                    lastRenderTime = Date.now();
+                    lastRenderedConfigJson = pendingConfigJson;
+                    setPreviewStatus(updatedStamp(), false);
+                    return;
+                }
+                lastPreviewHtml = res.text;
                 el('previewFrame').srcdoc = res.text;
             })
-            .catch(function () {
+            .catch(function (err) {
+                if (err && err.name === 'AbortError') { return; }
                 if (seq !== previewSeq) { return; }
                 previewRequested = false;
                 setPreviewLoading(false);
                 setPreviewStatus('Document not updated — could not reach the server. The document below still shows the previous settings.', true);
             });
+    }
+    function updatedStamp() {
+        var time = '';
+        var m = /(\d{2}:\d{2}:\d{2})/.exec(pendingGenAt || '');
+        if (m) { time = m[1]; }
+        if (!time) { time = new Date().toLocaleTimeString('en-GB'); }
+        var n = pendingRecords !== '' && pendingRecords !== null ? pendingRecords : '0';
+        return 'Updated ' + time + ' • ' + n + ' record' + (String(n) === '1' ? '' : 's');
     }
 
     function isCustomKey(k) { return /^custom_\d+$/.test(k); }
@@ -563,6 +729,8 @@
                 sel.appendChild(o);
             }
         });
+        var addBtn = el('rbAddBtn');
+        if (addBtn) { addBtn.disabled = sel.options.length === 0; }
     }
     function renderColumns() {
         var body = el('rbColBody');
@@ -603,14 +771,14 @@
             inp.value = col.label;
             inp.maxLength = 60;
             inp.setAttribute('aria-label', 'Column label');
-            inp.addEventListener('input', function () { col.label = inp.value; renderTotals(); renderSort(); schedulePreview(); });
+            inp.addEventListener('input', function () { col.label = inp.value; renderTotals(); renderSort(); /* scheduling is left to the delegated #rbSettings input handler */ });
             line1.appendChild(inp);
             var showWrap = document.createElement('label');
             showWrap.className = 'rb2-col-show';
             var chk = document.createElement('input');
             chk.type = 'checkbox';
             chk.checked = !col.hidden;
-            chk.addEventListener('change', function () { col.hidden = !chk.checked; schedulePreview(); });
+            chk.addEventListener('change', function () { col.hidden = !chk.checked; renderTotals(); /* scheduling is left to the delegated #rbSettings change handler */ });
             showWrap.appendChild(chk);
             showWrap.appendChild(document.createTextNode(' Show'));
             line1.appendChild(showWrap);
@@ -670,7 +838,7 @@
                     if (t === col.type) { o.selected = true; }
                     sel.appendChild(o);
                 });
-                sel.addEventListener('change', function () { col.type = sel.value; renderTotals(); schedulePreview(); });
+                sel.addEventListener('change', function () { col.type = sel.value; renderTotals(); /* scheduling is left to the delegated #rbSettings change handler */ });
                 fType.appendChild(sel);
             } else {
                 var tdiv = document.createElement('div');
@@ -690,7 +858,7 @@
             winp.min = 1;
             winp.max = 100;
             winp.value = col.width;
-            winp.addEventListener('input', function () { col.width = parseInt(winp.value, 10) || 10; schedulePreview(); });
+            winp.addEventListener('input', function () { col.width = parseInt(winp.value, 10) || 10; /* scheduling is left to the delegated #rbSettings input handler */ });
             fWidth.appendChild(winp);
             line2.appendChild(fWidth);
             var fAlign = document.createElement('div');
@@ -707,7 +875,7 @@
                 if ((col.align || '') === pair[0]) { o.selected = true; }
                 asel.appendChild(o);
             });
-            asel.addEventListener('change', function () { col.align = asel.value; schedulePreview(); });
+            asel.addEventListener('change', function () { col.align = asel.value; /* scheduling is left to the delegated #rbSettings change handler */ });
             fAlign.appendChild(asel);
             line2.appendChild(fAlign);
             item.appendChild(line2);
@@ -723,6 +891,7 @@
         wrap.innerHTML = '';
         var any = false;
         columns.forEach(function (col) {
+            if (col.hidden) { return; }
             if (col.type !== 'number' && col.type !== 'currency') { return; }
             any = true;
             var row = document.createElement('div');
@@ -743,7 +912,7 @@
             });
             sel.addEventListener('change', function () {
                 if (sel.value) { totals[col.key] = sel.value; } else { delete totals[col.key]; }
-                schedulePreview();
+                /* scheduling is left to the delegated #rbSettings change handler */
             });
             selWrap.appendChild(sel);
             row.appendChild(lab);
@@ -832,6 +1001,7 @@
     }
     function applyConfig(cfg) {
         if (!cfg) { return; }
+        suppressPresetReset = true;
         if (cfg.source && SOURCES[cfg.source]) { el('rbSource').value = cfg.source; }
         applyFilterVisibility();
         refreshTemplateDesc();
@@ -844,8 +1014,26 @@
         var f = cfg.filters || {};
         el('rbClass').value = f.class_id || '';
         filterDependent();
-        el('rbSection').value = f.section_id || '';
-        el('rbSubject').value = f.subject_id || '';
+        /* Membership check (Phase-1): a saved section/subject that
+           does not belong to the loaded class is dropped — with a
+           note — instead of silently producing an empty report. */
+        var droppedNotes = [];
+        var sectionOk = !f.section_id;
+        if (f.section_id) {
+            for (var si = 0; si < SECTIONS.length; si++) {
+                if (String(SECTIONS[si].id) === String(f.section_id) && (!f.class_id || String(SECTIONS[si].my_class_id) === String(f.class_id))) { sectionOk = true; }
+            }
+        }
+        if (!sectionOk) { droppedNotes.push('section'); }
+        el('rbSection').value = sectionOk ? (f.section_id || '') : '';
+        var subjectOk = !f.subject_id;
+        if (f.subject_id) {
+            for (var sj = 0; sj < SUBJECTS.length; sj++) {
+                if (String(SUBJECTS[sj].id) === String(f.subject_id) && (!f.class_id || String(SUBJECTS[sj].my_class_id) === String(f.class_id))) { subjectOk = true; }
+            }
+        }
+        if (!subjectOk) { droppedNotes.push('subject'); }
+        el('rbSubject').value = subjectOk ? (f.subject_id || '') : '';
         el('rbExam').value = f.exam_id || '';
         if (f.year) { el('rbYear').value = f.year; }
         el('rbDateFrom').value = f.date_from || '';
@@ -869,6 +1057,10 @@
         el('rbSortDir').value = (o.sort && o.sort.dir) || 'asc';
         updateMarksHint();
         renderColumns();
+        suppressPresetReset = false;
+        if (droppedNotes.length) {
+            setPreviewStatus('Note: the saved ' + droppedNotes.join(' and ') + ' does not belong to the selected class, so it was cleared.', false);
+        }
     }
     function filterDependent() {
         var classId = el('rbClass').value;
@@ -918,6 +1110,14 @@
             th.title = 'Click to rename this column';
             var original = th.textContent;
             th.addEventListener('focus', function () { original = th.textContent; });
+            th.addEventListener('input', function () {
+                /* Sync on input (Phase-1): the rename lands in the
+                   column object immediately, so an ill-timed
+                   re-render can no longer eat it. Blur still
+                   triggers the re-render. */
+                var liveText = th.textContent.trim();
+                if (liveText) { vis[i].label = liveText; }
+            });
             th.addEventListener('blur', function () {
                 var text = th.textContent.trim();
                 if (text && text !== original) {
@@ -938,11 +1138,11 @@
         filterDependent();
         el('rbSection').value = '';
         el('rbSubject').value = '';
-        schedulePreview();
+        /* scheduling is left to the delegated #rbSettings change handler */
     });
     el('rbPreset').addEventListener('change', function () {
         var key = el('rbPreset').value;
-        if (!key) { return; }
+        if (!key) { markDirty('preset'); return; }
         for (var i = 0; i < PRESETS.length; i++) {
             if (PRESETS[i].key === key) { applyConfig(PRESETS[i].config); return; }
         }
@@ -965,14 +1165,24 @@
         el('rb5Wrap').classList.remove('rb5-show-doc');
         el('rbPreset').focus();
     });
-    el('rbSettings').addEventListener('input', function (ev) {
-        if (ev.target && ev.target.id === 'rbTemplateName') { return; }
-        schedulePreview();
-    });
-    el('rbSettings').addEventListener('change', function (ev) {
-        if (ev.target && ev.target.id === 'rbTemplateName') { return; }
-        schedulePreview();
-    });
+    /* Delegated scheduling (Phase-1): the ONE delegated pair is
+       the scheduler for every control inside #rbSettings whose own
+       handler does not already render (columns list, page
+       settings, filters). Typing-class controls (text / number /
+       date inputs, textareas) debounce as typing; everything else
+       is discrete. rbPreset and rbSource are excluded — their own
+       change handlers apply a whole config, which schedules via
+       renderColumns(). */
+    function delegatedMarkDirty(ev) {
+        if (!ev.target) { return; }
+        var id = ev.target.id;
+        if (id === 'rbTemplateName' || id === 'rbPreset' || id === 'rbSource') { return; }
+        var t = ev.target;
+        var typing = t.tagName === 'TEXTAREA' || (t.tagName === 'INPUT' && (t.type === 'text' || t.type === 'number' || t.type === 'date'));
+        markDirty(typing ? 'typing' : 'discrete');
+    }
+    el('rbSettings').addEventListener('input', delegatedMarkDirty);
+    el('rbSettings').addEventListener('change', delegatedMarkDirty);
     /* Paper / orientation now live INSIDE #rbSettings (Page
        settings section), so the delegated input/change handlers
        above already schedule their previews — no separate wiring.
@@ -994,6 +1204,9 @@
         if (!previewRequested) { return; }
         previewRequested = false;
         setPreviewLoading(false);
+        rbFirstDocLoaded = true;
+        var rbSkelOverlayEl = el('rbSkelOverlay');
+        if (rbSkelOverlayEl) { rbSkelOverlayEl.style.display = 'none'; }
         var isError = false;
         try {
             var fdoc = el('previewFrame').contentDocument;
@@ -1002,10 +1215,49 @@
         if (isError) {
             setPreviewStatus('Document not updated — the document could not be generated with these settings; see the message in the document panel.', true);
         } else {
-            setPreviewStatus('Document updated.', false);
+            lastRenderTime = Date.now();
+            lastRenderedConfigJson = pendingConfigJson;
+            setPreviewStatus(updatedStamp(), false);
             wireCanvas();
+            /* Restore the scroll captured before the swap. Focus
+               is deliberately NOT taken back: if the user was
+               mid-edit in the canvas, the new document must not
+               steal it. */
+            if (pendingScroll) {
+                try {
+                    var fw2 = el('previewFrame').contentWindow;
+                    if (fw2) { fw2.scrollTo(pendingScroll.x, pendingScroll.y); }
+                } catch (e) { /* frame not ready — scroll stays at top */ }
+            }
         }
         updateSummary();
+    });
+    /* Freshness triggers (Phase-1): an explicit Refresh in the
+       statusbar, plus an automatic refetch when the user returns
+       to this tab — but only when nothing changed since the last
+       render (a dirty config already has its own render queued)
+       and at least 5 s have passed since that render. */
+    el('rbRefreshData').addEventListener('click', function () { runPreview(); });
+    function maybeAutoRefresh() {
+        if (!lastRenderTime) { return; }
+        if (Date.now() - lastRenderTime < 5000) { return; }
+        if (JSON.stringify(collectConfig()) !== lastRenderedConfigJson) { return; }
+        runPreview();
+    }
+    window.addEventListener('focus', maybeAutoRefresh);
+    document.addEventListener('visibilitychange', function () {
+        if (!document.hidden && document.visibilityState === 'visible') { maybeAutoRefresh(); }
+    });
+    el('rbStartFresh').addEventListener('click', function () {
+        try { localStorage.removeItem(DRAFT_KEY); } catch (e) { /* nothing stored */ }
+        el('rbDraftNote').style.display = 'none';
+        el('rbPreset').value = '';
+        var firstSource = el('rbSource').options.length ? el('rbSource').options[0].value : el('rbSource').value;
+        el('rbSource').value = firstSource;
+        updateMarksHint();
+        titleTouched = false;
+        ensureAutoTitle();
+        applySourceColumns(firstSource);
     });
     document.querySelectorAll('.rb-generate-btn').forEach(function (genBtn) {
         genBtn.addEventListener('click', function () {
@@ -1044,6 +1296,23 @@
     ensureAutoTitle();
     applySourceColumns(el('rbSource').value);
     updateSummary();
+    /* Draft restore (Phase-1): if this user left an unsaved draft
+       on this device, apply it over the default and say so in the
+       statusbar — reloading the builder is no longer punished. */
+    try {
+        var rawDraft = localStorage.getItem(DRAFT_KEY);
+        if (rawDraft) {
+            var draftData = JSON.parse(rawDraft);
+            if (draftData && draftData.config) {
+                suppressPresetReset = true;
+                applyConfig(draftData.config);
+                suppressPresetReset = false;
+                if (draftData.preset) { el('rbPreset').value = draftData.preset; }
+                el('rbDraftNote').style.display = '';
+                saveDraft();
+            }
+        }
+    } catch (e) { /* unreadable draft — the default builder stands */ }
 })();
 </script>
 @endsection

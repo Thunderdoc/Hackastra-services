@@ -27,7 +27,7 @@
                         <td>{{ optional($duty->exam_date->subject)->name ?? '—' }}</td>
                     </tr>
                 @empty
-                    <tr><td colspan="5" class="text-center text-muted">No invigilation duties assigned yet.</td></tr>
+                    <tr><td colspan="5">@include('partials.patterns.empty_state', ['icon' => 'icon-calendar2', 'message' => 'No invigilation duties assigned yet.'])</td></tr>
                 @endforelse
                 </tbody>
             </table>

@@ -412,6 +412,15 @@ class PaymentController extends Controller
     {
         $d['my_classes'] = $this->my_class->all();
         $d['selected'] = false;
+        /* Round 5 Slice 3 (P12): the manage page's own GET filters
+           — q (student name / admission no) and fee status — ride
+           the query string alongside the class in the URL. They are
+           applied below, inside the selected-class assembly, so the
+           class-picker flow and the screen table markup are
+           untouched; defaults keep every other caller identical. */
+        $d['manage_q'] = trim((string) request('q', ''));
+        $manageStatus = request('status');
+        $d['manage_status'] = in_array($manageStatus, ['paid', 'partial', 'unpaid', 'none'], true) ? $manageStatus : '';
 
         if($class_id){
             $d['students'] = $st = $this->student->getRecord(['my_class_id' => $class_id])->get()->sortBy('user.name');
@@ -439,6 +448,7 @@ class PaymentController extends Controller
                 $status = $recs->isEmpty() ? 'No fees recorded'
                     : ($balance <= 0 ? 'Paid' : ($paid > 0 ? 'Partially Paid' : 'Unpaid'));
                 return [
+                    'user_id' => $s->user_id,
                     'adm_no' => $s->adm_no,
                     'name' => optional($s->user)->name,
                     'class_section' => optional($s->my_class)->name . ($s->section ? ' / ' . optional($s->section)->name : ''),
@@ -448,6 +458,38 @@ class PaymentController extends Controller
                     'status' => $status,
                 ];
             });
+            /* P12 filters: q matches the same name / admission-no
+               pair the defaulter search uses; status compares the
+               per-student fee position the print assembly just
+               derived (Paid / Partially Paid / Unpaid / No fees
+               recorded), so screen and print can never disagree.
+               With neither filter present nothing below runs and
+               the page is exactly what it was. */
+            if ($d['manage_q'] !== '' || $d['manage_status'] !== '') {
+                $statusCodes = [
+                    'Paid' => 'paid',
+                    'Partially Paid' => 'partial',
+                    'Unpaid' => 'unpaid',
+                    'No fees recorded' => 'none',
+                ];
+                $statusByUser = $print_rows->mapWithKeys(function ($row) use ($statusCodes) {
+                    return [$row['user_id'] => $statusCodes[$row['status']] ?? ''];
+                });
+                $mq = $d['manage_q'];
+                $ms = $d['manage_status'];
+                $keep = $st->filter(function ($s) use ($mq, $ms, $statusByUser) {
+                    if ($mq !== ''
+                        && stripos((string) optional($s->user)->name, $mq) === false
+                        && stripos((string) $s->adm_no, $mq) === false) {
+                        return false;
+                    }
+                    return $ms === '' || ($statusByUser[$s->user_id] ?? '') === $ms;
+                })->values();
+                $keepIds = $keep->pluck('user_id')->all();
+                $d['students'] = $keep;
+                $print_rows = $print_rows->whereIn('user_id', $keepIds)->values();
+            }
+
             $d['print_rows'] = $print_rows;
             $d['print_totals'] = [
                 'total' => $print_rows->sum('total'),

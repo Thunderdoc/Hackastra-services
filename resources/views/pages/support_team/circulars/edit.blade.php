@@ -18,7 +18,11 @@
                 'form_method' => 'PUT',
                 'form_enctype' => 'multipart/form-data',
                 'back' => route('circulars.index'),
+                'form_draft' => 'u'.Auth::id().'-circular-'.$circular->id,
             ])
+                {{-- Round 5 Slice 2 (P6): hk-draft autosave opt-in.
+                     The key carries the circular id, so two
+                     records' drafts never collide. --}}
                 @slot('title')
                     Edit Circular
                 @endslot

@@ -24,6 +24,37 @@
         </div>
     </div>
 
+    {{-- Round 5 P15: the onboarding checklist lives directly under
+         the hero for the school Admin only, and only while setup
+         is incomplete — at a full score the Planning readiness
+         page remains its permanent home and nothing renders. --}}
+    @if(Qs::userIsTeamSAWrite() && isset($setup_readiness) && ($setup_readiness['score'] ?? 100) < 100)
+        @include('partials.patterns.setup_checklist', ['setup_readiness' => $setup_readiness])
+    @endif
+
+    {{-- Round 5 Slice 4 (P14 + P16): the school Admin's read-only
+         licence + referral lines, directly under the checklist.
+         School Admin only (TeamSAWrite) — the Super Admin never
+         sees this surface. Each line renders ONLY on real data:
+         no licence record -> no licence line (never a placeholder
+         plan); referral programme OFF (reward text blank) -> no
+         referral line. --}}
+    @if(Qs::userIsTeamSAWrite() && (!empty($admin_licence) || !empty($admin_referral_on)))
+        <section class="dashboard-panel mb-4">
+            @if(!empty($admin_licence))
+                <div class="dashboard-event">
+                    <span class="event-copy"><strong>Your school licence</strong><br><small class="dashboard-muted">{{ $admin_licence->plan_name }}@if($admin_licence->renews_on) · Renews {{ $admin_licence->renews_on->format('d M Y') }}@endif</small></span>
+                    <span class="dashboard-status {{ $admin_licence->status === 'active' ? 'status-success' : ($admin_licence->status === 'past_due' ? 'status-warning' : '') }}">{{ \App\Models\SchoolLicence::statusLabel($admin_licence->status) }}</span>
+                </div>
+            @endif
+            @if(!empty($admin_referral_on))
+                <div class="dashboard-event">
+                    <span class="event-copy"><strong>Refer a school</strong><br><small class="dashboard-muted">@if($admin_referral_code)Your referral code: <strong>{{ $admin_referral_code }}</strong> · @endif{{ $admin_referral_reward_text }}</small></span>
+                </div>
+            @endif
+        </section>
+    @endif
+
     {{-- Item 17 (2026-11-01, admin-dash reference — the site's own
          style): KPI cards full width with a thin accent strip (no
          sparkline filler), Quick Actions as tiles, Today's
@@ -63,7 +94,8 @@
                 </div>
                 <div class="l17-qa">
                     <a href="{{ route('students.create') }}" class="l17-qatile"><span class="l17-qi l17-tone-blue"><i class="icon-plus3"></i></span><b>Add Student</b><span>Admit a new student</span></a>
-                    <a href="{{ route('payments.create') }}" class="l17-qatile"><span class="l17-qi l17-tone-green"><i class="icon-coin-dollar"></i></span><b>Record Payment</b><span>Fees at the counter</span></a>
+                    {{-- P15 micro-fix: until fee heads and students exist there is nothing to record a payment against, so the tile points at the Fee Structure page instead (same checks data the controller derived the flag from). --}}
+                    <a href="{{ ($setup_payment_blocked ?? false) ? route('fee_structure.index') : route('payments.create') }}" class="l17-qatile"><span class="l17-qi l17-tone-green"><i class="icon-coin-dollar"></i></span><b>Record Payment</b><span>Fees at the counter</span></a>
                     <a href="{{ route('tt.index') }}" class="l17-qatile"><span class="l17-qi l17-tone-amber"><i class="icon-calendar3"></i></span><b>Timetables</b><span>Class schedules</span></a>
                     <a href="{{ route('admissions.index') }}" class="l17-qatile"><span class="l17-qi l17-tone-purple"><i class="icon-phone2"></i></span><b>Admission Enquiries @if($new_enquiry_count) <span class="badge badge-primary">{{ $new_enquiry_count }} new</span> @endif</b><span>New leads to review</span></a>
                 </div>
@@ -132,7 +164,7 @@
                     $l17LatestTrend = $enrollment_trend->last();
                 @endphp
                 @if((int) $enrollment_trend->max('value') === 0)
-                    <div class="dashboard-empty">No students have been enrolled yet.</div>
+                    @include('partials.patterns.empty_state', ['icon' => 'icon-users', 'message' => 'No students have been enrolled yet.', 'compact' => true])
                 @elseif($l17ActiveMonths < 3)
                     <p class="mb-0" style="padding:0 22px 20px;">Enrolment so far: <strong>{{ number_format($l17LatestTrend['value']) }} active students</strong> as of {{ $trend_window_label }}. The month-by-month chart appears once enrolments span three or more months.</p>
                 @else
@@ -164,7 +196,7 @@
                             <span class="l17-rv"><small>{{ $student->created_at ? $student->created_at->format('d M Y') : '—' }}</small><span class="dashboard-status status-success">Active</span></span>
                         </div>
                     @empty
-                        <div class="dashboard-empty">No students have been enrolled yet.</div>
+                        @include('partials.patterns.empty_state', ['icon' => 'icon-users', 'message' => 'No students have been enrolled yet.', 'compact' => true])
                     @endforelse
                     </div>
                 </section>
@@ -181,7 +213,7 @@
                             <span class="l17-rv">{{ \App\Helpers\Money::inr($record->amt_paid ?: 0) }}<small class="{{ $record->paid ? 'l17-ok' : 'l17-warn' }}">{{ $record->paid ? 'Paid' : 'Pending' }}</small></span>
                         </div>
                     @empty
-                        <div class="dashboard-empty">No payment records yet.</div>
+                        @include('partials.patterns.empty_state', ['icon' => 'icon-cash2', 'message' => 'No payment records yet.', 'compact' => true])
                     @endforelse
                     </div>
                 </section>
@@ -259,7 +291,7 @@
                         <span class="dashboard-status event-pill pill-{{ $event['type'] }}">{{ $event['type_label'] }}</span>
                     </div>
                 @empty
-                    <div class="dashboard-empty dashboard-event-empty">No upcoming events. Add events, exams or timetables and they will appear here.</div>
+                    @include('partials.patterns.empty_state', ['icon' => 'icon-calendar3', 'message' => 'No upcoming events. Add events, exams or timetables and they will appear here.', 'compact' => true])
                 @endforelse
             </section>
         </div>

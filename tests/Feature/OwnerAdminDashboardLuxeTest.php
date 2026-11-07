@@ -40,8 +40,17 @@ class OwnerAdminDashboardLuxeTest extends TestCase
         $this->assertStringNotContainsString('spark', $html);
 
         // Quick Actions are tiles carrying the same four links.
+        // P15 exception (Round 5): the Record Payment tile points
+        // at the Fee Structure page while the school has no fee
+        // heads for the current session or no students — the
+        // expected target follows the live setup state.
         $this->assertSame(4, substr_count($html, 'class="l17-qatile"'));
-        foreach ([route('students.create'), route('payments.create'), route('tt.index'), route('admissions.index')] as $href) {
+        $session = \App\Helpers\Qs::getCurrentSession();
+        $paymentHref = (\App\Models\FeeHead::where('year', $session)->count() === 0
+            || \App\Models\StudentRecord::where('session', $session)->count() === 0)
+            ? route('fee_structure.index')
+            : route('payments.create');
+        foreach ([route('students.create'), $paymentHref, route('tt.index'), route('admissions.index')] as $href) {
             $this->assertStringContainsString('href="' . $href . '"', $html);
         }
 

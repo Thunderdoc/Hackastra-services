@@ -1,13 +1,32 @@
 <script>
 
+    /* ROUND 5 SLICE 1 (P2/P20) — cascade selects get a visible
+       Loading state while their options are in flight, and a failed
+       fetch surfaces through the shared error floor (hkAjaxError,
+       defined below) instead of silently leaving stale options.
+       hkSilent keeps the global ajaxError floor from reporting the
+       same failure twice. */
+    function hkCascadeError(xhr, targets) {
+        if (window.hkAjaxError) { window.hkAjaxError(xhr); }
+        (targets || []).forEach(function (sel) {
+            if (sel && sel.length && !sel.find('option.hk-load-failed').length) {
+                sel.prepend('<option value="" class="hk-load-failed" disabled>Couldn\'t load — try again</option>');
+            }
+        });
+    }
+
     function getLGA(state_id){
         var url = '{{ route('get_lga', [':id']) }}';
         url = url.replace(':id', state_id);
         var lga = $('#lga_id');
 
+        hkSelectLoading(lga, true);
         $.ajax({
             dataType: 'json',
+            hkSilent: true,
             url: url,
+            error: function (xhr) { hkCascadeError(xhr, [lga]); },
+            complete: function () { hkSelectLoading(lga, false); },
             success: function (resp) {
 
                 lga.empty();
@@ -28,9 +47,13 @@
         url = url.replace(':id', class_id);
         var section = destination ? $(destination) : $('#section_id');
 
+        hkSelectLoading(section, true);
         $.ajax({
             dataType: 'json',
+            hkSilent: true,
             url: url,
+            error: function (xhr) { hkCascadeError(xhr, [section]); },
+            complete: function () { hkSelectLoading(section, false); },
             success: function (resp) {
 
                 // Site-wide cascade (owner ask 2026-10-25): keep a
@@ -62,9 +85,13 @@
         url = url.replace(':id', class_id) + '?scope=tabulation';
         var section = destination ? $(destination) : $('#section_id');
 
+        hkSelectLoading(section, true);
         $.ajax({
             dataType: 'json',
+            hkSilent: true,
             url: url,
+            error: function (xhr) { hkCascadeError(xhr, [section]); },
+            complete: function () { hkSelectLoading(section, false); },
             success: function (resp) {
                 var keep = section.find('option[value=""]').first().clone();
                 section.empty();
@@ -85,9 +112,13 @@
         url = url.replace(':id', class_id) + '?effective=1';
         var section = destination ? $(destination) : $('#section_id');
 
+        hkSelectLoading(section, true);
         $.ajax({
             dataType: 'json',
+            hkSilent: true,
             url: url,
+            error: function (xhr) { hkCascadeError(xhr, [section]); },
+            complete: function () { hkSelectLoading(section, false); },
             success: function (resp) {
                 var keep = section.find('option[value=""]').first().clone();
                 section.empty();
@@ -110,9 +141,14 @@
         var section = $('#section_id');
         var subject = $('#subject_id');
 
+        hkSelectLoading(section, true);
+        hkSelectLoading(subject, true);
         $.ajax({
             dataType: 'json',
+            hkSilent: true,
             url: url,
+            error: function (xhr) { hkCascadeError(xhr, [section, subject]); },
+            complete: function () { hkSelectLoading(section, false); hkSelectLoading(subject, false); },
             success: function (resp) {
                 var keepSection = section.find('option[value=""]').first().clone();
                 var keepSubject = subject.find('option[value=""]').first().clone();
@@ -145,9 +181,14 @@
         var section = $('#section_id');
         var subject = $('#subject_id');
 
+        hkSelectLoading(section, true);
+        hkSelectLoading(subject, true);
         $.ajax({
             dataType: 'json',
+            hkSilent: true,
             url: url,
+            error: function (xhr) { hkCascadeError(xhr, [section, subject]); },
+            complete: function () { hkSelectLoading(section, false); hkSelectLoading(subject, false); },
             success: function (resp) {
                 // Same leading-option rule as getClassSections: keep a
                 // "no section" / "select subject" option when the
@@ -188,10 +229,15 @@
         var section = $('#section_id');
         var subject = $('#subject_id');
 
+        hkSelectLoading(section, true);
+        hkSelectLoading(subject, true);
         $.ajax({
             dataType: 'json',
+            hkSilent: true,
             url: url,
             data: { class_id: class_id },
+            error: function (xhr) { hkCascadeError(xhr, [section, subject]); },
+            complete: function () { hkSelectLoading(section, false); hkSelectLoading(subject, false); },
             success: function (resp) {
                 var keepSection = section.find('option[value=""]').first().clone();
                 var keepSubject = subject.find('option[value=""]').first().clone();
@@ -230,10 +276,14 @@
         if (!class_id || !section.val() || !subject.length) { return; }
         var current = subject.val();
 
+        hkSelectLoading(subject, true);
         $.ajax({
             dataType: 'json',
+            hkSilent: true,
             url: '{{ route('marks.selector_options') }}',
             data: { class_id: class_id, section_id: section.val() },
+            error: function (xhr) { hkCascadeError(xhr, [subject]); },
+            complete: function () { hkSelectLoading(subject, false); },
             success: function (resp) {
                 var keepSubject = subject.find('option[value=""]').first().clone();
                 subject.empty();
@@ -391,31 +441,32 @@
         setTimeout(function () { dock.hidden = true; }, 360);
     }
 
-    function confirmDelete(id) {
-        swal({
-            title: "Are you sure?",
-            text: "Once deleted, you will not be able to recover this item!",
-            icon: "warning",
-            buttons: true,
-            dangerMode: true
-        }).then(function(willDelete){
-            if (willDelete) {
-             $('form#item-delete-'+id).submit();
-            }
+    /* Round 5 Slice 2 (P19) — confirmDelete / confirmReset are now
+       thin bridges over the ONE shared confirmation modal
+       (window.hackstraConfirm in hackstra-ux.js); the old SweetAlert
+       prompts are gone. The hidden-form mechanics are unchanged:
+       the same form#item-delete-{id} / form#item-reset-{id} is
+       submitted, and only after the user confirms. hackstraConfirm
+       fails safe (it resolves false when the modal is unavailable),
+       and if it is missing entirely nothing is submitted either.
+       The optional second argument is the record's display name:
+       with a name the prompt names the record ("Delete <name>?
+       This cannot be undone."); without one it stays generic. */
+    function confirmDelete(id, name) {
+        if (typeof window.hackstraConfirm !== 'function') { return; }
+        var message = name ? 'Delete ' + name + '? This cannot be undone.'
+                           : 'Delete this item? This cannot be undone.';
+        window.hackstraConfirm(message, {title: 'Delete', action: 'Delete', danger: true}).then(function (ok) {
+            if (ok) { $('form#item-delete-'+id).submit(); }
         });
     }
 
-    function confirmReset(id) {
-        swal({
-            title: "Are you sure?",
-            text: "This will reset this item to default state",
-            icon: "warning",
-            buttons: true,
-            dangerMode: true
-        }).then(function(willDelete){
-            if (willDelete) {
-             $('form#item-reset-'+id).submit();
-            }
+    function confirmReset(id, name) {
+        if (typeof window.hackstraConfirm !== 'function') { return; }
+        var message = name ? 'Reset ' + name + '? This cannot be undone.'
+                           : 'Reset this item? This cannot be undone.';
+        window.hackstraConfirm(message, {title: 'Reset', action: 'Reset', danger: true}).then(function (ok) {
+            if (ok) { $('form#item-reset-'+id).submit(); }
         });
     }
 
@@ -425,30 +476,51 @@
         $('#ajax-reg-t-0').get(0).click();
     });
 
+    /**** ROUND 5 SLICE 1 — P1: the payment row updates through
+         hkOptimistic ONLY. The old handler fired the request and
+         immediately rewrote the money cells, never looking back:
+         a failed request left fees shown as paid that were never
+         recorded. Now the pre-submit values are snapshotted, the
+         request's real result decides, any failure restores the
+         cells exactly and says so, and the row leaves the list
+         only after the server confirms the payment. ****/
     $('form.ajax-pay').on('submit', function(ev){
         ev.preventDefault();
-        submitForm($(this), 'store');
-
-//        Retrieve IDS
-        var form_id = $(this).attr('id');
-        var td_amt = $('td#amt-'+form_id);
+        var $form = $(this), form_id = $form.attr('id');
         var td_amt_paid = $('td#amt_paid-'+form_id);
         var td_bal = $('td#bal-'+form_id);
         var input = $('#val-'+form_id);
-
-        // Get Values
-        var amt = parseInt(td_amt.data('amount'));
-        var amt_paid = parseInt(td_amt_paid.data('amount'));
-        var amt_input = parseInt(input.val());
-
-//        Update Values
-        amt_paid = amt_paid + amt_input;
+        var amt = parseInt($('td#amt-'+form_id).data('amount'));
+        var before = {
+            paid: parseInt(td_amt_paid.data('amount')),
+            paidText: td_amt_paid.text(),
+            balText: td_bal.text(),
+            inputVal: input.val(),
+            inputMax: input.attr('max')
+        };
+        var amt_paid = before.paid + parseInt(input.val());
         var bal = amt - amt_paid;
-
-        td_bal.text(''+bal);
-        td_amt_paid.text(''+amt_paid).data('amount', ''+amt_paid);
-        input.attr('max', bal);
-        bal < 1 ? $('#'+form_id).fadeOut('slow').remove() : '';
+        window.hkOptimistic({
+            apply: function(){
+                td_bal.text(''+bal);
+                td_amt_paid.text(''+amt_paid).data('amount', ''+amt_paid);
+                input.attr('max', bal);
+            },
+            request: function(){ return submitForm($form, 'store'); },
+            isOk: function(resp){ return !!resp && resp.ok !== false; },
+            revert: function(){
+                td_bal.text(before.balText);
+                td_amt_paid.text(before.paidText).data('amount', ''+before.paid);
+                input.attr('max', before.inputMax);
+                if (input.val() === '') { input.val(before.inputVal); }
+            },
+            onError: function(){
+                flash({msg: 'That payment was not recorded — the amounts on screen have been put back as they were.', type: 'warning'});
+            },
+            onSuccess: function(){
+                if (bal < 1) { $('#'+form_id).fadeOut('slow').remove(); }
+            }
+        });
     });
 
     $('form.ajax-store').on('submit', function(ev){
@@ -477,6 +549,140 @@
         $(div).load( url );
     }
 
+    /**** ROUND 5 SLICE 1 — P20: the shared AJAX error floor.
+         A failed request must never fail silently:
+           419 — session expired: say so, offer "Sign in again", and
+                 stash the page's form entries in this tab first so
+                 the round trip does not cost the user their typing
+                 (the report builder's own draft already lives in
+                 localStorage and is untouched by a failed POST).
+           429 — too many requests: say so, honouring Retry-After.
+           0   — offline / no response: say so; nothing was saved.
+         submitForm() routes its previously-silent statuses here,
+         the cascade helpers share it, and a global ajaxError floor
+         catches any jQuery request a page forgot to handle. Fetch
+         callers pass the Response (or the TypeError) straight in. */
+    window.hkLoginUrl = '{{ route('login') }}';
+    var hkSessionExpiredShown = false;
+
+    function hkRetryAfterSeconds(source) {
+        try {
+            var header = null;
+            if (source && typeof source.getResponseHeader === 'function') {
+                header = source.getResponseHeader('Retry-After');
+            } else if (source && source.headers && typeof source.headers.get === 'function') {
+                header = source.headers.get('Retry-After');
+            }
+            if (!header) { return null; }
+            header = String(header).trim();
+            if (/^\d+$/.test(header)) { return parseInt(header, 10); }
+            var when = Date.parse(header);
+            if (!isNaN(when)) { return Math.max(0, Math.round((when - Date.now()) / 1000)); }
+        } catch (e) { /* fall through */ }
+        return null;
+    }
+
+    function hkFormDraftKey(form) {
+        return 'hk-form-draft:' + (form.id ? '#' + form.id : (form.getAttribute('action') || 'form'));
+    }
+
+    /* Stash the entries of every ajax form on the page into this
+       tab's sessionStorage. File inputs and the CSRF token are
+       never stored. */
+    window.hkStashFormDrafts = function () {
+        try {
+            document.querySelectorAll('form.ajax-pay, form.ajax-store, form.ajax-update, form#ajax-reg').forEach(function (form) {
+                var data = {}, filled = false;
+                new FormData(form).forEach(function (value, key) {
+                    if (typeof value === 'string' && key !== '_token') { data[key] = value; filled = true; }
+                });
+                if (filled) { sessionStorage.setItem(hkFormDraftKey(form), JSON.stringify(data)); }
+            });
+        } catch (e) { /* storage unavailable — nothing to preserve */ }
+    };
+
+    window.hkClearFormDraft = function (form) {
+        try { sessionStorage.removeItem(hkFormDraftKey(form)); } catch (e) { /* ignore */ }
+    };
+
+    function hkRestoreFormDrafts() {
+        var restored = false;
+        try {
+            document.querySelectorAll('form.ajax-pay, form.ajax-store, form.ajax-update, form#ajax-reg').forEach(function (form) {
+                var raw = sessionStorage.getItem(hkFormDraftKey(form));
+                if (!raw) { return; }
+                sessionStorage.removeItem(hkFormDraftKey(form));
+                var data = JSON.parse(raw);
+                Object.keys(data).forEach(function (name) {
+                    var field = form.querySelector('[name="' + name + '"]');
+                    if (field && field.type !== 'file' && field.value !== undefined && !field.disabled) {
+                        field.value = data[name];
+                        restored = true;
+                    }
+                });
+            });
+        } catch (e) { /* ignore */ }
+        if (restored) {
+            flash({msg: 'Your earlier entries were restored — please check them before saving.', type: 'info'});
+        }
+    }
+
+    window.hkAjaxError = function (err, opts) {
+        opts = opts || {};
+        var status = (err && typeof err.status === 'number') ? err.status : 0;
+        if (opts.message) {
+            flash({msg: opts.message, type: opts.type || 'danger'});
+            return status;
+        }
+        if (status === 419) {
+            window.hkStashFormDrafts();
+            if (!hkSessionExpiredShown) {
+                hkSessionExpiredShown = true;
+                var expiredMsg = 'Your session has expired — this page was open for a long time. Sign in again to continue; your entries on this page are kept in this tab.';
+                if (window.hackstraConfirm) {
+                    window.hackstraConfirm(expiredMsg, {title: 'Session expired', action: 'Sign in again'}).then(function (ok) {
+                        if (ok) { window.location.href = window.hkLoginUrl || '/login'; }
+                        else { hkSessionExpiredShown = false; flash({msg: expiredMsg, type: 'danger'}); }
+                    });
+                } else {
+                    flash({msg: expiredMsg, type: 'danger'});
+                }
+            }
+            return status;
+        }
+        if (status === 429) {
+            var wait = hkRetryAfterSeconds(err);
+            flash({msg: 'Too many requests just now — please wait' + (wait ? ' about ' + wait + ' seconds' : ' a moment') + ' and try again. Nothing was sent twice.', type: 'warning'});
+            return status;
+        }
+        if (status === 0) {
+            flash({msg: 'Connection problem — this device appears to be offline, or the school server did not respond. That action was not saved; check the connection and try again.', type: 'danger'});
+            return status;
+        }
+        if (status >= 500) {
+            flash({msg: 'Something went wrong on the server. Please try again — if it keeps happening, tell the school office.', type: 'danger'});
+            return status;
+        }
+        if (status === 404) {
+            flash({msg: 'That item could not be found — it may have been removed already. Please refresh the page.', type: 'warning'});
+            return status;
+        }
+        flash({msg: 'That request did not go through (error ' + status + '). Please try again.', type: 'danger'});
+        return status;
+    };
+
+    /* The floor itself: any jQuery failure without its own handling
+       still surfaces. Callers that handle statuses themselves set
+       hkSilent (the cascades) or hkFloorHandled (submitForm — the
+       floor then covers only its silent statuses: 419, 429, 0). */
+    $(document).ajaxError(function (event, xhr, settings) {
+        if (!xhr || !settings || settings.hkSilent) { return; }
+        if (settings.hkFloorHandled && [419, 429, 0].indexOf(xhr.status) === -1) { return; }
+        window.hkAjaxError(xhr);
+    });
+
+    $(function () { hkRestoreFormDrafts(); });
+
     function submitForm(form, formType){
         var btn = form.find('button[type=submit]');
         disableBtn(btn);
@@ -487,6 +693,7 @@
             processData:false,
             dataType:'json',
             contentType:false,
+            hkFloorHandled:true,
             data:new FormData(form[0])
         };
         var req = $.ajax(ajaxOptions);
@@ -495,12 +702,16 @@
                ? flash({msg:resp.msg, type:'success'})
                : flash({msg:resp.msg, type:'danger'});
             hideAjaxAlert();
+            if (resp.ok && window.hkClearFormDraft) { window.hkClearFormDraft(form[0]); }
             enableBtn(btn);
             formType == 'store' ? clearForm(form) : '';
             scrollTo('body');
             return resp;
         });
         req.fail(function(e){
+            if (e.status == 419 || e.status == 429 || e.status == 0){
+                window.hkAjaxError(e);
+            }
             if (e.status == 422){
                 var errors = e.responseJSON.errors;
                 displayAjaxErr(errors);
@@ -514,6 +725,7 @@
             enableBtn(btn);
             return e.status;
         });
+        return req;
     }
 
     function disableBtn(btn){
@@ -526,12 +738,64 @@
         btn.prop('disabled', false).html(btnText + '<i class="icon-paperplane ml-2"></i>');
     }
 
+    /* Round 5 Slice 2 (P9): a keyed 422 error also lands under its
+       own field, not only in the top list. Array-style messages
+       (numeric keys, e.g. the 500/404 strings) keep the top list
+       only. The slot is the field's field-error span — the one the
+       shared errors field partial renders — or one created here;
+       the input gains is-invalid and the first errored field is
+       scrolled into view. */
+    function hkAjaxFieldSlot(input){
+        var anchor = input;
+        if (input.parentNode && input.parentNode.classList && input.parentNode.classList.contains('hkdp-wrap')) { anchor = input.parentNode; }
+        var n = anchor.nextElementSibling;
+        while (n) {
+            if (n.classList && n.classList.contains('field-error')) { return n; }
+            if (n.tagName === 'INPUT' || n.tagName === 'SELECT' || n.tagName === 'TEXTAREA') { break; }
+            n = n.nextElementSibling;
+        }
+        var box = input.closest ? (input.closest('.form-group, .pat-field, .form-row') || input.parentNode) : input.parentNode;
+        if (box && box.querySelectorAll && box.querySelectorAll('input[name], select[name], textarea[name]').length <= 1) {
+            var existing = box.querySelector('.field-error');
+            if (existing) { return existing; }
+        }
+        var span = document.createElement('span');
+        span.className = 'field-error';
+        span.setAttribute('role', 'alert');
+        anchor.parentNode.insertBefore(span, anchor.nextSibling);
+        return span;
+    }
+
+    function hkMapAjaxErrorsToFields(errors){
+        var firstEl = null;
+        $.each(errors, function (field, messages) {
+            if (typeof field !== 'string' || /^\d+$/.test(field)) { return; }
+            var base = field.split('.')[0];
+            var msg = $.isArray(messages) ? messages[0] : messages;
+            if (msg === undefined || msg === null) { return; }
+            var input = document.querySelector('[name="' + base + '"]')
+                || document.querySelector('[name^="' + base + '["]')
+                || document.getElementById(base);
+            if (!input) { return; }
+            var slot = hkAjaxFieldSlot(input);
+            if (slot) { slot.textContent = String(msg); }
+            input.classList.add('is-invalid');
+            input.setAttribute('aria-invalid', 'true');
+            if (!firstEl) { firstEl = input; }
+        });
+        if (firstEl && firstEl.scrollIntoView) {
+            firstEl.scrollIntoView({block: 'center', behavior: 'smooth'});
+        }
+        return firstEl;
+    }
+
     function displayAjaxErr(errors){
         $('#ajax-alert').show().html(' <div class="alert alert-danger border-0 alert-dismissible" id="ajax-msg"><button type="button" class="close" data-dismiss="alert"><span>&times;</span></button></div>');
         $.each(errors, function(k, v){
             $('#ajax-msg').append('<span><i class="icon-arrow-right5"></i> '+ v +'</span><br/>');
         });
-        scrollTo('body');
+        var firstField = (errors && typeof errors === 'object' && !$.isArray(errors)) ? hkMapAjaxErrorsToFields(errors) : null;
+        if (!firstField) { scrollTo('body'); }
     }
 
     function scrollTo(el){

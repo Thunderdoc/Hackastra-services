@@ -204,8 +204,13 @@ class OwnerBeautyWave3Test extends TestCase
         $html = $this->actingAs($this->admin())
             ->get(route('settings'))->assertOk()->getContent();
 
-        // The 8 school sections (Platform is Super-Admin-only).
-        $this->assertSame(8, substr_count($html, 'pat-form-section-head'));
+        // The school sections (Platform is Super-Admin-only).
+        // Was 8; Round 4 added two owner-ordered sections on this
+        // page — F5's "Fee Reminders" and F1's "WhatsApp" cards —
+        // so the count is now 10. The thesis (every section
+        // carries the shared section-head + icon-tile markup) is
+        // unchanged.
+        $this->assertSame(10, substr_count($html, 'pat-form-section-head'));
         $this->assertStringContainsString('set-sec-ic set-sec-ic-blue', $html);
         $this->assertStringContainsString('icon-office', $html);
         $this->assertStringContainsString('icon-barcode2', $html);

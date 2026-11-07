@@ -114,7 +114,7 @@ class MyAccountController extends Controller
             'time_format' => 'sometimes|in:12,24',
         ]);
 
-        foreach (['notify_email', 'notify_announcements', 'notify_attendance', 'notify_exams', 'notify_lms', 'bell_sound', 'notifications_muted'] as $key) {
+        foreach (['notify_email', 'notify_announcements', 'notify_attendance', 'notify_exams', 'notify_lms', 'notify_whatsapp', 'bell_sound', 'notifications_muted'] as $key) {
             if ($req->has($key) || $req->has($key . '_present')) {
                 UserPreference::set($user->id, $key, $req->boolean($key) ? '1' : '0');
             }
@@ -163,6 +163,48 @@ class MyAccountController extends Controller
         UserPreference::set(Auth::id(), 'bell_sound', $req->input('bell_sound') === 'on' ? '1' : '0');
 
         return response()->json(['bell_sound' => $req->input('bell_sound')]);
+    }
+
+    /**
+     * Round 5 P4 (sidebar memory): persist the signed-in user's
+     * sidebar state — collapsed flag + the list of open submenu
+     * group keys (data-group slugs). Same per-user preference store
+     * and AJAX pattern as the theme toggle (update_theme); either
+     * field may be sent alone. No audit row: a display state toggle
+     * is high-frequency and carries no account-data change. The
+     * stored set is exactly what the client reports; the ACTIVE
+     * page's group is force-opened at render time only and is never
+     * written back from the server side.
+     */
+    public function update_sidebar_state(Request $req)
+    {
+        $req->validate([
+            'sidebar_collapsed' => 'sometimes|boolean',
+            'sidebar_open_groups' => 'sometimes|array|max:30',
+            'sidebar_open_groups.*' => 'string|max:60',
+        ]);
+
+        if ($req->has('sidebar_collapsed')) {
+            UserPreference::set(Auth::id(), 'sidebar_collapsed', $req->boolean('sidebar_collapsed') ? '1' : '0');
+        }
+
+        // The *_present marker lets the client store an EMPTY set
+        // (every group closed) — a missing field alone would be
+        // indistinguishable from "not sent".
+        if ($req->has('sidebar_open_groups') || $req->has('sidebar_open_groups_present')) {
+            $keys = [];
+            foreach ((array) $req->input('sidebar_open_groups', []) as $key) {
+                if (is_string($key) && preg_match('/^[a-z0-9]+(-[a-z0-9]+)*$/', $key) && !in_array($key, $keys, true)) {
+                    $keys[] = $key;
+                }
+            }
+            UserPreference::set(Auth::id(), 'sidebar_open_groups', json_encode($keys));
+        }
+
+        return response()->json([
+            'sidebar_collapsed' => UserPreference::sidebarCollapsed(Auth::id()),
+            'sidebar_open_groups' => UserPreference::sidebarOpenGroups(Auth::id()),
+        ]);
     }
 
     /**

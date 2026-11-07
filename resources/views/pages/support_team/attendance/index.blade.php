@@ -46,7 +46,10 @@
             </form>
 
             @if($students->isEmpty())
-                <p class="text-muted mb-0">No active students in this class yet.</p>
+                @include('partials.patterns.empty_state', [
+                    'icon' => 'icon-calendar2',
+                    'message' => 'No active students in this class yet.',
+                ])
             @else
                 <form method="POST" action="{{ route('attendance.store') }}">
                     @csrf

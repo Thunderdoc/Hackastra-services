@@ -145,7 +145,7 @@
                         <p class="t10-panel-sub">Your recent requests and their status</p>
                     </div>
                     @if(isset($leave_balance))
-                        <div class="t10-panel-sub" style="margin-left:auto; text-align:right;">
+                        <div class="t10-panel-sub t10-panel-balance">
                             @if($leave_balance['quota'] > 0)
                                 Paid leave: <strong>{{ rtrim(rtrim(number_format($leave_balance['used'], 2), '0'), '.') }} / {{ rtrim(rtrim(number_format($leave_balance['quota'], 2), '0'), '.') }} days</strong> taken
                                 · Remaining: <strong>{{ rtrim(rtrim(number_format($leave_balance['remaining'], 2), '0'), '.') }}</strong>

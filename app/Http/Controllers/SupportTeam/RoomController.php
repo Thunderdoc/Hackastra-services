@@ -4,6 +4,7 @@ namespace App\Http\Controllers\SupportTeam;
 
 use App\Http\Controllers\Controller;
 use App\Models\Room;
+use App\Models\SeatingSeat;
 use App\Models\TimeTable;
 use Illuminate\Http\Request;
 
@@ -65,6 +66,14 @@ class RoomController extends Controller
         if (TimeTable::where('room_id', $room->id)->exists()) {
             return redirect()->route('rooms.index')
                 ->with('flash_danger', 'This room is assigned to timetable periods. Unassign it on the timetable first, then delete it.');
+        }
+        /* F3: seating seats carry room_id with NO database FK
+           (design §3.1) — integrity lives here: a room a seating
+           plan uses cannot be deleted out from under its hall
+           sheets. Regenerate or discard the plan first. */
+        if (SeatingSeat::where('room_id', $room->id)->exists()) {
+            return redirect()->route('rooms.index')
+                ->with('flash_danger', 'This room is used by an exam seating plan. Regenerate that plan without this hall first, then delete it.');
         }
         $room->delete();
 

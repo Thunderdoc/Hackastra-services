@@ -122,6 +122,14 @@ class HomeController extends Controller
 
     public function dashboard()
     {
+        // F5 (design §3.4C): the opportunistic fee-reminder
+        // trigger — the accountant/admin dashboard is a page the
+        // fee team opens daily, so loading it runs the scheduled
+        // pass at most once per calendar day.
+        if (Auth::check() && in_array(Auth::user()->user_type, ['admin', 'accountant'], true)) {
+            \App\Support\FeeReminderEngine::maybeRunOpportunistically();
+        }
+
         $now = Carbon::now();
         $d = $this->baseDashboardData($now);
 
@@ -272,7 +280,16 @@ class HomeController extends Controller
             ];
         }
 
-        $periodsToday = TimeTable::where('day', $todayName)->count();
+        // Cancelled periods expect no register (Round 3, owner
+        // order 2026-11-07): today's cancelled cells leave the
+        // periods denominator, so a class the office cancelled can
+        // never read as a register nobody submitted.
+        $cancelledTtIdsToday = Substitution::cancelled()
+            ->whereDate('date', $today)->pluck('time_table_id')->all();
+        $cancelledCellsToday = $cancelledTtIdsToday
+            ? TimeTable::where('day', $todayName)->whereIn('id', $cancelledTtIdsToday)->count()
+            : 0;
+        $periodsToday = TimeTable::where('day', $todayName)->count() - $cancelledCellsToday;
         $submittedToday = AttendanceSession::whereDate('date', $today)
             ->distinct('time_table_id')->count('time_table_id');
         $unsubmitted = max(0, $periodsToday - $submittedToday);
@@ -285,14 +302,17 @@ class HomeController extends Controller
             ];
         }
 
-        $uncoveredToday = Substitution::whereDate('date', $today)
-            ->whereNull('substitute_teacher_id')->count();
+        // The uncovered count is the derived gap list itself
+        // (Round 3): gaps mostly have NO row, so counting
+        // NULL-substitute rows understated them; cancelled cells
+        // are resolved and never appear in the list.
+        $uncoveredToday = count(\App\Support\UncoveredPeriods::forDate($today));
         if ($uncoveredToday > 0) {
             $attention[] = [
                 'tone' => 'red', 'title' => $uncoveredToday . ' uncovered substitution' . ($uncoveredToday > 1 ? 's' : '') . ' today',
                 'detail' => 'An absent teacher has no substitute assigned yet.',
                 'meta' => 'Owner: School Admin · Due: Today',
-                'link' => route('substitutions.index'), 'link_label' => 'Assign cover',
+                'link' => route('substitutions.uncovered', ['date' => $today]), 'link_label' => 'Assign cover',
             ];
         }
 
@@ -544,6 +564,42 @@ class HomeController extends Controller
             $d['upcoming_events'] = $this->upcomingEvents($now);
             $d['attendance_today'] = $this->attendanceToday($now);
             $d['smart_insights'] = $this->smartInsights($d, $now);
+
+            // Round 5 P15 — onboarding checklist: the school Admin
+            // (the only write user on this board; the Super Admin
+            // views it read-only) gets the live Readiness result so
+            // the dashboard can render the setup checklist while
+            // the score is under 100% and can point the Record
+            // Payment quick action at the Fee Structure page until
+            // fees and students exist. Computed only for that
+            // viewer — no other role pays for these queries.
+            if (Qs::userIsTeamSAWrite()) {
+                $readiness = \App\Support\Readiness::checks();
+                $d['setup_readiness'] = $readiness;
+                $setupByLabel = collect($readiness['checks'])->keyBy('label');
+                // Fee heads = 0 is exactly the fee check's fail;
+                // students = 0 is exactly its warn (it is ok only
+                // above zero). Same checks data, no second count.
+                $d['setup_payment_blocked'] =
+                    (($setupByLabel['Fee structure defined']['status'] ?? 'fail') === 'fail')
+                    || (($setupByLabel['Students enrolled']['status'] ?? 'warn') !== 'ok');
+
+                // Round 5 Slice 4 (P14 + P16): the school Admin's
+                // read-only licence + referral lines. Computed
+                // only for the Admin (this block is admin-write
+                // only, so the Super Admin never receives them —
+                // the SA's surfaces are the platform pages).
+                // Licence: null until a record exists, and the
+                // blade renders nothing then. Referral: the code
+                // + reward text only while the programme is ON
+                // (reward text non-blank — Referral::programmeOn).
+                $d['admin_licence'] = Schema::hasTable('school_licences')
+                    ? \App\Models\SchoolLicence::current()
+                    : null;
+                $d['admin_referral_on'] = \App\Models\Referral::programmeOn();
+                $d['admin_referral_code'] = $d['admin_referral_on'] ? \App\Models\Referral::code() : null;
+                $d['admin_referral_reward_text'] = $d['admin_referral_on'] ? \App\Models\Referral::rewardText() : null;
+            }
         }
 
         return view('pages.support_team.dashboard', $d);
@@ -671,6 +727,12 @@ class HomeController extends Controller
             // this lifetime fee-collection sum belong on the Overview
             // as plain numbers with no drill-down into records.
             'snapshot_collection_total' => (int) DB::table('payment_records')->sum('amt_paid'),
+            // Round 5 Slice 4 (P14): the current licence RECORD
+            // for this school, shown as a badge in the snapshot —
+            // null (and no badge) until the SA records one.
+            'school_licence' => Schema::hasTable('school_licences')
+                ? \App\Models\SchoolLicence::current()
+                : null,
         ];
     }
 
@@ -1678,6 +1740,17 @@ class HomeController extends Controller
                     ],
                 ];
             });
+
+        // F2 — per-child progress (latest published result strip on
+        // each child card). One assembler call for all children —
+        // the same published-only + fee-gate rules as the dedicated
+        // my_progress page; there is no second, weaker summary path.
+        $progressMap = \App\Support\StudentProgress::forChildren(
+            $children->map(function ($c) { return $c['record']; }), $year);
+        $children = $children->map(function ($c) use ($progressMap) {
+            $c['progress'] = $progressMap[$c['record']->id] ?? null;
+            return $c;
+        });
 
         $sum = function (string $key) use ($children) {
             return (int) $children->sum(function ($c) use ($key) {

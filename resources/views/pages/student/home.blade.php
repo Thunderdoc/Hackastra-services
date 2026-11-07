@@ -113,7 +113,7 @@
                                         <span><strong>No classes today.</strong> Next school day is <strong>{{ $next_school_day['day'] }}, {{ $next_school_day['date'] }}</strong> — first period: {{ $next_school_day['subject'] }} ({{ $next_school_day['time'] }}).</span>
                                     </div>
                                 @else
-                                    <span class="dashboard-empty" style="display:block">No classes are scheduled for your class today.</span>
+                                    @include('partials.patterns.empty_state', ['icon' => 'icon-calendar3', 'message' => 'No classes are scheduled for your class today.', 'compact' => true])
                                 @endif
                             </td></tr>
                         @endforelse
@@ -175,7 +175,7 @@
                         </span>
                     </a>
                 @empty
-                    <div class="dashboard-empty">No open assignments for your class right now — you&rsquo;re all caught up.</div>
+                    @include('partials.patterns.empty_state', ['icon' => 'icon-file-text2', 'message' => 'No open assignments for your class right now — you’re all caught up.', 'compact' => true])
                 @endforelse
             </section>
 
@@ -193,7 +193,7 @@
                         <span class="stu-subject-teacher"><i class="icon-user-tie"></i> {{ optional($subject->teacher)->name ?: 'Teacher not assigned' }}</span>
                     </div>
                 @empty
-                    <div class="dashboard-empty">No subjects have been set up for your class yet.</div>
+                    @include('partials.patterns.empty_state', ['icon' => 'icon-book', 'message' => 'No subjects have been set up for your class yet.', 'compact' => true])
                 @endforelse
             </section>
         </div>
@@ -252,7 +252,7 @@
                         </div>
                     </div>
                 @else
-                    <div class="dashboard-empty">No attendance has been marked for you yet this session.</div>
+                    @include('partials.patterns.empty_state', ['icon' => 'icon-calendar3', 'message' => 'No attendance has been marked for you yet this session.', 'compact' => true])
                 @endif
             </section>
 
@@ -289,7 +289,7 @@
                         <span class="dashboard-status stu-prio-{{ $circular->priority }}">{{ ucfirst($circular->priority) }}</span>
                     </a>
                 @empty
-                    <div class="dashboard-empty">No circulars have been published for students yet.</div>
+                    @include('partials.patterns.empty_state', ['icon' => 'icon-megaphone', 'message' => 'No circulars have been published for students yet.', 'compact' => true])
                 @endforelse
             </section>
         </div>

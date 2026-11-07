@@ -50,6 +50,9 @@
     <a href="{{ route('parent_messages.index') }}" class="nav-link {{ Route::is('parent_messages.*') ? 'active' : '' }}"><i class="icon-bubbles4"></i> <span>Communication &amp; Parent Relations</span></a>
 </li>
 <li class="nav-item">
+    <a href="{{ route('whatsapp_log.index') }}" class="nav-link {{ Route::is('whatsapp_log.*') ? 'active' : '' }}"><i class="icon-bubbles4"></i> <span>WhatsApp Log</span></a>
+</li>
+<li class="nav-item">
     <a href="{{ route('transport.index') }}" class="nav-link {{ Route::is('transport.*') ? 'active' : '' }}"><i class="icon-truck"></i> <span>Transport, Library &amp; Facilities</span></a>
 </li>
 <li class="nav-item">

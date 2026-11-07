@@ -146,7 +146,7 @@
                     @if($results_total > $results->count()) — showing the first {{ $results->count() }}, please narrow the filters @endif
                 </p>
                 @if($results->isEmpty())
-                    <p class="mb-0">No student matches these filters. Try widening the search.</p>
+                    @include('partials.patterns.empty_state', ['icon' => 'icon-search4', 'message' => 'No student matches these filters. Try widening the search.'])
                 @else
                     <div class="table-responsive">
                         <table class="table table-sm">

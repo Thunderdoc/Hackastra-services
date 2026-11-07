@@ -66,17 +66,18 @@
         <div class="card">
             <div class="card-header"><h6 class="card-title">Subject Breakdown</h6></div>
             <div class="table-responsive">
-                <table class="table">
+                <table class="table hk-std hk-std-760">
+                    <colgroup><col style="width:30%"><col style="width:14%"><col style="width:14%"><col style="width:12%"><col style="width:14%"><col style="width:16%"></colgroup>
                     <thead><tr><th>Subject</th><th>Present</th><th>Absent</th><th>Late</th><th>Periods</th><th>Attendance %</th></tr></thead>
                     <tbody>
                     @forelse($subjects as $row)
                         <tr>
                             <td>{{ optional($row['subject'])->name ?: '—' }}</td>
-                            <td>{{ $row['present'] }}</td><td>{{ $row['absent'] }}</td><td>{{ $row['late'] }}</td><td>{{ $row['marked'] }}</td>
-                            <td>{{ $row['percent'] === null ? '—' : $row['percent'] . '%' }}</td>
+                            <td class="hk-nw">{{ $row['present'] }}</td><td class="hk-nw">{{ $row['absent'] }}</td><td class="hk-nw">{{ $row['late'] }}</td><td class="hk-nw">{{ $row['marked'] }}</td>
+                            <td class="hk-nw">{{ $row['percent'] === null ? '—' : $row['percent'] . '%' }}</td>
                         </tr>
                     @empty
-                        <tr><td colspan="6" class="text-center text-muted">No periods marked in this period.</td></tr>
+                        <tr><td colspan="6">@include('partials.patterns.empty_state', ['icon' => 'icon-calendar2', 'message' => 'No periods marked in this period.'])</td></tr>
                     @endforelse
                     </tbody>
                 </table>
@@ -86,19 +87,20 @@
         <div class="card">
             <div class="card-header"><h6 class="card-title">Register — Latest Entries @if($entries_total > $entries->count())<span class="text-muted">(showing {{ $entries->count() }} of {{ $entries_total }})</span>@endif</h6></div>
             <div class="table-responsive">
-                <table class="table">
+                <table class="table hk-std hk-std-760">
+                    <colgroup><col style="width:22%"><col style="width:30%"><col style="width:28%"><col style="width:20%"></colgroup>
                     <thead><tr><th>Date</th><th>Subject</th><th>Period</th><th>Status</th></tr></thead>
                     <tbody>
                     @forelse($entries as $entry)
                         @php $session = $entry->session; @endphp
                         <tr>
-                            <td>{{ $session && $session->date ? \Illuminate\Support\Carbon::parse($session->date)->format('d M Y') : '—' }}</td>
+                            <td class="hk-nw">{{ $session && $session->date ? \Illuminate\Support\Carbon::parse($session->date)->format('d M Y') : '—' }}</td>
                             <td>{{ optional(optional($session)->subject)->name ?: '—' }}</td>
                             <td>{{ optional(optional(optional($session)->time_table)->time_slot)->full_time ?? '—' }}</td>
-                            <td><span class="badge badge-{{ $entry->status === 'present' ? 'success' : ($entry->status === 'late' ? 'warning' : 'danger') }}">{{ ucfirst($entry->status) }}</span></td>
+                            <td class="hk-nw"><span class="badge badge-{{ $entry->status === 'present' ? 'success' : ($entry->status === 'late' ? 'warning' : 'danger') }}">{{ ucfirst($entry->status) }}</span></td>
                         </tr>
                     @empty
-                        <tr><td colspan="4" class="text-center text-muted">No register entries in this period.</td></tr>
+                        <tr><td colspan="4">@include('partials.patterns.empty_state', ['icon' => 'icon-calendar2', 'message' => 'No register entries in this period.'])</td></tr>
                     @endforelse
                     </tbody>
                 </table>

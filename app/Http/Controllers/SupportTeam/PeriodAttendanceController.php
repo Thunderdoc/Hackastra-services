@@ -177,13 +177,19 @@ class PeriodAttendanceController extends Controller
             return !empty($row['session']);
         });
         $taken = $takenRows->count();
+        // Cancelled periods expect no register (Round 3): they are
+        // neither taken nor pending, so pending never counts them.
+        $cancelled = $periods->filter(function ($row) {
+            return !empty($row['is_cancelled']) && empty($row['session']);
+        })->count();
 
         $stats = [
             'total' => $total,
             'taken' => $taken,
-            'pending' => $total - $taken,
+            'cancelled' => $cancelled,
+            'pending' => $total - $taken - $cancelled,
             'taken_pct' => $total > 0 ? (int) round($taken / $total * 100) : 0,
-            'pending_pct' => $total > 0 ? (int) round(($total - $taken) / $total * 100) : 0,
+            'pending_pct' => $total > 0 ? (int) round(($total - $taken - $cancelled) / $total * 100) : 0,
             'present_pct' => null,
             'present_count' => 0,
             'marked_count' => 0,
@@ -306,6 +312,13 @@ class PeriodAttendanceController extends Controller
                 ->with('flash_success', 'Attendance for this period was already submitted — the record is locked.');
         }
 
+        // Cancelled class (Round 3): no register opens for a
+        // period the office cancelled for this date.
+        if ($this->cancelledSubstitution($date, $period['tt']->id)) {
+            return redirect()->route('attendance.periods.index', ['date' => $date->format('Y-m-d')])
+                ->with('flash_danger', 'This period is cancelled on ' . $date->format('d M Y') . ' — the class was cancelled by the office, so no register is taken for it.');
+        }
+
         // Day types (T2): no new register opens on a non-teaching
         // day, nor beyond a half day's running periods. (An
         // existing session was already redirected above — history
@@ -376,6 +389,15 @@ class PeriodAttendanceController extends Controller
         if ($date->isFuture()) {
             throw ValidationException::withMessages([
                 'date' => 'Attendance cannot be taken for a future date.',
+            ]);
+        }
+
+        // Cancelled class (Round 3): the submit path enforces the
+        // same rule as the take page — no register lands for a
+        // period the office cancelled for this date.
+        if ($this->cancelledSubstitution($date, $period['tt']->id)) {
+            throw ValidationException::withMessages([
+                'date' => 'This period is cancelled on ' . $date->format('d M Y') . ' — the class was cancelled by the office, so no register is taken for it.',
             ]);
         }
 
@@ -456,6 +478,28 @@ class PeriodAttendanceController extends Controller
                     ->with('flash_danger', 'Attendance for this period was already submitted and is locked — it cannot be taken again.');
             }
             throw $e;
+        }
+
+        /* F1 (Round 4): WhatsApp absence alerts — AFTER the register
+           transaction, in their own guard, so a WhatsApp failure can
+           never fail the submit. Per-child daily dedupe lives in the
+           engine (absent:{record}:{date}); 'late' never triggers. */
+        try {
+            $waSession = $this->existingSession($date, $period['tt']->id);
+            $absentIds = [];
+            foreach ($data['statuses'] as $srId => $status) {
+                if ($status === 'absent') {
+                    $absentIds[] = (int) $srId;
+                }
+            }
+            if ($absentIds) {
+                $absentRecords = $students->whereIn('id', $absentIds);
+                foreach ($absentRecords as $sr) {
+                    \App\Support\ParentWhatsApp::absent($sr, $waSession, $date->toDateString(), $period['subject']->name, $request->user()->id);
+                }
+            }
+        } catch (\Throwable $e) {
+            // WhatsApp is additional — the register already landed.
         }
 
         return redirect()
@@ -1065,6 +1109,11 @@ class PeriodAttendanceController extends Controller
                     'sort' => $start ? $start->format('H:i') : '99:99',
                     'session' => $sessions->get($tt->id),
                     'substitution' => $substitution,
+                    // Cancelled class (Round 3, owner order
+                    // 2026-11-07): the office cancelled this period
+                    // for the date — it renders as cancelled and no
+                    // register is expected or accepted for it.
+                    'is_cancelled' => $substitution ? $substitution->isCancelled() : false,
                     'effective_teacher' => $substitution && $substitution->substitute
                         ? $substitution->substitute
                         : $teacher,
@@ -1116,6 +1165,20 @@ class PeriodAttendanceController extends Controller
     protected function existingSession(Carbon $date, int $timeTableId)
     {
         return AttendanceSession::whereDate('date', $date->toDateString())
+            ->where('time_table_id', $timeTableId)
+            ->first();
+    }
+
+    /** The cancelled row for (date, period), if the office
+     *  cancelled this period's class for that date (Round 3). */
+    protected function cancelledSubstitution(Carbon $date, int $timeTableId): ?Substitution
+    {
+        if (!\Illuminate\Support\Facades\Schema::hasTable('substitutions')) {
+            return null;
+        }
+
+        return Substitution::cancelled()
+            ->whereDate('date', $date->toDateString())
             ->where('time_table_id', $timeTableId)
             ->first();
     }

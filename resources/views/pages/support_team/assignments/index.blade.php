@@ -6,7 +6,9 @@
 @section('content')
     {{-- Loop 82 (LMS redesign): teacher/admin assignment list on the
          shared list_page pattern — summary cards + server-side
-         filters + list/grid renderings of the same paginated set.
+         filters + one stacked table of the paginated set (R3 P4:
+         the duplicate grid rendering was dropped — no test pinned
+         it — and Graded merged into the Submissions cell).
          Status follows the model's actual submission rule (CS1
          submit()): the window is OPEN while the due moment has not
          passed, or late submissions are allowed; CLOSED only when
@@ -18,7 +20,6 @@
     @php
         $isTeacher = Qs::userIsTeacher();
         $isAdmin = Qs::userIsAdmin();
-        $viewMode = request('view') === 'grid' ? 'grid' : 'list';
         $statusOf = function ($assignment) {
             $due = $assignment->due_at ? \Carbon\Carbon::parse($assignment->due_at) : null;
             $open = !$due || $due->isFuture() || $assignment->allow_late;
@@ -96,9 +97,6 @@
                         <option value="title" {{ request('sort') === 'title' ? 'selected' : '' }}>Title A–Z</option>
                     </select>
                 </div>
-                @if($viewMode === 'grid')
-                    <input type="hidden" name="view" value="grid">
-                @endif
                 <div class="pat-filter-action">
                     <button type="submit" class="btn btn-primary"><i class="icon-filter3 mr-1"></i> Filter</button>
                     <a href="{{ route('assignments.index') }}" class="btn btn-light"><i class="icon-reset mr-1"></i> Reset</a>
@@ -108,14 +106,10 @@
 
         <div class="lms82-viewbar">
             <span class="lms82-viewbar-count"><i class="icon-file-text2 mr-1"></i> Assignments ({{ method_exists($assignments, 'total') ? $assignments->total() : $assignments->count() }})</span>
-            <span class="btn-group lms82-toggle" role="group" aria-label="Switch list or grid view">
-                <button type="button" class="btn btn-sm {{ $viewMode === 'list' ? 'btn-primary' : 'btn-light' }}" data-lms82-view="list" title="List view"><i class="icon-list2"></i></button>
-                <button type="button" class="btn btn-sm {{ $viewMode === 'grid' ? 'btn-primary' : 'btn-light' }}" data-lms82-view="grid" title="Grid view"><i class="icon-grid6"></i></button>
-            </span>
         </div>
 
-        <div id="lms82-list" @if($viewMode === 'grid') style="display:none" @endif>
-            <table class="table lms-table">
+        <div id="lms82-list">
+            <table class="table lms-table l108-stack">
                 <thead>
                 <tr>
                     <th>Assignment</th>
@@ -124,7 +118,6 @@
                     <th>Due Date</th>
                     <th>Status</th>
                     <th>Submissions</th>
-                    <th>Graded</th>
                     <th>Actions</th>
                 </tr>
                 </thead>
@@ -136,7 +129,7 @@
                         $waiting = max(0, ($assignment->submissions_count ?? 0) - ($assignment->graded_count ?? 0));
                     @endphp
                     <tr>
-                        <td>
+                        <td data-label="Assignment">
                             <a href="{{ route('assignments.show', $assignment->id) }}"><strong>{{ $assignment->title }}</strong></a>
                             @if($assignment->description)
                                 <div class="text-muted lms82-clamp2">{{ \Illuminate\Support\Str::limit($assignment->description, 130) }}</div>
@@ -145,12 +138,12 @@
                                 <div class="mt-1"><span class="lms-chip"><i class="icon-attachment mr-1"></i>File attached</span></div>
                             @endif
                         </td>
-                        <td><span class="lms-chip lms-chip-subject"><i class="icon-book mr-1"></i>{{ optional($assignment->subject)->name ?? 'Subject —' }}</span></td>
-                        <td>
+                        <td data-label="Subject"><span class="lms-chip lms-chip-subject"><i class="icon-book mr-1"></i>{{ optional($assignment->subject)->name ?? 'Subject —' }}</span></td>
+                        <td data-label="Class">
                             {{ optional($assignment->myClass)->name ?? '—' }}@if(isset($cover_pairs) && ($cover_pairs[$assignment->my_class_id] ?? null) && in_array((int) $assignment->subject_id, $cover_pairs[$assignment->my_class_id], true) && (int) $assignment->teacher_id !== (int) Auth::id()) <span class="badge badge-warning ml-1">(Substitute)</span>@endif
                             <div class="text-muted">{{ $assignment->section ? optional($assignment->section)->name : 'Whole class' }}</div>
                         </td>
-                        <td>
+                        <td data-label="Due Date">
                             @if($due)
                                 {{ $due->format('d M Y, h:i A') }}
                                 @if($due->isPast())
@@ -162,7 +155,7 @@
                                 —
                             @endif
                         </td>
-                        <td>
+                        <td data-label="Status">
                             @if($isOpen)
                                 <span class="lms-chip lms-chip-open">Open</span>
                                 @if($due && $due->isPast())
@@ -172,16 +165,10 @@
                                 <span class="lms-chip lms-chip-closed">Closed</span>
                             @endif
                         </td>
-                        <td>
-                            <strong>{{ $assignment->submissions_count ?? 0 }} / {{ $assignment->students_count ?? 0 }}</strong> submitted
+                        <td data-label="Submissions">
+                            <strong>{{ $assignment->submissions_count ?? 0 }} / {{ $assignment->students_count ?? 0 }}</strong> submitted · <strong>{{ $assignment->graded_count ?? 0 }}</strong> graded @if($waiting > 0) · {{ $waiting }} waiting @endif
                         </td>
-                        <td>
-                            <strong>{{ $assignment->graded_count ?? 0 }}</strong> graded
-                            @if($waiting > 0)
-                                <div class="text-muted">{{ $waiting }} waiting</div>
-                            @endif
-                        </td>
-                        <td style="white-space:nowrap">
+                        <td data-label="Actions" style="white-space:nowrap">
                             <a href="{{ route('assignments.show', $assignment->id) }}" class="btn btn-light btn-sm"><i class="icon-eye mr-1"></i> View</a>
                             @if($mine)
                                 <a href="{{ route('assignments.edit', $assignment->id) }}" class="btn btn-light btn-sm"><i class="icon-pencil7 mr-1"></i> Edit</a>
@@ -193,7 +180,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="8">
+                        <td colspan="7">
                             @if($filters_active ?? false)
                                 @include('partials.patterns.empty_state', [
                                     'icon' => 'icon-search4',
@@ -216,70 +203,6 @@
             </table>
         </div>
 
-        <div id="lms82-grid" class="lms82-grid" @if($viewMode === 'list') style="display:none" @endif>
-            @forelse($assignments as $assignment)
-                @php
-                    [$due, $isOpen] = $statusOf($assignment);
-                    $mine = $isTeacher && $assignment->teacher_id == auth()->id();
-                    $waiting = max(0, ($assignment->submissions_count ?? 0) - ($assignment->graded_count ?? 0));
-                @endphp
-                <div class="lms82-gcard">
-                    <div class="lms82-gcard-top">
-                        <span class="lms-chip lms-chip-subject"><i class="icon-book mr-1"></i>{{ optional($assignment->subject)->name ?? 'Subject —' }}</span>
-                        @if($isOpen)
-                            <span class="lms-chip lms-chip-open">Open</span>
-                        @else
-                            <span class="lms-chip lms-chip-closed">Closed</span>
-                        @endif
-                    </div>
-                    <a href="{{ route('assignments.show', $assignment->id) }}" class="lms82-gcard-title">{{ $assignment->title }}</a>
-                    @if($assignment->description)
-                        <div class="text-muted lms82-clamp2">{{ \Illuminate\Support\Str::limit($assignment->description, 130) }}</div>
-                    @endif
-                    <div class="lms82-gcard-meta">
-                        <span><i class="icon-users mr-1"></i>{{ optional($assignment->myClass)->name ?? '—' }} · {{ $assignment->section ? optional($assignment->section)->name : 'Whole class' }}@if(isset($cover_pairs) && ($cover_pairs[$assignment->my_class_id] ?? null) && in_array((int) $assignment->subject_id, $cover_pairs[$assignment->my_class_id], true) && (int) $assignment->teacher_id !== (int) Auth::id()) <span class="badge badge-warning ml-1">(Substitute)</span>@endif</span>
-                        <span>
-                            <i class="icon-alarm mr-1"></i>
-                            @if($due)
-                                Due {{ $due->format('d M Y, h:i A') }}@if($due->isPast()) <span class="lms-due lms-due-overdue">(Overdue)</span>@endif
-                            @else
-                                No deadline
-                            @endif
-                        </span>
-                        <span><i class="icon-paperplane mr-1"></i><strong>{{ $assignment->submissions_count ?? 0 }} / {{ $assignment->students_count ?? 0 }}</strong> submitted · <strong>{{ $assignment->graded_count ?? 0 }}</strong> graded @if($waiting > 0) · {{ $waiting }} waiting @endif</span>
-                        @if($assignment->attachment_path)
-                            <span><i class="icon-attachment mr-1"></i>File attached</span>
-                        @endif
-                    </div>
-                    <div class="lms82-gcard-actions">
-                        <a href="{{ route('assignments.show', $assignment->id) }}" class="btn btn-light btn-sm"><i class="icon-eye mr-1"></i> View</a>
-                        @if($mine)
-                            <a href="{{ route('assignments.edit', $assignment->id) }}" class="btn btn-light btn-sm"><i class="icon-pencil7 mr-1"></i> Edit</a>
-                        @endif
-                        @if($mine || $isAdmin)
-                            <form method="post" action="{{ route('assignments.destroy', $assignment->id) }}" style="display:inline">@csrf @method('delete')<button type="submit" class="btn btn-light btn-sm text-danger" data-confirm="Delete this assignment and all its submissions?" data-confirm-title="Delete Assignment" data-confirm-action="Delete" data-confirm-danger><i class="icon-trash mr-1"></i> Delete</button></form>
-                        @endif
-                    </div>
-                </div>
-            @empty
-                @if($filters_active ?? false)
-                    @include('partials.patterns.empty_state', [
-                        'icon' => 'icon-search4',
-                        'message' => 'No assignments match these filters. Try a different search or clear the filters.',
-                        'action_url' => route('assignments.index'),
-                        'action_label' => 'Clear Filters',
-                    ])
-                @else
-                    @include('partials.patterns.empty_state', [
-                        'icon' => 'icon-file-text2',
-                        'message' => 'No assignments yet. Create the first one — students will see it in their portal instantly.',
-                        'action_url' => $isTeacher ? route('assignments.create') : null,
-                        'action_label' => 'New Assignment',
-                    ])
-                @endif
-            @endforelse
-        </div>
-
         @if(method_exists($assignments, 'total') && $assignments->total() > 0)
             <p class="text-muted mb-2"><small>Showing {{ $assignments->firstItem() }} to {{ $assignments->lastItem() }} of {{ $assignments->total() }} {{ $assignments->total() == 1 ? 'assignment' : 'assignments' }}</small></p>
         @endif
@@ -289,36 +212,4 @@
         @endif
     @endcomponent
 
-    <script>
-        (function () {
-            var listEl = document.getElementById('lms82-list');
-            var gridEl = document.getElementById('lms82-grid');
-            if (!listEl || !gridEl) { return; }
-            document.querySelectorAll('[data-lms82-view]').forEach(function (btn) {
-                btn.addEventListener('click', function () {
-                    var view = btn.getAttribute('data-lms82-view');
-                    listEl.style.display = view === 'list' ? '' : 'none';
-                    gridEl.style.display = view === 'grid' ? '' : 'none';
-                    document.querySelectorAll('[data-lms82-view]').forEach(function (b) {
-                        var active = b.getAttribute('data-lms82-view') === view;
-                        b.classList.toggle('btn-primary', active);
-                        b.classList.toggle('btn-light', !active);
-                    });
-                    // Keep the chosen view across pagination.
-                    document.querySelectorAll('.pagination a').forEach(function (a) {
-                        try {
-                            var url = new URL(a.href, window.location.origin);
-                            url.searchParams.set('view', view);
-                            a.href = url.toString();
-                        } catch (e) { /* leave the link as-is */ }
-                    });
-                    try {
-                        var here = new URL(window.location.href);
-                        here.searchParams.set('view', view);
-                        window.history.replaceState(null, '', here.toString());
-                    } catch (e) { /* non-fatal */ }
-                });
-            });
-        })();
-    </script>
 @endsection

@@ -91,7 +91,8 @@
             <span class="text-muted" style="align-self:center">Closes the ticked reports (marked Fixed). Replies still go through the detail page.</span>
         </form>
 
-        <table class="table">
+        <table class="table hk-std hk-std-feedback">
+            <colgroup><col style="width:4%"><col style="width:38%"><col style="width:15%"><col style="width:15%"><col style="width:12%"><col style="width:16%"></colgroup>
             <thead><tr><th style="width:32px"><input type="checkbox" id="fb-select-all" title="Select all"></th><th>Report</th><th>Reporter</th><th>Handling</th><th>Forwarded</th><th></th></tr></thead>
             <tbody>
             @forelse($items as $item)
@@ -103,15 +104,15 @@
                     <td>
                         <a class="fb-report-title" href="{{ route('feedback.sa_show', $item->id) }}">#{{ $item->id }} {{ $item->title }}</a>
                         <span class="text-muted">· {{ $item->typeLabel() }}</span>
-                        <div class="text-muted">{{ \Illuminate\Support\Str::limit($item->description, 80) }}</div>
+                        <div class="text-muted hk-ellip-2" title="{{ $item->description }}">{{ \Illuminate\Support\Str::limit($item->description, 80) ?: '—' }}</div>
                         @if($item->admin_note)
                             <div class="text-muted" style="font-size:.85em">Admin note: {{ \Illuminate\Support\Str::limit($item->admin_note, 80) }}</div>
                         @endif
                     </td>
                     <td>{{ $item->reporter_name }}<div class="text-muted">{{ ucwords(str_replace('_', ' ', $item->reporter_role)) }}</div></td>
                     <td>@include('pages.support_team.feedback._chips', ['item' => $item])</td>
-                    <td style="white-space:nowrap">{{ $item->forwarded_at->format('d M Y') }}</td>
-                    <td style="white-space:nowrap"><a href="{{ route('feedback.sa_show', $item->id) }}" class="btn btn-light btn-sm">Open</a>
+                    <td class="hk-nw">{{ $item->forwarded_at->format('d M Y') }}</td>
+                    <td class="hk-nw"><a href="{{ route('feedback.sa_show', $item->id) }}" class="btn btn-light btn-sm">Open</a>
                         @if($item->isClosedForSa())
                             <button type="button" class="btn btn-light btn-sm" disabled title="Closed — only the school Admin can reopen this report">Closed</button>
                         @else
@@ -124,7 +125,7 @@
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="6" class="fb-empty text-muted">Nothing forwarded yet. School Admins forward compiled, de-duplicated reports here.</td></tr>
+                <tr><td colspan="6">@include('partials.patterns.empty_state', ['icon' => 'icon-bubbles', 'message' => 'Nothing forwarded yet. School Admins forward compiled, de-duplicated reports here.'])</td></tr>
             @endforelse
             </tbody>
         </table>

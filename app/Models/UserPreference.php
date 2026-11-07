@@ -23,6 +23,10 @@ class UserPreference extends Model
         // My Account v3: gates the LMS bell alerts (assignment graded,
         // internal marks pushed) — enforced in App\Support\Notify.
         'notify_lms',
+        // F1 (Round 4): the real WhatsApp opt-out — enforced in the
+        // WhatsApp layer only (App\Support\ParentWhatsApp). Turning
+        // it off marks rows skipped_opt_out; bells are unaffected.
+        'notify_whatsapp',
         'date_format',
         'time_format',
         // Loop 50 (Workstream BX): the topbar dark-mode toggle writes
@@ -37,6 +41,14 @@ class UserPreference extends Model
         // and the badge greys; notifications still collect in the
         // list (nothing is ever dropped).
         'notifications_muted',
+        // Round 5 P4 (sidebar memory, Design B rebuild): the rail's
+        // collapsed state ('1' = collapsed / body.sidebar-xs) and the
+        // JSON list of expanded submenu group keys (data-group slugs
+        // from partials/menu). Written by MyAccountController@
+        // update_sidebar_state — same store, same AJAX pattern as
+        // the theme toggle above.
+        'sidebar_collapsed',
+        'sidebar_open_groups',
     ];
 
     public static function defaults(): array
@@ -47,6 +59,7 @@ class UserPreference extends Model
             'notify_attendance' => '1',
             'notify_exams' => '1',
             'notify_lms' => '1',
+            'notify_whatsapp' => '1',
             'date_format' => 'd M Y',
             'time_format' => '12',
             // Owner directive 2026-10-22 ("dark mode for all"): accounts
@@ -56,6 +69,10 @@ class UserPreference extends Model
             'bell_sound' => '1',
             // Notifications are unmuted until the user mutes them.
             'notifications_muted' => '0',
+            // Sidebar memory defaults: expanded rail, no remembered
+            // open groups (route-driven auto-open still applies).
+            'sidebar_collapsed' => '0',
+            'sidebar_open_groups' => '[]',
         ];
     }
 
@@ -84,6 +101,30 @@ class UserPreference extends Model
         $prefs = self::allFor($userId);
 
         return ($prefs[$key] ?? '0') === '1';
+    }
+
+    /** P4: the remembered collapsed state of the main sidebar. */
+    public static function sidebarCollapsed(int $userId): bool
+    {
+        return self::enabled($userId, 'sidebar_collapsed');
+    }
+
+    /**
+     * P4: the remembered open submenu groups, as a list of data-group
+     * slugs. Anything malformed in storage degrades to the default
+     * (no remembered groups) rather than breaking the rail.
+     */
+    public static function sidebarOpenGroups(int $userId): array
+    {
+        $prefs = self::allFor($userId);
+        $decoded = json_decode($prefs['sidebar_open_groups'] ?? '[]', true);
+        if (!is_array($decoded)) {
+            return [];
+        }
+
+        return array_values(array_filter($decoded, function ($key) {
+            return is_string($key) && preg_match('/^[a-z0-9]+(-[a-z0-9]+)*$/', $key);
+        }));
     }
 
     public function user()

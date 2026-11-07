@@ -151,6 +151,21 @@ class LeaveAutoCover
             $covered[$d . '|' . (int) $sub->time_table_id] = true;
         }
 
+        // Cancelled cells are RESOLVED (Round 3, owner order
+        // 2026-11-07): the office cancelled the class, so arrange
+        // must never re-cover it. Folding the cancelled keys into
+        // the same $covered set makes the per-cell loop below skip
+        // them before 'periods' is counted — a cancelled cell is
+        // neither arranged nor counted uncovered.
+        $cancelledRows = Substitution::where('status', 'cancelled')
+            ->whereDate('date', '>=', $start->toDateString())
+            ->whereDate('date', '<=', $end->toDateString())
+            ->get(['time_table_id', 'date']);
+        foreach ($cancelledRows as $row) {
+            $d = $row->date instanceof Carbon ? $row->date->toDateString() : (string) $row->date;
+            $covered[$d . '|' . (int) $row->time_table_id] = true;
+        }
+
         // Existing load of the pool inside the range, for ranking:
         // totals per teacher + per (teacher, date).
         $loadTotal = array_fill_keys($poolIds, 0);

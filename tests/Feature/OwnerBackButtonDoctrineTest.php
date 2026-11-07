@@ -78,6 +78,15 @@ class OwnerBackButtonDoctrineTest extends TestCase
             }
             $src = file_get_contents($file->getPathname());
             if (preg_match("/'back'\\s*=>\\s*route\\('(home|dashboard)'\\)/", $src)) {
+                // Sole exemption (Round 5 P14): the SA licence form's
+                // parent section IS the Platform Overview, and the
+                // SA's Platform Overview is served by route('dashboard')
+                // (its menu item uses the same route) — for the Super
+                // Admin that route is the section page itself, not a
+                // school dashboard dump.
+                if (substr($file->getPathname(), -strlen('pages/super_admin/licence/edit.blade.php')) === 'pages/super_admin/licence/edit.blade.php') {
+                    continue;
+                }
                 $bad[] = $file->getPathname();
             }
         }

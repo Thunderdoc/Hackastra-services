@@ -80,5 +80,55 @@ class RouteServiceProvider extends ServiceProvider
         RateLimiter::for('password-reset', function (Request $request) {
             return Limit::perMinute(5)->by($request->ip());
         });
+
+        /* Round 5 Slice 1 (P8): the web write surface gets named
+           limiters too. Authenticated limiters key PER USER, never
+           per school IP — a whole school office sits behind one NAT
+           address and must never share one bucket. Every limit is
+           far above genuine use and far below scripted abuse; a trip
+           lands on the branded 429 page (or the AJAX error floor),
+           both of which explain the wait. */
+        RateLimiter::for('web-write', function (Request $request) {
+            return Limit::perMinute(120)->by(optional($request->user())->id ?: $request->ip());
+        });
+
+        /* Generators burn CPU per run (timetable, exam date-sheet,
+           payroll). The cap is 60/min per user — one per second —
+           because iterative regeneration is a genuine admin pattern
+           (adjust inputs, regenerate, compare; the timetable fuzz
+           suite does exactly this), while a runaway script is still
+           bounded to a serial queue of heavy jobs on an admin-only
+           endpoint. */
+        RateLimiter::for('generate', function (Request $request) {
+            return Limit::perMinute(60)->by(optional($request->user())->id ?: $request->ip());
+        });
+
+        /* AI assists spend the school's free-tier Gemini quota:
+           10/min per user protects it without touching real drafting. */
+        RateLimiter::for('ai-assist', function (Request $request) {
+            return Limit::perMinute(10)->by(optional($request->user())->id ?: $request->ip());
+        });
+
+        /* Bulk-import human steps (upload, confirm). The chunked
+           apply loop rides web-write instead: it auto-continues
+           every ~900 ms and can legitimately POST 40-60/min on a
+           big file. */
+        RateLimiter::for('imports', function (Request $request) {
+            return Limit::perMinute(30)->by(optional($request->user())->id ?: $request->ip());
+        });
+
+        /* Guest surfaces key per IP, like the password pair: the
+           public admission-enquiry form … */
+        RateLimiter::for('public-form', function (Request $request) {
+            return Limit::perMinute(10)->by($request->ip());
+        });
+
+        /* … and the mobile API login, keyed per IP + account:
+           credential stuffing against ONE account caps at 5/min,
+           while a whole school office signing in from one NAT
+           address (different accounts) never shares a bucket. */
+        RateLimiter::for('api-login', function (Request $request) {
+            return Limit::perMinute(5)->by($request->ip() . '|' . \Illuminate\Support\Str::lower((string) ($request->input('identity', '') ?: $request->input('email', ''))));
+        });
     }
 }

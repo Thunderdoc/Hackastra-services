@@ -58,15 +58,36 @@ class OwnerSaUsersScopeRound10Test extends TestCase
 
     public function test_admin_and_principal_lists_show_no_super_admin_rows()
     {
+        // Round 5 P12 paginated the list (25/page, name order), so
+        // witnesses are checked through the search filter — the
+        // scoping thesis is unchanged, and the SA must not surface
+        // even when searched for by name.
         $this->actingAs($this->admin())->get(route('users.index'))
             ->assertOk()
-            ->assertDontSee('Ankit Kumar')
-            ->assertSee('Ananya Sharma')
+            ->assertDontSee('Ankit Kumar');
+
+        // (The by-name search asserts on the SA's email: the search
+        // box echoes the typed query back into the page, so the name
+        // itself always "appears" there — the row would carry his
+        // email, and it must not.)
+        $this->actingAs($this->admin())->get(route('users.index', ['q' => 'Ankit Kumar']))
+            ->assertOk()
+            ->assertDontSee('superadmin@hackstra.app');
+
+        $this->actingAs($this->admin())->get(route('users.index', ['q' => 'Ananya Sharma']))
+            ->assertOk()
+            ->assertSee('Ananya Sharma');
+
+        $this->actingAs($this->admin())->get(route('users.index', ['q' => 'Rajesh Iyer']))
+            ->assertOk()
             ->assertSee('Rajesh Iyer');
 
         $this->actingAs($this->principal())->get(route('users.index'))
             ->assertOk()
-            ->assertDontSee('Ankit Kumar')
+            ->assertDontSee('Ankit Kumar');
+
+        $this->actingAs($this->principal())->get(route('users.index', ['q' => 'Ananya Sharma']))
+            ->assertOk()
             ->assertSee('Ananya Sharma');
     }
 }

@@ -175,6 +175,9 @@
                     @endif
                 </div>
             </form>
+            <div class="mt-2">
+                @include('partials.patterns.saved_views', ['svList' => 'students'])
+            </div>
         @endslot
 
         @if(Qs::userIsTeamSAWrite())
@@ -190,6 +193,18 @@
                 <div class="d-flex align-items-center mb-2">
                     <span id="bulk-selected-count" class="mr-2 text-muted">0 selected</span>
                     <button type="submit" id="bulk-delete-btn" class="btn btn-danger btn-sm" disabled><i class="icon-trash mr-1"></i> Delete Selected</button>
+                </div>
+            </form>
+            {{-- Round 5 Slice 3 (P10): Export selected joins the existing
+                 bar — same checkboxes, same count, same page scope. The
+                 form is separate (like the delete form, it must not wrap
+                 the table); the script below appends the checked ids as
+                 student_ids[] on submit. No confirmation: an export
+                 changes nothing. --}}
+            <form id="bulk-export-form" class="print-hide" method="post" action="{{ route('students.export_selected') }}">
+                @csrf
+                <div class="d-flex align-items-center mb-2">
+                    <button type="submit" id="bulk-export-btn" class="btn btn-light btn-sm" disabled><i class="icon-download mr-1"></i> Export Selected</button>
                 </div>
             </form>
         @endif
@@ -397,6 +412,7 @@
                 var n = checkedBoxes().length;
                 $('#bulk-selected-count').text(n + ' selected');
                 $('#bulk-delete-btn').prop('disabled', n === 0);
+                $('#bulk-export-btn').prop('disabled', n === 0);
             }
             $(document).on('change', '#all-students input.bulk-check', refreshCount);
             $(document).on('change', '#bulk-check-all', function () {
@@ -427,6 +443,18 @@
                 }
                 delete form.dataset.hxcConfirmed;
                 $(form).find('input[type=hidden][data-bulk-id]').remove();
+                ids.forEach(function (id) {
+                    $('<input>').attr({ type: 'hidden', name: 'student_ids[]', value: id, 'data-bulk-id': '1' }).appendTo(form);
+                });
+            });
+            /* P10: Export selected — same checked ids, no confirmation
+               (nothing changes server-side); inject and let it submit. */
+            $('#bulk-export-form').on('submit', function (e) {
+                var ids = [];
+                checkedBoxes().each(function () { ids.push(this.value); });
+                if (!ids.length) { e.preventDefault(); return; }
+                $(this).find('input[type=hidden][data-bulk-id]').remove();
+                var form = this;
                 ids.forEach(function (id) {
                     $('<input>').attr({ type: 'hidden', name: 'student_ids[]', value: id, 'data-bulk-id': '1' }).appendTo(form);
                 });

@@ -176,7 +176,7 @@ class OwnerOvernightAttendanceTest extends TestCase
             ->assertOk()
             ->getContent();
 
-        $found = preg_match('/Class 12 — ' . preg_quote($section->name, '/') . '<\/td>.*?ma-students">\s*(?:\d+\/)?(\d+)\s*</s', $html, $m);
+        $found = preg_match('/Class 12 — ' . preg_quote($section->name, '/') . '<\/td>.*?ma-students[^"]*">\s*(?:\d+\/)?(\d+)\s*</s', $html, $m);
         $this->assertSame(1, $found, 'Class 12-' . $section->name . ' row not found on the periods index');
         $this->assertSame((string) $roster, $m[1], 'Section row must show the section size, not the class size');
     }

@@ -85,7 +85,8 @@
 
         <form method="post" action="{{ route('feedback.forward') }}">
             @csrf
-            <table class="table">
+            <table class="table hk-std hk-std-feedback">
+                <colgroup><col style="width:4%"><col style="width:40%"><col style="width:16%"><col style="width:16%"><col style="width:12%"><col style="width:12%"></colgroup>
                 <thead><tr>
                     <th style="width:34px"><span class="sr-only">Select to forward</span></th>
                     <th>Report</th><th>Reporter</th><th>Status</th><th>Reported</th><th></th>
@@ -101,7 +102,7 @@
                         <td>
                             <a class="fb-report-title" href="{{ route('feedback.show', $item->id) }}">#{{ $item->id }} {{ $item->title }}</a>
                             <span class="text-muted">· {{ $item->typeLabel() }}</span>
-                            <div class="text-muted">{{ \Illuminate\Support\Str::limit($item->description, 80) }}</div>
+                            <div class="text-muted hk-ellip-2" title="{{ $item->description }}">{{ \Illuminate\Support\Str::limit($item->description, 80) ?: '—' }}</div>
                             @if($item->isDuplicate())
                                 <div class="text-muted" style="font-size:.85em">Duplicate of #{{ $item->duplicate_of_id }}</div>
                             @elseif($item->isForwarded())
@@ -110,11 +111,11 @@
                         </td>
                         <td>{{ $item->reporter_name }}<div class="text-muted">{{ ucwords(str_replace('_', ' ', $item->reporter_role)) }}</div></td>
                         <td>@include('pages.support_team.feedback._chips', ['item' => $item])</td>
-                        <td style="white-space:nowrap">{{ $item->created_at->format('d M Y') }}</td>
-                        <td><a href="{{ route('feedback.show', $item->id) }}" class="btn btn-light btn-sm">Open</a></td>
+                        <td class="hk-nw">{{ $item->created_at->format('d M Y') }}</td>
+                        <td class="hk-nw"><a href="{{ route('feedback.show', $item->id) }}" class="btn btn-light btn-sm">Open</a></td>
                     </tr>
                 @empty
-                    <tr><td colspan="6" class="fb-empty text-muted">No feedback matches. New reports from anyone in the school land here.</td></tr>
+                    <tr><td colspan="6">@include('partials.patterns.empty_state', ['icon' => 'icon-bubbles', 'message' => 'No feedback matches. New reports from anyone in the school land here.'])</td></tr>
                 @endforelse
                 </tbody>
             </table>

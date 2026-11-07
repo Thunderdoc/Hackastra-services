@@ -100,14 +100,10 @@
                 </div>
 
                 @if($announced === 0)
-                    <div class="l103-empty">
-                        <i class="icon-calendar3"></i>
-                        <h6>Dates not announced yet</h6>
-                        <p class="text-muted mb-0">
-                            The school has not announced any dates for {{ $exam->name }} ({{ $my_class->name }}) yet.
-                            This page will list every subject's date as soon as the school office publishes them.
-                        </p>
-                    </div>
+                    @include('partials.patterns.empty_state', [
+                        'icon' => 'icon-calendar3',
+                        'message' => 'Dates not announced yet. The school has not announced any dates for ' . $exam->name . ' (' . $my_class->name . ') yet. This page will list every subject\'s date as soon as the school office publishes them.',
+                    ])
                 @else
                     <div class="table-responsive">
                         <table class="table l103-table">

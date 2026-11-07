@@ -26,12 +26,28 @@
     <script>try{if(localStorage.getItem('hk-theme')!=='light'){document.documentElement.classList.add('hk-dark');}}catch(e){document.documentElement.classList.add('hk-dark');}</script>
 </head>
 <body>
+@php
+    // Round 5 Slice 1 (P17): honour Retry-After when the server sent
+    // one — a concrete wait beats a generic one whenever the server
+    // actually knows. Arrives as seconds or an HTTP-date; humanised.
+    $hkRetryAfter = null;
+    try {
+        $hkHeaders = isset($exception) && method_exists($exception, 'getHeaders') ? $exception->getHeaders() : [];
+        $hkRaw = $hkHeaders['Retry-After'] ?? $hkHeaders['retry-after'] ?? null;
+        if ($hkRaw !== null && $hkRaw !== '') {
+            $hkSeconds = is_numeric($hkRaw) ? (int) $hkRaw : max(0, (int) strtotime((string) $hkRaw) - time());
+            $hkRetryAfter = $hkSeconds < 60
+                ? 'about ' . max(1, $hkSeconds) . ' seconds'
+                : 'about ' . (int) ceil($hkSeconds / 60) . ' minutes';
+        }
+    } catch (\Throwable $e) { $hkRetryAfter = null; }
+@endphp
     <div class="wrap">
         <div class="card">
             <p class="brand">Hackstra</p>
             <p class="code">429</p>
             <h1>Too many attempts</h1>
-            <p>You have made too many requests in a short time. Please wait a minute, then try again. This limit protects every account from automated guessing.</p>
+            <p>You have made too many requests in a short time. @if($hkRetryAfter)Please try again in {{ $hkRetryAfter }}.@else Please wait a minute, then try again.@endif This limit protects every account from automated guessing.</p>
             <a class="btn" href="{{ url('/') }}">Back to dashboard</a>
             <a class="btn btn-light" href="javascript:history.back()">Go back</a>
         </div>

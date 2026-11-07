@@ -17,6 +17,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 /**
  * LMS — Study materials (Workstream CS1, 2026-10-22).
@@ -438,19 +439,12 @@ class StudyMaterialController extends Controller
     }
 
     /**
-     * Authorized download of a material's file (public disk, but the
-     * download still goes through the scope check so a link alone is
-     * never enough for an out-of-scope user).
+     * The single allow-list for a material's file, shared by
+     * download(), view() and viewerPage() so the inline viewer can
+     * never drift wider than the download (R3 LMS, P1).
      */
-    public function download($material_id)
+    protected function canAccessMaterial($user, StudyMaterial $material): bool
     {
-        $material = StudyMaterial::find($material_id);
-        $user = Auth::user();
-
-        if (!$material || !$material->file_path) {
-            return back()->with(['pop_error' => __('msg.rnf'), 'flash_danger' => __('msg.rnf')]);
-        }
-
         $allowed = Qs::userIsTeamSA()
             || $material->teacher_id == $user->id
             || (Qs::userIsTeacher() && TeacherScope::canTeachClass($user, $material->my_class_id))
@@ -470,7 +464,47 @@ class StudyMaterialController extends Controller
                 });
         }
 
-        if (!$allowed) {
+        return (bool) $allowed;
+    }
+
+    /** Extensions the browser can render inline (PDF + images). */
+    protected function viewableExtension(StudyMaterial $material): ?string
+    {
+        if (!$material->file_path) {
+            return null;
+        }
+        $ext = strtolower(pathinfo($material->file_path, PATHINFO_EXTENSION));
+        return in_array($ext, ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'webp'], true) ? $ext : null;
+    }
+
+    protected function inlineMime(string $ext): string
+    {
+        $map = [
+            'pdf' => 'application/pdf',
+            'jpg' => 'image/jpeg',
+            'jpeg' => 'image/jpeg',
+            'png' => 'image/png',
+            'gif' => 'image/gif',
+            'webp' => 'image/webp',
+        ];
+        return $map[$ext] ?? 'application/octet-stream';
+    }
+
+    /**
+     * Authorized download of a material's file (public disk, but the
+     * download still goes through the scope check so a link alone is
+     * never enough for an out-of-scope user).
+     */
+    public function download($material_id)
+    {
+        $material = StudyMaterial::find($material_id);
+        $user = Auth::user();
+
+        if (!$material || !$material->file_path) {
+            return back()->with(['pop_error' => __('msg.rnf'), 'flash_danger' => __('msg.rnf')]);
+        }
+
+        if (!$this->canAccessMaterial($user, $material)) {
             abort(403, __('msg.denied'));
         }
 
@@ -479,6 +513,76 @@ class StudyMaterialController extends Controller
         }
 
         return Storage::disk('public')->download($material->file_path);
+    }
+
+    /**
+     * Inline view of a material's file (R3 LMS, P1): PDF and image
+     * files only, served with response()->file() so the browser's
+     * PDF viewer gets BinaryFileResponse Range/206 support. Every
+     * refusal mirrors download() exactly — same gate (shared
+     * canAccessMaterial), same flash/redirect for missing or
+     * non-viewable files, same 403 for out-of-scope users.
+     */
+    public function view($material_id)
+    {
+        $material = StudyMaterial::find($material_id);
+        $user = Auth::user();
+
+        if (!$material || !$material->file_path) {
+            return back()->with(['pop_error' => __('msg.rnf'), 'flash_danger' => __('msg.rnf')]);
+        }
+
+        if (!$this->canAccessMaterial($user, $material)) {
+            abort(403, __('msg.denied'));
+        }
+
+        $ext = $this->viewableExtension($material);
+        if ($ext === null
+            || !Str::startsWith($material->file_path, 'materials/')
+            || !Storage::disk('public')->exists($material->file_path)) {
+            return back()->with(['pop_error' => __('msg.rnf'), 'flash_danger' => __('msg.rnf')]);
+        }
+
+        $path = Storage::disk('public')->path($material->file_path);
+        $filename = (Str::slug($material->title) ?: 'material') . '.' . $ext;
+
+        return response()->file($path, [
+            'Content-Type' => $this->inlineMime($ext),
+            'Content-Disposition' => 'inline; filename="' . $filename . '"',
+        ]);
+    }
+
+    /**
+     * The in-platform viewer page (toolbar + embedded file). The
+     * file bytes themselves come from view() above; this page is
+     * gated identically and refuses non-viewable materials the
+     * same way.
+     */
+    public function viewerPage($material_id)
+    {
+        $material = StudyMaterial::with(['subject', 'my_class', 'section', 'teacher'])->find($material_id);
+        $user = Auth::user();
+
+        if (!$material || !$material->file_path) {
+            return back()->with(['pop_error' => __('msg.rnf'), 'flash_danger' => __('msg.rnf')]);
+        }
+
+        if (!$this->canAccessMaterial($user, $material)) {
+            abort(403, __('msg.denied'));
+        }
+
+        $ext = $this->viewableExtension($material);
+        if ($ext === null
+            || !Str::startsWith($material->file_path, 'materials/')
+            || !Storage::disk('public')->exists($material->file_path)) {
+            return back()->with(['pop_error' => __('msg.rnf'), 'flash_danger' => __('msg.rnf')]);
+        }
+
+        return view('pages.support_team.materials.view', [
+            'material' => $material,
+            'ext' => $ext,
+            'is_image' => $ext !== 'pdf',
+        ]);
     }
 
     protected function deny()

@@ -180,22 +180,46 @@
             input.value = isoToDisplay(state.iso);
             hidden.value = state.iso;
         }
+        /* Round 5 Slice 2 (P9): an invalid or incomplete date used
+           to fail silently — the field just turned red and the
+           typed text vanished. Now a visible field-error message
+           sits under the field and the typed text stays put; the
+           hidden ISO sibling still clears, so no bad value is
+           ever submitted. */
+        var HK_DATE_ERROR_MESSAGE = 'Enter a real date as DD/MM/YYYY';
+        var dateMsg = null;
+        function hkDateShowError() {
+            if (!dateMsg) {
+                dateMsg = document.createElement('span');
+                dateMsg.className = 'field-error hkdp-error';
+                dateMsg.setAttribute('role', 'alert');
+                wrap.parentNode.insertBefore(dateMsg, wrap.nextSibling);
+            }
+            dateMsg.textContent = HK_DATE_ERROR_MESSAGE;
+            dateMsg.style.display = '';
+        }
+        function hkDateHideError() {
+            if (dateMsg) { dateMsg.textContent = ''; dateMsg.style.display = 'none'; }
+        }
         function commit(text) {
             if (!text || !text.trim()) {
                 state.iso = '';
                 input.classList.remove('is-invalid');
                 hidden.value = '';
+                hkDateHideError();
                 return true;
             }
             var iso = displayToIso(text);
             if (iso === null || (minIso && iso < minIso) || (maxIso && iso > maxIso)) {
                 input.classList.add('is-invalid');
                 hidden.value = '';
+                hkDateShowError();
                 return false;
             }
             input.classList.remove('is-invalid');
             state.iso = iso;
             hidden.value = iso;
+            hkDateHideError();
             return true;
         }
 
@@ -214,6 +238,7 @@
                     state.iso = iso === null ? '' : iso;
                 }
                 hidden.value = state.iso;
+                if (state.iso) { input.classList.remove('is-invalid'); hkDateHideError(); }
                 // Write the visible text without tripping this setter.
                 Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')
                     .set.call(input, isoToDisplay(state.iso));
@@ -230,8 +255,9 @@
         });
         input.addEventListener('change', function () {
             var proto = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
-            commit(proto.get.call(input));
-            render();
+            /* Only re-render on a good commit — rendering after a
+               failed commit would wipe the text the user typed. */
+            if (commit(proto.get.call(input))) { render(); }
         });
         input.addEventListener('blur', function () {
             var proto = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');

@@ -1,5 +1,6 @@
 <html>
 <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <title>Teacher Weekly Timetable - {{ $teacher->name.' - '.$year }}</title>
     <style>
         /* Document design v2 (Workstream DB, Loop 68 tokens) — the same

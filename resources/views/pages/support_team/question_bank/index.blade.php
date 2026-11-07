@@ -8,6 +8,7 @@
         <div class="card-header header-elements-inline">
             <h5 class="card-title">My Question Bank</h5>
             <div class="header-elements">
+                <a href="{{ route('question_papers.create') }}" class="btn btn-success btn-sm mr-2"><i class="icon-file-text2 mr-2"></i> Generate Question Paper</a>
                 <a href="{{ route('question_bank.create') }}" class="btn btn-primary btn-sm"><i class="icon-plus2 mr-2"></i> Add Question</a>
             </div>
         </div>
@@ -36,6 +37,9 @@
                                 <th>Class</th>
                                 <th>Section</th>
                                 <th>Subject</th>
+                                <th>Type</th>
+                                <th>Chapter</th>
+                                <th>Difficulty</th>
                                 <th>Marks</th>
                                 <th>Actions</th>
                             </tr>
@@ -47,10 +51,13 @@
                                     <td>{{ optional($q->my_class)->name }}</td>
                                     <td>{{ optional($q->section)->name ?? 'Whole class' }}</td>
                                     <td>{{ optional($q->subject)->name }}</td>
+                                    <td>{{ strtoupper($q->question_type ?: 'mcq') }}</td>
+                                    <td>{{ $q->chapter ?: '—' }}</td>
+                                    <td>{{ $q->difficulty ? ucfirst($q->difficulty) : 'Unrated' }}</td>
                                     <td>{{ $q->marks }}</td>
                                     <td class="text-nowrap">
                                         <a href="{{ route('question_bank.edit', $q->id) }}" class="btn btn-sm btn-primary">Edit</a>
-                                        <form method="post" action="{{ route('question_bank.destroy', $q->id) }}" style="display:inline" onsubmit="return confirm('Delete this question from your bank?')">
+                                        <form method="post" action="{{ route('question_bank.destroy', $q->id) }}" style="display:inline" data-confirm="Delete the question “{{ \Illuminate\Support\Str::limit($q->question, 60) }}” from your bank? This cannot be undone." data-confirm-title="Delete Question" data-confirm-action="Delete" data-confirm-danger>
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="btn btn-sm btn-danger">Delete</button>
@@ -62,7 +69,10 @@
                     </table>
                 </div>
             @else
-                <p class="text-muted mb-0">Your bank is empty. Add your first question to reuse it in quizzes later.</p>
+                @include('partials.patterns.empty_state', [
+                    'icon' => 'icon-books',
+                    'message' => 'Your bank is empty. Add your first question to reuse it in quizzes later.',
+                ])
             @endif
         </div>
     </div>

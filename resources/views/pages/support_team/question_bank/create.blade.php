@@ -42,6 +42,34 @@
                     <label for="question">Question</label>
                     <textarea id="question" name="question" class="form-control" rows="3" required>{{ old('question') }}</textarea>
                 </div>
+                <div class="form-group">
+                    <label for="question_type">Question Type</label>
+                    <select id="question_type" name="question_type" class="form-control">
+                        @foreach(['mcq' => 'MCQ (options + one correct)', 'short' => 'Short Answer', 'long' => 'Long Answer'] as $val => $label)
+                            <option value="{{ $val }}" {{ old('question_type', 'mcq') === $val ? 'selected' : '' }}>{{ $label }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="chapter">Chapter / Topic (optional)</label>
+                    <input id="chapter" type="text" name="chapter" class="form-control" maxlength="120" value="{{ old('chapter') }}" placeholder="e.g. Light">
+                </div>
+                <div class="form-group">
+                    <label for="difficulty">Difficulty (optional)</label>
+                    <select id="difficulty" name="difficulty" class="form-control">
+                        <option value="">Unrated</option>
+                        @foreach(['easy', 'medium', 'hard'] as $d)
+                            <option value="{{ $d }}" {{ old('difficulty') === $d ? 'selected' : '' }}>{{ ucfirst($d) }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div id="model-answer-block" style="display:none">
+                    <div class="form-group">
+                        <label for="model_answer">Model Answer (required for short/long — printed only in the answer key)</label>
+                        <textarea id="model_answer" name="model_answer" class="form-control" rows="3">{{ old('model_answer') }}</textarea>
+                    </div>
+                </div>
+                <div id="mcq-block">
                 @for($i = 0; $i < 4; $i++)
                     <div class="form-group">
                         <label>Option {{ $i + 1 }}</label>
@@ -53,6 +81,7 @@
                         </div>
                     </div>
                 @endfor
+                </div>
                 <div class="form-group">
                     <label for="marks">Marks</label>
                     <input id="marks" type="number" name="marks" class="form-control" value="{{ old('marks', 1) }}" min="1" required>
@@ -60,6 +89,18 @@
                 <a href="{{ route('question_bank.index') }}" class="btn btn-light">Cancel</a>
                 <button type="submit" class="btn btn-primary">Add to Bank</button>
             </form>
+            <script>
+                (function () {
+                    var type = document.getElementById('question_type');
+                    function sync() {
+                        var isMcq = type.value === 'mcq';
+                        document.getElementById('mcq-block').style.display = isMcq ? '' : 'none';
+                        document.getElementById('model-answer-block').style.display = isMcq ? 'none' : '';
+                    }
+                    type.addEventListener('change', sync);
+                    sync();
+                })();
+            </script>
         </div>
     </div>
 @endsection

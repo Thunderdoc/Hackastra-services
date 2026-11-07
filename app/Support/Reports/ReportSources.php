@@ -141,6 +141,7 @@ class ReportSources
                 'label' => 'Fee Defaulters',
                 'roles' => ['accountant', 'admin'],
                 'filters' => ['class_id', 'section_id', 'status', 'year'],
+                'status_options' => ['unpaid' => 'Unpaid', 'partial' => 'Partial'],
                 'columns' => [
                     'student' => ['Student', 'text', 22],
                     'adm_no' => ['Admission No', 'text', 14],
@@ -157,6 +158,7 @@ class ReportSources
                 'label' => 'Library Fines',
                 'roles' => ['accountant', 'librarian', 'admin'],
                 'filters' => ['status'],
+                'status_options' => ['pending' => 'Pending', 'paid' => 'Paid', 'waived' => 'Waived'],
                 'columns' => [
                     'student' => ['Student', 'text', 22],
                     'book' => ['Book', 'text', 24],
@@ -186,6 +188,7 @@ class ReportSources
                 'label' => 'Book Issues / Returns',
                 'roles' => ['librarian', 'admin'],
                 'filters' => ['status'],
+                'status_options' => ['issued' => 'Issued', 'returned' => 'Returned', 'overdue' => 'Overdue'],
                 'columns' => [
                     'book' => ['Book', 'text', 26],
                     'borrower' => ['Borrower', 'text', 22],
@@ -212,6 +215,7 @@ class ReportSources
                 'label' => 'Admission Enquiries',
                 'roles' => ['admin'],
                 'filters' => ['class_id', 'status'],
+                'status_options' => Admission::STATUS_LABELS,
                 'columns' => [
                     'name' => ['Name', 'text', 24],
                     'phone' => ['Phone', 'text', 14],
@@ -224,6 +228,7 @@ class ReportSources
                 'label' => 'Certificates Issued',
                 'roles' => ['admin'],
                 'filters' => ['status'],
+                'status_options' => ['bonafide' => 'Bonafide', 'transfer' => 'Transfer'],
                 'columns' => [
                     'student_name' => ['Student', 'text', 22],
                     'adm_no' => ['Admission No', 'text', 14],
@@ -249,6 +254,7 @@ class ReportSources
                 'label' => 'Circulars',
                 'roles' => ['admin'],
                 'filters' => ['status'],
+                'status_options' => Circular::audiences(),
                 'columns' => [
                     'title' => ['Title', 'text', 30],
                     'audience' => ['Audience', 'text', 14],

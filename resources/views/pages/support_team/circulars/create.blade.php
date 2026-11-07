@@ -20,7 +20,12 @@
                 'form_action' => route('circulars.store'),
                 'form_enctype' => 'multipart/form-data',
                 'back' => route('circulars.index'),
+                'form_draft' => 'u'.Auth::id().'-circular-new',
             ])
+                {{-- Round 5 Slice 2 (P6): hk-draft autosave opt-in.
+                     The form tag is rendered by the form_page
+                     partial, so the opt-in rides as an in-form
+                     marker with the full per-user key. --}}
                 @slot('title')
                     Create New Circular
                 @endslot

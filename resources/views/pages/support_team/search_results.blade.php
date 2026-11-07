@@ -16,7 +16,7 @@
     </div>
 
     @if(strlen($term) < 2)
-        <div class="dashboard-panel"><p class="dashboard-empty">Type at least 2 characters to search.</p></div>
+        <div class="dashboard-panel">@include('partials.patterns.empty_state', ['icon' => 'icon-search4', 'message' => 'Type at least 2 characters to search.', 'compact' => true])</div>
     @else
         <section class="dashboard-panel mb-4">
             <div class="dashboard-panel-heading"><div><h5 class="mb-1">Students</h5></div></div>
@@ -31,7 +31,7 @@
                         <td>@if($student->student_record)<a href="{{ route('students.show', \App\Helpers\Qs::hash($student->student_record->id)) }}" class="dashboard-view-all">View</a>@endif</td>
                     </tr>
                 @empty
-                    <tr><td colspan="4" class="dashboard-empty">No students match.</td></tr>
+                    <tr><td colspan="4">@include('partials.patterns.empty_state', ['icon' => 'icon-search4', 'message' => 'No students match.', 'compact' => true])</td></tr>
                 @endforelse
                 </tbody></table></div>
         </section>
@@ -44,7 +44,7 @@
                 @forelse($staff as $member)
                     <tr><td><strong>{{ $member->name }}</strong></td><td>{{ ucwords(str_replace('_', ' ', $member->user_type)) }}</td><td>{{ $member->email }}</td></tr>
                 @empty
-                    <tr><td colspan="3" class="dashboard-empty">No staff match.</td></tr>
+                    <tr><td colspan="3">@include('partials.patterns.empty_state', ['icon' => 'icon-search4', 'message' => 'No staff match.', 'compact' => true])</td></tr>
                 @endforelse
                 </tbody></table></div>
         </section>
@@ -58,7 +58,7 @@
                         @forelse($classes as $class)
                             <tr><td><strong>{{ $class->name }}</strong></td><td><a href="{{ route('students.list', $class->id) }}" class="dashboard-view-all">Students</a></td></tr>
                         @empty
-                            <tr><td class="dashboard-empty">No classes match.</td></tr>
+                            <tr><td>@include('partials.patterns.empty_state', ['icon' => 'icon-search4', 'message' => 'No classes match.', 'compact' => true])</td></tr>
                         @endforelse
                         </tbody></table></div>
                 </section>
@@ -71,7 +71,7 @@
                         @forelse($payments as $payment)
                             <tr><td><strong>{{ $payment->title }}</strong><small>{{ $payment->ref_no }}</small></td><td>{{ \App\Helpers\Money::inr($payment->amount) }}</td></tr>
                         @empty
-                            <tr><td class="dashboard-empty">No payments match.</td></tr>
+                            <tr><td>@include('partials.patterns.empty_state', ['icon' => 'icon-search4', 'message' => 'No payments match.', 'compact' => true])</td></tr>
                         @endforelse
                         </tbody></table></div>
                 </section>

@@ -143,8 +143,26 @@
                             <span class="platform-snap-copy"><small>Total fee collection</small><strong>{{ \App\Helpers\Money::inr($snapshot_collection_total) }}</strong></span>
                         </div>
                     </div>
+                    {{-- Round 5 Slice 4 (P14): the current licence
+                         RECORD as a badge, only when a record
+                         exists — no record, no badge, never a
+                         placeholder plan. (P16): the referral log
+                         link lives here too — platform area only,
+                         no sidebar addition. --}}
+                    @if(!empty($school_licence))
+                        <div class="platform-snap-foot">
+                            <p class="mb-0"><strong>Licence:</strong> {{ $school_licence->plan_name }}
+                                <span class="dashboard-status {{ $school_licence->status === 'active' ? 'status-success' : ($school_licence->status === 'past_due' ? 'status-warning' : '') }}">{{ \App\Models\SchoolLicence::statusLabel($school_licence->status) }}</span>
+                                @if($school_licence->renews_on)<span class="dashboard-muted">· Renews {{ $school_licence->renews_on->format('d M Y') }}</span>@endif
+                            </p>
+                        </div>
+                    @endif
                     <div class="platform-snap-foot">
                         <p class="dashboard-muted mb-0">Day-to-day school operations are managed by the school Admin. This panel is a read-only size signal for the platform.</p>
+                        <p class="mb-0 mt-2">
+                            @if(Route::has('platform_licence.edit'))<a href="{{ route('platform_licence.edit') }}" class="dashboard-view-all">{{ !empty($school_licence) ? 'Manage Licence' : 'Record Licence' }} <i class="icon-arrow-right7"></i></a>@endif
+                            @if(Route::has('platform_referrals.index'))<a href="{{ route('platform_referrals.index') }}" class="dashboard-view-all ml-3">Referrals <i class="icon-arrow-right7"></i></a>@endif
+                        </p>
                     </div>
                 </div>
             </section>
@@ -184,7 +202,7 @@
                                 <td>{{ $login->ip_address ?: '—' }}</td>
                             </tr>
                         @empty
-                            <tr><td colspan="3" class="dashboard-empty">No sign-ins recorded yet.</td></tr>
+                            <tr><td colspan="3">@include('partials.patterns.empty_state', ['icon' => 'icon-history', 'message' => 'No sign-ins recorded yet.', 'compact' => true])</td></tr>
                         @endforelse
                         </tbody>
                     </table>
@@ -209,7 +227,7 @@
                         <span class="dashboard-muted">{{ $attempt->ip_address ?: '—' }}</span>
                     </div>
                 @empty
-                    <p class="dashboard-empty mb-0">No failed sign-in attempts recorded.</p>
+                    @include('partials.patterns.empty_state', ['icon' => 'icon-shield-check', 'message' => 'No failed sign-in attempts recorded.', 'compact' => true])
                 @endforelse
             </section>
 

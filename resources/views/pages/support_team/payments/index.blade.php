@@ -297,9 +297,10 @@
                         @if($payments->count())
                             @include('pages.support_team.payments._table', ['rows' => $payments, 'total_label' => 'Total (' . $payments->count() . ' payments)'])
                         @else
-                            <div class="lav-empty">
-                                <p class="mb-0">No payments have been created for the {{ $year }} session yet. Use <strong>Create Payment</strong> to add the first fee.</p>
-                            </div>
+                            @include('partials.patterns.empty_state', [
+                                'icon' => 'icon-cash2',
+                                'message' => 'No payments have been created for the ' . $year . ' session yet. Use Create Payment to add the first fee.',
+                            ])
                         @endif
                     </div>
 
@@ -309,7 +310,11 @@
                             @if($class_payments->count())
                                 @include('pages.support_team.payments._table', ['rows' => $class_payments, 'total_label' => 'Class-specific total — ' . $mc->name])
                             @else
-                                <p class="text-muted mb-0" style="padding: 18px 4px;">No class-specific payments for {{ $mc->name }} in {{ $year }}. General payments (All Classes) still apply to this class.</p>
+                                @include('partials.patterns.empty_state', [
+                                    'icon' => 'icon-cash2',
+                                    'message' => 'No class-specific payments for ' . $mc->name . ' in ' . $year . '. General payments (All Classes) still apply to this class.',
+                                    'compact' => true,
+                                ])
                             @endif
                         </div>
                     @endforeach
@@ -339,13 +344,14 @@
         }
         function hide() { $box.hide().empty(); }
 
-        var timer = null;
-        $input.on('input', function () {
+        // Round 5 Slice 1 (P7): the hand-rolled timer is the shared
+        // hkDebounce now (250 ms, as before). Dropping below two
+        // characters still hides at once and cancels a pending search;
+        // the stale-result guard inside is unchanged.
+        var searchNow = window.hkDebounce ? window.hkDebounce(function () {
             var q = $input.val().trim();
-            clearTimeout(timer);
             if (q.length < 2) { hide(); return; }
-            timer = setTimeout(function () {
-                $.getJSON('{{ route('payments.student_search') }}', {q: q})
+            $.getJSON('{{ route('payments.student_search') }}', {q: q})
                     .done(function (data) {
                         if ($input.val().trim() !== q) { return; }
                         var rows = (data.results || []).map(function (s) {
@@ -369,7 +375,10 @@
                         $box.html(rows || '<div class="list-group-item text-muted">No students match &ldquo;' + esc(q) + '&rdquo;.</div>').show();
                     })
                     .fail(function () { hide(); });
-            }, 250);
+        }, 250) : function () {};
+        $input.on('input', function () {
+            if ($input.val().trim().length < 2) { searchNow.cancel(); hide(); return; }
+            searchNow();
         });
 
         $(document).on('click', function (e) {

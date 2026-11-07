@@ -65,7 +65,7 @@
         <h6 class="font-weight-bold">WhatsApp group link</h6>
         @if($s->whatsapp_link)
             <p class="text-muted mb-2">Saved link (locked for the class teacher): <a href="{{ $s->whatsapp_link }}" target="_blank" rel="noopener">{{ $s->whatsapp_link }}</a></p>
-            <form method="post" action="{{ route('sections.whatsapp', Qs::hash($s->id)) }}" onsubmit="return confirm('Reset the WhatsApp group link for this section? The class teacher will be able to save a new one.');">
+            <form method="post" action="{{ route('sections.whatsapp', Qs::hash($s->id)) }}" data-confirm="Reset the WhatsApp group link for this section? The class teacher will be able to save a new one." data-confirm-title="Reset WhatsApp Link" data-confirm-action="Reset Link">
                 @csrf
                 <input type="hidden" name="whatsapp_link" value="">
                 <button type="submit" class="btn btn-warning btn-sm"><i class="icon-reset mr-1"></i> Reset link</button>

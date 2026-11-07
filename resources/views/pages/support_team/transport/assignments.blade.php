@@ -22,13 +22,13 @@
                     <td>
                         @if(Qs::userIsTeamSAWrite())
                         <form method="post" action="{{ route('transport.assignments.destroy', ['transport_assignment' => Qs::hash($a->id)]) }}" style="display:inline">@csrf @method('delete')
-                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Remove this assignment?')">Unassign</button>
+                            <button type="submit" class="btn btn-sm btn-danger" data-confirm="Remove the transport assignment for {{ $a->studentRecord && $a->studentRecord->user ? $a->studentRecord->user->name : 'this student' }}?" data-confirm-title="Remove Assignment" data-confirm-action="Unassign" data-confirm-danger>Unassign</button>
                         </form>
                         @endif
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="7">No assignments yet.</td></tr>
+                <tr><td colspan="7">@include('partials.patterns.empty_state', ['icon' => 'icon-users', 'message' => 'No assignments yet.'])</td></tr>
             @endforelse
             </tbody>
         </table>

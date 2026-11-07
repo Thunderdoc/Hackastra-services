@@ -47,7 +47,7 @@
                                                 @csrf
                                                 <button type="submit" class="btn btn-sm btn-success">Apply as Payment</button>
                                             </form>
-                                            <form method="POST" action="{{ route('fee_structure.destroy', ['fee_head' => $head->id]) }}" style="display:inline" onsubmit="return confirm('Delete this fee head? Its installments and concessions will also be deleted.')">
+                                            <form method="POST" action="{{ route('fee_structure.destroy', ['fee_head' => $head->id]) }}" style="display:inline" data-confirm="Delete the fee head {{ $head->title }}? Its installments and concessions will also be deleted." data-confirm-title="Delete Fee Head" data-confirm-action="Delete" data-confirm-danger>
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit" class="btn btn-sm btn-danger">Delete</button>
@@ -60,7 +60,7 @@
                     </table>
                 </div>
             @else
-                <p>No fee heads defined yet. Create one to start building a fee structure.</p>
+                @include('partials.patterns.empty_state', ['icon' => 'icon-cash2', 'message' => 'No fee heads defined yet. Create one to start building a fee structure.'])
             @endif
         </div>
     </div>

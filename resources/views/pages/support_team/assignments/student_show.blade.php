@@ -52,6 +52,10 @@
 
             @if($assignment->attachment_path)
                 <hr>
+                @php $qExt = strtolower(pathinfo($assignment->attachment_path, PATHINFO_EXTENSION)); @endphp
+                @if(in_array($qExt, ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'webp'], true))
+                    <a href="{{ route('assignments.view', $assignment->id) }}" target="_blank" rel="noopener" class="btn btn-light"><i class="icon-eye mr-1"></i> Read the assignment file</a>
+                @endif
                 <a href="{{ route('assignments.download', $assignment->id) }}" class="btn btn-light"><i class="icon-download mr-1"></i> Download the assignment file</a>
             @endif
         </div>
@@ -93,6 +97,10 @@
                 </div>
                 @if($sub->attachment_path)
                     <div class="mt-2">
+                        @php $sExt = strtolower(pathinfo($sub->attachment_path, PATHINFO_EXTENSION)); @endphp
+                        @if(in_array($sExt, ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'webp'], true))
+                            <a href="{{ route('assignments.view', [$assignment->id, 'submission' => $sub->id]) }}" target="_blank" rel="noopener" class="btn btn-light btn-sm"><i class="icon-eye mr-1"></i> Read my submitted file</a>
+                        @endif
                         <a href="{{ route('assignments.download', [$assignment->id, 'submission' => $sub->id]) }}" class="btn btn-light btn-sm"><i class="icon-download mr-1"></i> My submitted file</a>
                     </div>
                 @endif

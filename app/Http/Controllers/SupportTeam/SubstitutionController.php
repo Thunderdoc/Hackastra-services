@@ -14,6 +14,7 @@ use App\Support\LeaveCover;
 use App\Support\Notify;
 use App\Support\SectionTeacher;
 use App\Support\SubstitutionDay;
+use App\Support\UncoveredPeriods;
 use App\User;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
@@ -453,6 +454,267 @@ class SubstitutionController extends Controller
         return back()->with('flash_success', 'Substitution plan submitted: ' . $rows->count()
             . ' period(s) confirmed for ' . $date->format('d M Y')
             . '. Substitutes and students have been notified.');
+    }
+
+    /**
+     * Uncovered periods action surface (Round 3, owner order
+     * 2026-11-07): the periods of one date that still have nobody
+     * — derived live by UncoveredPeriods (gaps have no row) — each
+     * with the free teachers the office may allot, or the option
+     * to cancel the class outright. Admin OR Principal act here:
+     * the Principal reads the board but could never arrange; this
+     * surface is the one place that changes, for uncovered periods
+     * only. store()/confirm()/destroy() stay exactly as they were.
+     */
+    public function uncovered(Request $request)
+    {
+        $user = $request->user();
+        if (!$user || !(Qs::userIsAdmin() || Qs::userIsPrincipal())) {
+            abort(403, 'Substitutions are managed by administrators.');
+        }
+
+        $date = Carbon::today();
+        if ($request->filled('date')) {
+            try {
+                $parsed = Carbon::createFromFormat('Y-m-d', (string) $request->input('date'));
+                if ($parsed !== false) {
+                    $date = $parsed->startOfDay();
+                }
+            } catch (\Throwable $e) {
+                // A garbled date shows today.
+            }
+        }
+        $dateStr = $date->toDateString();
+
+        $rows = [];
+        foreach (UncoveredPeriods::forDate($dateStr) as $item) {
+            $synthetic = new Substitution([
+                'time_table_id' => $item['time_table_id'],
+                'date' => $dateStr,
+                'absent_teacher_id' => $item['absent_teacher'] ? (int) $item['absent_teacher']->id : null,
+            ]);
+            $synthetic->setRelation('time_table', $item['cell']);
+            $item['free_teachers'] = $this->freeTeachersFor($synthetic);
+            $rows[] = $item;
+        }
+
+        $d['date'] = $date;
+        $d['date_str'] = $dateStr;
+        $d['rows'] = $rows;
+
+        return view('pages.support_team.substitutions.uncovered', $d);
+    }
+
+    /**
+     * Allot one uncovered period to a free teacher (Round 3).
+     * The substitute must come from the SAME free-teacher list the
+     * uncovered page renders — a pick the system itself would not
+     * offer is refused, so an allotment can never create a clash,
+     * a cover by the absent teacher, or a cover by someone on
+     * leave. A cancelled or NULL-substitute row for the period is
+     * revived in place; otherwise a fresh confirmed row is made.
+     */
+    public function allot(Request $request)
+    {
+        $user = $request->user();
+        if (!$user || !(Qs::userIsAdmin() || Qs::userIsPrincipal())) {
+            abort(403, 'Substitutions are managed by administrators.');
+        }
+
+        $data = $request->validate([
+            'date' => 'required|date_format:Y-m-d',
+            'time_table_id' => 'required|integer|exists:time_tables,id',
+            'substitute_teacher_id' => 'required|integer|exists:users,id',
+        ]);
+
+        $date = Carbon::createFromFormat('Y-m-d', $data['date'])->startOfDay();
+        $dateStr = $date->toDateString();
+        $tt = TimeTable::with(['subject', 'time_slot', 'tt_record.my_class', 'tt_record.section'])
+            ->findOrFail((int) $data['time_table_id']);
+
+        if (!$tt->subject) {
+            throw ValidationException::withMessages([
+                'time_table_id' => 'This timetable period has no subject assigned.',
+            ]);
+        }
+
+        $absentId = SectionTeacher::teacherIdFor(
+            optional($tt->tt_record)->section_id ?? null, $tt->subject
+        );
+        if (!$absentId) {
+            throw ValidationException::withMessages([
+                'time_table_id' => 'This period has no teacher assigned, so there is nobody to substitute for.',
+            ]);
+        }
+
+        $substitute = User::findOrFail((int) $data['substitute_teacher_id']);
+        if ((int) $substitute->id === (int) $absentId) {
+            throw ValidationException::withMessages([
+                'substitute_teacher_id' => 'The substitute cannot be the absent teacher.',
+            ]);
+        }
+
+        $existing = Substitution::whereDate('date', $dateStr)
+            ->where('time_table_id', $tt->id)->first();
+        if ($existing && $existing->substitute_teacher_id !== null) {
+            throw ValidationException::withMessages([
+                'time_table_id' => 'This period already has a substitute for ' . $date->format('d M Y') . '.',
+            ]);
+        }
+
+        $synthetic = new Substitution([
+            'time_table_id' => $tt->id,
+            'date' => $dateStr,
+            'absent_teacher_id' => $absentId,
+        ]);
+        $synthetic->setRelation('time_table', $tt);
+        $freeIds = $this->freeTeachersFor($synthetic)->pluck('id')
+            ->map(function ($id) { return (int) $id; })->all();
+        if (!in_array((int) $substitute->id, $freeIds, true)) {
+            throw ValidationException::withMessages([
+                'substitute_teacher_id' => 'That teacher is not free at this time (own period, another cover, or on leave). Pick one of the free teachers shown.',
+            ]);
+        }
+
+        if ($existing) {
+            // A cancelled row is revived, an orphan row is filled —
+            // the (date, time_table_id) unique key leaves no other
+            // shape an existing row here can have.
+            $existing->update([
+                'absent_teacher_id' => $absentId,
+                'substitute_teacher_id' => $substitute->id,
+                'status' => 'confirmed',
+                'created_by' => $user->id,
+                'reason' => 'Manual allotment',
+            ]);
+            $sub = $existing;
+        } else {
+            try {
+                $sub = Substitution::create([
+                    'time_table_id' => $tt->id,
+                    'date' => $dateStr,
+                    'absent_teacher_id' => $absentId,
+                    'substitute_teacher_id' => $substitute->id,
+                    'created_by' => $user->id,
+                    'reason' => 'Manual allotment',
+                    'status' => 'confirmed',
+                ]);
+            } catch (QueryException $e) {
+                throw ValidationException::withMessages([
+                    'time_table_id' => 'This period already has a substitute for ' . $date->format('d M Y') . '.',
+                ]);
+            }
+        }
+
+        Notify::toUser(
+            (int) $substitute->id,
+            'substitution_assigned',
+            static::bellTitle($tt->subject->name, $dateStr),
+            'You cover ' . optional(optional($tt->tt_record)->my_class)->name . ' — ' . $tt->subject->name . ' on ' . $date->format('d M Y') . '.',
+            route('substitutions.mine')
+        );
+        $absent = User::find($absentId);
+        $this->bellStudentsForCell($tt, 'period_substitute',
+            'Substitute teacher: ' . $tt->subject->name . ' on ' . $date->format('d M Y'),
+            $substitute->name . ' will take your ' . $tt->subject->name
+            . ' period on ' . $date->format('d M Y') . ' (' . optional($absent)->name . ' is on leave).');
+
+        Audit::log('substitution.manual_allotment', $sub,
+            'Manual allotment: ' . $substitute->name . ' covers '
+            . optional(optional($tt->tt_record)->my_class)->name . ' — ' . $tt->subject->name
+            . ' on ' . $date->format('d M Y') . ', allotted by ' . $user->name . '.');
+
+        return redirect()->route('substitutions.uncovered', ['date' => $dateStr])
+            ->with('flash_success', 'Substitution arranged: ' . $substitute->name . ' covers '
+                . optional(optional($tt->tt_record)->my_class)->name . ' — ' . $tt->subject->name
+                . ' on ' . $date->format('d M Y') . '.');
+    }
+
+    /**
+     * Cancel one period's class for the day (Round 3): no teacher
+     * covers it because there is no class — the period is resolved,
+     * neither covered nor uncovered, and no register is expected
+     * for it. Refused while a substitute is assigned: that cover
+     * must be removed first, so a live assignment is never silently
+     * overwritten by a cancellation.
+     */
+    public function cancelClass(Request $request)
+    {
+        $user = $request->user();
+        if (!$user || !(Qs::userIsAdmin() || Qs::userIsPrincipal())) {
+            abort(403, 'Substitutions are managed by administrators.');
+        }
+
+        $data = $request->validate([
+            'date' => 'required|date_format:Y-m-d',
+            'time_table_id' => 'required|integer|exists:time_tables,id',
+            'reason' => 'nullable|string|max:500',
+        ]);
+
+        $date = Carbon::createFromFormat('Y-m-d', $data['date'])->startOfDay();
+        $dateStr = $date->toDateString();
+        $tt = TimeTable::with(['subject', 'time_slot', 'tt_record.my_class', 'tt_record.section'])
+            ->findOrFail((int) $data['time_table_id']);
+
+        $existing = Substitution::whereDate('date', $dateStr)
+            ->where('time_table_id', $tt->id)->first();
+        if ($existing && $existing->substitute_teacher_id !== null) {
+            throw ValidationException::withMessages([
+                'time_table_id' => 'This period already has a substitute — remove that cover first, then cancel the class.',
+            ]);
+        }
+
+        $absentId = $tt->subject ? SectionTeacher::teacherIdFor(
+            optional($tt->tt_record)->section_id ?? null, $tt->subject
+        ) : null;
+        if (!$absentId) {
+            throw ValidationException::withMessages([
+                'time_table_id' => 'This period has no teacher assigned.',
+            ]);
+        }
+
+        $reason = !empty($data['reason']) ? $data['reason'] : 'Class cancelled by the office';
+        if ($existing) {
+            $existing->update([
+                'status' => 'cancelled',
+                'created_by' => $user->id,
+                'reason' => $reason,
+            ]);
+            $sub = $existing;
+        } else {
+            $sub = Substitution::create([
+                'time_table_id' => $tt->id,
+                'date' => $dateStr,
+                'absent_teacher_id' => $absentId,
+                'substitute_teacher_id' => null,
+                'created_by' => $user->id,
+                'reason' => $reason,
+                'status' => 'cancelled',
+            ]);
+        }
+
+        $classLabel = optional(optional($tt->tt_record)->my_class)->name ?: '—';
+        $section = optional(optional($tt->tt_record)->section)->name;
+        if ($section) {
+            $classLabel .= ' — ' . $section;
+        }
+        $body = 'Your ' . $tt->subject->name . ' period (' . $classLabel . ') on '
+            . $date->format('d M Y') . ' is cancelled — there is no class for this period.';
+        if (!empty($data['reason'])) {
+            $body .= ' Reason: ' . $data['reason'];
+        }
+        $this->bellStudentsForCell($tt, 'period_cancelled',
+            'Class cancelled: ' . $tt->subject->name . ' on ' . $date->format('d M Y'),
+            $body);
+
+        Audit::log('substitution.class_cancelled', $sub,
+            'Class cancelled: ' . $classLabel . ' — ' . $tt->subject->name
+            . ' on ' . $date->format('d M Y') . ', cancelled by ' . $user->name
+            . '. Reason: ' . $reason);
+
+        return redirect()->route('substitutions.uncovered', ['date' => $dateStr])
+            ->with('flash_success', 'Class cancelled: ' . $classLabel . ' — ' . $tt->subject->name
+                . ' on ' . $date->format('d M Y') . '. Students have been notified.');
     }
 
     /**

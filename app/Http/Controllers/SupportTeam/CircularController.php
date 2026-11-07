@@ -146,6 +146,7 @@ class CircularController extends Controller
         if ($circular->is_published) {
             Audit::log('circular.published', $circular, 'Published circular "' . $circular->title . '" to ' . $circular->audience);
         }
+        $this->queueWhatsAppOnPublish($circular, false);
 
         return redirect()->route('circulars.index')->with('flash_success', 'Circular created.');
     }
@@ -278,6 +279,7 @@ class CircularController extends Controller
         if (!$wasPublished && $circular->is_published) {
             Audit::log('circular.published', $circular, 'Published circular "' . $circular->title . '" to ' . $circular->audience);
         }
+        $this->queueWhatsAppOnPublish($circular, (bool) $wasPublished);
 
         return redirect()->route('circulars.index')->with('flash_success', 'Circular updated.');
     }
@@ -285,14 +287,38 @@ class CircularController extends Controller
     /** Publish / unpublish in one click from the management table. */
     public function togglePublish(Circular $circular)
     {
+        $wasPublished = (bool) $circular->is_published;
         $circular->update(['is_published' => !$circular->is_published]);
         $this->syncOfficialPdf($circular);
 
         if ($circular->is_published) {
             Audit::log('circular.published', $circular, 'Published circular "' . $circular->title . '" to ' . $circular->audience);
         }
+        $this->queueWhatsAppOnPublish($circular, $wasPublished);
 
         return back()->with('flash_success', $circular->is_published ? 'Circular published.' : 'Circular unpublished.');
+    }
+
+    /**
+     * F1 (Round 4): queue the WhatsApp circular fan-out ONLY on a
+     * false→true publish transition and only for parent-reaching
+     * audiences (all / parents). Called from store(), update() and
+     * togglePublish() — all three publish paths. Throwable-proof:
+     * WhatsApp can never fail the circular write.
+     */
+    private function queueWhatsAppOnPublish(Circular $c, bool $wasPublished): void
+    {
+        try {
+            if ($wasPublished || !$c->is_published) {
+                return;
+            }
+            if (!in_array($c->audience, ['all', 'parents'], true)) {
+                return;
+            }
+            \App\Support\ParentWhatsApp::circularPublished($c);
+        } catch (\Throwable $e) {
+            // WhatsApp is additional only.
+        }
     }
 
     public function destroy(Circular $circular)

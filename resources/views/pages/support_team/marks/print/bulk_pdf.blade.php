@@ -1,5 +1,6 @@
 <html>
 <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <title>Section Marksheets</title>
     {{-- Wave 5: one printed report card per student of a section,
          same marks/partials/report_card template as the single

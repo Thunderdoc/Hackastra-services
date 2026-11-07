@@ -24,7 +24,7 @@
                     <table class="table table-sm">
                         <thead><tr><th>Name</th><th>Role</th><th>Status</th></tr></thead>
                         <tbody>
-                        @foreach($staff as $s)
+                        @forelse($staff as $s)
                             <tr>
                                 <td>{{ $s->name }}</td>
                                 <td>{{ ucfirst($s->user_type) }}</td>
@@ -40,7 +40,9 @@
                                     @endif
                                 </td>
                             </tr>
-                        @endforeach
+                        @empty
+                            <tr><td colspan="3">@include('partials.patterns.empty_state', ['icon' => 'icon-users', 'message' => 'No staff found for this date.'])</td></tr>
+                        @endforelse
                         </tbody>
                     </table>
                 </div>

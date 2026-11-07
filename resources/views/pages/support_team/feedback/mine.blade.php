@@ -95,7 +95,8 @@
         @if($total === 0)
             {{-- Loop 118: the reference's empty state keeps the table
                  header row above the empty illustration. --}}
-            <table class="table l118-fb-empty-table">
+            <table class="table l118-fb-empty-table hk-std hk-std-feedback">
+                <colgroup><col style="width:4%"><col style="width:34%"><col style="width:12%"><col style="width:14%"><col style="width:11%"><col style="width:17%"><col style="width:8%"></colgroup>
                 <thead><tr><th style="width:3rem">#</th><th>Report</th><th>Category</th><th>Status</th><th>Submitted On</th><th>Admin Response</th><th>Actions</th></tr></thead>
                 <tbody>
                 <tr>
@@ -114,8 +115,9 @@
                 </tbody>
             </table>
         @else
-        <table class="table">
-            <thead><tr><th style="width:3rem">#</th><th>Report</th><th>Category</th><th>Status</th><th>Submitted On</th><th>Admin Response</th><th>Actions</th></tr></thead>
+        <table class="table hk-std hk-std-feedback">
+            <colgroup><col style="width:4%"><col style="width:34%"><col style="width:12%"><col style="width:14%"><col style="width:11%"><col style="width:17%"><col style="width:8%"></colgroup>
+            <thead><tr><th>#</th><th>Report</th><th>Category</th><th>Status</th><th>Submitted On</th><th>Admin Response</th><th>Actions</th></tr></thead>
             <tbody>
             @forelse($items as $item)
                 <tr>
@@ -123,7 +125,7 @@
                     <td>
                         <a class="fb-report-title" href="{{ route('feedback.mine.show', $item->id) }}">{{ $item->title }}</a>
                         <span class="text-muted">· {{ $item->typeLabel() }}</span>
-                        <div class="text-muted">{{ \Illuminate\Support\Str::limit($item->description, 90) }}</div>
+                        <div class="text-muted hk-ellip-2" title="{{ $item->description }}">{{ \Illuminate\Support\Str::limit($item->description, 90) ?: '—' }}</div>
                         @if($item->attachments->count())
                             <div class="mt-1">@include('pages.support_team.feedback._attachments', ['item' => $item])</div>
                         @endif
@@ -141,7 +143,7 @@
                             </div>
                         @endif
                     </td>
-                    <td style="white-space:nowrap">{{ $item->created_at->format('d M Y') }}<div class="text-muted">{{ $item->created_at->format('h:i A') }}</div></td>
+                    <td class="hk-nw">{{ $item->created_at->format('d M Y') }}<div class="text-muted">{{ $item->created_at->format('h:i A') }}</div></td>
                     <td>
                         @if($item->admin_note)
                             <span class="l87-resp-yes"><i class="icon-checkmark-circle2 mr-1"></i>Admin responded</span>
@@ -153,7 +155,7 @@
                     <td><a href="{{ route('feedback.mine.show', $item->id) }}" class="btn btn-light btn-sm"><i class="icon-eye mr-1"></i> View</a></td>
                 </tr>
             @empty
-                <tr><td colspan="7" class="fb-empty text-muted">No reports match the current filters. <a href="{{ route('feedback.mine') }}">Clear filters</a> to see everything you have reported.</td></tr>
+                <tr><td colspan="7">@include('partials.patterns.empty_state', ['icon' => 'icon-search4', 'message' => 'No reports match the current filters.', 'action_html' => '<a class="btn btn-primary" href="' . route('feedback.mine') . '">Clear filters</a>'])</td></tr>
             @endforelse
             </tbody>
         </table>

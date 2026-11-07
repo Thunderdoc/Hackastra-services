@@ -23,5 +23,9 @@ class VerifyCsrfToken extends Middleware
         // carry a CSRF token; authenticity comes from the webhook
         // signature verified in GatewayWebhookController.
         'webhooks/razorpay',
+        // WhatsApp webhook (F1): Meta's servers cannot carry a CSRF
+        // token; authenticity comes from the verify token (GET) and
+        // the HMAC signature verified in WhatsAppWebhookController.
+        'webhooks/whatsapp',
     ];
 }

@@ -70,8 +70,11 @@ class OwnerBeautyBatch4TablesTest extends TestCase
             ->get(route('books.index'))->assertOk()->getContent();
 
         $this->assertStringContainsString('table hk-std hk-std-books', $html);
+        // Round 5 P10 added the bulk-selection checkbox column (4%,
+        // funded from Book 24→20); the standard's geometry otherwise
+        // stands.
         $this->assertStringContainsString(
-            '<colgroup><col style="width:24%"><col style="width:8%"><col style="width:8%"><col style="width:11%"><col style="width:13%"><col style="width:12%"><col style="width:24%"></colgroup>',
+            '<colgroup><col style="width:4%"><col style="width:20%"><col style="width:8%"><col style="width:8%"><col style="width:11%"><col style="width:13%"><col style="width:12%"><col style="width:24%"></colgroup>',
             $html
         );
         // Location + copies cells are nowrap (seed has books, so rows render).
@@ -119,8 +122,11 @@ class OwnerBeautyBatch4TablesTest extends TestCase
             ->get(route('users.index'))->assertOk()->getContent();
 
         $this->assertStringContainsString('table hk-std hk-std-users', $html);
+        // Round 5 P10 added the bulk-selection checkbox column (4%,
+        // funded from Email 24→20) in the teamSA variant this test
+        // renders; the read-only variant keeps the original geometry.
         $this->assertStringContainsString(
-            '<colgroup><col style="width:5%"><col style="width:7%"><col style="width:19%"><col style="width:14%"><col style="width:13%"><col style="width:24%"><col style="width:12%"><col style="width:6%"></colgroup>',
+            '<colgroup><col style="width:4%"><col style="width:5%"><col style="width:7%"><col style="width:19%"><col style="width:14%"><col style="width:13%"><col style="width:20%"><col style="width:12%"><col style="width:6%"></colgroup>',
             $html
         );
     }
@@ -148,9 +154,14 @@ class OwnerBeautyBatch4TablesTest extends TestCase
     {
         $blade = $this->bladeFile('pages/support_team/substitutions/index.blade.php');
 
-        // The praised control was NOT swept into .hk-std; its own
-        // page-local fixed-layout rules and colgroups stand as-is.
+        // The praised control keeps its own page-local fixed-layout
+        // rules and colgroups exactly as-is. Round 5 Slice 3 (P11)
+        // superseded the second half of the original pin: the two
+        // tables now ALSO carry .hk-std (their colgroups already
+        // complied with the standard), per the audit §11 design —
+        // the geometry and the local rules are untouched.
         $this->assertStringContainsString('.sub-table { table-layout: fixed;', $blade);
-        $this->assertStringNotContainsString('hk-std', $blade);
+        $this->assertStringContainsString('hk-std-subplan', $blade);
+        $this->assertStringContainsString('hk-std-subsheet', $blade);
     }
 }

@@ -13,9 +13,6 @@
         'submit_label' => 'Save Changes',
     ])
         <div class="pat-form-section">
-            @if($errors->any())
-                <div class="alert alert-danger border-0">@foreach($errors->all() as $error)<div>{{ $error }}</div>@endforeach</div>
-            @endif
             @include('pages.support_team.events._form')
         </div>
     @endcomponent

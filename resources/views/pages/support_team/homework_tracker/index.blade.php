@@ -12,7 +12,7 @@
     @if($assignments->isEmpty())
         <div class="card">
             <div class="card-body">
-                <p class="mb-0">No assignments found.</p>
+                @include('partials.patterns.empty_state', ['icon' => 'icon-file-text2', 'message' => 'No assignments found.'])
             </div>
         </div>
     @else
@@ -61,7 +61,7 @@
 
                 <h6>Students still pending ({{ $selected->pending_count }})</h6>
                 @if($selected->pending_students->isEmpty())
-                    <p class="mb-0">Every student on the roster has submitted this assignment.</p>
+                    @include('partials.patterns.empty_state', ['icon' => 'icon-checkmark-circle2', 'message' => 'Every student on the roster has submitted this assignment.', 'compact' => true])
                 @else
                     <div class="table-responsive">
                         <table class="table table-striped">

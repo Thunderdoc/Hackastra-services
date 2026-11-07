@@ -9,7 +9,7 @@
     <div class="pat-list">
         <div class="pat-toolbar">
             <div class="pat-toolbar-text">
-                <div class="pat-toolbar-sub">Term {{ $ex->term }} &middot; {{ $ex->year }} — one scheme per class, defined per subject.</div>
+                <div class="pat-toolbar-sub">{{ $ex->periodLabel() }} &middot; {{ $ex->year }} — one scheme per class, defined per subject.</div>
             </div>
             <div class="pat-toolbar-actions">
                 <a href="{{ route('exams.index') }}" class="btn btn-light"><i class="icon-arrow-left5 mr-1"></i> Back to Exams</a>

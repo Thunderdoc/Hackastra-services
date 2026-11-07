@@ -12,6 +12,10 @@
         'chartColor'  string  Bar colour (default app blue #3478f6)
         'chartHeight' int     SVG height in px (default 180)
         'chartUnit'   string  Suffix appended to value labels (default '')
+
+    Theme hooks (F2 §4.4): svg elements carry hk-chart-* classes so
+    qs.css can restyle fills under html.hk-dark (CSS fill overrides
+    the presentation attributes below); light theme is unchanged.
 --}}
 @php
     $labels      = $labels ?? [];
@@ -42,8 +46,8 @@
     <svg viewBox="0 0 {{ $W }} {{ $H }}" width="100%" role="img" aria-label="{{ $chartTitle }}" preserveAspectRatio="xMidYMid meet" style="display:block">
         @foreach([0, 0.25, 0.5, 0.75, 1] as $frac)
             @php $gy = $padTop + $plotH * (1 - $frac); @endphp
-            <line x1="{{ $padX }}" y1="{{ $gy }}" x2="{{ $W - $padX }}" y2="{{ $gy }}" stroke="#e3e8ef" stroke-width="1"/>
-            <text x="{{ $padX }}" y="{{ $gy - 3 }}" font-size="9" fill="#8a94a6">{{ rtrim(rtrim(number_format($max * $frac, 1), '0'), '.') }}</text>
+            <line class="hk-chart-grid" x1="{{ $padX }}" y1="{{ $gy }}" x2="{{ $W - $padX }}" y2="{{ $gy }}" stroke="#e3e8ef" stroke-width="1"/>
+            <text class="hk-chart-axis" x="{{ $padX }}" y="{{ $gy - 3 }}" font-size="9" fill="#8a94a6">{{ rtrim(rtrim(number_format($max * $frac, 1), '0'), '.') }}</text>
         @endforeach
         @foreach($values as $i => $v)
             @php
@@ -51,11 +55,11 @@
                 $bx = $padX + $slot * $i + ($slot - $barW) / 2;
                 $by = $padTop + $plotH - $bh;
             @endphp
-            <rect x="{{ round($bx, 1) }}" y="{{ round($by, 1) }}" width="{{ round($barW, 1) }}" height="{{ round($bh, 1) }}" rx="3" fill="{{ $chartColor }}">
+            <rect class="hk-chart-bar" x="{{ round($bx, 1) }}" y="{{ round($by, 1) }}" width="{{ round($barW, 1) }}" height="{{ round($bh, 1) }}" rx="3" fill="{{ $chartColor }}">
                 <title>{{ $labels[$i] ?? '' }}: {{ $v }}{{ $chartUnit }}</title>
             </rect>
-            <text x="{{ round($bx + $barW / 2, 1) }}" y="{{ round($by - 4, 1) }}" font-size="10" font-weight="600" fill="#22314a" text-anchor="middle">{{ $v }}{{ $chartUnit }}</text>
-            <text x="{{ round($padX + $slot * $i + $slot / 2, 1) }}" y="{{ $H - 8 }}" font-size="9.5" fill="#8a94a6" text-anchor="middle">{{ $labels[$i] ?? '' }}</text>
+            <text class="hk-chart-value" x="{{ round($bx + $barW / 2, 1) }}" y="{{ round($by - 4, 1) }}" font-size="10" font-weight="600" fill="#22314a" text-anchor="middle">{{ $v }}{{ $chartUnit }}</text>
+            <text class="hk-chart-axis" x="{{ round($padX + $slot * $i + $slot / 2, 1) }}" y="{{ $H - 8 }}" font-size="9.5" fill="#8a94a6" text-anchor="middle">{{ $labels[$i] ?? '' }}</text>
         @endforeach
     </svg>
 @endif

@@ -18,13 +18,6 @@
                     This is their class, not your own; the register you submit is saved against this period.
                 </div>
             @endif
-            @if($errors->any())
-                <div class="alert alert-danger border-0">
-                    @foreach($errors->all() as $error)
-                        <div>{{ $error }}</div>
-                    @endforeach
-                </div>
-            @endif
 
             <div class="alert alert-warning border-0">
                 <i class="icon-lock2 mr-1"></i>
@@ -41,18 +34,21 @@
             </div>
 
             @if($students->isEmpty())
-                <p class="text-muted mb-0">No active students in {{ $period['class']->name }} yet — there is no roster to mark.</p>
+                @include('partials.patterns.empty_state', [
+                    'icon' => 'icon-calendar2',
+                    'message' => 'No active students in ' . $period['class']->name . ' yet — there is no roster to mark.',
+                ])
             @else
-                <form method="POST" action="{{ route('attendance.periods.store', $period['tt']->id) }}" id="period-register-form">
+                <form method="POST" action="{{ route('attendance.periods.store', $period['tt']->id) }}" id="period-register-form" data-hk-save-form>
                     @csrf
                     <input type="hidden" name="date" value="{{ $date->format('Y-m-d') }}">
 
                     <div class="pat-fields reg-topic">
                         <div class="pat-field pat-field-wide">
                             <label for="pa_topic">Topic taught in this period <span class="text-danger">*</span></label>
-                            <input type="text" name="topic" id="pa_topic" class="form-control" maxlength="255" required
+                            <input type="text" name="topic" id="pa_topic" class="form-control @error('topic') is-invalid @enderror" maxlength="255" required
                                    placeholder="e.g. Quadratic Equations — solving by factorisation"
-                                   value="{{ old('topic') }}">
+                                   value="{{ old('topic') }}">@include('partials.errors.field', ['field' => 'topic'])
                             <span class="form-text">This topic is saved on the register and appears in the subject-wise report's session log.</span>
                         </div>
                     </div>

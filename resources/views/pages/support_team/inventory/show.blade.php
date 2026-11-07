@@ -13,9 +13,6 @@
             @if(session('flash_danger'))
                 <div class="alert alert-danger">{{ session('flash_danger') }}</div>
             @endif
-            @if($errors->any())
-                <div class="alert alert-danger border-0">@foreach($errors->all() as $error)<div>{{ $error }}</div>@endforeach</div>
-            @endif
             <p>
                 Category: <strong>{{ ucfirst($item->category) }}</strong> &nbsp;|&nbsp;
                 Unit: <strong>{{ $item->unit }}</strong> &nbsp;|&nbsp;
@@ -30,13 +27,13 @@
             @if(Qs::userIsTeamSAWrite())
                 <form method="POST" action="{{ route('inventory.movements.store', ['inventory_item' => $item->id]) }}" class="form-inline mb-3">
                     @csrf
-                    <select name="type" class="form-control form-control-sm mr-2 mb-2" required>
+                    <select name="type" class="form-control form-control-sm mr-2 mb-2 @error('type') is-invalid @enderror" required>
                         <option value="in">Stock In</option>
                         <option value="out">Stock Out</option>
-                    </select>
-                    <input type="number" name="quantity" class="form-control form-control-sm mr-2 mb-2" min="1" placeholder="Quantity" required>
-                    <input type="date" name="movement_date" class="form-control form-control-sm mr-2 mb-2">
-                    <input type="text" name="note" class="form-control form-control-sm mr-2 mb-2" placeholder="Note (optional)">
+                    </select>@include('partials.errors.field', ['field' => 'type'])
+                    <input type="number" name="quantity" class="form-control form-control-sm mr-2 mb-2 @error('quantity') is-invalid @enderror" min="1" placeholder="Quantity" required>@include('partials.errors.field', ['field' => 'quantity'])
+                    <input type="date" name="movement_date" class="form-control form-control-sm mr-2 mb-2 @error('movement_date') is-invalid @enderror">@include('partials.errors.field', ['field' => 'movement_date'])
+                    <input type="text" name="note" class="form-control form-control-sm mr-2 mb-2 @error('note') is-invalid @enderror" placeholder="Note (optional)">@include('partials.errors.field', ['field' => 'note'])
                     <button type="submit" class="btn btn-sm btn-primary mb-2">Record Movement</button>
                 </form>
             @endif
@@ -53,7 +50,7 @@
                             <td>{{ $movement->recorder ? $movement->recorder->name : '—' }}</td>
                         </tr>
                     @empty
-                        <tr><td colspan="5" class="text-center text-muted">No stock movements yet.</td></tr>
+                        <tr><td colspan="5">@include('partials.patterns.empty_state', ['icon' => 'icon-box', 'message' => 'No stock movements yet.'])</td></tr>
                     @endforelse
                     </tbody>
                 </table>

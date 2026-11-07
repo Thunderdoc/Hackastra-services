@@ -24,8 +24,11 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-        // $schedule->command('inspire')
-        //          ->hourly();
+        // F5 (design §3.4A): registered though the current free
+        // deploy runs no cron — it activates the day a real
+        // host/cron exists. The opportunistic and ping triggers
+        // are the triggers that actually fire today (§3.4B/C).
+        $schedule->command('fees:remind-due')->dailyAt('09:00');
     }
 
     /**

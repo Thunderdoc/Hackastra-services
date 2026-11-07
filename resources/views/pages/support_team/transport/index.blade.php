@@ -43,13 +43,13 @@
                         @if(Qs::userIsTeamSAWrite())
                         <a href="{{ route('transport.routes.edit', ['transport_route' => Qs::hash($r->id)]) }}" class="btn btn-sm btn-primary">Edit / Stops</a>
                         <form method="post" action="{{ route('transport.routes.destroy', ['transport_route' => Qs::hash($r->id)]) }}" style="display:inline">@csrf @method('delete')
-                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this route and its stops?')">Delete</button>
+                            <button type="submit" class="btn btn-sm btn-danger" data-confirm="Delete route {{ $r->name }} and its stops? This cannot be undone." data-confirm-title="Delete Route" data-confirm-action="Delete" data-confirm-danger>Delete</button>
                         </form>
                         @endif
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="6">No routes yet.</td></tr>
+                <tr><td colspan="6">@include('partials.patterns.empty_state', ['icon' => 'icon-truck', 'message' => 'No routes yet.'])</td></tr>
             @endforelse
             </tbody>
         </table>
@@ -70,13 +70,13 @@
                         @if(Qs::userIsTeamSAWrite())
                         <a href="{{ route('transport.vehicles.edit', ['transport_vehicle' => Qs::hash($v->id)]) }}" class="btn btn-sm btn-primary">Edit</a>
                         <form method="post" action="{{ route('transport.vehicles.destroy', ['transport_vehicle' => Qs::hash($v->id)]) }}" style="display:inline">@csrf @method('delete')
-                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this vehicle?')">Delete</button>
+                            <button type="submit" class="btn btn-sm btn-danger" data-confirm="Delete vehicle {{ $v->vehicle_no }}? This cannot be undone." data-confirm-title="Delete Vehicle" data-confirm-action="Delete" data-confirm-danger>Delete</button>
                         </form>
                         @endif
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="5">No vehicles yet.</td></tr>
+                <tr><td colspan="5">@include('partials.patterns.empty_state', ['icon' => 'icon-truck', 'message' => 'No vehicles yet.'])</td></tr>
             @endforelse
             </tbody>
         </table>
@@ -98,13 +98,13 @@
                     <td>
                         @if(Qs::userIsTeamSAWrite())
                         <form method="post" action="{{ route('transport.assignments.destroy', ['transport_assignment' => Qs::hash($a->id)]) }}" style="display:inline">@csrf @method('delete')
-                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Remove this assignment?')">Unassign</button>
+                            <button type="submit" class="btn btn-sm btn-danger" data-confirm="Remove the transport assignment for {{ $a->studentRecord && $a->studentRecord->user ? $a->studentRecord->user->name : 'this student' }}?" data-confirm-title="Remove Assignment" data-confirm-action="Unassign" data-confirm-danger>Unassign</button>
                         </form>
                         @endif
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="7">No assignments yet.</td></tr>
+                <tr><td colspan="7">@include('partials.patterns.empty_state', ['icon' => 'icon-users', 'message' => 'No assignments yet.'])</td></tr>
             @endforelse
             </tbody>
         </table>

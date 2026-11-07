@@ -335,6 +335,15 @@ class AssignmentController extends Controller
 
         Audit::log('assignment.created', $assignment, 'Assignment "' . $assignment->title . '" for class ' . $assignment->my_class_id . ', subject ' . $assignment->subject_id);
 
+        /* F1 (Round 4): WhatsApp homework alert to the class/section
+           parents — after create + audit, throwable-proof.
+           share()/shareStore() are deliberately NOT hooked (v1). */
+        try {
+            \App\Support\ParentWhatsApp::assignmentCreated($assignment);
+        } catch (\Throwable $e) {
+            // WhatsApp is additional only.
+        }
+
         return redirect()->route('assignments.show', $assignment->id)
             ->with($this->okFlash(__('msg.store_ok')));
     }
@@ -660,6 +669,95 @@ class AssignmentController extends Controller
         }
 
         return Storage::disk('public')->download($assignment->attachment_path);
+    }
+
+    /** Extensions the browser can render inline (PDF + images). */
+    protected function viewableExtOf(?string $path): ?string
+    {
+        if (!$path) {
+            return null;
+        }
+        $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+        return in_array($ext, ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'webp'], true) ? $ext : null;
+    }
+
+    protected function inlineMimeFor(string $ext): string
+    {
+        $map = [
+            'pdf' => 'application/pdf',
+            'jpg' => 'image/jpeg',
+            'jpeg' => 'image/jpeg',
+            'png' => 'image/png',
+            'gif' => 'image/gif',
+            'webp' => 'image/webp',
+        ];
+        return $map[$ext] ?? 'application/octet-stream';
+    }
+
+    /**
+     * Inline view beside download() (R3 LMS, P2), reusing the EXACT
+     * gates of download(): canView() for the question file, and the
+     * submission branch's gate for ?submission=. PDF/image files are
+     * served inline via response()->file() (Range-capable); every
+     * other type refuses exactly like a missing file. Download stays
+     * untouched and first-class.
+     */
+    public function view(Request $req, $assignment_id)
+    {
+        $assignment = Assignment::find($assignment_id);
+        $user = Auth::user();
+
+        if (!$assignment) {
+            return back()->with($this->errFlash(__('msg.rnf')));
+        }
+
+        if ($req->query('submission')) {
+            $submission = AssignmentSubmission::where([
+                'id' => $req->query('submission'), 'assignment_id' => $assignment->id,
+            ])->first();
+
+            if (!$submission || !$submission->attachment_path) {
+                return back()->with($this->errFlash(__('msg.rnf')));
+            }
+
+            $allowed = Qs::userIsTeamSA()
+                || $submission->student_id == $user->id
+                || $assignment->teacher_id == $user->id
+                || (Qs::userIsParent() && Qs::userIsMyChild($submission->student_id, $user->id));
+
+            if (!$allowed) {
+                abort(403, __('msg.denied'));
+            }
+
+            $ext = $this->viewableExtOf($submission->attachment_path);
+            if ($ext === null || !Storage::disk('local')->exists($submission->attachment_path)) {
+                return back()->with($this->errFlash(__('msg.rnf')));
+            }
+
+            $path = Storage::disk('local')->path($submission->attachment_path);
+
+            return response()->file($path, [
+                'Content-Type' => $this->inlineMimeFor($ext),
+                'Content-Disposition' => 'inline; filename="submission.' . $ext . '"',
+            ]);
+        }
+
+        if (!$assignment->attachment_path || !$this->canView($user, $assignment)) {
+            abort(403, __('msg.denied'));
+        }
+
+        $ext = $this->viewableExtOf($assignment->attachment_path);
+        if ($ext === null || !Storage::disk('public')->exists($assignment->attachment_path)) {
+            return back()->with($this->errFlash(__('msg.rnf')));
+        }
+
+        $path = Storage::disk('public')->path($assignment->attachment_path);
+        $filename = (\Illuminate\Support\Str::slug($assignment->title) ?: 'assignment') . '.' . $ext;
+
+        return response()->file($path, [
+            'Content-Type' => $this->inlineMimeFor($ext),
+            'Content-Disposition' => 'inline; filename="' . $filename . '"',
+        ]);
     }
 
     /*****************************************************************

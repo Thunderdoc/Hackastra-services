@@ -29,10 +29,12 @@
                     'message' => 'No students below ' . $threshold . '% attendance for ' . $month->format('F Y') . ($selected_class ? ' in ' . $selected_class->name : '') . ' — good news, nobody needs attendance support right now.',
                 ])
             @else
-                <table class="table att-low-table">
+                <div class="table-responsive">
+                <table class="table att-low-table hk-std hk-std-attrep hk-std-attrep-wide">
+                    <colgroup><col style="width:3%"><col style="width:20%"><col style="width:9%"><col style="width:8%"><col style="width:7%"><col style="width:6%"><col style="width:6%"><col style="width:5%"><col style="width:6%"><col style="width:16%"><col style="width:7%"><col style="width:7%"></colgroup>
                     <thead>
                     <tr>
-                        <th style="width:38px">#</th>
+                        <th>#</th>
                         <th>Student</th>
                         <th>Adm No</th>
                         <th>Class</th>
@@ -41,7 +43,7 @@
                         <th class="ad-num">Absent</th>
                         <th class="ad-num">Late</th>
                         <th class="ad-num">Periods</th>
-                        <th style="min-width:180px">Attendance %</th>
+                        <th class="hk-nw">Attendance %</th>
                         <th>Status</th>
                         <th class="text-center print-hide">Action</th>
                     </tr>
@@ -69,7 +71,7 @@
                                     </span>
                                 </div>
                             </td>
-                            <td>{{ $row['student']->adm_no ?: '—' }}</td>
+<td class="hk-nw">{{ $row['student']->adm_no ?: '—' }}</td>
                             <td>{{ optional($row['student']->my_class)->name ?: '—' }}</td>
                             <td>{{ optional($row['student']->section)->name ?: '—' }}</td>
                             <td class="ad-num">{{ $row['present'] }}</td>
@@ -82,7 +84,7 @@
                                     <span class="ad-pct {{ $row['percent'] >= 50 ? 'ad-pct-warning' : 'ad-pct-danger' }}">{{ $row['percent'] }}%</span>
                                 </div>
                             </td>
-                            <td><span class="att-low-badge {{ $row['status'] === 'Critical' ? 'att-low-badge-critical' : 'att-low-badge-risk' }}">{{ $row['status'] }}</span></td>
+                            <td class="hk-nw"><span class="att-low-badge {{ $row['status'] === 'Critical' ? 'att-low-badge-critical' : 'att-low-badge-risk' }}">{{ $row['status'] }}</span></td>
                             <td class="text-center print-hide">
                                 <a href="{{ route('students.show', Qs::hash($row['student']->id)) }}" class="btn btn-light btn-sm"><i class="icon-eye mr-1"></i> View</a>
                                 <div class="list-icons d-inline-block">
@@ -99,6 +101,7 @@
                     @endforeach
                     </tbody>
                 </table>
+                </div>
                 <div class="d-flex flex-wrap justify-content-between align-items-center mt-2 print-hide">
                     <span class="text-muted"><small>Showing {{ $paginator->firstItem() }} to {{ $paginator->lastItem() }} of {{ $paginator->total() }} students</small></span>
                     {{ $paginator->links() }}

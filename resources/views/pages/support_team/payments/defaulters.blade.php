@@ -150,6 +150,9 @@
                         <a href="{{ route('payments.defaulters') }}" class="btn btn-light"><i class="icon-reset mr-1"></i> Reset</a>
                     </div>
                 </form>
+                <div class="mt-2 print-hide">
+                    @include('partials.patterns.saved_views', ['svList' => 'defaulters'])
+                </div>
             @endslot
 
             @if($print_rows->isEmpty() && $rows->isEmpty())
@@ -177,9 +180,31 @@
                                 <p class="l118-card-sub">List of students with pending fee payments.</p>
                             </div>
                         </div>
+                        {{-- Round 5 Slice 3 (P10): OPTIONAL selection narrows
+                             the two existing set actions. With nothing ticked,
+                             the header Export / Send fee reminders keep acting
+                             on the whole filtered set, exactly as before; the
+                             bar's forms below carry the same filter params and
+                             the bar's JS appends the checked ids[] (student
+                             user ids), which the endpoints intersect with the
+                             filtered set server-side. --}}
+                        <form id="def-bulk-remind-form" method="post" action="{{ route('payments.defaulters.remind', $def95ExportParams) }}" class="d-none">@csrf</form>
+                        <form id="def-bulk-export-form" method="get" action="{{ route('payments.defaulters.export') }}" class="d-none">
+                            @foreach($def95ExportParams as $defParam => $defValue)
+                                <input type="hidden" name="{{ $defParam }}" value="{{ $defValue }}">
+                            @endforeach
+                        </form>
+                        @include('partials.patterns.bulk_bar', [
+                            'bulk_id' => 'defaulters',
+                            'bulk_actions' => [
+                                ['label' => 'Remind selected', 'form' => 'def-bulk-remind-form', 'class' => 'btn-danger btn-sm', 'icon' => 'icon-bell2', 'confirm' => 'Send fee reminders to {count} selected defaulter(s)?', 'confirm_title' => 'Send fee reminders', 'confirm_action' => 'Send reminders', 'danger' => true],
+                                ['label' => 'Export selected', 'form' => 'def-bulk-export-form', 'class' => 'btn-light btn-sm', 'icon' => 'icon-download'],
+                            ],
+                        ])
                         <table class="table def95-table l108-stack">
                             <thead>
                             <tr>
+                                <th style="width:34px"><span class="sr-only">Select</span></th>
                                 <th style="width:34px">#</th>
                                 <th>Student Name</th>
                                 <th>Admission No</th>
@@ -199,6 +224,7 @@
                                     $def95Ini = strtoupper(substr($def95Words[0] ?? '', 0, 1) . (isset($def95Words[1]) ? substr($def95Words[1], 0, 1) : ''));
                                 @endphp
                                 <tr>
+                                    <td data-label="Select"><input type="checkbox" class="hk-bulk-check" value="{{ $row['student']->user_id }}" title="Select {{ optional($row['student']->user)->name }}"></td>
                                     <td data-label="#">{{ $rows->firstItem() + $loop->index }}</td>
                                     <td data-label="Student Name">
                                         <span class="def95-student"><span class="l7-avatar l7-avatar-md" aria-hidden="true">{{ $def95Ini }}@if(Qs::hasRealPhoto($row['student']->user->photo))<img src="{{ $row['student']->user->photo }}" alt="" onerror="this.remove()">@endif</span><strong>{{ optional($row['student']->user)->name }}</strong></span>

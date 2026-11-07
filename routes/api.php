@@ -21,7 +21,7 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
 // Mobile app API (Sanctum token auth). Login is public; everything
 // else requires a Bearer token. Super Admin gets no token (see the
 // controller) — platform accounts do not use the mobile app.
-Route::post('/login', [MobileApiController::class, 'login']);
+Route::post('/login', [MobileApiController::class, 'login'])->middleware('throttle:api-login');
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [MobileApiController::class, 'logout']);

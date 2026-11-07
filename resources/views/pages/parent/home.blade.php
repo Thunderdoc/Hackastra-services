@@ -187,6 +187,32 @@
                         </div>
                     </div>
 
+                    {{-- F2 — latest-result strip (same assembler as the
+                         my_progress page: published-only, fee-gated). --}}
+                    @if(!empty($child['progress']))
+                        <div class="f2-strip">
+                            @if($child['progress']['fees_blocked'])
+                                <i class="icon-lock"></i>
+                                <span>Results are held until fees are cleared — <a href="{{ route('my_fees.show', $record->user_id) }}">see Fees</a></span>
+                            @elseif(empty($child['progress']['periods']))
+                                <span class="f2-strip-muted">No results published yet this session.</span>
+                            @else
+                                @php($f2pts = $child['progress']['periods'])
+                                @php($f2latest = $f2pts[count($f2pts) - 1])
+                                <div class="f2-strip-main">
+                                    <small>Latest result</small>
+                                    <strong>{{ $f2latest['period_name'] }} &middot; {{ number_format($f2latest['pct'], 1) }}%@if($f2latest['grade']) &middot; Grade {{ $f2latest['grade'] }}@endif</strong>
+                                    @if($f2latest['delta'] !== null)
+                                        @php($f2prev = $f2pts[count($f2pts) - 2])
+                                        <small>{{ $f2prev['period_name'] }} {{ number_format($f2prev['pct'], 1) }}% &rarr; {{ $f2latest['period_name'] }} {{ number_format($f2latest['pct'], 1) }}% ({{ sprintf('%+.1f pts', $f2latest['delta']) }})</small>
+                                    @endif
+                                </div>
+                                <div class="f2-mini" aria-hidden="true">@foreach($f2pts as $f2p)<span style="height: {{ max(8, $f2p['pct']) }}%"></span>@endforeach</div>
+                                <a href="{{ route('my_progress', ['child' => $record->id]) }}" class="f2-strip-link">View progress <i class="icon-arrow-right7"></i></a>
+                            @endif
+                        </div>
+                    @endif
+
                     @if($child['fees']['has_records'])
                         <div class="p96-progress-wrap">
                             <div class="p96-progress"><span style="width: {{ $fees_paid_pct }}%"></span></div>
@@ -210,17 +236,17 @@
                         <a href="{{ route('my_fees.show', $record->user_id) }}"><i class="icon-coins"></i><span>Fees</span></a>
                         <a href="{{ route('attendance.my', ['student_id' => $record->id]) }}"><i class="icon-calendar52"></i><span>Attendance</span></a>
                         <a href="{{ route('marks.year_selector', Qs::hash($record->user_id)) }}"><i class="icon-stats-bars"></i><span>Marksheet</span></a>
+                        <a href="{{ route('my_progress', ['child' => $record->id]) }}"><i class="icon-stats-bars"></i><span>Progress</span></a>
                     </div>
                 </section>
             @endforeach
         </div>
     @else
         <section class="p96-panel mb-4">
-            <div class="p96-empty">
-                <i class="icon-users4"></i>
-                <h5>No children are linked to your account yet</h5>
-                <p>Once the school links your child&rsquo;s record to your account, their attendance, marks and fee status will appear here. If your child is already enrolled, please contact the school office and mention your registered email address.</p>
-            </div>
+            @include('partials.patterns.empty_state', [
+                'icon' => 'icon-users4',
+                'message' => 'No children are linked to your account yet. Once the school links your child’s record to your account, their attendance, marks and fee status will appear here. If your child is already enrolled, please contact the school office and mention your registered email address.',
+            ])
         </section>
     @endif
 
@@ -252,10 +278,11 @@
                     <span class="p96-pill p96-pill-pri-{{ $circular->priority }}">{{ \App\Models\Circular::priorities()[$circular->priority] ?? 'Normal' }}</span>
                 </a>
             @empty
-                <div class="p96-empty">
-                    <i class="icon-megaphone"></i>
-                    <p>No circulars for parents right now. New notices from the school office will appear here.</p>
-                </div>
+                @include('partials.patterns.empty_state', [
+                    'icon' => 'icon-megaphone',
+                    'message' => 'No circulars for parents right now. New notices from the school office will appear here.',
+                    'compact' => true,
+                ])
             @endforelse
         </section>
 
@@ -280,10 +307,11 @@
                     <span class="p96-pill p96-pill-event-{{ $event['type'] }}">{{ $event['type_label'] }}</span>
                 </div>
             @empty
-                <div class="p96-empty">
-                    <i class="icon-calendar3"></i>
-                    <p>No upcoming events. School events and examination dates will appear here.</p>
-                </div>
+                @include('partials.patterns.empty_state', [
+                    'icon' => 'icon-calendar3',
+                    'message' => 'No upcoming events. School events and examination dates will appear here.',
+                    'compact' => true,
+                ])
             @endforelse
         </section>
     </div>

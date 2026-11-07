@@ -1,5 +1,6 @@
 <html>
 <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <title>Payslip - {{ $payroll->user->name }} - {{ $payroll->monthName() }} {{ $payroll->year }}</title>
     {{-- The downloadable PDF twin of the printed payslip — the SAME
          payslip_document partial, the SAME renderPayslip data. Only

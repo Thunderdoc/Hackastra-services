@@ -77,6 +77,8 @@
             ])
         @endif
 
+        @include('partials.fee_plan', ['plans' => $plans ?? [], 'receipt_route' => 'student.fees.receipt'])
+
         <h6 class="font-weight-bold mt-4">Completed Payments</h6>
         @if($cleared->count())
             <div class="table-responsive">

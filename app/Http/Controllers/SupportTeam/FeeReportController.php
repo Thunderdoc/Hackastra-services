@@ -43,6 +43,12 @@ class FeeReportController extends Controller
 
     public function defaulters(Request $request)
     {
+        // F5 (design §3.4C): the opportunistic trigger — the
+        // Defaulters page is a place the fee team visits daily,
+        // so loading it runs the scheduled pass at most once
+        // per calendar day (guarded by fee_reminder_last_run).
+        \App\Support\FeeReminderEngine::maybeRunOpportunistically();
+
         $d['classes'] = MyClass::orderBy('name')->get();
         $d['selected_class'] = $request->query('class_id')
             ? MyClass::find($request->query('class_id'))
@@ -111,14 +117,65 @@ class FeeReportController extends Controller
      * accountant can send them too — this is their job, not a
      * per-student chore anymore.
      */
+    /**
+     * P10 (Round 5 Slice 3) — the Defaulters page's OPTIONAL row
+     * selection: checked student USER ids posted as ids[] (the
+     * shared bulk bar's contract). Empty means "no selection" —
+     * the caller then acts on the whole filtered set, exactly as
+     * before. Non-empty narrows it: FeeDefaulter::rows intersects
+     * user_ids with the class/section/status/q filters, so a
+     * tampered id outside the filtered set is never acted on.
+     */
+    protected function selectedUserIds(Request $request): array
+    {
+        $raw = $request->input('ids', []);
+        if (!is_array($raw)) {
+            return [];
+        }
+
+        return collect($raw)
+            ->filter(function ($id) { return is_numeric($id); })
+            ->map(function ($id) { return (int) $id; })
+            ->filter(function ($id) { return $id > 0; })
+            ->unique()->values()->all();
+    }
+
+    /** defaulterFilters() + the P10 selection, when one was posted. */
+    protected function defaulterFiltersWithSelection(Request $request): array
+    {
+        $filters = $this->defaulterFilters($request);
+        $ids = $this->selectedUserIds($request);
+        if ($ids) {
+            $filters['user_ids'] = $ids;
+        }
+
+        return $filters;
+    }
+
     public function remindDefaulters(Request $request)
     {
         $selected_class = $request->query('class_id')
             ? MyClass::find($request->query('class_id'))
             : null;
-        $res = \App\Support\Notify::feeReminders($this->year, $selected_class, $this->defaulterFilters($request));
+        // F5 (design §6.2): the manual send now routes through
+        // the reminder engine — identical bells to the old
+        // Notify::feeReminders path, plus trigger=manual log
+        // rows and an audit summary.
+        // P10: a posted selection (ids[]) narrows the filtered set
+        // inside the engine's own FeeDefaulter::rows call.
+        $res = (new \App\Support\FeeReminderEngine())->sendNow(
+            $this->year, $selected_class, $this->defaulterFiltersWithSelection($request), $request->user()
+        );
+        \App\Support\Audit::log('fee_reminders.sent', null,
+            'Manual fee reminders sent to ' . $res['defaulters'] . ' defaulter(s) ('
+            . $res['notifications'] . ' notifications) for session ' . $this->year . '.');
 
-        return back()->with('flash_success', 'Fee reminders sent to ' . $res['defaulters'] . ' defaulter(s) (' . $res['notifications'] . ' notifications).');
+        $message = 'Fee reminders sent to ' . $res['defaulters'] . ' defaulter(s) (' . $res['notifications'] . ' notifications).';
+        if (!empty($res['whatsapp_skipped'])) {
+            $message .= ' WhatsApp reminders were skipped — WhatsApp is not set up yet.';
+        }
+
+        return back()->with('flash_success', $message);
     }
 
     public function defaultersExport(Request $request)
@@ -127,7 +184,9 @@ class FeeReportController extends Controller
             ? MyClass::find($request->query('class_id'))
             : null;
 
-        $rows = $this->defaulterRows($class, $this->defaulterFilters($request))->map(function ($row) {
+        // P10: a posted selection (?ids[]=…) narrows the export
+        // to checked ids ∩ the filtered set, like the remind send.
+        $rows = $this->defaulterRows($class, $this->defaulterFiltersWithSelection($request))->map(function ($row) {
             return [
                 optional($row['student']->user)->name,
                 $row['student']->adm_no,

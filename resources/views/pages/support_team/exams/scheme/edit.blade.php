@@ -14,18 +14,12 @@
     <div class="pat-list">
         <div class="pat-toolbar">
             <div class="pat-toolbar-text">
-                <div class="pat-toolbar-sub">{{ $ex->name }} &middot; Term {{ $ex->term }} &middot; {{ $ex->year }}</div>
+                <div class="pat-toolbar-sub">{{ $ex->name }} &middot; {{ $ex->periodLabel() }} &middot; {{ $ex->year }}</div>
             </div>
         </div>
         <div class="card pat-card">
         <div class="card-body">
-            @if($errors->any())
-                <div class="alert alert-danger border-0">
-                    @foreach($errors->all() as $err)
-                        <div><i class="icon-arrow-right5"></i> {{ $err }}</div>
-                    @endforeach
-                </div>
-            @endif
+            @include('partials.errors.field', ['field' => 'components'])
 
             @if($other_exams->count() > 0)
                 {{-- Workstream BW: copy bar moved onto the shared
@@ -39,7 +33,7 @@
                         <select id="source_exam_id" name="source_exam_id" class="form-control" required>
                             <option value="">Select Exam</option>
                             @foreach($other_exams as $oe)
-                                <option value="{{ $oe->id }}">{{ $oe->name }} (Term {{ $oe->term }}, {{ $oe->year }})</option>
+                                <option value="{{ $oe->id }}">{{ $oe->name }} ({{ $oe->periodLabel() }}, {{ $oe->year }})</option>
                             @endforeach
                         </select>
                     </div>
@@ -129,7 +123,7 @@
                             <button type="submit" class="btn btn-primary btn-sm ml-2">Save Scheme <i class="icon-paperplane ml-1"></i></button>
                             <button type="submit" name="apply_all" value="1" class="btn btn-info btn-sm ml-2">Save + Apply to All Subjects in {{ $my_class->name }}</button>
                             @if($sub->scheme_configured)
-                                <button type="submit" name="clear" value="1" class="btn btn-warning btn-sm ml-2" onclick="return confirm('Switch {{ $sub->name }} back to the legacy scheme (CA 20 + CA 20 + Exam 60)?')">Use Legacy Scheme</button>
+                                <button type="submit" name="clear" value="1" class="btn btn-warning btn-sm ml-2" data-confirm="Switch {{ $sub->name }} back to the legacy scheme (CA 20 + CA 20 + Exam 60)?" data-confirm-title="Use Legacy Scheme" data-confirm-action="Use Legacy Scheme" data-confirm-danger>Use Legacy Scheme</button>
                             @endif
                         </div>
                     </form>

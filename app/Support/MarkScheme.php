@@ -149,6 +149,44 @@ class MarkScheme
     }
 
     /**
+     * F2 — batched sibling of maxTotal(): the configured scheme
+     * maximum for every (exam, subject) pair that HAS configured
+     * components across the given exams, in ONE query.
+     *
+     * Returns ["{exam_id}:{subject_id}" => int]. A pair with no
+     * configured components is ABSENT from the map — the caller
+     * applies the legacy rule for it (the sum of legacyComponents(),
+     * 100), exactly as maxTotal() does via components(). A unit
+     * test (OwnerParentProgressTest T21) pins equality with
+     * maxTotal() per pair for configured, legacy and mixed pairs.
+     */
+    public static function maxTotalsForExams(array $examIds): array
+    {
+        $examIds = array_values(array_unique(array_map('intval', $examIds)));
+        if (!$examIds) {
+            return [];
+        }
+
+        $rows = ExamSubjectComponent::whereIn('exam_id', $examIds)
+            ->selectRaw('exam_id, subject_id, SUM(max_marks) as total')
+            ->groupBy('exam_id', 'subject_id')
+            ->get();
+
+        $map = [];
+        foreach ($rows as $row) {
+            $map[(int) $row->exam_id . ':' . (int) $row->subject_id] = (int) $row->total;
+        }
+
+        return $map;
+    }
+
+    /** The legacy scheme maximum (the maxTotal() of an unconfigured pair). */
+    public static function legacyMaxTotal(): int
+    {
+        return (int) collect(self::legacyComponents())->sum('max_marks');
+    }
+
+    /**
      * The score a student has in one component of a mark row.
      * $component is an entry from components(). Returns int or NULL
      * (NULL = not entered; 0 is returned as a real 0).

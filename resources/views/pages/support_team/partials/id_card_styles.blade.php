@@ -146,7 +146,14 @@
        right-aligned values on the wide tiles. Band heights shrink by the
        border width so the card geometry does not move. */
     .idc2-band{border-bottom:2pt solid #c9a227;height:27pt}
-    .idc2-bhead{border-bottom:2pt solid #c9a227;height:16pt}
+    {{-- Round 2: the back head's two lines (school name 7.5pt/1.15 +
+         the DETAILS line 4.6pt + its 1pt margin + 4pt top padding)
+         need ~19pt of content height, but this rule held it at 16pt —
+         the DETAILS line rendered half-clipped at the gold trim on
+         every card back, screen and PDF. 20pt fits both lines; the
+         4pt growth comes out of the back body's slack (its content
+         ends well above the bottom accent). --}}
+    .idc2-bhead{border-bottom:2pt solid #c9a227;height:20pt}
     .idc2-widebox .idc2-fl{display:inline}
     .idc2-widebox .idc2-fv{float:right;margin-top:0;text-align:right}
 .idc2-micro{font-size:3pt;letter-spacing:0.05em}

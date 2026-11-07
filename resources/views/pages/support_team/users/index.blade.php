@@ -20,6 +20,7 @@
             {{ $users->count() }} {{ $selected_user_type ? (($user_types->firstWhere('title', $selected_user_type)->name ?? $selected_user_type) . 's') : 'users' }} shown
         @endslot
         @slot('action')
+            <a href="{{ route('users.export', array_filter(['user_type' => $selected_user_type, 'status' => $selected_status, 'q' => ($search_q ?? '') ?: null, 'sort' => $sort ?? 'name', 'dir' => $dir ?? 'asc'])) }}" class="btn btn-light mr-2"><i class="icon-download mr-2"></i> Export CSV</a>
             <a href="{{ route('users.create') }}" class="btn btn-primary"><i class="icon-user-plus mr-2"></i> Create New User</a>
         @endslot
 
@@ -33,6 +34,8 @@
             <form method="GET" action="{{ route('users.index') }}" class="l106-users-search">
                 @if($selected_user_type)<input type="hidden" name="user_type" value="{{ $selected_user_type }}">@endif
                 @if($selected_status)<input type="hidden" name="status" value="{{ $selected_status }}">@endif
+                @if(($sort ?? 'name') !== 'name')<input type="hidden" name="sort" value="{{ $sort }}">@endif
+                @if(($dir ?? 'asc') !== 'asc')<input type="hidden" name="dir" value="{{ $dir }}">@endif
                 <div class="input-group">
                     <input type="text" name="q" value="{{ $search_q ?? '' }}" class="form-control" placeholder="Search by name, username or email…">
                     <div class="input-group-append">
@@ -61,19 +64,57 @@
                     </div>
                 </div>
             </div>
+            <div class="mt-2">
+                @include('partials.patterns.saved_views', ['svList' => 'users'])
+            </div>
         @endslot
 
         @if($users->count())
+            @if(Qs::userIsTeamSA())
+                {{-- Round 5 Slice 3 (P10): shared bulk bar — Suspend /
+                     Activate / Export the ticked rows. The hidden forms
+                     live here (one per action, CSRF inside); the bar's
+                     JS appends the checked ids[] on submit. Server
+                     re-checks every id against the single-row rules
+                     and skips + reports ineligible ones. --}}
+                <form id="users-bulk-suspend-form" method="post" action="{{ route('users.bulk_status') }}" class="d-none">@csrf<input type="hidden" name="status" value="suspended"></form>
+                <form id="users-bulk-activate-form" method="post" action="{{ route('users.bulk_status') }}" class="d-none">@csrf<input type="hidden" name="status" value="active"></form>
+                <form id="users-bulk-export-form" method="post" action="{{ route('users.export_selected') }}" class="d-none">@csrf</form>
+                @include('partials.patterns.bulk_bar', [
+                    'bulk_id' => 'users',
+                    'bulk_actions' => [
+                        ['label' => 'Suspend selected', 'form' => 'users-bulk-suspend-form', 'class' => 'btn-warning btn-sm', 'icon' => 'icon-user-block', 'confirm' => 'Suspend {count} selected account(s)? They will not be able to sign in. Their records are kept and accounts can be reactivated.', 'confirm_title' => 'Suspend accounts', 'confirm_action' => 'Suspend', 'danger' => true],
+                        ['label' => 'Activate selected', 'form' => 'users-bulk-activate-form', 'class' => 'btn-success btn-sm', 'icon' => 'icon-user-check', 'confirm' => 'Reactivate {count} selected account(s)? They will be able to sign in again.', 'confirm_title' => 'Reactivate accounts', 'confirm_action' => 'Reactivate'],
+                        ['label' => 'Export selected', 'form' => 'users-bulk-export-form', 'class' => 'btn-light btn-sm', 'icon' => 'icon-download'],
+                    ],
+                ])
+            @endif
+            @php
+                $uSortBase = array_filter(['user_type' => $selected_user_type, 'status' => $selected_status, 'q' => ($search_q ?? '') ?: null]);
+                $uSortUrl = function ($col) use ($uSortBase, $sort, $dir) {
+                    $next = ($sort === $col && $dir === 'asc') ? 'desc' : 'asc';
+                    return route('users.index', array_merge($uSortBase, ['sort' => $col, 'dir' => $next]));
+                };
+                $uSortMark = function ($col) use ($sort, $dir) {
+                    return $sort === $col ? ($dir === 'asc' ? ' ↑' : ' ↓') : '';
+                };
+            @endphp
             <div class="table-responsive">
             <table class="table hk-std hk-std-users">
-                {{-- Beauty Batch 4 (audit D group): fixed layout, widths sum to 100%. --}}
-                <colgroup><col style="width:5%"><col style="width:7%"><col style="width:19%"><col style="width:14%"><col style="width:13%"><col style="width:24%"><col style="width:12%"><col style="width:6%"></colgroup>
+                {{-- Beauty Batch 4 (audit D group): fixed layout, widths sum to 100%.
+                     P10: the checkbox column (teamSA only) takes 4% from Email. --}}
+                @if(Qs::userIsTeamSA())
+                    <colgroup><col style="width:4%"><col style="width:5%"><col style="width:7%"><col style="width:19%"><col style="width:14%"><col style="width:13%"><col style="width:20%"><col style="width:12%"><col style="width:6%"></colgroup>
+                @else
+                    <colgroup><col style="width:5%"><col style="width:7%"><col style="width:19%"><col style="width:14%"><col style="width:13%"><col style="width:24%"><col style="width:12%"><col style="width:6%"></colgroup>
+                @endif
                 <thead>
                 <tr>
+                    @if(Qs::userIsTeamSA())<th><span class="sr-only">Select</span></th>@endif
                     <th>S/N</th>
                     <th class="hk-nw">Photo</th>
-                    <th>Name</th>
-                    <th>Username</th>
+                    <th><a href="{{ $uSortUrl('name') }}">Name{{ $uSortMark('name') }}</a></th>
+                    <th><a href="{{ $uSortUrl('username') }}">Username{{ $uSortMark('username') }}</a></th>
                     <th>Phone</th>
                     <th>Email</th>
                     <th>Status</th>
@@ -83,7 +124,8 @@
                 <tbody>
                 @foreach($users as $u)
                     <tr>
-                        <td class="hk-nw">{{ $loop->iteration }}</td>
+                        @if(Qs::userIsTeamSA())<td><input type="checkbox" class="hk-bulk-check" value="{{ $u->id }}" title="Select {{ $u->name }}"></td>@endif
+                        <td class="hk-nw">{{ ($users->firstItem() ?? 1) + $loop->index }}</td>
                         <td>@if(Qs::hasRealPhoto($u->photo))<img class="rounded-circle" style="height: 40px; width: 40px;" src="{{ $u->photo }}" alt="photo">@else<span class="hk-ini" style="width:40px;height:40px;font-size:.8rem" aria-hidden="true">{{ Qs::initials($u->name) }}</span>@endif</td>
                         <td>{{ $u->name }}</td>
                         <td>{{ $u->username }}</td>
@@ -132,7 +174,7 @@
                                             @endif
                                             @endif
                                             {{--Delete--}}
-                                            <button type="button" onclick="confirmDelete('{{ Qs::hash($u->id) }}')" class="dropdown-item"><i class="icon-trash"></i> Delete</button>
+                                            <button type="button" data-item-name="{{ $u->name }}" onclick="confirmDelete('{{ Qs::hash($u->id) }}', this.dataset.itemName)" class="dropdown-item"><i class="icon-trash"></i> Delete</button>
                                             <form method="post" id="item-delete-{{ Qs::hash($u->id) }}" action="{{ route('users.destroy', Qs::hash($u->id)) }}" class="hidden">@csrf @method('delete')</form>
                                     @endif
 
@@ -145,6 +187,7 @@
                 </tbody>
             </table>
             </div>
+            {{ $users->links() }}
         @else
             @include('partials.patterns.empty_state', [
                 'icon' => 'icon-users',

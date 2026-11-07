@@ -638,6 +638,31 @@ class LeaveRequestController extends Controller
                 // The decision stands regardless.
             }
         }
+        // Round 2 verification gap (2026-11-07): the cover chain
+        // notified deciders, substitutes and students, but the
+        // APPLICANT — the one person whose plans the decision
+        // changes — received nothing and only found out by
+        // re-opening My Leave. The applicant is told the outcome
+        // (and the decider's note, when one was written) here,
+        // for staff and student applicants alike.
+        try {
+            $applicantFrom = \Carbon\Carbon::parse($leave->start_date)->format('d M Y');
+            $applicantTo = \Carbon\Carbon::parse($leave->end_date)->format('d M Y');
+            $applicantBody = 'Your leave from ' . $applicantFrom . ' to ' . $applicantTo
+                . ' was ' . $data['status'] . '.';
+            if (!empty($data['decision_note'])) {
+                $applicantBody .= ' Note: ' . $data['decision_note'];
+            }
+            \App\Support\Notify::toUser(
+                $leave->user_id,
+                'leave_decided',
+                'Leave ' . $data['status'],
+                $applicantBody,
+                route('leave.my')
+            );
+        } catch (\Throwable $e) {
+            // The decision stands regardless.
+        }
         return back()->with('flash_success', 'Leave request ' . $data['status'] . '.');
     }
 }

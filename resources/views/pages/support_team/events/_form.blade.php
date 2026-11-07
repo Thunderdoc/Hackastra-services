@@ -5,27 +5,27 @@
 <div class="pat-fields">
     <div class="pat-field pat-field-wide">
         <label for="title">Title</label>
-        <input id="title" type="text" name="title" class="form-control" required maxlength="255" value="{{ old('title', $event->title ?? '') }}">
+        <input id="title" type="text" name="title" class="form-control @error('title') is-invalid @enderror" required maxlength="255" value="{{ old('title', $event->title ?? '') }}">@include('partials.errors.field', ['field' => 'title'])
     </div>
     <div class="pat-field">
         <label for="type">Type</label>
-        <select id="type" name="type" class="form-control" required>
+        <select id="type" name="type" class="form-control @error('type') is-invalid @enderror" required>
             @foreach($types as $value => $label)
                 <option value="{{ $value }}" {{ old('type', $event->type ?? 'event') === $value ? 'selected' : '' }}>{{ $label }}</option>
             @endforeach
-        </select>
+        </select>@include('partials.errors.field', ['field' => 'type'])
     </div>
     <div class="pat-field">
         <label for="starts_at">Starts</label>
-        <input id="starts_at" type="date" name="starts_at" class="form-control" required value="{{ old('starts_at', isset($event) ? $event->starts_at->format('Y-m-d') : '') }}">
+        <input id="starts_at" type="date" name="starts_at" class="form-control @error('starts_at') is-invalid @enderror" required value="{{ old('starts_at', isset($event) ? $event->starts_at->format('Y-m-d') : '') }}">@include('partials.errors.field', ['field' => 'starts_at'])
     </div>
     <div class="pat-field">
         <label for="ends_at">Ends (optional)</label>
-        <input id="ends_at" type="date" name="ends_at" class="form-control" value="{{ old('ends_at', isset($event) && $event->ends_at ? $event->ends_at->format('Y-m-d') : '') }}">
+        <input id="ends_at" type="date" name="ends_at" class="form-control @error('ends_at') is-invalid @enderror" value="{{ old('ends_at', isset($event) && $event->ends_at ? $event->ends_at->format('Y-m-d') : '') }}">@include('partials.errors.field', ['field' => 'ends_at'])
     </div>
     <div class="pat-field pat-field-wide">
         <label for="description">Description (optional)</label>
-        <textarea id="description" name="description" class="form-control" rows="3" maxlength="2000">{{ old('description', $event->description ?? '') }}</textarea>
+        <textarea id="description" name="description" class="form-control @error('description') is-invalid @enderror" rows="3" maxlength="2000">{{ old('description', $event->description ?? '') }}</textarea>@include('partials.errors.field', ['field' => 'description'])
     </div>
     <div class="pat-field">
         <div class="form-check">

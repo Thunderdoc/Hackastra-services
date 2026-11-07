@@ -36,7 +36,7 @@
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="9">No fees yet.</td></tr>
+                <tr><td colspan="9">@include('partials.patterns.empty_state', ['icon' => 'icon-cash2', 'message' => 'No fees yet.'])</td></tr>
             @endforelse
             </tbody>
         </table>

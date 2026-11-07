@@ -14,12 +14,10 @@
             <a href="{{ route('platform_mail.create') }}" class="btn btn-primary"><i class="icon-envelop5 mr-2"></i>Compose Mail</a>
         </div>
         @if($sent_mails->isEmpty())
-            <div class="l106-empty">
-                @include('partials.patterns.empty_state', [
+            @include('partials.patterns.empty_state', [
                     'icon' => 'icon-envelop5',
                     'message' => 'No platform mail has been sent yet. Sends from the mail composer will appear here — delivered, log-recorded, or failed.',
                 ])
-            </div>
         @else
             <div class="table-responsive">
                 <table class="l106-table">

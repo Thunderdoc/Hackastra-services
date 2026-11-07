@@ -50,7 +50,7 @@
     @endif
 
     <div class="print-hide">
-    @component('partials.patterns.list_page')
+    @component('partials.patterns.list_page', ['pat_no_wrap' => true])
         @slot('subtitle')
             Pick a class, then open a student&rsquo;s payment records to take a fee or print a receipt.
         @endslot
@@ -76,13 +76,37 @@
                     <button type="submit" class="btn btn-primary">Submit <i class="icon-paperplane ml-2"></i></button>
                 </div>
             </form>
+            @if($selected)
+                <form method="get" action="{{ route('payments.manage', $my_class_id) }}" class="pat-filter-form mt-2">
+                    <div class="pat-filter-field">
+                        <label for="pm_q">Search</label>
+                        <input type="text" id="pm_q" name="q" class="form-control" value="{{ $manage_q ?? '' }}" placeholder="Search by name or ADM No&hellip;">
+                    </div>
+                    <div class="pat-filter-field">
+                        <label for="pm_status">Fee status</label>
+                        <select id="pm_status" name="status" class="form-control">
+                            <option value="" {{ ($manage_status ?? '') === '' ? 'selected' : '' }}>All Statuses</option>
+                            <option value="paid" {{ ($manage_status ?? '') === 'paid' ? 'selected' : '' }}>Paid</option>
+                            <option value="partial" {{ ($manage_status ?? '') === 'partial' ? 'selected' : '' }}>Partially Paid</option>
+                            <option value="unpaid" {{ ($manage_status ?? '') === 'unpaid' ? 'selected' : '' }}>Unpaid</option>
+                            <option value="none" {{ ($manage_status ?? '') === 'none' ? 'selected' : '' }}>No fees recorded</option>
+                        </select>
+                    </div>
+                    <div class="pat-filter-action">
+                        <button type="submit" class="btn btn-primary"><i class="icon-filter3 mr-1"></i> Filter</button>
+                        <a href="{{ route('payments.manage', $my_class_id) }}" class="btn btn-light"><i class="icon-reset mr-1"></i> Reset</a>
+                    </div>
+                </form>
+            @endif
         @endslot
 
         @if($selected)
             @if($students->isEmpty())
                 @include('partials.patterns.empty_state', [
                     'icon' => 'icon-users',
-                    'message' => 'No active students in this class yet.',
+                    'message' => (($manage_q ?? '') !== '' || ($manage_status ?? '') !== '')
+                        ? 'No students match this search or fee status. Reset the filters to see the whole class.'
+                        : 'No active students in this class yet.',
                 ])
             @else
                 {{-- Never show a button for something the viewer
@@ -94,25 +118,36 @@
                      all, instead of a button whose every link
                      refuses them. --}}
                 @php $canFees = auth()->user()->can('viewFees', $students->first()); @endphp
-                <table class="table l108-stack">
-                    <thead>
-                    <tr>
-                        <th>S/N</th>
-                        <th class="print-hide">Photo</th>
-                        <th>Name</th>
-                        <th>ADM_No</th>
-                        @if($canFees)<th class="print-hide">Payments</th>@endif
-                    </tr>
-                    </thead>
-                    <tbody>
+                {{-- Round 5 P11: the students table rides the shared
+                     data_table pattern (hk-std-paymanage, widths sum
+                     to 100 in both shapes); the stacked-card skin is
+                     retired from this data list. The Payments column
+                     exists only when the viewer holds the viewFees
+                     policy, exactly as before. --}}
+                @php
+                    $pmColumns = [
+                        ['key' => 'sn', 'label' => 'S/N', 'width' => $canFees ? 8 : 10, 'class' => 'hk-nw'],
+                        ['key' => 'photo', 'label' => 'Photo', 'width' => $canFees ? 12 : 15, 'th_class' => 'print-hide'],
+                        ['key' => 'name', 'label' => 'Name', 'width' => $canFees ? 32 : 45],
+                        ['key' => 'adm_no', 'label' => 'ADM_No', 'width' => $canFees ? 20 : 30, 'class' => 'hk-nw'],
+                    ];
+                    if ($canFees) {
+                        $pmColumns[] = ['key' => 'payments', 'label' => 'Payments', 'width' => 28, 'th_class' => 'print-hide'];
+                    }
+                @endphp
+                @component('partials.patterns.data_table', [
+                    'columns' => $pmColumns,
+                    'variant' => 'paymanage',
+                    'min_width' => 880,
+                ])
                     @foreach($students as $s)
                         <tr>
-                            <td data-label="S/N">{{ $loop->iteration }}</td>
-                            <td class="print-hide" data-label="Photo">@if(Qs::hasRealPhoto($s->user->photo))<img class="rounded-circle" style="height: 40px; width: 40px;" src="{{ $s->user->photo }}" alt="photo">@else<span class="hk-ini" style="width:40px;height:40px;font-size:.8rem" aria-hidden="true">{{ Qs::initials($s->user->name) }}</span>@endif</td>
-                            <td data-label="Name">{{ $s->user->name }}</td>
-                            <td data-label="ADM No">{{ $s->adm_no }}</td>
+                            <td>{{ $loop->iteration }}</td>
+                            <td class="print-hide">@if(Qs::hasRealPhoto($s->user->photo))<img class="rounded-circle" style="height: 40px; width: 40px;" src="{{ $s->user->photo }}" alt="photo">@else<span class="hk-ini" style="width:40px;height:40px;font-size:.8rem" aria-hidden="true">{{ Qs::initials($s->user->name) }}</span>@endif</td>
+                            <td>{{ $s->user->name }}</td>
+                            <td>{{ $s->adm_no }}</td>
                             @if($canFees)
-                            <td class="print-hide" data-label="Payments">
+                            <td class="print-hide">
                                 <div class="dropdown">
                                     <button type="button" class="btn btn-sm btn-primary dropdown-toggle" data-toggle="dropdown">Manage Payments</button>
                                     <div class="dropdown-menu dropdown-menu-left">
@@ -128,8 +163,7 @@
                             @endif
                         </tr>
                     @endforeach
-                    </tbody>
-                </table>
+                @endcomponent
             @endif
         @else
             @include('partials.patterns.empty_state', [

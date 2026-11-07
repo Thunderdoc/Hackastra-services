@@ -14,7 +14,7 @@
                 <button type="submit" class="btn btn-primary">Save Changes</button>
                 <a href="{{ route('inventory.index') }}" class="btn btn-light">Back</a>
             </form>
-            <form method="POST" action="{{ route('inventory.destroy', ['inventory_item' => $item->id]) }}" class="mt-3" onsubmit="return confirm('Delete this item? Items with stock movements cannot be deleted.');">
+            <form method="POST" action="{{ route('inventory.destroy', ['inventory_item' => $item->id]) }}" class="mt-3" data-confirm="Delete {{ $item->name }}? Items with stock movements cannot be deleted." data-confirm-title="Delete Item" data-confirm-action="Delete" data-confirm-danger>
                 @csrf
                 @method('DELETE')
                 <button type="submit" class="btn btn-danger btn-sm">Delete Item</button>

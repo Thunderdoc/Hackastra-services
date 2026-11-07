@@ -318,6 +318,16 @@
                                         <label class="acct-switch"><input type="checkbox" name="notify_lms" value="1" {{ ($prefs['notify_lms'] ?? '1') === '1' ? 'checked' : '' }}><span></span></label>
                                     </div>
                                 @endif
+
+                                {{-- F1 (Round 4): the WhatsApp opt-out — a real
+                                     channel switch, enforced in the WhatsApp
+                                     layer only; bell alerts are unaffected. --}}
+                                <div class="acct-toggle-row">
+                                    <span class="acct-toggle-icon acct-tint-green"><i class="icon-bubbles4"></i></span>
+                                    <span class="acct-toggle-text"><strong>WhatsApp messages from school</strong><small>Absence, fee, result, circular and homework messages on WhatsApp. Turning this off stops WhatsApp only — in-app alerts still arrive.</small></span>
+                                    <input type="hidden" name="notify_whatsapp_present" value="1">
+                                    <label class="acct-switch"><input type="checkbox" name="notify_whatsapp" value="1" {{ ($prefs['notify_whatsapp'] ?? '1') === '1' ? 'checked' : '' }}><span></span></label>
+                                </div>
                             </div>
 
                             <div class="acct-form-actions">
@@ -359,6 +369,13 @@
                                 <button type="submit" class="acct-btn acct-btn-primary"><i class="icon-checkmark2"></i> Save Preferences</button>
                             </div>
                         </form>
+                        <div class="acct-shortcuts-row">
+                            <div>
+                                <strong>Keyboard shortcuts</strong>
+                                <p class="acct-panel-sub mb-0">Work faster from the keyboard — press <kbd>?</kbd> anywhere to see the list.</p>
+                            </div>
+                            <button type="button" class="acct-btn hk-shortcuts-open"><i class="icon-keyboard"></i> View shortcuts</button>
+                        </div>
                     </section>
                 </div>
 
@@ -450,10 +467,7 @@
                         <span class="acct-activity-when">{{ $row->created_at->format($date_fmt . ', ' . $time_fmt) }}</span>
                     </div>
                     @empty
-                    <div class="acct-empty">
-                        <i class="icon-history"></i>
-                        <p>No sign-in activity recorded yet.</p>
-                    </div>
+                    @include('partials.patterns.empty_state', ['icon' => 'icon-history', 'message' => 'No sign-in activity recorded yet.', 'compact' => true])
                     @endforelse
                     </div>
                 </div>

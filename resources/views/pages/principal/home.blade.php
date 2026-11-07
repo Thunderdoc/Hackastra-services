@@ -172,7 +172,8 @@ html.hk-dark .pr-chip b{color:#f4f4f5}
             <h5>Approval Center</h5>
             <p class="pr-sub">Pending leave decisions and result publication requests. Emergency leaves auto-approve per policy and never wait here.</p>
             @if(count($pr_pending_leaves) > 0)
-                <table class="pr-table">
+                <div class="table-responsive">
+                    <table class="pr-table">
                     <thead><tr><th>Applicant</th><th>Type</th><th>Dates</th><th></th></tr></thead>
                     <tbody>
                     @foreach($pr_pending_leaves as $leave)
@@ -185,9 +186,11 @@ html.hk-dark .pr-chip b{color:#f4f4f5}
                     @endforeach
                     </tbody>
                 </table>
+                </div>
             @endif
             @if(count($pr_pub_requests) > 0)
-                <table class="pr-table" style="margin-top:14px;">
+                <div class="table-responsive">
+                    <table class="pr-table" style="margin-top:14px;">
                     <thead><tr><th>Result publication requested</th><th>Requested</th><th></th></tr></thead>
                     <tbody>
                     @foreach($pr_pub_requests as $pubExam)
@@ -199,9 +202,11 @@ html.hk-dark .pr-chip b{color:#f4f4f5}
                     @endforeach
                     </tbody>
                 </table>
+                </div>
             @endif
             @if(count($pr_tt_requests) > 0)
-                <table class="pr-table" style="margin-top:14px;">
+                <div class="table-responsive">
+                    <table class="pr-table" style="margin-top:14px;">
                     <thead><tr><th>Timetable approval requested</th><th>Class</th><th></th></tr></thead>
                     <tbody>
                     @foreach($pr_tt_requests as $ttReq)
@@ -213,9 +218,11 @@ html.hk-dark .pr-chip b{color:#f4f4f5}
                     @endforeach
                     </tbody>
                 </table>
+                </div>
             @endif
             @if(isset($pr_unlock_requests) && count($pr_unlock_requests) > 0)
-                <table class="pr-table" style="margin-top:14px;">
+                <div class="table-responsive">
+                    <table class="pr-table" style="margin-top:14px;">
                     <thead><tr><th>Settings unlock requested</th><th>Changes</th><th></th></tr></thead>
                     <tbody>
                     @foreach($pr_unlock_requests as $unlockReq)
@@ -227,9 +234,10 @@ html.hk-dark .pr-chip b{color:#f4f4f5}
                     @endforeach
                     </tbody>
                 </table>
+                </div>
             @endif
             @if(count($pr_pending_leaves) === 0 && count($pr_pub_requests) === 0 && count($pr_tt_requests) === 0 && (isset($pr_unlock_requests) ? count($pr_unlock_requests) === 0 : true))
-                <p>No pending approvals.</p>
+                @include('partials.patterns.empty_state', ['icon' => 'icon-checkmark3', 'message' => 'No pending approvals.', 'compact' => true])
             @endif
             <div class="pr-foot"><a href="{{ route('leave.index') }}">Open approval queue</a></div>
         </section>
@@ -248,7 +256,7 @@ html.hk-dark .pr-chip b{color:#f4f4f5}
                     </div>
                 @endforeach
             @else
-                <p>No attendance records in the last 30 days.</p>
+                @include('partials.patterns.empty_state', ['icon' => 'icon-calendar3', 'message' => 'No attendance records in the last 30 days.', 'compact' => true])
             @endif
             {{-- Beauty Batch 6 (audit E5): the averages used to run
                  on as comma-prose inside a visual card. Same figures,
@@ -303,7 +311,7 @@ html.hk-dark .pr-chip b{color:#f4f4f5}
                     </div>
                 @endforeach
             @else
-                <p>No registers submitted in the last 30 days.</p>
+                @include('partials.patterns.empty_state', ['icon' => 'icon-file-text2', 'message' => 'No registers submitted in the last 30 days.', 'compact' => true])
             @endif
         </section>
     </div>

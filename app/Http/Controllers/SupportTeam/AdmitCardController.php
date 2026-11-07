@@ -171,7 +171,46 @@ class AdmitCardController extends Controller
 
         $d['exams'] = $this->exam->getExam(['year' => Qs::getCurrentSession()]);
 
+        $session = Qs::getCurrentSession();
+        $d['current_session'] = $session;
+        $d['viewer_is_parent'] = $user->user_type === 'parent';
+        $d['due_by_student'] = [];
+        foreach ($d['records'] as $sr) {
+            $d['due_by_student'][$sr->user_id] = \App\Support\FeeDefaulter::outstandingFor($sr->user_id, $session);
+        }
+
         return view('pages.support_team.exams.admit_my', $d);
+    }
+
+    /**
+     * Fee-defaulter document block (owner ruling 2026-10-22): a
+     * student whose current-session fees are outstanding — or their
+     * parent — cannot generate the admit card until the dues are
+     * paid. The definition is App\Support\FeeDefaulter's, the very
+     * one the Fee Defaulters page lists, so the block lifts itself
+     * the moment the balance clears. teamSA (the school office)
+     * generation is never blocked, and the notice view receives no
+     * document data at all. Returns the notice response, or null
+     * when generation proceeds. Mirrors MarkController::feeDefaulterBlock.
+     */
+    protected function feeDefaulterBlock($student_id, $document)
+    {
+        if (Qs::userIsTeamSA()) {
+            return null;
+        }
+
+        $due = \App\Support\FeeDefaulter::outstandingFor($student_id, Qs::getCurrentSession());
+        if ($due <= 0) {
+            return null;
+        }
+
+        return view('pages.support_team.fee_blocked', [
+            'document' => $document,
+            'sr' => $this->student->getRecord(['user_id' => $student_id])->first(),
+            'due' => $due,
+            'year' => Qs::getCurrentSession(),
+            'viewer_is_parent' => Qs::userIsMyChild($student_id, Auth::user()->id),
+        ]);
     }
 
     /**
@@ -206,24 +245,11 @@ class AdmitCardController extends Controller
                 ->with('flash_danger', $this->scopeMismatchMessage($exam, $sr->my_class_id));
         }
 
-        /* Fee-defaulter document block (owner ruling 2026-10-22): a
-           student whose current-session fees are outstanding — or
-           their parent — cannot generate the admit card until the
-           dues are paid (App\Support\FeeDefaulter is the Fee
-           Defaulters page's own definition; the block lifts itself
-           when the balance clears). teamSA office generation above
-           (index / printSheet) is never blocked. */
-        if (!Qs::userIsTeamSA()) {
-            $due = \App\Support\FeeDefaulter::outstandingFor($student_id, Qs::getCurrentSession());
-            if ($due > 0) {
-                return view('pages.support_team.fee_blocked', [
-                    'document' => 'Admit Card',
-                    'sr' => $sr,
-                    'due' => $due,
-                    'year' => Qs::getCurrentSession(),
-                    'viewer_is_parent' => Qs::userIsMyChild($student_id, $user->id),
-                ]);
-            }
+        /* Fee-defaulter document block (owner ruling 2026-10-22):
+           teamSA office generation above (index / printSheet) is
+           never blocked — the helper exempts teamSA itself. */
+        if ($block = $this->feeDefaulterBlock($student_id, 'Admit Card')) {
+            return $block;
         }
 
         $sr->load('section.teacher');

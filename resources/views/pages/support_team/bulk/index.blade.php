@@ -95,11 +95,10 @@
         </div>
         <div class="card-body">
             @if($jobs->isEmpty())
-                <div class="l103-empty">
-                    <i class="icon-stack-empty"></i>
-                    <h6>No bulk jobs yet</h6>
-                    <p class="text-muted">Start one above — every upload is recorded here with its counts, whether it was applied, discarded, or is still waiting for confirmation.</p>
-                </div>
+                @include('partials.patterns.empty_state', [
+                    'icon' => 'icon-stack-empty',
+                    'message' => 'No bulk jobs yet. Start one above — every upload is recorded here with its counts, whether it was applied, discarded, or is still waiting for confirmation.',
+                ])
             @else
                 <div class="table-responsive">
                     <table class="table l111-table l108-stack">

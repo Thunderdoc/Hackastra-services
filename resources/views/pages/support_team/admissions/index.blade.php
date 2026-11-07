@@ -15,17 +15,18 @@
                 @endforeach
             </div>
             <div class="table-responsive">
-                <table class="table table-sm">
+                <table class="table table-sm hk-std hk-std-admissions">
+                    <colgroup><col style="width:4%"><col style="width:16%"><col style="width:12%"><col style="width:10%"><col style="width:24%"><col style="width:10%"><col style="width:9%"><col style="width:15%"></colgroup>
                     <thead><tr><th>#</th><th>Name</th><th>Phone</th><th>Class Sought</th><th>Message</th><th>Received</th><th>Status</th><th>Actions</th></tr></thead>
                     <tbody>
                     @forelse($admissions as $a)
                         <tr>
                             <td>{{ $a->id }}</td>
                             <td>{{ $a->name }}</td>
-                            <td>{{ $a->phone }}</td>
+                            <td class="hk-nw">{{ $a->phone }}</td>
                             <td>{{ optional($a->myClass)->name ?? '—' }}</td>
-                            <td>{{ \Illuminate\Support\Str::limit($a->message, 80) }}</td>
-                            <td>{{ $a->created_at ? $a->created_at->format('d M Y') : '—' }}</td>
+                            <td class="hk-ellip-2" title="{{ $a->message }}">{{ \Illuminate\Support\Str::limit($a->message, 80) ?: '—' }}</td>
+                            <td class="hk-nw">{{ $a->created_at ? $a->created_at->format('d M Y') : '—' }}</td>
                             <td><span class="badge badge-{{ $a->status === 'new' ? 'primary' : ($a->status === 'converted' ? 'success' : ($a->status === 'rejected' ? 'danger' : 'info')) }}">{{ $a->status_label }}</span></td>
                             <td>
                                 <form method="POST" action="{{ route('admissions.status', $a->id) }}" class="form-inline">
@@ -45,7 +46,7 @@
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="8" class="text-center text-muted">No enquiries yet — the public form at /admission-enquiry feeds this board.</td></tr>
+                        <tr><td colspan="8">@include('partials.patterns.empty_state', ['icon' => 'icon-users', 'message' => 'No enquiries yet — the public form at /admission-enquiry feeds this board.'])</td></tr>
                     @endforelse
                     </tbody>
                 </table>

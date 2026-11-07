@@ -25,7 +25,7 @@
                             <label for="exam_id">Exam:</label>
                             <select required id="exam_id" name="exam_id" class="form-control select" data-placeholder="Select Exam">
                                 @foreach($exams as $exm)
-                                    <option {{ ($selected && $exam_id == $exm->id) ? 'selected' : '' }} value="{{ $exm->id }}">{{ $exm->name }}</option>
+                                    <option {{ ($selected && $exam_id == $exm->id) ? 'selected' : '' }} value="{{ $exm->id }}">{{ $exm->name }} ({{ $exm->periodLabel() }})</option>
                                 @endforeach
                             </select>
                         </div>
@@ -85,7 +85,7 @@
             </div>
             <div class="card-body">
                 <div class="table-responsive">
-                <table class="table qs-tab-table">
+                <table class="table qs-tab-table" style="min-width:{{ 300 + ($subjects->count() * 72) }}px">
                     <thead>
                     <tr>
                         <th class="qs-tab-sn">#</th>

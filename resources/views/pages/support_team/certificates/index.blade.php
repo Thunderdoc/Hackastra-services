@@ -31,7 +31,7 @@
                             <td><a href="{{ route('certificates.print', $cert->id) }}" class="btn btn-light btn-sm" target="_blank">Print</a></td>
                         </tr>
                     @empty
-                        <tr><td colspan="7" class="text-center text-muted">No certificates issued yet.</td></tr>
+                        <tr><td colspan="7">@include('partials.patterns.empty_state', ['icon' => 'icon-profile', 'message' => 'No certificates issued yet.'])</td></tr>
                     @endforelse
                     </tbody>
                 </table>

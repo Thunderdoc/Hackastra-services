@@ -26,7 +26,18 @@
 
             <h6 class="mt-3">Books</h6>
             @if($books->count() === 0)
-                <p>No books found{{ $q !== '' ? ' for "' . $q . '"' : '' }}.</p>
+                @if($q !== '')
+                    @include('partials.patterns.empty_state', [
+                        'icon' => 'icon-search4',
+                        'message' => 'No books found for "' . $q . '".',
+                        'action_html' => '<a class="btn btn-primary" href="' . route('library_reservations.index') . '">Clear search</a>',
+                    ])
+                @else
+                    @include('partials.patterns.empty_state', [
+                        'icon' => 'icon-books',
+                        'message' => 'No books found.',
+                    ])
+                @endif
             @else
                 <div class="table-responsive">
                     <table class="table">
@@ -84,7 +95,7 @@
 
             <h6 class="mt-3">{{ $isStaff ? 'All reservations' : 'My reservations' }}</h6>
             @if($reservations->count() === 0)
-                <p>No reservations yet.</p>
+                @include('partials.patterns.empty_state', ['icon' => 'icon-books', 'message' => 'No reservations yet.'])
             @else
                 <div class="table-responsive">
                     <table class="table">
@@ -119,7 +130,7 @@
                                                         <button type="submit" class="btn btn-success btn-sm">Collected</button>
                                                     </form>
                                                 @endif
-                                                <form method="post" action="{{ route('library_reservations.cancel', $reservation) }}" onsubmit="return confirm('Cancel this reservation?')">
+                                                <form method="post" action="{{ route('library_reservations.cancel', $reservation) }}" data-confirm="Cancel the reservation for {{ optional($reservation->book)->name ?? 'this book' }}?" data-confirm-title="Cancel Reservation" data-confirm-action="Cancel Reservation">
                                                     @csrf
                                                     @method('DELETE')
                                                     <button type="submit" class="btn btn-light btn-sm">Cancel</button>

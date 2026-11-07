@@ -24,6 +24,23 @@
             'action_html' => '<a class="btn btn-primary" href="...">Go</a>',
         ])
 
+    Round 5 Slice 3 (P5): pass 'compact' => true for the compact
+    form — same markup, .pat-empty-compact class (18px padding,
+    40px medallion, .85rem message) for small in-panel/dashboard
+    slots where the full 42px form is too tall. The default form
+    is unchanged when the prop is absent.
+
+    THE THREE FORMS (one component, three placements):
+      panel          — include it where a list/panel would render
+                       (the default; most index pages).
+      table-row      — inside a table body, wrap the include in a
+                       single colspan cell (precedent: leave/my):
+                           <tr><td colspan="7">@include(...)</td></tr>
+      filter-no-match — panel or table-row with 'icon' =>
+                       'icon-search4', a "matches these filters"
+                       message and a Clear-filters 'action_html'
+                       pointing at the page's own unfiltered URL.
+
     Beauty Wave 3 (2026-11-06): pass 'hkEmptyArt' => true to swap
     the icon circle for a small decorative illustration plate (an
     inline SVG scene in site colours — open book, calendar and
@@ -32,7 +49,7 @@
 
     Styles: public/assets/css/qs.css — "Loop 28" (.pat-* classes).
 --}}
-<div class="pat-empty">
+<div class="pat-empty{{ !empty($compact ?? null) ? ' pat-empty-compact' : '' }}">
     @if(!empty($hkEmptyArt ?? null))
         <div class="pat-empty-art" aria-hidden="true">
             <svg viewBox="0 0 220 124" role="presentation" focusable="false">

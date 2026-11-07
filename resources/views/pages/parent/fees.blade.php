@@ -35,6 +35,11 @@
                         </span>
                     </div>
 
+                    {{-- F5: one-line instalment-plan summary per plan (§5.1) --}}
+                    @foreach(($child['plans'] ?? []) as $plan)
+                        <p class="text-muted mb-2"><i class="icon-calendar3 mr-1"></i> {{ $plan['title'] }}: {{ $plan['summary_line'] }}</p>
+                    @endforeach
+
                     @if($child['rows']->isEmpty())
                         @include('partials.patterns.empty_state', [
                             'icon' => 'icon-coins',

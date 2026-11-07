@@ -15,10 +15,14 @@
             </div>
 
             @if($states->isEmpty())
-                <p class="text-muted mb-0">No date sheets are awaiting approval right now.</p>
+                @include('partials.patterns.empty_state', [
+                    'icon' => 'icon-calendar2',
+                    'message' => 'No date sheets are awaiting approval right now.',
+                ])
             @else
                 <div class="table-responsive">
-                    <table class="table">
+                    <table class="table hk-std hk-std-880">
+                        <colgroup><col style="width:4%"><col style="width:20%"><col style="width:12%"><col style="width:8%"><col style="width:16%"><col style="width:16%"><col style="width:24%"></colgroup>
                         <thead><tr><th>#</th><th>Exam</th><th>Class</th><th>Papers</th><th>Submitted by</th><th>Submitted</th><th>Actions</th></tr></thead>
                         <tbody>
                         @foreach($states as $state)
@@ -26,10 +30,10 @@
                                 <td>{{ $loop->iteration }}</td>
                                 <td>{{ optional($state->exam)->name }}</td>
                                 <td>{{ optional($state->my_class)->name }}</td>
-                                <td>{{ $state->row_count }}</td>
+                                <td class="hk-nw">{{ $state->row_count }}</td>
                                 <td>{{ $state->submitted_by_name ?: '—' }}</td>
-                                <td>{{ $state->submitted_at ? $state->submitted_at->format('d M Y, g:i A') : '—' }}</td>
-                                <td>
+                                <td class="hk-nw">{{ $state->submitted_at ? $state->submitted_at->format('d M Y, g:i A') : '—' }}</td>
+                                <td class="hk-nw">
                                     <a href="{{ route('exam_dates.show', ['exam_id' => $state->exam_id, 'class_id' => $state->my_class_id]) }}" class="btn btn-light btn-sm">
                                         <i class="icon-eye mr-1"></i> Preview
                                     </a>

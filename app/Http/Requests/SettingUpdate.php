@@ -30,6 +30,8 @@ class SettingUpdate extends FormRequest
                 // Google issues an alphanumeric token (letters, digits,
                 // dashes, underscores), shown in Search Console.
                 'google_site_verification' => ['sometimes', 'nullable', 'string', 'max:255', 'regex:/^[A-Za-z0-9_-]+$/'],
+                'referral_code' => ['sometimes', 'nullable', 'string', 'max:50'],
+                'referral_reward_text' => ['sometimes', 'nullable', 'string', 'max:500'],
             ];
         }
 
@@ -67,8 +69,70 @@ class SettingUpdate extends FormRequest
             'ai_provider' => 'sometimes|nullable|string|in:gemini',
             'ai_model' => 'sometimes|nullable|string|max:100',
             'ai_api_key' => 'sometimes|nullable|string|max:255',
+            /* F5 (Round 4): fee-reminder schedule keys. Offsets:
+               1–5 unique integers (after de-duplication — the
+               controller stores the canonical sorted form), each
+               in −30..+60, as a comma-separated string. */
+            /* F1 (Round 4): WhatsApp keys (design §7) — secrets are
+               sometimes|nullable so leaving the field blank keeps the
+               stored value (SettingController drops blanks). */
+            'whatsapp_enabled' => 'sometimes|nullable|in:0,1',
+            'whatsapp_absent_enabled' => 'sometimes|nullable|in:0,1',
+            'whatsapp_fee_enabled' => 'sometimes|nullable|in:0,1',
+            'whatsapp_result_enabled' => 'sometimes|nullable|in:0,1',
+            'whatsapp_circular_enabled' => 'sometimes|nullable|in:0,1',
+            'whatsapp_homework_enabled' => 'sometimes|nullable|in:0,1',
+            'whatsapp_phone_number_id' => 'sometimes|nullable|string|max:30|regex:/^[0-9]+$/',
+            'whatsapp_business_id' => 'sometimes|nullable|string|max:30|regex:/^[0-9]+$/',
+            'whatsapp_access_token' => 'sometimes|nullable|string|max:512',
+            'whatsapp_app_secret' => 'sometimes|nullable|string|max:200',
+            'whatsapp_verify_token' => 'sometimes|nullable|string|max:100',
+            'whatsapp_template_language' => 'sometimes|nullable|string|max:10|regex:/^[a-z]{2}(_[A-Z]{2})?$/',
+            'fee_reminders_enabled' => 'sometimes|nullable|in:0,1',
+            'fee_reminder_channel_bell' => 'sometimes|nullable|in:0,1',
+            'fee_reminder_channel_whatsapp' => 'sometimes|nullable|in:0,1',
+            'fee_reminder_offsets' => ['sometimes', 'nullable', 'string', 'max:100', function ($attribute, $value, $fail) {
+                $parts = array_filter(array_map('trim', explode(',', (string) $value)), function ($p) {
+                    return $p !== '';
+                });
+                if (!$parts) {
+                    return $fail('Give at least one reminder offset, e.g. -3,0,7.');
+                }
+                $ints = [];
+                foreach ($parts as $part) {
+                    if (!preg_match('/^-?\d+$/', $part)) {
+                        return $fail('Reminder offsets must be whole numbers of days, e.g. -3,0,7.');
+                    }
+                    $n = (int) $part;
+                    if ($n < -30 || $n > 60) {
+                        return $fail('Each reminder offset must be between -30 and +60 days.');
+                    }
+                    $ints[] = $n;
+                }
+                if (count(array_unique($ints)) > 5) {
+                    return $fail('Give at most 5 reminder offsets.');
+                }
+            }],
 
         ];
+    }
+
+    public function withValidator($validator)
+    {
+        $validator->after(function ($validator) {
+            /* F5 edge rule (design §4): enabling the schedule with
+               BOTH channels off would silently send nothing —
+               refuse it with a clear message instead. Only judged
+               when the save itself carries all three keys (the
+               Fee Reminders form section always posts them
+               together); a partial save is not second-guessed. */
+            if ($this->has('fee_reminders_enabled') && $this->has('fee_reminder_channel_bell') && $this->has('fee_reminder_channel_whatsapp')
+                && (string) $this->input('fee_reminders_enabled') === '1'
+                && (string) $this->input('fee_reminder_channel_bell') === '0'
+                && (string) $this->input('fee_reminder_channel_whatsapp') === '0') {
+                $validator->errors()->add('fee_reminder_channel_bell', 'Choose at least one channel (bell or WhatsApp) when fee reminders are enabled.');
+            }
+        });
     }
 
     public function attributes()

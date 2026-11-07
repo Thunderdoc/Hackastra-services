@@ -8,7 +8,7 @@
          defaulters list until it is paid there or waived here.
          Late returns impose the fine automatically at the Settings
          rate (₹{{ $rate }}/day); staff never calculate by hand. --}}
-    @component('partials.patterns.list_page')
+    @component('partials.patterns.list_page', ['pat_no_wrap' => true])
         @slot('subtitle')
             Fines imposed by the library. A student's fine is added to their main fee account automatically — it shows in their fees and dues until paid or waived. Late-return rate: ₹{{ $rate }} per day.
         @endslot
@@ -54,10 +54,28 @@
                 'message' => 'No library fines yet. When a book comes back late, the fine is imposed automatically and added to the student\'s fees.',
             ])
         @else
-            <div class="table-responsive">
-                <table class="table">
-                    <thead><tr><th>#</th><th>Student / Borrower</th><th>Book</th><th>Reason</th><th>Days Late</th><th>Amount</th><th>Imposed On</th><th>Status</th><th>In Fees</th>@if(in_array(Auth::user()->user_type, ['admin', 'librarian'], true))<th>Action</th>@endif</tr></thead>
-                    <tbody>
+            @php
+                $lfShowAction = in_array(Auth::user()->user_type, ['admin', 'librarian'], true);
+                $lfColumns = [
+                    ['key' => 'sn', 'label' => '#', 'width' => 5, 'class' => 'hk-nw'],
+                    ['key' => 'student', 'label' => 'Student / Borrower', 'width' => $lfShowAction ? 16 : 17, 'class' => 'hk-ellip'],
+                    ['key' => 'book', 'label' => 'Book', 'width' => $lfShowAction ? 14 : 15, 'class' => 'hk-ellip'],
+                    ['key' => 'reason', 'label' => 'Reason', 'width' => $lfShowAction ? 16 : 18, 'class' => 'hk-ellip'],
+                    ['key' => 'days', 'label' => 'Days Late', 'width' => 8, 'class' => 'hk-nw'],
+                    ['key' => 'amount', 'label' => 'Amount', 'width' => $lfShowAction ? 9 : 10, 'class' => 'hk-nw', 'align' => 'right'],
+                    ['key' => 'imposed', 'label' => 'Imposed On', 'width' => $lfShowAction ? 10 : 11, 'class' => 'hk-nw'],
+                    ['key' => 'status', 'label' => 'Status', 'width' => 8, 'class' => 'hk-nw'],
+                    ['key' => 'in_fees', 'label' => 'In Fees', 'width' => 8],
+                ];
+                if ($lfShowAction) {
+                    $lfColumns[] = ['key' => 'action', 'label' => 'Action', 'width' => 6, 'align' => 'center'];
+                }
+            @endphp
+            @component('partials.patterns.data_table', [
+                'columns' => $lfColumns,
+                'variant' => 'fines',
+                'min_width' => 960,
+            ])
                     @foreach($fines as $i => $fine)
                         <tr>
                             <td>{{ $fines->firstItem() + $i }}</td>
@@ -82,9 +100,7 @@
                             @endif
                         </tr>
                     @endforeach
-                    </tbody>
-                </table>
-            </div>
+            @endcomponent
             {{ $fines->links() }}
         @endif
     @endcomponent

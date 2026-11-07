@@ -39,7 +39,7 @@
                         ])
                     @else
                         <div class="table-responsive mb-4">
-                            <table class="table lms-table">
+                            <table class="table lms-table l108-stack">
                                 <thead>
                                 <tr>
                                     <th>Assignment</th>
@@ -67,15 +67,15 @@
                                         }
                                     @endphp
                                     <tr>
-                                        <td>
+                                        <td data-label="Assignment">
                                             <a href="{{ route('assignments.show', $assignment->id) }}"><strong>{{ $assignment->title }}</strong></a>
                                             @if($assignment->description)
                                                 <div class="text-muted lms82-clamp2">{{ \Illuminate\Support\Str::limit($assignment->description, 110) }}</div>
                                             @endif
                                             <div class="text-muted">{{ optional($assignment->teacher)->name ?? '' }}</div>
                                         </td>
-                                        <td><span class="lms-chip lms-chip-subject">{{ optional($assignment->subject)->name ?? '—' }}</span></td>
-                                        <td>
+                                        <td data-label="Subject"><span class="lms-chip lms-chip-subject">{{ optional($assignment->subject)->name ?? '—' }}</span></td>
+                                        <td data-label="Due">
                                             @if($due)
                                                 {{ $due->format('d M Y') }}
                                                 <div class="text-muted">{{ $due->diffForHumans() }}</div>
@@ -83,8 +83,8 @@
                                                 —
                                             @endif
                                         </td>
-                                        <td><span class="lms-chip {{ $statusChip }}">{{ $statusLabel }}</span></td>
-                                        <td>
+                                        <td data-label="Status"><span class="lms-chip {{ $statusChip }}">{{ $statusLabel }}</span></td>
+                                        <td data-label="Marks">
                                             @if($sub && $sub->marks_awarded !== null)
                                                 <strong>{{ $sub->marks_awarded }} / {{ $assignment->max_marks }}</strong>
                                             @else

@@ -10,13 +10,15 @@
         <div class="card pat-card">
         <div class="card-body">
             @if($records->isEmpty())
-                <div class="lav-empty">
-                    <p>No student record was found for your account, so there are no admit cards to show.</p>
-                </div>
+                @include('partials.patterns.empty_state', [
+                    'icon' => 'icon-users',
+                    'message' => 'No student record was found for your account, so there are no admit cards to show.',
+                ])
             @elseif($exams->isEmpty())
-                <div class="lav-empty">
-                    <p>No exam has been scheduled for the current session yet. Please check again later.</p>
-                </div>
+                @include('partials.patterns.empty_state', [
+                    'icon' => 'icon-calendar2',
+                    'message' => 'No exam has been scheduled for the current session yet. Please check again later.',
+                ])
             @else
                 @foreach($records as $sr)
                     <h6 class="mb-2">
@@ -40,10 +42,22 @@
                                     <td data-label="Term">Term {{ $ex->term }}</td>
                                     <td data-label="Session">{{ $ex->year }}</td>
                                     <td class="text-center" data-label="Admit Card">
-                                        <a target="_blank" class="btn btn-sm btn-primary"
-                                           href="{{ route('admit_cards.my_card', [$ex->id, $sr->user_id]) }}">
-                                            <i class="icon-printer mr-1"></i> View / Print
-                                        </a>
+                                        @php $due = $due_by_student[$sr->user_id] ?? 0; @endphp
+                                        @if($due > 0)
+                                            <div class="alert alert-warning py-2 px-2 mb-1" style="font-size:13px;">
+                                                <i class="icon-lock mr-1"></i> Fees pending — {{ \App\Helpers\Money::inr($due) }} due for {{ $current_session ?? \App\Helpers\Qs::getCurrentSession() }}. The admit card unlocks as soon as the fees are paid.
+                                            </div>
+                                            @if(!empty($viewer_is_parent))
+                                                <a class="btn btn-sm btn-warning" href="{{ route('my_fees.show', $sr->user_id) }}">
+                                                    <i class="icon-coins mr-1"></i> Pay the Fee
+                                                </a>
+                                            @endif
+                                        @else
+                                            <a target="_blank" class="btn btn-sm btn-primary"
+                                               href="{{ route('admit_cards.my_card', [$ex->id, $sr->user_id]) }}">
+                                                <i class="icon-printer mr-1"></i> View / Print
+                                            </a>
+                                        @endif
                                     </td>
                                 </tr>
                             @endforeach

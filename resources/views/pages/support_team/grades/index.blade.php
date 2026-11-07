@@ -48,7 +48,7 @@
                         <td class="text-center" data-label="Action">
                             @if(Qs::userIsTeamSAWrite())
                                 <a href="{{ route('grades.edit', $gr->id) }}" class="btn btn-sm btn-primary"><i class="icon-pencil"></i> Edit</a>
-                                <button type="button" id="{{ $gr->id }}" onclick="confirmDelete(this.id)" class="btn btn-sm btn-danger"><i class="icon-trash"></i> Delete</button>
+                                <button type="button" id="{{ $gr->id }}" data-item-name="{{ $gr->name }}" onclick="confirmDelete(this.id, this.dataset.itemName)" class="btn btn-sm btn-danger"><i class="icon-trash"></i> Delete</button>
                                 <form method="post" id="item-delete-{{ $gr->id }}" action="{{ route('grades.destroy', $gr->id) }}" class="hidden">@csrf @method('delete')</form>
                             @endif
                         </td>

@@ -36,7 +36,7 @@
                         {{-- Wave 8: data-scope drives the class filter
                              (filterExamsByClass in custom_js): 0 =
                              global exam, otherwise its own class. --}}
-                        <option data-scope="{{ $ex->my_class_id }}" {{ $selected && $exam_id == $ex->id ? 'selected' : '' }} value="{{ $ex->id }}">{{ $ex->name }}</option>
+                        <option data-scope="{{ $ex->my_class_id }}" {{ $selected && $exam_id == $ex->id ? 'selected' : '' }} value="{{ $ex->id }}">{{ $ex->name }} ({{ $ex->periodLabel() }})</option>
                     @endforeach
                 </select>
                 </div>

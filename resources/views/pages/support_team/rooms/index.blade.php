@@ -24,7 +24,10 @@
             @endif
 
             @if($rooms->isEmpty())
-                <p class="text-muted mb-0">No rooms yet. Add the school's classrooms and labs above — generation works without rooms too, it simply leaves periods room-less and says which subjects still need one.</p>
+                @include('partials.patterns.empty_state', [
+                    'icon' => 'icon-home9',
+                    'message' => 'No rooms yet. Add the school\'s classrooms and labs above — generation works without rooms too, it simply leaves periods room-less and says which subjects still need one.',
+                ])
             @else
                 <div class="table-responsive">
                     <table class="table">

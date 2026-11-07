@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Book\BookSave;
 use App\Models\Book;
 use App\Models\MyClass;
+use App\Support\Audit;
 use Illuminate\Http\Request;
 
 /**
@@ -24,14 +25,20 @@ class BookController extends Controller
         $this->middleware('teamLibraryWrite', ['only' => ['create', 'store', 'edit', 'update', 'destroy']]);
     }
 
-    public function index(Request $request)
+    /**
+     * Round 5 Slice 3 (P12) — the catalogue's ONE filtered query.
+     * index() paginates it and export() streams it, so the CSV is
+     * always exactly the set on screen (q / type / class_id /
+     * availability / sort all honoured by both).
+     */
+    protected function filteredQuery(Request $request)
     {
         $type = $request->input('type');
         $classId = $request->input('class_id');
         $availability = $request->input('availability');
         $sort = $request->input('sort', 'title_asc');
 
-        $books = Book::with('myClass')
+        return Book::with('myClass')
             ->when($request->filled('q'), function ($query) use ($request) {
                 $q = $request->input('q');
                 $query->where(function ($sub) use ($q) {
@@ -70,7 +77,17 @@ class BookController extends Controller
             })
             ->when($sort !== 'title_desc' && $sort !== 'newest', function ($query) {
                 $query->orderBy('name');
-            })
+            });
+    }
+
+    public function index(Request $request)
+    {
+        $type = $request->input('type');
+        $classId = $request->input('class_id');
+        $availability = $request->input('availability');
+        $sort = $request->input('sort', 'title_asc');
+
+        $books = $this->filteredQuery($request)
             ->paginate(15)
             ->withQueryString();
 
@@ -102,6 +119,104 @@ class BookController extends Controller
         ];
 
         return view('pages.support_team.books.index', $d);
+    }
+
+    /**
+     * P12: CSV export of the SAME filtered set index() shows —
+     * the columns mirror the index table's own (Book, Type,
+     * Class, Location, Copies, Status); pagination is ignored.
+     * Gated by the constructor's teamLibrary middleware, exactly
+     * like the catalogue page itself.
+     */
+    public function export(Request $request)
+    {
+        $rows = $this->filteredQuery($request)->get()->map(function ($book) {
+            $available = $book->availableCopies();
+            if ((int) $book->issued_copies > 0 && $available > 0) {
+                $status = 'Partially Issued';
+            } elseif ($available > 0) {
+                $status = 'Available';
+            } else {
+                $status = 'All Issued';
+            }
+
+            return [
+                $book->name,
+                $book->author,
+                $book->book_type,
+                optional($book->myClass)->name,
+                $book->location,
+                (int) $book->total_copies,
+                (int) $book->issued_copies,
+                $available,
+                $status,
+            ];
+        });
+
+        return \App\Support\CsvExport::download(
+            'library-books-' . now()->format('Ymd-Hi') . '.csv',
+            ['Title', 'Author', 'Type', 'Class', 'Location', 'Total Copies', 'Issued Copies', 'Available Copies', 'Status'],
+            $rows
+        );
+    }
+
+    /**
+     * Round 5 Slice 3 (P10) — CSV export of the SELECTED books
+     * only: the P12 export column set, filtered to the posted ids
+     * inside the catalogue's own filtered query (the constructor's
+     * teamLibrary gate is the scope — the same gate as the index
+     * and the filtered export). There is deliberately NO bulk
+     * delete: catalogue rows carry loans.
+     */
+    public function exportSelected(Request $request)
+    {
+        $raw = $request->input('ids', []);
+        $ids = is_array($raw) ? collect($raw)
+            ->filter(function ($id) { return is_numeric($id); })
+            ->map(function ($id) { return (int) $id; })
+            ->filter(function ($id) { return $id > 0; })
+            ->unique()->values()->all() : [];
+
+        if (!$ids) {
+            return back()->with('flash_danger', 'Nothing selected — tick at least one book first.');
+        }
+
+        $books = $this->filteredQuery($request)->whereIn('id', $ids)->get();
+        if ($books->isEmpty()) {
+            return back()->with('flash_danger', 'None of the selected books are in the catalogue.');
+        }
+
+        Audit::log('book.bulk_exported', Book::class,
+            'Exported ' . $books->count() . ' selected book(s) to CSV.');
+
+        $rows = $books->map(function ($book) {
+            $available = $book->availableCopies();
+            if ((int) $book->issued_copies > 0 && $available > 0) {
+                $status = 'Partially Issued';
+            } elseif ($available > 0) {
+                $status = 'Available';
+            } else {
+                $status = 'All Issued';
+            }
+
+            return [
+                $book->name,
+                $book->author,
+                $book->book_type,
+                optional($book->myClass)->name,
+                $book->location,
+                (int) $book->total_copies,
+                (int) $book->issued_copies,
+                $available,
+                $status,
+            ];
+        });
+
+        return \App\Support\CsvExport::download(
+            'library-books-selected-' . now()->format('Ymd-Hi') . '.csv',
+            ['Title', 'Author', 'Type', 'Class', 'Location', 'Total Copies', 'Issued Copies', 'Available Copies', 'Status'],
+            $rows
+        );
     }
 
     public function create()

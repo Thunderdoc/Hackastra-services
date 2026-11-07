@@ -15,7 +15,11 @@
     @include('partials.inc_top')
 </head>
 
-<body class="{{ in_array(Route::currentRouteName(), ['ttr.manage', 'ttr.show']) ? 'sidebar-xs' : '' }}{{ Qs::userIsTeacher() ? ' portal-teacher' : '' }}">
+{{-- Round 5 P4 (sidebar memory): the rail arrives already in the
+     user's remembered state — sidebar-xs when their stored
+     sidebar_collapsed preference is on (the ttr room pages keep
+     their standing forced-mini rail, which wins by being first). --}}
+<body class="{{ in_array(Route::currentRouteName(), ['ttr.manage', 'ttr.show']) ? 'sidebar-xs' : ((Auth::check() && \App\Models\UserPreference::sidebarCollapsed(Auth::id())) ? 'sidebar-xs' : '') }}{{ Qs::userIsTeacher() ? ' portal-teacher' : '' }}">
 
 @include('partials.top_menu')
 <div class="page-content">
@@ -49,8 +53,11 @@
 </div>
 
 @include('partials.confirm_modal')
+@include('partials.shortcuts')
+@include('partials.command_palette')
 @include('partials.inc_bottom')
 @include('partials.hk_date')
+@include('partials.hk_validate')
 @yield('scripts')
 <script>
 if ('serviceWorker' in navigator) {

@@ -192,8 +192,15 @@
             var p = params(), my = ++seq;
             syncExports(p);
             $('#ad-updating').show();
+            /* Round 5 Slice 1 (P2): skeleton table in the results
+               region while a class report is in flight; a failure
+               restores the previous rows (the error floor speaks). */
+            var $adResults = $('#ad-results');
+            var skel = p.class_id !== '' && window.hkSkel;
+            if (skel) { window.hkSkel($adResults[0], true, { type: 'table', rows: 6 }); }
             $.getJSON(resultsUrl, p).done(function (d) {
                 if (my !== seq) { return; }
+                if (window.hkSkel) { window.hkSkel($adResults[0], false); }
                 $('#ad-stats').html(d.stats);
                 $('#ad-results').html(d.results);
                 $('#ad-print').html(d.print);
@@ -204,6 +211,9 @@
                 }
                 var $foot = $('#ad-foot-line');
                 if ($foot.length) { $foot.text(d.filter_line); }
+            }).fail(function () {
+                if (my !== seq) { return; }
+                if (skel) { window.hkSkel($adResults[0], false, { restore: true }); }
             }).always(function () {
                 if (my === seq) { $('#ad-updating').hide(); }
             });

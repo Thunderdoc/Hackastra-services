@@ -59,7 +59,10 @@
                     </table>
                 </div>
             @else
-                <p class="text-muted mb-0">No health records yet.</p>
+                @include('partials.patterns.empty_state', [
+                    'icon' => 'icon-heart6',
+                    'message' => 'No health records yet.',
+                ])
             @endif
         </div>
     </div>

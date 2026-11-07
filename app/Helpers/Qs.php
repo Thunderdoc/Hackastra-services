@@ -719,7 +719,7 @@ class Qs
      * web server would). URLs on a foreign host and non-path values
      * (data URIs) cannot be verified locally and are trusted as-is.
      */
-    private static function logoUrlFileExists($url)
+    public static function logoUrlFileExists($url)
     {
         $path = parse_url($url, PHP_URL_PATH);
         if (!$path) {

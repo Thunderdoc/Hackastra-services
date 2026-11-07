@@ -47,10 +47,16 @@
                 'message' => 'No active students in this class yet.',
             ])
         @else
-            <table class="table">
+            <div class="table-responsive">
+            <table class="table hk-std hk-std-attrep">
+                @if(!empty($all_classes))
+                    <colgroup><col style="width:4%"><col style="width:21%"><col style="width:8%"><col style="width:8%"><col style="width:6%"><col style="width:6%"><col style="width:6%"><col style="width:7%"><col style="width:20%"><col style="width:14%"></colgroup>
+                @else
+                    <colgroup><col style="width:4%"><col style="width:24%"><col style="width:9%"><col style="width:7%"><col style="width:7%"><col style="width:7%"><col style="width:8%"><col style="width:20%"><col style="width:14%"></colgroup>
+                @endif
                 <thead>
                 <tr>
-                    <th style="width:36px">#</th>
+                    <th>#</th>
                     <th>Student</th>
                     @if(!empty($all_classes))<th>Class</th>@endif
                     <th>Section</th>
@@ -58,7 +64,7 @@
                     <th>Absent</th>
                     <th>Late</th>
                     <th>Periods</th>
-                    <th style="min-width:170px">Attendance %</th>
+                    <th class="hk-nw">Attendance %</th>
                     <th>Status</th>
                 </tr>
                 </thead>
@@ -79,10 +85,10 @@
                         <td><span class="marx-ava" style="background:{{ $marxPalette[$loop->index % count($marxPalette)] }}" aria-hidden="true">{{ $marxInitials ?: '?' }}</span>{{ $marxName }}</td>
                         @if(!empty($all_classes))<td>{{ $row['class_name'] }}</td>@endif
                         <td>{{ optional($row['student']->section)->name ?: '—' }}</td>
-                        <td>{{ $row['present'] }}</td>
-                        <td>@if($row['absent'] > 0)<span class="marx-num-bad">{{ $row['absent'] }}</span>@else{{ $row['absent'] }}@endif</td>
-                        <td>@if($row['late'] > 0)<span class="marx-num-late">{{ $row['late'] }}</span>@else{{ $row['late'] }}@endif</td>
-                        <td>{{ $row['marked'] }}</td>
+                        <td class="hk-nw">{{ $row['present'] }}</td>
+                        <td class="hk-nw">@if($row['absent'] > 0)<span class="marx-num-bad">{{ $row['absent'] }}</span>@else{{ $row['absent'] }}@endif</td>
+                        <td class="hk-nw">@if($row['late'] > 0)<span class="marx-num-late">{{ $row['late'] }}</span>@else{{ $row['late'] }}@endif</td>
+                        <td class="hk-nw">{{ $row['marked'] }}</td>
                         <td>
                             @if($row['percent'] === null)
                                 <span class="text-muted">—</span>
@@ -93,11 +99,12 @@
                                 <small>{{ $row['percent'] }}%</small>
                             @endif
                         </td>
-                        <td><span class="marx-pill marx-pill-{{ $row['status_band'] }}">{{ $row['status_label'] }}</span></td>
+                        <td class="hk-nw"><span class="marx-pill marx-pill-{{ $row['status_band'] }}">{{ $row['status_label'] }}</span></td>
                     </tr>
                 @endforeach
                 </tbody>
             </table>
+            </div>
 
             <div class="marx-classline">
                 <span><strong>{{ $class_summary['students'] }}</strong> Total Students</span>

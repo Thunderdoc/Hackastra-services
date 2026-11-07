@@ -34,7 +34,7 @@
                                     @csrf
                                     <button type="submit" class="btn btn-success btn-sm"><i class="icon-checkmark3 mr-1"></i> Approve</button>
                                 </form>
-                                <form method="post" action="{{ route('ttr.send_back', $rec->id) }}" style="display:inline;" onsubmit="return confirm('Send this timetable back to the Admin for changes?');">
+                                <form method="post" action="{{ route('ttr.send_back', $rec->id) }}" style="display:inline;" data-confirm="Send {{ $rec->name }} back to the Admin for changes?" data-confirm-title="Send Back" data-confirm-action="Send Back">
                                     @csrf
                                     <button type="submit" class="btn btn-warning btn-sm"><i class="icon-undo2 mr-1"></i> Send back</button>
                                 </form>
@@ -45,7 +45,7 @@
                 </table>
                 </div>
             @else
-                <p class="empty-note">No timetables are waiting for approval. When the Admin reviews a generated timetable and sends it, it will appear here.</p>
+                @include('partials.patterns.empty_state', ['icon' => 'icon-table2', 'message' => 'No timetables are waiting for approval. When the Admin reviews a generated timetable and sends it, it will appear here.'])
             @endif
         </div>
     </div>

@@ -224,10 +224,15 @@
                 ])
             @else
                 <div class="table-responsive">
-                    <table class="table ma-table">
+                    <table class="table ma-table hk-std hk-std-periods">
+                        @if($is_teacher)
+                            <colgroup><col style="width:6%"><col style="width:13%"><col style="width:13%"><col style="width:14%"><col style="width:16%"><col style="width:16%"><col style="width:8%"><col style="width:14%"></colgroup>
+                        @else
+                            <colgroup><col style="width:6%"><col style="width:13%"><col style="width:15%"><col style="width:17%"><col style="width:17%"><col style="width:16%"><col style="width:16%"></colgroup>
+                        @endif
                         <thead>
                         <tr>
-                            <th>{{ $is_teacher ? '#' : 'Period' }}</th>
+                            <th class="hk-nw">{{ $is_teacher ? '#' : 'Period' }}</th>
                             <th>Time</th>
                             <th>Subject</th>
                             @if($is_teacher)
@@ -245,13 +250,13 @@
                         </thead>
                         <tbody>
                         @foreach($periods as $row)
-                            <tr data-ma-status="{{ $row['session'] ? 'taken' : 'pending' }}">
+                            <tr data-ma-status="{{ $row['session'] ? 'taken' : (!empty($row['is_cancelled']) ? 'cancelled' : 'pending') }}">
                                 <td><span class="ma-period-num {{ $row['session'] ? 'ma-period-done' : 'ma-period-pending' }}">{{ $loop->iteration }}</span></td>
-                                <td class="ma-time">{{ $row['time_label'] }}</td>
+                                <td class="ma-time hk-nw">{{ $row['time_label'] }}</td>
                                 <td>
                                     <div class="ma-subject">{{ optional($row['subject'])->name }}</div>
                                     @if(optional($row['subject'])->slug)<span class="ma-code-chip">{{ $row['subject']->slug }}</span>@endif
-                                    @if(!empty($row['is_substitution']))<div class="ma-sub">Covering for {{ optional($row['teacher'])->name }}</div>@elseif(!empty($row['substitution']) && optional($row['substitution']->substitute)->name)<div class="ma-sub">Sub: {{ $row['substitution']->substitute->name }}</div>@endif
+                                    @if(!empty($row['is_cancelled']))<div class="ma-sub">Class cancelled</div>@elseif(!empty($row['is_substitution']))<div class="ma-sub">Covering for {{ optional($row['teacher'])->name }}</div>@elseif(!empty($row['substitution']) && optional($row['substitution']->substitute)->name)<div class="ma-sub">Sub: {{ $row['substitution']->substitute->name }}</div>@endif
                                 </td>
                                 @if($is_teacher)
                                     <td>@if(!empty($row['is_substitution']))<span class="badge badge-warning mr-1">(Substitute)</span>@endif{{ optional($row['class'])->name }}@if(optional($row['section'])->name) — {{ $row['section']->name }}@else <span class="text-muted">· All sections</span>@endif</td>
@@ -259,12 +264,15 @@
                                         @if($row['session'])
                                             <span class="ma-pill ma-pill-done"><i class="icon-checkmark3"></i> Submitted</span>
                                             @if($row['session']->submitted_at)<div class="ma-status-sub">by {{ optional($row['session']->teacher)->name ?: optional($row['teacher'])->name }} at {{ $row['session']->submitted_at->format('h:i A') }}</div>@endif
+                                        @elseif(!empty($row['is_cancelled']))
+                                            <span class="badge badge-secondary"><i class="icon-cross2"></i> Cancelled</span>
+                                            <div class="ma-status-sub">No register expected</div>
                                         @else
                                             <span class="ma-pill ma-pill-pending"><i class="icon-alarm"></i> Not taken</span>
                                         @endif
                                     </td>
-                                    <td class="ma-topic">{{ $row['session'] ? $row['session']->topic : '—' }}</td>
-                                    <td class="ma-students">
+                                    <td class="ma-topic hk-ellip" title="{{ $row['session'] ? $row['session']->topic : '' }}">{{ $row['session'] ? $row['session']->topic : '—' }}</td>
+                                    <td class="ma-students hk-nw">
                                         @if($row['session'])
                                             {{ $row['students_marked'] }}/{{ $row['students_total'] }}
                                         @else
@@ -285,11 +293,14 @@
                                             &mdash;
                                         @endif
                                     </td>
-                                    <td class="ma-topic">{{ $row['session'] ? $row['session']->topic : '—' }}</td>
+                                    <td class="ma-topic hk-ellip" title="{{ $row['session'] ? $row['session']->topic : '' }}">{{ $row['session'] ? $row['session']->topic : '—' }}</td>
                                     <td>
                                         @if($row['session'])
                                             <span class="ma-pill ma-pill-done"><i class="icon-checkmark3"></i> Submitted</span>
                                             @if($row['session']->submitted_at)<div class="ma-status-sub">{{ $row['session']->submitted_at->format('d M Y, h:i A') }}</div>@endif
+                                        @elseif(!empty($row['is_cancelled']))
+                                            <span class="badge badge-secondary"><i class="icon-cross2"></i> Cancelled</span>
+                                            <div class="ma-status-sub">No register expected</div>
                                         @else
                                             <span class="ma-pill ma-pill-pending"><i class="icon-alarm"></i> Not taken</span>
                                             <div class="ma-status-sub">Pending</div>
@@ -297,7 +308,9 @@
                                     </td>
                                 @endif
                                 <td class="text-right ma-action">
-                                    @if($row['session'])
+                                    @if(!empty($row['is_cancelled']) && empty($row['session']))
+                                        <span class="badge badge-secondary">Cancelled</span>
+                                    @elseif($row['session'])
                                         @if($is_teacher)
                                             <span class="badge badge-success">Submitted</span>
                                         @else
@@ -315,7 +328,7 @@
                             </tr>
                         @endforeach
                         @if(!$is_teacher)
-                            <tr class="ma-tab-empty" hidden><td colspan="7" class="text-center text-muted">No periods match this filter.</td></tr>
+                            <tr class="ma-tab-empty" hidden><td colspan="7">@include('partials.patterns.empty_state', ['icon' => 'icon-search4', 'message' => 'No periods match this filter.', 'compact' => true])</td></tr>
                         @endif
                         </tbody>
                     </table>

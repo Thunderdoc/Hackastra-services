@@ -53,6 +53,11 @@ class PortalController extends Controller
 
         $d['sr'] = $sr;
         $d['year'] = $year;
+        // F5: the identical Instalment Plan section as the parent
+        // page, from the one shared presenter (§5.1).
+        $d['plans'] = $records->map(function ($r) use ($sr) {
+            return \App\Support\FeePlanPresenter::forRecord($r, $sr);
+        })->filter()->values();
         $d['uncleared'] = $records->where('paid', 0)->map($present)->values();
         $d['cleared'] = $records->where('paid', 1)->map($present)->values();
         $d['total_due'] = $records->where('paid', 0)->sum(function ($r) {

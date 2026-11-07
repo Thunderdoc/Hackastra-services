@@ -17,6 +17,7 @@ use App\Repositories\MyClassRepo;
 use App\Repositories\StudentRepo;
 use App\Repositories\UserRepo;
 use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -675,5 +676,69 @@ class StudentRecordController extends Controller
         return CsvExport::download($filename,
             ['Name', 'Admission No', 'Class', 'Section', 'Gender', 'Parent Name', 'Parent Phone', 'Parent Email'],
             $rows);
+    }
+
+    /**
+     * Round 5 Slice 3 (P10) — CSV export of the SELECTED students
+     * only: the export() row logic above, filtered to the posted
+     * record ids (ids[] from the shared bulk bar; student_ids[]
+     * accepted too, the bulk-delete precedent's field name). A
+     * teacher's selection is narrowed to their assigned classes —
+     * the same scope export() enforces per class — so a tampered
+     * id from another class never reaches the CSV.
+     */
+    public function exportSelected(Request $request)
+    {
+        $raw = $request->input('ids', $request->input('student_ids', []));
+        $ids = is_array($raw) ? collect($raw)
+            ->filter(function ($id) { return is_numeric($id); })
+            ->map(function ($id) { return (int) $id; })
+            ->filter(function ($id) { return $id > 0; })
+            ->unique()->values()->all() : [];
+
+        if (!$ids) {
+            return back()->with('flash_danger', 'Nothing selected — tick at least one student first.');
+        }
+
+        $records = StudentRecord::with(['user', 'section', 'my_class', 'my_parent'])
+            ->whereIn('id', $ids)->get()->keyBy('id');
+
+        // Preserve the selection's posted order.
+        $selected = collect($ids)->map(function ($id) use ($records) {
+            return $records->get($id);
+        })->filter()->values();
+
+        if (Qs::userIsTeacher()) {
+            $teacher = Auth::user();
+            $selected = $selected->filter(function ($s) use ($teacher) {
+                return TeacherScope::canTeachClass($teacher, $s->my_class_id);
+            })->values();
+        }
+
+        if ($selected->isEmpty()) {
+            return back()->with('flash_danger', 'None of the selected students are in your list.');
+        }
+
+        Audit::log('student.bulk_exported', StudentRecord::class,
+            'Exported ' . $selected->count() . ' selected student(s) to CSV.');
+
+        $rows = $selected->map(function ($s) {
+            return [
+                optional($s->user)->name,
+                $s->adm_no,
+                optional($s->my_class)->name,
+                optional($s->section)->name,
+                optional($s->user)->gender,
+                optional($s->my_parent)->name,
+                optional($s->my_parent)->phone,
+                optional($s->my_parent)->email,
+            ];
+        });
+
+        return CsvExport::download(
+            'students-selected-' . now()->format('Ymd-Hi') . '.csv',
+            ['Name', 'Admission No', 'Class', 'Section', 'Gender', 'Parent Name', 'Parent Phone', 'Parent Email'],
+            $rows
+        );
     }
 }

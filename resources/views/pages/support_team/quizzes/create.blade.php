@@ -9,42 +9,39 @@
             <h5 class="card-title">New Quiz</h5>
         </div>
         <div class="card-body">
-            @if ($errors->any())
-                <div class="alert alert-danger">
-                    <ul class="mb-0">
-                        @foreach ($errors->all() as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
-                </div>
-            @endif
-            <form method="post" action="{{ route('quizzes.store') }}" id="quiz-create-form">
+            {{-- Round 5 Slice 2 (P6): hk-draft autosave opt-in —
+                 the full per-user key rides on the form itself. --}}
+            <form method="post" action="{{ route('quizzes.store') }}" id="quiz-create-form" data-hk-draft="u{{ Auth::id() }}-quiz-new">
                 @csrf
                 <div class="form-group">
                     <label for="title">Title</label>
-                    <input type="text" name="title" id="title" class="form-control" value="{{ old('title') }}" required>
+                    <input type="text" name="title" id="title" class="form-control @error('title') is-invalid @enderror" value="{{ old('title') }}" required>
+                    @include('partials.errors.field', ['field' => 'title'])
                 </div>
                 <div class="form-group">
                     <label for="subject_id">Subject (only subjects you teach)</label>
-                    <select name="subject_id" id="subject_id" class="form-control" required>
+                    <select name="subject_id" id="subject_id" class="form-control @error('subject_id') is-invalid @enderror" required>
                         <option value="">Select subject</option>
                         @foreach ($subjects as $subject)
                             <option value="{{ $subject->id }}" data-class-id="{{ $subject->my_class_id }}" {{ old('subject_id') == $subject->id ? 'selected' : '' }}>{{ $subject->name }} ({{ $subject->my_class ? $subject->my_class->name : '' }})</option>
                         @endforeach
                     </select>
+                    @include('partials.errors.field', ['field' => 'subject_id'])
                 </div>
                 <div class="form-group">
                     <label for="section_id">Section (leave blank for the whole class)</label>
-                    <select name="section_id" id="section_id" class="form-control">
+                    <select name="section_id" id="section_id" class="form-control @error('section_id') is-invalid @enderror">
                         <option value="">All sections</option>
                         @foreach ($sections as $section)
                             <option value="{{ $section->id }}" data-class-id="{{ $section->my_class_id }}" {{ old('section_id') == $section->id ? 'selected' : '' }}>{{ $section->name }}</option>
                         @endforeach
                     </select>
+                    @include('partials.errors.field', ['field' => 'section_id'])
                 </div>
                 <div class="form-group">
                     <label for="time_limit_minutes">Time limit (minutes, optional)</label>
-                    <input type="number" name="time_limit_minutes" id="time_limit_minutes" class="form-control" value="{{ old('time_limit_minutes') }}" min="1" max="600">
+                    <input type="number" name="time_limit_minutes" id="time_limit_minutes" class="form-control @error('time_limit_minutes') is-invalid @enderror" value="{{ old('time_limit_minutes') }}" min="1" max="600">
+                    @include('partials.errors.field', ['field' => 'time_limit_minutes'])
                     <small class="form-text text-muted">When set, the attempt page shows a countdown that auto-submits at zero. The server records when the attempt was submitted but does not reject late submissions.</small>
                 </div>
 
@@ -56,7 +53,8 @@
                 </div>
                 <div class="form-group">
                     <label for="bulk_marks">Marks per parsed question</label>
-                    <input type="number" name="bulk_marks" id="bulk_marks" class="form-control" value="{{ old('bulk_marks', 1) }}" min="1" max="100">
+                    <input type="number" name="bulk_marks" id="bulk_marks" class="form-control @error('bulk_marks') is-invalid @enderror" value="{{ old('bulk_marks', 1) }}" min="1" max="100">
+                    @include('partials.errors.field', ['field' => 'bulk_marks'])
                 </div>
                 <pre>What is 2 + 2?
 A) 3

@@ -1,4 +1,11 @@
-<div class="sidebar sidebar-dark sidebar-main sidebar-expand-md">
+<div class="sidebar sidebar-dark sidebar-main sidebar-expand-md hk-sb-b">
+{{-- Round 5 P4 (sidebar memory): the signed-in user's remembered
+     open submenu groups (UserPreference key sidebar_open_groups).
+     Each submenu parent below adds its remembered-open classes
+     when its data-group key is in this list; the route-driven
+     auto-open ternaries are untouched, so the ACTIVE page's
+     group always renders open regardless of the stored set. --}}
+@php $hkSbOpen = Auth::check() ? \App\Models\UserPreference::sidebarOpenGroups(Auth::id()) : []; @endphp
 
 @if(Qs::userIsTeacher())
     <div class="t9-brand">
@@ -26,7 +33,7 @@
     <div class="sidebar-content">
 
 @if(!Qs::userIsTeacher())        <!-- User menu -->
-        <div class="sidebar-user">
+        <div class="sidebar-user hk-sb-userchip">
             <div class="card-body">
                 <div class="media">
                     <div class="mr-3">
@@ -95,7 +102,7 @@
                      order (Assignments, Study Materials, Quizzes);
                      WhatsApp Groups lands on the teacher home panel
                      where the section links are kept. --}}
-                <li class="nav-item nav-item-submenu {{ (in_array(Route::currentRouteName(), ['tt.index', 'tt.mine', 'tt.workload', 'tt.slot_preferences', 'ttr.edit', 'ttr.show', 'ttr.manage']) || Route::is('assignments.*') || Route::is('materials.*') || Route::is('quizzes.*')) ? 'nav-item-expanded nav-item-open' : '' }} ">
+                <li class="nav-item nav-item-submenu {{ (in_array(Route::currentRouteName(), ['tt.index', 'tt.mine', 'tt.workload', 'tt.slot_preferences', 'ttr.edit', 'ttr.show', 'ttr.manage']) || Route::is('assignments.*') || Route::is('materials.*') || Route::is('quizzes.*')) ? 'nav-item-expanded nav-item-open' : '' }}  {{ in_array('academics', $hkSbOpen, true) ? 'nav-item-expanded nav-item-open hk-sb-remembered' : '' }}" data-group="academics">
                     <a href="#" class="nav-link"><i class="icon-graduation2"></i> <span> Academics</span></a>
                     <ul class="nav nav-group-sub" data-submenu-title="Manage Academics">
                         <li class="nav-item"><a href="{{ route('tt.index') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['tt.index']) ? 'active' : '' }}">Timetables</a></li>
@@ -116,7 +123,7 @@
                     </ul>
                 </li>
                 <li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Students</div><i class="icon-menu" title="Students"></i></li>
-                <li class="nav-item nav-item-submenu {{ in_array(Route::currentRouteName(), ['students.create', 'students.list', 'students.edit', 'students.show', 'students.promotion', 'students.promotion_manage', 'students.graduated']) ? 'nav-item-expanded nav-item-open' : '' }} ">
+                <li class="nav-item nav-item-submenu {{ in_array(Route::currentRouteName(), ['students.create', 'students.list', 'students.edit', 'students.show', 'students.promotion', 'students.promotion_manage', 'students.graduated']) ? 'nav-item-expanded nav-item-open' : '' }}  {{ in_array('students', $hkSbOpen, true) ? 'nav-item-expanded nav-item-open hk-sb-remembered' : '' }}" data-group="students">
                     <a href="#" class="nav-link"><i class="icon-users"></i> <span> Students</span></a>
                     <ul class="nav nav-group-sub" data-submenu-title="Manage Students">
                         {{-- Owner ruling 2026-10-22: Student Information is
@@ -135,7 +142,7 @@
                     </ul>
                 </li>
                 <li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Examinations</div><i class="icon-menu" title="Examinations"></i></li>
-                <li class="nav-item nav-item-submenu {{ in_array(Route::currentRouteName(), ['marks.index', 'marks.manage', 'exam_duties.my']) ? 'nav-item-expanded nav-item-open' : '' }} ">
+                <li class="nav-item nav-item-submenu {{ in_array(Route::currentRouteName(), ['marks.index', 'marks.manage', 'exam_duties.my']) ? 'nav-item-expanded nav-item-open' : '' }}  {{ in_array('exams', $hkSbOpen, true) ? 'nav-item-expanded nav-item-open hk-sb-remembered' : '' }}" data-group="exams">
                     <a href="#" class="nav-link"><i class="icon-books"></i> <span> Exams</span></a>
                     <ul class="nav nav-group-sub" data-submenu-title="Manage Exams">
                         <li class="nav-item">
@@ -146,10 +153,20 @@
                         <li class="nav-item">
                             <a href="{{ route('exam_dates.index') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['exam_dates.index', 'exam_dates.show', 'exam_dates.print', 'exam_dates.pdf']) ? 'active' : '' }}">Exam Date Sheet</a>
                         </li>
+                        {{-- F4 (owner order 2026-11-07): Question Papers
+                             beside Marks / Exam Date Sheet. --}}
+                        <li class="nav-item">
+                            <a href="{{ route('question_papers.index') }}" class="nav-link {{ (Route::is('question_papers.*')) ? 'active' : '' }}">Question Papers</a>
+                        </li>
                         {{-- Batch fix 2026-10-25: duties were invisible
                              to teachers — the teacher's own list. --}}
                         <li class="nav-item">
                             <a href="{{ route('exam_duties.my') }}" class="nav-link {{ (Route::is('exam_duties.my')) ? 'active' : '' }}">My Duties</a>
+                        </li>
+                        {{-- F3 (Round 4): the teacher's own published
+                             hall sheets, scoped to their duties. --}}
+                        <li class="nav-item">
+                            <a href="{{ route('exam_seating.my_halls') }}" class="nav-link {{ (Route::is('exam_seating.my_halls') || Route::is('exam_seating.my_hall_sheet')) ? 'active' : '' }}">My Hall Sheets</a>
                         </li>
                         {{-- Owner ruling 2026-10-22: Marksheet + Admit Cards
                              removed from the teacher menu — both are
@@ -395,11 +412,19 @@
                         <span>Circulars</span>
                     </a>
                 </li>
+                @if(in_array(auth()->user()->user_type, ['admin', 'principal', 'super_admin'], true))
+                <li class="nav-item">
+                    <a href="{{ route('whatsapp_log.index') }}" class="nav-link {{ (Route::is('whatsapp_log.*')) ? 'active' : '' }}">
+                        <i class="icon-bubbles4"></i>
+                        <span>WhatsApp Log</span>
+                    </a>
+                </li>
+                @endif
 
                 {{--Academics--}}
                 @if(Qs::userIsAcademic())
                     <li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Academics</div><i class="icon-menu" title="Academics"></i></li>
-                    <li class="nav-item nav-item-submenu {{ in_array(Route::currentRouteName(), ['tt.index', 'ttr.edit', 'ttr.show', 'ttr.manage']) ? 'nav-item-expanded nav-item-open' : '' }} ">
+                    <li class="nav-item nav-item-submenu {{ in_array(Route::currentRouteName(), ['tt.index', 'ttr.edit', 'ttr.show', 'ttr.manage']) ? 'nav-item-expanded nav-item-open' : '' }}  {{ in_array('academics', $hkSbOpen, true) ? 'nav-item-expanded nav-item-open hk-sb-remembered' : '' }}" data-group="academics">
                         <a href="#" class="nav-link"><i class="icon-graduation2"></i> <span> Academics</span></a>
 
                         <ul class="nav nav-group-sub" data-submenu-title="Manage Academics">
@@ -413,14 +438,14 @@
                 {{--Administrative--}}
                 @if(Qs::userIsAdministrative())
                     <li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Administration</div><i class="icon-menu" title="Administration"></i></li>
-                    <li class="nav-item nav-item-submenu {{ in_array(Route::currentRouteName(), ['payments.index', 'payments.create', 'payments.invoice', 'payments.receipts', 'payments.edit', 'payments.manage', 'payments.show', 'payments.defaulters', 'payments.collection', 'payroll.index', 'payroll.payslip', 'expenses.index', 'expenses.create', 'expenses.edit', 'expenses.report', 'fee_structure.index',]) ? 'nav-item-expanded nav-item-open' : '' }} ">
+                    <li class="nav-item nav-item-submenu {{ in_array(Route::currentRouteName(), ['payments.index', 'payments.create', 'payments.invoice', 'payments.receipts', 'payments.edit', 'payments.manage', 'payments.show', 'payments.defaulters', 'payments.collection', 'payroll.index', 'payroll.payslip', 'expenses.index', 'expenses.create', 'expenses.edit', 'expenses.report', 'fee_structure.index',]) ? 'nav-item-expanded nav-item-open' : '' }}  {{ in_array('administrative', $hkSbOpen, true) ? 'nav-item-expanded nav-item-open hk-sb-remembered' : '' }}" data-group="administrative">
                         <a href="#" class="nav-link"><i class="icon-office"></i> <span> Administrative</span></a>
 
                         <ul class="nav nav-group-sub" data-submenu-title="Administrative">
 
                             {{--Payments--}}
                             @if(Qs::userIsTeamAccount())
-                            <li class="nav-item nav-item-submenu {{ in_array(Route::currentRouteName(), ['payments.index', 'payments.create', 'payments.edit', 'payments.manage', 'payments.show', 'payments.invoice', 'payments.defaulters', 'payments.collection', 'payroll.index', 'payroll.payslip', 'expenses.index', 'expenses.create', 'expenses.edit', 'expenses.report', 'fee_structure.index']) ? 'nav-item-expanded' : '' }}">
+                            <li class="nav-item nav-item-submenu {{ in_array(Route::currentRouteName(), ['payments.index', 'payments.create', 'payments.edit', 'payments.manage', 'payments.show', 'payments.invoice', 'payments.defaulters', 'payments.collection', 'payroll.index', 'payroll.payslip', 'expenses.index', 'expenses.create', 'expenses.edit', 'expenses.report', 'fee_structure.index']) ? 'nav-item-expanded' : '' }} {{ in_array('payments', $hkSbOpen, true) ? 'nav-item-expanded nav-item-open hk-sb-remembered' : '' }}" data-group="payments">
 
                                 <a href="#" class="nav-link {{ in_array(Route::currentRouteName(), ['payments.index', 'payments.edit', 'payments.create', 'payments.manage', 'payments.show', 'payments.invoice', 'payments.defaulters', 'payments.collection', 'payroll.index', 'payroll.payslip', 'expenses.index', 'expenses.create', 'expenses.edit', 'expenses.report', 'fee_structure.index']) ? 'active' : '' }}">Payments</a>
 
@@ -451,7 +476,7 @@
                 {{--Manage Students--}}
                 @if(Qs::userIsTeamSAT())
                     <li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Students</div><i class="icon-menu" title="Students"></i></li>
-                    <li class="nav-item nav-item-submenu {{ in_array(Route::currentRouteName(), ['students.create', 'students.list', 'students.edit', 'students.show', 'students.promotion', 'students.promotion_manage', 'students.graduated']) ? 'nav-item-expanded nav-item-open' : '' }} ">
+                    <li class="nav-item nav-item-submenu {{ in_array(Route::currentRouteName(), ['students.create', 'students.list', 'students.edit', 'students.show', 'students.promotion', 'students.promotion_manage', 'students.graduated']) ? 'nav-item-expanded nav-item-open' : '' }}  {{ in_array('students', $hkSbOpen, true) ? 'nav-item-expanded nav-item-open hk-sb-remembered' : '' }}" data-group="students">
                         <a href="#" class="nav-link"><i class="icon-users"></i> <span> Students</span></a>
 
                         <ul class="nav nav-group-sub" data-submenu-title="Manage Students">
@@ -503,7 +528,7 @@
                                  whole Promotion submenu; SA keeps the read
                                  views (Student Information, Students Graduated). --}}
                             @if(Qs::userIsTeamSAWrite())
-                            <li class="nav-item nav-item-submenu {{ in_array(Route::currentRouteName(), ['students.promotion', 'students.promotion_manage']) ? 'nav-item-expanded' : '' }}"><a href="#" class="nav-link {{ in_array(Route::currentRouteName(), ['students.promotion', 'students.promotion_manage' ]) ? 'active' : '' }}">Student Promotion</a>
+                            <li class="nav-item nav-item-submenu {{ in_array(Route::currentRouteName(), ['students.promotion', 'students.promotion_manage']) ? 'nav-item-expanded' : '' }} {{ in_array('student-promotion', $hkSbOpen, true) ? 'nav-item-expanded nav-item-open hk-sb-remembered' : '' }}" data-group="student-promotion"><a href="#" class="nav-link {{ in_array(Route::currentRouteName(), ['students.promotion', 'students.promotion_manage' ]) ? 'active' : '' }}">Student Promotion</a>
                             <ul class="nav nav-group-sub">
                                 <li class="nav-item"><a href="{{ route('students.promotion') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['students.promotion']) ? 'active' : '' }}">Promote Students</a></li>
                                 <li class="nav-item"><a href="{{ route('students.promotion_manage') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['students.promotion_manage']) ? 'active' : '' }}">Manage Promotions</a></li>
@@ -610,7 +635,7 @@
                 {{--Exam--}}
                 @if(Qs::userIsTeamSAT())
                 <li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Examinations</div><i class="icon-menu" title="Examinations"></i></li>
-                <li class="nav-item nav-item-submenu {{ in_array(Route::currentRouteName(), ['exams.index', 'exams.edit', 'grades.index', 'grades.edit', 'marks.index', 'marks.manage', 'marks.bulk', 'marks.tabulation', 'marks.show', 'admit_cards.index', 'admit_cards.print',]) ? 'nav-item-expanded nav-item-open' : '' }} ">
+                <li class="nav-item nav-item-submenu {{ in_array(Route::currentRouteName(), ['exams.index', 'exams.edit', 'grades.index', 'grades.edit', 'marks.index', 'marks.manage', 'marks.bulk', 'marks.tabulation', 'marks.show', 'admit_cards.index', 'admit_cards.print',]) ? 'nav-item-expanded nav-item-open' : '' }}  {{ in_array('exams', $hkSbOpen, true) ? 'nav-item-expanded nav-item-open hk-sb-remembered' : '' }}" data-group="exams">
                     <a href="#" class="nav-link"><i class="icon-books"></i> <span> Exams</span></a>
 
                     <ul class="nav nav-group-sub" data-submenu-title="Manage Exams">
@@ -635,6 +660,33 @@
                             <li class="nav-item">
                                 <a href="{{ route('exam_dates.manage') }}"
                                    class="nav-link {{ in_array(Route::currentRouteName(), ['exam_dates.manage', 'exam_dates.save']) ? 'active' : '' }}">Exam Date Sheet</a>
+                            </li>
+                        @endif
+
+                        {{-- F3 (Round 4): Exam Seating — slot plans into
+                             halls; Admin generates/submits. Label is
+                             "Exam Seating", never "Seating Plan"
+                             (a Reports preset owns that label). --}}
+                        @if(Qs::userIsTeamSA())
+                            <li class="nav-item">
+                                <a href="{{ route('exam_seating.index') }}"
+                                   class="nav-link {{ (Route::is('exam_seating.index') || Route::is('exam_seating.show')) ? 'active' : '' }}">Exam Seating</a>
+                            </li>
+                        @endif
+                        @if(Qs::userIsPrincipal())
+                            <li class="nav-item">
+                                <a href="{{ route('exam_seating.approvals') }}"
+                                   class="nav-link {{ (Route::is('exam_seating.approvals')) ? 'active' : '' }}">Exam Seating Approvals</a>
+                            </li>
+                        @endif
+
+                        {{-- F4 (owner order 2026-11-07): Question Papers
+                             beside Marks / Exam Date Sheet — teachers
+                             create, admin oversees read-only. --}}
+                        @if(Qs::userIsTeamSAT())
+                            <li class="nav-item">
+                                <a href="{{ route('question_papers.index') }}"
+                                   class="nav-link {{ (Route::is('question_papers.*')) ? 'active' : '' }}">Question Papers</a>
                             </li>
                         @endif
 
@@ -722,6 +774,32 @@
 
                 </ul>
             </div>
+
+@if(Qs::userIsTeacher())
+        {{-- Design B (Round 5): the teacher rail's user chip card --
+             same inner markup as the shared .sidebar-user above,
+             which the teacher branch never renders. --}}
+        <div class="sidebar-user hk-sb-userchip">
+            <div class="card-body">
+                <div class="media">
+                    <div class="mr-3">
+                        <a href="{{ route('my_account') }}"><span class="l7-avatar l7-avatar-md" aria-hidden="true">{{ strtoupper(substr(Auth::user()->name, 0, 1)) }}@if(Qs::hasRealPhoto(Auth::user()->photo))<img src="{{ Auth::user()->photo }}" alt="" onerror="this.remove()">@endif</span></a>
+                    </div>
+
+                    <div class="media-body">
+                        <div class="media-title font-weight-semibold">{{ Auth::user()->name }}</div>
+                        <div class="font-size-xs opacity-50">
+                            <i class="icon-user font-size-sm"></i> &nbsp;Teacher
+                        </div>
+                    </div>
+
+                    <div class="ml-3 align-self-center">
+                        <a href="{{ route('my_account') }}" class="text-white"><i class="icon-cog3"></i></a>
+                    </div>
+                </div>
+            </div>
+        </div>
+@endif
         </div>
 {{-- Session display (owner directive 2026-10-21 23:30 IST): the session
      is shown ONCE, in the topbar chip. The sidebar session card that used
@@ -742,6 +820,56 @@
 <script>
 (function(){try{var v=sessionStorage.getItem('hackstra-sidebar-scroll');if(v!==null){var n=parseInt(v,10);if(n>0){var el=document.querySelector('.sidebar .card-sidebar-mobile')||document.querySelector('.sidebar .sidebar-content');if(el){el.scrollTop=n;}}}}catch(e){}})();
 </script>
+
+@if(Route::has('my_account.sidebar_state'))
+{{-- Round 5 P4 (sidebar memory) — write-back. The rail renders in
+     the remembered state server-side (layouts/master body class +
+     the hk-sb-remembered classes above); this stub only SAVES
+     changes: the topbar collapse toggle posts the new collapsed
+     flag, and a submenu parent click posts the resulting open
+     data-group set (read after app.js's 250ms slide settles,
+     debounced through the shared hkDebounce). Fire-and-forget,
+     exactly like the theme toggle: a failed save never disturbs
+     the screen, the next change simply re-saves. --}}
+<script>
+(function(){
+    var url = '{{ route('my_account.sidebar_state') }}';
+    function post(body){
+        var meta = document.querySelector('meta[name="csrf-token"]');
+        fetch(url, {method:'POST', credentials:'same-origin',
+            headers:{'Content-Type':'application/x-www-form-urlencoded', 'X-CSRF-TOKEN': meta ? meta.getAttribute('content') : ''},
+            body: body}).catch(function(){});
+    }
+    var saveGroups = null;
+    document.addEventListener('click', function(e){
+        var t = e.target && e.target.closest ? e.target : null;
+        if (!t) { return; }
+        if (t.closest('.sidebar-main-toggle')) {
+            setTimeout(function(){
+                post('sidebar_collapsed=' + (document.body.classList.contains('sidebar-xs') ? '1' : '0'));
+            }, 0);
+            return;
+        }
+        if (t.closest('.hk-sb-b .nav-item-submenu > .nav-link')) {
+            if (!saveGroups) {
+                var run = function(){
+                    var keys = [];
+                    document.querySelectorAll('.hk-sb-b .nav-item-submenu.nav-item-open').forEach(function(li){
+                        var k = li.getAttribute('data-group');
+                        if (k && keys.indexOf(k) === -1) { keys.push(k); }
+                    });
+                    post('sidebar_open_groups_present=1' + keys.map(function(k){
+                        return '&sidebar_open_groups[]=' + encodeURIComponent(k);
+                    }).join(''));
+                };
+                saveGroups = window.hkDebounce ? window.hkDebounce(run, 350) : run;
+            }
+            saveGroups();
+        }
+    });
+})();
+</script>
+@endif
 
 {{-- Mobile drawer backdrop: tap outside the open drawer to close it (owner request 2026-10-23). --}}
 <div class="hk-sidebar-backdrop" aria-hidden="true"></div>

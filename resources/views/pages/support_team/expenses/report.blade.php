@@ -29,7 +29,8 @@
             </form>
 
             <div class="table-responsive">
-                <table class="table table-striped">
+                <table class="table table-striped hk-std hk-std-760">
+                    <colgroup><col style="width:34%"><col style="width:22%"><col style="width:22%"><col style="width:22%"></colgroup>
                     <thead>
                     <tr>
                         <th>Month</th>
@@ -44,10 +45,10 @@
                             {{-- Day anchored to 01: createFromFormat('Y-m', …) fills the
                                  missing day from TODAY, so on the 31st a 30-day month
                                  overflowed into the next month's name (Apr → "May"). --}}
-                            <td>{{ \Carbon\Carbon::createFromFormat('Y-m-d', $row['month'] . '-01')->format('F Y') }}</td>
-                            <td>{{ \App\Helpers\Money::inr($row['income']) }}</td>
-                            <td>{{ \App\Helpers\Money::inr($row['expenses']) }}</td>
-                            <td>{{ \App\Helpers\Money::inr($row['net']) }}</td>
+                            <td class="hk-nw">{{ \Carbon\Carbon::createFromFormat('Y-m-d', $row['month'] . '-01')->format('F Y') }}</td>
+                            <td class="hk-nw">{{ \App\Helpers\Money::inr($row['income']) }}</td>
+                            <td class="hk-nw">{{ \App\Helpers\Money::inr($row['expenses']) }}</td>
+                            <td class="hk-nw">{{ \App\Helpers\Money::inr($row['net']) }}</td>
                         </tr>
                     @empty
                         <tr><td colspan="4">No income or expense rows for this period.</td></tr>

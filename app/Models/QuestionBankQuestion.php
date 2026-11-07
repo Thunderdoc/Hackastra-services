@@ -10,10 +10,13 @@ class QuestionBankQuestion extends Eloquent
     protected $fillable = [
         'teacher_id', 'my_class_id', 'section_id', 'subject_id',
         'question', 'options', 'correct_index', 'marks',
+        'chapter', 'difficulty', 'question_type', 'model_answer',
     ];
 
     protected $casts = [
         'options' => 'array',
+        'correct_index' => 'integer',
+        'marks' => 'integer',
     ];
 
     public function teacher()

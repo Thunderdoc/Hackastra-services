@@ -29,7 +29,7 @@
 
         <div class="card-body">
             @if($classes->isEmpty())
-                <p class="mb-0">No classes are assigned to you yet, so there is no roster to print.</p>
+                @include('partials.patterns.empty_state', ['icon' => 'icon-users', 'message' => 'No classes are assigned to you yet, so there is no roster to print.'])
             @else
                 <p class="text-muted">Select a class to preview its students. Narrow to one section if needed, then download the whole sheet as one PDF — one card per student.</p>
 
@@ -84,15 +84,16 @@
                     <p class="p-3 mb-0">No students found for this class and section.</p>
                 @else
                     <div class="table-responsive">
-                        <table class="table table-striped mb-0">
+                        <table class="table table-striped mb-0 hk-std hk-std-760">
+                            <colgroup><col style="width:46%"><col style="width:27%"><col style="width:27%"></colgroup>
                             <thead>
                                 <tr><th>Student</th><th>Adm No</th><th>Section</th></tr>
                             </thead>
                             <tbody>
                                 @foreach($students as $sr)
                                     <tr>
-                                        <td style="word-break: break-word;">{{ optional($sr->user)->name }}</td>
-                                        <td>{{ $sr->adm_no ?: '—' }}</td>
+                                        <td>{{ optional($sr->user)->name }}</td>
+                                        <td class="hk-nw">{{ $sr->adm_no ?: '—' }}</td>
                                         <td>{{ optional($sr->section)->name ?: '—' }}</td>
                                     </tr>
                                 @endforeach

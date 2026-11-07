@@ -81,9 +81,10 @@
     @if($students->isEmpty())
         <div class="card">
             <div class="card-body">
-                <div class="lav-empty">
-                    <p>No students found for this selection, so there are no admit cards to print.</p>
-                </div>
+                @include('partials.patterns.empty_state', [
+                    'icon' => 'icon-profile',
+                    'message' => 'No students found for this selection, so there are no admit cards to print.',
+                ])
             </div>
         </div>
     @else

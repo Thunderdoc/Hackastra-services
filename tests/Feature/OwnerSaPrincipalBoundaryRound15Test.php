@@ -82,10 +82,18 @@ class OwnerSaPrincipalBoundaryRound15Test extends TestCase
     {
         $this->freshPrincipal();
 
+        // Round 5 P12 paginated the list (25/page, name order), so
+        // the Z-named probe is proven through search + the role
+        // filter below rather than page 1; the SA exclusion is still
+        // asserted on page 1, where "Ankit Kumar" would sort first
+        // if he were included.
         $this->actingAs($this->admin())->get(route('users.index'))
             ->assertOk()
-            ->assertSee('Zed Principal Probe')
             ->assertDontSee('Ankit Kumar');
+
+        $this->actingAs($this->admin())->get(route('users.index', ['q' => 'Zed Principal Probe']))
+            ->assertOk()
+            ->assertSee('Zed Principal Probe');
 
         // The Admin's role filter DOES offer principal, so it
         // narrows to principals only: both principal rows, no
@@ -99,8 +107,11 @@ class OwnerSaPrincipalBoundaryRound15Test extends TestCase
         // Peer principals appear in the principal's own staff list.
         $this->actingAs($this->principal())->get(route('users.index'))
             ->assertOk()
-            ->assertSee('Zed Principal Probe')
             ->assertDontSee('Ankit Kumar');
+
+        $this->actingAs($this->principal())->get(route('users.index', ['q' => 'Zed Principal Probe']))
+            ->assertOk()
+            ->assertSee('Zed Principal Probe');
     }
 
     public function test_sa_lifecycle_writes_on_principal_are_refused()

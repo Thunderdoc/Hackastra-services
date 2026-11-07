@@ -10,13 +10,6 @@
             </div>
         </div>
         <div class="card-body">
-            @if($errors->any())
-                <div class="alert alert-danger">
-                    @foreach($errors->all() as $error)
-                        <div>{{ $error }}</div>
-                    @endforeach
-                </div>
-            @endif
             @if($rooms->count())
                 <div class="table-responsive">
                     <table class="table">
@@ -41,7 +34,7 @@
                                     <td>
                                         @if(auth()->user() && auth()->user()->user_type === 'hostel')
                                             <a href="{{ route('hostel.rooms.edit', ['hostel_room' => $room->id]) }}" class="btn btn-sm btn-primary">Edit</a>
-                                            <form method="post" action="{{ route('hostel.rooms.destroy', ['hostel_room' => $room->id]) }}" class="d-inline" onsubmit="return confirm('Delete this room? Occupied rooms cannot be deleted.')">
+                                            <form method="post" action="{{ route('hostel.rooms.destroy', ['hostel_room' => $room->id]) }}" class="d-inline" data-confirm="Delete room {{ $room->room_no }}? Occupied rooms cannot be deleted." data-confirm-title="Delete Room" data-confirm-action="Delete" data-confirm-danger>
                                                 @csrf @method('delete')
                                                 <button type="submit" class="btn btn-sm btn-danger">Delete</button>
                                             </form>
@@ -53,7 +46,10 @@
                     </table>
                 </div>
             @else
-                <p>No rooms found yet. Create the first room using the form below.</p>
+                @include('partials.patterns.empty_state', [
+                    'icon' => 'icon-home9',
+                    'message' => 'No rooms found yet. Create the first room using the form below.',
+                ])
             @endif
             @if(auth()->user() && auth()->user()->user_type === 'hostel')
                 <hr>
@@ -62,20 +58,20 @@
                     @csrf
                     <div class="form-group">
                         <label for="dorm_id">Dorm *</label>
-                        <select id="dorm_id" name="dorm_id" required class="form-control">
+                        <select id="dorm_id" name="dorm_id" required class="form-control @error('dorm_id') is-invalid @enderror">
                             <option value="">Select dorm</option>
                             @foreach($dorms as $dorm)
                                 <option value="{{ $dorm->id }}" {{ old('dorm_id') == $dorm->id ? 'selected' : '' }}>{{ $dorm->name }}</option>
                             @endforeach
-                        </select>
+                        </select>@include('partials.errors.field', ['field' => 'dorm_id'])
                     </div>
                     <div class="form-group">
                         <label for="room_no">Room No *</label>
-                        <input id="room_no" name="room_no" value="{{ old('room_no') }}" required type="text" class="form-control" placeholder="e.g. A-101">
+                        <input id="room_no" name="room_no" value="{{ old('room_no') }}" required type="text" class="form-control @error('room_no') is-invalid @enderror" placeholder="e.g. A-101">@include('partials.errors.field', ['field' => 'room_no'])
                     </div>
                     <div class="form-group">
                         <label for="capacity">Capacity *</label>
-                        <input id="capacity" name="capacity" value="{{ old('capacity') }}" required type="number" min="1" class="form-control" placeholder="Number of beds">
+                        <input id="capacity" name="capacity" value="{{ old('capacity') }}" required type="number" min="1" class="form-control @error('capacity') is-invalid @enderror" placeholder="Number of beds">@include('partials.errors.field', ['field' => 'capacity'])
                     </div>
                     <button type="submit" class="btn btn-primary">Create Room</button>
                 </form>

@@ -171,7 +171,7 @@
 
                                                             {{--Reset Payment--}}
                                                             @if(Qs::userIsTeamAccountWrite())
-                                                            <a id="{{ Qs::hash($uc->id) }}" onclick="confirmReset(this.id)" href="#" class="dropdown-item"><i class="icon-reset"></i> Reset Payment</a>
+                                                            <a id="{{ Qs::hash($uc->id) }}" data-item-name="{{ $uc->payment->title }}" onclick="confirmReset(this.id, this.dataset.itemName)" href="#" class="dropdown-item"><i class="icon-reset"></i> Reset Payment</a>
                                                             <form method="post" id="item-reset-{{ Qs::hash($uc->id) }}" action="{{ route('payments.reset_record', Qs::hash($uc->id)) }}" class="hidden">@csrf @method('delete')</form>
                                                             @endif
 
@@ -205,9 +205,10 @@
                                 </table>
                                 </div>
                                 @else
-                                    <div class="lav-empty">
-                                        <p class="mb-0">No incomplete payments. Every fee for {{ $sr->user->name }} is fully paid.</p>
-                                    </div>
+                                    @include('partials.patterns.empty_state', [
+                                        'icon' => 'icon-checkmark-circle2',
+                                        'message' => 'No incomplete payments. Every fee for ' . $sr->user->name . ' is fully paid.',
+                                    ])
                                 @endif
                             </div>
 
@@ -252,7 +253,7 @@
 
                                                             {{--Reset Payment--}}
                                                             @if(Qs::userIsTeamAccountWrite())
-                                                            <a id="{{ Qs::hash($cl->id) }}" onclick="confirmReset(this.id)" href="#" class="dropdown-item"><i class="icon-reset"></i> Reset Payment</a>
+                                                            <a id="{{ Qs::hash($cl->id) }}" data-item-name="{{ $cl->payment->title }}" onclick="confirmReset(this.id, this.dataset.itemName)" href="#" class="dropdown-item"><i class="icon-reset"></i> Reset Payment</a>
                                                             <form method="post" id="item-reset-{{ Qs::hash($cl->id) }}" action="{{ route('payments.reset_record', Qs::hash($cl->id)) }}" class="hidden">@csrf @method('delete')</form>
                                                             @endif
 
@@ -278,9 +279,10 @@
                                 </table>
                                 </div>
                                 @else
-                                    <div class="lav-empty">
-                                        <p class="mb-0">No completed payments yet for {{ $sr->user->name }}.</p>
-                                    </div>
+                                    @include('partials.patterns.empty_state', [
+                                        'icon' => 'icon-history',
+                                        'message' => 'No completed payments yet for ' . $sr->user->name . '.',
+                                    ])
                                 @endif
 
                             </div>

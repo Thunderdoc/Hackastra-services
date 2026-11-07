@@ -3,6 +3,8 @@
 namespace App\Support;
 
 use App\Models\Assignment;
+use App\Models\Exam;
+use App\Models\Mark;
 use App\Models\QuizAttempt;
 
 /**
@@ -105,6 +107,51 @@ class InternalMarksImporter
                 'pct' => ((int) $attempt->score / (int) $attempt->total) * 100,
                 'at' => $attempt->submitted_at ? strtotime($attempt->submitted_at) : 0,
             ];
+        }
+        return $percents;
+    }
+
+    /**
+     * Per-student percentage entries from UNIT-TEST EXAMS (Exam
+     * Patterns Phase 1, R1 §4.2): one entry per source exam —
+     * the student's subject total as a percentage of THAT exam's
+     * own scheme maximum for the subject, timestamped by the
+     * source period's sort_order so 'latest' means the latest
+     * PERIOD, not the latest keystroke. A student with no mark
+     * row, or a NULL total (nothing entered), contributes NO
+     * entry — never a zero.
+     *
+     * @return array<int, array<int, array{pct: float, at: int}>> keyed by student user id
+     */
+    public static function examPercents(array $sourceExamIds, $classId, $subjectId): array
+    {
+        $percents = [];
+        foreach ($sourceExamIds as $examId) {
+            $exam = Exam::find((int) $examId);
+            if (!$exam) {
+                continue;
+            }
+            $max = MarkScheme::maxTotal($exam->id, $subjectId);
+            if ($max <= 0) {
+                continue;
+            }
+            $at = $exam->period ? (int) $exam->period->sort_order : 0;
+            $marks = Mark::where([
+                'exam_id' => $exam->id,
+                'my_class_id' => (int) $classId,
+                'subject_id' => (int) $subjectId,
+                'year' => $exam->year,
+            ])->get();
+            foreach ($marks as $mk) {
+                $total = MarkScheme::subjectTotal($mk);
+                if ($total === null) {
+                    continue;
+                }
+                $percents[$mk->student_id][] = [
+                    'pct' => ($total / $max) * 100,
+                    'at' => $at,
+                ];
+            }
         }
         return $percents;
     }

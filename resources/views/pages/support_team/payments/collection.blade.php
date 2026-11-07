@@ -52,7 +52,7 @@
     @endif
 
     <div class="cr97-wrap">
-    @component('partials.patterns.list_page')
+    @component('partials.patterns.list_page', ['pat_no_wrap' => true])
         @slot('subtitle')
             View and analyze fee collections with detailed filters and insights.
         @endslot
@@ -215,20 +215,19 @@
                 'message' => 'No fee collections were recorded between ' . $from->format('d M Y') . ' and ' . $to->format('d M Y') . ' for the selected filters.',
             ])
         @else
-            <div class="table-responsive">
-            <table class="table">
-                <thead>
-                <tr>
-                    <th style="width:44px">#</th>
-                    <th>Date</th>
-                    <th>Day</th>
-                    <th class="text-right">No. of Receipts</th>
-                    <th class="text-right">Amount Collected (₹)</th>
-                    <th class="text-right">Average Amount</th>
-                    <th class="text-right print-hide">Actions</th>
-                </tr>
-                </thead>
-                <tbody>
+            @component('partials.patterns.data_table', [
+                'columns' => [
+                    ['key' => 'sn', 'label' => '#', 'width' => 6, 'class' => 'hk-nw'],
+                    ['key' => 'date', 'label' => 'Date', 'width' => 16, 'class' => 'hk-nw'],
+                    ['key' => 'day', 'label' => 'Day', 'width' => 13],
+                    ['key' => 'receipts', 'label' => 'No. of Receipts', 'width' => 14, 'class' => 'hk-nw', 'align' => 'right'],
+                    ['key' => 'amount', 'label' => 'Amount Collected (₹)', 'width' => 20, 'class' => 'hk-nw', 'align' => 'right'],
+                    ['key' => 'average', 'label' => 'Average Amount', 'width' => 14, 'class' => 'hk-nw', 'align' => 'right'],
+                    ['key' => 'actions', 'label' => 'Actions', 'width' => 17, 'align' => 'right', 'th_class' => 'print-hide'],
+                ],
+                'variant' => 'collection',
+                'min_width' => 880,
+            ])
                 @foreach($paged as $row)
                     <tr>
                         <td>{{ $paged->firstItem() + $loop->index }}</td>
@@ -242,19 +241,18 @@
                         </td>
                     </tr>
                 @endforeach
-                </tbody>
-                <tfoot>
-                <tr>
-                    <th></th>
-                    <th colspan="2">Grand Total (all pages)</th>
-                    <th class="text-right">{{ number_format($receipts_count) }}</th>
-                    <th class="text-right">{{ \App\Helpers\Money::inr($grand_total) }}</th>
-                    <th class="text-right">{{ \App\Helpers\Money::inr($avg_per_receipt) }}</th>
-                    <th class="print-hide"></th>
-                </tr>
-                </tfoot>
-            </table>
-            </div>
+
+                @slot('tfoot')
+                    <tr>
+                        <th></th>
+                        <th colspan="2">Grand Total (all pages)</th>
+                        <th class="text-right">{{ number_format($receipts_count) }}</th>
+                        <th class="text-right">{{ \App\Helpers\Money::inr($grand_total) }}</th>
+                        <th class="text-right">{{ \App\Helpers\Money::inr($avg_per_receipt) }}</th>
+                        <th class="print-hide"></th>
+                    </tr>
+                @endslot
+            @endcomponent
 
             @if($paged->lastPage() > 1)
                 @php

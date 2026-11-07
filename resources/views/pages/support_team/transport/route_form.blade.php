@@ -33,7 +33,7 @@
                     <td>{{ $s->name }}</td>
                     <td>
                         <form method="post" action="{{ route('transport.stops.destroy', ['transport_stop' => Qs::hash($s->id)]) }}" style="display:inline">@csrf @method('delete')
-                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this stop?')">Delete</button>
+                            <button type="submit" class="btn btn-sm btn-danger" data-confirm="Delete stop {{ $s->name }}? This cannot be undone." data-confirm-title="Delete Stop" data-confirm-action="Delete" data-confirm-danger>Delete</button>
                         </form>
                     </td>
                 </tr>

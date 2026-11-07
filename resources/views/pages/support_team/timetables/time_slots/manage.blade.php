@@ -29,14 +29,14 @@
                             <a href="{{ route('ts.edit', $tms->id) }}" class="btn btn-light btn-sm"><i class="icon-pencil mr-1"></i> Edit</a>
 
                             {{--Delete--}}
-                                <a id="{{ $tms->id }}" onclick="confirmDelete(this.id)" href="#" class="btn btn-light btn-sm text-danger"><i class="icon-trash mr-1"></i> Delete</a>
+                                <a id="{{ $tms->id }}" data-item-name="{{ $tms->full }}" onclick="confirmDelete(this.id, this.dataset.itemName)" href="#" class="btn btn-light btn-sm text-danger"><i class="icon-trash mr-1"></i> Delete</a>
                                 <form method="post" id="item-delete-{{ $tms->id }}" action="{{ route('ts.destroy', $tms->id) }}" class="hidden">@csrf @method('delete')</form>
                             @endif
                         </div>
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="5" class="text-center text-muted" style="padding:20px 12px">No time slots yet. Add one above.</td></tr>
+                <tr><td colspan="5">@include('partials.patterns.empty_state', ['icon' => 'icon-table2', 'message' => 'No time slots yet. Add one above.'])</td></tr>
             @endforelse
 
             </tbody>

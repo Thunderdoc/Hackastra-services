@@ -21,10 +21,22 @@
                 </div>
             </form>
             @if($records->count() === 0)
-                <p>No discipline records yet.</p>
+                @if($type)
+                    @include('partials.patterns.empty_state', [
+                        'icon' => 'icon-search4',
+                        'message' => 'No discipline records yet.',
+                        'action_html' => '<a class="btn btn-primary" href="' . route('discipline_records.index') . '">Clear filters</a>',
+                    ])
+                @else
+                    @include('partials.patterns.empty_state', [
+                        'icon' => 'icon-shield-check',
+                        'message' => 'No discipline records yet.',
+                    ])
+                @endif
             @else
                 <div class="table-responsive">
-                    <table class="table">
+                    <table class="table hk-std hk-std-880">
+                        <colgroup><col style="width:11%"><col style="width:16%"><col style="width:11%"><col style="width:26%"><col style="width:20%"><col style="width:16%"></colgroup>
                         <thead>
                             <tr>
                                 <th>Date</th>
@@ -38,10 +50,10 @@
                         <tbody>
                             @foreach($records as $record)
                                 <tr>
-                                    <td>{{ $record->incident_date->format('Y-m-d') }}</td>
+                                    <td class="hk-nw">{{ $record->incident_date->format('d M Y') }}</td>
                                     <td>{{ optional($record->student)->name }}</td>
-                                    <td>{{ $record->typeLabel() }}</td>
-                                    <td><a href="{{ route('discipline_records.show', $record->id) }}">{{ \Illuminate\Support\Str::limit($record->description, 80) }}</a></td>
+                                    <td class="hk-nw">{{ $record->typeLabel() }}</td>
+                                    <td class="hk-ellip" title="{{ $record->description }}"><a href="{{ route('discipline_records.show', $record->id) }}">{{ \Illuminate\Support\Str::limit($record->description, 80) }}</a></td>
                                     <td>{{ $record->action_taken ?: '—' }}</td>
                                     <td>{{ optional($record->recorder)->name }}</td>
                                 </tr>

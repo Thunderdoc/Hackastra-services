@@ -9,7 +9,9 @@
             <h5 class="card-title">New Lesson Plan</h5>
         </div>
         <div class="card-body">
-            <form method="post" action="{{ route('lesson_plans.store') }}">
+            {{-- Round 5 Slice 2 (P6): hk-draft autosave opt-in —
+                 the full per-user key rides on the form itself. --}}
+            <form method="post" action="{{ route('lesson_plans.store') }}" data-hk-draft="u{{ Auth::id() }}-lessonplan-new">
                 @csrf
                 <div class="form-group">
                     <label for="my_class_id">Class</label>

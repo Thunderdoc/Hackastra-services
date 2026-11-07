@@ -88,7 +88,7 @@
                 </table>
             </div>
         @else
-            <p>No attendance data for the selected filters.</p>
+            @include('partials.patterns.empty_state', ['icon' => 'icon-calendar2', 'message' => 'No attendance data for the selected filters.', 'compact' => true])
         @endif
 
         <h5 class="mt-4">Fee collection by month</h5>
@@ -117,7 +117,7 @@
                 </table>
             </div>
         @else
-            <p>No fee collection for the selected filters.</p>
+            @include('partials.patterns.empty_state', ['icon' => 'icon-cash2', 'message' => 'No fee collection for the selected filters.', 'compact' => true])
         @endif
 
         <h5 class="mt-4">Outstanding fees by class</h5>
@@ -135,7 +135,7 @@
                 </table>
             </div>
         @else
-            <p>No outstanding fee data for the selected filters.</p>
+            @include('partials.patterns.empty_state', ['icon' => 'icon-cash2', 'message' => 'No outstanding fee data for the selected filters.', 'compact' => true])
         @endif
 
         <h5 class="mt-4">Marks averages by class and exam</h5>
@@ -166,7 +166,7 @@
                 </table>
             </div>
         @else
-            <p>No marks data for the selected filters.</p>
+            @include('partials.patterns.empty_state', ['icon' => 'icon-profile', 'message' => 'No marks data for the selected filters.', 'compact' => true])
         @endif
     </div>
 </div>

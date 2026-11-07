@@ -11,7 +11,11 @@
         'form_method' => 'PUT',
         'form_enctype' => 'multipart/form-data',
         'back' => route('assignments.show', $assignment->id),
+        'form_draft' => 'u'.Auth::id().'-assignment-'.$assignment->id,
     ])
+        {{-- Round 5 Slice 2 (P6): hk-draft autosave opt-in. The
+             key carries the assignment id, so two records'
+             drafts never collide. --}}
         @slot('title')
             Edit Assignment
         @endslot

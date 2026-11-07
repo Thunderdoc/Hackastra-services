@@ -34,11 +34,15 @@
             }
         }
         $groupSubjects = $groupSubjects->filter()->sortBy(function ($s) { return $s->name; })->values();
+        // R3 P8: when the viewer's groups span several classes, the
+        // same subject name can head several groups — the class name
+        // joins the heading so no two headings read identically.
+        $groupsSpanClasses = $groupSubjects->pluck('my_class_id')->unique()->count() > 1;
     @endphp
 
     @component('partials.patterns.list_page')
         @slot('subtitle')
-            Notes, slides, videos and links shared by teachers — everything for study, in one place.
+            Notes, slides and links shared by teachers — everything for study, in one place.
         @endslot
         @if($isTeacher)
             @slot('action')
@@ -124,7 +128,7 @@
             @include('partials.patterns.empty_state', [
                 'icon' => 'icon-book',
                 'message' => $isTeacher
-                    ? 'No study materials yet. Add the first notes, slides or video link for your classes.'
+                    ? 'No study materials yet. Add the first notes, slides or link for your classes.'
                     : 'No study materials yet. When your teachers share notes or links, they will appear here.',
                 'action_url' => $isTeacher ? route('materials.create') : null,
                 'action_label' => 'Add Material',
@@ -135,60 +139,89 @@
                 <div class="lms82-group">
                     <button type="button" class="lms82-group-head" data-lms82-group aria-expanded="true">
                         <span class="lms82-group-icon"><i class="icon-book"></i></span>
-                        <span class="lms82-group-name">{{ $subject->name }}</span>
+                        <span class="lms82-group-name">{{ $subject->name }}@if($groupsSpanClasses) <span class="text-muted">· {{ optional($subject->my_class)->name ?? 'Class —' }}</span>@endif</span>
                         <span class="lms-chip">{{ $items->count() }} {{ \Illuminate\Support\Str::plural('material', $items->count()) }}</span>
                         <i class="icon-chevron-down lms82-group-chev"></i>
                     </button>
                     <div class="lms82-group-body">
-                        @forelse($items as $material)
-                            <div class="lms82-mat-row">
-                                <span class="lms-mat-icon"><i class="{{ $material->file_path ? 'icon-file-text2' : 'icon-link' }}"></i></span>
-                                <span class="lms-mat-copy">
-                                    @if($material->file_path)
-                                        <a href="{{ route('materials.download', $material->id) }}" class="lms82-mat-title">{{ $material->title }}</a>
-                                    @elseif($material->link_url)
-                                        <a href="{{ $material->link_url }}" target="_blank" rel="noopener" class="lms82-mat-title">{{ $material->title }}</a>
-                                    @else
-                                        <strong>{{ $material->title }}</strong>
-                                    @endif
-                                    @if($material->description)
-                                        <span class="lms-mat-desc lms82-clamp2">{{ \Illuminate\Support\Str::limit($material->description, 160) }}</span>
-                                    @endif
-                                    <span class="lms82-mat-meta">
-                                        <span class="lms-chip"><i class="icon-users mr-1"></i>{{ optional($material->myClass)->name ?? 'Class —' }}{{ $material->section ? ' · ' . optional($material->section)->name : ' · Whole class' }}@if(isset($cover_pairs) && ($cover_pairs[$material->my_class_id] ?? null) && in_array((int) $material->subject_id, $cover_pairs[$material->my_class_id], true) && (int) $material->teacher_id !== (int) Auth::id()) <span class="badge badge-warning ml-1">(Substitute)</span>@endif</span>
-                                        <span class="lms-chip"><i class="icon-user mr-1"></i>by {{ optional($material->teacher)->name ?? 'Teacher' }}</span>
-                                        @if($material->created_at)
-                                            <span class="lms-chip"><i class="icon-calendar mr-1"></i>{{ \Carbon\Carbon::parse($material->created_at)->format('d M Y') }}</span>
-                                        @endif
-                                        @if($material->file_path)
-                                            <span class="lms-chip lms-chip-subject"><i class="icon-file-text2 mr-1"></i>Document</span>
-                                        @endif
-                                        @if($material->link_url)
-                                            <span class="lms-chip lms-chip-submitted"><i class="icon-link mr-1"></i>Link</span>
-                                        @endif
-                                    </span>
-                                </span>
-                                <span class="lms-mat-actions">
-                                    @if($material->file_path)
-                                        <a href="{{ route('materials.download', $material->id) }}" class="btn btn-light btn-sm"><i class="icon-download mr-1"></i> Download</a>
-                                    @endif
-                                    @if($material->link_url)
-                                        <a href="{{ $material->link_url }}" target="_blank" rel="noopener" class="btn btn-light btn-sm"><i class="icon-link mr-1"></i> Open Link</a>
-                                    @endif
-                                    @if($isTeacher && $material->teacher_id == auth()->id() && $material->section_id)
-                                        <a href="{{ route('materials.share', $material->id) }}" class="btn btn-light btn-sm"><i class="icon-share2 mr-1"></i> Share</a>
-                                    @endif
-                                    @if(($isTeacher && $material->teacher_id == auth()->id()) || $isAdmin)
-                                        <form method="post" action="{{ route('materials.destroy', $material->id) }}" style="display:inline">@csrf @method('delete')<button type="submit" class="btn btn-light btn-sm text-danger" data-confirm="Delete this study material?" data-confirm-title="Delete Material" data-confirm-action="Delete" data-confirm-danger><i class="icon-trash mr-1"></i> Delete</button></form>
-                                    @endif
-                                </span>
+                        @if($items->isNotEmpty())
+                            <div class="table-responsive">
+                                <table class="table lms-table l108-stack">
+                                    <thead>
+                                    <tr>
+                                        <th>Title</th>
+                                        <th>Type</th>
+                                        <th>Class – Section</th>
+                                        <th>Teacher</th>
+                                        <th>Date</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    @foreach($items as $material)
+                                        @php
+                                            $matExt = $material->file_path ? strtolower(pathinfo($material->file_path, PATHINFO_EXTENSION)) : null;
+                                            $matViewable = $matExt !== null && in_array($matExt, ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'webp'], true);
+                                        @endphp
+                                        <tr>
+                                            <td data-label="Title">
+                                                @if($material->file_path && $matViewable)
+                                                    <a href="{{ route('materials.viewer', $material->id) }}"><strong>{{ $material->title }}</strong></a>
+                                                @elseif($material->file_path)
+                                                    <a href="{{ route('materials.download', $material->id) }}"><strong>{{ $material->title }}</strong></a>
+                                                @elseif($material->link_url)
+                                                    <a href="{{ $material->link_url }}" target="_blank" rel="noopener"><strong>{{ $material->title }}</strong></a>
+                                                @else
+                                                    <strong>{{ $material->title }}</strong>
+                                                @endif
+                                                @if($material->description)
+                                                    <div class="text-muted lms82-clamp2">{{ \Illuminate\Support\Str::limit($material->description, 160) }}</div>
+                                                @endif
+                                            </td>
+                                            <td data-label="Type">
+                                                @if($material->file_path)
+                                                    <span class="lms-chip lms-chip-subject"><i class="icon-file-text2 mr-1"></i>{{ strtoupper($matExt ?: 'File') }}</span>
+                                                @endif
+                                                @if($material->link_url)
+                                                    <span class="lms-chip lms-chip-submitted"><i class="icon-link mr-1"></i>Link</span>
+                                                @endif
+                                                @if(!$material->file_path && !$material->link_url)
+                                                    <span class="text-muted">—</span>
+                                                @endif
+                                            </td>
+                                            <td data-label="Class – Section">
+                                                {{ optional($material->myClass)->name ?? 'Class —' }}{{ $material->section ? ' · ' . optional($material->section)->name : ' · Whole class' }}@if(isset($cover_pairs) && ($cover_pairs[$material->my_class_id] ?? null) && in_array((int) $material->subject_id, $cover_pairs[$material->my_class_id], true) && (int) $material->teacher_id !== (int) Auth::id()) <span class="badge badge-warning ml-1">(Substitute)</span>@endif
+                                            </td>
+                                            <td data-label="Teacher">{{ optional($material->teacher)->name ?? 'Teacher' }}</td>
+                                            <td data-label="Date">{{ $material->created_at ? \Carbon\Carbon::parse($material->created_at)->format('d M Y') : '—' }}</td>
+                                            <td data-label="Actions" style="white-space:nowrap">
+                                                @if($material->file_path && $matViewable)
+                                                    <a href="{{ route('materials.viewer', $material->id) }}" class="btn btn-light btn-sm"><i class="icon-eye mr-1"></i> Read</a>
+                                                @endif
+                                                @if($material->file_path)
+                                                    <a href="{{ route('materials.download', $material->id) }}" class="btn btn-light btn-sm"><i class="icon-download mr-1"></i> Download</a>
+                                                @endif
+                                                @if($material->link_url)
+                                                    <a href="{{ $material->link_url }}" target="_blank" rel="noopener" class="btn btn-light btn-sm"><i class="icon-link mr-1"></i> Open Link</a>
+                                                @endif
+                                                @if($isTeacher && $material->teacher_id == auth()->id() && $material->section_id)
+                                                    <a href="{{ route('materials.share', $material->id) }}" class="btn btn-light btn-sm"><i class="icon-share2 mr-1"></i> Share</a>
+                                                @endif
+                                                @if(($isTeacher && $material->teacher_id == auth()->id()) || $isAdmin)
+                                                    <form method="post" action="{{ route('materials.destroy', $material->id) }}" style="display:inline">@csrf @method('delete')<button type="submit" class="btn btn-light btn-sm text-danger" data-confirm="Delete this study material?" data-confirm-title="Delete Material" data-confirm-action="Delete" data-confirm-danger><i class="icon-trash mr-1"></i> Delete</button></form>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                    </tbody>
+                                </table>
                             </div>
-                        @empty
+                        @else
                             <div class="lms82-group-empty">
                                 <div><i class="icon-book mr-1"></i> No study materials yet</div>
                                 <div>Materials for this subject will appear here when teachers add them.</div>
                             </div>
-                        @endforelse
+                        @endif
                     </div>
                 </div>
             @endforeach

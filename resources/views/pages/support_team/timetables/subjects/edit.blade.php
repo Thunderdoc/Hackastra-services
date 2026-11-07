@@ -35,7 +35,7 @@
                                         data-ts="{{ $tt->ts_id }}">
                                     <i class="icon-pencil mr-1"></i> Edit
                                 </button>
-                                <a onclick="confirmDelete(this.id)" href="#" id="{{ $tt->id }}" title="DELETE" class="btn btn-light btn-sm text-danger"><i class="icon-trash mr-1"></i> Delete</a>
+                                <a data-item-name="{{ optional($tt->subject)->name }}" onclick="confirmDelete(this.id, this.dataset.itemName)" href="#" id="{{ $tt->id }}" title="DELETE" class="btn btn-light btn-sm text-danger"><i class="icon-trash mr-1"></i> Delete</a>
                                 <form method="post" id="item-delete-{{ $tt->id }}" action="{{ route('tt.delete', $tt->id) }}" class="hidden">@csrf @method('delete')</form>
                             </div>
                         </td>

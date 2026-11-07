@@ -60,6 +60,9 @@
               <a class="btn btn-light" href="{{ route('audit_logs.index') }}">Reset</a>
           </div>
       </form>
+      <div class="mt-2">
+          @include('partials.patterns.saved_views', ['svList' => 'audit'])
+      </div>
       <div class="au-quick">
           <a class="au-qpill {{ !$active_group ? 'on' : '' }}" href="{{ route('audit_logs.index', array_merge($filters, ['group' => null])) }}">All <b>{{ number_format(array_sum($group_counts)) }}</b></a>
           @foreach(\App\Support\AuditLabels::$groups as $key => $meta)
@@ -75,14 +78,12 @@
 
   <div class="card au-tablecard">
       @if($logs->isEmpty())
-          <div class="au-empty">
-              @include('partials.patterns.empty_state', [
+          @include('partials.patterns.empty_state', [
                   'icon' => 'icon-history',
                   'message' => array_filter($filters) || $active_group
                       ? 'No audit entries match these filters.'
                       : 'No audit entries yet. Logins, payments, mark updates and deletions will appear here.',
               ])
-          </div>
       @else
           <div class="table-responsive">
               <table class="au-table hk-std hk-std-audit">

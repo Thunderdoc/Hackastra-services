@@ -14,7 +14,7 @@
             </p>
 
             @if($requests->isEmpty())
-                <p class="text-muted mb-0">No unlock requests yet.</p>
+                @include('partials.patterns.empty_state', ['icon' => 'icon-lock', 'message' => 'No unlock requests yet.'])
             @else
                 <div class="table-responsive">
                     <table class="table">

@@ -16,10 +16,11 @@
             @if($is_admin)
                 <p class="text-muted">All student elective choices. Approve or reject a choice; a rejected choice can be picked again by the student.</p>
                 @if($choices->isEmpty())
-                    <p class="text-muted">No elective choices yet.</p>
+                    @include('partials.patterns.empty_state', ['icon' => 'icon-book', 'message' => 'No elective choices yet.'])
                 @else
                     <div class="table-responsive">
-                        <table class="table table-striped">
+                        <table class="table table-striped hk-std hk-std-880">
+                            <colgroup><col style="width:24%"><col style="width:12%"><col style="width:12%"><col style="width:22%"><col style="width:12%"><col style="width:18%"></colgroup>
                             <thead>
                                 <tr>
                                     <th>Student</th>
@@ -37,8 +38,8 @@
                                         <td>{{ $choice->student_record && $choice->student_record->my_class ? $choice->student_record->my_class->name : '-' }}</td>
                                         <td>{{ $choice->student_record && $choice->student_record->section ? $choice->student_record->section->name : '-' }}</td>
                                         <td>{{ $choice->subject ? $choice->subject->name : '-' }}</td>
-                                        <td>{{ ucfirst($choice->status) }}</td>
-                                        <td>
+                                        <td class="hk-nw">{{ ucfirst($choice->status) }}</td>
+                                        <td class="hk-nw">
                                             @if($choice->status !== 'approved')
                                                 <form method="POST" action="{{ route('electives.approve', $choice->id) }}" style="display:inline;">
                                                     @csrf
@@ -93,7 +94,7 @@
                 </div>
                 <h5 class="mt-3">Your Choices</h5>
                 @if($choices->isEmpty())
-                    <p class="text-muted">You have not picked any electives yet.</p>
+                    @include('partials.patterns.empty_state', ['icon' => 'icon-book', 'message' => 'You have not picked any electives yet.'])
                 @else
                     <div class="table-responsive">
                         <table class="table table-striped">

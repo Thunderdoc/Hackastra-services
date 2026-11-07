@@ -9,11 +9,12 @@
         <div class="card pat-card">
         <div class="card-body">
             @if(!$student)
-                <p class="text-muted mb-0">
-                    {{ $is_parent
+                @include('partials.patterns.empty_state', [
+                    'icon' => 'icon-users',
+                    'message' => $is_parent
                         ? 'No student record is linked to your account yet. Please contact the school office so they can link your child to your account.'
-                        : 'No student record is linked to your account yet. Please contact the school office.' }}
-                </p>
+                        : 'No student record is linked to your account yet. Please contact the school office.',
+                ])
             @else
                 {{-- Workstream BW: filter bar moved onto the shared
                      pat-filter-form (was form-inline). Same GET
@@ -69,7 +70,10 @@
                 @endif
 
                 @if($entries->isEmpty())
-                    <p class="text-muted mb-0">{{ $view === 'session' ? 'No period attendance has been recorded yet this session.' : 'No period attendance was recorded in ' . $month->format('F Y') . '.' }}</p>
+                    @include('partials.patterns.empty_state', [
+                        'icon' => 'icon-calendar2',
+                        'message' => $view === 'session' ? 'No period attendance has been recorded yet this session.' : 'No period attendance was recorded in ' . $month->format('F Y') . '.',
+                    ])
                 @else
                     @if($summary['percent'] !== null)
                         <div class="progress mb-3" style="height:8px">
@@ -79,7 +83,8 @@
 
                     <h6 class="mb-2">By Subject</h6>
                     <div class="table-responsive mb-4">
-                        <table class="table table-striped l108-stack">
+                        <table class="table table-striped l108-stack hk-std">
+                            <colgroup><col style="width:30%"><col style="width:14%"><col style="width:14%"><col style="width:12%"><col style="width:14%"><col style="width:16%"></colgroup>
                             <thead><tr><th>Subject</th><th>Present</th><th>Absent</th><th>Late</th><th>Periods</th><th>Attendance %</th></tr></thead>
                             <tbody>
                             @foreach($subjects as $row)
@@ -89,7 +94,7 @@
                                     <td data-label="Absent">{{ $row['absent'] }}</td>
                                     <td data-label="Late">{{ $row['late'] }}</td>
                                     <td data-label="Periods">{{ $row['marked'] }}</td>
-                                    <td data-label="Attendance %">{{ $row['percent'] === null ? '—' : $row['percent'] . '%' }}</td>
+                                    <td data-label="Attendance %" class="hk-nw">{{ $row['percent'] === null ? '—' : $row['percent'] . '%' }}</td>
                                 </tr>
                             @endforeach
                             </tbody>
@@ -99,15 +104,16 @@
                     @if($view === 'month')
                     <h6 class="mb-2">Period Registers</h6>
                     <div class="table-responsive">
-                        <table class="table table-striped l108-stack">
+                        <table class="table table-striped l108-stack hk-std">
+                            <colgroup><col style="width:26%"><col style="width:24%"><col style="width:30%"><col style="width:20%"></colgroup>
                             <thead><tr><th>Date</th><th>Subject</th><th>Topic Taught</th><th>Status</th></tr></thead>
                             <tbody>
                             @foreach($entries as $entry)
                                 <tr>
-                                    <td data-label="Date">{{ $entry->session->date->format('d M Y') }} <span class="text-muted">({{ $entry->session->date->format('l') }})</span></td>
+                                    <td data-label="Date" class="hk-nw">{{ $entry->session->date->format('d M Y') }} <span class="text-muted">({{ $entry->session->date->format('l') }})</span></td>
                                     <td data-label="Subject">{{ optional($entry->session->subject)->name ?: '—' }}</td>
                                     <td data-label="Topic Taught">{{ $entry->session->topic ?: '—' }}</td>
-                                    <td data-label="Status">
+                                    <td data-label="Status" class="hk-nw">
                                         @if($entry->status === 'present')
                                             <span class="badge badge-success">Present</span>
                                         @elseif($entry->status === 'late')

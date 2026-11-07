@@ -3,10 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Helpers\Qs;
-use App\Models\MyClass;
-use App\Models\Payment;
-use App\Support\TeacherScope;
-use App\User;
+use App\Support\DashboardSearch;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -15,6 +12,14 @@ use Illuminate\Support\Facades\Auth;
  * The search box used to be decorative. This is the real thing:
  * Team/SA/T users search students, staff, classes and payments;
  * everyone else is redirected to their dashboard.
+ *
+ * Round 5 Slice 4 (P3): the data queries now live in
+ * App\Support\DashboardSearch, shared with the command palette's
+ * JSON endpoint (palette() below) so the HTML page and the
+ * palette can never drift on scoping. The shared query also
+ * closes the audit's two holes — teacher classes are
+ * TeacherScope-scoped and the payments group is excluded for
+ * teachers — on BOTH surfaces, this page included.
  */
 class DashboardSearchController extends Controller
 {
@@ -26,73 +31,26 @@ class DashboardSearchController extends Controller
 
         $term = trim((string) $request->query('q', ''));
 
-        $data = [
-            'term' => $term,
-            'students' => collect(),
-            'staff' => collect(),
-            'classes' => collect(),
-            'payments' => collect(),
-        ];
-
-        if (Qs::userIsSuperAdmin()) {
-            // Platform-only model (owner ruling 2026-10-22,
-            // Workstream DD): the Super Admin's search covers
-            // platform accounts (staff types) only — never student
-            // or parent records, classes or payments.
-            if (strlen($term) >= 2) {
-                $like = '%' . $term . '%';
-
-                $data['staff'] = User::whereIn('user_type', ['teacher', 'admin', 'super_admin', 'accountant', 'librarian', 'nurse'])
-                    ->where(function ($q) use ($like) {
-                        $q->where('name', 'like', $like)->orWhere('email', 'like', $like);
-                    })
-                    ->take(10)
-                    ->get();
-            }
-
-            return view('pages.support_team.search_results', $data);
-        }
-
-        if (strlen($term) >= 2) {
-            $like = '%' . $term . '%';
-
-            $data['students'] = User::where('user_type', 'student')
-                ->where(function ($q) use ($like) {
-                    $q->where('name', 'like', $like)->orWhere('email', 'like', $like);
-                })
-                // Roles audit round 18: a teacher sees only their
-                // assigned students (TeacherScope rule) — the search
-                // must not hand them every class's roster. Admin and
-                // principal search school-wide by design.
-                ->when(Qs::userIsTeacher(), function ($q) {
-                    $q->whereHas('student_record', function ($sq) {
-                        $sq->whereIn('my_class_id', TeacherScope::classIds(Auth::user()));
-                    });
-                })
-                ->with('student_record.my_class', 'student_record.section')
-                ->take(10)
-                ->get();
-
-            // Roles audit round 18: the platform boundary holds both
-            // ways — school roles never see the platform account in
-            // search (the SA users list already hides school roles
-            // from the SA side). 'super_admin' stays in the SA's own
-            // branch above, which is platform-only by design.
-            $data['staff'] = User::whereIn('user_type', ['teacher', 'admin', 'accountant', 'librarian', 'principal', 'nurse'])
-                ->where(function ($q) use ($like) {
-                    $q->where('name', 'like', $like)->orWhere('email', 'like', $like);
-                })
-                ->take(10)
-                ->get();
-
-            $data['classes'] = MyClass::where('name', 'like', $like)->take(10)->get();
-
-            $data['payments'] = Payment::where('title', 'like', $like)
-                ->orWhere('ref_no', 'like', $like)
-                ->take(10)
-                ->get();
-        }
+        $data = ['term' => $term] + DashboardSearch::results(Auth::user(), $term);
 
         return view('pages.support_team.search_results', $data);
+    }
+
+    /**
+     * Command palette endpoint (Round 5 Slice 4, P3):
+     * GET /dashboard/search.json?q= →
+     * {pages:[], actions:[], students:[], staff:[], classes:[], payments:[]}
+     *
+     * Deliberately NOT gated like __invoke: roles the HTML page
+     * 403s (student, parent, accountant, librarian, nurse) still
+     * get their own Pages/Actions catalogue — navigation only,
+     * every data group empty. The data gate is NOT widened;
+     * DashboardSearch::palettePayload enforces it server-side.
+     */
+    public function palette(Request $request)
+    {
+        $term = trim((string) $request->query('q', ''));
+
+        return response()->json(DashboardSearch::palettePayload(Auth::user(), $term));
     }
 }

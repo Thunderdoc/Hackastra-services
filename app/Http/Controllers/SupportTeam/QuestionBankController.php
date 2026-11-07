@@ -68,22 +68,43 @@ class QuestionBankController extends Controller
     }
 
     /**
-     * Shared store/update validation. Options arrive as four inputs;
-     * blanks are dropped, and at least two must survive, with the
-     * correct option inside the surviving range.
+     * Shared store/update validation (F4 Slice 0 branches it on
+     * question_type): MCQ keeps the original exact rules — options
+     * arrive as four inputs; blanks are dropped, and at least two
+     * must survive, with the correct option inside the surviving
+     * range. Short/long questions carry no options at all; they
+     * require a model answer instead (the answer key must never be
+     * blank for a printed paper).
      */
-    protected function validatedData(Request $request, int $userId, ?QuestionBankQuestion $existing = null)
+    public function validatedData(Request $request, int $userId, ?QuestionBankQuestion $existing = null)
     {
-        $request->validate([
+        $type = $request->input('question_type');
+        if (!in_array($type, ['mcq', 'short', 'long'], true)) {
+            $type = $existing ? ($existing->question_type ?: 'mcq') : 'mcq';
+        }
+
+        $base = [
             'my_class_id' => 'required|integer|exists:my_classes,id',
             'subject_id' => 'required|integer|exists:subjects,id',
             'section_id' => 'nullable|integer|exists:sections,id',
             'question' => 'required|string',
-            'options' => 'required|array',
-            'options.*' => 'nullable|string',
-            'correct_index' => 'required|integer|min:0',
             'marks' => 'required|integer|min:1',
-        ]);
+            'chapter' => 'nullable|string|max:120',
+            'difficulty' => 'nullable|in:easy,medium,hard',
+            'question_type' => 'nullable|in:mcq,short,long',
+        ];
+
+        if ($type === 'mcq') {
+            $request->validate($base + [
+                'options' => 'required|array',
+                'options.*' => 'nullable|string',
+                'correct_index' => 'required|integer|min:0',
+            ]);
+        } else {
+            $request->validate($base + [
+                'model_answer' => 'required|string',
+            ]);
+        }
 
         $subject = Subject::find($request->input('subject_id'));
 
@@ -124,6 +145,25 @@ class QuestionBankController extends Controller
             }
         }
 
+        $chapter = trim((string) $request->input('chapter', ''));
+        $difficulty = $request->input('difficulty') ?: null;
+
+        if ($type !== 'mcq') {
+            return [
+                'my_class_id' => (int) $request->input('my_class_id'),
+                'section_id' => $sectionId ? (int) $sectionId : null,
+                'subject_id' => (int) $request->input('subject_id'),
+                'question' => trim($request->input('question')),
+                'options' => null,
+                'correct_index' => null,
+                'model_answer' => trim($request->input('model_answer')),
+                'question_type' => $type,
+                'chapter' => $chapter !== '' ? $chapter : null,
+                'difficulty' => $difficulty,
+                'marks' => (int) $request->input('marks'),
+            ];
+        }
+
         $options = array_values(array_filter(array_map(
             fn ($o) => is_string($o) ? trim($o) : $o,
             $request->input('options', [])
@@ -148,8 +188,27 @@ class QuestionBankController extends Controller
             'question' => trim($request->input('question')),
             'options' => $options,
             'correct_index' => (int) $request->input('correct_index'),
+            'model_answer' => null,
+            'question_type' => 'mcq',
+            'chapter' => $chapter !== '' ? $chapter : null,
+            'difficulty' => $difficulty,
             'marks' => (int) $request->input('marks'),
         ];
+    }
+
+    /**
+     * The SAME per-type bank rules, applied to a plain data array
+     * (F4 Slice 3: AI suggestions approved into the bank must pass
+     * exactly what a hand-typed question passes — including the
+     * teaching-scope checks inside validatedData()).
+     *
+     * @throws ValidationException
+     */
+    public function validatedArray(array $input, int $userId, ?QuestionBankQuestion $existing = null)
+    {
+        $request = Request::create('/', 'POST', $input);
+
+        return $this->validatedData($request, $userId, $existing);
     }
 
     public function index(Request $request)

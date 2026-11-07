@@ -38,7 +38,7 @@
                                     <td>{{ number_format($inst->amount) }}</td>
                                     <td>
                                         @if(Qs::userIsTeamSAWrite())
-                                            <form method="POST" action="{{ route('fee_structure.installments.destroy', ['fee_head' => $head->id, 'installment' => $inst->id]) }}" style="display:inline" onsubmit="return confirm('Delete this installment?')">
+                                            <form method="POST" action="{{ route('fee_structure.installments.destroy', ['fee_head' => $head->id, 'installment' => $inst->id]) }}" style="display:inline" data-confirm="Delete installment {{ $inst->installment_no }}? This cannot be undone." data-confirm-title="Delete Installment" data-confirm-action="Delete" data-confirm-danger>
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit" class="btn btn-sm btn-danger">Delete</button>
@@ -51,7 +51,7 @@
                     </table>
                 </div>
             @else
-                <p>No installments yet.</p>
+                @include('partials.patterns.empty_state', ['icon' => 'icon-cash2', 'message' => 'No installments yet.'])
             @endif
 
             @if(Qs::userIsTeamSAWrite())
@@ -92,7 +92,7 @@
                                     <td>
                                         @if(Qs::userIsTeamSAWrite())
                                             <a href="{{ route('fee_structure.concessions.edit', ['concession' => $c->id]) }}" class="btn btn-sm btn-primary">Edit</a>
-                                            <form method="POST" action="{{ route('fee_structure.concessions.destroy', ['concession' => $c->id]) }}" style="display:inline" onsubmit="return confirm('Delete this concession?')">
+                                            <form method="POST" action="{{ route('fee_structure.concessions.destroy', ['concession' => $c->id]) }}" style="display:inline" data-confirm="Delete the concession for {{ optional(optional($c->student_record)->user)->name ?: 'this student' }}? This cannot be undone." data-confirm-title="Delete Concession" data-confirm-action="Delete" data-confirm-danger>
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit" class="btn btn-sm btn-danger">Delete</button>
@@ -105,7 +105,7 @@
                     </table>
                 </div>
             @else
-                <p>No concessions on this head.</p>
+                @include('partials.patterns.empty_state', ['icon' => 'icon-cash2', 'message' => 'No concessions on this head.'])
             @endif
             @if(Qs::userIsTeamSAWrite())
                 <a href="{{ route('fee_structure.concessions.create', ['fee_head' => $head->id]) }}" class="btn btn-secondary">New Concession for this head</a>

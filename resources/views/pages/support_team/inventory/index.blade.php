@@ -69,7 +69,13 @@
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="8" class="text-center text-muted">No inventory items yet.</td></tr>
+                        <tr><td colspan="8">
+                            @if(!empty($q) || $category !== 'all' || $low_stock)
+                                @include('partials.patterns.empty_state', ['icon' => 'icon-search4', 'message' => 'No inventory items match these filters.', 'action_html' => '<a class="btn btn-primary" href="' . route('inventory.index') . '">Clear filters</a>'])
+                            @else
+                                @include('partials.patterns.empty_state', ['icon' => 'icon-box', 'message' => 'No inventory items yet.'])
+                            @endif
+                        </td></tr>
                     @endforelse
                     </tbody>
                 </table>

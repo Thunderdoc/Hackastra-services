@@ -20,6 +20,7 @@
             Create exams, then use each exam's tools to open its marking scheme, admit cards, result publishing and editing.
         @endslot
         @slot('action')
+            <a href="{{ route('exams.periods.index') }}" class="btn btn-light"><i class="icon-calendar mr-2"></i> Exam Pattern</a>
             @if(Qs::userIsTeamSAWrite())
             <a href="#add-exam" class="btn btn-primary"><i class="icon-plus2 mr-2"></i> Add Exam</a>
             @endif
@@ -31,7 +32,7 @@
                 <tr>
                     <th>S/N</th>
                     <th>Name</th>
-                    <th>Term</th>
+                    <th>Period</th>
                     <th>Session</th>
                     <th>Scope</th>
                     <th>Results</th>
@@ -43,7 +44,7 @@
                     <tr>
                         <td data-label="S/N">{{ $loop->iteration }}</td>
                         <td data-label="Name">{{ $ex->name }}</td>
-                        <td data-label="Term">{{ 'Term '.$ex->term }}</td>
+                        <td data-label="Period">{{ $ex->periodLabel() }}</td>
                         <td data-label="Session">{{ $ex->year }}</td>
                         <td data-label="Scope">{{ empty($ex->my_class_id) ? 'All classes' : ($my_classes->firstWhere('id', $ex->my_class_id)->name ?? 'Class '.$ex->my_class_id) }}</td>
                         <td data-label="Results">
@@ -77,7 +78,7 @@
                                 @if(Qs::userIsTeamSAWrite())
                                 <a href="{{ route('exams.scheme', $ex->id) }}" class="btn btn-light btn-sm"><i class="icon-list mr-1"></i> Marking Scheme</a>
                                 <a href="{{ route('exams.edit', $ex->id) }}" class="btn btn-primary btn-sm"><i class="icon-pencil mr-1"></i> Edit</a>
-                                <button type="button" id="{{ $ex->id }}" onclick="confirmDelete(this.id)" class="btn btn-danger btn-sm"><i class="icon-trash mr-1"></i> Delete</button>
+                                <button type="button" id="{{ $ex->id }}" data-item-name="{{ $ex->name }}" onclick="confirmDelete(this.id, this.dataset.itemName)" class="btn btn-danger btn-sm"><i class="icon-trash mr-1"></i> Delete</button>
                                 <form method="post" id="item-delete-{{ $ex->id }}" action="{{ route('exams.destroy', $ex->id) }}" class="hidden">@csrf @method('delete')</form>
                                 @endif
                                 @if(Qs::userIsPrincipal())
@@ -131,12 +132,21 @@
                         <input id="name" name="name" value="{{ old('name') }}" required type="text" class="form-control" placeholder="Name of Exam">
                     </div>
                     <div class="pat-field">
-                        <label for="term">Term</label>
-                        <select data-placeholder="Select Term" class="form-control select-search" name="term" id="term">
-                            <option {{ old('term') == 1 ? 'selected' : '' }} value="1">First Term</option>
-                            <option {{ old('term') == 2 ? 'selected' : '' }} value="2">Second Term</option>
-                            <option {{ old('term') == 3 ? 'selected' : '' }} value="3">Third Term</option>
+                        <label for="period_id">Assessment Period</label>
+                        <select data-placeholder="Select Period" class="form-control select-search" name="period_id" id="period_id" required>
+                            <option value="">Select Period</option>
+                            @foreach(['term' => 'Terms', 'unit' => 'Unit Tests', 'standalone' => 'Other'] as $pk => $plabel)
+                                @php $group = $periods->where('kind', $pk); @endphp
+                                @if($group->isNotEmpty())
+                                <optgroup label="{{ $plabel }}">
+                                    @foreach($group as $per)
+                                        <option {{ (string) old('period_id') === (string) $per->id ? 'selected' : '' }} value="{{ $per->id }}">{{ $per->name }}@if($per->kind === 'unit' && $per->feedsPeriod) (feeds {{ $per->feedsPeriod->name }})@endif</option>
+                                    @endforeach
+                                </optgroup>
+                                @endif
+                            @endforeach
                         </select>
+                        <small class="text-muted">Periods come from the <a href="{{ route('exams.periods.index') }}">Exam Pattern</a> page for the current session.</small>
                     </div>
                     <div class="pat-field">
                         <label for="my_class_id">Class</label>
@@ -146,7 +156,7 @@
                                 <option {{ old('my_class_id') == $mc->id ? 'selected' : '' }} value="{{ $mc->id }}">{{ $mc->name }}</option>
                             @endforeach
                         </select>
-                        <small class="text-muted">All classes = the old global exam. One class = only that class gets this exam for the term; other classes need their own.</small>
+                        <small class="text-muted">All classes = the old global exam. One class = only that class gets this exam for the period; other classes need their own.</small>
                     </div>
                 </div>
             </div>

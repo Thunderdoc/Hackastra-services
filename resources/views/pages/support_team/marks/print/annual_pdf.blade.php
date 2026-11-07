@@ -1,5 +1,6 @@
 <html>
 <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <title>Annual Report Sheet - {{ $sr->user->name }}</title>
     {{-- Loop 85: the downloadable PDF twin of the printed annual
          document — the SAME annual_report_card partial, the SAME

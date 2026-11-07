@@ -45,7 +45,7 @@
 <div class="mb-3">
     <a href="{{ route('marks.manage', [$exam_id, $my_class_id, $section_id, $subject_id]) }}" class="btn btn-light btn-sm"><i class="icon-arrow-left7 mr-1"></i> Back to Marks</a>
 </div>
-<form class="ajax-update" action="{{ route('marks.update', [$exam_id, $my_class_id, $section_id, $subject_id]) }}" method="post">
+<form class="ajax-update" data-hk-save-form action="{{ route('marks.update', [$exam_id, $my_class_id, $section_id, $subject_id]) }}" method="post">
     @csrf @method('put')
 
     @if($scheme['configured'])
@@ -261,6 +261,24 @@
         });
         var nm = document.getElementById('l86-nomatch');
         if(nm) nm.hidden = visible !== 0;
+    });
+    /* Round 5 Slice 2 (P6): unload guard ONLY — marks are never
+       autosaved to localStorage (the server draft behind Save is
+       the durable store, and a whole class grid does not belong
+       at rest in the browser). This follows the My Account
+       profile form's beforeunload precedent: while the page's
+       own dirty state (#l86-dirty, kept live by renderSummary)
+       says there are unsaved changes, leaving asks the browser's
+       native confirm; a submit disarms the guard. */
+    var l86Submitting = false;
+    form.addEventListener('submit', function(){ l86Submitting = true; });
+    window.addEventListener('beforeunload', function(e){
+        var hint = document.getElementById('l86-dirty');
+        var dirty = hint ? !hint.hidden : !!form.querySelector('input.l86-dirty');
+        if(!l86Submitting && dirty){
+            e.preventDefault();
+            e.returnValue = '';
+        }
     });
     renderAll();
 })();

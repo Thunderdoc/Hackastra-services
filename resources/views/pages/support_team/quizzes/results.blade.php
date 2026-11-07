@@ -26,10 +26,10 @@
                 &middot; {{ $attempts->count() }} attempt(s)
             </p>
             @if ($attempts->isEmpty())
-                <p class="text-muted">No attempts yet.</p>
+                @include('partials.patterns.empty_state', ['icon' => 'icon-file-text2', 'message' => 'No attempts yet.'])
             @else
                 <div class="table-responsive">
-                    <table class="table table-striped">
+                    <table class="table lms-table l108-stack">
                         <thead>
                             <tr>
                                 <th>Student</th>
@@ -40,18 +40,19 @@
                         <tbody>
                             @foreach ($attempts as $attempt)
                                 <tr>
-                                    <td>{{ $attempt->student_record && $attempt->student_record->user ? $attempt->student_record->user->name : 'Student #' . $attempt->student_record_id }}</td>
-                                    <td>{{ $attempt->score }} / {{ $attempt->total }}</td>
-                                    <td>{{ $attempt->submitted_at ? $attempt->submitted_at->format('d M Y, h:i A') : '' }}</td>
+                                    <td data-label="Student">{{ $attempt->student_record && $attempt->student_record->user ? $attempt->student_record->user->name : 'Student #' . $attempt->student_record_id }}</td>
+                                    <td data-label="Score">{{ $attempt->score }} / {{ $attempt->total }}</td>
+                                    <td data-label="Submitted">{{ $attempt->submitted_at ? $attempt->submitted_at->format('d M Y, h:i A') : '' }}</td>
                                 </tr>
                             @endforeach
                         </tbody>
                     </table>
                 </div>
                 @foreach ($attempts as $attempt)
-                    <h6 class="mt-4">Per-question correctness: {{ $attempt->student_record && $attempt->student_record->user ? $attempt->student_record->user->name : 'Student #' . $attempt->student_record_id }} ({{ $attempt->score }} / {{ $attempt->total }})</h6>
-                    <div class="table-responsive">
-                        <table class="table table-sm table-striped">
+                    <details class="mt-3">
+                    <summary><strong>Per-question detail:</strong> {{ $attempt->student_record && $attempt->student_record->user ? $attempt->student_record->user->name : 'Student #' . $attempt->student_record_id }} ({{ $attempt->score }} / {{ $attempt->total }})</summary>
+                    <div class="table-responsive mt-2">
+                        <table class="table table-sm lms-table l108-stack">
                             <thead>
                                 <tr>
                                     <th>Question</th>
@@ -67,15 +68,16 @@
                                         $opts = $q ? ($q->options ?: []) : [];
                                     @endphp
                                     <tr>
-                                        <td>{{ $q ? $q->question : '-' }}</td>
-                                        <td>{{ $answer->selected_index !== null && isset($opts[$answer->selected_index]) ? $opts[$answer->selected_index] : 'Not answered' }}</td>
-                                        <td>{{ $q && isset($opts[$q->correct_index]) ? $opts[$q->correct_index] : '-' }}</td>
-                                        <td>{{ $answer->is_correct ? 'Correct' : 'Wrong' }}</td>
+                                        <td data-label="Question">{{ $q ? $q->question : '-' }}</td>
+                                        <td data-label="Selected">{{ $answer->selected_index !== null && isset($opts[$answer->selected_index]) ? $opts[$answer->selected_index] : 'Not answered' }}</td>
+                                        <td data-label="Correct">{{ $q && isset($opts[$q->correct_index]) ? $opts[$q->correct_index] : '-' }}</td>
+                                        <td data-label="Result">{{ $answer->is_correct ? 'Correct' : 'Wrong' }}</td>
                                     </tr>
                                 @endforeach
                             </tbody>
                         </table>
                     </div>
+                    </details>
                 @endforeach
             @endif
             <a href="{{ route('quizzes.show', $quiz->id) }}" class="btn btn-light">Back to Quiz</a>

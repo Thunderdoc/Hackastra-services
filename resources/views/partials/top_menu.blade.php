@@ -24,18 +24,20 @@
     </a>
     <form class="lav-search" role="search" method="GET" action="{{ route('dashboard.search') }}">
         <i class="icon-search4"></i>
-        <input type="search" name="q" id="lav-global-search" value="{{ request('q') }}" placeholder="{{ Qs::userIsSuperAdmin() ? 'Search platform users...' : ((Auth::user() && Auth::user()->user_type === 'librarian') ? 'Search students, books, teachers, classes…' : 'Search students, teachers, classes, payments...') }}" aria-label="Search">
+        {{-- Round 5 Slice 4 (P3): the placeholder now promises only
+             what search actually covers per role — data roles get
+             the record groups; everyone else gets the palette's
+             Pages/Actions catalogue. (The old librarian text
+             promised book search, which does not exist.) With JS
+             on, clicking this input opens the command palette
+             (partials/command_palette); the form still submits
+             here as the no-JS fallback. --}}
+        <input type="search" name="q" id="lav-global-search" value="{{ request('q') }}" placeholder="{{ Qs::userIsSuperAdmin() ? 'Search platform users...' : ((Qs::userIsTeamSAT() || Qs::userIsPrincipal()) ? 'Search students, teachers, classes, payments...' : 'Search pages and actions…') }}" aria-label="Search" data-hk-palette-trigger="1" aria-haspopup="dialog">
         <kbd>Ctrl + K</kbd>
     </form>
-    <script>
-        document.addEventListener('keydown', function (event) {
-            if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
-                event.preventDefault();
-                var input = document.getElementById('lav-global-search');
-                if (input) { input.focus(); input.select(); }
-            }
-        });
-    </script>
+    {{-- Ctrl+K focus lives in the keyboard shortcut registry
+         (hackstra-ux.js, Round 5 Slice 1 P13) — exactly one owner
+         for the behaviour. --}}
     <div class="ml-auto d-flex align-items-center lav-topbar-right">
         {{-- Loop 56 — live clock (Workstream CC, owner: "timer should
              be in the header for all"). The server renders the initial
@@ -308,18 +310,36 @@
                     var wrap = document.getElementById('lavNotifBell');
                     if (!wrap || !window.jQuery) { return; }
                     window.jQuery(wrap).on('show.bs.dropdown', function () {
+                        // Round 5 Slice 1 (P1/P20): the badge fall is
+                        // optimistic THROUGH hkOptimistic — the old
+                        // handler ran it for ANY response status and
+                        // swallowed failures whole, so a dead request
+                        // left the badge claiming "read" that the
+                        // server never recorded. On failure the badge
+                        // is restored and the error floor speaks.
+                        var badge = wrap.querySelector('.lav-bell-badge');
+                        if (!badge || !window.hkOptimistic) { return; }
+                        var btn = wrap.querySelector('[data-lav-badge-base]');
+                        var badgeText = badge.textContent;
+                        var left = btn ? parseInt(btn.getAttribute('data-lav-badge-base') || '0', 10) : 0;
                         var meta = document.querySelector('meta[name="csrf-token"]');
-                        fetch('{{ route('notifications.read') }}', {
-                            method: 'POST',
-                            credentials: 'same-origin',
-                            headers: { 'X-CSRF-TOKEN': meta ? meta.getAttribute('content') : '' }
-                        }).then(function () {
-                            var btn = wrap.querySelector('[data-lav-badge-base]');
-                            var badge = wrap.querySelector('.lav-bell-badge');
-                            if (!badge) { return; }
-                            var left = btn ? parseInt(btn.getAttribute('data-lav-badge-base') || '0', 10) : 0;
-                            if (left > 0) { badge.textContent = left; } else { badge.remove(); }
-                        }).catch(function () {});
+                        window.hkOptimistic({
+                            apply: function () {
+                                if (left > 0) { badge.textContent = left; } else { badge.remove(); }
+                            },
+                            request: function () {
+                                return fetch('{{ route('notifications.read') }}', {
+                                    method: 'POST',
+                                    credentials: 'same-origin',
+                                    headers: { 'X-CSRF-TOKEN': meta ? meta.getAttribute('content') : '' }
+                                });
+                            },
+                            isOk: function (resp) { return !!resp && resp.ok; },
+                            revert: function () {
+                                if (btn && !wrap.querySelector('.lav-bell-badge')) { btn.appendChild(badge); }
+                                badge.textContent = badgeText;
+                            }
+                        });
                     });
                 })();
             </script>
@@ -402,18 +422,33 @@
                     var wrap = document.getElementById('lavNotifBell');
                     if (!wrap || !window.jQuery) { return; }
                     window.jQuery(wrap).on('show.bs.dropdown', function () {
+                        // Round 5 Slice 1 (P1/P20): same hkOptimistic
+                        // treatment as the staff bell — badge falls
+                        // back only on a confirmed read; failures
+                        // restore it and surface via the error floor.
+                        var badge = wrap.querySelector('.lav-bell-badge');
+                        if (!badge || !window.hkOptimistic) { return; }
+                        var btn = wrap.querySelector('[data-lav-badge-base]') || wrap.querySelector('[data-lav-events-today]');
+                        var badgeText = badge.textContent;
+                        var left = btn ? parseInt(btn.getAttribute('data-lav-badge-base') || btn.getAttribute('data-lav-events-today') || '0', 10) : 0;
                         var meta = document.querySelector('meta[name="csrf-token"]');
-                        fetch('{{ route('notifications.read') }}', {
-                            method: 'POST',
-                            credentials: 'same-origin',
-                            headers: { 'X-CSRF-TOKEN': meta ? meta.getAttribute('content') : '' }
-                        }).then(function () {
-                            var btn = wrap.querySelector('[data-lav-badge-base]') || wrap.querySelector('[data-lav-events-today]');
-                            var badge = wrap.querySelector('.lav-bell-badge');
-                            if (!badge) { return; }
-                            var left = btn ? parseInt(btn.getAttribute('data-lav-badge-base') || btn.getAttribute('data-lav-events-today') || '0', 10) : 0;
-                            if (left > 0) { badge.textContent = left; } else { badge.remove(); }
-                        }).catch(function () {});
+                        window.hkOptimistic({
+                            apply: function () {
+                                if (left > 0) { badge.textContent = left; } else { badge.remove(); }
+                            },
+                            request: function () {
+                                return fetch('{{ route('notifications.read') }}', {
+                                    method: 'POST',
+                                    credentials: 'same-origin',
+                                    headers: { 'X-CSRF-TOKEN': meta ? meta.getAttribute('content') : '' }
+                                });
+                            },
+                            isOk: function (resp) { return !!resp && resp.ok; },
+                            revert: function () {
+                                if (btn && !wrap.querySelector('.lav-bell-badge')) { btn.appendChild(badge); }
+                                badge.textContent = badgeText;
+                            }
+                        });
                     });
                 })();
             </script>
@@ -460,19 +495,36 @@
                     row.addEventListener('click', function (ev) {
                         ev.preventDefault();
                         ev.stopPropagation();
-                        var next = btn.getAttribute('data-hk-bell-on') === '1' ? 'off' : 'on';
+                        var current = btn.getAttribute('data-hk-bell-on') === '1';
+                        var next = current ? 'off' : 'on';
                         var meta = document.querySelector('meta[name="csrf-token"]');
-                        fetch('{{ route('my_account.bell_sound') }}', {
-                            method: 'POST',
-                            credentials: 'same-origin',
-                            headers: { 'X-CSRF-TOKEN': meta ? meta.getAttribute('content') : '', 'Content-Type': 'application/json', 'Accept': 'application/json' },
-                            body: JSON.stringify({ bell_sound: next })
-                        }).then(function () {
-                            btn.setAttribute('data-hk-bell-on', next === 'on' ? '1' : '0');
-                            var state = row.querySelector('.hk-bell-sound-state');
-                            if (state) { state.textContent = next === 'on' ? 'On' : 'Off'; }
-                            if (next === 'on') { hkChime(); }
-                        }).catch(function () {});
+                        var state = row.querySelector('.hk-bell-sound-state');
+                        // Round 5 Slice 1 (P1/P20): flip through
+                        // hkOptimistic — the old handler flipped the
+                        // label for any response and hid failures, so
+                        // the menu could claim a preference the
+                        // account never saved.
+                        if (!window.hkOptimistic) { return; }
+                        window.hkOptimistic({
+                            apply: function () {
+                                btn.setAttribute('data-hk-bell-on', next === 'on' ? '1' : '0');
+                                if (state) { state.textContent = next === 'on' ? 'On' : 'Off'; }
+                            },
+                            request: function () {
+                                return fetch('{{ route('my_account.bell_sound') }}', {
+                                    method: 'POST',
+                                    credentials: 'same-origin',
+                                    headers: { 'X-CSRF-TOKEN': meta ? meta.getAttribute('content') : '', 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                                    body: JSON.stringify({ bell_sound: next })
+                                });
+                            },
+                            isOk: function (resp) { return !!resp && resp.ok; },
+                            revert: function () {
+                                btn.setAttribute('data-hk-bell-on', current ? '1' : '0');
+                                if (state) { state.textContent = current ? 'On' : 'Off'; }
+                            },
+                            onSuccess: function () { if (next === 'on') { hkChime(); } }
+                        });
                     });
                 }
             })();

@@ -252,6 +252,22 @@ class LeaveCover
             $covered[$date . '|' . (int) $sub->time_table_id] = true;
         }
 
+        // Cancelled cells are RESOLVED (Round 3, owner order
+        // 2026-11-07): the office cancelled the class outright, so
+        // the period is neither covered nor uncovered — it must
+        // never inflate this count. Keyed by (date, time_table_id)
+        // like the covered set, from every cancelled row in range
+        // (a legacy row's absent id may not be this teacher's).
+        $cancelled = [];
+        $cancelledRows = Substitution::where('status', 'cancelled')
+            ->whereDate('date', '>=', $start->toDateString())
+            ->whereDate('date', '<=', $end->toDateString())
+            ->get(['time_table_id', 'date']);
+        foreach ($cancelledRows as $row) {
+            $date = $row->date instanceof Carbon ? $row->date->toDateString() : (string) $row->date;
+            $cancelled[$date . '|' . (int) $row->time_table_id] = true;
+        }
+
         $uncovered = 0;
         for ($date = $start->copy(); $date->lte($end); $date->addDay()) {
             $dayName = $date->format('l');
@@ -270,7 +286,11 @@ class LeaveCover
                 }));
             }
             foreach ($periods as $ttId) {
-                if (!isset($covered[$date->toDateString() . '|' . $ttId])) {
+                $key = $date->toDateString() . '|' . $ttId;
+                if (isset($cancelled[$key])) {
+                    continue;
+                }
+                if (!isset($covered[$key])) {
                     $uncovered++;
                 }
             }
@@ -324,6 +344,22 @@ class LeaveCover
             $covered[$date . '|' . (int) $sub->time_table_id] = true;
         }
 
+        // Cancelled cells are RESOLVED (Round 3, owner order
+        // 2026-11-07): they count as NEITHER covered NOR
+        // uncovered, so they leave 'affected' entirely — with
+        // 'uncovered' derived as affected − covered below, a
+        // cancelled cell kept in 'affected' would resurface as a
+        // phantom uncovered period.
+        $cancelled = [];
+        $cancelledRows = Substitution::where('status', 'cancelled')
+            ->whereDate('date', '>=', $start->toDateString())
+            ->whereDate('date', '<=', $end->toDateString())
+            ->get(['time_table_id', 'date']);
+        foreach ($cancelledRows as $row) {
+            $date = $row->date instanceof Carbon ? $row->date->toDateString() : (string) $row->date;
+            $cancelled[$date . '|' . (int) $row->time_table_id] = true;
+        }
+
         $affected = 0;
         $coveredCount = 0;
         $classes = [];
@@ -348,6 +384,9 @@ class LeaveCover
                 }));
             }
             foreach ($cells as $cell) {
+                if (isset($cancelled[$date->toDateString() . '|' . (int) $cell->id])) {
+                    continue;
+                }
                 $affected++;
                 if (isset($covered[$date->toDateString() . '|' . (int) $cell->id])) {
                     $coveredCount++;

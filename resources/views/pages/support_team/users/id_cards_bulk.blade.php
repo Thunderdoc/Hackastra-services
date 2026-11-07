@@ -26,10 +26,11 @@
             </form>
 
             @if($staff->isEmpty())
-                <p class="text-muted mb-0">No staff found for this selection.</p>
+                @include('partials.patterns.empty_state', ['icon' => 'icon-users', 'message' => 'No staff found for this selection.'])
             @else
                 <div class="table-responsive">
-                    <table class="table table-sm">
+                    <table class="table table-sm hk-std hk-std-760">
+                        <colgroup><col style="width:34%"><col style="width:22%"><col style="width:20%"><col style="width:24%"></colgroup>
                         <thead>
                             <tr><th>Name</th><th>Role</th><th>Emp ID</th><th></th></tr>
                         </thead>
@@ -38,7 +39,7 @@
                                 <tr>
                                     <td data-label="Name">{{ $u->name }}</td>
                                     <td data-label="Role">{{ \App\Support\IdCardFactory::ROLE_META[$u->user_type]['designation'] ?? ucfirst($u->user_type) }}</td>
-                                    <td data-label="Emp ID">{{ $u->code }}</td>
+                                    <td data-label="Emp ID" class="hk-nw">{{ $u->code }}</td>
                                     <td data-label=""><a href="{{ route('staff.id_card', $u->id) }}" class="btn btn-light btn-sm">View Card</a></td>
                                 </tr>
                             @endforeach

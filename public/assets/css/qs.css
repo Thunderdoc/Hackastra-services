@@ -18,7 +18,7 @@
 .dashboard-panel{background:#fff;border:1px solid #e4eaf1;border-radius:10px;overflow:hidden}.dashboard-panel-heading{align-items:flex-start;display:flex;justify-content:space-between;padding:20px 22px}.dashboard-panel-heading h5{color:#172536;font-weight:700}.dashboard-heading-icon{color:#3478f6;font-size:20px}.dashboard-period{background:#f5f7fb;border:1px solid #e4eaf1;border-radius:6px;color:#718096;font-size:.75rem;padding:6px 10px}.dashboard-view-all{color:#3478f6;font-size:.78rem;font-weight:600;padding-top:3px}.dashboard-view-all:hover{color:#2867dc;text-decoration:none}
 .dashboard-chart{align-items:flex-end;display:flex;height:220px;gap:12px;padding:14px 22px 20px}.dashboard-chart-column{align-items:center;display:flex;flex:1;flex-direction:column;height:100%;justify-content:flex-end}.dashboard-chart-value{color:#718096;font-size:.68rem;margin-bottom:5px}.dashboard-chart-bar{background:linear-gradient(180deg,#3478f6,#8bb6ff);border-radius:5px 5px 2px 2px;max-width:34px;min-height:8px;width:100%}.dashboard-chart-column small{color:#718096;font-size:.7rem;margin-top:8px}
 .dashboard-fee-summary{align-items:center;display:flex;gap:24px;padding:8px 22px 28px}.dashboard-fee-ring{align-items:center;background:conic-gradient(#188b66 var(--fee-progress),#e8edf3 0);border-radius:50%;display:flex;flex-direction:column;height:138px;justify-content:center;position:relative;width:138px}.dashboard-fee-ring:after{background:#fff;border-radius:50%;content:"";height:108px;position:absolute;width:108px}.dashboard-fee-ring strong,.dashboard-fee-ring small{position:relative;z-index:1}.dashboard-fee-ring strong{color:#172536;font-size:1.25rem}.dashboard-fee-ring small{color:#718096;font-size:.68rem}.dashboard-fee-list{display:flex;flex:1;flex-direction:column;gap:14px}.dashboard-fee-list div{align-items:center;display:flex;justify-content:space-between}.dashboard-fee-list dt{color:#718096;font-size:.76rem;font-weight:400}.dashboard-fee-list dd{color:#172536;font-size:.78rem;font-weight:700;margin:0}.dashboard-dot{border-radius:50%;display:inline-block;height:9px;margin-right:7px;width:9px}.dot-blue{background:#3478f6}.dot-green{background:#188b66}.dot-orange{background:#f2a13b}
-.dashboard-table{font-size:.78rem}.dashboard-table thead th{background:#fafbfd;border-bottom:1px solid #e4eaf1;color:#718096;font-size:.66rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase}.dashboard-table td,.dashboard-table th{border-top:1px solid #edf1f5;padding:12px 22px;vertical-align:middle}.dashboard-table td strong,.dashboard-table td small{display:block}.dashboard-table td strong{color:#172536;font-size:.78rem}.dashboard-table td small{color:#9aa7b5;font-size:.68rem;margin-top:3px}.dashboard-status{border-radius:20px;display:inline-block;font-size:.67rem;font-weight:700;padding:4px 9px}.status-success{background:#e7f7f0;color:#188b66}.status-warning{background:#fff3df;color:#b7791f}.dashboard-empty{color:#9aa7b5!important;padding:28px!important;text-align:center}
+.dashboard-table{font-size:.78rem}.dashboard-table thead th{background:#fafbfd;border-bottom:1px solid #e4eaf1;color:#718096;font-size:.66rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase}.dashboard-table td,.dashboard-table th{border-top:1px solid #edf1f5;padding:12px 22px;vertical-align:middle}.dashboard-table td strong,.dashboard-table td small{display:block}.dashboard-table td strong{color:#172536;font-size:.78rem}.dashboard-table td small{color:#9aa7b5;font-size:.68rem;margin-top:3px}.dashboard-status{border-radius:20px;display:inline-block;font-size:.67rem;font-weight:700;padding:4px 9px}.status-success{background:#e7f7f0;color:#188b66}.status-warning{background:#fff3df;color:#b7791f}
 @media (max-width:767px){.dashboard-hero{align-items:flex-start;flex-direction:column}.dashboard-primary-action{width:100%}.dashboard-panel-heading{padding:16px}.dashboard-table td,.dashboard-table th{padding:10px 14px}.dashboard-fee-summary{gap:12px;padding-left:16px;padding-right:16px}.dashboard-fee-ring{height:112px;width:112px}.dashboard-fee-ring:after{height:88px;width:88px}.dashboard-chart{padding-left:14px;padding-right:14px}}/* Sidebar */
 
 
@@ -173,8 +173,6 @@
 .lav-notif-item i{color:#3478f6;margin-top:3px}
 .lav-notif-item span{font-size:.82rem;line-height:1.35}
 .lav-notif-item small{display:block;color:#718096}
-.lav-empty{text-align:center;padding:36px 16px;color:#718096}
-.lav-empty img{max-width:220px;width:60%;height:auto;margin-bottom:14px}
 @media (prefers-reduced-motion: reduce){*{animation-duration:.001s !important;transition-duration:.001s !important}}/* ==== Print (Loop 4): marksheet, tabulation, receipts & reports ==== */
 
 
@@ -348,11 +346,10 @@
 }/* --- Fix 3a: muted text #718096 (4.02:1) -> token (5.17:1 on white) --- */
 
 
-.dashboard-muted,.dashboard-stat-label,.dashboard-stat-copy small,.dashboard-period,.dashboard-chart-value,.dashboard-chart-column small,.dashboard-fee-ring small,.dashboard-fee-list dt,.dashboard-table thead th,.lav-topbar-toggle,.lav-search,.lav-topbar-icon,.lav-profile small,.attendance-ring small,.dashboard-insight-grid small,.dashboard-hero-date,.delta-flat,.calendar-legend span,.attendance-donut small,.attendance-legend li span,.content .table thead th,.content .nav-tabs .nav-link,.lav-notif-item small,.lav-empty{color:var(--qs-muted)}/* --- Fix 3b: meta text #9aa7b5 (2.45:1) -> token (4.54:1 on white) --- */
+.dashboard-muted,.dashboard-stat-label,.dashboard-stat-copy small,.dashboard-period,.dashboard-chart-value,.dashboard-chart-column small,.dashboard-fee-ring small,.dashboard-fee-list dt,.dashboard-table thead th,.lav-topbar-toggle,.lav-search,.lav-topbar-icon,.lav-profile small,.attendance-ring small,.dashboard-insight-grid small,.dashboard-hero-date,.delta-flat,.calendar-legend span,.attendance-donut small,.attendance-legend li span,.content .table thead th,.content .nav-tabs .nav-link,.lav-notif-item small{color:var(--qs-muted)}/* --- Fix 3b: meta text #9aa7b5 (2.45:1) -> token (4.54:1 on white) --- */
 
 
 .dashboard-table td small,.lav-search kbd,.attendance-empty p,.calendar-weekdays span,.event-copy small,.insight-chevron{color:var(--qs-meta)}
-.dashboard-empty{color:var(--qs-meta)!important}
 .chart-axis{fill:var(--qs-meta)}/* --- Fix 3c: action fills #3478f6 (white text 4.07:1) -> token (5.17:1).
        Only fills change; #3478f6 stays for large graphics, chart strokes
        and dots, exactly as Fix 3 prescribes. --- */
@@ -1088,9 +1085,7 @@ a.t9-row:hover .t9-row-copy strong{color:var(--qs-primary-action)}
 .acct-activity-text small{color:#718096;display:block;font-size:.76rem}
 .acct-ip{background:#eef2f7;border-radius:6px;color:#46586c;font-size:.75rem;font-weight:600;padding:3px 8px;white-space:nowrap}
 .acct-activity-when{color:#718096;font-size:.8rem;white-space:nowrap}
-.acct-empty{color:#93a5bb;padding:18px 0 6px;text-align:center}
-.acct-empty i{font-size:1.5rem}
-.acct-empty p{font-size:.88rem;margin:8px 0 0}/* --- Responsive --- */
+/* --- Responsive --- */
 
 
 @media (max-width:1199px){
@@ -1175,9 +1170,6 @@ a.t9-row:hover .t9-row-copy strong{color:var(--qs-primary-action)}
 .ttx-group-head{align-items:center;display:flex;gap:10px;margin-bottom:10px}
 .ttx-group-title{color:#172536;font-size:.92rem;font-weight:700;margin:0}
 .ttx-group-title i{color:#3478f6;margin-right:4px}
-.ttx-empty-state{color:#718096;padding:26px 12px;text-align:center}
-.ttx-empty-state i{color:#3478f6;display:block;font-size:30px;margin-bottom:8px;opacity:.55}
-.ttx-empty-state p{margin:0}
 .ttx-inner-card{box-shadow:none;margin-bottom:22px}
 .ttx-switcher{align-items:center;display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
 .ttx-switcher-label{color:#44546a;font-size:.86rem;font-weight:600}/* ============================================================
@@ -2353,9 +2345,7 @@ html.hk-dark .login-a-forgot{color:#6ea8ff}/* --- Print stays LIGHT (owner rule:
 }
 .acct-activity-row{padding:7px 2px}
 .acct-activity-icon{height:30px;width:30px}
-.acct-empty{padding:8px 0 2px}
-.acct-empty i{font-size:1.1rem}
-.acct-empty p{display:inline;margin:0 0 0 6px}/* --- Loop 52 (contd.): wide-screen line sharing. On wide
+/* --- Loop 52 (contd.): wide-screen line sharing. On wide
    screens the descriptive small print sits on the SAME line
    as its label/title instead of forcing a second line:
    field hints (which today stretch two whole form rows),
@@ -2745,7 +2735,6 @@ html.hk-dark .dashboard-table td strong{color:#f4f4f5}
 html.hk-dark .dashboard-table td small{color:#a5a8ad}
 html.hk-dark .dashboard-status.status-success{background:#123528;color:#4cc38a}
 html.hk-dark .dashboard-status.status-warning{background:#3a3016;color:#f0b95f}
-html.hk-dark .dashboard-empty{color:#7b7f87!important}
 html.hk-dark .dashboard-action-grid a{background:#2a2c2f;border-color:#3e4044;color:#6ea8ff}
 html.hk-dark .dashboard-action-grid a:hover{background:#36383c;color:#9cc2ff}
 html.hk-dark .dashboard-insight-grid>div{background:#2a2c2f;border-color:#3e4044}
@@ -2914,7 +2903,7 @@ html.hk-dark .acct-activity-text strong{color:#f4f4f5}
 html.hk-dark .acct-activity-text small{color:#a5a8ad}
 html.hk-dark .acct-ip{background:#2f3135;color:#bcbec3}
 html.hk-dark .acct-activity-when{color:#a5a8ad}
-html.hk-dark .acct-empty{color:#90939a}/* --- Page patterns (.pat-) + payroll (.pay-) --- */
+/* --- Page patterns (.pat-) + payroll (.pay-) --- */
 
 
 html.hk-dark .pat-toolbar-title{color:#f4f4f5}
@@ -3840,7 +3829,6 @@ html.hk-dark .l75-fb .fb-report-title{color:#f0f0f1}
 html.hk-dark .l75-fb .badge-light{background:#36383c;color:#d2d4d7}
 .l75-fb .fb-forward-bar{align-items:center;background:#f5f8fc;border:1px solid #e4eaf1;border-radius:10px;display:flex;flex-wrap:wrap;gap:10px 14px;justify-content:space-between;margin-top:14px;padding:12px 16px}
 html.hk-dark .l75-fb .fb-forward-bar{background:#26272a;border-color:#36383c}
-.l75-fb .fb-empty{padding:38px 20px;text-align:center}
 .l75-fb-detail .fb-desc{color:#2b3a4d;font-size:.96rem;line-height:1.7;max-width:78ch;white-space:pre-wrap}
 html.hk-dark .l75-fb-detail .fb-desc{color:#e7e8e9}
 .l75-fb-detail .fb-autolog{background:#f5f8fc;border:1px dashed #dbe4ee;border-radius:8px;color:#718096;font-size:.85rem;margin-top:14px;padding:10px 14px}
@@ -4945,9 +4933,6 @@ html.hk-dark .l84-req-note{color:#a4a7ac}
 html.hk-dark .l84-info-line{background:rgba(52,120,246,.14);color:#bcbec3}
 .l84-reset-btn{border:1px solid #dbe5f2}
 html.hk-dark .l84-reset-btn{background:#2a2c2f;border-color:#3d3f44;color:#eeeeef}
-#l84-manage-btn.l84-loading{opacity:.75;pointer-events:none}
-#l84-manage-btn.l84-loading::after{animation:l84spin .7s linear infinite;border:2px solid rgba(255,255,255,.4);border-radius:50%;border-top-color:#fff;content:"";display:inline-block;height:13px;margin-left:9px;vertical-align:-2px;width:13px}
-@keyframes l84spin{to{transform:rotate(360deg)}}
 
 .l84-info-cards{display:grid;gap:16px;grid-template-columns:repeat(3,minmax(0,1fr));margin-top:16px}
 .l84-info-card{align-items:flex-start;background:#fff;border:1px solid #e4eaf1;border-radius:12px;display:flex;gap:13px;padding:16px 18px}
@@ -5709,10 +5694,7 @@ a.p96-kpi:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(23,37,54,.
 .p96-tone-blue{background:#e8f1fe;color:#2867dc}
 .p96-tone-green{background:#e7f6ee;color:#188b66}
 .p96-tone-amber{background:#fdf3e0;color:#b97a0c}
-.p96-empty{padding:22px 10px;text-align:center;color:#8494a7;font-size:13.5px}
-.p96-empty i{display:block;font-size:26px;margin-bottom:7px;color:#b7c3d1}
-.p96-empty h5{font-size:15.5px;font-weight:700;color:#172536;margin:0 0 6px}
-.p96-empty p{margin:0 auto;max-width:560px;line-height:1.55}/* --- Pills --- */
+/* --- Pills --- */
 
 
 .p96-pill{flex:0 0 auto;font-size:11.5px;font-weight:700;padding:3px 11px;border-radius:999px;white-space:nowrap}
@@ -5808,9 +5790,6 @@ html.hk-dark .p96-head-note{color:#a5a8ad}
 html.hk-dark .p96-tone-blue{background:#35373b;color:#7fb0ff}
 html.hk-dark .p96-tone-green{background:#123528;color:#4cc38a}
 html.hk-dark .p96-tone-amber{background:#3a3016;color:#f0b95f}
-html.hk-dark .p96-empty{color:#a5a8ad}
-html.hk-dark .p96-empty i{color:#7b7f87}
-html.hk-dark .p96-empty h5{color:#f4f4f5}
 html.hk-dark .p96-pill-amber{background:#3a3016;color:#f0b95f}
 html.hk-dark .p96-pill-green{background:#123528;color:#4cc38a}
 html.hk-dark .p96-pill-grey{background:#2f3135;color:#a5a8ad}
@@ -5945,21 +5924,11 @@ body:not(.sidebar-xs) .sidebar.sidebar-main .nav-group-sub .nav-link:not(.active
 
 body:not(.sidebar-xs) .sidebar.sidebar-main .nav-item-header{align-items:center;display:flex;gap:12px;padding:.85rem .35rem .45rem}
 body:not(.sidebar-xs) .sidebar.sidebar-main .nav-item-header>div{color:rgba(191,219,255,.52);flex:0 0 auto;font-size:10.5px;font-weight:700;letter-spacing:.13em}
-body:not(.sidebar-xs) .sidebar.sidebar-main .nav-item-header::after{background:rgba(255,255,255,.10);content:"";flex:1 1 auto;height:1px}/* (5) timeline for the open depth-1 group */
 
-body:not(.sidebar-xs) .sidebar.sidebar-main .nav-sidebar>.nav-item>.nav-group-sub{position:relative}
-body:not(.sidebar-xs) .sidebar.sidebar-main .nav-sidebar>.nav-item>.nav-group-sub::before{background:rgba(148,180,220,.22);bottom:10px;content:"";left:19px;position:absolute;top:5px;width:1px}
-body:not(.sidebar-xs) .sidebar.sidebar-main .nav-sidebar>.nav-item>.nav-group-sub>li>.nav-link{position:relative}
-body:not(.sidebar-xs) .sidebar.sidebar-main .nav-sidebar>.nav-item>.nav-group-sub>li>.nav-link::before{background:rgba(148,180,220,.55);border-radius:50%;content:"";height:7px;left:16px;position:absolute;top:50%;transform:translateY(-50%);width:7px;z-index:1}
-body:not(.sidebar-xs) .sidebar.sidebar-main .nav-sidebar>.nav-item>.nav-group-sub>li>.nav-link.active::before{background:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.30)}/* (5b) depth-2 groups carry the same timeline, anchored under the
    depth-1 parent's label (rail pad 10 + parent text at 34 = x≈44):
    line at the depth-2 group's 34px, dots centred on it. */
 
-body:not(.sidebar-xs) .sidebar.sidebar-main .nav-group-sub .nav-group-sub{position:relative}
-body:not(.sidebar-xs) .sidebar.sidebar-main .nav-group-sub .nav-group-sub::before{background:rgba(148,180,220,.22);bottom:10px;content:"";left:34px;position:absolute;top:5px;width:1px}
-body:not(.sidebar-xs) .sidebar.sidebar-main .nav-group-sub .nav-group-sub>li>.nav-link{position:relative}
-body:not(.sidebar-xs) .sidebar.sidebar-main .nav-group-sub .nav-group-sub>li>.nav-link::before{background:rgba(148,180,220,.55);border-radius:50%;content:"";height:7px;left:31px;position:absolute;top:50%;transform:translateY(-50%);width:7px;z-index:1}
-body:not(.sidebar-xs) .sidebar.sidebar-main .nav-group-sub .nav-group-sub>li>.nav-link.active::before{background:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.30)}/* (6) brand spacing + teacher academy chip */
+/* (6) brand spacing + teacher academy chip */
 
 .sidebar.sidebar-main .lav-sidebar-brand{margin:0 14px;padding:18px 2px 14px}
 .sidebar.sidebar-main .lav-sidebar-brand-link strong{font-size:15px}
@@ -6186,14 +6155,7 @@ html.hk-dark .l100-attn-info{background:#303235;color:#7fb0ff}/* ===============
 .l103-actions{display:flex;flex-wrap:wrap;gap:8px}
 .l103-table thead th{border-bottom:2px solid #dbe3ec;color:#46586c;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase}
 .l103-table tbody td{vertical-align:middle}
-.l103-empty{border:1.5px dashed #c3cedd;border-radius:10px;margin-top:6px;padding:34px 22px;text-align:center}
-.l103-empty i{color:#7d8fa6;font-size:34px}
-.l103-empty h6{color:#172536;font-size:1rem;margin:10px 0 6px}
-.l103-empty p{margin-left:auto;margin-right:auto;max-width:520px}
 html.hk-dark .l103-table thead th{border-bottom-color:#36383c;color:#a9acb2}
-html.hk-dark .l103-empty{border-color:#36383c}
-html.hk-dark .l103-empty i{color:#757982}
-html.hk-dark .l103-empty h6{color:#f4f4f5}
 @media (max-width:575px){
   .l103-head{flex-direction:column}
   .l103-actions{width:100%}
@@ -6301,7 +6263,6 @@ html.hk-dark .attendance-grid thead th.att-sticky{background:#1e1f22}/* Loop 108
 .l106-table strong{color:#172536}
 .l106-code{background:#f5f7fb;border:1px solid #e4eaf1;border-radius:6px;color:#2867dc;font-size:.78rem;padding:2px 7px}
 .l106-nowrap{white-space:nowrap}
-.l106-empty{padding:14px 22px 24px}
 .l106-pager{border-top:1px solid #eef2f7;padding:14px 22px 6px}
 .l106-pill{border-radius:999px;display:inline-block;font-size:.72rem;font-weight:700;padding:4px 11px;white-space:nowrap}
 .l106-pill-ok{background:#e5f5ec;color:#177245}
@@ -6352,7 +6313,6 @@ html.hk-dark .l106-platform .dashboard-event{border-color:#2e2f32}
 html.hk-dark .l106-platform .dashboard-event .event-copy strong{color:#eaf3fc}
 html.hk-dark .l106-platform .dashboard-status.status-success{background:#12382a;color:#5fd598}
 html.hk-dark .l106-platform .dashboard-status.status-warning{background:#3a2c10;color:#f2c063}
-html.hk-dark .l106-platform .dashboard-empty{color:#92969d}
 html.hk-dark .l106-platform .dashboard-action-grid a{background:#1e1f21;border-color:#3e4044;color:#7fb0ff}
 html.hk-dark .l106-platform .dashboard-action-grid a:hover{background:#303235;color:#a9c9ef}/* ---- Feedback inbox stat cards inside the platform scope ---- */
 
@@ -6441,7 +6401,6 @@ html.hk-dark .l106-users .dropdown-item:hover{background:#303235;color:#eaf3fc}
   .l106-panel-head{padding:16px}
   .l106-panel-body{padding:16px}
   .l106-pager{padding:12px 16px 4px}
-  .l106-empty{padding:10px 16px 18px}
   .l106-count{font-size:.7rem;padding:4px 10px}
   .l106-platform .dashboard-action-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .l106-platform .dashboard-stat-copy small{font-size:.78rem;line-height:1.45}
@@ -7216,54 +7175,6 @@ html.hk-dark .evx-st-past{background:#26282c;color:#9aa0ab;}
 .evx-actions{display:flex;gap:6px;flex:none;}
 @media (max-width:575px){.evx-card{flex-wrap:wrap;}.evx-actions{width:100%;}}
 
-/* --- Sidebar submenu tree flow (owner, 2026-10-29 night —
-   "circle wala part, do this flow for all"): every collapsible
-   group's submenu reads as one flowing tree — a vertical guide
-   line with a circle on every item; the circle lights up on
-   hover and on the active item. Expanded sidebar only; the
-   collapsed rail keeps its flyout look untouched. --- */
-body:not(.sidebar-xs) .sidebar-main .nav-group-sub{position:relative;border-left:none}
-body:not(.sidebar-xs) .sidebar-main .nav-group-sub::before{content:'';position:absolute;top:8px;bottom:8px;left:6px;width:1px;background:rgba(255,255,255,.18)}
-body:not(.sidebar-xs) .sidebar-main .nav-group-sub .nav-link{position:relative;padding-left:24px}
-body:not(.sidebar-xs) .sidebar-main .nav-group-sub .nav-link::before{content:'';position:absolute;left:3px;top:50%;width:7px;height:7px;margin-top:-3.5px;border-radius:50%;background:#5f7ea6;transition:background .15s,box-shadow .15s,transform .15s}
-body:not(.sidebar-xs) .sidebar-main .nav-group-sub .nav-link:hover::before{background:#a9c6f2;transform:scale(1.2)}
-body:not(.sidebar-xs) .sidebar-main .nav-group-sub .nav-link.active::before{background:#fff;box-shadow:0 0 0 3px rgba(255,255,255,.35);transform:scale(1.15)}
-
-/* Marks selector: the "Not Enabled" reason line (owner order 2026-11-01) */
-.l84-entry-note{margin:10px 2px 0;font-size:13px;line-height:1.45;color:#b45309}
-
-/* Stat icon tiles (owner, 2026-11-01): the flex centring was
-   already right, but the icomoon glyph sat visibly high — the
-   inner icon inherits the page line-height (~1.5), so flex
-   centred the inflated line box instead of the glyph. Pinning
-   line-height:1 makes the glyph's own em box what gets centred. */
-.l86-stat-ic,.dashboard-stat-icon,.acct-stat-icon{line-height:1}
-
-/* --- Sidebar Premium Tree (owner choice B, 2026-11-01): the
-   Oct-29 tree, premium execution - gradient connector line,
-   ~11px ringed nodes, the open page's node white-hot with a
-   blue glow, its row on a soft blue tint. Expanded sidebar
-   only; the collapsed rail is untouched. --- */
-body:not(.sidebar-xs) .sidebar-main .nav-group-sub::before{width:2px;left:5.5px;background:linear-gradient(180deg, rgba(94,168,255,.55), rgba(94,168,255,.08))}
-body:not(.sidebar-xs) .sidebar-main .nav-group-sub .nav-link{border-radius:8px}
-body:not(.sidebar-xs) .sidebar-main .nav-group-sub .nav-link::before{left:1px;width:11px;height:11px;margin-top:-5.5px;background:#0d2238;border:2px solid #33597d;box-sizing:border-box}
-body:not(.sidebar-xs) .sidebar-main .nav-group-sub .nav-link:hover{background:rgba(255,255,255,.04)}
-body:not(.sidebar-xs) .sidebar-main .nav-group-sub .nav-link:hover::before{background:#16324f;border-color:#5b84ad;box-shadow:none;transform:none}
-body:not(.sidebar-xs) .sidebar-main .nav-group-sub .nav-link.active{background:rgba(64,156,255,.13);color:#fff;font-weight:600}
-body:not(.sidebar-xs) .sidebar-main .nav-group-sub .nav-link.active::before{background:#fff;border-color:#59a9ff;box-shadow:0 0 0 4px rgba(89,169,255,.25), 0 0 12px rgba(89,169,255,.8);transform:none}
-body:not(.sidebar-xs) .sidebar-main .nav-group-sub .nav-link i{font-size:15px;color:#6f96b8}
-body:not(.sidebar-xs) .sidebar-main .nav-group-sub .nav-link:hover i{color:#8fc2ff}
-body:not(.sidebar-xs) .sidebar-main .nav-group-sub .nav-link.active i{color:#8fc2ff}
-
-/* --- Marks selector Light Luxe (item 10, owner choice, 2026-11-01):
-   slim header, ONE card, horizontal stepper, real-data stat tiles,
-   status line + gradient action. New l10- classes only; the l84
-   stepper mechanics (is-done / is-current) are reused. --- */
-.l10-head{display:flex;align-items:center;gap:14px;margin-bottom:16px}
-.l10-head-tile{align-items:center;background:linear-gradient(135deg,#2f8ded,#1663b8);border-radius:14px;box-shadow:0 10px 20px rgba(38,132,237,.35);color:#fff;display:inline-flex;flex:none;font-size:20px;height:48px;justify-content:center;width:48px}
-.l10-head-text{flex:1;min-width:0}
-.l10-head-text h5{color:#172536;font-size:1.25rem;font-weight:800;margin:0}
-.l10-head-text p{color:#5b6b7f;font-size:.85rem;margin:2px 0 0}
 .l10-chip{align-items:center;background:#fff;border:1px solid #e0e9f2;border-radius:999px;color:#34506b;display:inline-flex;flex:none;font-size:.8rem;font-weight:600;gap:7px;padding:8px 14px}
 .l10-chip i{color:#2f7fd0}
 .l10-steps{margin:0;padding:20px 22px 2px}
@@ -7726,7 +7637,6 @@ html.hk-dark .gen-fixed{background:rgba(255,255,255,.04);color:#e8eef5}
 .au-pager{display:flex;align-items:center;gap:10px;padding:12px 18px;border-top:1px solid #eef3f8;font-size:12.5px;color:#718096;flex-wrap:wrap}
 .au-pglinks{margin-left:auto}
 .au-pglinks .pagination{margin:0}
-.au-empty{padding:26px}
 html.hk-dark .au-head h2,html.hk-dark .au-table td b,html.hk-dark .au-when b,html.hk-dark .au-user b,html.hk-dark .au-subj b{color:#e8eef5}
 html.hk-dark .au-qpill{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.14);color:#c9d6e4}
 html.hk-dark .au-table td{border-top-color:rgba(255,255,255,.07)}
@@ -7825,26 +7735,9 @@ html.hk-dark .gen-radio.on{background:rgba(46,107,230,.13)}
 .hk-bn-sub{margin-top:6px;font-size:13.5px;font-weight:600;color:#46617d}
 @media (max-width:767px){.hk-banner-hero{height:128px}.hk-bn-overlay{width:82%;padding-left:16px}.hk-bn-greet{font-size:19px}.hk-bn-sub{font-size:11.5px}}
 
-/* Sidebar active state — Premium Tree B values, restated with winning
-   specificity (2026-11-06 live finding: the older #2563eb solid-pill
-   rules above outranked the item-9 subtle rules, and the top-level
-   active row was never restated at all). Active = soft blue wash +
-   white semibold label, no shadow pill; the tree node keeps its white
-   core + steel ring + glow. Ancestor trail rules stay as they were. */
-body:not(.sidebar-xs) .sidebar.sidebar-main.sidebar-dark .nav-sidebar>.nav-item>.nav-link.active,
-body:not(.sidebar-xs) .sidebar.sidebar-main .nav-sidebar>.nav-item>.nav-link.active{background:rgba(64,156,255,.13);box-shadow:none;color:#fff;font-weight:600}
-body:not(.sidebar-xs) .sidebar.sidebar-main.sidebar-dark .nav-sidebar .nav-group-sub>.nav-item:not(.nav-item-submenu)>.nav-link.active{background:rgba(64,156,255,.13);box-shadow:none;color:#fff;font-weight:600}
-body:not(.sidebar-xs) .sidebar.sidebar-main .nav-sidebar>.nav-item>.nav-group-sub>li>.nav-link.active::before{background:#fff;border-color:#59a9ff;box-shadow:0 0 0 4px rgba(89,169,255,.25),0 0 12px rgba(89,169,255,.8)}
-
-/* ============================================================
-   Beauty Wave 1 (2026-11-06, 50/50 phase):
-   (1) Guest shell unity — the Login-A shell extends to forgot /
-       reset / verify / admission-enquiry via a compact brand
-       panel; the campus illustration (Style C family,
-       assets/img/login-campus.jpg) fills the brand panel's photo
-       slot as a real <img> layer under a navy scrim, and the light
-       brand rule no longer references the dead ai/ path (the file
-       never existed; Loop 112 dropped it for dark only).
+/* --- Beauty Wave 1 (2026-11-06): banner hero + motion layer.
+   (1) Role banner hero (above): the Style-C art hero with its
+       greeting overlay.
    (2) Motion layer (audit E1 + E6) — .hk-reveal entrance
        (fade + rise on the login login-a curve, staggered by the
        .hk-reveal-1..3 delay utilities) and a very gentle
@@ -8082,76 +7975,6 @@ html.hk-dark .login-a-page{background-image:none}
     .login-a-btn::after,.login-a-panel-guest button[type=submit]::after{transition:none}
 }
 
-/* ============================================================
-   Sidebar tree motion (2026-11-06, owner: the branch tree
-   "looks blended" — the promised animation was missing).
-   ADDITIONS ONLY, layered over the Premium Tree B rules and
-   the fix-round-2 active-row restatements: no colour or
-   background declaration changes anywhere. When a submenu
-   renders open (nav-item-open / nav-item-expanded), its
-   connector line draws in from the top and its child rows
-   stagger in; the open page's node carries a soft pulse ring
-   on a NEW ::after, so the pinned ::before node is untouched;
-   branch labels nudge 2px right on hover. Scoped to the
-   expanded sidebar; dies under prefers-reduced-motion + print.
-   ============================================================ */
-@keyframes hkTreeDraw{from{transform:scaleY(0)}to{transform:scaleY(1)}}
-body:not(.sidebar-xs) .sidebar-main .nav-item-open>.nav-group-sub::before,
-body:not(.sidebar-xs) .sidebar-main .nav-item-expanded>.nav-group-sub::before{animation:hkTreeDraw .5s ease-out both;transform-origin:top}
-@keyframes hkTreeItemIn{from{opacity:0;transform:translateX(6px)}to{opacity:1;transform:translateX(0)}}
-body:not(.sidebar-xs) .sidebar-main .nav-item-open>.nav-group-sub>.nav-item>.nav-link,
-body:not(.sidebar-xs) .sidebar-main .nav-item-expanded>.nav-group-sub>.nav-item>.nav-link{animation:hkTreeItemIn .35s ease-out both}
-body:not(.sidebar-xs) .sidebar-main .nav-item-open>.nav-group-sub>.nav-item:nth-child(1)>.nav-link,
-body:not(.sidebar-xs) .sidebar-main .nav-item-expanded>.nav-group-sub>.nav-item:nth-child(1)>.nav-link{animation-delay:.04s}
-body:not(.sidebar-xs) .sidebar-main .nav-item-open>.nav-group-sub>.nav-item:nth-child(2)>.nav-link,
-body:not(.sidebar-xs) .sidebar-main .nav-item-expanded>.nav-group-sub>.nav-item:nth-child(2)>.nav-link{animation-delay:.08s}
-body:not(.sidebar-xs) .sidebar-main .nav-item-open>.nav-group-sub>.nav-item:nth-child(3)>.nav-link,
-body:not(.sidebar-xs) .sidebar-main .nav-item-expanded>.nav-group-sub>.nav-item:nth-child(3)>.nav-link{animation-delay:.12s}
-body:not(.sidebar-xs) .sidebar-main .nav-item-open>.nav-group-sub>.nav-item:nth-child(4)>.nav-link,
-body:not(.sidebar-xs) .sidebar-main .nav-item-expanded>.nav-group-sub>.nav-item:nth-child(4)>.nav-link{animation-delay:.16s}
-body:not(.sidebar-xs) .sidebar-main .nav-item-open>.nav-group-sub>.nav-item:nth-child(5)>.nav-link,
-body:not(.sidebar-xs) .sidebar-main .nav-item-expanded>.nav-group-sub>.nav-item:nth-child(5)>.nav-link{animation-delay:.2s}
-body:not(.sidebar-xs) .sidebar-main .nav-item-open>.nav-group-sub>.nav-item:nth-child(6)>.nav-link,
-body:not(.sidebar-xs) .sidebar-main .nav-item-expanded>.nav-group-sub>.nav-item:nth-child(6)>.nav-link{animation-delay:.24s}
-body:not(.sidebar-xs) .sidebar-main .nav-item-open>.nav-group-sub>.nav-item:nth-child(7)>.nav-link,
-body:not(.sidebar-xs) .sidebar-main .nav-item-expanded>.nav-group-sub>.nav-item:nth-child(7)>.nav-link{animation-delay:.28s}
-body:not(.sidebar-xs) .sidebar-main .nav-item-open>.nav-group-sub>.nav-item:nth-child(8)>.nav-link,
-body:not(.sidebar-xs) .sidebar-main .nav-item-expanded>.nav-group-sub>.nav-item:nth-child(8)>.nav-link{animation-delay:.32s}
-body:not(.sidebar-xs) .sidebar-main .nav-item-open>.nav-group-sub>.nav-item:nth-child(9)>.nav-link,
-body:not(.sidebar-xs) .sidebar-main .nav-item-expanded>.nav-group-sub>.nav-item:nth-child(9)>.nav-link{animation-delay:.36s}
-body:not(.sidebar-xs) .sidebar-main .nav-item-open>.nav-group-sub>.nav-item:nth-child(10)>.nav-link,
-body:not(.sidebar-xs) .sidebar-main .nav-item-expanded>.nav-group-sub>.nav-item:nth-child(10)>.nav-link{animation-delay:.4s}
-@keyframes hkNodePulse{0%{box-shadow:0 0 0 0 rgba(89,169,255,.45)}70%{box-shadow:0 0 0 9px rgba(89,169,255,0)}100%{box-shadow:0 0 0 0 rgba(89,169,255,0)}}
-body:not(.sidebar-xs) .sidebar-main .nav-group-sub>.nav-item:not(.nav-item-submenu)>.nav-link.active::after{animation:hkNodePulse 2.4s ease-out infinite;border-radius:50%;content:'';height:11px;left:1px;margin-top:-5.5px;pointer-events:none;position:absolute;top:50%;width:11px}
-body:not(.sidebar-xs) .sidebar-main .nav-item-submenu>.nav-link>span{display:inline-block;transition:transform .18s ease}
-body:not(.sidebar-xs) .sidebar-main .nav-item-submenu>.nav-link:hover>span{transform:translateX(2px)}
-@media (prefers-reduced-motion:reduce){
-    body:not(.sidebar-xs) .sidebar-main .nav-item-open>.nav-group-sub::before,
-    body:not(.sidebar-xs) .sidebar-main .nav-item-expanded>.nav-group-sub::before,
-    body:not(.sidebar-xs) .sidebar-main .nav-item-open>.nav-group-sub>.nav-item>.nav-link,
-    body:not(.sidebar-xs) .sidebar-main .nav-item-expanded>.nav-group-sub>.nav-item>.nav-link,
-    body:not(.sidebar-xs) .sidebar-main .nav-group-sub>.nav-item>.nav-link.active::after{animation:none!important}
-    body:not(.sidebar-xs) .sidebar-main .nav-item-submenu>.nav-link>span{transition:none}
-}
-@media print{
-    body:not(.sidebar-xs) .sidebar-main .nav-item-open>.nav-group-sub::before,
-    body:not(.sidebar-xs) .sidebar-main .nav-item-expanded>.nav-group-sub::before,
-    body:not(.sidebar-xs) .sidebar-main .nav-item-open>.nav-group-sub>.nav-item>.nav-link,
-    body:not(.sidebar-xs) .sidebar-main .nav-item-expanded>.nav-group-sub>.nav-item>.nav-link,
-    body:not(.sidebar-xs) .sidebar-main .nav-group-sub>.nav-item>.nav-link.active::after{animation:none!important}
-    body:not(.sidebar-xs) .sidebar-main .nav-item-submenu>.nav-link>span{transition:none}
-}
-
-/* Visual-coherence round (2026-11-06): (a) the generate page's
-   subject chips never had a dark treatment — the base .gen-subj
-   stayed a near-white pill in dark mode; selected chips now ride
-   the app-blue tint with readable text, warn keeps its amber,
-   off stays muted (off restated last at higher specificity so it
-   still wins over both, exactly as in the light cascade).
-   (b) The workload stat cards (shared dashboard-stat-cards now)
-   keep their ratio bars, coloured by the shared stat tones, with
-   a visible track on dark cards. (c) dashboard-stat-red's icon
-   gets the dark tint its sibling tones already have. */
 html.hk-dark .gen-subj{background:rgba(52,120,246,.16);border-color:rgba(52,120,246,.55);color:#bcd6ff}
 html.hk-dark .gen-subj.warn{background:rgba(232,163,23,.15);border-color:rgba(232,163,23,.55);color:#f3cd72}
 html.hk-dark .gen-subj.off{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.12);color:#7d8894}
@@ -8569,3 +8392,591 @@ html.hk-dark .login-a-legal a:hover{color:#fff}
     .login-a-card{border-radius:16px}
     .login-a-panel{padding:32px 22px 28px}
 }
+
+/* ============================================================
+   Round 2 verification fixes (2026-11-07, owner round-2 order):
+   (1) Teacher-home panels at phone width — the panel head was a
+       no-wrap flex row, so at 360px the View-All link squeezed the
+       title block until the subtitle wrapped word-by-word, the
+       leave-balance stat collapsed into a word-per-line column,
+       and the timetable's nowrap headers pushed the empty-state
+       sentence off the card's right edge. Heads now wrap, the
+       balance stat takes its own full-width row, and the table
+       headers may wrap so the table fits the phone.
+   (2) WhatsApp progress count never splits ("0 of 9").
+   (3) My Account activity label "Signed in" never wraps
+       mid-phrase in its narrow card.
+   (4) Librarian trend legend aligns with the panel heading
+       inset (the panel itself is unpadded; the legend sat flush
+       on the border and its first dot clipped).
+   (5) Role banner at phone width in LIGHT mode: the greeting
+       overlay gradient strengthened so the role/date line stays
+       readable where it crosses the illustration.
+   ============================================================ */
+.t10-panel-balance{margin-left:auto;text-align:right}
+.wa-prog,.wa-prog b{white-space:nowrap}
+.acct-activity-text strong{white-space:nowrap}
+.l117-trend-legend{padding-left:22px;padding-right:22px}
+@media (max-width:575.98px){
+    .t10-panel-head{flex-wrap:wrap}
+    .t10-panel-title{flex-wrap:wrap}
+    .t10-panel-balance{flex:1 1 100%;margin-left:0;text-align:left}
+    .t10-table th{white-space:normal;letter-spacing:0}
+    .t10-table th,.t10-table td{padding-left:6px;padding-right:6px}
+}
+@media (max-width:767px){
+    html:not(.hk-dark) .hk-bn-overlay{background:linear-gradient(90deg,rgba(255,255,255,.96),rgba(255,255,255,.82) 60%,rgba(255,255,255,.55))}
+}
+/* (6) The activity row again (same card, second look): Loop 21's
+   >=1200px inline strong+small squeezes the pair into the rail
+   card's short line — the description wrapped mid-phrase against
+   the IP pill ("Use" / "signed in") and pushed the timestamp to a
+   third line. Stacked again at every width; a long description
+   ellipsises on its own line instead of wrapping. */
+@media (min-width:1200px){
+    .acct-activity-text strong{display:block}
+    .acct-activity-text small{display:block;margin-left:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+}
+
+/* ============================================================
+   ROUND 3 PHASE 1 APPENDS (2026-11-07): substitution action
+   surface (item 2), LMS viewer (item 5), beauty round 3
+   hk-std adoption (item 6). Appended serially by the
+   coordinator from phase1 fragments css-item2/5/6.txt.
+   ============================================================ */
+/* Item 2 (Round 3 Phase 1) — Substitution action surface.
+   Append to public/assets/css/qs.css.
+   The Cancelled badge reuses the existing .badge-secondary token
+   (already styled in both themes), so no badge rule is needed. */
+@media screen {
+    .hk-std-uncovered { min-width: 980px; }
+}
+
+/* R3 Phase 1 Item 5 — LMS viewer (materials/view.blade.php).
+   Prefer existing tokens; only the embed sizing is new. Append to qs.css in the LMS section. */
+.lms-viewer-frame{border:0;display:block;height:calc(100vh - 260px);min-height:420px;width:100%}
+.lms-viewer-img{height:auto;max-height:calc(100vh - 260px);max-width:100%}
+@media (max-width:575px){.lms-viewer-frame{height:calc(100vh - 300px);min-height:320px}}
+
+/* ============================================================
+   BEAUTY ROUND 3 — ITEM 6 (2026-11-07, R5 audit): the Batch-4
+   .hk-std table standard adopted by the non-LMS / non-exams
+   families — Payroll, attendance reports + defaulters, period
+   sessions, Feedback queues, Admissions, PTM, date-sheet
+   approvals, electives approvals, expenses, discipline,
+   tabulation screen, date-sheet manage, My Attendance and the
+   low-density rosters/reports. Min-widths are screen-only
+   (mirroring the Batch-4 block shape: plain variant class under
+   @media screen), so phones scroll sideways inside the
+   .table-responsive scrollport instead of squeezing columns
+   into one-word-per-line stacks. Presentation only.
+   ============================================================ */
+.hk-std .hk-ellip-2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+@media screen{
+.hk-std-payroll{min-width:1020px}
+.hk-std-attrep{min-width:900px}
+.hk-std-attrep-wide{min-width:940px}
+.hk-std-periods{min-width:1040px}
+.hk-std-feedback{min-width:880px}
+.hk-std-admissions{min-width:900px}
+.hk-std-880{min-width:880px}
+.hk-std-760{min-width:760px}
+.l103-table{min-width:760px}
+}
+/* Payroll dark parity: the expandable edit row and the
+   "Not generated" badge had no dark variant — the edit row
+   rendered as a bright near-white slab in dark mode. The
+   light rules (.pay-edit-row>td background #fbfcfe,
+   .pay-badge-none background #e4eaf1 / color #718096) stay
+   untouched; these mirrors carry the same selector shapes
+   under html.hk-dark. */
+html.hk-dark .pay-edit-row>td{background:#26282b}
+html.hk-dark .pay-badge-none{background:#3a3d42;color:#c9cbce}
+/* Tabulation screen: marks are 1-3 characters — wrapping them
+   is pure loss. The table itself keeps auto layout (its column
+   count is dynamic); the blade computes its min-width. */
+.qs-tab-table .qs-tab-mark,.qs-tab-table .qs-tab-total,.qs-tab-table .qs-tab-ave{white-space:nowrap}
+
+/* ================================================================
+   ROUND 5 — SLICE 1: skeleton kit (P2), report-builder preview
+   overlay, keyboard-shortcuts overlay (P13), My Account shortcuts
+   row. Site style only — the greys and radii of the existing
+   cards; dark mirrors under html.hk-dark; the shimmer is a
+   background-position sweep and stops under reduced motion.
+   ================================================================ */
+.hk-skel{display:block;background-color:#eef1f5;background-image:linear-gradient(100deg,#eef1f5 40%,#f7fafd 50%,#eef1f5 60%);background-size:200% 100%;border-radius:8px;animation:hkShimmer 1.4s ease-in-out infinite}
+@keyframes hkShimmer{from{background-position:180% 0}to{background-position:-80% 0}}
+.hk-skel-line{height:12px;width:100%;margin-bottom:10px}
+.hk-skel-line.hk-skel-title{height:18px;width:45%;margin-bottom:14px}
+.hk-skel-wrap>.hk-skel-line:last-child,.hk-skel-frame>.hk-skel-line:last-child{width:60%}
+.hk-skel-row{display:flex;align-items:center;gap:12px;padding:10px 2px;border-bottom:1px solid #edf1f5}
+.hk-skel-row .hk-skel-line{margin-bottom:0}
+.hk-skel-row:last-child{border-bottom:0}
+.hk-skel-stats{display:flex;flex-wrap:wrap;gap:16px}
+.hk-skel-stat{display:flex;align-items:center;gap:12px;flex:1 1 180px;padding:14px;border:1px solid #e7edf3;border-radius:10px}
+.hk-skel-stat .hk-skel-line{margin-bottom:0}
+.hk-skel-frame{background:#ffffff;border:1px solid #e4eaf1;border-radius:6px;box-shadow:0 10px 30px rgba(31,64,118,.10);padding:30px 34px;max-width:900px;margin:0 auto}
+.hk-skel-overlay{position:absolute;inset:0;z-index:5;overflow:auto;padding:22px;background:#eef2f6}
+.hk-skel-bar{height:4px;border-radius:2px;margin-bottom:10px;background-color:#eef1f5;background-image:linear-gradient(100deg,#eef1f5 30%,#3478f6 50%,#eef1f5 70%);background-size:200% 100%;animation:hkShimmer 1.1s linear infinite}
+div.rb5-workspace{position:relative}
+.hk-shortcuts-row{display:flex;align-items:center;gap:14px;padding:8px 6px;border-bottom:1px solid #edf1f5}
+.hk-shortcuts-row:last-child{border-bottom:0}
+.hk-shortcuts-key{width:132px;flex:none;white-space:nowrap}
+.hk-shortcuts-row kbd{background:#eef1f5;border:1px solid #d8e0ea;border-bottom-width:2px;border-radius:6px;padding:1px 7px;font-size:12px;color:#22314a}
+.hk-shortcuts-note{margin:12px 0 0;font-size:12.5px;color:#6b7a8f}
+.acct-shortcuts-row{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;border-top:1px solid #e7edf3;margin-top:18px;padding-top:16px}
+html.hk-dark .hk-skel{background-color:#2f3135;background-image:linear-gradient(100deg,#2f3135 40%,#3a3d42 50%,#2f3135 60%)}
+html.hk-dark .hk-skel-row{border-color:#36383c}
+html.hk-dark .hk-skel-stat{border-color:#36383c}
+html.hk-dark .hk-skel-frame .hk-skel{background-color:#eef1f5;background-image:linear-gradient(100deg,#eef1f5 40%,#f7fafd 50%,#eef1f5 60%)}
+html.hk-dark .hk-skel-frame{border-color:#d5dce5}
+html.hk-dark .hk-skel-overlay{background:#22242a}
+html.hk-dark .hk-skel-bar{background-color:#2f3135;background-image:linear-gradient(100deg,#2f3135 30%,#3478f6 50%,#2f3135 70%)}
+html.hk-dark .hk-shortcuts-row{border-color:#36383c}
+html.hk-dark .hk-shortcuts-row kbd{background:#2f3135;border-color:#45484e;color:#dfe5ee}
+html.hk-dark .hk-shortcuts-note{color:#9aa7ba}
+html.hk-dark .acct-shortcuts-row{border-color:#36383c}
+@media (prefers-reduced-motion: reduce){.hk-skel,.hk-skel-bar{animation:none}}
+
+/* === F2 — Parent Progress (hk-tmp/round4 design §4.4) ===
+   All f2- classes; colours mirror the p96 parent-home family and
+   the pr-bar pattern, with an html.hk-dark counterpart for every
+   colour. The hk-chart-* hooks theme the shared SVG bar partial. */
+.f2-switcher{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.f2-chip{display:inline-flex;align-items:center;padding:7px 14px;border:1px solid #dbe4ee;border-radius:999px;background:#fff;color:#44546a;font-size:13px;font-weight:600;text-decoration:none}
+.f2-chip:hover{text-decoration:none;color:#2867dc}
+.f2-chip-active{background:#3478f6;border-color:#3478f6;color:#fff}
+.f2-chip-active:hover{color:#fff}
+.f2-child-head{display:flex;align-items:center;gap:14px;margin-bottom:14px;flex-wrap:wrap}
+.f2-child-id{flex:1 1 auto;min-width:0}
+.f2-child-id h5{margin:0}
+.f2-child-id p{margin:2px 0 0;font-size:12.5px;color:#8494a7}
+.f2-head-actions{display:flex;gap:8px;flex-wrap:wrap}
+.f2-section{margin-bottom:14px}
+.f2-chart{margin:6px 0 14px}
+.f2-muted-line{font-size:13px;color:#8494a7;margin:0 0 12px}
+.f2-period{border-top:1px solid #edf1f5;padding:14px 0 6px}
+.f2-period:first-of-type{border-top:0}
+.f2-period-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.f2-period-head strong{font-size:15px;color:#172536}
+.f2-period-pct{font-size:15px;font-weight:700;color:#2867dc}
+.f2-badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;background:#f1edfd;color:#6845d8}
+.f2-grade-chip{font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:999px;background:#e7f6ee;color:#188b66}
+.f2-delta{font-size:12.5px;font-weight:600;color:#8494a7}
+.f2-bar-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:13px}
+.f2-bar-row .pr-bar-track{flex:1;background:#eef2f7;border-radius:6px;height:12px;overflow:hidden}
+.f2-bar-row .pr-bar-fill{display:block;background:#10263b;height:12px;border-radius:6px}
+.f2-bar-row .pr-bar-val{width:52px;text-align:right;font-weight:700;flex:none}
+.f2-table td .f2-bar-row{flex:1 1 auto;width:100%;margin-bottom:0}
+.f2-unit-note{font-size:12.5px;color:#8494a7;margin:0 0 8px}
+.f2-subjects{margin:4px 0 8px}
+.f2-subjects summary{cursor:pointer;font-size:13px;font-weight:600;color:#2867dc;padding:4px 0}
+.f2-table{margin-bottom:8px}
+.f2-foot-link{font-size:13px;margin:4px 0 10px}
+.f2-fee-notice{display:flex;gap:14px;align-items:flex-start;background:#fdf6ec;border:1px solid #f0dfba;border-radius:10px;padding:16px 18px}
+.f2-fee-notice>i{font-size:30px;color:#c0392b;margin-top:2px}
+.f2-fee-notice h5{font-size:15.5px;font-weight:700;color:#172536;margin:0 0 6px}
+.f2-fee-notice p{margin:0;font-size:13.5px;color:#5c6b7f;line-height:1.55}
+.f2-scope-line{font-size:13px;color:#8494a7;margin:2px 0 14px}
+.f2-strip{display:flex;align-items:center;gap:12px;flex-wrap:wrap;border-top:1px solid #f0f3f7;padding-top:12px;margin-top:4px;font-size:13px;color:#44546a}
+.f2-strip>i{color:#c0392b;font-size:16px}
+.f2-strip-main{display:flex;flex-direction:column;gap:1px;flex:1 1 auto;min-width:0}
+.f2-strip-main small{font-size:11.5px;color:#8494a7}
+.f2-strip-main strong{font-size:13.5px;color:#172536}
+.f2-strip-muted{color:#8494a7}
+.f2-strip-link{font-size:13px;font-weight:600;color:#2867dc;white-space:nowrap;text-decoration:none}
+.f2-mini{display:flex;align-items:flex-end;gap:3px;height:26px}
+.f2-mini span{display:block;width:9px;background:#3478f6;border-radius:2px 2px 0 0;min-height:3px}
+html.hk-dark .hk-chart-grid{stroke:#3a3c40}
+html.hk-dark .hk-chart-axis{fill:#9aa7ba}
+html.hk-dark .hk-chart-value{fill:#e8edf5}
+html.hk-dark .hk-chart-bar{fill:#6ea8ff}
+html.hk-dark .f2-chip{background:#26272a;border-color:#45484e;color:#c9cbce}
+html.hk-dark .f2-chip-active{background:#3478f6;border-color:#3478f6;color:#fff}
+html.hk-dark .f2-child-id p{color:#a5a8ad}
+html.hk-dark .f2-muted-line{color:#a5a8ad}
+html.hk-dark .f2-period{border-top-color:#36383c}
+html.hk-dark .f2-period-head strong{color:#f4f4f5}
+html.hk-dark .f2-period-pct{color:#7fb0ff}
+html.hk-dark .f2-badge{background:#241d42;color:#a78bfa}
+html.hk-dark .f2-grade-chip{background:#123528;color:#4cc38a}
+html.hk-dark .f2-delta{color:#a5a8ad}
+html.hk-dark .f2-unit-note{color:#a5a8ad}
+html.hk-dark .f2-subjects summary{color:#7fb0ff}
+html.hk-dark .f2-fee-notice{background:#2c2110;border-color:#57431a}
+html.hk-dark .f2-fee-notice h5{color:#f4f4f5}
+html.hk-dark .f2-fee-notice p{color:#bcbec3}
+html.hk-dark .f2-scope-line{color:#a5a8ad}
+html.hk-dark .f2-strip{border-top-color:#36383c;color:#c9cbce}
+html.hk-dark .f2-strip-main small{color:#a5a8ad}
+html.hk-dark .f2-strip-main strong{color:#f4f4f5}
+html.hk-dark .f2-strip-muted{color:#a5a8ad}
+html.hk-dark .f2-strip-link{color:#7fb0ff}
+html.hk-dark .f2-mini span{background:#6ea8ff}
+html.hk-dark .f2-bar-row .pr-bar-track{background:#3a3c40}
+html.hk-dark .f2-bar-row .pr-bar-fill{background:#6ea8ff}
+
+/* F5 Fee Reminders + Instalment Plan (Round 4) */
+.table-responsive>.hk-std-fee-reminders{min-width:980px}
+.table-responsive>.hk-std-fee-plan{min-width:560px}
+html.hk-dark .hk-std-fee-reminders td,html.hk-dark .hk-std-fee-plan td{color:#c9cbce}
+.hk-std-fee-reminders .badge{white-space:normal;text-align:left}
+.hk-std-fee-reminders td{overflow-wrap:break-word}
+
+/* F4 Question Papers history table (Round 4) */
+.table-responsive>.hk-std-qpapers{min-width:1080px}
+html.hk-dark .hk-std-qpapers td{color:#c9cbce}
+
+/* F3 Exam Seating tables (Round 4) */
+.table-responsive>.hk-std-seating{min-width:880px}
+html.hk-dark .hk-std-seating td{color:#c9cbce}
+
+/* F1 WhatsApp Log table (Round 4) */
+.table-responsive>.hk-std-whatsapp{min-width:1080px}
+html.hk-dark .hk-std-whatsapp td{color:#c9cbce}
+.hk-std-whatsapp td{overflow-wrap:break-word}
+/* ============================================================
+   P15 — Onboarding setup checklist (partials/patterns/setup_checklist)
+   Coordinator: append to public/assets/css/qs.css as-is.
+   Selector shapes mirror the neighbouring dashboard rules
+   (.dashboard-panel / .l17-rrow family); site style only —
+   white card chrome comes from .dashboard-panel itself.
+   ============================================================ */
+.hk-setup-head{align-items:center}
+.hk-setup-toggle{flex:0 0 auto;margin-left:12px}
+.hk-setup-body{padding:2px 18px 12px}
+.hk-setup-row{display:flex;align-items:center;gap:11px;padding:9px 0;border-bottom:1px solid #eef3f8}
+.hk-setup-row:last-child{border-bottom:0}
+.hk-setup-icon{flex:0 0 auto}
+.hk-setup-copy{display:flex;flex:1 1 auto;flex-direction:column;min-width:0}
+.hk-setup-title{color:#172536;font-weight:600}
+.hk-setup-detail{color:#718096;font-size:.82rem}
+.hk-setup-side{align-items:center;display:flex;flex:0 0 auto;gap:8px}
+@media (max-width:575px){.hk-setup-row{flex-wrap:wrap}.hk-setup-side{margin-left:49px}}
+html.hk-dark .hk-setup-row{border-bottom-color:rgba(255,255,255,.07)}
+html.hk-dark .hk-setup-title{color:#eaf3fc}
+html.hk-dark .hk-setup-detail{color:#a5a8ad}
+/* ============================================================
+   P11 — data_table pattern min-width variants (Round 5 Slice 3)
+   Coordinator: append to public/assets/css/qs.css as-is.
+   One screen-only rule per variant introduced by the
+   partials/patterns/data_table migration batch 1, mirroring the
+   Batch-4 hk-std block shape exactly (media-scoped, scoped to
+   the .table-responsive scrollport) so phones scroll sideways
+   instead of squeezing columns. Presentation only.
+   Variants: paydefs (payments fee definitions), paymanage
+   (payments class students), collection (fee collection daily),
+   gateway (gateway transactions), fines (library fines),
+   loans (book requests), subplan + subsheet (substitutions
+   board — values match the page-local .sub-plan-table 640px /
+   .sub-sheet-table 920px rules they now accompany).
+   hk-std-payroll (1020px) already exists in qs.css and is not
+   repeated here.
+   ============================================================ */
+@media screen{.table-responsive>.hk-std-paydefs{min-width:880px}}
+@media screen{.table-responsive>.hk-std-paymanage{min-width:880px}}
+@media screen{.table-responsive>.hk-std-collection{min-width:880px}}
+@media screen{.table-responsive>.hk-std-gateway{min-width:1080px}}
+@media screen{.table-responsive>.hk-std-fines{min-width:960px}}
+@media screen{.table-responsive>.hk-std-loans{min-width:820px}}
+@media screen{.table-responsive>.hk-std-subplan{min-width:640px}}
+@media screen{.table-responsive>.hk-std-subsheet{min-width:920px}}
+/* ============================================================
+   P5 — empty_state compact variant (Round 5 Slice 3)
+   Coordinator: append to public/assets/css/qs.css as-is.
+   The compact form of partials/patterns/empty_state (prop
+   'compact' => true): same .pat-empty markup with the
+   .pat-empty-compact modifier — padding 18px 12px, a 40px
+   medallion, .85rem message — for in-panel / dashboard slots
+   where the full form (42px padding, 62px medallion) is too
+   tall. This is the migration target for the retired
+   .dashboard-empty idiom on role homes.
+   Dark parity needs no extra colour rules: the compact form
+   reuses .pat-empty-icon / .pat-empty-msg, whose html.hk-dark
+   rules already exist in qs.css. Presentation only.
+   ============================================================ */
+.pat-empty-compact{padding:18px 12px}
+.pat-empty-compact .pat-empty-icon{font-size:18px;height:40px;margin-bottom:9px;width:40px}
+.pat-empty-compact .pat-empty-msg{font-size:.85rem}
+.pat-empty-compact .pat-empty-action{margin-top:10px}
+.pat-empty-compact .pat-empty-art{margin-bottom:10px;width:132px}
+/* ============================================================
+   P18 — shared small-phone tier (Round 5 Slice 3, audit §18)
+   Coordinator: append to public/assets/css/qs.css as-is.
+   The missing 360/320 tier: qs.css's ladder stopped at
+   480/479px, so fit at the owner's ~360px phone emerged from
+   per-page fixes (Batch 5 hand-tuned two money grids; Round 2
+   hand-fixed teacher home). This ONE max-width:374px media
+   block grants it systematically:
+   - content padding tightens to 10px, card-body to 12px
+     (ladder: 22px base / 14px @767 / 12px @480 -> 10px here;
+     card-body: 20px 22px base / 16px @767 -> 12px here);
+   - toolbar / action rows wrap full-width instead of
+     overflowing (.pat-toolbar already wraps; at this width
+     its actions take the full row so no button is squeezed
+     off the edge, and .btn rows stay stack-safe);
+   - stat cards compact: Batch 5's winning @575 shapes
+     (.dashboard-stat-card gap 8px, 38px icon, copy flex)
+     plus its @767 money rule — fluid clamp(.88rem,4.1vw,
+     1.5rem) + nowrap values, previously scoped to ONLY
+     .acc-stat-grid / .dashboard-stats — generalised here to
+     every .dashboard-stat-copy and to the t9/t10/p96 KPI
+     copies, so a fix reaches all role homes at once.
+   Deliberately NOT here: the body horizontal-overflow clip
+   safety net — per the audit design it lands separately,
+   after the fit sweep, as defence-in-depth only. No base
+   rules; every rule lives inside the single media block
+   below.
+   ============================================================ */
+@media (max-width:374px){
+.content-wrapper>.content{padding:10px}
+.content .card-body{padding:12px}
+.content .card-header{padding:12px}
+.dashboard-panel-heading{gap:8px;padding:12px}
+.pat-filters{padding:10px 12px}
+.pat-form-head{padding:12px 12px 2px}
+.pat-form-section{padding:12px}
+.pat-actionbar{flex-wrap:wrap;padding:10px 12px}
+.pat-actionbar .btn{flex:1 1 auto}
+.content .table td,.content .table th{padding:8px}
+.pat-toolbar{align-items:stretch;flex-direction:column;gap:8px}
+.pat-toolbar-actions{width:100%}
+.pat-toolbar-actions .btn{flex:1 1 auto}
+.pat-filter-action{flex-basis:100%}
+.pat-filter-action .btn{width:100%}
+.header-elements-inline{flex-wrap:wrap}
+.btn-group{flex-wrap:wrap}
+.dashboard-hero{gap:10px}
+.dashboard-stat-card{gap:8px;justify-content:flex-start;min-height:0;padding:12px}
+.dashboard-stat-icon{font-size:16px;height:38px;width:38px}
+.dashboard-stat-copy{flex:1 1 auto;gap:1px;min-width:0}
+.dashboard-stat-copy strong{font-size:clamp(.88rem,4.1vw,1.5rem);letter-spacing:-.01em;line-height:1.2;white-space:nowrap}
+.teacher-stat-grid,.acc-stat-grid,.stu-stats-row,.stu99-kpis,.t9-kpi-grid,.t10-kpi-grid,.p96-kpi-grid{gap:8px}
+.t9-kpi,.t10-kpi,.p96-kpi{gap:10px;padding:12px}
+.t9-kpi-icon,.t10-kpi-icon,.p96-kpi-icon{font-size:17px;height:38px;width:38px}
+.t9-kpi-copy,.t10-kpi-copy,.p96-kpi-copy{min-width:0}
+.t9-kpi-copy strong,.t10-kpi-copy strong,.p96-kpi-copy strong{font-size:clamp(1rem,5vw,1.35rem);line-height:1.15;white-space:nowrap}
+.dashboard-action-grid,.dashboard-insight-grid{gap:8px;padding-left:12px;padding-right:12px}
+}
+
+/* --- Round 5 P18 safety net (appended AFTER the fit sweep, last) ---
+   Defence-in-depth only: every page measured overflow-free at
+   360/320 in the sweep; this guards against a future wide element
+   breaking the page instead of scrolling inside its port. It is
+   never a substitute for fixing the wide element. */
+body{overflow-x:clip}
+/* ============================================================
+   P3 — command palette (Round 5 Slice 4)
+   Coordinator: append to public/assets/css/qs.css as-is.
+   Styles for partials/command_palette.blade.php (the
+   #hk-palette-modal Bootstrap modal opened by Ctrl/Cmd+K).
+   Site idiom only: white card, pastel icon circles (#eef4ff /
+   #3478f6, the .hxc-icon pair), app-blue accents, light borders
+   — no new design language. Every colour has an html.hk-dark
+   counterpart mirroring the .lav-search / .hxc- dark rules.
+   Fit: the dialog is calc(100vw - 24px) capped at 560px, rows
+   are >=44px, results scroll inside the card — 360/320px fit
+   with no side-scroll.
+   ============================================================ */
+.hkpal-dialog{max-width:min(560px,calc(100vw - 24px));margin-left:auto;margin-right:auto}
+.hkpal-content{border:0;border-radius:14px;box-shadow:0 18px 50px rgba(16,38,59,.28);overflow:hidden;position:relative;background:#fff}
+.hkpal-head{align-items:center;border-bottom:1px solid #e4eaf1;display:flex;gap:10px;padding:12px 16px}
+.hkpal-head>i{color:#718096;font-size:16px;flex:none}
+.hkpal-input{background:transparent;border:0;color:#172536;flex:1 1 auto;font-size:15px;min-width:0;outline:0;padding:4px 0}
+.hkpal-input::placeholder{color:#9aa7b5}
+.hkpal-close{color:#718096;flex:none;font-size:1.35rem;line-height:1;opacity:.75}
+.hkpal-close:hover{color:#172536;opacity:1}
+.hkpal-results{max-height:min(52vh,430px);overflow-y:auto;padding:6px 8px 10px}
+.hkpal-group{color:#718096;font-size:11px;font-weight:700;letter-spacing:.06em;padding:10px 8px 4px;text-transform:uppercase}
+.hkpal-row{align-items:center;border-radius:8px;color:#172536;display:flex;gap:12px;min-height:44px;padding:7px 8px;text-decoration:none}
+.hkpal-row:hover{text-decoration:none;color:#172536}
+.hkpal-icon{align-items:center;background:#eef4ff;border-radius:50%;color:#3478f6;display:flex;flex:none;font-size:15px;height:34px;justify-content:center;width:34px}
+.hkpal-row-body{display:flex;flex:1 1 auto;flex-direction:column;min-width:0}
+.hkpal-row-label{font-size:13.5px;font-weight:600;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hkpal-row-meta{color:#718096;font-size:12px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hkpal-row.hkpal-active{background:#eef4ff;color:#172536}
+.hkpal-hint{color:#718096;font-size:12.5px;padding:10px 8px 4px}
+.hkpal-foot{border-top:1px solid #e4eaf1;color:#718096;display:flex;flex-wrap:wrap;gap:8px 18px;font-size:12px;padding:9px 16px}
+.hkpal-foot kbd{background:#eef1f5;border:1px solid #d8e0ea;border-bottom-width:2px;border-radius:5px;color:#22314a;font-size:11px;padding:1px 6px}
+html.hk-dark .hkpal-content{background:#1e1f22;color:#f4f4f5}
+html.hk-dark .hkpal-head{border-color:#36383c}
+html.hk-dark .hkpal-head>i{color:#92959c}
+html.hk-dark .hkpal-input{color:#f0f0f1}
+html.hk-dark .hkpal-input::placeholder{color:#7b7f87}
+html.hk-dark .hkpal-close{color:#a5a8ad}
+html.hk-dark .hkpal-close:hover{color:#f4f4f5}
+html.hk-dark .hkpal-group{color:#9aa7ba}
+html.hk-dark .hkpal-row{color:#f4f4f5}
+html.hk-dark .hkpal-row:hover{color:#f4f4f5}
+html.hk-dark .hkpal-icon{background:#2f3135;color:#6ea8ff}
+html.hk-dark .hkpal-row-meta{color:#9aa7ba}
+html.hk-dark .hkpal-row.hkpal-active{background:#2f3135;color:#f4f4f5}
+html.hk-dark .hkpal-hint{color:#9aa7ba}
+html.hk-dark .hkpal-foot{border-color:#36383c;color:#9aa7ba}
+html.hk-dark .hkpal-foot kbd{background:#2f3135;border-color:#45484e;color:#dfe5ee}
+@media (max-width:480px){.hkpal-results{max-height:56vh}.hkpal-foot{display:none}}
+/* ============================================================
+   Round 5 FINAL SLICE — Sidebar Design B "Soft Cards" (owner
+   pick 2026-11-07, specimen ~/workspace/hk-tmp/sidebar-v2/
+   b-soft-cards-{dark,light,teacher-dark}.html). APPEND-ONLY:
+   the coordinator appends this block at the END of qs.css AFTER
+   applying the tree deletion spec (Oct-29 tree flow + Premium
+   Tree + 2026-11-06 active restatement + tree motion blocks).
+
+   Structure mapping (specimen -> real markup): the rail's flat
+   <ul.nav-sidebar> stays the DOM (menu names/links/order are
+   pinned); the specimen's <section.gsec> cards are formed by
+   styling each .nav-item-header + the .nav-item siblings that
+   follow it as ONE contiguous card surface (shared background +
+   side borders; the header carries the top edge, the last item
+   before the next header — found with :has(+ .nav-item-header)
+   — carries the bottom edge). Items before the first header
+   (Dashboard / Platform Overview, plus any stray ungrouped item)
+   form their own card the same way. Brand = .lav-sidebar-brand /
+   .t9-brand as a card; user chip = .sidebar-user.hk-sb-userchip
+   pinned to the rail bottom by flex order (DOM untouched, so
+   every href-position pin still resolves to the in-menu link).
+   Children are simply indented inside the parent item — no
+   connectors, no dots. Active = calm blue tint + 3.5px left
+   accent bar (::before), never a solid pill, never a dot.
+   Group-card + typography rules are scoped to the EXPANDED rail
+   (body:not(.sidebar-xs)) — the collapsed rail keeps its current
+   plain Limitless look, exactly as the tree blocks were scoped.
+   ============================================================ */
+
+/* --- Rail shell (themed backgrounds carry !important because
+   two older shell rules — qs.css .sidebar-main #10263b and the
+   Loop-91 .sidebar.sidebar-main #102a43 — are !important too) --- */
+.sidebar-main.hk-sb-b{border-right:1px solid #26272d;color:#ccd0d9;width:264px}
+html.hk-dark .sidebar-main.hk-sb-b{background:linear-gradient(180deg,#222329,#1e1f24)!important}
+html:not(.hk-dark) .sidebar-main.hk-sb-b{background:#f3f4f8!important}
+@media (min-width:768px){
+    .hk-sb-b~.content-wrapper,body:has(.hk-sb-b) .content-wrapper{margin-left:264px}
+    body:has(.hk-sb-b) .navbar-expand-md .navbar-collapse{margin-left:264px}
+}
+.sidebar-main.hk-sb-b .sidebar-content{padding:0 12px}
+.sidebar-main.hk-sb-b .nav-sidebar{padding:8px 0 10px}
+
+/* --- Brand card --- */
+.sidebar-main.hk-sb-b .lav-sidebar-brand,.sidebar-main.hk-sb-b .t9-brand{background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.055);border-radius:14px;height:auto;margin:12px 12px 4px;padding:12px}
+.sidebar-main.hk-sb-b .t9-academy{background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.055);border-radius:14px;color:#787d89;font-size:10.5px;letter-spacing:.12em;margin:2px 12px 0;padding:9px 12px;text-transform:uppercase}
+.sidebar-main.hk-sb-b .t9-academy i{color:#787d89}
+.sidebar-main.hk-sb-b .lav-sidebar-brand-icon,.sidebar-main.hk-sb-b .t9-brand-icon{border-radius:11px;height:40px;width:40px}
+.sidebar-main.hk-sb-b .lav-sidebar-brand-link strong{font-size:14.5px;text-transform:none}
+.sidebar-main.hk-sb-b .lav-sidebar-brand-link small{color:#7f848f;font-size:10.8px}
+.sidebar-main.hk-sb-b .t9-brand-copy strong{font-size:15px}
+.sidebar-main.hk-sb-b .t9-brand-copy small{color:#7f848f}
+
+/* --- Group cards (expanded rail only) --- */
+body:not(.sidebar-xs) .sidebar-main.hk-sb-b .nav-sidebar>.nav-item,
+body:not(.sidebar-xs) .sidebar-main.hk-sb-b .nav-sidebar>.nav-item-header{background:rgba(255,255,255,.028);border-left:1px solid rgba(255,255,255,.045);border-right:1px solid rgba(255,255,255,.045);margin:0}
+body:not(.sidebar-xs) .sidebar-main.hk-sb-b .nav-sidebar>.nav-item-header,
+body:not(.sidebar-xs) .sidebar-main.hk-sb-b .nav-sidebar>.nav-item:first-child{border-top:1px solid rgba(255,255,255,.045);border-top-left-radius:14px;border-top-right-radius:14px}
+body:not(.sidebar-xs) .sidebar-main.hk-sb-b .nav-sidebar>.nav-item:has(+ .nav-item-header),
+body:not(.sidebar-xs) .sidebar-main.hk-sb-b .nav-sidebar>.nav-item:last-child,
+body:not(.sidebar-xs) .sidebar-main.hk-sb-b .nav-sidebar>.nav-item-header:has(+ .nav-item-header),
+body:not(.sidebar-xs) .sidebar-main.hk-sb-b .nav-sidebar>.nav-item-header:last-child{border-bottom:1px solid rgba(255,255,255,.045);border-bottom-left-radius:14px;border-bottom-right-radius:14px;padding-bottom:7px}
+body:not(.sidebar-xs) .sidebar-main.hk-sb-b .nav-sidebar>.nav-item-header{margin-top:10px;padding:13px 16px 6px}
+body:not(.sidebar-xs) .sidebar-main.hk-sb-b .nav-sidebar>.nav-item-header:first-child{margin-top:0}
+body:not(.sidebar-xs) .sidebar-main.hk-sb-b .nav-sidebar>.nav-item-header>div{color:#787d89;font-size:10.5px;font-weight:700;letter-spacing:.14em}
+body:not(.sidebar-xs) .sidebar-main.hk-sb-b .nav-sidebar>.nav-item-header .icon-menu{display:none}
+/* The old label's trailing hairline is in the deletion spec;
+   this keeps the in-card label clean even before it lands. */
+.sidebar-main.hk-sb-b .nav-item-header::after{display:none}
+
+/* --- Items: flat icon + label rows, inset inside the card --- */
+body:not(.sidebar-xs) .sidebar-main.hk-sb-b .nav-sidebar>.nav-item>.nav-link{border-radius:11px;color:#c7cbd5;font-size:13.8px;font-weight:500;margin:0 8px 2px;min-height:0;padding:9px 11px;position:relative}
+body:not(.sidebar-xs) .sidebar-main.hk-sb-b .nav-sidebar>.nav-item>.nav-link:hover{background:rgba(255,255,255,.05);color:#fff}
+body:not(.sidebar-xs) .sidebar-main.hk-sb-b .nav-sidebar>.nav-item>.nav-link i{color:#90959f;font-size:18px;margin-right:11px;min-width:18px}
+body:not(.sidebar-xs) .sidebar-main.hk-sb-b .nav-sidebar>.nav-item>.nav-link:hover i{color:#c7cbd5}
+/* Long labels wrap to two lines (specimen behaviour) — never clip. */
+body:not(.sidebar-xs) .sidebar-main.hk-sb-b .nav-sidebar .nav-link span{line-height:1.3;white-space:normal}
+body:not(.sidebar-xs) .sidebar-main.hk-sb-b .nav-item-submenu>.nav-link:after{color:#6d727e;font-size:11px;right:11px}
+body:not(.sidebar-xs) .sidebar-main.hk-sb-b .nav-item-open>.nav-link:after{color:#c7cbd5}
+/* The open parent itself stays unfilled (specimen): this beats
+   the older translucent "ancestor trail" background rule. */
+body:not(.sidebar-xs) .sidebar-main.hk-sb-b .nav-sidebar .nav-item-open>.nav-link:not(.disabled),
+body:not(.sidebar-xs) .sidebar-main.hk-sb-b .nav-sidebar>.nav-item-expanded:not(.nav-item-open)>.nav-link{background:transparent;color:#fff;font-weight:600}
+
+/* --- Children: indented inside the parent card, no tree --- */
+body:not(.sidebar-xs) .sidebar-main.hk-sb-b .nav-group-sub{background:transparent;border-left:none;margin:0 8px;padding:2px 0 4px}
+body:not(.sidebar-xs) .sidebar-main.hk-sb-b .nav-group-sub .nav-link{border-radius:9px;color:#b7bcc7;font-size:13.3px;margin-bottom:1px;padding:8px 11px 8px 40px;position:relative}
+body:not(.sidebar-xs) .sidebar-main.hk-sb-b .nav-group-sub .nav-link:hover{background:rgba(255,255,255,.04);color:#fff}
+body:not(.sidebar-xs) .sidebar-main.hk-sb-b .nav-group-sub .nav-group-sub{margin:0}
+body:not(.sidebar-xs) .sidebar-main.hk-sb-b .nav-group-sub .nav-group-sub .nav-link{padding-left:52px}
+
+/* --- Active: calm tint + left accent bar (never a pill/dot) --- */
+body:not(.sidebar-xs) .sidebar-main.hk-sb-b .nav-sidebar>.nav-item>.nav-link.active,
+body:not(.sidebar-xs) .sidebar-main.hk-sb-b .nav-sidebar .nav-group-sub>.nav-item>.nav-link.active,
+body:not(.sidebar-xs) .sidebar-main.hk-sb-b .nav-sidebar>.nav-item>.nav-group-sub>li>.nav-link.active{background:rgba(47,111,237,.17);box-shadow:none;color:#fff;font-weight:600}
+body:not(.sidebar-xs) .sidebar-main.hk-sb-b .nav-sidebar>.nav-item>.nav-link.active::before,
+body:not(.sidebar-xs) .sidebar-main.hk-sb-b .nav-sidebar .nav-group-sub>.nav-item>.nav-link.active::before{background:#4d84ff;border-radius:0 4px 4px 0;bottom:8px;content:'';left:0;position:absolute;top:8px;width:3.5px}
+body:not(.sidebar-xs) .sidebar-main.hk-sb-b .nav-sidebar>.nav-item>.nav-link.active i{color:#8db1ff}
+/* Same tint for depth-1 leaf actives, restated past the older
+   high-specificity #2563eb solid-pill rule for this exact shape
+   (the pill itself is NOT deleted — it is simply outranked). */
+body:not(.sidebar-xs) .sidebar.sidebar-main.sidebar-dark.hk-sb-b .nav-sidebar .nav-group-sub>.nav-item:not(.nav-item-submenu)>.nav-link.active{background:rgba(47,111,237,.17);box-shadow:none;color:#fff;font-weight:600}
+
+/* --- User chip card, pinned to the rail bottom --- */
+.sidebar-main.hk-sb-b .card-sidebar-mobile{order:1}
+.sidebar-main.hk-sb-b .hk-sb-userchip{background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.055);border-radius:14px;display:block;flex:0 0 auto;margin:10px 0 14px;order:2}
+.sidebar-main.hk-sb-b .hk-sb-userchip .card-body{padding:11px 12px}
+.sidebar-main.hk-sb-b .hk-sb-userchip .media-title{color:#f0f1f4;font-size:13px}
+.sidebar-main.hk-sb-b .hk-sb-userchip .l7-avatar{border-radius:50%}
+body.sidebar-xs .sidebar-main.hk-sb-b .hk-sb-userchip{display:none}
+
+/* --- Light theme (specimen b-soft-cards-light) --- */
+html:not(.hk-dark) .sidebar-main.hk-sb-b{border-right:1px solid #e3e6ee;color:#2b3040}
+html:not(.hk-dark) .sidebar-main.hk-sb-b .t9-academy{background:#fff;border-color:#e4e7f0}
+html:not(.hk-dark) body:not(.sidebar-xs) .sidebar-main.hk-sb-b .nav-sidebar .nav-item-open>.nav-link:not(.disabled),
+html:not(.hk-dark) body:not(.sidebar-xs) .sidebar-main.hk-sb-b .nav-sidebar>.nav-item-expanded:not(.nav-item-open)>.nav-link{color:#1d2230}
+html:not(.hk-dark) body:not(.sidebar-xs) .sidebar.sidebar-main.sidebar-dark.hk-sb-b .nav-sidebar .nav-group-sub>.nav-item:not(.nav-item-submenu)>.nav-link.active{background:rgba(40,103,220,.11);box-shadow:none;color:#17479e}
+html:not(.hk-dark) body:not(.sidebar-xs) .sidebar-main.hk-sb-b .nav-item-open>.nav-link:after{color:#7c8499}
+html:not(.hk-dark) .sidebar-main.hk-sb-b .lav-sidebar-brand,
+html:not(.hk-dark) .sidebar-main.hk-sb-b .t9-brand{background:#fff;border-color:#e4e7f0;box-shadow:0 1px 2px rgba(23,32,54,.04)}
+html:not(.hk-dark) .sidebar-main.hk-sb-b .lav-sidebar-brand-link{color:#1d2230}
+html:not(.hk-dark) .sidebar-main.hk-sb-b .lav-sidebar-brand-link small{color:#8a91a1}
+html:not(.hk-dark) .sidebar-main.hk-sb-b .t9-brand-copy strong{color:#1d2230}
+html:not(.hk-dark) .sidebar-main.hk-sb-b .t9-brand-copy small{color:#8a91a1}
+html:not(.hk-dark) .sidebar-main.hk-sb-b .t9-academy{color:#98a0b3}
+html:not(.hk-dark) .sidebar-main.hk-sb-b .t9-academy i{color:#98a0b3}
+html:not(.hk-dark) body:not(.sidebar-xs) .sidebar-main.hk-sb-b .nav-sidebar>.nav-item,
+html:not(.hk-dark) body:not(.sidebar-xs) .sidebar-main.hk-sb-b .nav-sidebar>.nav-item-header{background:#fff;border-left-color:#e4e7f0;border-right-color:#e4e7f0}
+html:not(.hk-dark) body:not(.sidebar-xs) .sidebar-main.hk-sb-b .nav-sidebar>.nav-item-header,
+html:not(.hk-dark) body:not(.sidebar-xs) .sidebar-main.hk-sb-b .nav-sidebar>.nav-item:first-child{border-top-color:#e4e7f0}
+html:not(.hk-dark) body:not(.sidebar-xs) .sidebar-main.hk-sb-b .nav-sidebar>.nav-item:has(+ .nav-item-header),
+html:not(.hk-dark) body:not(.sidebar-xs) .sidebar-main.hk-sb-b .nav-sidebar>.nav-item:last-child,
+html:not(.hk-dark) body:not(.sidebar-xs) .sidebar-main.hk-sb-b .nav-sidebar>.nav-item-header:has(+ .nav-item-header),
+html:not(.hk-dark) body:not(.sidebar-xs) .sidebar-main.hk-sb-b .nav-sidebar>.nav-item-header:last-child{border-bottom-color:#e4e7f0}
+html:not(.hk-dark) body:not(.sidebar-xs) .sidebar-main.hk-sb-b .nav-sidebar>.nav-item-header>div{color:#98a0b3}
+html:not(.hk-dark) body:not(.sidebar-xs) .sidebar-main.hk-sb-b .nav-sidebar>.nav-item>.nav-link{color:#394052}
+html:not(.hk-dark) body:not(.sidebar-xs) .sidebar-main.hk-sb-b .nav-sidebar>.nav-item>.nav-link:hover{background:#f0f4fb;color:#1d2230}
+html:not(.hk-dark) body:not(.sidebar-xs) .sidebar-main.hk-sb-b .nav-sidebar>.nav-item>.nav-link i{color:#99a1b4}
+html:not(.hk-dark) body:not(.sidebar-xs) .sidebar-main.hk-sb-b .nav-sidebar>.nav-item>.nav-link:hover i{color:#5b6a86}
+html:not(.hk-dark) body:not(.sidebar-xs) .sidebar-main.hk-sb-b .nav-item-submenu>.nav-link:after{color:#a7aec0}
+html:not(.hk-dark) body:not(.sidebar-xs) .sidebar-main.hk-sb-b .nav-item-open>.nav-link,
+html:not(.hk-dark) body:not(.sidebar-xs) .sidebar-main.hk-sb-b .nav-item-expanded>.nav-link{color:#1d2230}
+html:not(.hk-dark) body:not(.sidebar-xs) .sidebar-main.hk-sb-b .nav-group-sub .nav-link{color:#5a6276}
+html:not(.hk-dark) body:not(.sidebar-xs) .sidebar-main.hk-sb-b .nav-group-sub .nav-link:hover{background:#f0f4fb;color:#1d2230}
+html:not(.hk-dark) body:not(.sidebar-xs) .sidebar-main.hk-sb-b .nav-sidebar>.nav-item>.nav-link.active,
+html:not(.hk-dark) body:not(.sidebar-xs) .sidebar-main.hk-sb-b .nav-sidebar .nav-group-sub>.nav-item>.nav-link.active,
+html:not(.hk-dark) body:not(.sidebar-xs) .sidebar-main.hk-sb-b .nav-sidebar>.nav-item>.nav-group-sub>li>.nav-link.active{background:rgba(40,103,220,.11);color:#17479e}
+html:not(.hk-dark) body:not(.sidebar-xs) .sidebar-main.hk-sb-b .nav-sidebar>.nav-item>.nav-link.active::before,
+html:not(.hk-dark) body:not(.sidebar-xs) .sidebar-main.hk-sb-b .nav-sidebar .nav-group-sub>.nav-item>.nav-link.active::before{background:#2867dc}
+html:not(.hk-dark) body:not(.sidebar-xs) .sidebar-main.hk-sb-b .nav-sidebar>.nav-item>.nav-link.active i{color:#2867dc}
+html:not(.hk-dark) .sidebar-main.hk-sb-b .hk-sb-userchip{background:#fff;border-color:#e4e7f0;box-shadow:0 1px 2px rgba(23,32,54,.04)}
+html:not(.hk-dark) .sidebar-main.hk-sb-b .hk-sb-userchip .media-title{color:#1d2230}
+html:not(.hk-dark) .sidebar-main.hk-sb-b .hk-sb-userchip .text-white{color:#8a91a1!important}
+
+/* --- Motion: only the submenu slide app.js already runs; the
+   B design adds no animation of its own. Reduced motion keeps
+   the standing global guards; nothing here animates. --- */
+@media print{
+    .sidebar-main.hk-sb-b{display:none!important}
+}
+
+/* --- Restoration (2026-11-07): the stat-tile glyph centring pin
+   (.l86-stat-ic,.dashboard-stat-icon,.acct-stat-icon line-height:1,
+   owner fix 2026-11-01) was lost when the sidebar tree blocks were
+   cut from this file; the rule itself is unchanged. --- */
+.l86-stat-ic,.dashboard-stat-icon,.acct-stat-icon{line-height:1}

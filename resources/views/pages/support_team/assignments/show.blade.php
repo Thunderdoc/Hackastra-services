@@ -46,6 +46,10 @@
                 </div>
                 <div class="mt-2 mt-md-0" style="white-space:nowrap">
                     @if($assignment->attachment_path)
+                        @php $qExt = strtolower(pathinfo($assignment->attachment_path, PATHINFO_EXTENSION)); @endphp
+                        @if(in_array($qExt, ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'webp'], true))
+                            <a href="{{ route('assignments.view', $assignment->id) }}" target="_blank" rel="noopener" class="btn btn-light"><i class="icon-eye mr-1"></i> Read Question File</a>
+                        @endif
                         <a href="{{ route('assignments.download', $assignment->id) }}" class="btn btn-light"><i class="icon-download mr-1"></i> Question File</a>
                     @endif
                     @if(Qs::userIsTeacher() && $assignment->teacher_id == auth()->id())
@@ -116,6 +120,10 @@
                             </td>
                             <td data-label="File / Answer">
                                 @if($submission->attachment_path)
+                                    @php $sExt = strtolower(pathinfo($submission->attachment_path, PATHINFO_EXTENSION)); @endphp
+                                    @if(in_array($sExt, ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'webp'], true))
+                                        <a href="{{ route('assignments.view', [$assignment->id, 'submission' => $submission->id]) }}" target="_blank" rel="noopener" class="btn btn-light btn-sm"><i class="icon-eye mr-1"></i> Read</a>
+                                    @endif
                                     <a href="{{ route('assignments.download', [$assignment->id, 'submission' => $submission->id]) }}" class="btn btn-light btn-sm"><i class="icon-download mr-1"></i> Download file</a>
                                 @endif
                                 @if($submission->text_answer)

@@ -45,7 +45,7 @@
             <div class="card-body">
                 <p class="mb-2"><strong>Undo this job?</strong> Rollback deletes the accounts this job created and restores the values its edits changed. A row is skipped — never force-deleted — when its account has since gained marks, payments, attendance or teaching responsibility, or when its old values were never recorded.</p>
                 @if($can_write)
-                    <form method="POST" action="{{ route('bulk.jobs.rollback', $job->id) }}" onsubmit="return confirm('Roll back this job? Created accounts will be deleted and edited values restored where recorded. This cannot be undone.');">
+                    <form method="POST" action="{{ route('bulk.jobs.rollback', $job->id) }}" data-confirm="Roll back this job? Created accounts will be deleted and edited values restored where recorded. This cannot be undone." data-confirm-title="Roll Back Job" data-confirm-action="Roll Back" data-confirm-danger>
                         @csrf
                         <button type="submit" class="btn btn-warning"><i class="icon-undo2 mr-1"></i> Roll Back This Job</button>
                     </form>
@@ -65,7 +65,7 @@
                     <p><strong>Nothing has been saved yet.</strong> Review the rows below — problems and duplicates are listed in full — then confirm to apply the {{ $job->create_count + $job->update_count }} good row(s). Skipped and problem rows are never applied.</p>
                 @endif
                 @if($can_write && ($job->create_count + $job->update_count) > 0)
-                    <form method="POST" action="{{ route('bulk.jobs.confirm', $job->id) }}" onsubmit="return confirm('Apply this bulk job now? You can roll it back from the job page afterwards.');">
+                    <form method="POST" action="{{ route('bulk.jobs.confirm', $job->id) }}" data-confirm="Apply this bulk job now? You can roll it back from the job page afterwards." data-confirm-title="Apply Bulk Job" data-confirm-action="Apply">
                         @csrf
                         <input type="hidden" name="confirm_token" value="{{ $job->confirm_token }}">
                         <button type="submit" class="btn btn-success btn-lg"><i class="icon-checkmark-circle2 mr-1"></i> Confirm &amp; Apply {{ $job->create_count + $job->update_count }} Row(s)</button>
@@ -76,7 +76,7 @@
                     <p class="text-muted mb-0">Only the school Admin can confirm and apply a bulk job.</p>
                 @endif
                 @if($can_write)
-                    <form method="POST" action="{{ route('bulk.jobs.discard', $job->id) }}" class="mt-2" onsubmit="return confirm('Discard this job? Its rows will never be applied.');">
+                    <form method="POST" action="{{ route('bulk.jobs.discard', $job->id) }}" class="mt-2" data-confirm="Discard this job? Its rows will never be applied." data-confirm-title="Discard Job" data-confirm-action="Discard" data-confirm-danger>
                         @csrf
                         <button type="submit" class="btn btn-light btn-sm"><i class="icon-trash mr-1"></i> Discard Job</button>
                     </form>
@@ -94,7 +94,7 @@
                         @csrf
                         <button type="submit" class="btn btn-success"><i class="icon-checkmark-circle2 mr-1"></i> Continue Applying</button>
                     </form>
-                    <form method="POST" action="{{ route('bulk.jobs.discard', $job->id) }}" class="mt-2" onsubmit="return confirm('Stop and discard the rest of this job? Rows already applied stay applied.');">
+                    <form method="POST" action="{{ route('bulk.jobs.discard', $job->id) }}" class="mt-2" data-confirm="Stop and discard the rest of this job? Rows already applied stay applied." data-confirm-title="Discard Job" data-confirm-action="Discard" data-confirm-danger>
                         @csrf
                         <button type="submit" class="btn btn-light btn-sm"><i class="icon-trash mr-1"></i> Stop &amp; Discard the Rest</button>
                     </form>

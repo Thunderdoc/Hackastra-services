@@ -228,6 +228,17 @@ class Notify
             UserNotification::insert($chunk);
         }
 
+        /* F1 (Round 4): WhatsApp result fan-out beside the bell —
+           the engine resolves the identical population (session +
+           class scope, grad=0, linked parents) and dedupes
+           once-ever per exam+child, so a re-publish refreshes the
+           bell but never re-sends WhatsApp. */
+        try {
+            ParentWhatsApp::resultPublished($exam);
+        } catch (\Throwable $e) {
+            // WhatsApp is additional only.
+        }
+
         return count($rows);
     }
 
@@ -273,6 +284,15 @@ class Notify
                     'title' => $title, 'body' => $body, 'link' => route('my_fees'),
                     'read_at' => null, 'created_at' => $now, 'updated_at' => $now,
                 ];
+            }
+            /* F1 (Round 4): WhatsApp fee reminder beside the bell —
+               same defaulter set, parents only. The engine is
+               throwable-proof; the bell above is unaffected either
+               way. */
+            try {
+                ParentWhatsApp::feeReminder($st, (int) $row['total_due'], (string) $year);
+            } catch (\Throwable $e) {
+                // WhatsApp is additional only.
             }
         }
 

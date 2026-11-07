@@ -23,13 +23,6 @@
             </div>
         </div>
         <div class="card-body">
-            @if($errors->any())
-                <div class="alert alert-danger">
-                    @foreach($errors->all() as $error)
-                        <div>{{ $error }}</div>
-                    @endforeach
-                </div>
-            @endif
             @if($dorms->count())
                 <div class="table-responsive">
                     <table class="table">
@@ -50,7 +43,7 @@
                                     <td>
                                         @if(auth()->user() && auth()->user()->user_type === 'hostel')
                                             <a href="{{ route('hostel.dorms.edit', ['hostel_dorm' => $dorm->id]) }}" class="btn btn-sm btn-primary">Edit</a>
-                                            <form method="post" action="{{ route('hostel.dorms.destroy', ['hostel_dorm' => $dorm->id]) }}" class="d-inline" onsubmit="return confirm('Delete this dorm?')">
+                                            <form method="post" action="{{ route('hostel.dorms.destroy', ['hostel_dorm' => $dorm->id]) }}" class="d-inline" data-confirm="Delete dorm {{ $dorm->name }}? This cannot be undone." data-confirm-title="Delete Dorm" data-confirm-action="Delete" data-confirm-danger>
                                                 @csrf @method('delete')
                                                 <button type="submit" class="btn btn-sm btn-danger">Delete</button>
                                             </form>
@@ -62,7 +55,10 @@
                     </table>
                 </div>
             @else
-                <p>No dorms found yet. Create the first dorm using the form below.</p>
+                @include('partials.patterns.empty_state', [
+                    'icon' => 'icon-home9',
+                    'message' => 'No dorms found yet. Create the first dorm using the form below.',
+                ])
             @endif
             @if(auth()->user() && auth()->user()->user_type === 'hostel')
                 <hr>
@@ -71,11 +67,11 @@
                     @csrf
                     <div class="form-group">
                         <label for="name">Name *</label>
-                        <input id="name" name="name" value="{{ old('name') }}" required type="text" class="form-control" placeholder="Name of dorm">
+                        <input id="name" name="name" value="{{ old('name') }}" required type="text" class="form-control @error('name') is-invalid @enderror" placeholder="Name of dorm">@include('partials.errors.field', ['field' => 'name'])
                     </div>
                     <div class="form-group">
                         <label for="description">Description</label>
-                        <input id="description" name="description" value="{{ old('description') }}" type="text" class="form-control" placeholder="Description">
+                        <input id="description" name="description" value="{{ old('description') }}" type="text" class="form-control @error('description') is-invalid @enderror" placeholder="Description">@include('partials.errors.field', ['field' => 'description'])
                     </div>
                     <button type="submit" class="btn btn-primary">Create Dorm</button>
                 </form>

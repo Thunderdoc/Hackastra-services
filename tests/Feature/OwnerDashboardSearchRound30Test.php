@@ -177,10 +177,10 @@ class OwnerDashboardSearchRound30Test extends TestCase
 
     public function test_teacher_search_returns_classes_and_payments()
     {
-        // As coded, classes and payments are school-wide for every
-        // search-allowed role (no teacher filter on either query).
-        // Payment TITLES are fee-structure names, not per-student
-        // figures — recorded here as the as-coded scope.
+        // Classes half unchanged: the teacher still finds classes —
+        // now restricted to their own scope (Round 5 P3 closed the
+        // scoping holes in the shared search query; Prep is in this
+        // teacher's scope, as the palette test pins in full).
         $classResponse = $this->actingAs($this->teacher())
             ->get(route('dashboard.search', ['q' => 'Prep']));
 
@@ -189,12 +189,17 @@ class OwnerDashboardSearchRound30Test extends TestCase
             return $classes->contains('name', 'Prep');
         });
 
+        // Payments half RE-EXPRESSED (Round 5 P3): the original pin
+        // recorded the as-coded hole — payments were school-wide for
+        // every search-allowed role. The hole is now closed by
+        // design: teachers get NO payments group at all (fees are
+        // admin/principal business), on the page and the palette.
         $paymentResponse = $this->actingAs($this->teacher())
             ->get(route('dashboard.search', ['q' => 'Tuition']));
 
         $paymentResponse->assertOk();
         $paymentResponse->assertViewHas('payments', function ($payments) {
-            return $payments->contains('title', 'Term 1 Tuition Fee');
+            return count($payments) === 0;
         });
     }
 

@@ -132,7 +132,7 @@
                         </tr>
                     @endforeach
                     <tr id="rg-no-results" style="display:none">
-                        <td colspan="5" class="text-center text-muted py-3">No students match your search.</td>
+                        <td colspan="5">@include('partials.patterns.empty_state', ['icon' => 'icon-search4', 'message' => 'No students match your search.', 'compact' => true])</td>
                     </tr>
                     </tbody>
                 </table>

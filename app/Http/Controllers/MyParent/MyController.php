@@ -49,6 +49,11 @@ class MyController extends Controller
 
             return [
                 'sr' => $sr,
+                // F5: one-line instalment-plan summaries, only for
+                // records where a fee-head match resolves (§5.1).
+                'plans' => $records->map(function ($r) use ($sr) {
+                    return \App\Support\FeePlanPresenter::forRecord($r, $sr);
+                })->filter()->values(),
                 'rows' => $records->map(function ($r) {
                     return $this->presentRecord($r);
                 }),
@@ -93,6 +98,12 @@ class MyController extends Controller
         $d['sr'] = $sr;
         $d['year'] = $year;
         $d['gateway_enabled'] = RazorpayGateway::enabled();
+        // F5: instalment plans (§5) — present only when a head
+        // match with instalments resolves for a record; otherwise
+        // empty and the page renders exactly as before.
+        $d['plans'] = $records->map(function ($r) use ($sr) {
+            return \App\Support\FeePlanPresenter::forRecord($r, $sr);
+        })->filter()->values();
         $d['uncleared'] = $records->where('paid', 0)->map($present)->values();
         $d['cleared'] = $records->where('paid', 1)->map($present)->values();
         $d['total_due'] = $records->where('paid', 0)->sum(function ($r) {
@@ -163,6 +174,11 @@ class MyController extends Controller
             'status' => $status,
             'badge' => $badge,
             'has_receipts' => $record->receipt->isNotEmpty(),
+            // F5: Paid On / Method parity with the student page —
+            // the same fields PortalController::presentRecord
+            // computes (latest receipt's date and method).
+            'last_date' => optional($record->receipt->sortByDesc('created_at')->first())->created_at,
+            'last_method' => optional($record->receipt->sortByDesc('created_at')->first())->method,
         ];
     }
 
