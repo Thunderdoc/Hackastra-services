@@ -45,10 +45,19 @@ class OwnerAdminDashboardLuxeTest extends TestCase
             $this->assertStringContainsString('href="' . $href . '"', $html);
         }
 
-        // Fee card fill rows + trend bars (6 months).
+        // Fee card fill rows + the enrollment panel. Beauty
+        // Batch 6 (audit E9) re-expresses the trend pin: the
+        // 6-column chart renders only once enrolments span three
+        // or more of the six months; with fewer, the panel states
+        // the "Enrolment so far" total instead of one stray bar.
         $this->assertStringContainsString('Collection rate', $html);
         $this->assertStringContainsString('Students with fees pending', $html);
-        $this->assertSame(6, substr_count($html, 'l17-tcol'));
+        $trendColumns = substr_count($html, 'l17-tcol');
+        if ($trendColumns === 0) {
+            $this->assertStringContainsString('Enrolment so far:', $html);
+        } else {
+            $this->assertSame(6, $trendColumns);
+        }
 
         // Recent lists are rows now, payments carry receipt numbers.
         $this->assertStringContainsString('l17-rrow', $html);

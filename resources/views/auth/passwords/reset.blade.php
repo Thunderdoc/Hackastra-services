@@ -1,7 +1,7 @@
 @extends('layouts.login_master')
 
 @section('content')
-    {{-- Guest Sample C shell. The form, fields and POST are
+    {{-- Guest Calm Split shell. The form, fields and POST are
          unchanged — presentation only. --}}
     @include('partials.login.guest_shell_open')
                     <div class="card">

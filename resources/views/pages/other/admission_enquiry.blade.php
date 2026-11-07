@@ -1,7 +1,7 @@
 @extends('layouts.login_master')
 
 @section('content')
-    {{-- Guest Sample C shell, so the public enquiry page matches
+    {{-- Guest Calm Split shell, so the public enquiry page matches
          the sign-in journey. Form unchanged. --}}
     @include('partials.login.guest_shell_open')
 
@@ -9,7 +9,11 @@
         <div class="card-body">
             <div class="text-center mb-3">
                 <h5 class="mb-0">Admission Enquiry</h5>
-                <span class="d-block text-muted">{{ $app_name }}</span>
+                {{-- Beauty Batch 6 (audit E13): the school name sat
+                     here AND in the brand line directly above the
+                     card. The subtitle now carries the session
+                     instead — the name keeps its one home above. --}}
+                <span class="d-block text-muted">Admissions for session {{ Qs::getCurrentSession() }}</span>
             </div>
 
             @if(session('flash_success'))

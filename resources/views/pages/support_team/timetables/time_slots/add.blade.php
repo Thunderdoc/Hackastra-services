@@ -117,7 +117,7 @@
                     </div>
 
                     <div class="text-right mt-3">
-                        <button type="submit" class="btn btn-success">Submit form <i class="icon-paperplane ml-2"></i></button>
+                        <button type="submit" class="btn btn-primary">Submit form <i class="icon-paperplane ml-2"></i></button>
                     </div>
                 </form>
             </div>

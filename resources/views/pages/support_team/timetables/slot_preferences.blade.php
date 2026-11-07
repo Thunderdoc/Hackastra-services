@@ -27,12 +27,24 @@
         .sp-cell:hover .sp-box{border-color:#2e6be6;color:#2e6be6}
         .sp-cell .sp-in:checked + .sp-box{background:#2e6be6;border-color:#2e6be6;color:#fff;box-shadow:0 4px 10px rgba(46,107,230,.25)}
         .sp-cell .sp-in:focus + .sp-box{outline:2px solid rgba(46,107,230,.5);outline-offset:1px}
+        /* Beauty Batch 1 (2026-11-07, audit G2): dark parity —
+           the 40 Pick boxes and the section chips were light-only
+           surfaces on the dark page. The selected state keeps the
+           app blue (its rule outranks these), and hover is scoped
+           to unselected boxes so a chosen slot never un-blues. */
+        html.hk-dark .sp-chip{background:rgba(52,120,246,.14);color:#9ec2ff;border-color:rgba(52,120,246,.35)}
+        html.hk-dark .sp-chip i{color:#7db3ff}
+        html.hk-dark .sp-grid th .sp-time{color:#8f9299}
+        html.hk-dark .sp-cell .sp-box{background:#1e1f21;border-color:#3e4044;color:#a5a8ad}
+        html.hk-dark .sp-cell:hover .sp-in:not(:checked) + .sp-box{border-color:#3478f6;color:#9ec2ff}
     </style>
 
     <div class="l10-head">
         <span class="l10-head-tile"><i class="icon-watch"></i></span>
         <div class="l10-head-text">
-            <h5>My Slot Preferences</h5>
+            {{-- Beauty Batch 3 (audit B1): no h5 here — the page
+                 header owns the "My Slot Preferences" title; this
+                 band keeps the guidance line. --}}
             <p>Pick the periods you would most like to teach. When the timetable is generated, your periods are placed in these slots first whenever everything else is equal.</p>
         </div>
         <span class="l10-chip"><i class="icon-calendar3"></i>Session {{ Qs::getCurrentSession() }}</span>

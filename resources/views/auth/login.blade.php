@@ -1,28 +1,30 @@
 @extends('layouts.login_master')
 
 @section('content')
-{{-- Login — Guest Sample C (2026-11-06, owner-approved design):
-     the campus illustration covers the whole page at full colour
-     and ONE floating card on the right carries the sign-in form;
-     there is no brand panel. All component styles live in qs.css
-     (the "Guest Sample C" append). The guest layout does not load
-     qs.css, so it is linked here. Form, fields and POST unchanged. --}}
+{{-- Login — Guest Calm Split (2026-11-07 redesign): Sample C
+     (full-page campus art + floating card) was rejected by the
+     owner, so the page is now a calm app backdrop and ONE centred
+     card carries a softened in-card art panel plus the sign-in
+     form. All component styles live in qs.css (the "Guest Calm
+     Split" append). The guest layout does not load qs.css, so it
+     is linked here. Form, fields and POST unchanged. --}}
 <link href="{{ asset('assets/css/qs.css') }}?v={{ file_exists(public_path('assets/css/qs.css')) ? filemtime(public_path('assets/css/qs.css')) : 1 }}" rel="stylesheet" type="text/css">
 <style>
-    /* Page chrome only: a soft tone behind the campus art while it
-       loads (cream in light, navy in dark) and the guest layout's
-       top/bottom navbars hidden so the page owns the screen. */
-    body{background:#f3ead9}
-    html.hk-dark body{background:#0b2239}
+    /* Page chrome only: the calm backdrop tone before qs.css
+       paints (pale in light, dark neutral in dark) and the guest
+       layout's top/bottom navbars hidden so the page owns the
+       screen. */
+    body{background:#edf2f9}
+    html.hk-dark body{background:#131416}
     body>.navbar{display:none!important}
 </style>
 
 <div class="login-a-page">
-    <div class="login-a-art" aria-hidden="true"></div>
     @include('partials.login.brand_pill')
     <div class="login-a-card hk-reveal">
+        <figure class="login-b-art" aria-hidden="true"></figure>
 
-        {{-- ===== The floating sign-in card ===== --}}
+        {{-- ===== The sign-in panel ===== --}}
         <div class="login-a-panel">
             @include('partials.login.card_brand')
 
@@ -85,20 +87,7 @@
                 <button type="submit" class="login-a-btn">Sign In</button>
             </form>
 
-            <p class="login-a-powered">Powered by Hackastra</p>
-        </div>
-    </div>
-
-    <p class="login-a-legal">
-        &copy; {{ date('Y') }} {{ Qs::getSystemName() ?: 'School Management System' }}
-        <span class="login-a-legal-sep">&middot;</span>
-        <a href="{{ route('privacy_policy') }}" target="_blank">Privacy Policy</a>
-        <span class="login-a-legal-sep">&middot;</span>
-        <a href="{{ route('terms_of_use') }}" target="_blank">Terms of Use</a>
-        <span class="login-a-legal-sep">&middot;</span>
-        Current session: {{ Qs::getCurrentSession() ?: '—' }}
-    </p>
-</div>
+    @include('partials.login.guest_shell_close')
 
 <script>
     (function () {

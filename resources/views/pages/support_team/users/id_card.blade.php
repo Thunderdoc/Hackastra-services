@@ -15,7 +15,7 @@
         <div class="card idc-screen-only">
             <div class="card-body">
                 <p class="idc-lead">{{ $staff->name }} &middot; {{ $card['sub'] }} &middot; Emp ID {{ $staff->code }}</p>
-                <a href="{{ route('users.show', Qs::hash($staff->id)) }}" class="btn btn-light"><i class="icon-arrow-left7 mr-2"></i> Back to Profile</a>
+
                 <button type="button" class="btn btn-primary" onclick="window.print()"><i class="icon-printer mr-2"></i> Print ID Card</button>
             </div>
         </div>

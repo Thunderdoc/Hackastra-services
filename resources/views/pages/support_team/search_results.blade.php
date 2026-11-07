@@ -1,5 +1,10 @@
 @extends('layouts.master')
 @section('page_title', 'Search')
+{{-- Beauty Batch 3 (audit B12): this page carries its own designed
+     hero ("Results for …"), so the shared header band is hidden —
+     the same hide_page_header opt-out Ask Hackstra / My Account
+     use — leaving exactly one title surface. --}}
+@section('hide_page_header', true)
 @section('content')
     <div class="dashboard-hero mb-4">
         <div>

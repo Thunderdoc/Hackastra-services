@@ -15,21 +15,14 @@
          (partials/module_banner) opens the page, in the same family
          as Timetables / Marks / Attendance from Wave 1. The old
          toolbar subtitle moves into the banner verbatim (one home
-         for the sentence, not two), and the banner's stats are the
-         SAME whole-catalogue figures the KPI cards in the stats
-         slot below carry — the controller's $stats, read twice.
-         The filters, the table and every control are untouched. --}}
+         for the sentence, not two). Beauty Batch 6 (audit E4): the
+         banner no longer repeats the catalogue figures — the KPI
+         cards in the stats slot below carry them once. The
+         filters, the table and every control are untouched. --}}
     @include('partials.module_banner', [
         'hkModIcon' => 'icon-books',
         'hkModTone' => 'purple',
-        'hkModTitle' => 'Library Books',
         'hkModSub' => 'Manage your library collection, track availability, and handle book loans and requests.',
-        'hkModStats' => [
-            ['value' => number_format($stats['titles']), 'label' => 'Titles'],
-            ['value' => number_format($stats['copies']), 'label' => 'Copies'],
-            ['value' => number_format($stats['issued']), 'label' => 'Issued'],
-            ['value' => number_format($stats['available']), 'label' => 'Available'],
-        ],
     ])
 
     @component('partials.patterns.list_page')
@@ -115,8 +108,14 @@
             </form>
         @endslot
 
-        <table class="table">
+        <div class="table-responsive">
+        <table class="table hk-std hk-std-books">
             <caption class="qs-table-caption">Showing {{ $books->firstItem() ?? 0 }} to {{ $books->lastItem() ?? 0 }} of {{ $books->total() }} books</caption>
+            {{-- Beauty Batch 4 (audit D1): fixed layout, widths sum to 100%.
+                 Actions carries the inline Edit+Delete pair, Status must fit
+                 the "Partially Issued" pill — Book (the wrapping text column)
+                 yields the width. --}}
+            <colgroup><col style="width:24%"><col style="width:8%"><col style="width:8%"><col style="width:11%"><col style="width:13%"><col style="width:12%"><col style="width:24%"></colgroup>
             <thead>
             <tr>
                 <th>Book</th>
@@ -156,16 +155,15 @@
                     </td>
                     <td>@if($book->book_type)<span class="badge badge-light">{{ $book->book_type }}</span>@endif</td>
                     <td>{{ $book->myClass->name ?? '—' }}</td>
-                    <td>@if($book->location)<i class="icon-location4 mr-1 text-muted"></i>{{ $book->location }}@else — @endif</td>
-                    <td>
+                    <td class="hk-nw">@if($book->location)<i class="icon-location4 mr-1 text-muted"></i>{{ $book->location }}@else — @endif</td>
+                    <td class="hk-nw">
                         {{ (int) $book->issued_copies }} issued / {{ (int) $book->total_copies }} total
                         <div class="text-muted">{{ $available }} available</div>
                     </td>
                     <td><span class="dashboard-status {{ $statusTone }}">{{ $statusLabel }}</span></td>
                     <td>
                         @if(Qs::userIsTeamLibraryWrite())
-                        <a href="{{ route('books.edit', $book->id) }}" class="btn btn-light btn-sm"><i class="icon-pencil7 mr-1"></i> Edit</a>
-                            <form method="post" action="{{ route('books.destroy', $book->id) }}" style="display:inline">@csrf @method('delete')<button type="submit" class="btn btn-light btn-sm text-danger" data-confirm="Delete this book from the catalogue?" data-confirm-title="Delete Book" data-confirm-action="Delete" data-confirm-danger><i class="icon-trash mr-1"></i> Delete</button></form>
+                        <span class="qs-row-actions"><a href="{{ route('books.edit', $book->id) }}" class="btn btn-light btn-sm"><i class="icon-pencil7 mr-1"></i> Edit</a><form method="post" action="{{ route('books.destroy', $book->id) }}" style="display:inline">@csrf @method('delete')<button type="submit" class="btn btn-light btn-sm text-danger" data-confirm="Delete this book from the catalogue?" data-confirm-title="Delete Book" data-confirm-action="Delete" data-confirm-danger><i class="icon-trash mr-1"></i> Delete</button></form></span>
                         @endif
                     </td>
                 </tr>
@@ -193,6 +191,7 @@
             @endforelse
             </tbody>
         </table>
+        </div>
         {{ $books->links() }}
     @endcomponent
 @endsection

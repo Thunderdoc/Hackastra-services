@@ -690,13 +690,47 @@ class Qs
 
     /**
      * The school logo for branding spots (sidebar, login, settings preview):
-     * the logo uploaded in Settings when one exists, otherwise a bundled
-     * default so the <img> is never empty/broken.
+     * the logo uploaded in Settings when one is set AND its file is actually
+     * on disk, otherwise a bundled default so the <img> is never broken.
+     *
+     * The on-disk check is load-bearing (live proof 2026-11-07): the seeded /
+     * uploaded logo URL points into /storage/..., whose file lives outside
+     * the shipped webroot — on a host where that file (or the public/storage
+     * symlink) is absent, the URL 404s and every branding spot showed a
+     * broken-image icon while the setting looked perfectly healthy. A school
+     * whose uploaded logo file exists is unaffected: its URL wins unchanged.
      */
     public static function getLogo($fallback = null)
     {
         $logo = self::getSetting('logo');
-        return $logo ?: ($fallback ?: asset('global_assets/images/logo_light.png'));
+        if ($logo && self::logoUrlFileExists($logo)) {
+            return $logo;
+        }
+        if ($fallback && self::logoUrlFileExists($fallback)) {
+            return $fallback;
+        }
+        return asset('demo-assets/school-logo.svg');
+    }
+
+    /**
+     * Can this logo URL actually be served from this install's webroot?
+     * Maps the URL path onto public/ and checks the file (a /storage/...
+     * path resolves through the public/storage symlink, exactly as the
+     * web server would). URLs on a foreign host and non-path values
+     * (data URIs) cannot be verified locally and are trusted as-is.
+     */
+    private static function logoUrlFileExists($url)
+    {
+        $path = parse_url($url, PHP_URL_PATH);
+        if (!$path) {
+            return true;
+        }
+        $host = parse_url($url, PHP_URL_HOST);
+        $appHost = parse_url((string) config('app.url'), PHP_URL_HOST);
+        if ($host && $appHost && strcasecmp($host, $appHost) !== 0) {
+            return true;
+        }
+        return is_file(public_path(ltrim($path, '/')));
     }
 
     public static function getCurrentSession()

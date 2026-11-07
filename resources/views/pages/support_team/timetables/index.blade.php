@@ -5,9 +5,9 @@
 @endsection
 @if(Qs::userIsTeamSAWrite())
 @section('page_actions')
-    <a href="{{ route('tt.generate.form') }}" class="btn btn-success"><i class="icon-magic-wand mr-1"></i> Auto-Generate</a>
+    <a href="{{ route('tt.generate.form') }}" class="btn btn-primary"><i class="icon-magic-wand mr-1"></i> Auto-Generate</a>
     <a href="{{ route('rooms.index') }}" class="btn btn-light"><i class="icon-home4 mr-1"></i> Rooms &amp; Labs</a>
-    <a href="#tt-create" class="btn btn-primary"><i class="icon-plus2 mr-1"></i> Create Timetable</a>
+    <a href="#tt-create" class="btn btn-light"><i class="icon-plus2 mr-1"></i> Create Timetable</a>
 @endsection
 @endif
 @section('content')
@@ -31,7 +31,6 @@
     @include('partials.module_banner', [
         'hkModIcon' => 'icon-table2',
         'hkModTone' => 'blue',
-        'hkModTitle' => 'Timetables',
         'hkModSub' => Qs::userIsTeacher() ? 'Showing only the classes you teach in' : 'View and manage class timetables for the current academic session.',
         'hkModStats' => [
             ['value' => $stats['classes'], 'label' => Qs::userIsTeacher() ? 'My Classes' : 'Classes'],
@@ -110,7 +109,7 @@
                     <strong>No timetables yet.</strong>
                     <span>Let the system build every class timetable for you — you only tell it the school hours, lunch and breaks.</span>
                 </div>
-                <a href="{{ route('tt.generate.form') }}" class="btn btn-success"><i class="icon-magic-wand mr-1"></i> Auto-Generate Timetables</a>
+                <a href="{{ route('tt.generate.form') }}" class="btn btn-primary"><i class="icon-magic-wand mr-1"></i> Auto-Generate Timetables</a>
             </div></div>
         @endif
 
@@ -148,8 +147,14 @@
                         <div><b>{{ $ttCardSubjects }}</b><span>Subjects</span></div>
                     </div>
                     @if($sections->count())
+                        {{-- Beauty Batch 3 (audit B13): chips cap at
+                             one row (6 + a "+N more" marker) so a
+                             13-section class no longer makes its card
+                             taller than its row neighbours. The full
+                             list stays on the single-class view. --}}
                         <div class="ttc-sections">
-                            @foreach($sections as $sec)<span class="ttc-chip">{{ $sec->name }}</span>@endforeach
+                            @foreach($sections->take(6) as $sec)<span class="ttc-chip">{{ $sec->name }}</span>@endforeach
+                            @if($sections->count() > 6)<span class="ttc-chip ttc-chip-more">+{{ $sections->count() - 6 }} more</span>@endif
                         </div>
                     @endif
                     @if($primary)

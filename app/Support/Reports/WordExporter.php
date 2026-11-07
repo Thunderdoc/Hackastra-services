@@ -142,10 +142,13 @@ class WordExporter
 
         // School band: name + the guarded meta line (the controller
         // already replaced the phone via Qs::getSchoolPhone(), so a
-        // placeholder number can never reach this document).
+        // placeholder number can never reach this document). A blank
+        // Settings name falls back to a neutral placeholder — never
+        // the vendor demo school's name (beauty audit F1).
+        $schoolName = trim((string) ($s['system_name'] ?? '')) ?: 'School';
         if (!empty($options['show_header'])) {
             $parts[] = self::para(
-                [self::run($s['system_name'] ?? 'Hackstra Academy', ['bold' => true, 'size' => 32, 'color' => '10263B'])],
+                [self::run($schoolName, ['bold' => true, 'size' => 32, 'color' => '10263B'])],
                 'left', 40
             );
             $metaBits = [];

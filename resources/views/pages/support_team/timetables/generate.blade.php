@@ -17,7 +17,9 @@
          and the POST contract are the pre-rebuild ones. --}}
     <div class="card gen-head">
         <div>
-            <h2>Auto-Generate Timetables</h2>
+            {{-- Beauty Batch 3 (audit B1): no h2 here — the page
+                 header owns the "Auto-Generate Timetables" title;
+                 this band keeps the one-line brief + the steps. --}}
             <p>Tell the system how your school day runs — it builds every timetable itself</p>
         </div>
         <div class="gen-steps">
@@ -340,12 +342,32 @@
                         <p class="gen-note" style="margin:0;">Pick a class above — only that class's subjects are used in One-class mode.</p>
                     </div>
 
-                    {{-- T5 constraint tiers (owner framework 2026-10-29),
-                         compressed to two short columns. --}}
+                    {{-- T5 constraint tiers (owner framework 2026-10-29).
+                         Beauty Batch 6 (audit E10): the two rule lists
+                         were run-on sentences; each rule is now its own
+                         chip — same words, scannable at a glance. --}}
                     <h3 style="margin-top:18px;">How generation decides</h3>
                     <div class="gen-rules">
-                        <div><b>Mandatory — never broken</b>No teacher in two places at once · a lab subject only in a lab · daily + weekly caps · one period per class per slot · attendance/substitution timetables never replaced.</div>
-                        <div><b>Preferences — best effort, always reported</b>Every subject's weekly periods, spread out · double periods back-to-back, never across a break · least-loaded teacher first · smallest room that fits. Anything unmet is named in the result — nothing is silently dropped.</div>
+                        <div>
+                            <b>Mandatory — never broken</b>
+                            <div class="gen-chips">
+                                <span class="gen-chip">No teacher in two places at once</span>
+                                <span class="gen-chip">Lab subjects only in a lab</span>
+                                <span class="gen-chip">Daily + weekly caps</span>
+                                <span class="gen-chip">One period per class per slot</span>
+                                <span class="gen-chip">Attendance / substitution timetables never replaced</span>
+                            </div>
+                        </div>
+                        <div>
+                            <b>Preferences — best effort, always reported</b>
+                            <div class="gen-chips">
+                                <span class="gen-chip">Every subject&rsquo;s weekly periods, spread out</span>
+                                <span class="gen-chip">Double periods back-to-back, never across a break</span>
+                                <span class="gen-chip">Least-loaded teacher first</span>
+                                <span class="gen-chip">Smallest room that fits</span>
+                            </div>
+                            <p class="gen-note" style="margin:8px 0 0;">Anything unmet is named in the result — nothing is silently dropped.</p>
+                        </div>
                     </div>
                 </div>
             </div>

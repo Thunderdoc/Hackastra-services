@@ -64,7 +64,7 @@
             <form method="post" action="{{ route('payments.select_class') }}" class="pat-filter-form">
                 @csrf
                 <div class="pat-filter-field">
-                    <label for="my_class_id">Class:</label>
+                    <label for="my_class_id">Class</label>
                     <select required id="my_class_id" name="my_class_id" class="form-control select">
                         <option value="">Select Class</option>
                         @foreach($my_classes as $c)

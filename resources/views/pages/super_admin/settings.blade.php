@@ -219,18 +219,39 @@
                     <div class="pat-form-section-sub">Key dates for the current term.</div>
                 </div>
             </div>
+            @php
+                // Beauty Batch 7 (audit C3): these two key dates were
+                // free-text fields with a US-format helper — the only
+                // free-typed dates left in Settings. They are native
+                // date fields now, like the rest of the app: hk_date
+                // shows DD/MM/YYYY and the POST still carries the same
+                // field names. Stored values can be legacy text, so
+                // the rendered value is normalised to ISO for the date
+                // input: strtotime first (a legacy "1/6/2026" keeps
+                // meaning exactly what its one reader — the report
+                // card comments print — already takes it as), then a
+                // strict d/m/Y read for values like "31/3/2027".
+                $hkIsoDate = function ($v) {
+                    $v = trim((string) $v);
+                    if ($v === '') { return ''; }
+                    $t = strtotime($v);
+                    if ($t !== false) { return date('Y-m-d', $t); }
+                    $d = \DateTime::createFromFormat('d/m/Y', $v);
+                    return $d ? $d->format('Y-m-d') : '';
+                };
+                $termEndsIso = $hkIsoDate($s['term_ends'] ?? '');
+                $termBeginsIso = $hkIsoDate($s['term_begins'] ?? '');
+            @endphp
             <div class="pat-fields">
                 <div class="pat-field">
                     <label for="term_ends">This Term Ends</label>
-                    <input name="term_ends" id="term_ends" value="{{ $s['term_ends'] }}" type="text" class="form-control date-pick @error('term_ends') is-invalid @enderror" placeholder="Date Term Ends">
+                    <input name="term_ends" id="term_ends" value="{{ $termEndsIso }}" type="date" class="form-control @error('term_ends') is-invalid @enderror" placeholder="Date Term Ends">
                     @include('partials.errors.field', ['field' => 'term_ends'])
-                    <small class="form-text text-muted">M-D-Y or M/D/Y format.</small>
                 </div>
                 <div class="pat-field">
                     <label for="term_begins">Next Term Begins</label>
-                    <input name="term_begins" id="term_begins" value="{{ $s['term_begins'] }}" type="text" class="form-control date-pick @error('term_begins') is-invalid @enderror" placeholder="Date Next Term Begins">
+                    <input name="term_begins" id="term_begins" value="{{ $termBeginsIso }}" type="date" class="form-control @error('term_begins') is-invalid @enderror" placeholder="Date Next Term Begins">
                     @include('partials.errors.field', ['field' => 'term_begins'])
-                    <small class="form-text text-muted">M-D-Y or M/D/Y format.</small>
                 </div>
             </div>
         </div>

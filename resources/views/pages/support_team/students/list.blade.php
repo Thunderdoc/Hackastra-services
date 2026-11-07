@@ -231,14 +231,23 @@
                 </div>
 
                 @if($print_mode || $view_mode === 'list')
-                    <table class="table">
+                    <div class="table-responsive">
+                    <table class="table hk-std hk-std-students">
+                        {{-- Beauty Batch 4 (audit D group): fixed layout; widths sum
+                             to 100% in both variants (the checkbox column exists
+                             only for teamSAWrite viewers). --}}
+                        @if(Qs::userIsTeamSAWrite())
+                            <colgroup><col style="width:4%"><col style="width:5%"><col style="width:7%"><col style="width:22%"><col style="width:13%"><col style="width:9%"><col style="width:13%"><col style="width:19%"><col style="width:8%"></colgroup>
+                        @else
+                            <colgroup><col style="width:6%"><col style="width:8%"><col style="width:24%"><col style="width:14%"><col style="width:10%"><col style="width:14%"><col style="width:16%"><col style="width:8%"></colgroup>
+                        @endif
                         <thead>
                         <tr>
                             @if(Qs::userIsTeamSAWrite())
                                 <th class="print-hide"><input type="checkbox" id="bulk-check-all" title="Select all on this page"></th>
                             @endif
-                            <th class="print-nowrap">S/N</th>
-                            <th class="print-hide">Photo</th>
+                            <th class="print-nowrap hk-nw">S/N</th>
+                            <th class="print-hide hk-nw">Photo</th>
                             <th>Name</th>
                             <th>ADM_No</th>
                             <th>Gender</th>
@@ -258,10 +267,10 @@
                                 @if(Qs::userIsTeamSAWrite())
                                     <td class="print-hide"><input type="checkbox" class="bulk-check" value="{{ $s->id }}"></td>
                                 @endif
-                                <td class="print-nowrap">{{ $print_mode ? $loop->iteration : $paged->firstItem() + $loop->index }}</td>
+                                <td class="print-nowrap hk-nw">{{ $print_mode ? $loop->iteration : $paged->firstItem() + $loop->index }}</td>
                                 <td class="print-hide"><span class="l7-avatar l7-avatar-md" aria-hidden="true">{{ $l83Ini }}@if(Qs::hasRealPhoto($s->user->photo))<img src="{{ $s->user->photo }}" alt="" onerror="this.remove()">@endif</span></td>
                                 <td>{{ $s->user->name }}</td>
-                                <td class="print-nowrap">{{ $s->adm_no }}</td>
+                                <td class="print-nowrap hk-nw">{{ $s->adm_no }}</td>
                                 <td>@if($l83Gender === 'male')<span class="l83-pill l83-pill-male">Male</span>@elseif($l83Gender === 'female')<span class="l83-pill l83-pill-female">Female</span>@elseif($l83Gender !== '')<span class="l83-pill">{{ ucfirst($s->user->gender) }}</span>@else &mdash; @endif</td>
                                 <td><span class="l83-chip">{{ $my_class->name.' '.$s->section->name }}</span></td>
                                 <td class="l83-email" title="{{ $s->user->email }}">{{ $s->user->email ?: '—' }}</td>
@@ -272,6 +281,7 @@
                         @endforeach
                         </tbody>
                     </table>
+                    </div>
                 @else
                     <div class="row l83-grid">
                         @foreach($paged as $s)

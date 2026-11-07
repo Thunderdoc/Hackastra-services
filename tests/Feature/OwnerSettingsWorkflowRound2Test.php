@@ -108,7 +108,14 @@ class OwnerSettingsWorkflowRound2Test extends TestCase
             ->assertRedirect(route('settings'));
         $this->assertSame('G2-TERM-ENDS-DISTINCT', $this->setting('term_ends'));
         $html = $this->actingAs($this->admin())->get(route('settings'))->assertOk()->getContent();
-        $this->assertStringContainsString('G2-TERM-ENDS-DISTINCT', $html);
+        // Beauty Batch 7 (audit C3) re-expression: term_ends is a
+        // native date field now, so a non-date stored value can no
+        // longer echo verbatim in the form — it renders as an empty
+        // date input instead. This test's point is unchanged: the
+        // value persists (asserted above), and no consumer renders it
+        // (asserted below for the report card, and here for the form).
+        $this->assertStringNotContainsString('G2-TERM-ENDS-DISTINCT', $html);
+        $this->assertStringContainsString('name="term_ends" id="term_ends" value="" type="date"', $html);
 
         $hash = Qs::hash($this->studentId());
         $res = $this->actingAs($this->admin())->get("/marks/print/{$hash}/1/2026-2027");

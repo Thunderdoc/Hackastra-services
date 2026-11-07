@@ -20,7 +20,6 @@
     @include('partials.module_banner', [
         'hkModIcon' => 'icon-calendar2',
         'hkModTone' => 'blue',
-        'hkModTitle' => 'My Leave',
         'hkModSub' => 'Apply for leave and track your requests in one place.',
     ])
     @if(!empty($leave_balance))
@@ -156,7 +155,7 @@
                         hintSync();
                     })();
                 </script>
-                <button type="submit" class="btn btn-success">Submit Request</button>
+                <button type="submit" class="btn btn-primary">Submit Request</button>
             </form>
         </div>
     </div>

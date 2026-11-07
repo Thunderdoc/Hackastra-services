@@ -7,6 +7,10 @@
         // Wide reports shrink one or two steps so narrow columns
         // stop breaking words mid-way (PDF polish, 2026-10-29).
         $colCount = count($doc['columns']);
+        // F1 (beauty audit): a printed document must never ship the
+        // vendor demo school's name — a blank Settings name falls
+        // back to a neutral placeholder, here and in the Word export.
+        $rpSchoolName = trim((string) ($s['system_name'] ?? '')) ?: 'School';
         $fsBase = $doc['options']['font_size'];
         $fsBody = $colCount > 8 ? max(8, $fsBase - 2) : $fsBase;
         $fsHead = max(8, $fsBody - 1);
@@ -111,11 +115,11 @@
                     @if(!empty($s['logo']))
                         <img class="logo" src="{{ $s['logo'] }}" alt="">
                     @else
-                        <span class="tile">{{ \App\Helpers\Qs::initials($s['system_name'] ?? 'Hackstra Academy') }}</span>
+                        <span class="tile">{{ \App\Helpers\Qs::initials($rpSchoolName) }}</span>
                     @endif
                 </td>
                 <td>
-                    <div class="school">{{ $s['system_name'] ?? 'Hackstra Academy' }}</div>
+                    <div class="school">{{ $rpSchoolName }}</div>
                     <div class="meta">
                         {{ $s['address'] ?? '' }}
                         @if(!empty($s['phone'])) &nbsp;|&nbsp; Tel: {{ $s['phone'] }} @endif
@@ -155,7 +159,7 @@
     @if(!empty($s['logo']))
         <img src="{{ $s['logo'] }}" alt="">
     @else
-        <span class="rp-wm-mono">{{ \App\Helpers\Qs::initials($s['system_name'] ?? 'Hackstra Academy') }}</span>
+        <span class="rp-wm-mono">{{ \App\Helpers\Qs::initials($rpSchoolName) }}</span>
     @endif
 </div>
 @if($doc['instructions'] !== '')

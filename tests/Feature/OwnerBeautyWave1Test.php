@@ -8,15 +8,18 @@ use Tests\TestCase;
 /**
  * Beauty Wave 1 (2026-11-06, 50/50 phase):
  * (1) Guest shell unity — login / forgot / reset / verify /
- *     admission-enquiry share ONE guest design. As first built it
- *     was the Login-A split card (brand panel + navy scrim over
- *     the campus art); the owner rejected that ("bhaut bekar" —
- *     the art drowned under the scrim), so the family was rebuilt
- *     to the owner-approved Sample C: the campus illustration
- *     covers the whole page at full colour (no scrim, either
- *     theme), there is NO brand panel, and one floating card on
- *     the right carries each page's form with the school brand
- *     (logo + Settings system name) at the card top.
+ *     admission-enquiry share ONE guest design. History: the
+ *     Login-A split card (brand panel + navy scrim) was rejected
+ *     ("bhaut bekar" — the art drowned under the scrim); Sample C
+ *     (campus art at full colour across the whole page, one card
+ *     floating on it) was then rejected too (2026-11-07, "very
+ *     bekar" — the picture shouted from every corner). The
+ *     current design is the Calm Split (2026-11-07): the page is
+ *     a quiet app backdrop with NO picture on it, and ONE centred
+ *     card carries a softened in-card art panel (.login-b-art)
+ *     beside the form panel, with the school brand (logo +
+ *     Settings system name) at the panel top. The Sample C
+ *     full-bleed drifting layer (.login-a-art) is retired.
  * (2) One motion layer — .hk-reveal entrance (fade + rise) with
  *     the .hk-reveal-1..3 stagger utilities, plus a gentle
  *     ken-burns drift on the role banner; both die under
@@ -85,17 +88,18 @@ class OwnerBeautyWave1Test extends TestCase
 
     /* ---------- (1) guest shell: rendered pages ---------- */
 
-    public function test_login_renders_as_a_sample_c_page()
+    public function test_login_renders_as_a_calm_split_page()
     {
-        // Sample C markup: page + floating card + card-top brand +
-        // legal line — and NO brand panel (the campus art itself is
-        // a qs.css page background now, pinned in the stylesheet
-        // test below, so it no longer appears as an <img> layer).
+        // Calm Split markup: page + centred card + in-card art
+        // panel + card-top brand + legal line — and NO brand panel
+        // and NO full-bleed art layer (both rejected designs).
         $this->get(route('login'))->assertOk()
             ->assertSee('login-a-card hk-reveal')
+            ->assertSee('login-b-art')
             ->assertSee('login-a-school-line')
             ->assertSee('Welcome back')
             ->assertSee('login-a-legal')
+            ->assertDontSee('login-a-art')
             ->assertDontSee('login-a-brand-inner')
             ->assertDontSee('login-a-brand-title')
             ->assertDontSee('login-a-campus')
@@ -106,6 +110,7 @@ class OwnerBeautyWave1Test extends TestCase
     {
         $this->get(route('password.request'))->assertOk()
             ->assertSee('login-a-page')
+            ->assertSee('login-b-art')
             ->assertSee('login-a-school-line')
             ->assertSee('login-a-legal')
             ->assertDontSee('login-a-brand-inner')
@@ -118,6 +123,7 @@ class OwnerBeautyWave1Test extends TestCase
     {
         $this->get('/password/reset/wave1-token')->assertOk()
             ->assertSee('login-a-page')
+            ->assertSee('login-b-art')
             ->assertSee('login-a-school-line')
             ->assertDontSee('login-a-brand-inner')
             ->assertSee('name="password_confirmation"', false)
@@ -128,6 +134,7 @@ class OwnerBeautyWave1Test extends TestCase
     {
         $this->get(route('admission_enquiry.form'))->assertOk()
             ->assertSee('login-a-page')
+            ->assertSee('login-b-art')
             ->assertSee('login-a-school-line')
             ->assertSee('login-a-legal')
             ->assertDontSee('login-a-brand-inner')
@@ -135,33 +142,56 @@ class OwnerBeautyWave1Test extends TestCase
             ->assertSee('Send Enquiry');
     }
 
-    public function test_stylesheet_carries_the_sample_c_guest_design()
+    public function test_stylesheet_carries_the_calm_split_guest_design()
     {
+        // RE-EXPRESSED 2026-11-07: this test pinned Sample C
+        // literally (art as the full-page background at full
+        // colour, card max-width:470px floating right, legal line
+        // as a blurred dark pill over the art). The owner rejected
+        // Sample C, so those assertions now pin the Calm Split
+        // redesign instead. Append-only note: the Sample C rules
+        // remain in qs.css ABOVE this block; the redesign block is
+        // appended last and wins — the position assertions below
+        // pin that ordering.
         $css = $this->css();
-        $pos = strpos($css, 'Guest Sample C');
-        $this->assertNotFalse($pos, 'Sample C block missing from qs.css');
+        $pos = strpos($css, 'Guest Calm Split');
+        $this->assertNotFalse($pos, 'Calm Split block missing from qs.css');
+        $this->assertGreaterThan(strpos($css, 'Guest Sample C'), $pos,
+            'the redesign block must be appended after the Sample C block it restates');
         $block = substr($css, $pos);
 
-        // The campus art is the page background itself, at full
-        // colour in BOTH themes — never a scrimmed panel layer.
+        // The campus art survives ONLY as the in-card panel,
+        // softened under a flat wash — never a page background.
+        $this->assertStringContainsString('.login-b-art{', $block);
         $this->assertStringContainsString("url('../img/login-campus.jpg')", $block);
         $this->assertStringContainsString('background-size:cover', $block);
+
+        // The Sample C full-bleed layer is retired, and the page
+        // backdrop is themed in both directions (calm tones).
+        $this->assertStringContainsString('.login-a-art{display:none}', $block);
         $this->assertStringContainsString('html:not(.hk-dark) .login-a-page', $block);
         $this->assertStringContainsString('html.hk-dark .login-a-page', $block);
         $this->assertStringNotContainsString('login-a-campus-scrim', $block);
 
-        // No brand panel; one floating card capped at sample width.
-        $this->assertStringContainsString('.login-a-brand{display:none}', $block);
+        // No brand panel; one centred card at the split width.
+        $this->assertStringContainsString('.login-a-brand{display:none}', $css);
         $this->assertStringContainsString('.login-a-card{', $block);
-        $this->assertStringContainsString('max-width:470px', $block);
+        $this->assertStringContainsString('max-width:960px', $block);
 
-        // The legal line rides over the art on a blurred dark pill.
-        $this->assertStringContainsString('backdrop-filter:blur(6px)', $block);
+        // The legal line is plain text now — no pill background
+        // (it only existed to stay readable over the full art).
+        $this->assertStringContainsString('.login-a-legal{background:transparent', $block);
+
+        // The school brandmark stays visible at phone widths:
+        // an old identity-band rule hid it below 992px, taking
+        // the school LOGO with it; the redesign restates it.
+        $this->assertStringContainsString(
+            '.login-a-panel .login-a-brandmark{display:flex}', $block);
 
         // Guest form header icons are normalised to a 56px circle.
         $this->assertStringContainsString(
-            '.login-a-panel-guest .text-center>i[class*="icon-"]', $block);
-        $this->assertStringContainsString('height:56px', $block);
+            '.login-a-panel-guest .text-center>i[class*="icon-"]', $css);
+        $this->assertStringContainsString('height:56px', $css);
 
         // The dark theme keeps its existing dark card colour.
         $this->assertStringContainsString(
@@ -172,13 +202,15 @@ class OwnerBeautyWave1Test extends TestCase
     {
         // Owner feedback on Sample C (2026-11-06): the Hackstra
         // platform branding had vanished — the platform lockup
-        // rides top-left over the art on every guest page, from
-        // the bundled platform asset (never the Settings logo).
+        // rides top-left on every guest page (over the calm
+        // backdrop since the Calm Split redesign), from the
+        // bundled platform asset (never the Settings logo).
         foreach ([route('login'), route('password.request'), route('admission_enquiry.form')] as $url) {
             $this->get($url)->assertOk()
                 ->assertSee('hk-brand-pill')
                 ->assertSee('images/hackstra-logo.svg')
-                ->assertSee('login-a-art');
+                ->assertSee('login-b-art')
+                ->assertDontSee('login-a-art');
         }
         $pill = file_get_contents(resource_path('views/partials/login/brand_pill.blade.php'));
         $this->assertStringContainsString('HACKSTRA', $pill);
@@ -187,19 +219,18 @@ class OwnerBeautyWave1Test extends TestCase
         $this->assertStringNotContainsString('getLogo(', $pill);
     }
 
-    public function test_stylesheet_carries_the_art_drift_and_brand_pill()
+    public function test_stylesheet_carries_the_brand_pill_and_the_retired_drift()
     {
+        // RE-EXPRESSED 2026-11-07: the art-drift half of this test
+        // pinned the Sample C full-bleed layer's slow ken-burns
+        // (.login-a-art + hkArtDrift). The Calm Split redesign
+        // retires that layer, so the drift assertions are replaced
+        // by the retirement pin below. The brand pill half is
+        // unchanged — the pill survives the redesign untouched.
         $css = $this->css();
         $pos = strpos($css, 'Guest brand pill + art drift');
-        $this->assertNotFalse($pos, 'brand pill / art drift block missing from qs.css');
+        $this->assertNotFalse($pos, 'brand pill block missing from qs.css');
         $block = substr($css, $pos);
-
-        // The art lives on its own layer now and drifts slowly.
-        $this->assertStringContainsString('@keyframes hkArtDrift', $block);
-        $this->assertStringContainsString('transform:scale(1.06) translate(-.6%,-.6%)', $block);
-        $this->assertStringContainsString('.login-a-art{animation:hkArtDrift 32s ease-in-out infinite alternate', $block);
-        $this->assertStringContainsString("url('../img/login-campus.jpg')", $block);
-        $this->assertStringContainsString('.login-a-page{background-image:none}', $block);
 
         // The pill: translucent dark, blurred, rounded, top-left.
         $this->assertStringContainsString('.hk-brand-pill{', $block);
@@ -211,14 +242,16 @@ class OwnerBeautyWave1Test extends TestCase
         // Hover-only sheen on the primary submit.
         $this->assertStringContainsString('.login-a-btn:hover::after', $block);
 
-        // Every new motion dies under reduced motion and in print.
-        foreach (['@media (prefers-reduced-motion:reduce)', '@media print'] as $media) {
-            $mpos = strpos($block, $media);
-            $this->assertNotFalse($mpos, $media . ' guard missing');
-            $guard = substr($block, $mpos, 400);
-            $this->assertStringContainsString('.login-a-art', $guard);
-            $this->assertStringContainsString('animation:none!important', $guard);
-        }
+        // The redesign block is appended AFTER the drift block and
+        // retires the drifting layer outright (display:none), so
+        // the old animation rules can never paint again; the pill
+        // is restated above the centred card (z-index) there too.
+        $calm = strpos($css, 'Guest Calm Split');
+        $this->assertNotFalse($calm, 'Calm Split block missing from qs.css');
+        $this->assertGreaterThan($pos, $calm);
+        $calmBlock = substr($css, $calm);
+        $this->assertStringContainsString('.login-a-art{display:none}', $calmBlock);
+        $this->assertStringContainsString('.hk-brand-pill{z-index:3}', $calmBlock);
     }
 
     public function test_verify_page_uses_the_guest_shell()

@@ -110,7 +110,7 @@
         @elseif(empty($lifecycle['opens_on']))
             <form method="POST" action="{{ route('marks.submit', [$exam_id, $my_class_id, $section_id, $subject_id]) }}" onsubmit="return confirm('Submit these marks? After submission you will not be able to edit them.');" style="margin-left:auto;">
                 @csrf
-                <button type="submit" class="btn btn-success btn-sm">Submit Marks</button>
+                <button type="submit" class="btn btn-primary btn-sm">Submit Marks</button>
             </form>
         @endif
     </div>
@@ -129,7 +129,7 @@
                 <form method="POST" action="{{ route('marks.import_internal', [$exam_id, $my_class_id, $section_id, $subject_id]) }}" onsubmit="return confirm('Fill the {{ $internal_component['name'] }} marks from the chosen source? Existing {{ $internal_component['name'] }} scores in this grid will be replaced for students who have graded work.');">
                     @csrf
                     <div class="row">
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <label>Source</label>
                             <select name="source_kind" id="rbImportKind" class="form-control">
                                 <option value="assignments">Assignments ({{ $import_assignment_count }} for this subject)</option>
@@ -148,7 +148,7 @@
                             <label>N (for Best/Latest)</label>
                             <input type="number" name="avg_n" class="form-control" min="1" max="50" value="3">
                         </div>
-                        <div class="col-md-4" style="display:flex; align-items:flex-end;">
+                        <div class="col-md-3" style="display:flex; align-items:flex-end;">
                             <button type="submit" class="btn btn-primary"><i class="icon-import mr-1"></i> Fill Internal Marks</button>
                         </div>
                     </div>

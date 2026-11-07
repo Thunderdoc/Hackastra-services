@@ -4,7 +4,7 @@
      Now on login_master with the shared guest card. Content and
      the resend link are identical — presentation only. --}}
 @section('content')
-    {{-- Guest Sample C shell. Content and the resend link are
+    {{-- Guest Calm Split shell. Content and the resend link are
          unchanged — presentation only. --}}
     @include('partials.login.guest_shell_open')
 

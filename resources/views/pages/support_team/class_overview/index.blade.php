@@ -1,9 +1,6 @@
 @extends('layouts.master')
 @section('page_title', 'Class Overview')
 @section('page_breadcrumb', 'Class Overview')
-@section('page_actions')
-    <a href="{{ route('dashboard') }}" class="btn btn-default">Back to Dashboard</a>
-@endsection
 @section('content')
     {{-- Item 12 (Light Luxe): slim header + summary tiles + one card
          per class replace the panel + table. The long methodology

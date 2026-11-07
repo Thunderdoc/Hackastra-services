@@ -135,6 +135,18 @@
                     @php
                         $submitted = $assignment->submissions->isNotEmpty();
                         $due = $assignment->due_at;
+                        // Beauty Batch 6 (audit E7): a submitted
+                        // assignment whose due date has passed used to
+                        // carry BOTH a red "Overdue" chip and a green
+                        // "Submitted" badge — one row, two opposite
+                        // states. Submitted late (submission timestamp
+                        // after the due moment) collapses to a single
+                        // "Submitted late" chip; submitted on time
+                        // keeps the Submitted badge with a neutral
+                        // due chip.
+                        $firstSubmission = $submitted ? $assignment->submissions->first() : null;
+                        $submittedLate = $submitted && $due && $due->isPast() && $firstSubmission && $firstSubmission->submitted_at
+                            && \Carbon\Carbon::parse($firstSubmission->submitted_at)->gt($due);
                     @endphp
                     <a href="{{ route('assignments.show', $assignment) }}" class="stu99-asg-row">
                         <span class="stu99-asg-copy">
@@ -142,16 +154,24 @@
                             <small>{{ optional($assignment->subject)->name ?: 'Subject —' }}@if(optional($assignment->teacher)->name) &middot; {{ $assignment->teacher->name }}@endif</small>
                         </span>
                         <span class="stu99-asg-side">
-                            @if(!$due)
-                                <span class="stu99-due-chip">No due date</span>
-                            @elseif($due->isPast())
-                                <span class="stu99-due-chip stu99-due-overdue">Overdue &middot; {{ $due->format('d M') }}</span>
-                            @elseif($due->isToday())
-                                <span class="stu99-due-chip stu99-due-soon">Due today</span>
+                            @if($submittedLate)
+                                <span class="stu99-due-chip stu99-badge-done">Submitted late &middot; {{ $due->format('d M') }}</span>
                             @else
-                                <span class="stu99-due-chip">Due {{ $due->format('d M') }} &middot; in {{ now()->startOfDay()->diffInDays($due->copy()->startOfDay()) }} day{{ now()->startOfDay()->diffInDays($due->copy()->startOfDay()) > 1 ? 's' : '' }}</span>
+                                @if(!$due)
+                                    <span class="stu99-due-chip">No due date</span>
+                                @elseif($due->isPast())
+                                    @if($submitted)
+                                        <span class="stu99-due-chip">Due &middot; {{ $due->format('d M') }}</span>
+                                    @else
+                                        <span class="stu99-due-chip stu99-due-overdue">Overdue &middot; {{ $due->format('d M') }}</span>
+                                    @endif
+                                @elseif($due->isToday())
+                                    <span class="stu99-due-chip stu99-due-soon">Due today</span>
+                                @else
+                                    <span class="stu99-due-chip">Due {{ $due->format('d M') }} &middot; in {{ now()->startOfDay()->diffInDays($due->copy()->startOfDay()) }} day{{ now()->startOfDay()->diffInDays($due->copy()->startOfDay()) > 1 ? 's' : '' }}</span>
+                                @endif
+                                <span class="dashboard-status {{ $submitted ? 'stu99-badge-done' : 'stu99-badge-todo' }}">{{ $submitted ? 'Submitted' : 'To do' }}</span>
                             @endif
-                            <span class="dashboard-status {{ $submitted ? 'stu99-badge-done' : 'stu99-badge-todo' }}">{{ $submitted ? 'Submitted' : 'To do' }}</span>
                         </span>
                     </a>
                 @empty

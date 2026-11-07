@@ -100,8 +100,11 @@ class OwnerWhatsappLockTest extends TestCase
         // Header progress + warning + admin-reset footer.
         $this->assertStringContainsString('1 of 9', $panel);
         $this->assertStringContainsString('groups linked', $panel);
-        $this->assertStringContainsString('link ek baar save hone ke baad badla nahi ja sakta', $panel);
-        $this->assertStringContainsString('sirf school Admin use reset kar sakta hai', $panel);
+        // Copy literals re-expressed 2026-11-07 (beauty Batch 6 / E1): the panel's
+        // Hinglish warning lines were replaced with English of the same meaning;
+        // the thesis (warning + admin-reset footer present) is unchanged.
+        $this->assertStringContainsString('once a link is saved, it cannot be changed', $panel);
+        $this->assertStringContainsString('only the school Admin can reset it', $panel);
 
         // The saved row: chip + lock badge + Open Group, grouped label.
         $this->assertStringContainsString('Saved · Locked', $panel);

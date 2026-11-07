@@ -1,6 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Manage Exam Marks')
-@section('page_subtitle', 'Select an exam, class, section and subject to manage and enter student marks.')
+{{-- Beauty Batch 3 (audit B1): no page_subtitle here — the module
+     banner below carries the page's one context line, so the header
+     shows the title alone instead of a second near-identical line. --}}
 @section('page_breadcrumb')
     <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Academics &nbsp;/&nbsp; Exams &nbsp;/&nbsp; Manage Exam Marks
 @endsection
@@ -26,7 +28,6 @@
     @include('partials.module_banner', [
         'hkModIcon' => 'icon-profile',
         'hkModTone' => 'blue',
-        'hkModTitle' => 'Manage Exam Marks',
         'hkModSub' => 'Pick the exam, class, section and subject — the student list opens from here.',
         'hkModChip' => 'Session ' . Qs::getCurrentSession(),
         'hkModChipIcon' => 'icon-calendar3',
@@ -59,10 +60,14 @@
 <script>
     /* Loop 84: presentation-state only. Reads the selector form's
        real values to drive the stepper + submit gate; the cascade
-       (getClassSubjects) and the POST contract are untouched. If
-       this script fails to load, the form still submits natively
-       (the button is rendered enabled and the selects keep their
-       HTML `required` + server-side validation). */
+       (getClassSubjects) and the POST contract are untouched. The
+       button is SERVER-RENDERED disabled + "Not Enabled" (Beauty
+       Batch 2, audit A8: the settled selector rule must hold from
+       first paint, not only after JS runs); this script keeps it
+       in sync from there — enabled only for a complete, enabled
+       unit, or on the entry-state fail-open below. If the script
+       fails to load, the selects keep their HTML `required` and
+       the manage() gates remain the server-side enforcement. */
     $(function () {
         var $exam = $('#exam_id'), $cls = $('#my_class_id'),
             $sec = $('#section_id'), $sub = $('#subject_id'),
@@ -162,7 +167,7 @@
             if (complete) { checkEntry(); }
             else {
                 entrySeq++; entryOk = false; entryPending = false; lastEntryKey = '';
-                $label.text('Manage Marks');
+                $label.text('Not Enabled');
                 setStatus('', 'Select exam, class, section and subject \u2014 the entry state will show here.');
                 resetTiles();
             }

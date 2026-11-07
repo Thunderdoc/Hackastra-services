@@ -121,12 +121,27 @@
                         </select>
                     </form>
                 </div>
-                @php $l17MaxTrend = max(10, (int) $enrollment_trend->max('value')); @endphp
-                <div class="l17-trend">
-                    @foreach($enrollment_trend as $point)
-                        <div class="l17-tcol"><b>{{ number_format($point['value']) }}</b><i style="height:{{ max(4, (int) round($point['value'] / $l17MaxTrend * 92)) }}px"></i><span>{{ $point['label'] }}</span></div>
-                    @endforeach
-                </div>
+                @php
+                    $l17MaxTrend = max(10, (int) $enrollment_trend->max('value'));
+                    // Beauty Batch 6 (audit E9): when enrolments sit
+                    // in fewer than three of the six months, the bars
+                    // read as one stray column among zeroes. A "so
+                    // far" line carries the same fact honestly; the
+                    // chart returns once three months hold students.
+                    $l17ActiveMonths = $enrollment_trend->filter(function ($p) { return (int) $p['value'] > 0; })->count();
+                    $l17LatestTrend = $enrollment_trend->last();
+                @endphp
+                @if((int) $enrollment_trend->max('value') === 0)
+                    <div class="dashboard-empty">No students have been enrolled yet.</div>
+                @elseif($l17ActiveMonths < 3)
+                    <p class="mb-0" style="padding:0 22px 20px;">Enrolment so far: <strong>{{ number_format($l17LatestTrend['value']) }} active students</strong> as of {{ $trend_window_label }}. The month-by-month chart appears once enrolments span three or more months.</p>
+                @else
+                    <div class="l17-trend">
+                        @foreach($enrollment_trend as $point)
+                            <div class="l17-tcol"><b>{{ number_format($point['value']) }}</b><i style="height:{{ max(4, (int) round($point['value'] / $l17MaxTrend * 92)) }}px"></i><span>{{ $point['label'] }}</span></div>
+                        @endforeach
+                    </div>
+                @endif
             </section>
 
             <div class="l17-duo">

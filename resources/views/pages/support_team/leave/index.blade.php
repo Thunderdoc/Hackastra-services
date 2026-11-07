@@ -105,20 +105,15 @@
             .lv-decided-line, .lv-req-own { text-align: left; }
         }
     </style>
-    {{-- Slim module banner (Beauty Wave 1 pattern): the queue's
-         figures ride the banner on the deciders' board; the
-         teacher's student-requests view reuses this blade without
-         a summary and gets the plain banner. --}}
+    {{-- Slim module banner (Beauty Wave 1 pattern). Beauty
+         Batch 6 (audit E3): the banner no longer repeats the
+         counts — the stat tiles and the coverage strip below
+         carry every figure once. The teacher's student-requests
+         view reuses this blade without a summary. --}}
     @include('partials.module_banner', [
         'hkModIcon' => 'icon-calendar2',
         'hkModTone' => 'orange',
-        'hkModTitle' => 'Leave Requests',
         'hkModSub' => isset($summary) ? 'Decide requests, see the cover plan and spot uncovered periods at a glance.' : 'Student leave requests from your sections — you decide these.',
-        'hkModStats' => isset($summary) ? [
-            ['value' => $summary['pending'], 'label' => 'Pending'],
-            ['value' => $summary['approved'], 'label' => 'Approved'],
-            ['value' => $summary['total'], 'label' => 'Total'],
-        ] : [],
     ])
     @isset($summary)
     {{-- Leave intelligence summary (owner brief 2026-10-30): real
@@ -135,7 +130,7 @@
     @endisset
     <div class="card">
         <div class="card-header header-elements-inline">
-            <h6 class="card-title">Leave Requests — pending first</h6>
+            <h6 class="card-title">Requests — pending first</h6>
             {!! Qs::getPanelOptions() !!}
         </div>
         <div class="card-body">

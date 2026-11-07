@@ -9,7 +9,6 @@
     @include('partials.module_banner', [
         'hkModIcon' => 'icon-truck',
         'hkModTone' => 'orange',
-        'hkModTitle' => 'Transport',
         'hkModSub' => 'Bus routes, vehicles and student assignments.',
         'hkModStats' => [
             ['value' => number_format($routes->count()), 'label' => 'Routes'],

@@ -1,5 +1,13 @@
 @extends('layouts.master')
 @section('page_title', 'Health Records')
+@if($can_write)
+@section('page_actions')
+    {{-- Beauty Batch 2 (audit A10): the create action takes the
+         standard index-page placement — standard size, header
+         right — instead of a small button under the card title. --}}
+    <a href="{{ route('health_records.create') }}" class="btn btn-primary"><i class="icon-plus2 mr-1"></i> New Health Record</a>
+@endsection
+@endif
 @section('content')
     {{-- Beauty Wave 3: the slim module banner (partials/module_banner)
          opens the page; its stats count the records THIS viewer is
@@ -9,7 +17,6 @@
     @include('partials.module_banner', [
         'hkModIcon' => 'icon-heart6',
         'hkModTone' => 'red',
-        'hkModTitle' => 'Health Records',
         'hkModSub' => 'Clinic visit log — only the records you are allowed to see are listed here.',
         'hkModStats' => [
             ['value' => number_format($records->count()), 'label' => 'Records'],
@@ -17,12 +24,10 @@
         ],
     ])
     <div class="card">
-        <div class="card-header">
-            <h5 class="card-title">Health Records</h5>
-            @if($can_write)
-                <a href="{{ route('health_records.create') }}" class="btn btn-primary btn-sm">New Health Record</a>
-            @endif
-        </div>
+        {{-- Beauty Batch 3 (audit B1): no card heading — the page
+             header owns the "Health Records" title and the banner
+             above carries the context line; a third repetition of
+             the title stood here. --}}
         <div class="card-body">
             <p class="text-muted">Complaint and treatment details are shown on the individual record page only.</p>
             @if($records->count())

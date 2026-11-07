@@ -1,8 +1,8 @@
 @extends('layouts.login_master')
 
 @section('content')
-    {{-- Guest Sample C shell: full-page campus art + one floating
-         card. Form markup, fields and POST are unchanged. --}}
+    {{-- Guest Calm Split shell: calm backdrop + one centred card.
+         Form markup, fields and POST are unchanged. --}}
     @include('partials.login.guest_shell_open')
 
         <!-- Password recovery form -->
@@ -32,7 +32,7 @@
                         <input name="email" required type="email" class="form-control" value="{{ old('email') }}" placeholder="Your email">
                     </div>
 
-                    <button type="submit" class="btn bg-blue btn-block"><i class="icon-spinner11 mr-2"></i> Reset password</button>
+                    <button type="submit" class="btn btn-primary btn-block"><i class="icon-spinner11 mr-2"></i> Reset password</button>
                 </div>
             </div>
         </form>

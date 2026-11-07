@@ -22,8 +22,7 @@
     @include('partials.module_banner', [
         'hkModIcon' => 'icon-users',
         'hkModTone' => 'blue',
-        'hkModTitle' => 'Student Information',
-        'hkModSub' => 'Search any student across classes, or open a class list below.',
+        'hkModSub' => 'Search any student across classes by name, admission number or filters.',
         'hkModStats' => [
             ['value' => $classes->count(), 'label' => Qs::userIsTeacher() ? 'My Classes' : 'Classes'],
             ['value' => $sections->count(), 'label' => 'Sections'],

@@ -11,6 +11,15 @@
         .bk-ok { color: #2e7d32; font-weight: 600; }
         .bk-fail { color: #c62828; font-weight: 600; }
         .bk-note { background: #fff8e1; border: 1px solid #ffe082; border-radius: 6px; padding: 12px; font-size: 14px; line-height: 1.5; margin-bottom: 12px; max-width: 100%; }
+        /* Beauty Batch 1 (2026-11-07, audit G6): dark parity —
+           the cards and the read-first note were hardcoded white;
+           they now take the app dark tokens (the note keeps the
+           dark warning tint, same family as alert-warning). */
+        html.hk-dark .bk-card { background: #26272a; border-color: #36383c; color: #e7e8e9; }
+        html.hk-dark .bk-row { border-top-color: #36383c; }
+        html.hk-dark .bk-note { background: #3a3016; border-color: #5a4a1e; color: #f0dfa8; }
+        html.hk-dark .bk-ok { color: #7fd79a; }
+        html.hk-dark .bk-fail { color: #f2a9a9; }
     </style>
     <div class="bk-wrap">
         <div class="bk-note">

@@ -21,7 +21,6 @@
     @include('partials.module_banner', [
         'hkModIcon' => 'icon-stats-bars2',
         'hkModTone' => 'blue',
-        'hkModTitle' => 'Workload Analysis',
         'hkModSub' => 'Your teaching load from your real timetable — caps: ' . $cap_day . ' periods a day, ' . $cap_week . ' a week ' . (($caps_personal ?? false) ? '(your personal caps)' : '(Settings)'),
         'hkModActions' => '<span style="display:inline-flex;gap:9px;flex-wrap:wrap;"><a href="' . route('tt.mine') . '" class="btn btn-light btn-sm"><i class="icon-calendar5 mr-1"></i> My Timetable</a><a href="' . route('substitutions.mine') . '" class="btn btn-light btn-sm"><i class="icon-user-plus mr-1"></i> My Extra Classes</a></span>',
     ])

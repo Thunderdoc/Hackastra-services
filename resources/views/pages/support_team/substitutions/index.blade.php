@@ -95,11 +95,18 @@
                 @if(!empty($filter_date))
                     <a href="{{ route('substitutions.index') }}" class="btn btn-light ml-2">All dates</a>
                     <span class="ml-3 text-muted">Showing {{ \Illuminate\Support\Carbon::parse($filter_date)->format('l, d M Y') }}</span>
+                @else
+                    {{-- Beauty Batch 6 (audit E11): blank = the whole
+                         record is the settled owner rule (2026-10-30),
+                         so the scope is stated rather than the filter
+                         defaulting to today — a first glance used to
+                         read the empty sheet as one day's. --}}
+                    <span class="ml-3 text-muted">Showing all dates</span>
                 @endif
             </form>
 
             @if($substitutions->isEmpty())
-                <p class="text-muted mb-0">{{ !empty($filter_date) ? 'No substitutions on this date.' : 'No substitutions arranged yet.' }}</p>
+                <p class="text-muted mb-0">{{ !empty($filter_date) ? 'No substitutions on this date.' : 'No substitutions arranged yet — this sheet covers every date; pick a date above to see a single day.' }}</p>
             @else
                 @foreach($substitutions->groupBy(function ($s) { return $s->date ? $s->date->toDateString() : ''; }) as $dateStr => $rows)
                     <h6 class="mb-2 mt-3">

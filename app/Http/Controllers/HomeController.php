@@ -1252,15 +1252,12 @@ class HomeController extends Controller
                 'link' => route('attendance.periods.take', $row['tt_id']),
             ];
         }
-        if ($lms_to_grade > 0) {
-            $today_tasks[] = [
-                'icon' => 'icon-file-text2', 'tone' => 'purple',
-                'title' => 'Grade assignment submissions',
-                'meta' => $lms_to_grade . ' ' . ($lms_to_grade === 1 ? 'submission' : 'submissions') . ' awaiting marks',
-                'badge' => (string) $lms_to_grade, 'badge_tone' => 'purple',
-                'link' => route('assignments.index'),
-            ];
-        }
+        // Beauty Batch 6 (audit E6): no grading-queue row here —
+        // the queue already headlines the Needs attention panel
+        // (per-assignment detail) and its count rides this panel's
+        // sub-line (Audit Fix Wave 1). Listing the same 199
+        // submissions a third time was the duplication the audit
+        // flagged; Needs attention is the one grading surface.
         // Marks still missing for this session's exams, counted per
         // (subject × enrolled student) with no mark row yet. An exam
         // whose marks are complete produces no row — a count of real

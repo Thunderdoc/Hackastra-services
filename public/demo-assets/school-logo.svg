@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 72" role="img" aria-label="Hackstra Academy">
+  <defs>
+    <linearGradient id="hk-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#14324f"/>
+      <stop offset="1" stop-color="#0a1e33"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="68" height="68" rx="15" fill="url(#hk-bg)"/>
+  <rect x="2.75" y="2.75" width="66.5" height="66.5" rx="14" fill="none" stroke="#ffffff" stroke-opacity="0.16" stroke-width="1.5"/>
+  <polygon points="36,9 41.5,13.5 36,18 30.5,13.5" fill="#ff241c"/>
+  <rect x="19" y="24" width="7.5" height="30" rx="2" fill="#ffffff"/>
+  <rect x="45.5" y="24" width="7.5" height="30" rx="2" fill="#ffffff"/>
+  <rect x="19" y="35" width="34" height="8" rx="2" fill="#ff241c"/>
+  <rect x="19" y="58" width="34" height="3.5" rx="1.75" fill="#ffffff" fill-opacity="0.55"/>
+</svg>

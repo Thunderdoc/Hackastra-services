@@ -3,7 +3,11 @@
      module's pastel icon circle, title and one-line context, plus an
      optional right side (stat row + chip). Formalises the tt3-head /
      l10-head pattern into ONE component.
-     Required: $hkModIcon (icomoon class), $hkModTitle, $hkModSub.
+     Required: $hkModIcon (icomoon class), $hkModSub.
+     $hkModTitle is OPTIONAL since Beauty Batch 3 (2026-11-07,
+     audit B1/B12): the shared page header owns each page's ONE
+     title (settled Loop 46 doctrine), so callers no longer pass a
+     title and the h2 renders only for a non-empty one.
      Optional: $hkModTone (blue|green|orange|purple|red, default blue),
      $hkModStats ([['value' => .., 'label' => ..], ...]),
      $hkModChip (text), $hkModChipIcon (icomoon class),
@@ -14,8 +18,12 @@
 <div class="hk-mod-banner">
     <span class="hk-mod-ic hk-mod-ic-{{ $hkModTone ?? 'blue' }}"><i class="{{ $hkModIcon }}"></i></span>
     <div class="hk-mod-text">
-        <h2 class="hk-mod-title">{{ $hkModTitle }}</h2>
-        <p class="hk-mod-sub">{{ $hkModSub }}</p>
+        @if(!empty($hkModTitle))
+            <h2 class="hk-mod-title">{{ $hkModTitle }}</h2>
+        @endif
+        @if(!empty($hkModSub))
+            <p class="hk-mod-sub">{{ $hkModSub }}</p>
+        @endif
     </div>
     @if(!empty($hkModStats) || !empty($hkModChip) || !empty($hkModActions))
         <div class="hk-mod-right {{ $hkModRightClass ?? '' }}">

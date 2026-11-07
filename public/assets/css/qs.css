@@ -8191,3 +8191,381 @@ html.hk-dark .hk-bn-sub{color:#c3ccd6;text-shadow:0 1px 8px rgba(0,0,0,.45)}
 @media print{
     html.hk-dark .hk-banner-hero::before{animation:none!important}
 }
+
+/* ============================================================
+   Beauty Batch 1 — dark-parity sweep (2026-11-07, audit G):
+   the "half white" disease in its remaining pockets. Every rule
+   here is dark-scoped; light mode is byte-identical.
+   G5: library book titles were near-black navy (#172536) on the
+   dark row — the librarian's primary text was the least readable
+   element on the page. */
+html.hk-dark .qs-book-cell strong{color:#f4f4f5}
+/* G4: the hk_date calendar popup (.hkdp-pop, partials/hk_date)
+   was a white popover on EVERY form in dark mode. The popup's
+   base styles live in the partial; the dark surface rides here
+   beside the other picker rules. The selected day keeps the app
+   blue; the today ring keeps its blue outline. */
+html.hk-dark .hkdp-pop{background:#26272a;color:#e7e8e9;border-color:#36383c;box-shadow:0 12px 32px rgba(0,0,0,.55)}
+html.hk-dark .hkdp-btn{color:#92959c}
+html.hk-dark .hkdp-btn:hover{color:#7db3ff}
+html.hk-dark .hkdp-nav{background:#2f3135;color:#7db3ff}
+html.hk-dark .hkdp-dow{color:#a5a8ad}
+html.hk-dark .hkdp-day{color:#e7e8e9}
+html.hk-dark .hkdp-day:hover{background:#2f3135}
+html.hk-dark .hkdp-day:disabled{color:#565a60;background:transparent}
+/* G3: the Settings "open for editing" banner is the app's only
+   alert-light (settings.blade.php) and rendered bright white in
+   dark mode. It now takes the same tinted dark notice tokens as
+   alert-info. (.border is a Bootstrap !important utility, so the
+   border colour answers with !important too.) */
+html.hk-dark .alert-light{background:#2d2e31;border-color:#404246!important;color:#d7dade}
+/* G8: near-white pill chips on Class Overview (subject chips +
+   at-risk pills) become tinted dark chips — same hues, dark
+   surfaces, coloured text, per the shared dark chip pattern. */
+html.hk-dark .l12-subj{background:rgba(124,93,250,.20);color:#c9b3f7}
+html.hk-dark .l12-risk-zero{background:#2f3135;color:#a5a8ad}
+html.hk-dark .l12-risk-on{background:rgba(214,69,69,.18);color:#f2a9a9}
+/* G9: the bright white rule under card titles above tables.
+   Its source is Limitless' sibling rule
+   (.card-header:not([class*=bg-]) + div[class*=table-responsive]
+   and family, border-top:1px solid #ddd, specificity (0,3,1)) —
+   a plain .table-responsive override (0,2,1) LOSES to it, so the
+   dark fix mirrors the vendor selector shapes to outrank them.
+   Colour only: where no border exists, nothing changes. */
+html.hk-dark .card-header:not([class*=bg-]) + .table,html.hk-dark .card-header:not([class*=bg-]) + div[class*=table-responsive],html.hk-dark .card-body + .table,html.hk-dark .card-body + div[class*=table-responsive],html.hk-dark .card-footer + .table,html.hk-dark .card-footer + [class*=table-responsive]{border-top-color:#36383c}
+
+/* ============================================================
+   Beauty Batch 2 — ONE BUTTON SYSTEM (2026-11-07, audit group A).
+   One canonical primary: the --qs-primary-action token (#2867dc,
+   the Login Sign In family). Until now qs.css restyled
+   btn-primary only inside .content, so every button outside it —
+   page-header actions, the guest shell — fell back to the vendor
+   Limitless sky #2196f3 (A1: three blues). The rules below are
+   appended last and restate the winning shapes; light and dark
+   share the same primary.
+   ============================================================ */
+.btn-primary{background:var(--qs-primary-action);border-color:var(--qs-primary-action);color:#fff}
+.btn-primary:hover,.btn-primary:focus{background:#1f56bd;border-color:#1f56bd;color:#fff}
+.btn-primary:disabled,.btn-primary.disabled{background:var(--qs-primary-action);border-color:var(--qs-primary-action);color:#fff}
+.content .btn-primary:hover,.content .btn-primary:focus{background:#1f56bd;border-color:#1f56bd}
+/* A4: the Users page scoped its buttons into pills (999px) on a
+   fourth blue (#2563eb) with chunkier padding. Restated at the
+   original selector shapes: app radius, app padding, the token. */
+.l106-users .pat-list .btn{border-radius:var(--qs-radius);padding:.4375rem .875rem}
+.l106-users .pat-list .btn-primary{background:var(--qs-primary-action);border-color:var(--qs-primary-action)}
+/* A3: a disabled danger button kept 60% of its saturated red
+   (Loop 1's generic .btn[disabled] opacity) and read as live —
+   e.g. Students "Delete Selected" at 0 selected. Disabled danger
+   is now a true neutral grey in both themes; the enabled red is
+   untouched. Same specificity as the Loop 1 rule, later wins. */
+.btn-danger:disabled,.btn-danger.disabled{background:#d9dee4;border-color:#d9dee4;color:#7c8794;opacity:1}
+html.hk-dark .btn-danger:disabled,html.hk-dark .btn-danger.disabled{background:#33363b;border-color:#33363b;color:#7b7f87}
+/* A7: filled primary ANCHOR buttons without the .btn class (the
+   parent "View Fees" / "Pay Fees" pair, dashboard-primary-action,
+   acct-btn-primary) declare color:#fff at (0,1,0) — but the dark
+   prose-link rule `html.hk-dark .content a:not(.btn)...`
+   (#6ea8ff) outranks them at (0,3,2), so their labels rendered
+   washed-out pale blue on the royal fill in dark mode. Restated
+   at the winning shape so the white label stands in dark too. */
+html.hk-dark .content a.p96-take-btn,html.hk-dark .content a.p96-pay-btn,html.hk-dark .content a.dashboard-primary-action,html.hk-dark .content a.acct-btn-primary{color:#fff}
+/* A9: the marks status strip (.l11-strip) is one flex row; at
+   phone width the Submit/Reopen form collided with the state
+   pills and its button clipped. Below 480px the form takes its
+   own full row and its button goes full width. (The form carries
+   an inline margin-left:auto — answered with !important.) */
+@media (max-width:480px){
+.l11-strip form{flex:1 1 100%;margin-left:0!important}
+.l11-strip form .btn{width:100%}
+}
+/* A12: single-row action sets in table cells (Library book rows
+   first): Edit/Delete never stack into two button-rows again.
+   The Loop 1 `.table .btn` margin is zeroed inside the set so
+   the pair sits as one tight unit. */
+.qs-row-actions{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.qs-row-actions .btn{margin:0}
+
+/* ============================================================
+   BEAUTY BATCH 3 (2026-11-07) — titles, headers & layout
+   spacing (audit B group). Append-only: every rule below
+   restates an earlier rule at equal-or-winning specificity.
+   Title de-duplication itself is done in the blades (the shared
+   header owns each page's ONE title; module banners no longer
+   repeat it) — the rules here are the spacing half of the batch.
+   ============================================================ */
+
+/* B2 — stat tiles wrapped in a link island at content width:
+   .dashboard-stats columns are display:flex, so a wrapped tile's
+   <a class="l100-stat-link"> (nurse / librarian / principal /
+   hostel homes) sized to its content and the card's width:100%
+   resolved against the link. The link now fills its column,
+   like the unwrapped cards already do. */
+.dashboard-stats .l100-stat-link{flex:1 1 auto;width:100%}
+
+/* B3 — KPI ladders at ≤1399 (a 1280 laptop): the teacher grid's
+   4 tiles dropped to 3+1 and the parent's/accountant's 5 tiles
+   to 3+2 with a dead third row. Teacher stays 4-across until
+   tablet width; the 5-tile grids move to a 6-track grid where
+   three tiles span 2 tracks and two span 3 — both rows full. */
+@media (max-width:1399px){
+  .t10-kpi-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .p96-kpi-grid,.acc-stat-grid{grid-template-columns:repeat(6,minmax(0,1fr))}
+  .p96-kpi-grid>*,.acc-stat-grid>*{grid-column:span 2}
+  .p96-kpi-grid>*:nth-child(4),.p96-kpi-grid>*:nth-child(5),
+  .acc-stat-grid>*:nth-child(4),.acc-stat-grid>*:nth-child(5){grid-column:span 3}
+}
+@media (max-width:991px){
+  .t10-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:767px){
+  .p96-kpi-grid,.acc-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .p96-kpi-grid>*,.acc-stat-grid>*{grid-column:auto}
+  .p96-kpi-grid>*:nth-child(4),.acc-stat-grid>*:nth-child(4){grid-column:auto}
+  .p96-kpi-grid>*:nth-child(5),.acc-stat-grid>*:nth-child(5){grid-column:span 2}
+}
+@media (max-width:575px){
+  .t10-kpi-grid{grid-template-columns:minmax(0,1fr)}
+  /* A span must never leak onto the 1-track ladder — it would
+     open an implicit column and overflow the page. */
+  .p96-kpi-grid>*:nth-child(n),.acc-stat-grid>*:nth-child(n){grid-column:auto}
+  /* B4 — .dashboard-stats tile rows stack 1-per-row below the
+     sm breakpoint (four ~158px tiles before the content on the
+     Students list / Library books pages). The design's own sm
+     ladder is 2-up; phones now match it. */
+  .dashboard-stats>[class*=col]{flex:0 0 50%;max-width:50%}
+}
+@media (max-width:480px){
+  .acc-stat-grid>*:nth-child(n){grid-column:auto}
+}
+
+/* B5 — admin home: "View All" header links wrap mid-label in
+   the Recent Students panel (its two-line subtitle narrows the
+   heading row). Header links never wrap. */
+.dashboard-view-all{white-space:nowrap;flex-shrink:0}
+/* B5 — the Upcoming Events panel no longer stretches to the
+   full rail height when it holds few (or no) events: it sizes
+   to its content like the panels above it. */
+.dashboard-upcoming.l17-grow{flex:0 1 auto}
+
+/* B6 — Super Admin home: the Recent Audit Activity / Recent
+   Sign-ins lists were capped at 324px/452px, cutting the last
+   row in half. On the platform home they size to their rows. */
+.l106-platform .l17-list-scroll{max-height:none}
+.l106-platform .platform-overview .platform-audit-panel .l17-list-scroll{max-height:none}
+
+/* B9 — teacher home: the welcome row's main block is gone, so
+   the lone Thought-of-the-Day quote box (flex 0 0 300px at the
+   row's left) left ~700px of dead row beside it. The quote is
+   now a slim full-width strip: icon and text on one line. */
+.t10-welcome .t10-quote{flex:1 1 auto;flex-direction:row;align-items:center}
+
+/* B11 — Settings: the sticky section-chips bar (top:76px when
+   stuck, ~95px tall) covered the top of a section after a chip
+   jump. Sections now land below the stuck bar. */
+.pat-form-section[id^="set-"]{scroll-margin-top:185px}
+
+/* B13 — timetables index class cards: the "+N more" chip that
+   caps the section chips at one row (blade-side cap) reads as
+   a quiet overflow marker, not another section. */
+.ttc-chip.ttc-chip-more{background:transparent;border:1px dashed #c3ccd6;color:#5b6b7f}
+html.hk-dark .ttc-chip.ttc-chip-more{background:transparent;border-color:#45484e;color:#a5a8ad}
+
+/* B8 — marks manage: the Examination Details action bar held a
+   lone Change button in an otherwise empty full-width strip.
+   The plain-mode bar now carries the current unit as a quiet
+   one-line summary on the left (blade-side), styled here. */
+.lb3-unit{margin-right:auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#5b6b7f;font-size:.85rem}
+html.hk-dark .lb3-unit{color:#a5a8ad}
+
+/* ============================================================
+   Beauty Batch 4 (2026-11-07, audit D group) — the praised
+   table standard (owner-approved on the Substitutions board,
+   2026-11-06): fixed layout, a colgroup whose widths sum to
+   100%, nowrap on short fields (dates, times, counts, status),
+   and a sensible min-width inside the .table-responsive
+   scrollport so phones scroll sideways instead of squeezing
+   columns into one-word-per-line stacks. Applied via .hk-std
+   to the five tables that lacked it: Students list, Users,
+   Audit Log, Library Books, Accountant Recent Payments.
+   Min-widths are screen-only: the Students list is a print
+   surface and paper keeps its proportional colgroup layout.
+   Presentation only — no content, column or order changes. */
+.hk-std{table-layout:fixed;width:100%}
+.hk-std .hk-nw{white-space:nowrap}
+.hk-std .hk-ellip{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hk-std .dashboard-status,.hk-std .badge{white-space:nowrap}
+.hk-std-audit .au-when strong{white-space:nowrap}
+@media screen{
+.hk-std-books{min-width:920px}
+.hk-std-users{min-width:920px}
+.hk-std-students{min-width:940px}
+.table-responsive>.hk-std-acct{min-width:960px}
+.hk-std-audit{min-width:720px}
+}
+
+/* ============================================================
+   BEAUTY BATCH 5 (2026-11-07) - home-layout remainders (audit B4
+   + the Batch-4 accountant sighting). Batch 3 already fixed
+   B2/B3/B5/B6/B9/B13 (capture-verified 2026-11-07); what was left
+   is the PHONE behaviour of the shared stat card:
+   1) B4 - at <=575px .dashboard-stat-card was still a tall column
+      tile inside the 2-up grid (~250-290px tall, ~40% empty bottom
+      on Students list / Library books). It now goes COMPACT: tight
+      padding and gaps, min-height and the space-between spread
+      released, smaller icon. (A one-row icon-left layout was
+      measured first and rejected: at 360px it leaves the copy
+      column only 70px wide, and a money figure needs ~97px - the
+      value must keep the tile's full width.)
+   2) Money figures - long rupee values in half-width tiles wrapped
+      the rupee sign onto its own line and burst past the tile edge
+      ("10,17,20,100" crossing the card border on the accountant
+      home at 360px). Inside the two stat containers that carry
+      money (the accountant grid + dashboard-stats rows, e.g. the
+      Payments tiles) the value now takes a fluid size and never
+      wraps: the figure stays exact and fully readable at 360/320,
+      never truncated.
+   3) The accountant grid's 5th tile (Payments Today) fell back to
+      a half-width orphan below 575px because Batch 3's span reset
+      (written for the 1-track parent ladder) also reset this grid.
+      The accountant grid is 2-track at every phone width, so the
+      span-2 last tile is restored here: later rule, equal
+      specificity, wins over the <=575/<=480 resets. */
+@media (max-width:575px){
+.dashboard-stat-card{gap:8px;justify-content:flex-start;min-height:0;padding:14px}
+.dashboard-stat-icon{font-size:16px;height:38px;width:38px}
+.dashboard-stat-copy{flex:1 1 auto;gap:1px}
+.dashboard-stat-copy strong{font-size:1.3rem;line-height:1.2}
+}
+@media (max-width:767px){
+.acc-stat-grid .dashboard-stat-copy strong,.dashboard-stats .dashboard-stat-copy strong{font-size:clamp(.88rem,4.1vw,1.5rem);letter-spacing:-.01em;white-space:nowrap}
+.acc-stat-grid>*:nth-child(5){grid-column:span 2}
+}
+
+/* Beauty Batch 6 (audit E10 + E2): generation-rule chips on the
+   Auto-Generate page (run-on rule sentences became one chip per
+   rule) and the Mark Attendance "How attendance works" details —
+   the summary row must read as the panel head it replaces, with
+   no native disclosure triangle. */
+.gen-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
+.gen-chip{background:#eef4ff;border:1px solid #d7e5fa;border-radius:999px;color:#33506e;font-size:12px;font-weight:600;line-height:1.35;padding:4px 11px}
+html.hk-dark .gen-chip{background:#2f3135;border-color:#4c4e53;color:#c9cbce}
+details.ma-info summary.ma-info-head{cursor:pointer;list-style:none;margin-bottom:0}
+details.ma-info summary.ma-info-head::-webkit-details-marker{display:none}
+details.ma-info[open ] summary.ma-info-head{margin-bottom:8px}
+details.ma-info summary.ma-info-head:focus{outline:none}
+
+/* ==== Beauty Batch 7 (audit group C: Forms) ====
+   C1: the Leave Queue filter labels rendered centered while the
+   rest of the app left-aligns form labels. .lv-fld is a flex column,
+   so its label stretched the field's full width and inherited the
+   centering; pin the column's items (and the label text) to the
+   left. The labels keep their existing 10px eyebrow style — only
+   the alignment changes. */
+.lv-fld{align-items:flex-start}
+.lv-fld label{text-align:left}
+/* C2: on the shared filter-bar pattern the Select2 control rendered
+   at the vendor's 36px while its row-mate button is the app-standard
+   40px min-height, so the Submit button stuck up 4px above the Class
+   select (bottoms met, tops did not). Inside .pat-filter-form every
+   control is now the same 40px. Select2's single-selection box gets
+   the height, its rendered text the matching line-height, and plain
+   selects/inputs in the pattern's fields match too. */
+.pat-filter-form .pat-filter-field select.form-control,
+.pat-filter-form .pat-filter-field input.form-control{height:40px}
+.pat-filter-form .select2-container .select2-selection--single{height:40px}
+.pat-filter-form .select2-container .select2-selection--single .select2-selection__rendered{line-height:38px}
+.pat-filter-form .select2-container .select2-selection--single .select2-selection__arrow{height:38px}
+/* C6: on the Users screen the second filter group (Status) was
+   indented 28px with a divider rule, so its label and pills sat out
+   of line with the first group (Role). The groups are one filter
+   bar: flush left, no divider, both themes (the dark rule above
+   only restates the divider colour, which is moot once the border
+   style is none). */
+.l106-users-filter-group + .l106-users-filter-group{padding-left:0;border-left:none}
+/* C7: the guest pages share one shell but not one field shape —
+   the login fields are the shell's rounded 9px (.login-a-input)
+   while the plain form fields inside the same panel (admission
+   enquiry, forgot / reset password) rendered at Bootstrap's 3px.
+   Fields inside the guest panel now take the shell's 9px radius. */
+.login-a-panel .form-control{border-radius:9px}
+/* Beauty Batch 8 (F3): the guest legal pill may only break at its
+   separator dots — each item (the copyright line, each legal link,
+   the session line) is one unbreakable span, so "Current session:"
+   can no longer split mid-phrase on narrow screens. */
+.login-a-legal-item{white-space:nowrap}
+
+/* ============================================================
+   Guest Calm Split (2026-11-07 redesign; restates the guest
+   rules above — append-only, this block wins): Sample C (the
+   campus illustration at full colour across the WHOLE page,
+   one card floating on it) was rejected by the owner on
+   2026-11-07 ("very bekar") — the picture shouted from every
+   corner and the page had no calm surface. The redesign:
+   the page itself is a quiet app backdrop (pale blue-grey in
+   light, the app's dark neutral in dark — no picture, no
+   navy band), and ONE centred card carries everything: the
+   campus illustration survives only as a softened panel
+   INSIDE the card's left edge (washed, cropped to the calm
+   clock-tower side), and the form panel keeps the Sample C
+   markup, fields and POST byte-identical. The full-bleed
+   drifting art layer (.login-a-art) is retired — nothing
+   moves on this page beyond the card's hk-reveal entrance.
+   The legal line under the card is plain quiet text now
+   (the dark pill existed only to stay readable over art).
+   Both themes are first-class; below 992px the art panel
+   steps aside and the card is one calm 540px column. One
+   inheritance fixed on the way: an old identity-band block
+   hid .login-a-brandmark below 992px, so the school LOGO
+   vanished on phones (the name line below it stayed) — the
+   brandmark is restated visible; the school brand is whole
+   at every width.
+   ============================================================ */
+
+/* --- Page: calm app backdrop, no picture on the page itself --- */
+.login-a-page{align-items:center;background-color:#edf2f9;background-image:radial-gradient(900px 520px at 85% -10%,rgba(52,120,246,.13),rgba(52,120,246,0) 60%),radial-gradient(760px 480px at -10% 110%,rgba(52,120,246,.09),rgba(52,120,246,0) 60%),linear-gradient(180deg,#f2f6fc 0%,#e6edf7 100%);justify-content:center;padding:40px 24px}
+html:not(.hk-dark) .login-a-page{background-color:#edf2f9;background-image:radial-gradient(900px 520px at 85% -10%,rgba(52,120,246,.13),rgba(52,120,246,0) 60%),radial-gradient(760px 480px at -10% 110%,rgba(52,120,246,.09),rgba(52,120,246,0) 60%),linear-gradient(180deg,#f2f6fc 0%,#e6edf7 100%)}
+html.hk-dark .login-a-page{background-color:#131416;background-image:radial-gradient(900px 520px at 85% -10%,rgba(52,120,246,.10),rgba(52,120,246,0) 60%),radial-gradient(760px 480px at -10% 110%,rgba(52,120,246,.07),rgba(52,120,246,0) 60%)}
+
+/* --- The retired full-bleed art layer: gone for good --- */
+.login-a-art{display:none}
+
+/* --- One centred card: quiet art panel + the form panel --- */
+.login-a-card{border-radius:20px;box-shadow:0 24px 60px rgba(23,52,96,.16),0 3px 14px rgba(23,52,96,.08);max-width:960px}
+html:not(.hk-dark) .login-a-card{box-shadow:0 24px 60px rgba(23,52,96,.16),0 3px 14px rgba(23,52,96,.08)}
+html.hk-dark .login-a-card{border:1px solid rgba(255,255,255,.07);box-shadow:0 24px 60px rgba(0,0,0,.5),0 3px 14px rgba(0,0,0,.35)}
+.login-b-art{background-image:linear-gradient(rgba(255,255,255,.21),rgba(255,255,255,.21)),url('../img/login-campus.jpg');background-position:74% 50%;background-repeat:no-repeat;background-size:cover;flex:0 0 41%;margin:0}
+html.hk-dark .login-b-art{background-image:linear-gradient(rgba(9,13,20,.30),rgba(9,13,20,.30)),url('../img/login-campus.jpg')}
+.login-a-panel{flex:1 1 auto;padding:48px 56px 40px}
+
+/* --- Legal line: plain quiet text under the card (no pill) --- */
+.login-a-legal{background:transparent;-webkit-backdrop-filter:none;backdrop-filter:none;border-radius:0;color:rgba(38,58,88,.72);margin-top:20px;max-width:960px;padding:0 8px;text-align:center;width:100%}
+.login-a-legal a{color:#1d4fa3}
+.login-a-legal a:hover{color:#0b2239}
+html:not(.hk-dark) .login-a-legal{background:transparent;color:rgba(38,58,88,.72)}
+html:not(.hk-dark) .login-a-legal a{color:#1d4fa3}
+html:not(.hk-dark) .login-a-legal a:hover{color:#0b2239}
+html.hk-dark .login-a-legal{background:transparent;color:rgba(230,238,251,.62)}
+html.hk-dark .login-a-legal a{color:#9db9e8}
+html.hk-dark .login-a-legal a:hover{color:#fff}
+
+/* --- The brand pill rides ABOVE the card (Sample C floated the
+   card right, so they never met; centred, the card's top corner
+   can reach the pill on short screens — the pill keeps its
+   over-everything role). --- */
+.hk-brand-pill{z-index:3}
+
+/* --- Tablet & phone: the art steps aside, one calm column --- */
+@media (max-width:991.98px){
+    .login-a-panel .login-a-brandmark{display:flex}
+    .login-b-art{display:none}
+    .login-a-card{max-width:540px}
+    .login-a-panel{padding:40px 36px 32px}
+    .login-a-legal{max-width:540px}
+}
+@media (max-width:767.98px){
+    .login-a-page{padding:24px 16px}
+}
+@media (max-width:480px){
+    .login-a-page{padding:16px 12px}
+    .login-a-card{border-radius:16px}
+    .login-a-panel{padding:32px 22px 28px}
+}

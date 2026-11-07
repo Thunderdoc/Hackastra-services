@@ -4,6 +4,16 @@
     <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; <a href="{{ route('students.index') }}">Students</a> &nbsp;/&nbsp; Bulk ID Cards
 @endsection
 @section('content')
+    <style>
+        /* Beauty Batch 2 (audit A11): one control height for this
+           form row — the Select2 selections render 36px while the
+           app button system is 40px, so Preview Roster stood 4px
+           taller than the Class/Section selects beside it. The
+           selections now share the button's 40px. */
+        .idc-bulk-form .select2-container .select2-selection--single{height:40px}
+        .idc-bulk-form .select2-container--default .select2-selection--single .select2-selection__rendered{line-height:38px}
+        .idc-bulk-form .select2-container--default .select2-selection--single .select2-selection__arrow{height:38px}
+    </style>
 
     {{-- Wave 2 feature 4: whole-class/section ID card sheet. Pick a
          class (+ optional section); the admission-ordered roster
@@ -23,11 +33,11 @@
             @else
                 <p class="text-muted">Select a class to preview its students. Narrow to one section if needed, then download the whole sheet as one PDF — one card per student.</p>
 
-                <form method="get" action="{{ route('students.id_cards.bulk') }}">
+                <form method="get" action="{{ route('students.id_cards.bulk') }}" class="idc-bulk-form">
                     <div class="row">
                         <div class="col-12 col-md-5">
                             <div class="form-group">
-                                <label for="bulk_class">Class: <span class="text-danger">*</span></label>
+                                <label for="bulk_class">Class <span class="text-danger">*</span></label>
                                 <select name="class_id" id="bulk_class" class="form-control" required>
                                     <option value="">Choose a class..</option>
                                     @foreach($classes as $c)
@@ -39,7 +49,7 @@
 
                         <div class="col-12 col-md-4">
                             <div class="form-group">
-                                <label for="bulk_section">Section:</label>
+                                <label for="bulk_section">Section</label>
                                 <select name="section_id" id="bulk_section" class="form-control">
                                     <option value="">All Sections</option>
                                     @foreach($sections as $s)

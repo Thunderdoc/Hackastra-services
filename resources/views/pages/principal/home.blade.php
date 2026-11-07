@@ -18,15 +18,27 @@
 .pr-att-item a{white-space:nowrap;font-weight:700}
 .pr-ok{background:#eafaf0;border:1px solid #bfe8cb;border-radius:10px;padding:14px 18px;margin-bottom:18px}
 .pr-cols{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}
+/* Fit fix (Batch 7): the finance card's unbreakable rupee totals
+   set the grid column's min-content (~380px), stretching BOTH cards
+   past a 360px phone. Grid items may now shrink below min-content,
+   ops tracks are minmax(0,1fr), and the money tiles stack full-width
+   on small phones so no figure is ever cut. The totals themselves
+   scale with the viewport and their tiles drop to two columns under
+   1500px, so a figure never spills out of its tile at laptop widths
+   either. */
+.pr-cols>*{min-width:0}
 @media(max-width:991px){.pr-cols{grid-template-columns:1fr}}
 .pr-card{background:#fff;border:1px solid #d7e0ec;border-radius:12px;padding:20px;margin-bottom:0}
 .pr-card h5{margin:0 0 4px;font-size:17px;color:#10263b}
 .pr-card p,.pr-card td{color:#44546a}
 .pr-card td strong,.pr-card p strong{color:#10263b}
 .pr-card .pr-sub{color:#718096;font-size:13px;margin:0 0 14px}
-.pr-ops{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-@media(max-width:540px){.pr-ops{grid-template-columns:repeat(2,1fr)}}
-.pr-op{background:#f7fafc;border-radius:10px;padding:12px 14px}
+.pr-ops{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+@media(max-width:540px){.pr-ops{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.pr-ops-money .pr-op strong{font-size:clamp(16px,1.35vw,22px)}
+@media(max-width:1500px){.pr-ops-money{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:480px){.pr-ops-money{grid-template-columns:1fr}}
+.pr-op{background:#f7fafc;border-radius:10px;padding:12px 14px;min-width:0}
 .pr-op strong{font-size:22px;display:block}
 .pr-op span{color:#44546a;font-size:12px}
 .pr-table{width:100%;border-collapse:collapse;font-size:14px}
@@ -35,9 +47,18 @@
 .pr-bar-row{display:flex;align-items:center;gap:10px;margin-bottom:9px;font-size:13px}
 .pr-bar-row .pr-bar-label{width:110px;flex:none;color:#44546a}
 .pr-bar-track{flex:1;background:#eef2f7;border-radius:6px;height:12px;overflow:hidden}
-.pr-bar-fill{background:#10263b;height:12px;border-radius:6px}
+/* display:block is load-bearing: the fill is an empty span, so as an
+   inline box its width/height never applied and the bar rendered as
+   a bare track in BOTH themes (measured 0x0). The dark fill colour
+   below was already correct — it simply had no box to paint. */
+.pr-bar-fill{display:block;background:#10263b;height:12px;border-radius:6px}
 .pr-bar-val{width:44px;text-align:right;font-weight:700}
 .pr-foot{color:#718096;font-size:12px;margin-top:10px}
+.pr-avg{margin-top:12px}
+.pr-avg-label{color:#44546a;font-size:12.5px;font-weight:600;margin-bottom:6px}
+.pr-chips{display:flex;flex-wrap:wrap;gap:6px}
+.pr-chip{background:#eef4ff;border:1px solid #d7e5fa;border-radius:999px;color:#2e5ea8;font-size:12px;font-weight:600;padding:3px 10px;white-space:nowrap}
+.pr-chip b{color:#10263b;font-weight:700}
 /* Visual-coherence round (2026-11-06): the .pr-* surfaces above
    were hardcoded light, so in dark mode the attention strip and
    the cards rendered WHITE on the dark page (owner: "aadha ujla
@@ -63,6 +84,9 @@ html.hk-dark .pr-bar-row .pr-bar-label{color:#c9cbce}
 html.hk-dark .pr-bar-track{background:#3a3c40}
 html.hk-dark .pr-bar-fill{background:#6ea8ff}
 html.hk-dark .pr-foot{color:#a5a8ad}
+html.hk-dark .pr-avg-label{color:#c9cbce}
+html.hk-dark .pr-chip{background:#2f3135;border-color:#4c4e53;color:#a9c6f5}
+html.hk-dark .pr-chip b{color:#f4f4f5}
 </style>
 
 <div class="pr-wrap">
@@ -226,23 +250,29 @@ html.hk-dark .pr-foot{color:#a5a8ad}
             @else
                 <p>No attendance records in the last 30 days.</p>
             @endif
-            <div class="pr-foot">
-                @if($pr_term_exam)
-                    {{ $pr_term_exam->name }} class averages:
-                    @foreach($pr_class_avgs as $row)
-                        {{ $row['class'] }} {{ $row['avg'] }}@if(!$loop->last), @endif
-                    @endforeach
-                @endif
-            </div>
-            <div class="pr-foot">
-                @if(count($pr_subject_avgs) > 0)
-                    Top subjects by Term 1 average:
-                    @foreach($pr_subject_avgs as $row)
-                        {{ $row['subject'] }} {{ $row['avg'] }}@if(!$loop->last), @endif
-                    @endforeach
-                    &middot; <a href="{{ route('marks.tabulation') }}">Tabulation</a>
-                @endif
-            </div>
+            {{-- Beauty Batch 6 (audit E5): the averages used to run
+                 on as comma-prose inside a visual card. Same figures,
+                 one chip per class/subject. --}}
+            @if($pr_term_exam && count($pr_class_avgs) > 0)
+                <div class="pr-avg">
+                    <div class="pr-avg-label">{{ $pr_term_exam->name }} — class averages</div>
+                    <div class="pr-chips">
+                        @foreach($pr_class_avgs as $row)
+                            <span class="pr-chip">{{ $row['class'] }} · <b>{{ $row['avg'] }}</b></span>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
+            @if(count($pr_subject_avgs) > 0)
+                <div class="pr-avg">
+                    <div class="pr-avg-label">Top subjects by Term 1 average &middot; <a href="{{ route('marks.tabulation') }}">Tabulation</a></div>
+                    <div class="pr-chips">
+                        @foreach($pr_subject_avgs as $row)
+                            <span class="pr-chip">{{ $row['subject'] }} · <b>{{ $row['avg'] }}</b></span>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
             <div class="pr-foot">
                 Students needing academic support (Term 1 average below 50): <strong>{{ $pr_support_count }}</strong>
                 &middot; Lesson plans filed: <strong>{{ $pr_lesson_plans }}</strong> (<a href="{{ route('lesson_plans.index') }}">Lesson plans</a>)
@@ -252,10 +282,14 @@ html.hk-dark .pr-foot{color:#a5a8ad}
         <section class="pr-card">
             <h5>Finance &amp; Administration Overview</h5>
             <p class="pr-sub">Authorized totals only — detailed transactions stay on the finance pages.</p>
-            <div class="pr-ops">
-                <div class="pr-op"><strong>&#8377;{{ number_format($pr_fees_collected) }}</strong><span>Fees collected ({{ $today->format('Y') }})</span></div>
-                <div class="pr-op"><strong>&#8377;{{ number_format($pr_fees_pending) }}</strong><span>Fees outstanding</span></div>
-                <div class="pr-op"><strong>&#8377;{{ number_format($pr_expenses) }}</strong><span>Expenses ({{ $pr_expenses_count }} records)</span></div>
+            <div class="pr-ops pr-ops-money">
+                {{-- Beauty Batch 6: money in Indian digit grouping
+                     (App\Helpers\Money), like the rest of the app —
+                     raw number_format() rendered Western grouping
+                     here (₹101,720,100 for ₹10,17,20,100). --}}
+                <div class="pr-op"><strong>&#8377;{{ \App\Helpers\Money::indianFormat($pr_fees_collected) }}</strong><span>Fees collected ({{ $today->format('Y') }})</span></div>
+                <div class="pr-op"><strong>&#8377;{{ \App\Helpers\Money::indianFormat($pr_fees_pending) }}</strong><span>Fees outstanding</span></div>
+                <div class="pr-op"><strong>&#8377;{{ \App\Helpers\Money::indianFormat($pr_expenses) }}</strong><span>Expenses ({{ $pr_expenses_count }} records)</span></div>
             </div>
             <div class="pr-foot"><a href="{{ route('payments.manage') }}">Fee records</a> &middot; <a href="{{ route('reports.builder') }}">Reports &amp; Analytics</a></div>
             <h5 style="margin-top:20px">Teacher Workload</h5>

@@ -72,7 +72,11 @@
                         <span class="dashboard-period"><i class="icon-calendar3 mr-1"></i>{{ $collection_period }}</span>
                     @endif
                 </div>
-                @if($collection_values)
+                {{-- Beauty Batch 6 (audit E9): with collections in
+                     only one or two months, the bars read as a lone
+                     column in a tall card. A "so far" line carries
+                     the same figures; the chart returns at three. --}}
+                @if(count($collection_values) >= 3)
                     <div class="l92-trend" role="img" aria-label="Fees collected per month this session: @foreach($collection_labels as $i => $label){{ $label }} {{ \App\Helpers\Money::inr($collection_values[$i]) }}@if(!$loop->last), @endif @endforeach">
                         @foreach($collection_values as $i => $value)
                             <div class="l92-trend-col" title="{{ $collection_labels[$i] }}: {{ \App\Helpers\Money::inr($value) }}">
@@ -82,6 +86,9 @@
                             </div>
                         @endforeach
                     </div>
+                @elseif($collection_values)
+                    @php $l92Pairs = collect($collection_values)->map(function ($v, $i) use ($collection_labels) { return $collection_labels[$i] . ' ' . \App\Helpers\Money::inr($v); })->implode(' · '); @endphp
+                    <p class="mb-0" style="padding:0 22px 20px;">Collected so far: <strong>{{ \App\Helpers\Money::inr(array_sum($collection_values)) }}</strong> — {{ $l92Pairs }}. The monthly chart appears once three or more months hold collections.</p>
                 @else
                     <p class="dashboard-empty">No collections recorded this session yet.</p>
                 @endif
@@ -94,19 +101,21 @@
                     <a href="{{ route('payments.manage') }}" class="dashboard-view-all">View All <i class="icon-arrow-right7"></i></a>
                 </div>
                 <div class="table-responsive">
-                    <table class="table dashboard-table mb-0">
+                    <table class="table dashboard-table mb-0 hk-std hk-std-acct">
+                        {{-- Beauty Batch 4 (audit D2): fixed layout, widths sum to 100%. --}}
+                        <colgroup><col style="width:5%"><col style="width:17%"><col style="width:17%"><col style="width:13%"><col style="width:9%"><col style="width:10%"><col style="width:12%"><col style="width:12%"><col style="width:5%"></colgroup>
                         <thead><tr><th>#</th><th>Student Name</th><th>Receipt No.</th><th>Class</th><th>Payment Method</th><th>Amount</th><th>Date &amp; Time</th><th>Status</th><th></th></tr></thead>
                         <tbody>
                         @forelse($recent_payments as $row)
                             <tr>
                                 <td>{{ $loop->iteration }}</td>
-                                <td><strong>{{ $row['student'] }}</strong><small>{{ $row['title'] }}</small></td>
-                                <td><span class="l92-ref">{{ $row['ref'] }}</span></td>
-                                <td>{{ $row['class'] }}</td>
+                                <td><strong class="hk-ellip">{{ $row['student'] }}</strong><small>{{ $row['title'] }}</small></td>
+                                <td class="hk-nw"><span class="l92-ref">{{ $row['ref'] }}</span></td>
+                                <td class="hk-nw">{{ $row['class'] }}</td>
                                 <td>{{ $row['method'] }}</td>
-                                <td><strong>{{ \App\Helpers\Money::inr($row['amount']) }}</strong></td>
-                                <td>{{ $row['date'] ? $row['date']->format('d M Y') : '—' }}<small>{{ $row['date'] ? $row['date']->format('h:i A') : '' }}</small></td>
-                                <td><span class="dashboard-status {{ $row['cleared'] ? 'status-success' : 'status-warning' }}">{{ $row['cleared'] ? 'Cleared' : 'Balance Due' }}</span></td>
+                                <td class="hk-nw"><strong>{{ \App\Helpers\Money::inr($row['amount']) }}</strong></td>
+                                <td class="hk-nw">{{ $row['date'] ? $row['date']->format('d M Y') : '—' }}<small>{{ $row['date'] ? $row['date']->format('h:i A') : '' }}</small></td>
+                                <td class="hk-nw"><span class="dashboard-status {{ $row['cleared'] ? 'status-success' : 'status-warning' }}">{{ $row['cleared'] ? 'Cleared' : 'Balance Due' }}</span></td>
                                 <td><a target="_blank" href="{{ route('payments.receipts', \App\Helpers\Qs::hash($row['pr_id'])) }}" class="l92-row-action" title="View receipt"><i class="icon-printer"></i></a></td>
                             </tr>
                         @empty

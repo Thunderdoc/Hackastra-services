@@ -7,7 +7,6 @@
     @include('partials.module_banner', [
         'hkModIcon' => 'icon-home9',
         'hkModTone' => 'green',
-        'hkModTitle' => 'Hostel Dorms',
         'hkModSub' => 'Dorms, rooms and the students allocated to them.',
         'hkModStats' => [
             ['value' => number_format($dorms->count()), 'label' => 'Dorms'],
@@ -17,7 +16,7 @@
     ])
     <div class="card">
         <div class="card-header header-elements-inline">
-            <h5 class="card-title">Hostel Dorms</h5>
+            <h5 class="card-title">All Dorms</h5>
             <div class="header-elements">
                 <a href="{{ route('hostel.rooms.index') }}" class="btn btn-sm btn-primary">Rooms</a>
                 <a href="{{ route('hostel.allocations.index') }}" class="btn btn-sm btn-primary">Allocations</a>

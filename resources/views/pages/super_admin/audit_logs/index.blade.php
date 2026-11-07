@@ -6,15 +6,21 @@
        plain-English action labels (codes stay stored), subject
        NAMES resolved from the stored ids, 15/page, CSV export of
        the filtered set. Visibility scope unchanged (controller). --}}
-  <div class="card au-head">
-      <span class="au-ic"><i class="icon-history"></i></span>
-      <div>
-          <h2>Audit Log</h2>
-          <p>Who did what, and when — every security-relevant action</p>
-      </div>
-      <span class="au-count">{{ number_format($logs->total()) }} entries</span>
-      <a class="btn btn-primary au-export" href="{{ route('audit_logs.export', request()->query()) }}"><i class="icon-download7"></i> Export CSV</a>
-  </div>
+  {{-- Beauty Batch 3 (audit B10): the private .au-head hero is
+       retired — the page now opens with the shared slim module
+       banner like every other module page. The header owns the
+       "Audit Log" title; the banner carries the context line, the
+       entry count as its stat and Export CSV as its action. The
+       .au-head styles stay in qs.css unused (append-only). --}}
+  @include('partials.module_banner', [
+      'hkModIcon' => 'icon-history',
+      'hkModTone' => 'purple',
+      'hkModSub' => 'Who did what, and when — every security-relevant action',
+      'hkModStats' => [
+          ['value' => number_format($logs->total()), 'label' => 'entries'],
+      ],
+      'hkModActions' => '<a class="btn btn-primary" href="' . route('audit_logs.export', request()->query()) . '"><i class="icon-download7"></i> Export CSV</a>',
+  ])
 
   <div class="card au-filters">
       <form method="GET" action="{{ route('audit_logs.index') }}" class="au-fform">
@@ -79,7 +85,9 @@
           </div>
       @else
           <div class="table-responsive">
-              <table class="au-table">
+              <table class="au-table hk-std hk-std-audit">
+                  {{-- Beauty Batch 4 (audit D group): fixed layout, widths sum to 100%. --}}
+                  <colgroup><col style="width:18%"><col style="width:23%"><col style="width:17%"><col style="width:29%"><col style="width:13%"></colgroup>
                   <thead>
                   <tr>
                       <th>When</th>

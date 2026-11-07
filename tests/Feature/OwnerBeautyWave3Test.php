@@ -113,7 +113,12 @@ class OwnerBeautyWave3Test extends TestCase
             ->get(route('hostel.dorms.index'))->assertOk()->getContent();
 
         $seg = $this->bannerSegment($html);
-        $this->assertStringContainsString('Hostel Dorms', $seg);
+        // Beauty Batch 3 re-expression: the banner no longer
+        // repeats the page title (the header owns it — audit B1),
+        // so the segment is identified by its context line instead
+        // of the removed 'Hostel Dorms' h2. The ledger counts below
+        // are the test's real subject and are unchanged.
+        $this->assertStringContainsString('Dorms, rooms and the students allocated to them.', $seg);
         $this->assertStringContainsString('<b>' . number_format(Dorm::count()) . '</b>', $seg);
         $this->assertStringContainsString('<b>' . number_format(HostelRoom::count()) . '</b>', $seg);
         $this->assertStringContainsString(
@@ -145,7 +150,12 @@ class OwnerBeautyWave3Test extends TestCase
             ->get(route('inventory.index'))->assertOk()->getContent();
 
         $seg = $this->bannerSegment($html);
-        $this->assertStringContainsString('Inventory', $seg);
+        // Beauty Batch 3 re-expression: the banner no longer
+        // repeats the page title (the header owns it — audit B1),
+        // so the segment is identified by its context line instead
+        // of the removed 'Inventory' h2. The stock figures below
+        // are the test's real subject and are unchanged.
+        $this->assertStringContainsString('Store items, stock levels', $seg);
         $this->assertStringContainsString('<b>' . number_format(InventoryItem::count()) . '</b>', $seg);
         $this->assertStringContainsString('<b>' . number_format($lowStock) . '</b>', $seg);
         $this->assertStringContainsString('Low Stock', $seg);
@@ -171,7 +181,12 @@ class OwnerBeautyWave3Test extends TestCase
             ->get(route('health_records.index'))->assertOk()->getContent();
 
         $seg = $this->bannerSegment($html);
-        $this->assertStringContainsString('Health Records', $seg);
+        // Beauty Batch 3 re-expression: the banner no longer
+        // repeats the page title (the header owns it — audit B1),
+        // so the segment is identified by its context line instead
+        // of the removed 'Health Records' h2. The scope counts
+        // below are the test's real subject and are unchanged.
+        $this->assertStringContainsString('Clinic visit log', $seg);
         $this->assertStringContainsString('<b>2</b>', $seg);
         $this->assertStringContainsString('Referred', $seg);
         $this->assertStringContainsString('<b>1</b>', $seg);

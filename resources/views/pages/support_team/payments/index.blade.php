@@ -22,7 +22,6 @@
     @include('partials.module_banner', [
         'hkModIcon' => 'icon-cash2',
         'hkModTone' => 'green',
-        'hkModTitle' => 'Manage Payments',
         'hkModSub' => 'Collect fees, manage fee definitions and track every payment for the session.',
         'hkModStats' => $selected ? [
             ['value' => number_format($stat_total_payments), 'label' => 'Payments'],

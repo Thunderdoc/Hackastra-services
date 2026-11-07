@@ -78,25 +78,42 @@
                         $l117Set = $library_trend[$l117Mode];
                         $l117Max = 1;
                         $l117Total = 0;
+                        $l117Issued = 0;
+                        $l117Returned = 0;
+                        $l117Active = 0;
                         foreach ($l117Set as $l117Bucket) {
                             $l117Max = max($l117Max, $l117Bucket['issued'], $l117Bucket['returned']);
                             $l117Total += $l117Bucket['issued'] + $l117Bucket['returned'];
+                            $l117Issued += $l117Bucket['issued'];
+                            $l117Returned += $l117Bucket['returned'];
+                            if ($l117Bucket['issued'] + $l117Bucket['returned'] > 0) {
+                                $l117Active++;
+                            }
                         }
                     @endphp
                     <div class="l117-trend-panel" data-l117-panel="{{ $l117Mode }}" @if($l117Mode !== 'day') hidden @endif>
-                        <div class="l117-trend-chart">
-                            @foreach($l117Set as $l117Bucket)
-                                <div class="l117-trend-group">
-                                    <div class="l117-trend-bars">
-                                        <span class="l117-bar l117-bar-issued" style="height: {{ $l117Bucket['issued'] > 0 ? max(4, (int) round($l117Bucket['issued'] / $l117Max * 100)) : 0 }}%" title="{{ $l117Bucket['label'] }} — Issued: {{ $l117Bucket['issued'] }}"></span>
-                                        <span class="l117-bar l117-bar-returned" style="height: {{ $l117Bucket['returned'] > 0 ? max(4, (int) round($l117Bucket['returned'] / $l117Max * 100)) : 0 }}%" title="{{ $l117Bucket['label'] }} — Returned: {{ $l117Bucket['returned'] }}"></span>
+                        {{-- Beauty Batch 6 (audit E9): activity in
+                             fewer than three buckets reads as one
+                             stray bar. A "so far" line carries the
+                             same totals; the chart returns at three
+                             active buckets. --}}
+                        @if($l117Total > 0 && $l117Active < 3)
+                            <p class="dashboard-muted text-center mb-0">So far in this period: <strong>{{ $l117Issued }} issued &middot; {{ $l117Returned }} returned</strong>, across {{ $l117Active }} active {{ $l117Mode }}{{ $l117Active === 1 ? '' : 's' }}. The chart appears once activity spans three or more {{ $l117Mode }}s.</p>
+                        @else
+                            <div class="l117-trend-chart">
+                                @foreach($l117Set as $l117Bucket)
+                                    <div class="l117-trend-group">
+                                        <div class="l117-trend-bars">
+                                            <span class="l117-bar l117-bar-issued" style="height: {{ $l117Bucket['issued'] > 0 ? max(4, (int) round($l117Bucket['issued'] / $l117Max * 100)) : 0 }}%" title="{{ $l117Bucket['label'] }} — Issued: {{ $l117Bucket['issued'] }}"></span>
+                                            <span class="l117-bar l117-bar-returned" style="height: {{ $l117Bucket['returned'] > 0 ? max(4, (int) round($l117Bucket['returned'] / $l117Max * 100)) : 0 }}%" title="{{ $l117Bucket['label'] }} — Returned: {{ $l117Bucket['returned'] }}"></span>
+                                        </div>
+                                        <span class="l117-trend-label">{{ $l117Bucket['label'] }}</span>
                                     </div>
-                                    <span class="l117-trend-label">{{ $l117Bucket['label'] }}</span>
-                                </div>
-                            @endforeach
-                        </div>
-                        @if($l117Total === 0)
-                            <p class="dashboard-muted text-center mb-0 mt-2">No issue or return activity recorded in this period.</p>
+                                @endforeach
+                            </div>
+                            @if($l117Total === 0)
+                                <p class="dashboard-muted text-center mb-0 mt-2">No issue or return activity recorded in this period.</p>
+                            @endif
                         @endif
                     </div>
                 @endforeach

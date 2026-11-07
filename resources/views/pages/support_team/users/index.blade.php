@@ -65,29 +65,31 @@
 
         @if($users->count())
             <div class="table-responsive">
-            <table class="table">
+            <table class="table hk-std hk-std-users">
+                {{-- Beauty Batch 4 (audit D group): fixed layout, widths sum to 100%. --}}
+                <colgroup><col style="width:5%"><col style="width:7%"><col style="width:19%"><col style="width:14%"><col style="width:13%"><col style="width:24%"><col style="width:12%"><col style="width:6%"></colgroup>
                 <thead>
                 <tr>
                     <th>S/N</th>
-                    <th>Photo</th>
+                    <th class="hk-nw">Photo</th>
                     <th>Name</th>
                     <th>Username</th>
                     <th>Phone</th>
                     <th>Email</th>
                     <th>Status</th>
-                    <th>Action</th>
+                    <th class="hk-nw">Action</th>
                 </tr>
                 </thead>
                 <tbody>
                 @foreach($users as $u)
                     <tr>
-                        <td>{{ $loop->iteration }}</td>
+                        <td class="hk-nw">{{ $loop->iteration }}</td>
                         <td>@if(Qs::hasRealPhoto($u->photo))<img class="rounded-circle" style="height: 40px; width: 40px;" src="{{ $u->photo }}" alt="photo">@else<span class="hk-ini" style="width:40px;height:40px;font-size:.8rem" aria-hidden="true">{{ Qs::initials($u->name) }}</span>@endif</td>
                         <td>{{ $u->name }}</td>
                         <td>{{ $u->username }}</td>
-                        <td>{{ $u->phone }}</td>
-                        <td>{{ $u->email }}</td>
-                        <td>
+                        <td class="hk-nw">{{ $u->phone }}</td>
+                        <td class="hk-ellip" title="{{ $u->email }}">{{ $u->email }}</td>
+                        <td class="hk-nw">
                             @php($acct_status = $u->getAttribute('status') ?: 'active')
                             @if($acct_status === 'suspended')
                                 <span class="badge badge-warning">Suspended</span>

@@ -201,7 +201,7 @@
                 </div>
                 <div class="wa-prog"><b>{{ $waLinked }} of {{ $waTotal }}</b><span>groups linked</span></div>
             </div>
-            <div class="wa-warn"><i class="icon-warning2"></i> Dhyan se submit karein — link ek baar save hone ke baad badla nahi ja sakta.</div>
+            <div class="wa-warn"><i class="icon-warning2"></i> Submit carefully — once a link is saved, it cannot be changed.</div>
             @foreach($waGroups as $waClass => $waSections)
                 <div class="wa-group">
                     <div class="wa-glabel">{{ strtoupper($waClass) }}</div>
@@ -223,7 +223,7 @@
                     @endforeach
                 </div>
             @endforeach
-            <div class="wa-foot">Galat link save ho jaye toh sirf school Admin use reset kar sakta hai — teacher se edit nahi hoga.</div>
+            <div class="wa-foot">If a wrong link gets saved, only the school Admin can reset it — teachers cannot edit it.</div>
         </section>
         @endif
 
@@ -272,17 +272,25 @@
                     <a href="{{ route('attendance.periods.report') }}" class="t10-view-all">View Report <i class="icon-arrow-right7"></i></a>
                 </div>
                 @php $chart_rows = $attendance_overview->filter(function ($r) { return $r['pct'] !== null; }); @endphp
-                @include('partials.charts.bar', [
-                    'labels' => $chart_rows->pluck('class_name')->all(),
-                    'values' => $chart_rows->pluck('pct')->all(),
-                    'chartUnit' => '%',
-                    'chartTitle' => 'Attendance percentage by class for ' . $month_label,
-                ])
-                @foreach($attendance_overview as $row)
-                    @if($row['pct'] === null)
-                        <p class="t10-note">{{ $row['class_name'] }} — no marked periods yet in {{ $month_label }}.</p>
-                    @endif
-                @endforeach
+                @if($chart_rows->isEmpty())
+                    {{-- Beauty Batch 6 (audit E6): an empty month used
+                         to render an empty chart plus one near-identical
+                         "no marked periods" line per class. One line
+                         carries the whole fact. --}}
+                    <p class="t10-note">No periods marked yet in {{ $month_label }}.</p>
+                @else
+                    @include('partials.charts.bar', [
+                        'labels' => $chart_rows->pluck('class_name')->all(),
+                        'values' => $chart_rows->pluck('pct')->all(),
+                        'chartUnit' => '%',
+                        'chartTitle' => 'Attendance percentage by class for ' . $month_label,
+                    ])
+                    @foreach($attendance_overview as $row)
+                        @if($row['pct'] === null)
+                            <p class="t10-note">{{ $row['class_name'] }} — no marked periods yet in {{ $month_label }}.</p>
+                        @endif
+                    @endforeach
+                @endif
             </section>
 
             <section class="t10-panel">

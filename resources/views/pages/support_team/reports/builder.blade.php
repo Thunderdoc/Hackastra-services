@@ -55,6 +55,27 @@
     .rb2-col-static { font-size: 13px; padding: 5px 0; color: #4a5a6e; }
     .rb5-pagesettings-toggle { font-size: 15px; font-weight: 700; color: #10263b; text-decoration: none !important; }
     .rb5-pagesettings-toggle:hover { color: #1765f5; }
+    /* Beauty Batch 1 (2026-11-07, audit G1): dark parity for the
+       rb5 chrome — the config cards, column items, docbar and
+       workspace desk take the app dark tokens. The document
+       sheet (#previewFrame) stays white on purpose: it is paper.
+       Light mode is untouched. */
+    html.hk-dark .rb5-left .card { background: #26272a; border-color: #36383c; box-shadow: 0 1px 3px rgba(0, 0, 0, .35); }
+    html.hk-dark .rb5-left .card-header { background: #202124; border-bottom-color: #36383c; }
+    html.hk-dark .rb5-left .card-title { color: #f4f4f5; }
+    html.hk-dark .rb5-docbar { background: #26272a; border-color: #36383c; }
+    html.hk-dark .rb2-status { color: #a5a8ad; }
+    html.hk-dark .rb2-status-error { color: #f2a9a9; }
+    html.hk-dark .rb2-summary { color: #f4f4f5; }
+    html.hk-dark .rb2-loading { color: #7db3ff; }
+    html.hk-dark .rb5-workspace { background: #101112; border-color: #2c2e31; }
+    html.hk-dark .rb5-col-item { background: #202124; border-color: #36383c; }
+    html.hk-dark .rb5-col-item.rb5-drag-over { border-color: #3478f6; box-shadow: 0 0 0 1px #3478f6 inset; }
+    html.hk-dark .rb5-drag { color: #7b7f87; }
+    html.hk-dark .rb2-col-field label { color: #a5a8ad; }
+    html.hk-dark .rb2-col-static { color: #c9cbce; }
+    html.hk-dark .rb5-pagesettings-toggle { color: #f4f4f5; }
+    html.hk-dark .rb5-pagesettings-toggle:hover { color: #7db3ff; }
     @media (min-width: 992px) {
         .rb5-wrap { height: calc(100vh - 168px); min-height: 600px; }
         .rb5-left { height: 100%; }
@@ -269,11 +290,14 @@
         </div>
 
         <div class="card">
-            <div class="card-header"><h5 class="card-title mb-0">Save &amp; Export</h5></div>
+            {{-- Beauty Batch 6 (audit E8): the Download PDF / Word
+                 pair lived here AND in the document bar above the
+                 sheet. The docbar pair (bound by class in the page
+                 script) is the one home now; this card only saves
+                 templates. --}}
+            <div class="card-header"><h5 class="card-title mb-0">Save Template</h5></div>
             <div class="card-body">
-                <button type="button" id="rbPdfBtn" class="btn btn-primary btn-block btn-lg rb-generate-btn"><i class="icon-file-pdf mr-2"></i> Download PDF</button>
-                <button type="button" id="rbWordBtn" class="btn btn-light btn-block rb-word-btn mt-2"><i class="icon-file-word mr-2"></i> Download Word</button>
-                <div class="form-row align-items-end mt-3">
+                <div class="form-row align-items-end">
                     <div class="form-group col-8 mb-0">
                         <label>Save as my template</label>
                         <input type="text" id="rbTemplateName" class="form-control" maxlength="80" placeholder="Template name">
@@ -356,7 +380,7 @@
     var SECTIONS = @json($sectionsMap);
     var SUBJECTS = @json($subjectsMap);
     var TEMPLATES = @json($templatesMap);
-    var SCHOOL_NAME = @json(\App\Helpers\Qs::getSetting('system_name') ?: 'Hackstra Academy');
+    var SCHOOL_NAME = @json(\App\Helpers\Qs::getSetting('system_name') ?: 'School');
     var CURRENT_SESSION = @json($currentSession);
     var PREVIEW_HTML_URL = @json(route('reports.preview_html'));
     var COL_TYPES = ['text', 'number', 'currency', 'date', 'checkbox', 'box', 'dropdown', 'yes_no', 'signature', 'remarks', 'blank'];

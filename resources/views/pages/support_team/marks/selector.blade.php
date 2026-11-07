@@ -111,8 +111,25 @@
             <span class="l10-status"><span class="l10-pulse" id="l10-pulse"></span><span id="l84-entry-note" role="status">Select exam, class, section and subject — the entry state will show here.</span></span>
             <span class="l10-sp"></span>
             <button type="button" id="l84-reset-btn" class="btn btn-light l84-reset-btn">Reset</button>
-            <button type="submit" id="l84-manage-btn" class="btn btn-primary l10-manage-btn"><span id="l84-manage-btn-label">Manage Marks</span> <i class="icon-paperplane ml-2"></i></button>
+            <button type="submit" id="l84-manage-btn" class="btn btn-primary l10-manage-btn" disabled><span id="l84-manage-btn-label">Not Enabled</span> <i class="icon-paperplane ml-2"></i></button>
         @else
+            {{-- Beauty Batch 3 (audit B8): the plain (manage-page)
+                 action bar held a lone Change button in an otherwise
+                 empty full-width strip. It now names the current unit
+                 on the left, so the bar reads as a summary with its
+                 action instead of a dead band. Presentation only —
+                 the form, its fields and the submit are unchanged. --}}
+            @php
+                $lb3Unit = collect([
+                    optional($exams->firstWhere('id', $exam_id ?? null))->name,
+                    optional($my_classes->firstWhere('id', $my_class_id ?? null))->name,
+                    !empty($selected) && !empty($section_id) ? 'Section ' . optional($sections->firstWhere('id', $section_id))->name : null,
+                    !empty($selected) && !empty($subject_id) ? optional($subjects->firstWhere('id', $subject_id))->name : null,
+                ])->filter()->implode(' · ');
+            @endphp
+            @if($lb3Unit !== '')
+                <span class="lb3-unit">{{ $lb3Unit }}</span>
+            @endif
             <button type="submit" class="btn btn-light l115-change-btn">Change</button>
         @endif
     </div>

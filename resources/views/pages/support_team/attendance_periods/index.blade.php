@@ -47,7 +47,6 @@
     @include('partials.module_banner', [
         'hkModIcon' => 'icon-calendar3',
         'hkModTone' => 'green',
-        'hkModTitle' => 'Mark Attendance',
         'hkModSub' => $is_teacher
             ? 'Take attendance for your assigned classes and periods. Once a register is submitted it is locked and cannot be edited.'
             : 'Take attendance for each subject period. Once submitted, it will be locked and cannot be edited.',
@@ -325,14 +324,18 @@
         </div>
     </div>
 
-    <div class="ma-info">
-        <div class="ma-info-head">
+    {{-- Beauty Batch 6 (audit E2): this panel used to stand open
+         on every visit, repeating the banner's lock warning as a
+         permanent text wall. The lock line lives in the banner
+         subtitle; the rest folds into a collapsed "How attendance
+         works" details, one click away when wanted. --}}
+    <details class="ma-info">
+        <summary class="ma-info-head">
             <span class="ma-info-icon"><i class="icon-info22"></i></span>
-            <h6 class="ma-info-title">Important Information</h6>
-        </div>
+            <span class="ma-info-title">How attendance works</span>
+        </summary>
         <ul class="ma-info-list">
             <li>Attendance must be marked for each subject period by the respective teacher.</li>
-            <li>Once a period's attendance is submitted, it will be locked and cannot be edited.</li>
             @if($is_teacher)
                 <li>You only see your own periods here — a period can be submitted only by its assigned teacher.</li>
             @else
@@ -340,7 +343,7 @@
                 <li>You are currently viewing in oversight mode (read-only for submitted periods).</li>
             @endif
         </ul>
-    </div>
+    </details>
 
     @if(!$is_teacher)
         <script>
