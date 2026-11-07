@@ -29,7 +29,7 @@
 
     {{-- Library summary — copies/titles from the catalogue, loan figures from the ledger.
          Each card links to the real list it summarises. --}}
-    <div class="row dashboard-stats">
+    <div class="row dashboard-stats hk-reveal">
         @foreach([
             ['label' => 'Total Books', 'value' => number_format($book_copies), 'sub' => 'All books in catalogue', 'icon' => 'icon-books', 'tone' => 'blue', 'href' => route('books.index')],
             ['label' => 'Books Issued', 'value' => number_format($books_issued), 'sub' => 'Currently with members', 'icon' => 'icon-list', 'tone' => 'purple', 'href' => route('book_requests.index', ['status' => 'issued'])],

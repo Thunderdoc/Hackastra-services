@@ -1,6 +1,20 @@
 @extends('layouts.master')
 @section('page_title', 'Hostel Dorms')
 @section('content')
+    {{-- Beauty Wave 3: the slim module banner (partials/module_banner)
+         opens the hostel module's landing list, with the ledger's
+         own counts. The card below — buttons included — is unchanged. --}}
+    @include('partials.module_banner', [
+        'hkModIcon' => 'icon-home9',
+        'hkModTone' => 'green',
+        'hkModTitle' => 'Hostel Dorms',
+        'hkModSub' => 'Dorms, rooms and the students allocated to them.',
+        'hkModStats' => [
+            ['value' => number_format($dorms->count()), 'label' => 'Dorms'],
+            ['value' => number_format($rooms_count), 'label' => 'Rooms'],
+            ['value' => number_format($allocations_count), 'label' => 'Allocated'],
+        ],
+    ])
     <div class="card">
         <div class="card-header header-elements-inline">
             <h5 class="card-title">Hostel Dorms</h5>

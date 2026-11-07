@@ -11,7 +11,7 @@
         body { margin: 0; font-family: "DejaVu Sans", Arial, sans-serif; }
     </style>
 </head>
-<body>
+<body class="rcd-doc">
     @include('pages.support_team.marks.partials.annual_report_card')
 </body>
 </html>

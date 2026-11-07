@@ -59,14 +59,25 @@ class Readiness
             'subjects.index');
         $teachers = User::where('user_type', 'teacher')->count();
         $overloaded = 0;
+        $personalCapInPlay = false;
         $report = Staffing::report();
         foreach ($report['teachers'] as $row) {
             if ($row['overloaded']) {
                 $overloaded++;
+                // The count above already judges each teacher by
+                // their own cap (Staffing::report via capsFor);
+                // when a personal cap is what makes someone
+                // overloaded, the sentence must not cite the one
+                // school number as if it applied to everyone.
+                if ((int) $row['cap'] !== Staffing::maxPeriodsPerWeek()) {
+                    $personalCapInPlay = true;
+                }
             }
         }
         $add($teachers === 0 ? 'fail' : ($overloaded ? 'warn' : 'ok'), 'Teacher load within caps',
-            $teachers . ' teachers · ' . $overloaded . ' over the weekly cap of ' . Staffing::maxPeriodsPerWeek() . '.',
+            $teachers . ' teachers · ' . $overloaded . ($personalCapInPlay
+                ? ' over their weekly caps.'
+                : ' over the weekly cap of ' . Staffing::maxPeriodsPerWeek() . '.'),
             'planning.staffing');
 
         /* Timetables */

@@ -42,6 +42,31 @@
             </div>
         </div>
 
+        @if($user->user_type === 'teacher')
+        {{-- Per-teacher caps (2026-11-06): blank = the school
+             default from Settings; a number here becomes this
+             teacher's own cap everywhere caps are judged
+             (Staffing::capsFor). --}}
+        <div class="pat-form-section">
+            <div class="pat-form-section-title">Teaching Load</div>
+            <div class="pat-fields">
+                <div class="pat-field">
+                    <label for="max_periods_per_day">Max periods per day:</label>
+                    <input value="{{ old('max_periods_per_day', $user->max_periods_per_day) }}" type="number" min="1" max="12" name="max_periods_per_day" id="max_periods_per_day" placeholder="School default" class="form-control @error('max_periods_per_day') is-invalid @enderror">
+                    @include('partials.errors.field', ['field' => 'max_periods_per_day'])
+                    <span class="form-text text-muted">Leave blank to use the school default of {{ $cap_defaults['day'] ?? 8 }} periods a day.</span>
+                </div>
+
+                <div class="pat-field">
+                    <label for="max_periods_per_week">Max periods per week:</label>
+                    <input value="{{ old('max_periods_per_week', $user->max_periods_per_week) }}" type="number" min="1" max="60" name="max_periods_per_week" id="max_periods_per_week" placeholder="School default" class="form-control @error('max_periods_per_week') is-invalid @enderror">
+                    @include('partials.errors.field', ['field' => 'max_periods_per_week'])
+                    <span class="form-text text-muted">Leave blank to use the school default of {{ $cap_defaults['week'] ?? 40 }} periods a week.</span>
+                </div>
+            </div>
+        </div>
+        @endif
+
         <div class="pat-form-section">
             <div class="pat-form-section-title">Personal Data</div>
             <div class="pat-fields">

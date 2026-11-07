@@ -416,6 +416,15 @@ class CircularController extends Controller
                 return 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($local));
             }
         }
+        // Public-webroot assets (demo stamp/signature in
+        // public/demo-assets) — see MarkController::pdfImageDataUri.
+        if ($path && Str::startsWith($path, '/') && !Str::startsWith($path, '/storage/')) {
+            $local = public_path(ltrim($path, '/'));
+            if (is_file($local)) {
+                $mime = mime_content_type($local) ?: 'image/png';
+                return 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($local));
+            }
+        }
         return $url;
     }
 }

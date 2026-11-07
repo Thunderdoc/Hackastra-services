@@ -1,6 +1,21 @@
 @extends('layouts.master')
 @section('page_title', 'Inventory')
 @section('content')
+    {{-- Beauty Wave 3: the slim module banner (partials/module_banner)
+         opens the page, with the figures the list itself runs on —
+         the filtered item total, the school-wide low-stock count
+         and the category list. The card below is unchanged. --}}
+    @include('partials.module_banner', [
+        'hkModIcon' => 'icon-box',
+        'hkModTone' => 'purple',
+        'hkModTitle' => 'Inventory',
+        'hkModSub' => 'Store items, stock levels and low-stock alerts.',
+        'hkModStats' => [
+            ['value' => number_format($items->total()), 'label' => 'Items'],
+            ['value' => number_format($low_stock_count), 'label' => 'Low Stock'],
+            ['value' => number_format(count($categories)), 'label' => 'Categories'],
+        ],
+    ])
     <div class="card">
         <div class="card-header header-elements-inline">
             <h6 class="card-title">Inventory / Store</h6>

@@ -10,6 +10,7 @@
 --}}
 <div class="idc2 idc2-{{ $card['role'] }}{{ !$card['is_student'] ? ' idc2-staff' : '' }}">
     <div class="idc2-band">
+        @if(!empty($card['band_pattern']))<img class="idc2-bandpat" src="{{ $card['band_pattern'] }}" alt="">@endif
         <span class="idc2-logo">@if($brand['logo_img'])<img src="{{ $brand['logo_img'] }}" alt="">@else<span class="idc2-mono">{{ $brand['monogram'] }}</span>@endif</span>
         <div class="idc2-sch">{{ $brand['name'] }}</div>
         <div class="idc2-schid">IDENTITY CARD</div>
@@ -71,6 +72,7 @@
 
 <div class="idc2 idc2-{{ $card['role'] }}{{ !$card['is_student'] ? ' idc2-staff' : '' }}{{ !empty($idcLast) ? ' idc2-last' : '' }}">
     <div class="idc2-bhead">
+        @if(!empty($card['band_pattern_head']))<img class="idc2-bandpat idc2-bandpat-head" src="{{ $card['band_pattern_head'] }}" alt="">@endif
         <span class="idc2-logo">@if($brand['logo_img'])<img src="{{ $brand['logo_img'] }}" alt="">@else<span class="idc2-mono">{{ $brand['monogram'] }}</span>@endif</span>
         <div class="idc2-sch">{{ $brand['name'] }}</div>
         <div class="idc2-schid">{{ $card['is_student'] ? 'STUDENT DETAILS' : 'STAFF DETAILS' }}</div>

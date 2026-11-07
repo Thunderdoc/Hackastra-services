@@ -6,6 +6,7 @@ use App\Helpers\Qs;
 use App\Http\Requests\UserRequest;
 use App\Repositories\LocationRepo;
 use App\Support\Audit;
+use App\Support\Staffing;
 use App\User;
 use App\Repositories\MyClassRepo;
 use App\Repositories\UserRepo;
@@ -145,6 +146,14 @@ class UserController extends Controller
         $d['users'] = $this->user->getPTAUsers();
         $d['blood_groups'] = $this->user->getBloodGroups();
         $d['nationals'] = $this->loc->getAllNationals();
+        // Per-teacher caps (2026-11-06): the Teaching Load section
+        // of the form shows the school defaults as its helper text.
+        if ($d['user']->user_type === 'teacher') {
+            $d['cap_defaults'] = [
+                'day' => Staffing::maxPeriodsPerDay(),
+                'week' => Staffing::maxPeriodsPerWeek(),
+            ];
+        }
         return view('pages.support_team.users.edit', $d);
     }
 
@@ -305,6 +314,44 @@ class UserController extends Controller
         // rewrite the account's verification timestamp.
         $data['email_verified_at'] = $user->email_verified_at;
 
+        /* Per-teacher caps (2026-11-06): the two cap fields exist
+           only on a teacher's edit form. For a teacher, normalise
+           here — blank means "school default" (NULL); a number is
+           stored as an int (UserRequest validated the ranges and
+           the both-fields pair). The effective pair (a posted
+           value, else the stored override, else the school
+           default) must still satisfy week >= day. For anyone
+           else the keys are dropped entirely, so a crafted post
+           cannot park caps on a non-teacher. */
+        $capsChanged = false;
+        $newCapDay = null;
+        $newCapWeek = null;
+        if ($user_type === 'teacher') {
+            foreach (['max_periods_per_day', 'max_periods_per_week'] as $capField) {
+                if (array_key_exists($capField, $data)) {
+                    $data[$capField] = ($data[$capField] === '' || $data[$capField] === null)
+                        ? null : (int) $data[$capField];
+                }
+            }
+            $newCapDay = array_key_exists('max_periods_per_day', $data)
+                ? $data['max_periods_per_day'] : $user->getAttribute('max_periods_per_day');
+            $newCapWeek = array_key_exists('max_periods_per_week', $data)
+                ? $data['max_periods_per_week'] : $user->getAttribute('max_periods_per_week');
+            $newCapDay = $newCapDay === null ? null : (int) $newCapDay;
+            $newCapWeek = $newCapWeek === null ? null : (int) $newCapWeek;
+            $effDay = $newCapDay !== null ? $newCapDay : Staffing::maxPeriodsPerDay();
+            $effWeek = $newCapWeek !== null ? $newCapWeek : Staffing::maxPeriodsPerWeek();
+            if ($effWeek < $effDay) {
+                return back()->with('flash_danger', 'The weekly cap cannot be lower than the daily cap (' . $effDay . '). Raise the weekly cap or lower the daily cap.')->withInput();
+            }
+            $oldCapDay = $user->getAttribute('max_periods_per_day');
+            $oldCapWeek = $user->getAttribute('max_periods_per_week');
+            $capsChanged = ($oldCapDay === null ? null : (int) $oldCapDay) !== $newCapDay
+                || ($oldCapWeek === null ? null : (int) $oldCapWeek) !== $newCapWeek;
+        } else {
+            unset($data['max_periods_per_day'], $data['max_periods_per_week']);
+        }
+
         if($user_is_staff && !$user_is_teamSA){
             $data['username'] = Qs::getAppCode().'/STAFF/'.date('Y/m', strtotime($req->emp_date)).'/'.mt_rand(1000, 9999);
         }
@@ -321,6 +368,16 @@ class UserController extends Controller
         }
 
         $this->user->update($id, $data);   /* UPDATE USER RECORD */
+
+        /* A cap change is a workload decision about a named
+           teacher — audit it with the same Audit::log pattern the
+           account lifecycle below uses (plain profile edits are
+           not audited anywhere in this controller). */
+        if ($capsChanged) {
+            Audit::log('user.caps_updated', $user, 'Teaching caps for ' . $user->name
+                . ': day cap ' . ($newCapDay === null ? 'school default' : $newCapDay)
+                . ', week cap ' . ($newCapWeek === null ? 'school default' : $newCapWeek) . '.');
+        }
 
         /* UPDATE STAFF RECORD */
         if($user_is_staff){

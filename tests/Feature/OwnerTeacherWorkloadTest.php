@@ -42,11 +42,13 @@ class OwnerTeacherWorkloadTest extends TestCase
             ->getContent();
 
         // Her real week: 36 periods, busiest days at the cap.
-        // Item 16 redesign (owner-approved): same figures, new
-        // tile markup — the total rides .l16-tv, the busiest day
-        // names the day and its count in the tile value.
-        $this->assertStringContainsString('l16-tv">36 <', $html);
-        $this->assertStringContainsString('l16-tv">Monday <small>· 8</small>', $html);
+        // Item 16 redesign (owner-approved): same figures, tile
+        // markup — since the visual-coherence round (2026-11-06)
+        // the tiles are shared dashboard-stat-cards, so the total
+        // rides the stat <strong> and the busiest day names the
+        // day and its count in the tile value.
+        $this->assertStringContainsString('<strong>36 <', $html);
+        $this->assertStringContainsString('<strong>Monday <small>· 8</small></strong>', $html);
         $this->assertStringContainsString('8 of 8', $html);
         $this->assertStringContainsString('Full day', $html);
         // She leads 9 sections and teaches English.

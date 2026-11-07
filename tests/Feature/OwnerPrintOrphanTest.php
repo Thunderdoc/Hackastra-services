@@ -311,9 +311,14 @@ class OwnerPrintOrphanTest extends TestCase
      * overflow-x: auto } }) the on-screen marksheet already enjoys.
      * At 360px the term sheet pushed the document to 681px and the
      * annual sheet to 463px. Both blades now carry the same
-     * screen-only scroll rule on .report-card; print geometry is
+     * screen-only scroll rule on the card root; print geometry is
      * untouched and the dompdf blades (bulk_pdf, annual_pdf) never
      * include these blades, so no PDF surface moves.
+     *
+     * Re-expressed 2026-11-06 (report-card redesign): the card root
+     * class is now .rcd (partials/report_card_document), so the
+     * blades' screen scroll rule targets .rcd — the pinned intent
+     * (screen-only internal scroll, no print leak) is unchanged.
      */
     public function test_marksheet_print_pages_scroll_on_screen_only()
     {
@@ -323,9 +328,9 @@ class OwnerPrintOrphanTest extends TestCase
             ));
             $this->assertStringContainsString('@media screen', $content);
             $this->assertStringContainsString(
-                '.report-card { overflow-x: auto;',
+                '.rcd { overflow-x: auto;',
                 $content,
-                $blade . ' .report-card must scroll internally on screens'
+                $blade . ' .rcd must scroll internally on screens'
             );
             // No @media print block exists in these blades; the only
             // print rule is @page — the fix cannot leak into print.

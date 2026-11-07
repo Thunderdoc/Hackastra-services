@@ -1,6 +1,21 @@
 @extends('layouts.master')
 @section('page_title', 'Health Records')
 @section('content')
+    {{-- Beauty Wave 3: the slim module banner (partials/module_banner)
+         opens the page; its stats count the records THIS viewer is
+         scoped to see (the list below), never the whole clinic.
+         The intro's first sentence moves into the banner; the
+         privacy line stays with the list. --}}
+    @include('partials.module_banner', [
+        'hkModIcon' => 'icon-heart6',
+        'hkModTone' => 'red',
+        'hkModTitle' => 'Health Records',
+        'hkModSub' => 'Clinic visit log — only the records you are allowed to see are listed here.',
+        'hkModStats' => [
+            ['value' => number_format($records->count()), 'label' => 'Records'],
+            ['value' => number_format($records->where('is_referred', true)->count()), 'label' => 'Referred'],
+        ],
+    ])
     <div class="card">
         <div class="card-header">
             <h5 class="card-title">Health Records</h5>
@@ -9,7 +24,7 @@
             @endif
         </div>
         <div class="card-body">
-            <p class="text-muted">Clinic visit log. Only the records you are allowed to see are listed here; complaint and treatment details are shown on the individual record page only.</p>
+            <p class="text-muted">Complaint and treatment details are shown on the individual record page only.</p>
             @if($records->count())
                 <div class="table-responsive">
                     <table class="table">

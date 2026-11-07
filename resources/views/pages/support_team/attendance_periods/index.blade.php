@@ -40,13 +40,18 @@
         </div>
     @endif
 
-    <p class="ma-intro">
-        @if($is_teacher)
-            Take attendance for your assigned classes and periods. Once a register is submitted it is locked and cannot be edited.
-        @else
-            Take attendance for each subject period. Once submitted, it will be locked and cannot be edited.
-        @endif
-    </p>
+    {{-- Beauty Wave 1 (2026-11-06): the plain intro line becomes
+         the SHARED slim module banner (partials/module_banner) —
+         the role-aware guidance text is carried verbatim as the
+         banner's one-line context. --}}
+    @include('partials.module_banner', [
+        'hkModIcon' => 'icon-calendar3',
+        'hkModTone' => 'green',
+        'hkModTitle' => 'Mark Attendance',
+        'hkModSub' => $is_teacher
+            ? 'Take attendance for your assigned classes and periods. Once a register is submitted it is locked and cannot be edited.'
+            : 'Take attendance for each subject period. Once submitted, it will be locked and cannot be edited.',
+    ])
 
     <div class="ma-toprow">
         <div class="card ma-filter-card">

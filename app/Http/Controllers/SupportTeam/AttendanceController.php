@@ -1095,7 +1095,11 @@ class AttendanceController extends Controller
 
         $studentName = optional($d['student']->user)->name;
         $rangeLabel = $d['range_label'];
-        $pdf->output();
+        // Render BEFORE stamping the footer: page_text registered
+        // after output() draws with a polluted font state and the
+        // footer comes out as mojibake (proven 2026-11-06 sweep);
+        // render() first is the pattern reportPdf() already uses.
+        $pdf->render();
         $dompdf = $pdf->getDomPDF();
         $canvas = $dompdf->getCanvas();
         $height = $canvas->get_height();
@@ -1165,7 +1169,9 @@ class AttendanceController extends Controller
 
         $monthLabel = $d['month']->format('F Y');
         $threshold = $d['threshold'];
-        $pdf->output();
+        // render() before page_text, same as studentReportPdf —
+        // output() first leaves the footer font state polluted.
+        $pdf->render();
         $dompdf = $pdf->getDomPDF();
         $canvas = $dompdf->getCanvas();
         $height = $canvas->get_height();

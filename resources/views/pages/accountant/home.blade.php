@@ -18,7 +18,7 @@
         $trendMax = $collection_values ? max($collection_values) : 0;
         $methodColors = ['Counter' => '#3478f6', 'Online (Razorpay)' => '#6845d8'];
     @endphp
-    <div class="dashboard-hero mb-4">
+    <div class="dashboard-hero mb-4 hk-reveal">
         <div>
             <p class="mb-0 dashboard-muted">Fee office overview — collections, outstanding balances and recent payments.</p>
         </div>
@@ -36,7 +36,7 @@
     </div>
 
     {{-- Fee summary — five cards, one source of truth per figure --}}
-    <div class="acc-stat-grid mb-4">
+    <div class="acc-stat-grid mb-4 hk-reveal hk-reveal-1">
         @foreach([
             ['label' => 'Collected Today', 'value' => \App\Helpers\Money::inr($collected_today), 'delta' => $todayDelta, 'delta_vs' => 'yesterday', 'sub' => $payments_today_count . ' ' . ($payments_today_count === 1 ? 'payment' : 'payments') . ' recorded', 'icon' => 'icon-wallet', 'tone' => 'blue'],
             ['label' => 'Collected This Month', 'value' => \App\Helpers\Money::inr($collected_month), 'delta' => $monthDelta, 'delta_vs' => 'previous month', 'sub' => $today->format('F Y'), 'icon' => 'icon-stats-growth', 'tone' => 'green'],

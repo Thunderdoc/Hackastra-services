@@ -13,7 +13,7 @@
         .mk-page-last { page-break-after: auto; }
     </style>
 </head>
-<body>
+<body class="rcd-doc">
     @foreach($cards as $card)
         <div class="{{ $loop->last ? 'mk-page-last' : 'mk-page' }}">
             @include('pages.support_team.marks.partials.report_card', array_merge($card, ['rc_show_traits' => true]))

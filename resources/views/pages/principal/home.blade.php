@@ -9,14 +9,6 @@
 .pr-hero p{color:#dbe7fb;margin:0}
 .pr-hero .pr-date{color:#dbe7fb;font-size:14px}
 .pr-eyebrow{letter-spacing:.14em;text-transform:uppercase;font-size:11px;color:#9fc3ec;font-weight:700}
-.pr-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
-@media(max-width:991px){.pr-grid{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:540px){.pr-grid{grid-template-columns:1fr}}
-.pr-kpi{background:#fff;border:1px solid #d7e0ec;border-radius:12px;padding:18px 20px;text-decoration:none!important;color:#10263b;display:block}
-.pr-kpi:hover{border-color:#10263b}
-.pr-kpi small{letter-spacing:.08em;text-transform:uppercase;color:#718096;font-weight:700;font-size:11px}
-.pr-kpi strong{display:block;font-size:30px;line-height:1.2;margin:6px 0 2px}
-.pr-kpi span{color:#44546a;font-size:13px}
 .pr-att{border-radius:12px;padding:4px 0;margin-bottom:18px}
 .pr-att-item{background:#fff;border:1px solid #d7e0ec;border-left:5px solid #d64545;border-radius:10px;padding:14px 18px;margin-bottom:10px;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
 .pr-att-item.amber{border-left-color:#e8a317}
@@ -29,7 +21,6 @@
 @media(max-width:991px){.pr-cols{grid-template-columns:1fr}}
 .pr-card{background:#fff;border:1px solid #d7e0ec;border-radius:12px;padding:20px;margin-bottom:0}
 .pr-card h5{margin:0 0 4px;font-size:17px;color:#10263b}
-html.hk-dark .pr-wrap .pr-card h5{color:#10263b}
 .pr-card p,.pr-card td{color:#44546a}
 .pr-card td strong,.pr-card p strong{color:#10263b}
 .pr-card .pr-sub{color:#718096;font-size:13px;margin:0 0 14px}
@@ -47,10 +38,35 @@ html.hk-dark .pr-wrap .pr-card h5{color:#10263b}
 .pr-bar-fill{background:#10263b;height:12px;border-radius:6px}
 .pr-bar-val{width:44px;text-align:right;font-weight:700}
 .pr-foot{color:#718096;font-size:12px;margin-top:10px}
+/* Visual-coherence round (2026-11-06): the .pr-* surfaces above
+   were hardcoded light, so in dark mode the attention strip and
+   the cards rendered WHITE on the dark page (owner: "aadha ujla
+   aadha black"). Every surface now follows the app's dark card
+   tokens (#26272a / #36383c, the dashboard-stat-card surface);
+   light theme keeps the look above, untouched. */
+html.hk-dark .pr-wrap{color:#e7e8e9}
+html.hk-dark .pr-att-item{background:#26272a;border-color:#36383c;border-left-color:#d64545}
+html.hk-dark .pr-att-item.amber{border-left-color:#e8a317}
+html.hk-dark .pr-att-item p{color:#c9cbce}
+html.hk-dark .pr-att-item .pr-meta{color:#a5a8ad}
+html.hk-dark .pr-ok{background:#123528;border-color:#1e5c40;color:#e7e8e9}
+html.hk-dark .pr-card{background:#26272a;border-color:#36383c}
+html.hk-dark .pr-card h5{color:#f4f4f5}
+html.hk-dark .pr-card p,html.hk-dark .pr-card td{color:#c9cbce}
+html.hk-dark .pr-card td strong,html.hk-dark .pr-card p strong{color:#f4f4f5}
+html.hk-dark .pr-card .pr-sub{color:#a5a8ad}
+html.hk-dark .pr-op{background:#2f3135}
+html.hk-dark .pr-op span{color:#a5a8ad}
+html.hk-dark .pr-table th{color:#a5a8ad;border-bottom-color:#36383c}
+html.hk-dark .pr-table td{border-bottom-color:#36383c}
+html.hk-dark .pr-bar-row .pr-bar-label{color:#c9cbce}
+html.hk-dark .pr-bar-track{background:#3a3c40}
+html.hk-dark .pr-bar-fill{background:#6ea8ff}
+html.hk-dark .pr-foot{color:#a5a8ad}
 </style>
 
 <div class="pr-wrap">
-    <div class="pr-hero">
+    <div class="pr-hero hk-reveal">
         <div class="pr-eyebrow">School Command Center</div>
         <p>Whole-school situation at a glance — academics, attendance, staffing and decisions.</p>
         <div class="pr-date">{{ $today->format('l, d F Y') }} &middot; Session {{ $current_session }}</div>
@@ -73,27 +89,36 @@ html.hk-dark .pr-wrap .pr-card h5{color:#10263b}
         <div class="pr-ok"><strong>All clear today.</strong> No timetable clashes, uncovered substitutions, overdue approvals or incidents needing attention.</div>
     @endif
 
-    <div class="pr-grid">
-        <a href="{{ route('students.list', optional(App\Models\MyClass::first())->id) }}" class="pr-kpi">
-            <small>Students</small>
-            <strong>{{ number_format($pr_students) }}</strong>
-            <span>Enrolled &middot; {{ $pr_attendance_today['recorded'] ? $pr_attendance_today['percent'] . '% present today' : 'No attendance recorded today' }}</span>
-        </a>
-        <a href="{{ route('users.index') }}" class="pr-kpi">
-            <small>Staff</small>
-            <strong>{{ number_format($pr_teachers) }}</strong>
-            <span>Teachers &middot; {{ $pr_ops['substitutions_today'] }} substitution{{ $pr_ops['substitutions_today'] === 1 ? '' : 's' }} today</span>
-        </a>
-        <a href="{{ route('exams.index') }}" class="pr-kpi">
-            <small>Academics</small>
-            <strong>{{ $pr_exams_total }}</strong>
-            <span>Exams this session &middot; {{ $pr_exams_published }} results published</span>
-        </a>
-        <a href="{{ route('leave.index') }}" class="pr-kpi">
-            <small>Attention Needed</small>
-            <strong>{{ count($pr_attention) }}</strong>
-            <span>{{ $pr_pending_leaves_count }} pending approval{{ $pr_pending_leaves_count === 1 ? '' : 's' }} in the inbox</span>
-        </a>
+    {{-- Beauty Wave 2 (2026-11-06): the four executive KPIs move
+         off this page's private pr-kpi island onto the shared
+         dashboard-stat-card pattern every other role home uses —
+         same labels, same values, same subtexts, same links; only
+         the card chrome is now the site's one stat system (the
+         pr-hero / pr-att / pr-card sections below stay as they
+         are, they carry this page's own command-center layout). --}}
+    <div class="row dashboard-stats hk-reveal hk-reveal-1">
+        @foreach([
+            ['label' => 'Students', 'value' => number_format($pr_students), 'sub' => 'Enrolled · ' . ($pr_attendance_today['recorded'] ? $pr_attendance_today['percent'] . '% present today' : 'No attendance recorded today'), 'icon' => 'icon-users', 'tone' => 'blue', 'href' => route('students.list', optional(App\Models\MyClass::first())->id)],
+            ['label' => 'Staff', 'value' => number_format($pr_teachers), 'sub' => 'Teachers · ' . $pr_ops['substitutions_today'] . ' substitution' . ($pr_ops['substitutions_today'] === 1 ? '' : 's') . ' today', 'icon' => 'icon-users4', 'tone' => 'purple', 'href' => route('users.index')],
+            ['label' => 'Academics', 'value' => $pr_exams_total, 'sub' => 'Exams this session · ' . $pr_exams_published . ' results published', 'icon' => 'icon-books', 'tone' => 'orange', 'href' => route('exams.index')],
+            ['label' => 'Attention Needed', 'value' => count($pr_attention), 'sub' => $pr_pending_leaves_count . ' pending approval' . ($pr_pending_leaves_count === 1 ? '' : 's') . ' in the inbox', 'icon' => 'icon-alarm', 'tone' => 'red', 'href' => route('leave.index')],
+        ] as $stat)
+            <div class="col-sm-6 col-xl-3">
+                <a href="{{ $stat['href'] }}" class="l100-stat-link" aria-label="{{ $stat['label'] }}: {{ $stat['value'] }} — view list">
+                    <div class="dashboard-stat-card dashboard-stat-{{ $stat['tone'] }}">
+                        <span class="dashboard-stat-top">
+                            <span class="dashboard-stat-icon"><i class="{{ $stat['icon'] }}"></i></span>
+                            <span class="l100-stat-arrow"><i class="icon-arrow-right7"></i></span>
+                        </span>
+                        <span class="dashboard-stat-copy">
+                            <span class="dashboard-stat-label">{{ $stat['label'] }}</span>
+                            <strong>{{ $stat['value'] }}</strong>
+                            <small>{{ $stat['sub'] }}</small>
+                        </span>
+                    </div>
+                </a>
+            </div>
+        @endforeach
     </div>
 
     <div class="pr-cols">

@@ -72,6 +72,15 @@ class PlanningController extends Controller
         $d['cap'] = Staffing::maxPeriodsPerWeek();
         $d['teachers'] = User::where('user_type', 'teacher')->orderBy('name')
             ->get()->keyBy('id');
+        // G6 allocation clarity (2026-11-06): each row names how
+        // many section overrides the subject carries, so applying
+        // a class-teacher change here never reads as moving the
+        // whole class — overrides are deliberate and stay put
+        // (applyAllocation's flash says the same at save time).
+        $d['override_counts'] = DB::table('section_subject_teachers')
+            ->selectRaw('subject_id, COUNT(*) as c')
+            ->groupBy('subject_id')
+            ->pluck('c', 'subject_id');
 
         return view('pages.support_team.planning.allocation', $d);
     }
@@ -95,11 +104,13 @@ class PlanningController extends Controller
             return back()->with('flash_danger', $teacher->name . ' is not eligible to teach ' . $subject->name . ' — record their eligibility first.');
         }
 
-        // Soft rule: the weekly cap. Crossing it needs an explicit
-        // override + reason, and both are audit-logged.
+        // Soft rule: the weekly cap — the TARGET teacher's own
+        // cap (per-teacher caps, 2026-11-06: capsFor), not the
+        // school default. Crossing it needs an explicit override
+        // + reason, and both are audit-logged.
         $loads = Allocation::teacherLoads();
         $projected = ($loads[$teacher->id] ?? 0) + (int) ($subject->periods_per_week ?? 0);
-        $cap = Staffing::maxPeriodsPerWeek();
+        $cap = Staffing::capsFor($teacher)['week'];
         if ($subject->periods_per_week && $projected > $cap && !$request->boolean('override_cap')) {
             return back()->with('flash_danger', 'This would put ' . $teacher->name . ' at ' . $projected . ' periods, over the weekly cap of ' . $cap . '. Tick the override and give a reason if you mean to do it anyway.');
         }

@@ -10,6 +10,30 @@
 @endsection
 @section('content')
 
+    {{-- Beauty Wave 2 (2026-11-06): the slim module banner
+         (partials/module_banner) opens the page, in the same family
+         as Timetables / Marks / Attendance from Wave 1. When a
+         session is selected its stats are the SAME four figures the
+         KPI cards below carry (receipts ledger + the Fee Defaulters
+         rule — one source, read twice); before any session has
+         data the banner carries just the session chip. Everything
+         below — Collect Fee counter, session band, KPI cards,
+         records table — is untouched. --}}
+    @include('partials.module_banner', [
+        'hkModIcon' => 'icon-cash2',
+        'hkModTone' => 'green',
+        'hkModTitle' => 'Manage Payments',
+        'hkModSub' => 'Collect fees, manage fee definitions and track every payment for the session.',
+        'hkModStats' => $selected ? [
+            ['value' => number_format($stat_total_payments), 'label' => 'Payments'],
+            ['value' => \App\Helpers\Money::inr($stat_total_collected), 'label' => 'Collected'],
+            ['value' => \App\Helpers\Money::inr($stat_pending_dues), 'label' => 'Pending Dues'],
+            ['value' => number_format($stat_defaulters), 'label' => 'Defaulters'],
+        ] : [],
+        'hkModChip' => $selected ? 'Session ' . $year : null,
+        'hkModChipIcon' => 'icon-calendar3',
+    ])
+
     {{-- Loop 94 (2026-10-22): premium redesign on the BT/CK build.
          Section 1 keeps the Collect Fee counter contract byte-for-byte
          (Workstream BJ: endpoint, results dropdown, invoice links, the

@@ -1,11 +1,9 @@
 @extends('layouts.login_master')
 
 @section('content')
-    <div class="page-content login-cover">
-
-        <div class="content-wrapper">
-            <div class="content row justify-content-center">
-                <div class="col-md-6">
+    {{-- Guest Sample C shell. The form, fields and POST are
+         unchanged — presentation only. --}}
+    @include('partials.login.guest_shell_open')
                     <div class="card">
                         <div class="card-header">
                             <h3 class="card-title">Reset Password</h3>
@@ -82,8 +80,6 @@
                             </form>
                         </div>
                     </div>
-                </div>
-            </div>
-        </div>
-    </div>
+
+    @include('partials.login.guest_shell_close')
 @endsection

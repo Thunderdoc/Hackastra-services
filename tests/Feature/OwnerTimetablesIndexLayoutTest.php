@@ -168,7 +168,9 @@ class OwnerTimetablesIndexLayoutTest extends TestCase
         $html = $this->actingAs($this->user('admin@hackstra.app'))
             ->get(route('tt.index'))->assertOk()->getContent();
 
-        $this->assertStringContainsString('tt3-head', $html);
+        // Beauty Wave 1: the tt3 headbar is formalised into the
+        // shared slim module banner — same stats, subtitle, chip.
+        $this->assertStringContainsString('hk-mod-banner', $html);
         $this->assertStringContainsString('Session ' . \App\Helpers\Qs::getCurrentSession(), $html);
         $this->assertStringContainsString('View and manage class timetables', $html);
         // Every card carries the counts row + a status foot line.

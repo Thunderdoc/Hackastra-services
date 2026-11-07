@@ -32,7 +32,7 @@
     </div>
 
     {{-- Platform headline numbers — every value comes from a live query --}}
-    <div class="row dashboard-stats">
+    <div class="row dashboard-stats hk-reveal">
         @foreach([
             ['label' => 'Platform Accounts', 'value' => number_format($total_users), 'sub' => 'Super Admins + School Admins · ' . number_format($signed_in_this_week) . ' signed in this week' . (($suspended_users || $terminated_users) ? ' · ' . number_format($suspended_users) . ' suspended · ' . number_format($terminated_users) . ' terminated' : ''), 'icon' => 'icon-users4', 'tone' => 'blue', 'link' => route('users.index')],
             ['label' => 'Audit Entries Today', 'value' => number_format($audit_today), 'sub' => 'Recorded actions today', 'icon' => 'icon-shield-check', 'tone' => 'green', 'link' => route('audit_logs.index')],
@@ -54,7 +54,7 @@
         @endforeach
     </div>
 
-    <div class="row platform-overview">
+    <div class="row platform-overview hk-reveal hk-reveal-1">
         <div class="col-xl-8">
             {{-- Platform accounts by role — platform accounts only
                  (Loop 106); the school's people are counted in the

@@ -7,8 +7,10 @@ use App\Models\AttendanceSession;
 use App\Models\AttendanceSessionEntry;
 use App\Models\AuditLog;
 use App\Models\DisciplineRecord;
+use App\Models\Dorm;
 use App\Models\ExamDate;
 use App\Models\HealthRecord;
+use App\Models\HostelRoom;
 use App\Models\ExamRecord;
 use App\Models\Expense;
 use App\Models\LeaveRequest;
@@ -158,6 +160,17 @@ class HomeController extends Controller
         // health index — complaint text never lists).
         if ($user_type === 'nurse') {
             return view('pages.nurse.home', array_merge($d, $this->nurseHomeData($now)));
+        }
+
+        // Hostel Warden (Beauty Wave 2, 2026-11-06): the warden's
+        // user_type is 'hostel' and the hostel runs on its own login
+        // (HostelController gates the module server-side). Until now
+        // the warden fell through to the school-wide SAT board; this
+        // branch gives the role its real home — dorms, beds and
+        // occupancy from the hostel ledger, plus the most recent
+        // allocations. Additive: no other role's dispatch changes.
+        if ($user_type === 'hostel') {
+            return view('pages.hostel.home', array_merge($d, $this->hostelHomeData($now)));
         }
 
         // Workstream R: the platform owner lands on a platform home —
@@ -2059,6 +2072,35 @@ class HomeController extends Controller
     }
     protected function nurseHomeData(Carbon $now): array
     {
+        // Beauty Wave 2 second row: the referral list (latest first)
+        // and the current month at a glance — visits bucketed by
+        // week of the month, plus the weekday carrying the most
+        // visits. All computed from this month's real visit dates;
+        // an empty month yields zeroed weeks and a null busiest day,
+        // which the blade renders as an honest empty state.
+        $monthDates = HealthRecord::whereYear('visit_date', $now->year)
+            ->whereMonth('visit_date', $now->month)
+            ->pluck('visit_date');
+        $monthWeeks = [];
+        for ($i = 1, $weekTotal = (int) ceil($now->daysInMonth / 7); $i <= $weekTotal; $i++) {
+            $monthWeeks[] = ['label' => 'Week ' . $i, 'count' => 0];
+        }
+        $dayCounts = [];
+        foreach ($monthDates as $date) {
+            $day = $date instanceof \DateTimeInterface ? $date : Carbon::parse($date);
+            $monthWeeks[(int) ceil($day->day / 7) - 1]['count']++;
+            $name = $day->format('l');
+            $dayCounts[$name] = ($dayCounts[$name] ?? 0) + 1;
+        }
+        $busiestDay = null;
+        $busiestDayCount = 0;
+        foreach ($dayCounts as $name => $count) {
+            if ($count > $busiestDayCount) {
+                $busiestDayCount = $count;
+                $busiestDay = $name;
+            }
+        }
+
         return [
             'health_total' => HealthRecord::count(),
             'health_today' => HealthRecord::whereDate('visit_date', $now->toDateString())->count(),
@@ -2067,6 +2109,39 @@ class HomeController extends Controller
             'health_referred' => HealthRecord::where('is_referred', 1)->count(),
             'health_recent' => HealthRecord::with(['student', 'recorder'])
                 ->orderBy('visit_date', 'desc')->orderBy('id', 'desc')->take(8)->get(),
+            'health_referred_list' => HealthRecord::with('student')
+                ->where('is_referred', 1)
+                ->orderBy('visit_date', 'desc')->orderBy('id', 'desc')->take(6)->get(),
+            'health_month_weeks' => $monthWeeks,
+            'health_busiest_day' => $busiestDay,
+            'health_busiest_day_count' => $busiestDayCount,
+        ];
+    }
+
+    /**
+     * Hostel Warden home data (Beauty Wave 2, 2026-11-06): every
+     * figure reads the hostel ledger exactly as HostelController
+     * does — beds are the summed HostelRoom capacities, "allocated"
+     * counts the StudentRecord rows carrying a dorm (the same rows
+     * HostelRoom::occupancy() counts), and the recent list is those
+     * rows latest-touched first (an allocation save is what touches
+     * a record's updated_at).
+     */
+    protected function hostelHomeData(Carbon $now): array
+    {
+        $beds = (int) HostelRoom::sum('capacity');
+        $allocated = StudentRecord::whereNotNull('dorm_id')->count();
+
+        return [
+            'hostel_dorms' => Dorm::count(),
+            'hostel_rooms' => HostelRoom::count(),
+            'hostel_beds' => $beds,
+            'hostel_allocated' => $allocated,
+            'hostel_occupancy_pct' => $beds > 0 ? (int) round($allocated / $beds * 100) : 0,
+            'hostel_recent' => StudentRecord::with(['user', 'dorm', 'my_class', 'section'])
+                ->whereNotNull('dorm_id')
+                ->orderByDesc('updated_at')->orderByDesc('id')
+                ->take(8)->get(),
         ];
     }
 

@@ -135,6 +135,8 @@ class IdCardFactory
 
         return [
             'role' => 'student',
+            'band_pattern' => self::bandPattern('student', $forPdf),
+            'band_pattern_head' => self::bandPattern('student', $forPdf, true),
             'role_label' => self::ROLE_META['student']['label'],
             'name' => optional($user)->name,
             'initials' => Qs::initials(optional($user)->name ?? ''),
@@ -185,6 +187,8 @@ class IdCardFactory
 
         return [
             'role' => $type,
+            'band_pattern' => self::bandPattern($type, $forPdf),
+            'band_pattern_head' => self::bandPattern($type, $forPdf, true),
             'role_label' => $meta['label'],
             'name' => $user->name,
             'initials' => Qs::initials($user->name ?? ''),
@@ -197,6 +201,31 @@ class IdCardFactory
             'is_student' => false,
             'is_principal' => $type === 'principal',
         ];
+    }
+
+    /**
+     * Guilloche band pattern for a role (parity fix 2026-11-06):
+     * the frozen final9 bands carry a tone-on-tone circle pattern
+     * that dompdf cannot paint from CSS, so it ships as a raster
+     * design asset (public/assets/img/idcard/pattern-{role}.png,
+     * drawn per role band colour). It is a DESIGN asset like the
+     * role banners — never school data. PDF gets a data URI (the
+     * imageSrc rule: dompdf cannot fetch URLs); screens get the
+     * URL. Null when the asset is missing — the band then stays
+     * its solid colour, never a broken image.
+     */
+    public static function bandPattern(string $role, bool $forPdf = false, bool $head = false)
+    {
+        $name = 'pattern-' . ($head ? 'head-' : '') . $role . '.png';
+        $file = public_path('assets/img/idcard/' . $name);
+        if (!is_file($file)) {
+            return null;
+        }
+        if ($forPdf) {
+            return 'data:image/png;base64,' . base64_encode(file_get_contents($file));
+        }
+
+        return '/assets/img/idcard/' . $name;
     }
 
     /** Drop tiles whose value is empty; normalise to assoc rows. */

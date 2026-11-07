@@ -24,7 +24,12 @@ class User extends Authenticatable
      * @var array
      */
     protected $fillable = [
-        'name', 'username', 'email', 'phone', 'phone2', 'dob', 'gender', 'photo', 'address', 'bg_id', 'password', 'nal_id', 'state_id', 'lga_id', 'code', 'user_type', 'email_verified_at', 'status', 'status_at'
+        'name', 'username', 'email', 'phone', 'phone2', 'dob', 'gender', 'photo', 'address', 'bg_id', 'password', 'nal_id', 'state_id', 'lga_id', 'code', 'user_type', 'email_verified_at', 'status', 'status_at',
+        /* Per-teacher workload caps (2026-11-06): NULL = the
+           school default from Settings. Only ever written for
+           teachers, via the Edit User form; resolved through
+           App\Support\Staffing::capsFor. */
+        'max_periods_per_day', 'max_periods_per_week'
     ];
 
     /* Account lifecycle (Workstream DF): active / suspended /

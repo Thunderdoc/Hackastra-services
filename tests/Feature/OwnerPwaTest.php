@@ -36,7 +36,7 @@ class OwnerPwaTest extends TestCase
         $this->assertFileExists($path);
 
         $js = file_get_contents($path);
-        $this->assertStringContainsString('hackstra-v1', $js);
+        $this->assertStringContainsString('hackstra-v2', $js);
         $this->assertStringContainsString('/offline.html', $js);
         $this->assertStringContainsString('Authorization', $js);
     }

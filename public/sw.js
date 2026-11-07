@@ -5,7 +5,7 @@
  * any request carrying an Authorization header are NEVER cached, so
  * authenticated HTML and API responses can never leak across users.
  */
-const CACHE = 'hackstra-v1';
+const CACHE = 'hackstra-v2';
 const SHELL = ['/offline.html', '/manifest.webmanifest'];
 
 self.addEventListener('install', (event) => {

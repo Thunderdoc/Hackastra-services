@@ -36,8 +36,15 @@ class WorkloadController extends Controller
         $user = Auth::user();
 
         $grid = LeaveCover::weekGrid($user);
-        $capDay = Staffing::maxPeriodsPerDay();
-        $capWeek = Staffing::maxPeriodsPerWeek();
+        // Per-teacher caps (2026-11-06): the page judges the
+        // signed-in teacher against HER OWN caps (capsFor) — a
+        // personal override set by the Admin beats the school
+        // defaults from Settings.
+        $caps = Staffing::capsFor($user);
+        $capDay = $caps['day'];
+        $capWeek = $caps['week'];
+        $capsPersonal = $user->getAttribute('max_periods_per_day') !== null
+            || $user->getAttribute('max_periods_per_week') !== null;
 
         $dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
         $byDay = [];
@@ -104,6 +111,7 @@ class WorkloadController extends Controller
             'total' => count($grid),
             'cap_day' => $capDay,
             'cap_week' => $capWeek,
+            'caps_personal' => $capsPersonal,
             'busiest_day' => $busiestDay,
             'busiest_count' => $busiestCount,
             'over_days' => $overDays,

@@ -95,11 +95,16 @@
                      order (Assignments, Study Materials, Quizzes);
                      WhatsApp Groups lands on the teacher home panel
                      where the section links are kept. --}}
-                <li class="nav-item nav-item-submenu {{ (in_array(Route::currentRouteName(), ['tt.index', 'tt.mine', 'tt.workload', 'ttr.edit', 'ttr.show', 'ttr.manage']) || Route::is('assignments.*') || Route::is('materials.*') || Route::is('quizzes.*')) ? 'nav-item-expanded nav-item-open' : '' }} ">
+                <li class="nav-item nav-item-submenu {{ (in_array(Route::currentRouteName(), ['tt.index', 'tt.mine', 'tt.workload', 'tt.slot_preferences', 'ttr.edit', 'ttr.show', 'ttr.manage']) || Route::is('assignments.*') || Route::is('materials.*') || Route::is('quizzes.*')) ? 'nav-item-expanded nav-item-open' : '' }} ">
                     <a href="#" class="nav-link"><i class="icon-graduation2"></i> <span> Academics</span></a>
                     <ul class="nav nav-group-sub" data-submenu-title="Manage Academics">
                         <li class="nav-item"><a href="{{ route('tt.index') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['tt.index']) ? 'active' : '' }}">Timetables</a></li>
                         <li class="nav-item"><a href="{{ route('tt.mine') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['tt.mine']) ? 'active' : '' }}">My Timetable</a></li>
+                        {{-- Owner ask 2026-11-06 (gap G2): My Slot
+                             Preferences — the teacher's own preferred
+                             slots, new item inside Academics; nothing
+                             else in this menu moved. --}}
+                        <li class="nav-item"><a href="{{ route('tt.slot_preferences') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['tt.slot_preferences', 'tt.slot_preferences.update']) ? 'active' : '' }}">My Slot Preferences</a></li>
                         <li class="nav-item"><a href="{{ route('assignments.index') }}" class="nav-link {{ (Route::is('assignments.*')) ? 'active' : '' }}">Assignments</a></li>
                         <li class="nav-item"><a href="{{ route('materials.index') }}" class="nav-link {{ (Route::is('materials.*')) ? 'active' : '' }}">Study Materials</a></li>
                         <li class="nav-item"><a href="{{ route('quizzes.index') }}" class="nav-link {{ (Route::is('quizzes.*')) ? 'active' : '' }}">Quizzes</a></li>

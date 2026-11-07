@@ -11,6 +11,27 @@
 @endsection
 @section('content')
 
+    {{-- Beauty Wave 2 (2026-11-06): the slim module banner
+         (partials/module_banner) opens the page, in the same family
+         as Timetables / Marks / Attendance from Wave 1. Its figures
+         come from the data this landing already carries — the
+         classes and sections in the viewer's own scope (a teacher
+         sees only their classes, exactly as the picker below does).
+         Nothing below changes: the search form and the class
+         picker keep their fields, names and behaviour. --}}
+    @include('partials.module_banner', [
+        'hkModIcon' => 'icon-users',
+        'hkModTone' => 'blue',
+        'hkModTitle' => 'Student Information',
+        'hkModSub' => 'Search any student across classes, or open a class list below.',
+        'hkModStats' => [
+            ['value' => $classes->count(), 'label' => Qs::userIsTeacher() ? 'My Classes' : 'Classes'],
+            ['value' => $sections->count(), 'label' => 'Sections'],
+        ],
+        'hkModChip' => 'Session ' . Qs::getCurrentSession(),
+        'hkModChipIcon' => 'icon-calendar3',
+    ])
+
     {{-- Student search with full filters (owner order 2026-10-30):
          find a student directly — by name, admission number, email
          or phone — narrowed by class, section, gender, house,

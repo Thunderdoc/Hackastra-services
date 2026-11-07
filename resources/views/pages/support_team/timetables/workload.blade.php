@@ -5,23 +5,26 @@
     {{-- Teacher Workload Analysis (owner ask 2026-10-30; redesign
          owner-approved 2026-11-01, workload-redesign sample): the
          teacher's own load from their real week grid against the
-         Settings caps — header strip, four tinted tiles with bars,
-         day-by-day segment bars and where-your-periods-go rows.
-         Presentation only: every number is the controller's own
-         (LeaveCover::weekGrid enumeration, caps, cover counts, led
-         sections). Panels stretch to equal height and their rows
-         spread to fill (full-screen rule). No other teacher's data
-         is ever shown here. --}}
-    <div class="card l16-head">
-        <div>
-            <h2 class="l16-title">Workload Analysis</h2>
-            <p class="l16-sub">Your teaching load from your real timetable — caps: {{ $cap_day }} periods a day, {{ $cap_week }} a week (Settings)</p>
-        </div>
-        <div class="l16-acts">
-            <a href="{{ route('tt.mine') }}" class="btn btn-light btn-sm"><i class="icon-calendar5 mr-1"></i> My Timetable</a>
-            <a href="{{ route('substitutions.mine') }}" class="btn btn-light btn-sm"><i class="icon-user-plus mr-1"></i> My Extra Classes</a>
-        </div>
-    </div>
+         Settings caps — shared module-banner header, four stat
+         cards, day-by-day segment bars and where-your-periods-go
+         rows. Presentation only: every number is the controller's
+         own (LeaveCover::weekGrid enumeration, caps, cover counts,
+         led sections). Panels stretch to equal height and their
+         rows spread to fill (full-screen rule). No other teacher's
+         data is ever shown here.
+         Visual-coherence round (2026-11-06): the private l16-head
+         slab (centred title, dead space, buttons stranded
+         bottom-right) becomes the shared slim module banner, and
+         the four l16 tiles become shared dashboard-stat-cards —
+         same labels, values, sub-lines and bars, one card system
+         with the rest of the site. --}}
+    @include('partials.module_banner', [
+        'hkModIcon' => 'icon-stats-bars2',
+        'hkModTone' => 'blue',
+        'hkModTitle' => 'Workload Analysis',
+        'hkModSub' => 'Your teaching load from your real timetable — caps: ' . $cap_day . ' periods a day, ' . $cap_week . ' a week ' . (($caps_personal ?? false) ? '(your personal caps)' : '(Settings)'),
+        'hkModActions' => '<span style="display:inline-flex;gap:9px;flex-wrap:wrap;"><a href="' . route('tt.mine') . '" class="btn btn-light btn-sm"><i class="icon-calendar5 mr-1"></i> My Timetable</a><a href="' . route('substitutions.mine') . '" class="btn btn-light btn-sm"><i class="icon-user-plus mr-1"></i> My Extra Classes</a></span>',
+    ])
 
     @if($total > $cap_week || $over_days)
         <div class="alert alert-warning mt-3">
@@ -36,30 +39,58 @@
         </div>
     @endif
 
-    <div class="l16-tiles">
-        <div class="l16-tile l16-tone-blue">
-            <div class="l16-tl">Periods / Week</div>
-            <div class="l16-tv">{{ $total }} <small>/ {{ $cap_week }} cap</small></div>
-            <div class="l16-td">{{ $cap_week > 0 ? (int) round($total / $cap_week * 100) : 0 }}% of your weekly limit</div>
-            <div class="l16-bar"><i style="width:{{ $cap_week > 0 ? min(100, (int) round($total / $cap_week * 100)) : 0 }}%"></i></div>
+    <div class="row dashboard-stats" style="margin-bottom:0;">
+        <div class="col-sm-6 col-xl-3">
+            <div class="dashboard-stat-card dashboard-stat-blue">
+                <span class="dashboard-stat-top">
+                    <span class="dashboard-stat-icon"><i class="icon-stats-bars2"></i></span>
+                </span>
+                <span class="dashboard-stat-copy">
+                    <span class="dashboard-stat-label">Periods / Week</span>
+                    <strong>{{ $total }} <small>/ {{ $cap_week }} cap</small></strong>
+                    <small>{{ $cap_week > 0 ? (int) round($total / $cap_week * 100) : 0 }}% of your weekly limit</small>
+                </span>
+                <div class="l16-bar"><i style="width:{{ $cap_week > 0 ? min(100, (int) round($total / $cap_week * 100)) : 0 }}%"></i></div>
+            </div>
         </div>
-        <div class="l16-tile l16-tone-amber">
-            <div class="l16-tl">Busiest Day</div>
-            <div class="l16-tv">@if($busiest_day){{ $busiest_day }} <small>· {{ $busiest_count }}</small>@else — @endif</div>
-            <div class="l16-td">@if(!$busiest_day) No periods allotted yet @elseif($busiest_count > $cap_day) Over the daily cap of {{ $cap_day }} @elseif($busiest_count === $cap_day) Full day — at the daily cap of {{ $cap_day }} @else {{ $busiest_count }} of {{ $cap_day }} periods @endif</div>
-            <div class="l16-bar"><i style="width:{{ $cap_day > 0 ? min(100, (int) round($busiest_count / $cap_day * 100)) : 0 }}%"></i></div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="dashboard-stat-card dashboard-stat-orange">
+                <span class="dashboard-stat-top">
+                    <span class="dashboard-stat-icon"><i class="icon-fire"></i></span>
+                </span>
+                <span class="dashboard-stat-copy">
+                    <span class="dashboard-stat-label">Busiest Day</span>
+                    <strong>@if($busiest_day){{ $busiest_day }} <small>· {{ $busiest_count }}</small>@else — @endif</strong>
+                    <small>@if(!$busiest_day) No periods allotted yet @elseif($busiest_count > $cap_day) Over the daily cap of {{ $cap_day }} @elseif($busiest_count === $cap_day) Full day — at the daily cap of {{ $cap_day }} @else {{ $busiest_count }} of {{ $cap_day }} periods @endif</small>
+                </span>
+                <div class="l16-bar"><i style="width:{{ $cap_day > 0 ? min(100, (int) round($busiest_count / $cap_day * 100)) : 0 }}%"></i></div>
+            </div>
         </div>
-        <div class="l16-tile l16-tone-green">
-            <div class="l16-tl">Cover Duties Ahead</div>
-            <div class="l16-tv">{{ $cover_upcoming }}</div>
-            <div class="l16-td">{{ $cover_upcoming === 0 ? 'No confirmed cover duties' : $cover_total . ' confirmed in total' }}</div>
-            <div class="l16-bar"><i style="width:{{ $cover_total > 0 ? (int) round($cover_upcoming / $cover_total * 100) : 0 }}%"></i></div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="dashboard-stat-card dashboard-stat-green">
+                <span class="dashboard-stat-top">
+                    <span class="dashboard-stat-icon"><i class="icon-user-plus"></i></span>
+                </span>
+                <span class="dashboard-stat-copy">
+                    <span class="dashboard-stat-label">Cover Duties Ahead</span>
+                    <strong>{{ $cover_upcoming }}</strong>
+                    <small>{{ $cover_upcoming === 0 ? 'No confirmed cover duties' : $cover_total . ' confirmed in total' }}</small>
+                </span>
+                <div class="l16-bar"><i style="width:{{ $cover_total > 0 ? (int) round($cover_upcoming / $cover_total * 100) : 0 }}%"></i></div>
+            </div>
         </div>
-        <div class="l16-tile l16-tone-red">
-            <div class="l16-tl">Sections You Lead</div>
-            <div class="l16-tv">{{ count($led_sections) }}</div>
-            <div class="l16-td">{{ $led_sections ? implode(', ', $led_sections) : 'No section led' }}</div>
-            <div class="l16-bar"><i style="width:{{ ($sections_total ?? 0) > 0 ? (int) round(count($led_sections) / $sections_total * 100) : 0 }}%"></i></div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="dashboard-stat-card dashboard-stat-red">
+                <span class="dashboard-stat-top">
+                    <span class="dashboard-stat-icon"><i class="icon-users"></i></span>
+                </span>
+                <span class="dashboard-stat-copy">
+                    <span class="dashboard-stat-label">Sections You Lead</span>
+                    <strong>{{ count($led_sections) }}</strong>
+                    <small>{{ $led_sections ? implode(', ', $led_sections) : 'No section led' }}</small>
+                </span>
+                <div class="l16-bar"><i style="width:{{ ($sections_total ?? 0) > 0 ? (int) round(count($led_sections) / $sections_total * 100) : 0 }}%"></i></div>
+            </div>
         </div>
     </div>
 

@@ -1,6 +1,10 @@
 @extends('layouts.login_master')
 
 @section('content')
+    {{-- Guest Sample C shell, so the public enquiry page matches
+         the sign-in journey. Form unchanged. --}}
+    @include('partials.login.guest_shell_open')
+
     <div class="card">
         <div class="card-body">
             <div class="text-center mb-3">
@@ -48,4 +52,6 @@
             </div>
         </div>
     </div>
+
+    @include('partials.login.guest_shell_close')
 @endsection

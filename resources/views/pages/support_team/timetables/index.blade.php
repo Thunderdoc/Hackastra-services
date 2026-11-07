@@ -20,23 +20,27 @@
          Data + routes are the pre-redesign ones; writes stay
          teamSAWrite-gated exactly as before. --}}
 
-    {{-- Item 3 visual pass (owner-approved tt-v3, site style):
-         slim headbar — pastel icon circle, role-aware subtitle,
-         the SAME $stats figures as the old cards (scoped for
-         teachers by the controller), session chip. No new data. --}}
-    <div class="card tt3-head">
-        <span class="tt3-hicon"><i class="icon-table2"></i></span>
-        <div class="tt3-hcopy">
-            <h2>Timetables</h2>
-            <p>{{ Qs::userIsTeacher() ? 'Showing only the classes you teach in' : 'View and manage class timetables for the current academic session.' }}</p>
-        </div>
-        <div class="tt3-hright tt-index-stats">
-            <div class="tt3-hstat" style="border:none;"><b>{{ $stats['classes'] }}</b><span>{{ Qs::userIsTeacher() ? 'My Classes' : 'Classes' }}</span></div>
-            <div class="tt3-hstat"><b>{{ $stats['sections'] }}</b><span>Sections</span></div>
-            <div class="tt3-hstat"><b>{{ $stats['periods'] }}</b><span>Periods / Week</span></div>
-            <span class="tt3-sess">Session {{ $stats['session'] }}</span>
-        </div>
-    </div>
+    {{-- Item 3 visual pass (owner-approved tt-v3, site style) built
+         this slim headbar; Beauty Wave 1 (2026-11-06) formalises it
+         into the SHARED slim module banner (partials/module_banner):
+         same pastel icon, same role-aware subtitle, the SAME $stats
+         figures (scoped for teachers by the controller) and the
+         session chip. No new data. The right side keeps the
+         tt-index-stats class so the phone strip rule below still
+         hides it on small screens. --}}
+    @include('partials.module_banner', [
+        'hkModIcon' => 'icon-table2',
+        'hkModTone' => 'blue',
+        'hkModTitle' => 'Timetables',
+        'hkModSub' => Qs::userIsTeacher() ? 'Showing only the classes you teach in' : 'View and manage class timetables for the current academic session.',
+        'hkModStats' => [
+            ['value' => $stats['classes'], 'label' => Qs::userIsTeacher() ? 'My Classes' : 'Classes'],
+            ['value' => $stats['sections'], 'label' => 'Sections'],
+            ['value' => $stats['periods'], 'label' => 'Periods / Week'],
+        ],
+        'hkModChip' => 'Session ' . $stats['session'],
+        'hkModRightClass' => 'tt-index-stats',
+    ])
 
     {{-- Batch 2026-10-26 (admin phone UX): on a phone the four
          summary cards stacked into a full screen of stats before
@@ -243,7 +247,13 @@
                             </div>
                         </div>
                     @empty
-                        <div class="ttc-empty">No timetable yet for this class.</div>
+                        {{-- Beauty Wave 3: the shared pat-empty
+                             pattern with its illustration plate. --}}
+                        @include('partials.patterns.empty_state', [
+                            'icon' => 'icon-calendar2',
+                            'message' => 'No timetable yet for this class.',
+                            'hkEmptyArt' => true,
+                        ])
                     @endforelse
                     </div>
                     </div>

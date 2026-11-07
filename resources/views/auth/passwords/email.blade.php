@@ -1,10 +1,9 @@
 @extends('layouts.login_master')
 
 @section('content')
-    <div class="page-content login-cover">
-
-        <div class="content-wrapper">
-    <div class="content d-flex justify-content-center align-items-center">
+    {{-- Guest Sample C shell: full-page campus art + one floating
+         card. Form markup, fields and POST are unchanged. --}}
+    @include('partials.login.guest_shell_open')
 
         <!-- Password recovery form -->
         <form class="login-form" method="POST" action="{{ route('password.email') }}">
@@ -39,7 +38,5 @@
         </form>
         <!-- /password recovery form -->
 
-    </div>
-    </div>
-    </div>
+    @include('partials.login.guest_shell_close')
 @endsection

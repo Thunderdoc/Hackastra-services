@@ -94,14 +94,22 @@ class OwnerLeaveAllocationTest extends TestCase
         $this->assertSame(['Prep — A'], LeaveCover::allocationLines($student));
     }
 
-    public function test_queue_page_renders_with_new_columns()
+    public function test_queue_card_surfaces_allocation_and_cover()
     {
-        // The blade carries the columns already; without the
-        // controller wiring the cells degrade to dashes.
+        // Re-expressed 2026-11-06 (card rebuild): the queue no
+        // longer has "Allocated Classes" / "Uncovered Periods"
+        // COLUMNS — the owner replaced the table with one-glance
+        // cards. The same two facts must still surface per
+        // request: the allocation (as chips behind the card's
+        // Details expander, full list in "Full allocation") and
+        // the cover gap (the cover row's chip + state).
+        $leave = $this->makeLeave($this->ananya()->id, '2026-11-02', '2026-11-02');
         $response = $this->actingAs($this->admin())->get(route('leave.index'));
         $response->assertOk();
-        $response->assertSee('Allocated Classes');
-        $response->assertSee('Uncovered Periods');
+        $response->assertSee('Full allocation');
+        $response->assertSee('9 sections');
+        $response->assertSee('8 without cover');
+        $response->assertSee('Not covered');
     }
 
     public function test_non_teaching_staff_have_no_allocation_lines()

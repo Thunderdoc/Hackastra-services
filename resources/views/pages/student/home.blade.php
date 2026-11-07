@@ -13,7 +13,7 @@
          assignment scoping + open rule from AssignmentController.
          No marks/scores here — results stay behind the marksheet
          flow and its publish gate. --}}
-    <div class="dashboard-hero mb-4">
+    <div class="dashboard-hero mb-4 hk-reveal">
         <div>
             <p class="mb-0 dashboard-muted">
                 @if($student_record)
@@ -40,7 +40,7 @@
     </div>
 
     {{-- KPI strip — own figures only --}}
-    <div class="stu99-kpis mb-4">
+    <div class="stu99-kpis mb-4 hk-reveal hk-reveal-1">
         <div class="dashboard-stat-card dashboard-stat-green">
             <span class="dashboard-stat-top"><span class="dashboard-stat-icon"><i class="icon-calendar52"></i></span></span>
             <span class="dashboard-stat-copy">

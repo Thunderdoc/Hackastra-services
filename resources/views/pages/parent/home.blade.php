@@ -14,7 +14,7 @@
          (present+late)/marked rule the Monthly Attendance Report and
          the Low Attendance page share). No routes, permissions or menu
          items change; the session stays in the topbar only. --}}
-    <div class="p96-welcome">
+    <div class="p96-welcome hk-reveal">
         <div class="p96-welcome-main">
             <p>
                 @if($children->isNotEmpty())
@@ -36,7 +36,7 @@
     </div>
 
     {{-- KPI cards — real figures for this parent's children only --}}
-    <div class="p96-kpi-grid">
+    <div class="p96-kpi-grid hk-reveal hk-reveal-1">
         <a href="{{ route('my_children') }}" class="p96-kpi p96-kpi-blue">
             <span class="p96-kpi-icon"><i class="icon-users4"></i></span>
             <span class="p96-kpi-copy">

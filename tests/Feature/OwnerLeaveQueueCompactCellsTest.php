@@ -15,12 +15,21 @@ use Tests\TestCase;
  * the full list only inside the expander, and the Uncovered
  * cell shows ONLY its badge in the row; the explanation and
  * the covering teachers' names live inside the plan view.
+ *
+ * Re-expressed 2026-11-06 (card rebuild): the queue row is
+ * now a one-glance CARD and the allocation summary sentence
+ * became compact fact CHIPS inside the card's Details
+ * expander (owner's card order — no sentence walls). The
+ * compactness contract is unchanged: the facts are one glance
+ * inside the expander, the full list stays behind "Full
+ * allocation", the cover badge leads the cover row, and the
+ * explanation + covering names live inside the plan view.
  */
 class OwnerLeaveQueueCompactCellsTest extends TestCase
 {
     use DatabaseTransactions;
 
-    public function test_queue_row_is_compact_and_the_details_live_in_the_expanders()
+    public function test_queue_card_is_compact_and_the_details_live_in_the_expanders()
     {
         $ananya = User::where('email', 'teacher@hackstra.app')->firstOrFail();
         $admin = User::where('email', 'admin@hackstra.app')->firstOrFail();
@@ -38,14 +47,22 @@ class OwnerLeaveQueueCompactCellsTest extends TestCase
         $html = $this->actingAs($admin)->get(route('leave.index'))
             ->assertOk()->getContent();
 
-        // Allocated Classes: the compact summary is the row…
-        $this->assertStringContainsString('Class teacher · 9 sections', $html);
+        // Allocation: the summary's facts are compact chips
+        // inside the card's Details expander (the sentence form
+        // was the 2026-10-30 design; the chips are its card-era
+        // equivalent — same facts, same source string)…
+        $this->assertStringContainsString('lv-alloc-chip', $html);
+        $this->assertStringContainsString('Class teacher', $html);
+        $this->assertStringContainsString('9 sections', $html);
+        $this->assertStringContainsString('Teaches 5 subjects', $html);
+        $this->assertStringContainsString('6 section overrides', $html);
         // …and the full list still exists, inside its expander.
         $this->assertStringContainsString('Full allocation', $html);
         $this->assertStringContainsString('Class teacher: Prep', $html);
 
-        // Uncovered: badge in the row, then the details expander
-        // carries the explanation and the covering names.
+        // Uncovered: badge in the card's cover row, then the
+        // plan expander carries the explanation and the
+        // covering names.
         $badgePos = strpos($html, 'Plan ready');
         $detailsPos = strpos($html, '<details', (int) $badgePos);
         $namesPos = strpos($html, 'Covered by:');

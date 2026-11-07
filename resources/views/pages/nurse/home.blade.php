@@ -25,7 +25,7 @@
         </div>
     </div>
 
-    <div class="row dashboard-stats">
+    <div class="row dashboard-stats hk-reveal">
         @foreach([
             ['label' => 'Health Records', 'value' => number_format($health_total), 'sub' => 'All clinic visits recorded', 'icon' => 'icon-heart6', 'tone' => 'blue', 'href' => route('health_records.index')],
             ['label' => 'Visits Today', 'value' => number_format($health_today), 'sub' => 'Recorded for today', 'icon' => 'icon-calendar3', 'tone' => 'purple', 'href' => route('health_records.index')],
@@ -89,6 +89,83 @@
                     @endforelse
                 </tbody>
             </table>
+        </div>
+    </div>
+
+    {{-- Beauty Wave 2 second row: the students sent for outside
+         care, and the current month at a glance — both computed in
+         HomeController::nurseHomeData from the same health_records
+         ledger as everything above. The referral rows carry the
+         same metadata the clinic works with (date, student, where
+         the student was referred to); a month with no visits and a
+         referral-free clinic both render honest empty states. --}}
+    <div class="row">
+        <div class="col-lg-6 d-flex">
+            <div class="card w-100">
+                <div class="card-header">
+                    <h6 class="card-title font-weight-semibold">Referred for Outside Care</h6>
+                </div>
+                @if($health_referred_list->count())
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Student</th>
+                                    <th>Referred To</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($health_referred_list as $record)
+                                    <tr>
+                                        <td>{{ $record->visit_date->format('d M Y') }}</td>
+                                        <td>{{ optional($record->student)->name ?: '—' }}</td>
+                                        <td>{{ $record->referred_to ?: '—' }}</td>
+                                        <td class="text-right">
+                                            <a href="{{ route('health_records.show', $record->id) }}" class="btn btn-sm btn-light">View</a>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @else
+                    @include('partials.patterns.empty_state', [
+                        'icon' => 'icon-alarm',
+                        'message' => 'No students have been referred for outside care yet.',
+                    ])
+                @endif
+            </div>
+        </div>
+        <div class="col-lg-6 d-flex">
+            <div class="card w-100">
+                <div class="card-header">
+                    <h6 class="card-title font-weight-semibold">This Month at a Glance</h6>
+                </div>
+                @if($health_month > 0)
+                    <div class="card-body">
+                        @php $glanceMax = max(1, collect($health_month_weeks)->max('count')); @endphp
+                        @foreach($health_month_weeks as $week)
+                            <div class="d-flex align-items-center mb-2">
+                                <span class="font-weight-semibold" style="flex:0 0 64px">{{ $week['label'] }}</span>
+                                <div class="progress flex-fill mx-2" style="height:8px">
+                                    <div class="progress-bar bg-primary" role="progressbar" style="width:{{ (int) round($week['count'] / $glanceMax * 100) }}%" aria-valuenow="{{ $week['count'] }}" aria-valuemin="0"></div>
+                                </div>
+                                <span class="font-weight-semibold text-right" style="flex:0 0 28px">{{ $week['count'] }}</span>
+                            </div>
+                        @endforeach
+                        @if($health_busiest_day)
+                            <p class="text-muted mb-0 mt-3">Most visits fall on <strong>{{ $health_busiest_day }}s</strong> — {{ $health_busiest_day_count }} this month.</p>
+                        @endif
+                    </div>
+                @else
+                    @include('partials.patterns.empty_state', [
+                        'icon' => 'icon-calendar3',
+                        'message' => 'No clinic visits recorded this month yet.',
+                    ])
+                @endif
+            </div>
         </div>
     </div>
 @endsection

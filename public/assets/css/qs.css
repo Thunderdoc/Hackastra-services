@@ -7835,3 +7835,359 @@ body:not(.sidebar-xs) .sidebar.sidebar-main.sidebar-dark .nav-sidebar>.nav-item>
 body:not(.sidebar-xs) .sidebar.sidebar-main .nav-sidebar>.nav-item>.nav-link.active{background:rgba(64,156,255,.13);box-shadow:none;color:#fff;font-weight:600}
 body:not(.sidebar-xs) .sidebar.sidebar-main.sidebar-dark .nav-sidebar .nav-group-sub>.nav-item:not(.nav-item-submenu)>.nav-link.active{background:rgba(64,156,255,.13);box-shadow:none;color:#fff;font-weight:600}
 body:not(.sidebar-xs) .sidebar.sidebar-main .nav-sidebar>.nav-item>.nav-group-sub>li>.nav-link.active::before{background:#fff;border-color:#59a9ff;box-shadow:0 0 0 4px rgba(89,169,255,.25),0 0 12px rgba(89,169,255,.8)}
+
+/* ============================================================
+   Beauty Wave 1 (2026-11-06, 50/50 phase):
+   (1) Guest shell unity — the Login-A shell extends to forgot /
+       reset / verify / admission-enquiry via a compact brand
+       panel; the campus illustration (Style C family,
+       assets/img/login-campus.jpg) fills the brand panel's photo
+       slot as a real <img> layer under a navy scrim, and the light
+       brand rule no longer references the dead ai/ path (the file
+       never existed; Loop 112 dropped it for dark only).
+   (2) Motion layer (audit E1 + E6) — .hk-reveal entrance
+       (fade + rise on the login login-a curve, staggered by the
+       .hk-reveal-1..3 delay utilities) and a very gentle
+       ken-burns drift on the role banner hero. Both die under
+       prefers-reduced-motion and in print.
+   (3) Slim module banner (audit E2/E4) — .hk-mod-banner, the
+       shared slim module header formalising the tt3-head /
+       l10-head pattern into ONE component: pastel icon circle +
+       title + one-line context + optional stat row / chip.
+   Canonical tokens only (#3478f6 / #2867dc, #e4eaf1 borders,
+   the dashboard-stat pastel tones, in both themes).
+   ============================================================ */
+
+/* --- (1) Campus photo slot + guest shell --- */
+.login-a-campus{height:100%;inset:0;object-fit:cover;object-position:center bottom;position:absolute;width:100%;z-index:0}
+.login-a-campus-scrim{background:linear-gradient(165deg,rgba(10,33,56,.50) 0%,rgba(10,33,56,.74) 52%,rgba(8,28,48,.94) 100%);inset:0;position:absolute;z-index:0}
+html:not(.hk-dark) .login-a-brand{background-image:linear-gradient(165deg,rgba(219,232,251,.90) 0%,rgba(233,240,253,.93) 52%,rgba(240,245,254,.97) 100%),linear-gradient(158deg,#cfe1fb 0%,#dde9fc 56%,#e8f0fd 100%)}
+html:not(.hk-dark) .login-a-campus-scrim{background:linear-gradient(165deg,rgba(219,232,251,.88) 0%,rgba(233,240,253,.92) 52%,rgba(240,245,254,.96) 100%)}
+.login-a-brand-compact{padding-bottom:44px;padding-top:44px}
+.login-a-brand-compact .login-a-brand-list{display:none}
+.login-a-panel-guest{justify-content:center}
+.login-a-panel-guest .card{background:transparent;border:0;border-radius:0;box-shadow:none;margin-bottom:0}
+.login-a-panel-guest .card-body{padding:0}
+.login-a-panel-guest .card-header{background:transparent;border:0;padding:0}
+.login-a-panel-guest .login-form{width:100%}
+@media (max-width:991.98px){.login-a-brand-compact{padding-bottom:24px;padding-top:28px}}
+
+/* --- (2) Motion layer: reveal + banner micro-motion --- */
+@keyframes hkRevealIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+.hk-reveal{animation:hkRevealIn .55s cubic-bezier(.22,.8,.32,1) both}
+.hk-reveal-1{animation-delay:.07s}
+.hk-reveal-2{animation-delay:.14s}
+.hk-reveal-3{animation-delay:.21s}
+@keyframes hkBannerDrift{from{background-position:50% 46%}to{background-position:50% 54%}}
+.hk-banner-hero{animation:hkBannerDrift 26s ease-in-out infinite alternate}
+@media (prefers-reduced-motion:reduce){
+    .hk-reveal,.hk-banner-hero{animation:none!important}
+}
+@media print{
+    .hk-reveal,.hk-banner-hero{animation:none!important}
+}
+
+/* --- (3) Slim module banner --- */
+.hk-mod-banner{align-items:center;background:#fff;border:1px solid #e4eaf1;border-radius:12px;display:flex;flex-wrap:wrap;gap:14px;margin-bottom:16px;padding:13px 18px}
+.hk-mod-ic{align-items:center;border-radius:50%;display:inline-flex;flex:0 0 48px;font-size:21px;height:48px;justify-content:center;width:48px}
+.hk-mod-ic-blue{background:#e9f1ff;color:#3478f6}
+.hk-mod-ic-green{background:#e7f7f0;color:#188b66}
+.hk-mod-ic-orange{background:#fff1df;color:#b7791f}
+.hk-mod-ic-purple{background:#f1edff;color:#6845d8}
+.hk-mod-ic-red{background:#fdecec;color:#c0392b}
+.hk-mod-text{flex:1;min-width:0}
+.hk-mod-title{color:#172536;font-size:17px;font-weight:700;line-height:1.25;margin:0}
+.hk-mod-sub{color:#5c6f84;font-size:12.5px;margin:2px 0 0}
+.hk-mod-right{align-items:center;display:flex;flex-wrap:wrap;gap:4px;margin-left:auto}
+.hk-mod-stat{border-left:1px solid #e8eef5;padding:0 13px;text-align:center}
+.hk-mod-stat b{color:#10263b;display:block;font-size:16px;line-height:1.15}
+.hk-mod-stat span{color:#8aa0b4;font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.hk-mod-chip{align-items:center;background:#eef4fa;border:1px solid #dde8f2;border-radius:999px;color:#34506b;display:inline-flex;flex:none;font-size:12px;font-weight:700;gap:7px;margin-left:8px;padding:6px 13px}
+.hk-mod-chip i{color:#3478f6}
+html.hk-dark .hk-mod-banner{background:#26272a;border-color:#36383c}
+html.hk-dark .hk-mod-title{color:#f0f0f1}
+html.hk-dark .hk-mod-sub{color:#a4a7ac}
+html.hk-dark .hk-mod-stat{border-left-color:#36383c}
+html.hk-dark .hk-mod-stat b{color:#f0f0f1}
+html.hk-dark .hk-mod-chip{background:#35373b;border-color:#36383c;color:#d7dee8}
+html.hk-dark .hk-mod-ic-blue{background:#35373b;color:#7fb0ff}
+html.hk-dark .hk-mod-ic-green{background:#123528;color:#4cc38a}
+html.hk-dark .hk-mod-ic-orange{background:#3a3016;color:#f0b95f}
+html.hk-dark .hk-mod-ic-purple{background:#2a2148;color:#a78bfa}
+html.hk-dark .hk-mod-ic-red{background:#3b2323;color:#f0938a}
+@media (max-width:575.98px){.hk-mod-banner{gap:10px;padding:12px 14px}.hk-mod-right{margin-left:0}.hk-mod-chip{margin-left:0}}
+
+/* ============================================================
+   Guest Sample C (2026-11-06, owner-approved login design;
+   restates the Login-A rules above — append-only, this block
+   wins): the Wave-1 split card with its scrimmed brand panel
+   was rejected by the owner (the campus art drowned under the
+   navy scrim). Sample C instead: the campus illustration
+   (assets/img/login-campus.jpg) covers the WHOLE page at full
+   colour — no scrim, no darkening, in either theme — and ONE
+   floating form card sits on the right carrying the page's
+   form; the school brand lives at the card top
+   (partials/login/card_brand). Structure is theme-aware only:
+   light = the sampled white card; dark = the existing dark
+   card (#242527 family, rule above) with its dark inputs. The
+   tone behind the art while it loads is soft cream (light) /
+   navy (dark), never the radial void. The legal line rides
+   over the art on a soft dark pill so it stays readable over
+   any part of the picture. The old brand-panel classes remain
+   in the file, unused.
+   ============================================================ */
+
+/* --- Page: full-bleed campus art, card floating right --- */
+.login-a-page{align-items:flex-end;background-color:#f3ead9;background-image:url('../img/login-campus.jpg');background-position:center;background-repeat:no-repeat;background-size:cover;padding:32px 6vw 32px 24px}
+html:not(.hk-dark) .login-a-page{background-color:#f3ead9;background-image:url('../img/login-campus.jpg')}
+html.hk-dark .login-a-page{background-color:#0b2239;background-image:url('../img/login-campus.jpg')}
+
+/* --- The one floating card --- */
+.login-a-card{box-shadow:0 32px 80px rgba(2,12,24,.45),0 4px 18px rgba(2,12,24,.30);max-width:470px}
+html:not(.hk-dark) .login-a-card{box-shadow:0 32px 80px rgba(2,12,24,.45),0 4px 18px rgba(2,12,24,.30)}
+.login-a-brand{display:none}
+.login-a-panel{padding:44px 44px 36px}
+
+/* --- Card-top school name line (brand panel replacement) --- */
+.login-a-brandmark{margin-bottom:10px}
+.login-a-school-line{color:#0b2239;font-size:1.02rem;font-weight:700;letter-spacing:.01em;margin:0 0 22px;text-align:center}
+html.hk-dark .login-a-school-line{color:#f0f0f1}
+
+/* --- Legal line: soft dark pill over the art --- */
+.login-a-legal{background:rgba(8,24,40,.58);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);border-radius:12px;color:#e6eefb;margin-top:18px;max-width:470px;padding:9px 16px;width:100%}
+.login-a-legal a{color:#cfe2ff}
+.login-a-legal a:hover{color:#fff}
+html:not(.hk-dark) .login-a-legal{background:rgba(8,24,40,.58);color:#e6eefb}
+html:not(.hk-dark) .login-a-legal a{color:#cfe2ff}
+html:not(.hk-dark) .login-a-legal a:hover{color:#fff}
+html.hk-dark .login-a-legal{background:rgba(8,24,40,.58);color:#e6eefb}
+html.hk-dark .login-a-legal a{color:#cfe2ff}
+html.hk-dark .login-a-legal a:hover{color:#fff}
+
+/* --- Guest form header icons: one sane pastel circle ---
+   (the forgot-password stock icon rendered as a giant orange
+   ring inside the flattened guest card; normalise every guest
+   form's centred header icon to a 56px pastel circle). */
+.login-a-panel-guest .text-center>i[class*="icon-"]{align-items:center;background:#fff1df;border:0!important;border-radius:50%;color:#b7791f;display:inline-flex;font-size:24px!important;height:56px;justify-content:center;margin:4px 0 12px!important;padding:0!important;width:56px}
+html.hk-dark .login-a-panel-guest .text-center>i[class*="icon-"]{background:#3a3016;color:#f0b95f}
+
+/* --- Phones: card full width, art still covers --- */
+@media (max-width:767.98px){
+    .login-a-page{align-items:center;padding:20px 14px}
+    .login-a-card{width:100%}
+    .login-a-legal{width:100%}
+}
+@media (max-width:480px){
+    .login-a-page{padding:16px 12px}
+    .login-a-panel{padding:32px 22px 28px}
+    .login-a-title{font-size:1.6rem}
+    .login-a-school-line{font-size:.95rem;margin-bottom:18px}
+}
+
+/* Beauty Wave 2 (2026-11-06): the 10th role banner — the Hostel
+   Warden's home joins the shared banner family with its own Style C
+   illustration (public/assets/img/banners/role-hostel.jpg, scene
+   right / calm left like the other nine). One rule, appended: the
+   .hk-bn-* block above stays untouched. */
+.hk-bn-hostel{background-image:url('../img/banners/role-hostel.jpg')}
+
+/* ============================================================
+   Beauty Wave 3 + G6 (2026-11-06, 50/50 phase):
+   (1) Blue-token reconciliation — the stray #2e6be6 values
+       (ttc teacher chip, generate stepper / radio / button,
+       student month chip, settings nav) are restated onto the
+       canonical pair #3478f6 (solid fills) / #2867dc (border
+       accents), with the winning rules' own selector shapes,
+       appended last per the specificity lesson. The original
+       rules stay in place above (append-only); these win.
+   (2) Settings: the section anchor nav becomes a sticky rail
+       on desktop, and every settings section header gains a
+       pastel icon tile (.set-sec-ic, tones mirrored from the
+       module banner's .hk-mod-ic palette).
+   (3) pat-empty gains an opt-in illustration plate
+       (.pat-empty-art) for the shared empty-state pattern.
+   ============================================================ */
+.ttc-grid.tt3-teacher .ttc-chip{background:#3478f6;border-color:#3478f6}
+.gen-step i{background:#3478f6}
+.gen-radio.on{border-color:#2867dc}
+.gen-genbtn{background:#3478f6}
+.sd-monthchip:hover{border-color:#2867dc}
+.set-nav a:hover{border-color:#2867dc}
+@media (min-width:992px){
+    .set-nav{position:sticky;top:76px;z-index:30;background:#fff;border:1px solid #edf1f5;border-radius:12px;padding:10px 12px;box-shadow:0 6px 18px rgba(16,38,59,.06)}
+    html.hk-dark .set-nav{background:#242527;border-color:rgba(255,255,255,.10);box-shadow:0 6px 18px rgba(0,0,0,.35)}
+}
+.pat-form-section-head{display:flex;align-items:flex-start;gap:12px;margin-bottom:14px}
+.pat-form-section-head .pat-form-section-sub{margin-bottom:0}
+.pat-form-section-head+.pat-fields{margin-top:0}
+.set-sec-ic{align-items:center;border-radius:10px;display:inline-flex;flex:0 0 38px;font-size:17px;height:38px;justify-content:center;width:38px}
+.set-sec-ic-blue{background:#e9f1ff;color:#3478f6}
+.set-sec-ic-green{background:#e7f7f0;color:#188b66}
+.set-sec-ic-orange{background:#fff1df;color:#b7791f}
+.set-sec-ic-purple{background:#f1edff;color:#6845d8}
+.set-sec-ic-red{background:#fdecec;color:#c0392b}
+html.hk-dark .set-sec-ic-blue{background:#35373b;color:#7fb0ff}
+html.hk-dark .set-sec-ic-green{background:#123528;color:#4cc38a}
+html.hk-dark .set-sec-ic-orange{background:#3a3016;color:#f0b95f}
+html.hk-dark .set-sec-ic-purple{background:#2a2148;color:#a78bfa}
+html.hk-dark .set-sec-ic-red{background:#3b2323;color:#f0938a}
+.pat-empty-art{margin:0 auto 16px;width:196px;max-width:64%}
+.pat-empty-art svg{display:block;height:auto;width:100%}
+
+/* ============================================================
+   Guest brand pill + art drift (2026-11-06, owner feedback on
+   Sample C: the Hackstra branding had vanished from the page,
+   and a page animation would make it better):
+   (1) the HACKSTRA platform lockup returns as a pill riding
+       top-left over the art on every guest page — bundled
+       platform mark (images/hackstra-logo.svg), NOT the school
+       logo from Settings; the school identity stays in the card.
+   (2) the campus art moves from the page background onto its
+       own layer (.login-a-art) and drifts very slowly (scale +
+       slight shift, 32s ease-in-out alternate) — alive, never
+       bouncy. The page keeps its soft loading tone.
+   (3) the primary submit button gains a hover-only sheen sweep.
+   The Sample C layout is otherwise unchanged: full art, one
+   floating card on the right, legal pill under it. Every motion
+   in this block dies under prefers-reduced-motion and in print.
+   ============================================================ */
+.login-a-page{overflow:hidden}
+.login-a-page{background-image:none}
+html:not(.hk-dark) .login-a-page{background-image:none}
+html.hk-dark .login-a-page{background-image:none}
+.login-a-art{animation:hkArtDrift 32s ease-in-out infinite alternate;background-image:url('../img/login-campus.jpg');background-position:center;background-repeat:no-repeat;background-size:cover;inset:0;position:absolute;z-index:0}
+@keyframes hkArtDrift{from{transform:scale(1)}to{transform:scale(1.06) translate(-.6%,-.6%)}}
+.login-a-page::before{z-index:1}
+.login-a-card,.login-a-legal{position:relative;z-index:2}
+.hk-brand-pill{align-items:center;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);background:rgba(8,24,40,.55);border-radius:999px;color:#fff;display:flex;gap:10px;left:16px;padding:7px 16px 7px 7px;position:absolute;top:16px;z-index:2}
+.hk-brand-pill-logo{border-radius:9px;display:block;height:34px;width:34px}
+.hk-brand-pill-copy{display:flex;flex-direction:column;line-height:1.15}
+.hk-brand-pill-copy strong{font-size:.92rem;font-weight:800;letter-spacing:.14em}
+.hk-brand-pill-copy small{font-size:.6rem;font-weight:600;letter-spacing:.09em;opacity:.78;text-transform:uppercase}
+.login-a-btn,.login-a-panel-guest button[type=submit]{overflow:hidden;position:relative}
+.login-a-btn::after,.login-a-panel-guest button[type=submit]::after{background:linear-gradient(105deg,rgba(255,255,255,0),rgba(255,255,255,.35),rgba(255,255,255,0));content:'';height:100%;left:-90%;pointer-events:none;position:absolute;top:0;transform:skewX(-20deg);transition:left .6s ease;width:45%}
+.login-a-btn:hover::after,.login-a-panel-guest button[type=submit]:hover::after{left:135%}
+@media (max-width:767.98px){
+    .hk-brand-pill{align-self:flex-start;gap:8px;left:auto;margin-bottom:14px;padding:5px 12px 5px 5px;position:relative;top:auto}
+    .hk-brand-pill-logo{border-radius:7px;height:26px;width:26px}
+    .hk-brand-pill-copy strong{font-size:.78rem}
+    .hk-brand-pill-copy small{font-size:.54rem}
+}
+@media (prefers-reduced-motion:reduce){
+    .login-a-art,.hk-brand-pill{animation:none!important}
+    .login-a-btn::after,.login-a-panel-guest button[type=submit]::after{transition:none}
+}
+@media print{
+    .login-a-art,.hk-brand-pill{animation:none!important}
+    .login-a-btn::after,.login-a-panel-guest button[type=submit]::after{transition:none}
+}
+
+/* ============================================================
+   Sidebar tree motion (2026-11-06, owner: the branch tree
+   "looks blended" — the promised animation was missing).
+   ADDITIONS ONLY, layered over the Premium Tree B rules and
+   the fix-round-2 active-row restatements: no colour or
+   background declaration changes anywhere. When a submenu
+   renders open (nav-item-open / nav-item-expanded), its
+   connector line draws in from the top and its child rows
+   stagger in; the open page's node carries a soft pulse ring
+   on a NEW ::after, so the pinned ::before node is untouched;
+   branch labels nudge 2px right on hover. Scoped to the
+   expanded sidebar; dies under prefers-reduced-motion + print.
+   ============================================================ */
+@keyframes hkTreeDraw{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+body:not(.sidebar-xs) .sidebar-main .nav-item-open>.nav-group-sub::before,
+body:not(.sidebar-xs) .sidebar-main .nav-item-expanded>.nav-group-sub::before{animation:hkTreeDraw .5s ease-out both;transform-origin:top}
+@keyframes hkTreeItemIn{from{opacity:0;transform:translateX(6px)}to{opacity:1;transform:translateX(0)}}
+body:not(.sidebar-xs) .sidebar-main .nav-item-open>.nav-group-sub>.nav-item>.nav-link,
+body:not(.sidebar-xs) .sidebar-main .nav-item-expanded>.nav-group-sub>.nav-item>.nav-link{animation:hkTreeItemIn .35s ease-out both}
+body:not(.sidebar-xs) .sidebar-main .nav-item-open>.nav-group-sub>.nav-item:nth-child(1)>.nav-link,
+body:not(.sidebar-xs) .sidebar-main .nav-item-expanded>.nav-group-sub>.nav-item:nth-child(1)>.nav-link{animation-delay:.04s}
+body:not(.sidebar-xs) .sidebar-main .nav-item-open>.nav-group-sub>.nav-item:nth-child(2)>.nav-link,
+body:not(.sidebar-xs) .sidebar-main .nav-item-expanded>.nav-group-sub>.nav-item:nth-child(2)>.nav-link{animation-delay:.08s}
+body:not(.sidebar-xs) .sidebar-main .nav-item-open>.nav-group-sub>.nav-item:nth-child(3)>.nav-link,
+body:not(.sidebar-xs) .sidebar-main .nav-item-expanded>.nav-group-sub>.nav-item:nth-child(3)>.nav-link{animation-delay:.12s}
+body:not(.sidebar-xs) .sidebar-main .nav-item-open>.nav-group-sub>.nav-item:nth-child(4)>.nav-link,
+body:not(.sidebar-xs) .sidebar-main .nav-item-expanded>.nav-group-sub>.nav-item:nth-child(4)>.nav-link{animation-delay:.16s}
+body:not(.sidebar-xs) .sidebar-main .nav-item-open>.nav-group-sub>.nav-item:nth-child(5)>.nav-link,
+body:not(.sidebar-xs) .sidebar-main .nav-item-expanded>.nav-group-sub>.nav-item:nth-child(5)>.nav-link{animation-delay:.2s}
+body:not(.sidebar-xs) .sidebar-main .nav-item-open>.nav-group-sub>.nav-item:nth-child(6)>.nav-link,
+body:not(.sidebar-xs) .sidebar-main .nav-item-expanded>.nav-group-sub>.nav-item:nth-child(6)>.nav-link{animation-delay:.24s}
+body:not(.sidebar-xs) .sidebar-main .nav-item-open>.nav-group-sub>.nav-item:nth-child(7)>.nav-link,
+body:not(.sidebar-xs) .sidebar-main .nav-item-expanded>.nav-group-sub>.nav-item:nth-child(7)>.nav-link{animation-delay:.28s}
+body:not(.sidebar-xs) .sidebar-main .nav-item-open>.nav-group-sub>.nav-item:nth-child(8)>.nav-link,
+body:not(.sidebar-xs) .sidebar-main .nav-item-expanded>.nav-group-sub>.nav-item:nth-child(8)>.nav-link{animation-delay:.32s}
+body:not(.sidebar-xs) .sidebar-main .nav-item-open>.nav-group-sub>.nav-item:nth-child(9)>.nav-link,
+body:not(.sidebar-xs) .sidebar-main .nav-item-expanded>.nav-group-sub>.nav-item:nth-child(9)>.nav-link{animation-delay:.36s}
+body:not(.sidebar-xs) .sidebar-main .nav-item-open>.nav-group-sub>.nav-item:nth-child(10)>.nav-link,
+body:not(.sidebar-xs) .sidebar-main .nav-item-expanded>.nav-group-sub>.nav-item:nth-child(10)>.nav-link{animation-delay:.4s}
+@keyframes hkNodePulse{0%{box-shadow:0 0 0 0 rgba(89,169,255,.45)}70%{box-shadow:0 0 0 9px rgba(89,169,255,0)}100%{box-shadow:0 0 0 0 rgba(89,169,255,0)}}
+body:not(.sidebar-xs) .sidebar-main .nav-group-sub>.nav-item:not(.nav-item-submenu)>.nav-link.active::after{animation:hkNodePulse 2.4s ease-out infinite;border-radius:50%;content:'';height:11px;left:1px;margin-top:-5.5px;pointer-events:none;position:absolute;top:50%;width:11px}
+body:not(.sidebar-xs) .sidebar-main .nav-item-submenu>.nav-link>span{display:inline-block;transition:transform .18s ease}
+body:not(.sidebar-xs) .sidebar-main .nav-item-submenu>.nav-link:hover>span{transform:translateX(2px)}
+@media (prefers-reduced-motion:reduce){
+    body:not(.sidebar-xs) .sidebar-main .nav-item-open>.nav-group-sub::before,
+    body:not(.sidebar-xs) .sidebar-main .nav-item-expanded>.nav-group-sub::before,
+    body:not(.sidebar-xs) .sidebar-main .nav-item-open>.nav-group-sub>.nav-item>.nav-link,
+    body:not(.sidebar-xs) .sidebar-main .nav-item-expanded>.nav-group-sub>.nav-item>.nav-link,
+    body:not(.sidebar-xs) .sidebar-main .nav-group-sub>.nav-item>.nav-link.active::after{animation:none!important}
+    body:not(.sidebar-xs) .sidebar-main .nav-item-submenu>.nav-link>span{transition:none}
+}
+@media print{
+    body:not(.sidebar-xs) .sidebar-main .nav-item-open>.nav-group-sub::before,
+    body:not(.sidebar-xs) .sidebar-main .nav-item-expanded>.nav-group-sub::before,
+    body:not(.sidebar-xs) .sidebar-main .nav-item-open>.nav-group-sub>.nav-item>.nav-link,
+    body:not(.sidebar-xs) .sidebar-main .nav-item-expanded>.nav-group-sub>.nav-item>.nav-link,
+    body:not(.sidebar-xs) .sidebar-main .nav-group-sub>.nav-item>.nav-link.active::after{animation:none!important}
+    body:not(.sidebar-xs) .sidebar-main .nav-item-submenu>.nav-link>span{transition:none}
+}
+
+/* Visual-coherence round (2026-11-06): (a) the generate page's
+   subject chips never had a dark treatment — the base .gen-subj
+   stayed a near-white pill in dark mode; selected chips now ride
+   the app-blue tint with readable text, warn keeps its amber,
+   off stays muted (off restated last at higher specificity so it
+   still wins over both, exactly as in the light cascade).
+   (b) The workload stat cards (shared dashboard-stat-cards now)
+   keep their ratio bars, coloured by the shared stat tones, with
+   a visible track on dark cards. (c) dashboard-stat-red's icon
+   gets the dark tint its sibling tones already have. */
+html.hk-dark .gen-subj{background:rgba(52,120,246,.16);border-color:rgba(52,120,246,.55);color:#bcd6ff}
+html.hk-dark .gen-subj.warn{background:rgba(232,163,23,.15);border-color:rgba(232,163,23,.55);color:#f3cd72}
+html.hk-dark .gen-subj.off{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.12);color:#7d8894}
+.dashboard-stat-blue .l16-bar i{background:#2f7fe0}
+.dashboard-stat-orange .l16-bar i{background:#e8930c}
+.dashboard-stat-green .l16-bar i{background:#0b7a47}
+.dashboard-stat-red .l16-bar i{background:#d34a24}
+html.hk-dark .l16-bar{background:rgba(255,255,255,.10)}
+html.hk-dark .dashboard-stat-red .dashboard-stat-icon{background:#3a1e26;color:#f28b9a}
+/* Same round, found on the verification capture: the dark base
+   rule html.hk-dark .l16-seg (0,2,1) silently beat .l16-seg.blue /
+   .warm (0,2,0), so in dark mode every day-by-day segment rendered
+   the same translucent grey — filled days were invisible. Restate
+   the two fills at winning specificity. */
+html.hk-dark .l16-seg.blue{background:#2f7fe0}
+html.hk-dark .l16-seg.warm{background:#e85d3d}
+
+/* --- Role banner: dark-mode melt (owner fix 2026-11-07) ---
+   The Style-C banner art is a light illustration; on the dark
+   page it read as a pasted white slab (owner: "half white aur
+   half pathetic"). Dark only: the art is replayed on a ::before
+   layer (same per-role image via background-image:inherit) so a
+   filter can dim it without touching the greeting; the overlay
+   gradient becomes a dark veil, strongest at the greeting side;
+   the greeting flips light; the edge takes the dark-card border
+   (#36383c, same token as html.hk-dark .hk-mod-banner). The
+   drift animation runs on the layer, so the micro-motion is
+   unchanged. Light theme rules above stay byte-identical. */
+html.hk-dark .hk-banner-hero{border-color:#36383c}
+html.hk-dark .hk-banner-hero::before{content:"";position:absolute;inset:0;border-radius:inherit;background-image:inherit;background-size:cover;background-position:50% 50%;background-repeat:no-repeat;filter:brightness(.82) saturate(.92);animation:hkBannerDrift 26s ease-in-out infinite alternate}
+html.hk-dark .hk-bn-overlay{width:100%;background:linear-gradient(90deg,rgba(7,10,15,.62),rgba(7,10,15,.18))}
+html.hk-dark .hk-bn-greet{color:#f5f7fa;text-shadow:0 1px 12px rgba(0,0,0,.5)}
+html.hk-dark .hk-bn-sub{color:#c3ccd6;text-shadow:0 1px 8px rgba(0,0,0,.45)}
+@media (prefers-reduced-motion:reduce){
+    html.hk-dark .hk-banner-hero::before{animation:none!important}
+}
+@media print{
+    html.hk-dark .hk-banner-hero::before{animation:none!important}
+}

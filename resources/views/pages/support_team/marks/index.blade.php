@@ -18,17 +18,19 @@
          form (marks/selector partial, full-chrome mode) keeps its
          POST, field names, ids and cascade untouched. --}}
 
-    {{-- Item 10 (Light Luxe): slim header — gradient icon tile,
-         title, ONE subtitle line, session chip. The promo banner
-         and its checklist are gone by owner choice. --}}
-    <div class="l10-head">
-        <span class="l10-head-tile"><i class="icon-profile"></i></span>
-        <div class="l10-head-text">
-            <h5>Manage Exam Marks</h5>
-            <p>Pick the exam, class, section and subject — the student list opens from here.</p>
-        </div>
-        <span class="l10-chip"><i class="icon-calendar3"></i>Session {{ Qs::getCurrentSession() }}</span>
-    </div>
+    {{-- Item 10 (Light Luxe) built this slim header; Beauty Wave 1
+         (2026-11-06) formalises it into the SHARED slim module
+         banner (partials/module_banner): same title, same ONE
+         subtitle line, same session chip. The promo banner and its
+         checklist stay gone by owner choice. --}}
+    @include('partials.module_banner', [
+        'hkModIcon' => 'icon-profile',
+        'hkModTone' => 'blue',
+        'hkModTitle' => 'Manage Exam Marks',
+        'hkModSub' => 'Pick the exam, class, section and subject — the student list opens from here.',
+        'hkModChip' => 'Session ' . Qs::getCurrentSession(),
+        'hkModChipIcon' => 'icon-calendar3',
+    ])
 
     <div class="card pat-form-card l84-card l10-card">
     <ol class="l84-steps l10-steps" id="l84-steps" aria-label="Selection progress">

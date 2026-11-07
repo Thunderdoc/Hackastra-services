@@ -75,6 +75,27 @@ class OwnerGenerateRedesignTest extends TestCase
         $this->assertStringContainsString('function renderTimeline()', $html);
     }
 
+    public function test_generate_page_has_no_working_note_text_and_chips_have_a_dark_treatment()
+    {
+        $html = $this->page();
+
+        // Visual-coherence round (2026-11-06): leftover Hinglish
+        // working notes rendered on the page — they are gone, the
+        // English explanations carry the same meaning.
+        $this->assertStringNotContainsString('Sirf dekhne', $html);
+        $this->assertStringNotContainsString('dobara nahi bharne', $html);
+        $this->assertStringNotContainsString('wale kabhi replace', $html);
+        $this->assertStringNotContainsString('jinpar attendance', $html);
+
+        // The selected-subject chips (.gen-subj) had NO dark rule
+        // — near-white pills in dark mode. The stylesheet now
+        // gives selected chips the app-blue tint with light text,
+        // and restates .off muted at higher specificity.
+        $css = file_get_contents(public_path('assets/css/qs.css'));
+        $this->assertStringContainsString('html.hk-dark .gen-subj{background:rgba(52,120,246,.16)', $css);
+        $this->assertStringContainsString('html.hk-dark .gen-subj.off{background:rgba(255,255,255,.04)', $css);
+    }
+
     public function test_manual_create_form_uses_native_selects()
     {
         $admin = User::where('email', 'admin@hackstra.app')->firstOrFail();

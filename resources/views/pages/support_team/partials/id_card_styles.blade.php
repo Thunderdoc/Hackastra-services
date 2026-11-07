@@ -175,4 +175,54 @@
     .idc2-bsec{margin-top:2pt}
     .idc2-barcode{margin-top:2pt}
     .idc2-office{margin-top:1.5pt}
+
+    /* Parity fix round 2 (owner correction 2026-11-06, measured
+       against the frozen final9 render + fresh app renders):
+       (1) BAND PATTERN — final9's bands carry a tone-on-tone
+       guilloche that dompdf cannot paint from CSS; it now rides
+       as a raster <img> (IdCardFactory::bandPattern) sized to the
+       band box — a 32pt asset on the front band and a matching
+       20pt top-slice on the back band, so no clipping is needed
+       and the back band's sub-line keeps its natural overflow.
+       (2) STAMP SIZE BUG — the base .idc2-photo img rule (0,1,1)
+       silently beat .idc2-stampf (0,1,0), so the front stamp
+       rendered at PHOTO size (37pt student / 28pt staff) and sat
+       on the initials. The restated img.idc2-stampf rules below
+       (0,2,1 / 0,3,1) restore a real stamp size: 29pt student
+       (0.78x the size it wrongly rendered at), 22pt staff, moved
+       to the final9 rim position (centre at -0.44d / +0.30d of
+       the medallion centre) so the initials stay fully readable.
+       (3) MEDALLION — final9's medallion is a third of the card
+       width (88 of ~263 units); production was a quarter (40.2pt
+       of 153). Student photo grows to 47pt + a 2pt gold ring
+       (51pt outer, 33%); staff nudges to 32pt + 1.9pt (35.8pt
+       outer) inside its compact measure. The student front pays
+       for its taller medallion out of tile/name spacing below,
+       point for point, so bulk page counts cannot move. */
+    .idc2-bandpat{position:absolute;top:0;left:0;width:153pt;height:32pt}
+    .idc2-bandpat-head{height:20pt}
+    .idc2-photowrap{top:23pt}
+    .idc2-photospacer{height:40pt}
+    .idc2-photobox{width:51pt}
+    .idc2-photo{width:47pt;height:47pt;border-width:2pt}
+    .idc2-photo img{width:47pt;height:47pt}
+    .idc2-ini{top:15.5pt;font-size:14.5pt;line-height:15.5pt}
+    .idc2-photo img.idc2-stampf{width:29pt;height:29pt;left:-13.5pt;bottom:-6pt}
+    .idc2-tiles{margin-top:1pt}
+    .idc2-tdl{padding-bottom:1.05pt}
+    .idc2-tdr{padding-bottom:1.05pt}
+    .idc2-tdw{padding-bottom:1.05pt}
+    .idc2-tilebox{padding-top:1.75pt;padding-bottom:1.75pt}
+    .idc2-name{margin-top:0}
+    .idc2-micro{margin-top:0.5pt}
+    .idc2-pillrow{margin-top:0.5pt}
+    .idc2-valid{margin-top:0}
+    .idc2-staff .idc2-photowrap{top:21pt}
+    .idc2-staff .idc2-photospacer{height:23pt}
+    .idc2-staff .idc2-photobox{width:37pt}
+    .idc2-staff .idc2-photo{width:32pt;height:32pt;border-width:1.9pt}
+    .idc2-staff .idc2-photo img{width:32pt;height:32pt}
+    .idc2-staff .idc2-ini{top:9pt;font-size:11.5pt;line-height:12.5pt}
+    .idc2-staff .idc2-photo img.idc2-stampf{width:22pt;height:22pt;left:-11pt;bottom:-6pt}
+    .idc2-staff .idc2-schoolpanel{margin-top:2pt}
 </style>

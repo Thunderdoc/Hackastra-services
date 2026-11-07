@@ -1,9 +1,24 @@
 @extends('layouts.master')
 @section('page_title', 'Transport')
 @section('content')
+    {{-- Beauty Wave 3: the slim module banner (partials/module_banner)
+         opens the page; the old toolbar subtitle moves into the
+         banner verbatim (one home for the sentence, not two — the
+         Wave 2 books precedent), and its stats are the counts of
+         the three lists below. Tables and controls are untouched. --}}
+    @include('partials.module_banner', [
+        'hkModIcon' => 'icon-truck',
+        'hkModTone' => 'orange',
+        'hkModTitle' => 'Transport',
+        'hkModSub' => 'Bus routes, vehicles and student assignments.',
+        'hkModStats' => [
+            ['value' => number_format($routes->count()), 'label' => 'Routes'],
+            ['value' => number_format($vehicles->count()), 'label' => 'Vehicles'],
+            ['value' => number_format($assignments->count()), 'label' => 'Assignments'],
+        ],
+    ])
     @component('partials.patterns.list_page')
         @slot('title') Transport @endslot
-        @slot('subtitle') Bus routes, vehicles and student assignments. @endslot
         @slot('action')
             @if(Qs::userIsTeamSAWrite())
             <a href="{{ route('transport.routes.create') }}" class="btn btn-primary">New Route</a>

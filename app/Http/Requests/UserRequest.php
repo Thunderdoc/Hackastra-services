@@ -45,8 +45,28 @@ class UserRequest extends FormRequest
             'state_id' => 'required',
             'lga_id' => 'nullable',
             'nal_id' => 'required',
+            /* Per-teacher caps (2026-11-06): blank = the school
+               default. Sane ranges only — a day holds at most 12
+               periods anywhere in this app, and a week cap below
+               the day cap could never be met (pair-checked in
+               withValidator + the controller). */
+            'max_periods_per_day' => 'sometimes|nullable|integer|min:1|max:12',
+            'max_periods_per_week' => 'sometimes|nullable|integer|min:1|max:60',
         ];
         return ($this->method() === 'POST') ? $store : $update;
+    }
+
+    public function withValidator($validator)
+    {
+        $validator->after(function ($v) {
+            $day = $this->input('max_periods_per_day');
+            $week = $this->input('max_periods_per_week');
+            if ($day !== null && $day !== '' && $week !== null && $week !== ''
+                && (int) $week < (int) $day) {
+                $v->errors()->add('max_periods_per_week',
+                    'The weekly cap cannot be lower than the daily cap (' . (int) $day . ').');
+            }
+        });
     }
 
     public function attributes()

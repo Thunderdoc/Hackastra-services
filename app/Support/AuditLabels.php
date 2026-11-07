@@ -32,6 +32,8 @@ class AuditLabels
         'leave.decided' => 'Leave decided',
         'account.data_downloaded' => 'Account data downloaded',
         'account.preferences_updated' => 'Preferences updated',
+        'user.caps_updated' => 'Teacher caps updated',
+        'timetable.generated_without_day_cap' => 'Timetable generated with no day cap',
     ];
 
     /** Group key => [pill label, pill tone]. Order = pill order. */

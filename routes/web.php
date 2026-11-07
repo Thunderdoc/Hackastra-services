@@ -166,6 +166,14 @@ Route::group(['middleware' => 'auth'], function () {
                Dashboard — a teacher had none. Own data only, from
                the same week grid the leave queue uses. */
             Route::get('workload', 'WorkloadController@mine')->name('tt.workload');
+            /* My Slot Preferences (owner ask 2026-11-06, gap G2):
+               the first slot-choice surface a teacher has ever
+               had — her preferred (day, period) slots, consumed by
+               the generator as a soft tie-break only. Teacher-only
+               inside the controller (no admin editing of a
+               teacher's preferences). */
+            Route::get('slot-preferences', 'SlotPreferenceController@index')->name('tt.slot_preferences');
+            Route::post('slot-preferences', 'SlotPreferenceController@update')->name('tt.slot_preferences.update');
             Route::get('approvals', 'TimeTableController@approvals')->name('tt.approvals');
             /* Loop 81: teacher's own weekly timetable — print + PDF */
             Route::get('mine/print', 'TimeTableController@mine_print')->name('tt.mine_print');

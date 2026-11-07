@@ -44,6 +44,11 @@ class HostelController extends Controller
     {
         $this->guardHostel();
         $d['dorms'] = Dorm::orderBy('name')->get();
+        // Beauty Wave 3: the dorms page's module banner carries
+        // the hostel ledger's headline counts — the same figures
+        // the rooms / allocations lists themselves show.
+        $d['rooms_count'] = HostelRoom::count();
+        $d['allocations_count'] = StudentRecord::whereNotNull('dorm_id')->count();
         return view('pages.support_team.hostel.dorms.index', $d);
     }
 

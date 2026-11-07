@@ -4,9 +4,9 @@
      Now on login_master with the shared guest card. Content and
      the resend link are identical — presentation only. --}}
 @section('content')
-    <div class="page-content login-cover">
-        <div class="content-wrapper">
-            <div class="content d-flex justify-content-center align-items-center">
+    {{-- Guest Sample C shell. Content and the resend link are
+         unchanged — presentation only. --}}
+    @include('partials.login.guest_shell_open')
 
                 <div class="login-form">
                     <div class="card mb-0">
@@ -27,7 +27,5 @@
                     </div>
                 </div>
 
-            </div>
-        </div>
-    </div>
+    @include('partials.login.guest_shell_close')
 @endsection

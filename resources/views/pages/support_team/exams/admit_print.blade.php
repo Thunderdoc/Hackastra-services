@@ -6,7 +6,11 @@
         .admit-toolbar { margin-bottom: 16px; }
         .admit-card { position: relative; background: #fff; border: 2px solid #10263b; border-radius: 10px; padding: 18px 22px; margin-bottom: 22px; color: #172536; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         .admit-head { width: 100%; border-collapse: collapse; }
-        .admit-head-main h3 { margin: 0 0 2px; font-size: 1.35rem; font-weight: 700; letter-spacing: .01em; text-transform: uppercase; }
+        .admit-head-main h3 { margin: 0 0 2px; font-size: 1.35rem; font-weight: 700; letter-spacing: .01em; text-transform: uppercase; color: #10263b; }
+        /* The card is a white document inside the (default) dark app:
+           qs.css's html.hk-dark .content h3 rule would otherwise wash
+           the school name out to near-white on screen. */
+        html.hk-dark .content .admit-card .admit-head-main h3 { color: #10263b; }
         .admit-head-main p { margin: 0; font-size: .78rem; color: #44546a; }
         .admit-logo { max-height: 46px; margin-bottom: 6px; }
         .admit-photo-cell { width: 104px; text-align: right; vertical-align: top; }

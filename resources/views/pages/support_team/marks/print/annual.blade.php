@@ -13,12 +13,17 @@
            the document sideways. Print geometry untouched; the
            dompdf annual_pdf blade never includes this blade. */
         @media screen {
-            .report-card { overflow-x: auto; max-width: 100%; }
+            .rcd { overflow-x: auto; max-width: 100%; }
         }
     </style>
 </head>
 <body>
-    @include('pages.support_team.marks.partials.annual_report_card')
+    {{-- rcd-doc: the print sheet carries the full A4 height and the
+         card's signature block anchors to its foot (redesign
+         2026-11-06). --}}
+    <div class="rcd-doc">
+        @include('pages.support_team.marks.partials.annual_report_card')
+    </div>
 
     <script>
         window.print();

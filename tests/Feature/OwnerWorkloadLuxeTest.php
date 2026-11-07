@@ -24,7 +24,13 @@ class OwnerWorkloadLuxeTest extends TestCase
         $html = $response->getContent();
 
         $this->assertSame(36, (int) $response->viewData('total'));
-        $this->assertStringContainsString('l16-tv">36 <small>/ 40 cap</small>', $html);
+        // Visual-coherence round (2026-11-06): the tiles are now
+        // shared dashboard-stat-cards under the slim module
+        // banner — same figures, the total rides the stat <strong>.
+        $this->assertStringContainsString('<strong>36 <small>/ 40 cap</small></strong>', $html);
+        $this->assertStringContainsString('hk-mod-banner', $html);
+        $this->assertStringContainsString('dashboard-stat-card', $html);
+        $this->assertStringNotContainsString('l16-tile', $html);
         $this->assertStringContainsString('90% of your weekly limit', $html);
         $this->assertStringContainsString('Sections You Lead', $html);
 
@@ -52,6 +58,14 @@ class OwnerWorkloadLuxeTest extends TestCase
 
         // Equal-height panels: both columns live in one stretch grid.
         $this->assertStringContainsString('l16-cols', $html);
+
+        // The filled segments must survive dark mode: the dark
+        // base rule for .l16-seg once out-specified .blue/.warm
+        // and every segment rendered the same grey. The fills are
+        // restated at winning specificity in the stylesheet.
+        $css = file_get_contents(public_path('assets/css/qs.css'));
+        $this->assertStringContainsString('html.hk-dark .l16-seg.blue{background:#2f7fe0}', $css);
+        $this->assertStringContainsString('html.hk-dark .l16-seg.warm{background:#e85d3d}', $css);
     }
 
     public function test_unallotted_teacher_gets_tiles_and_the_honest_empty_state()
@@ -59,7 +73,7 @@ class OwnerWorkloadLuxeTest extends TestCase
         $new = User::factory()->create(['user_type' => 'teacher']);
         $html = $this->actingAs($new)->get(route('tt.workload'))->assertOk()->getContent();
         $this->assertStringContainsString('No periods are allotted to you yet', $html);
-        $this->assertStringContainsString('l16-tv">0 <', $html);
+        $this->assertStringContainsString('<strong>0 <small>/ 40 cap</small></strong>', $html);
         $this->assertStringNotContainsString('l16-prow', $html);
     }
 }

@@ -296,24 +296,49 @@ class TimetableValidator
             }
         }
 
-        /* Teacher weekly loads across the year's records vs cap. */
+        /* Teacher loads across the year's records vs caps.
+           Per-teacher caps (2026-11-06): each teacher is judged
+           against their OWN caps (Staffing::capsFor — an override
+           set on their account beats the school defaults), and
+           the DAY cap is checked too, at the same warning
+           severity as the week cap — until now a grid could pass
+           validation with a teacher over the day cap every day
+           (audit gap G11). */
         $allCells = TimeTable::with(['subject.teacher', 'tt_record'])
             ->whereIn('ttr_id', $yearRecords)->get();
-        $cap = Staffing::maxPeriodsPerWeek();
+        $dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
         $loads = [];
         foreach ($allCells->groupBy(function ($c) { return SectionTeacher::teacherIdFor(optional($c->tt_record)->section_id ?? null, $c->subject); }) as $teacherId => $group) {
             if (!$teacherId) {
                 continue;
             }
             $teacher = User::find($teacherId);
+            $caps = $teacher
+                ? Staffing::capsFor($teacher)
+                : ['day' => Staffing::maxPeriodsPerDay(), 'week' => Staffing::maxPeriodsPerWeek()];
+            $cap = $caps['week'];
+            $dayCap = $caps['day'];
+            $name = $teacher ? $teacher->name : 'A teacher';
+            $byDay = $group->groupBy(function ($c) { return $c->day; });
+            $overDays = [];
+            foreach ($dayNames as $dayName) {
+                $dayCount = isset($byDay[$dayName]) ? $byDay[$dayName]->count() : 0;
+                if ($dayCount > $dayCap) {
+                    $overDays[] = $dayName;
+                    $warnings[] = $name . ' carries ' . $dayCount . ' periods on '
+                        . $dayName . ', over the day cap of ' . $dayCap . '.';
+                }
+            }
             $loads[] = [
                 'teacher' => $teacher,
                 'periods' => $group->count(),
                 'cap' => $cap,
-                'over' => $group->count() > $cap,
+                'day_cap' => $dayCap,
+                'over_days' => $overDays,
+                'over' => $group->count() > $cap || !empty($overDays),
             ];
             if ($group->count() > $cap) {
-                $warnings[] = ($teacher ? $teacher->name : 'A teacher') . ' carries ' . $group->count()
+                $warnings[] = $name . ' carries ' . $group->count()
                     . ' periods in the week, over the cap of ' . $cap . '.';
             }
         }

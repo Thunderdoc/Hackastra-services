@@ -47,6 +47,22 @@ class OwnerPrincipalDashboardTest extends TestCase
         $response->assertSee('Finance');
     }
 
+    public function test_principal_home_surfaces_are_theme_aware()
+    {
+        // Visual-coherence round (2026-11-06): the .pr-* surfaces
+        // were hardcoded light, so the attention strip and cards
+        // rendered WHITE in dark mode. The dark overrides ride the
+        // page's own style block — pin them, and pin that the
+        // light bases stay the light look.
+        $html = $this->actingAs($this->principal())->get(route('dashboard'))
+            ->assertOk()->getContent();
+
+        $this->assertStringContainsString('html.hk-dark .pr-card{background:#26272a;border-color:#36383c}', $html);
+        $this->assertStringContainsString('html.hk-dark .pr-att-item{background:#26272a', $html);
+        $this->assertStringContainsString('html.hk-dark .pr-op{background:#2f3135}', $html);
+        $this->assertStringContainsString('.pr-card{background:#fff;border:1px solid #d7e0ec', $html);
+    }
+
     public function test_non_principal_admin_keeps_admin_board()
     {
         $response = $this->actingAs($this->admin())->get(route('dashboard'));

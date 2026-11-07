@@ -71,6 +71,49 @@ class SectionTeacher
     }
 
     /**
+     * Placed-cell loads per teacher PER WEEKDAY, through the same
+     * teacherIdFor precedence as effectiveLoads: [teacher_id =>
+     * [day name => count]], restricted to the given record ids.
+     * One override preload + one pass over the cells. Used where
+     * a DAY cap must be judged (manual cell writes — TTRequest):
+     * effectiveLoads alone cannot say how full a teacher's Monday
+     * already is.
+     */
+    public static function effectiveDayLoads(array $recordIds): array
+    {
+        if (empty($recordIds)) {
+            return [];
+        }
+        $overrides = DB::table('section_subject_teachers')->get()
+            ->groupBy('section_id')
+            ->map(function ($rows) {
+                return $rows->pluck('teacher_id', 'subject_id')
+                    ->map(function ($t) { return (int) $t; })->all();
+            })->all();
+        $subjectTeachers = Subject::pluck('teacher_id', 'id');
+        $loads = [];
+        $cells = DB::table('time_tables')
+            ->join('time_table_records', 'time_table_records.id', '=', 'time_tables.ttr_id')
+            ->whereIn('time_tables.ttr_id', $recordIds)
+            ->select('time_tables.subject_id', 'time_tables.day', 'time_table_records.section_id')
+            ->get();
+        foreach ($cells as $cell) {
+            $teacherId = null;
+            if ($cell->section_id && isset($overrides[$cell->section_id][$cell->subject_id])) {
+                $teacherId = $overrides[$cell->section_id][$cell->subject_id];
+            } else {
+                $st = $subjectTeachers[$cell->subject_id] ?? null;
+                $teacherId = $st ? (int) $st : null;
+            }
+            if ($teacherId && $cell->day) {
+                $loads[$teacherId][$cell->day] = ($loads[$teacherId][$cell->day] ?? 0) + 1;
+            }
+        }
+
+        return $loads;
+    }
+
+    /**
      * The teacher of a subject inside a section: the section's
      * override when one exists, else the subject's class teacher.
      * A null section (whole-class grid) always yields the subject's

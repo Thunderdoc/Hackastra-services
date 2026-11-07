@@ -143,6 +143,17 @@ class MarkController extends Controller
                 return 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($local));
             }
         }
+        /* Public-webroot assets (the demo school's stamp + signature
+           live in public/demo-assets, not /storage) — resolve them
+           from public_path like IdCardFactory::imageSrc does, or
+           dompdf silently drops the image (2026-11-06 PDF sweep). */
+        if ($path && \Illuminate\Support\Str::startsWith($path, '/') && !\Illuminate\Support\Str::startsWith($path, '/storage/')) {
+            $local = public_path(ltrim($path, '/'));
+            if (is_file($local)) {
+                $mime = mime_content_type($local) ?: 'image/png';
+                return 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($local));
+            }
+        }
         return $url;
     }
 

@@ -149,6 +149,12 @@ class CertificateController extends Controller
             $diskPath = substr($path, strlen('storage/'));
             return Storage::disk('public')->exists($diskPath) ? '/' . $path : null;
         }
+        // Webroot assets (the demo school's stamp + signature live in
+        // public/demo-assets, not on the storage disk) — the file
+        // must exist, same never-a-broken-image guarantee.
+        if (is_file(public_path($path))) {
+            return '/' . $path;
+        }
         return Storage::disk('public')->exists($path) ? '/storage/' . $path : null;
     }
 }

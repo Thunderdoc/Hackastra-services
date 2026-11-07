@@ -5,7 +5,7 @@
     @include('partials.role_banner', ['hkRole' => 'admin', 'hkLabel' => 'School Admin'])
 @if(Qs::userIsTeamSAT())
     {{-- Header: greeting | date + session | primary action --}}
-    <div class="dashboard-hero mb-4">
+    <div class="dashboard-hero mb-4 hk-reveal">
         <div>
             <p class="mb-0 dashboard-muted">Here&rsquo;s an overview of your school&rsquo;s activities and performance today.</p>
         </div>
@@ -35,7 +35,7 @@
          Events — stretched level with the main column
          (full-screen rule). ALL data and links are the ones this
          page has always computed; presentation only. --}}
-    <div class="l17-kpis">
+    <div class="l17-kpis hk-reveal hk-reveal-1">
         @foreach([
             ['label' => 'Total Students', 'value' => number_format($student_count), 'delta' => $stat_deltas['students'] ?? null, 'icon' => 'icon-users4', 'tone' => 'blue', 'acc' => '#17507f', 'link' => route('students.list')],
             ['label' => 'Teaching Staff', 'value' => number_format($teacher_count), 'delta' => $stat_deltas['teachers'] ?? null, 'icon' => 'icon-user-tie', 'tone' => 'green', 'acc' => '#0b7a47', 'link' => route('users.index')],

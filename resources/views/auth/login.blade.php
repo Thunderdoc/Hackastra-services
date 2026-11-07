@@ -1,120 +1,30 @@
 @extends('layouts.login_master')
 
 @section('content')
-{{-- Login Design A (Workstream Z) — split screen, per the approved reference.
-     All component styles live in qs.css, section "Loop 16 — Login Design A".
-     The guest layout does not load qs.css, so it is linked here — the previous
-     version of this view likewise carried its own <style> block. --}}
+{{-- Login — Guest Sample C (2026-11-06, owner-approved design):
+     the campus illustration covers the whole page at full colour
+     and ONE floating card on the right carries the sign-in form;
+     there is no brand panel. All component styles live in qs.css
+     (the "Guest Sample C" append). The guest layout does not load
+     qs.css, so it is linked here. Form, fields and POST unchanged. --}}
 <link href="{{ asset('assets/css/qs.css') }}?v={{ file_exists(public_path('assets/css/qs.css')) ? filemtime(public_path('assets/css/qs.css')) : 1 }}" rel="stylesheet" type="text/css">
 <style>
-    /* Page chrome only: paint the viewport navy and hide the guest layout's
-       top/bottom navbars so the split card owns the screen, as in the reference. */
-    body{background:#081c30}
+    /* Page chrome only: a soft tone behind the campus art while it
+       loads (cream in light, navy in dark) and the guest layout's
+       top/bottom navbars hidden so the page owns the screen. */
+    body{background:#f3ead9}
+    html.hk-dark body{background:#0b2239}
     body>.navbar{display:none!important}
 </style>
 
 <div class="login-a-page">
-    <div class="login-a-card">
+    <div class="login-a-art" aria-hidden="true"></div>
+    @include('partials.login.brand_pill')
+    <div class="login-a-card hk-reveal">
 
-        {{-- ===== Left: brand panel ===== --}}
-        <div class="login-a-brand">
-            <svg class="login-a-brand-art" viewBox="0 0 560 640" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
-                <defs>
-                    <radialGradient id="login-a-glow" cx="50%" cy="50%" r="50%">
-                        <stop offset="0%" stop-color="#2e6de6" stop-opacity=".5"/>
-                        <stop offset="100%" stop-color="#2e6de6" stop-opacity="0"/>
-                    </radialGradient>
-                    <pattern id="login-a-dots" width="18" height="18" patternUnits="userSpaceOnUse">
-                        <circle cx="2.5" cy="2.5" r="2.5" fill="#5b84c4"/>
-                    </pattern>
-                </defs>
-                <circle class="login-a-orb login-a-orb-a" cx="512" cy="566" r="250" fill="url(#login-a-glow)"/>
-                <circle class="login-a-orb login-a-orb-b" cx="30" cy="46" r="180" fill="url(#login-a-glow)" opacity=".55"/>
-                <rect x="352" y="6" width="196" height="112" fill="url(#login-a-dots)" opacity=".4"/>
-                <g class="login-a-hexes" fill="none" stroke="#4d78b8" stroke-width="1.4">
-                    <polygon points="452,50 481.4,67 481.4,101 452,118 422.6,101 422.6,67" opacity=".75"/>
-                    <polygon points="392,130 409.3,140 409.3,160 392,170 374.7,160 374.7,140" opacity=".5"/>
-                    <polygon points="486,170 508.5,183 508.5,209 486,222 463.5,209 463.5,183" opacity=".6"/>
-                    <polygon points="70,496 108.1,518 108.1,562 70,584 31.9,562 31.9,518" opacity=".45"/>
-                    <polygon points="120,452 133.9,460 133.9,476 120,484 106.1,476 106.1,460" opacity=".55"/>
-                    <polygon points="330,540 345.6,549 345.6,567 330,576 314.4,567 314.4,549" opacity=".4"/>
-                </g>
-                <g stroke="#3d6db4" stroke-width="1" opacity=".35">
-                    <path d="M-20 648 L236 392" fill="none"/>
-                    <path d="M-20 600 L188 392" fill="none"/>
-                </g>
-                <g class="login-a-sparks" fill="#7fb0ff">
-                    <circle cx="120" cy="238" r="2.4" opacity=".7"/>
-                    <circle cx="486" cy="330" r="2.4" opacity=".6"/>
-                    <circle cx="66" cy="356" r="2" opacity=".5"/>
-                    <circle cx="520" cy="120" r="2" opacity=".55"/>
-                </g>
-            </svg>
-            <div class="login-a-brand-inner">
-                {{-- Loop 112 — school identity row (logo + name from Settings),
-                     then the value statement, then the three feature ticks. --}}
-                <div class="login-a-school">
-                    <span class="login-a-school-tile">
-                        @if(Qs::getSetting('logo'))
-                            <img src="{{ Qs::getLogo() }}" alt="" class="login-a-school-logo">
-                        @else
-                            <svg viewBox="0 0 48 48" aria-hidden="true" focusable="false">
-                                <defs>
-                                    <linearGradient id="login-a-lg2" x1="0" y1="0" x2="1" y2="1">
-                                        <stop offset="0" stop-color="#3478f6"/>
-                                        <stop offset="1" stop-color="#2867dc"/>
-                                    </linearGradient>
-                                </defs>
-                                <path d="M24 2.8 42 13.1v21.8L24 45.2 6 34.9V13.1z" fill="url(#login-a-lg2)"/>
-                                <path d="M24 12.4l3.4 7 7.7 1.1-5.6 5.4 1.4 7.6L24 29.9l-6.9 3.6 1.4-7.6-5.6-5.4 7.7-1.1z" fill="#fff"/>
-                            </svg>
-                        @endif
-                    </span>
-                    <span class="login-a-school-meta">
-                        <span class="login-a-school-name">{{ Qs::getSystemName() ?: 'School Management System' }}</span>
-                        <span class="login-a-school-caption">School Management System</span>
-                    </span>
-                </div>
-                <h1 class="login-a-brand-title">The calm, <span class="login-a-accent">connected</span> way to run your school.</h1>
-                <p class="login-a-brand-tag">Attendance, fees, results and records — one secure sign-in for your whole school community.</p>
-                <ul class="login-a-brand-list">
-                    <li>
-                        <span class="login-a-check"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="11" fill="#2e6de6"/><path d="M7.2 12.6l3.1 3.1 6.5-6.9" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-                        <span><strong>Attendance</strong> — period-wise registers, done in seconds</span>
-                    </li>
-                    <li>
-                        <span class="login-a-check"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="11" fill="#2e6de6"/><path d="M7.2 12.6l3.1 3.1 6.5-6.9" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-                        <span><strong>Fees</strong> — invoices, receipts &amp; defaulter tracking</span>
-                    </li>
-                    <li>
-                        <span class="login-a-check"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="11" fill="#2e6de6"/><path d="M7.2 12.6l3.1 3.1 6.5-6.9" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-                        <span><strong>Results</strong> — report cards from your own marking scheme</span>
-                    </li>
-                </ul>
-            </div>
-        </div>
-
-        {{-- ===== Right: sign-in panel ===== --}}
+        {{-- ===== The floating sign-in card ===== --}}
         <div class="login-a-panel">
-            <div class="login-a-brandmark">
-                @if(Qs::getSetting('logo'))
-                    <img src="{{ Qs::getLogo() }}" alt="{{ Qs::getSystemName() ?: 'School logo' }}" class="login-a-logo">
-                @else
-                    <span class="login-a-mark" aria-hidden="true">
-                        <svg viewBox="0 0 48 48" focusable="false">
-                            <defs>
-                                <linearGradient id="login-a-lg" x1="0" y1="0" x2="1" y2="1">
-                                    <stop offset="0" stop-color="#3478f6"/>
-                                    <stop offset="1" stop-color="#2867dc"/>
-                                </linearGradient>
-                            </defs>
-                            <path d="M24 2.8 42 13.1v21.8L24 45.2 6 34.9V13.1z" fill="url(#login-a-lg)"/>
-                            <path d="M24 12.4l3.4 7 7.7 1.1-5.6 5.4 1.4 7.6L24 29.9l-6.9 3.6 1.4-7.6-5.6-5.4 7.7-1.1z" fill="#fff"/>
-                        </svg>
-                    </span>
-                    <span class="login-a-wordmark">{{ Qs::getAppCode() }}</span>
-                @endif
-            </div>
+            @include('partials.login.card_brand')
 
             <h2 class="login-a-title">Welcome back</h2>
             <p class="login-a-sub">Sign in to your account</p>

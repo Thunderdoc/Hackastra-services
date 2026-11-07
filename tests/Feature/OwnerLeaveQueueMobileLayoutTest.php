@@ -9,29 +9,51 @@ use Tests\TestCase;
 /**
  * Leave queue phone layout (owner screenshot, 2026-10-30): on
  * his ~360px phone the 10-column requests table clipped on both
- * sides and the plan rows stacked into walls of text. The fix
- * is presentation only: below 992px the same single DOM stacks
- * each request into a card and each plan row into compact lines
- * (date + time / class / subject / bold substitute / one-row
- * switch). These pins keep the layout mechanism — the lv
- * classes, the stacking breakpoint and the compact plan cells —
- * from quietly disappearing in a future blade edit. Real-width
- * proof is the 360px/320px renders attached to the segment.
+ * sides and the plan rows stacked into walls of text.
+ *
+ * Re-expressed 2026-11-06 (card rebuild): the owner rejected
+ * the requests TABLE itself as a text wall, so the queue is now
+ * one-glance cards that stack full-width — no table exists to
+ * clip. The old pins (lv-table / lv-wrap / the status column's
+ * nth-child(9) absolute positioning) described that table's
+ * stacking mechanism and are replaced by pins on the card
+ * mechanism at equal strength: the card list + card markup in
+ * the DOM, the card stylesheet, and the sub-992px breakpoint
+ * under which the card's tabular parts (plan rows, week grid)
+ * go compact — one line for date + time, one for class, one
+ * for subject, the substitute's name in bold, and the switch
+ * select + button on one row. Real-width proof is the
+ * 360px/320px renders attached to the segment.
  */
 class OwnerLeaveQueueMobileLayoutTest extends TestCase
 {
     use DatabaseTransactions;
 
-    public function test_queue_page_carries_the_stacking_layout()
+    public function test_queue_page_carries_the_card_layout()
     {
         $admin = User::where('email', 'admin@hackstra.app')->firstOrFail();
+        $teacher = User::where('email', 'teacher@hackstra.app')->firstOrFail();
+        \App\Models\LeaveRequest::create([
+            'user_id' => $teacher->id,
+            'start_date' => '2026-11-02',
+            'end_date' => '2026-11-02',
+            'reason' => 'Card layout check',
+            'leave_type' => 'normal',
+            'status' => 'pending',
+        ]);
 
         $resp = $this->actingAs($admin)->get(route('leave.index'));
         $resp->assertOk();
-        $resp->assertSee('lv-table', false);
-        $resp->assertSee('lv-wrap', false);
+        // The card mechanism: list container, one card per
+        // request, headline row — and the card stylesheet with
+        // the phone breakpoint for the tabular parts.
+        $resp->assertSee('lv-req-list', false);
+        $resp->assertSee('lv-req-card', false);
+        $resp->assertSee('lv-req-head', false);
         $resp->assertSee('@media (max-width: 991.98px)', false);
-        $resp->assertSee('nth-child(9)', false);
+        // The 10-column requests table is gone for good.
+        $resp->assertDontSee('Allocated Classes');
+        $resp->assertDontSee('Uncovered Periods');
     }
 
     public function test_plan_rows_render_compact_cells_with_switch_forms()

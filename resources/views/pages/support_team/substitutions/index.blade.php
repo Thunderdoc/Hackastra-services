@@ -4,6 +4,25 @@
     <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Substitutions
 @endsection
 @section('content')
+    {{-- Board tables (owner, 2026-11-06): a sheet must FORM as a
+         table — fixed rational proportions, short fields (time,
+         status) on one line, real width for names/subjects, even
+         row padding, headers aligned to their columns. On narrow
+         screens the .table-responsive wrapper scrolls the sheet
+         sideways instead of crushing columns into vertical text. --}}
+    <style>
+        .sub-table { table-layout: fixed; margin-bottom: 0; }
+        .sub-table thead th { font-weight: 600; letter-spacing: .02em; padding: 8px 10px; white-space: nowrap; }
+        .sub-table tbody td { padding: 8px 10px; vertical-align: middle; line-height: 1.45; overflow-wrap: break-word; }
+        .sub-nowrap { white-space: nowrap; }
+        .sub-sheet-table { min-width: 920px; }
+        .sub-plan-table { min-width: 640px; }
+        @media (max-width: 767.98px) {
+            /* The group badge's long sentence wraps inside the
+               card on phones instead of clipping at its edge. */
+            .sub-group-badge { white-space: normal; text-align: left; line-height: 1.5; }
+        }
+    </style>
     @if(session('flash_success'))
         <div class="alert alert-success">{{ session('flash_success') }}</div>
     @endif
@@ -22,29 +41,32 @@
                     @php $first = $rows->first(); @endphp
                     <h6 class="mb-2">
                         {{ optional($first->absent_teacher)->name }} — {{ $first->date ? $first->date->format('D, d M Y') : '' }}
-                        <span class="badge badge-warning">{{ $rows->count() }} period(s) · Planned — goes live when the leave is approved</span>
+                        <span class="badge badge-warning sub-group-badge">{{ $rows->count() }} period(s) · Planned — goes live when the leave is approved</span>
                     </h6>
                     <div class="table-responsive mb-3">
-                        <table class="table table-sm">
+                        <table class="table table-sm sub-table sub-plan-table">
+                            <colgroup><col style="width:24%"><col style="width:24%"><col style="width:22%"><col style="width:30%"></colgroup>
                             <thead>
                                 <tr>
                                     <th>Period</th>
+                                    <th>Class</th>
+                                    <th>Subject</th>
                                     <th>Substitute (system's pick)</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach($rows as $row)
                                     <tr>
-                                        <td data-label="Period">
-                                            {{ optional(optional($row->time_table)->time_slot)->full ?: '' }}
+                                        <td data-label="Period" class="sub-nowrap">{{ optional(optional($row->time_table)->time_slot)->full ?: '—' }}</td>
+                                        <td data-label="Class">
                                             {{ optional(optional(optional($row->time_table)->tt_record)->my_class)->name ?: '—' }}
                                             @if(optional(optional($row->time_table)->tt_record)->section)
                                                 — {{ $row->time_table->tt_record->section->name }}
                                             @else
                                                 — All sections
                                             @endif
-                                            · {{ optional(optional($row->time_table)->subject)->name }}
                                         </td>
+                                        <td data-label="Subject">{{ optional(optional($row->time_table)->subject)->name ?: '—' }}</td>
                                         <td data-label="Substitute"><strong>{{ optional($row->substitute)->name ?: '—' }}</strong></td>
                                     </tr>
                                 @endforeach
@@ -85,7 +107,8 @@
                         <span class="badge badge-light">{{ $rows->count() }} period(s)</span>
                     </h6>
                     <div class="table-responsive mb-3">
-                        <table class="table table-sm">
+                        <table class="table table-sm sub-table sub-sheet-table">
+                            <colgroup><col style="width:15%"><col style="width:15%"><col style="width:14%"><col style="width:15%"><col style="width:15%"><col style="width:10%"><col style="width:8%"><col style="width:8%"></colgroup>
                             <thead>
                                 <tr>
                                     <th>Time</th>
@@ -101,7 +124,7 @@
                             <tbody>
                                 @foreach($rows as $sub)
                                     <tr>
-                                        <td data-label="Time">{{ optional(optional($sub->time_table)->time_slot)->full ?: '—' }}</td>
+                                        <td data-label="Time" class="sub-nowrap">{{ optional(optional($sub->time_table)->time_slot)->full ?: '—' }}</td>
                                         <td data-label="Class">
                                             {{ optional(optional(optional($sub->time_table)->tt_record)->my_class)->name ?: '—' }}
                                             @if(optional(optional($sub->time_table)->tt_record)->section)
@@ -114,7 +137,7 @@
                                         <td data-label="Absent Faculty">{{ optional($sub->absent_teacher)->name ?: '—' }}</td>
                                         <td data-label="Substitute Faculty"><strong>{{ optional($sub->substitute)->name ?: '—' }}</strong></td>
                                         <td data-label="Arranged By">{{ $sub->creator ? $sub->creator->name : 'System (auto)' }}</td>
-                                        <td data-label="Status">
+                                        <td data-label="Status" class="sub-nowrap">
                                             @if($sub->isPending())
                                                 <span class="badge badge-warning">Planned</span>
                                             @else

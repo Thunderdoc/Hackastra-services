@@ -11,12 +11,30 @@
          images exist either (books.url is an online-copy link, kept
          under the author), so every row uses the same placeholder tile. --}}
 
+    {{-- Beauty Wave 2 (2026-11-06): the slim module banner
+         (partials/module_banner) opens the page, in the same family
+         as Timetables / Marks / Attendance from Wave 1. The old
+         toolbar subtitle moves into the banner verbatim (one home
+         for the sentence, not two), and the banner's stats are the
+         SAME whole-catalogue figures the KPI cards in the stats
+         slot below carry — the controller's $stats, read twice.
+         The filters, the table and every control are untouched. --}}
+    @include('partials.module_banner', [
+        'hkModIcon' => 'icon-books',
+        'hkModTone' => 'purple',
+        'hkModTitle' => 'Library Books',
+        'hkModSub' => 'Manage your library collection, track availability, and handle book loans and requests.',
+        'hkModStats' => [
+            ['value' => number_format($stats['titles']), 'label' => 'Titles'],
+            ['value' => number_format($stats['copies']), 'label' => 'Copies'],
+            ['value' => number_format($stats['issued']), 'label' => 'Issued'],
+            ['value' => number_format($stats['available']), 'label' => 'Available'],
+        ],
+    ])
+
     @component('partials.patterns.list_page')
         @slot('title')
             <i class="icon-books mr-2"></i> Library Books
-        @endslot
-        @slot('subtitle')
-            Manage your library collection, track availability, and handle book loans and requests.
         @endslot
         @slot('action')
             <a href="{{ route('book_requests.index') }}" class="btn btn-light"><i class="icon-list mr-1"></i> Loans &amp; Requests</a>
@@ -160,6 +178,7 @@
                                 'message' => 'No books match your search or filters.',
                                 'action_url' => route('books.index'),
                                 'action_label' => 'Reset Search & Filters',
+                                'hkEmptyArt' => true,
                             ])
                         @else
                             @include('partials.patterns.empty_state', [

@@ -31,7 +31,17 @@
                     @foreach($rows as $row)
                         @php $s = $row['subject']; $rec = $row['recommended_id'] ? $teachers->get($row['recommended_id']) : null; @endphp
                         <tr>
-                            <td>{{ $s->my_class->name }} — {{ $s->name }}</td>
+                            <td>{{ $s->my_class->name }} — {{ $s->name }}
+                                @php
+                                    $hkOverrideCount = (int) ($override_counts[$s->id] ?? 0);
+                                    $hkOverrideNote = $hkOverrideCount === 1
+                                        ? '1 section override keeps its own teacher'
+                                        : $hkOverrideCount . ' section overrides keep their own teachers';
+                                @endphp
+                                @if($hkOverrideCount > 0)
+                                    <div class="text-muted" style="font-size: .85em;">{{ $hkOverrideNote }}</div>
+                                @endif
+                            </td>
                             <td>{{ $s->periods_per_week ?: 'Not set' }}</td>
                             <td>{{ $s->teacher ? $s->teacher->name . ' (' . ($row['loads'][$s->teacher_id] ?? 0) . ' periods)' : '—' }}</td>
                             <td>

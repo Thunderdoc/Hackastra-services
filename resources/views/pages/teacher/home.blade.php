@@ -14,7 +14,7 @@
          grading queue that Today's Tasks already lists; its count now
          rides in the Today's Tasks panel sub-line so the figure stays
          on the page in every state, including zero. --}}
-    <div class="t10-welcome">
+    <div class="t10-welcome hk-reveal">
         <aside class="t10-quote">
             <i class="icon-quotes-left" aria-hidden="true"></i>
             <blockquote>&ldquo;Teaching is not just a profession, but a chance to make a difference every day.&rdquo;</blockquote>
@@ -22,7 +22,7 @@
     </div>
 
     {{-- KPI row — the reference's four cards, all real counts for this teacher. --}}
-    <div class="t10-kpi-grid">
+    <div class="t10-kpi-grid hk-reveal hk-reveal-1">
         <div class="t10-kpi t10-kpi-blue">
             <span class="t10-kpi-icon"><i class="icon-book"></i></span>
             <span class="t10-kpi-copy">

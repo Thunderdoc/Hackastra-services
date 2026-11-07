@@ -180,7 +180,6 @@
                                 <div class="gen-fixed">{{ $lvFmt('days', $lvDays) }}</div>
                             </div>
                         </div>
-                        <p class="gen-note">Sirf dekhne ke liye hai — values badalni hon to neeche Level presets mein Edit kholo.</p>
                     </div>
                     <p class="gen-note" id="gen-mode-note"></p>
                 </div>
@@ -236,18 +235,18 @@
                             </div>
                         </div>
                     @endforeach
-                    <p class="gen-note">Fields dobara nahi bharne — Edit kholne par hi uske numbers badalte hain. Pichhli baar ke values yaad rehte hain (last-used values are remembered).</p>
+                    <p class="gen-note">You do not need to fill these in again — a level's numbers change only when you open its Edit, and last-used values are remembered.</p>
                 </div>
 
                 <div class="card gen-panel" style="margin-top:16px;">
                     <h3>Classes that already have a timetable</h3>
                     <label class="gen-radio" data-mode-card="skip">
                         <input type="radio" name="mode" value="skip" {{ old('mode', 'skip') === 'skip' ? 'checked' : '' }}>
-                        <span><b>Keep theirs</b><span>Generate only the missing ones — attendance/substitution wale kabhi replace nahi hote</span></span>
+                        <span><b>Keep theirs</b><span>Generate only the missing ones — classes with attendance or substitutions are never replaced</span></span>
                     </label>
                     <label class="gen-radio" data-mode-card="replace">
                         <input type="radio" name="mode" value="replace" {{ old('mode') === 'replace' ? 'checked' : '' }}>
-                        <span><b>Regenerate all</b><span>Sirf wahi classes jinpar attendance ya substitution nahi hai — baaki replace ho jayengi</span></span>
+                        <span><b>Regenerate all</b><span>Regenerates the classes it can — classes with attendance or substitutions stay protected</span></span>
                     </label>
                 </div>
             </div>
@@ -321,9 +320,14 @@
                                         <div class="gen-subjgrid">
                                             @foreach($streamGroup['subjects'] as $sub)
                                                 @php $checked = $subjectsSubmitted ? in_array($sub->id, (array) old('subjects.' . $group['class']->id, [])) : true; @endphp
-                                                <label class="gen-subj tt-subject-label{{ $checked ? '' : ' off' }}{{ !$sub->teacher_id ? ' warn' : '' }}">
+                                                {{-- G6: the flag reads the EFFECTIVE
+                                                     teacher (controller-computed
+                                                     has_effective_teacher): class
+                                                     teacher OR any section override
+                                                     with a teacher. Wording unchanged. --}}
+                                                <label class="gen-subj tt-subject-label{{ $checked ? '' : ' off' }}{{ !$sub->has_effective_teacher ? ' warn' : '' }}">
                                                     <input type="checkbox" class="tt-subject-check" name="subjects[{{ $group['class']->id }}][]" value="{{ $sub->id }}" {{ $checked ? 'checked' : '' }}>
-                                                    {{ $sub->name }}@if(!$sub->teacher_id) — no teacher @endif
+                                                    {{ $sub->name }}@if(!$sub->has_effective_teacher) — no teacher @endif
                                                 </label>
                                             @endforeach
                                         </div>

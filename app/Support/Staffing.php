@@ -33,6 +33,65 @@ class Staffing
     }
 
     /**
+     * THE cap resolver (per-teacher caps, owner direction
+     * 2026-11-06 "teacher capacity badhao"): a teacher's effective
+     * caps are their own override (users.max_periods_per_day /
+     * max_periods_per_week, set on the Edit User form) when one is
+     * recorded, else the school defaults above. Every surface that
+     * judges a SPECIFIC teacher's load — generation, the
+     * validator, allocation, planning apply, manual cell writes,
+     * the teacher's Workload page, the report below — reads caps
+     * through here, never the raw Settings values, so no two
+     * screens can disagree about the same teacher. (Surfaces that
+     * quote the SCHOOL default itself — the Settings page, the
+     * generate form's prefill — keep using the two global methods;
+     * that is what a default means.)
+     *
+     * @return array{day: int, week: int}
+     */
+    public static function capsFor(\App\User $teacher): array
+    {
+        $day = $teacher->getAttribute('max_periods_per_day');
+        $week = $teacher->getAttribute('max_periods_per_week');
+
+        return [
+            'day' => ($day !== null && (int) $day > 0) ? (int) $day : self::maxPeriodsPerDay(),
+            'week' => ($week !== null && (int) $week > 0) ? (int) $week : self::maxPeriodsPerWeek(),
+        ];
+    }
+
+    /**
+     * The recorded overrides only: [teacher_id => ['day' => ?int,
+     * 'week' => ?int]] for teachers carrying at least one. The
+     * generator composes these over its own run values (the form's
+     * day cap) the same way capsFor composes over the Settings
+     * defaults: a teacher's own cap wins for that teacher. One
+     * query; safe on an un-migrated install (no columns = no
+     * overrides).
+     */
+    public static function overridesMap(): array
+    {
+        if (!\Illuminate\Support\Facades\Schema::hasColumn('users', 'max_periods_per_day')) {
+            return [];
+        }
+        $map = [];
+        $rows = \App\User::where('user_type', 'teacher')
+            ->where(function ($q) {
+                $q->whereNotNull('max_periods_per_day')
+                    ->orWhereNotNull('max_periods_per_week');
+            })
+            ->get(['id', 'max_periods_per_day', 'max_periods_per_week']);
+        foreach ($rows as $u) {
+            $map[(int) $u->id] = [
+                'day' => $u->max_periods_per_day !== null ? (int) $u->max_periods_per_day : null,
+                'week' => $u->max_periods_per_week !== null ? (int) $u->max_periods_per_week : null,
+            ];
+        }
+
+        return $map;
+    }
+
+    /**
      * Ids of teachers eligible to teach a subject NAME: everyone
      * with an eligibility row for it, PLUS anyone already assigned
      * to teach that subject in some class (an existing assignment
@@ -155,15 +214,22 @@ class Staffing
                     ->unique('id')->values();
             }
             $committed = (int) ($loads[$t->id] ?? 0);
+            // Per-teacher caps (2026-11-06): HER row is judged
+            // against HER cap (capsFor), not the school default.
+            // The per-SUBJECT capacity above stays a gross ceiling
+            // at the default — a subject's capacity spans many
+            // teachers, so no single teacher's override can price
+            // it; the per-teacher truth is this row.
+            $teacherCapWeek = self::capsFor($t)['week'];
             $teachers[] = [
                 'teacher' => $t,
                 'classes' => $mine->count(),
                 'subjects' => $mine->pluck('name')->unique()->values()->all(),
                 'committed' => $committed,
                 'unconfigured' => $mine->filter(function ($r) { return !$r->periods_per_week; })->count(),
-                'cap' => $capWeek,
-                'utilization' => $capWeek > 0 ? (int) round($committed * 100 / $capWeek) : 0,
-                'overloaded' => $committed > $capWeek,
+                'cap' => $teacherCapWeek,
+                'utilization' => $teacherCapWeek > 0 ? (int) round($committed * 100 / $teacherCapWeek) : 0,
+                'overloaded' => $committed > $teacherCapWeek,
                 'eligibility_count' => TeacherEligibility::where('teacher_id', $t->id)->count(),
             ];
         }

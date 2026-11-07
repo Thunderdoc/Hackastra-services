@@ -24,10 +24,41 @@
             'action_html' => '<a class="btn btn-primary" href="...">Go</a>',
         ])
 
+    Beauty Wave 3 (2026-11-06): pass 'hkEmptyArt' => true to swap
+    the icon circle for a small decorative illustration plate (an
+    inline SVG scene in site colours — open book, calendar and
+    box; no external image). Opt-in only: every existing caller
+    renders exactly as before.
+
     Styles: public/assets/css/qs.css — "Loop 28" (.pat-* classes).
 --}}
 <div class="pat-empty">
-    @if(!empty($icon ?? null))
+    @if(!empty($hkEmptyArt ?? null))
+        <div class="pat-empty-art" aria-hidden="true">
+            <svg viewBox="0 0 220 124" role="presentation" focusable="false">
+                <rect x="6" y="10" width="208" height="104" rx="18" fill="#e9f1ff"/>
+                <circle cx="34" cy="30" r="3" fill="#3478f6" opacity=".45"/>
+                <circle cx="188" cy="26" r="4" fill="#f2a13b" opacity=".55"/>
+                <circle cx="200" cy="96" r="3" fill="#3478f6" opacity=".4"/>
+                <path d="M52 26l2.2 5.4L60 33l-5.8 1.6L52 40l-2.2-5.4L44 33l5.8-1.6z" fill="#f2a13b" opacity=".8"/>
+                <rect x="88" y="20" width="44" height="40" rx="5" fill="#ffffff" stroke="#c9d9f2" stroke-width="1.5"/>
+                <path d="M88 25a5 5 0 015-5h34a5 5 0 015 5v7H88z" fill="#3478f6"/>
+                <circle cx="99" cy="43" r="2.6" fill="#9db9e8"/>
+                <circle cx="110" cy="43" r="2.6" fill="#9db9e8"/>
+                <circle cx="121" cy="43" r="2.6" fill="#9db9e8"/>
+                <circle cx="99" cy="52" r="2.6" fill="#c9d9f2"/>
+                <circle cx="110" cy="52" r="2.6" fill="#f2a13b"/>
+                <path d="M28 96V62c10-4.5 20-4.5 29 0v34c-9-4.5-19-4.5-29 0z" fill="#ffffff" stroke="#2867dc" stroke-width="2"/>
+                <path d="M86 96V62c-10-4.5-20-4.5-29 0v34c9-4.5 19-4.5 29 0z" fill="#eef4ff" stroke="#2867dc" stroke-width="2"/>
+                <path d="M37 70c5-1.6 9-1.8 13-.6M37 78c5-1.6 9-1.8 13-.6M63 69.4c4-1.2 8-1 13 .6M63 77.4c4-1.2 8-1 13 .6" stroke="#9db9e8" stroke-width="2" stroke-linecap="round" fill="none"/>
+                <path d="M148 96l4-22h36l4 22z" fill="#f2a13b"/>
+                <path d="M146 74l2-8h44l2 8z" fill="#d97c06"/>
+                <path d="M170 66v30" stroke="#b7791f" stroke-width="2.5"/>
+                <path d="M160 86h20" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" opacity=".65"/>
+                <path d="M24 104h172" stroke="#c9d9f2" stroke-width="3" stroke-linecap="round"/>
+            </svg>
+        </div>
+    @elseif(!empty($icon ?? null))
         <div class="pat-empty-icon"><i class="{{ $icon }}"></i></div>
     @endif
     @if(!empty($message ?? null))

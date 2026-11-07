@@ -16,12 +16,17 @@
            geometry is untouched, and the dompdf blades (bulk_pdf)
            never include this blade, so no PDF surface moves. */
         @media screen {
-            .report-card { overflow-x: auto; max-width: 100%; }
+            .rcd { overflow-x: auto; max-width: 100%; }
         }
     </style>
 </head>
 <body>
-    @include('pages.support_team.marks.partials.report_card', ['rc_show_traits' => true])
+    {{-- rcd-doc: the print sheet carries the full A4 height and the
+         card's signature block anchors to its foot (redesign
+         2026-11-06). --}}
+    <div class="rcd-doc">
+        @include('pages.support_team.marks.partials.report_card', ['rc_show_traits' => true])
+    </div>
 
     <script>
         window.print();

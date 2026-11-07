@@ -16,6 +16,7 @@ use App\Models\Section;
 use App\Models\Setting;
 use App\Models\Subject;
 use App\Models\Substitution;
+use App\Models\TeacherSlotPreference;
 use App\Models\TimeSlot;
 use App\Models\TimeTable;
 use App\Models\TimeTableRecord;
@@ -155,6 +156,25 @@ class TimeTableController extends Controller
 
         if ($scope === false || !in_array((int) $ttr->my_class_id, $scope, true)) {
             abort(403, __('msg.denied'));
+        }
+
+        /* Teacher section narrowing (G1, owner rule "a teacher sees
+           only her own sections", 2026-11-06): the class check alone
+           let a teacher open/print ANOTHER section's grid of a class
+           she teaches by direct URL, although the index never lists
+           that record to her. Mirror the index exactly: a section
+           record is openable only when its section is one she
+           touches (teacherSectionIdsByClass — leads it, holds an
+           override in it, or is the effective teacher of one of its
+           subjects); whole-class records stay visible, as on her
+           index. Denial is the same 403 as a foreign class. Other
+           roles are untouched: their scope is null (office) or the
+           class check above already settled it. */
+        if (Qs::userIsTeacher() && $ttr->section_id) {
+            $hers = $this->teacherSectionIdsByClass(Auth::user(), $scope);
+            if (!in_array((int) $ttr->section_id, $hers[(int) $ttr->my_class_id] ?? [], true)) {
+                abort(403, __('msg.denied'));
+            }
         }
     }
 
@@ -369,6 +389,26 @@ class TimeTableController extends Controller
                 'subjects' => Subject::where('my_class_id', $c->id)->orderBy('id')->get(),
             ];
         });
+
+        // G6 allocation clarity (2026-11-06): the picker's
+        // "— no teacher" flag must judge the EFFECTIVE teacher,
+        // not only the class-level one. A subject whose class
+        // teacher is empty but which carries section overrides
+        // (section_subject_teachers with a teacher set) DOES have
+        // a teacher in those sections — SectionTeacher::
+        // teacherIdFor would resolve one — so it must not be
+        // flagged teacher-less. Flag only when no effective
+        // teacher exists anywhere: no class teacher AND no
+        // override with a teacher in any of the class's sections.
+        $overrideSubjectIds = DB::table('section_subject_teachers')
+            ->whereNotNull('teacher_id')
+            ->pluck('subject_id')->unique()->flip()->all();
+        foreach ($d['subject_groups'] as $group) {
+            foreach ($group['subjects'] as $subject) {
+                $subject->setAttribute('has_effective_teacher',
+                    !empty($subject->teacher_id) || isset($overrideSubjectIds[$subject->id]));
+            }
+        }
 
         return view('pages.support_team.timetables.generate', $d);
     }
@@ -649,6 +689,32 @@ class TimeTableController extends Controller
            to add a period that would take a teacher over the cap. */
         $teacherWeekCount = [];
         $weekCap = Staffing::maxPeriodsPerWeek();
+        /* Per-teacher caps (2026-11-06): a teacher's own recorded
+           cap beats the run's globals FOR THAT TEACHER — the week
+           cap above stays the school default for everyone without
+           an override, and the form's day cap further down is
+           likewise only the default a personal day cap replaces.
+           Composed once here (Staffing::overridesMap) so every
+           placement check below reads the same two maps. */
+        $weekCapOf = [];
+        $dayCapOf = [];
+        foreach (Staffing::overridesMap() as $capTid => $capPair) {
+            if ($capPair['week'] !== null) {
+                $weekCapOf[$capTid] = $capPair['week'];
+            }
+            if ($capPair['day'] !== null) {
+                $dayCapOf[$capTid] = $capPair['day'];
+            }
+        }
+        /* Teacher slot preferences (owner ask 2026-11-06, gap
+           G2): loaded once per run, like the caps maps above —
+           [teacher_id => [day name => [period => true]]]. The
+           placement sort reads them as a SOFT tie-break key only
+           (see the candidate sort in the target loop): a
+           preference can never override a clash, a cap or a
+           weekly target, and when nobody has preferences this map
+           is empty and the ordering is exactly what it was. */
+        $slotPrefs = TeacherSlotPreference::mapForGeneration();
         foreach ($existingRecords as $existing) {
             if (isset($supersededIds[$existing->id])) {
                 continue; // superseded by the section grid being built
@@ -776,7 +842,7 @@ class TimeTableController extends Controller
                 }
             }
 
-            DB::transaction(function () use ($record, $class, $targetSectionId, $displayName, $subjects, $targetSlots, $targetCfg, $dayNames, $data, &$busyIntervals, &$teacherDayCount, &$teacherWeekCount, $weekCap, &$summary) {
+            DB::transaction(function () use ($record, $class, $targetSectionId, $displayName, $subjects, $targetSlots, $targetCfg, $dayNames, $data, &$busyIntervals, &$teacherDayCount, &$teacherWeekCount, $weekCap, $weekCapOf, $dayCapOf, $slotPrefs, &$summary) {
                 if ($record) {
                     /* T4: freeze the outgoing grid before it is
                        replaced — a regenerate is never a point of
@@ -875,15 +941,22 @@ class TimeTableController extends Controller
                         continue;
                     }
                     $planTeacher = $teacherOf[$s->id] ?? null;
-                    if (!$planTeacher || ($planCap !== null && (int) $planCap < 2)) {
+                    if (!$planTeacher) {
+                        continue;
+                    }
+                    // This teacher's effective caps for the run:
+                    // her personal cap when she has one, else the
+                    // form's day cap / the school week cap.
+                    $planCapEff = $dayCapOf[$planTeacher] ?? $planCap;
+                    if ($planCapEff !== null && (int) $planCapEff < 2) {
                         continue;
                     }
                     for ($pd = 1; $pd <= $targetCfg['days']; $pd++) {
-                        if ($planCap !== null
-                            && ($teacherDayCount[$planTeacher][$pd] ?? 0) + ($plannedLoad[$planTeacher][$pd] ?? 0) + 2 > (int) $planCap) {
+                        if ($planCapEff !== null
+                            && ($teacherDayCount[$planTeacher][$pd] ?? 0) + ($plannedLoad[$planTeacher][$pd] ?? 0) + 2 > (int) $planCapEff) {
                             continue;
                         }
-                        if (($teacherWeekCount[$planTeacher] ?? 0) + ($plannedWeekLoad[$planTeacher] ?? 0) + 2 > $weekCap) {
+                        if (($teacherWeekCount[$planTeacher] ?? 0) + ($plannedWeekLoad[$planTeacher] ?? 0) + 2 > ($weekCapOf[$planTeacher] ?? $weekCap)) {
                             continue;
                         }
                         for ($pi = 0; $pi + 1 < count($targetSlots); $pi++) {
@@ -979,7 +1052,7 @@ class TimeTableController extends Controller
                             && ((int) $nextSlot['from']->format('H') * 60 + (int) $nextSlot['from']->format('i')) === $slotToMinute;
                         $candidates = $subjects->filter(function ($s) use ($targets, $weekCount) {
                             return $targets[$s->id] === null || $weekCount[$s->id] < (int) $targets[$s->id];
-                        })->sortBy(function ($s) use ($weekCount, $dayCount, $prevSubjectId, $prevAdjacent, $nextAdjacent, $doubled, $targets, $teacherOf, $teacherDayCount, $day, $subjectOrder, $subjectCount, $rotBase) {
+                        })->sortBy(function ($s) use ($weekCount, $dayCount, $prevSubjectId, $prevAdjacent, $nextAdjacent, $doubled, $targets, $teacherOf, $teacherDayCount, $day, $subjectOrder, $subjectCount, $rotBase, $slotIdx, $dayNames, $slotPrefs) {
                             $doubleBoost = ($prevAdjacent && $prevSubjectId === $s->id && $s->needs_double && !$doubled[$s->id]
                                 && ($targets[$s->id] === null || $weekCount[$s->id] < (int) $targets[$s->id])) ? -1000 : 0;
                             /* Pair-start penalty: a needs_double subject
@@ -1010,15 +1083,44 @@ class TimeTableController extends Controller
                             $teacherLoad = $teacherOf[$s->id]
                                 ? min($teacherDayCount[$teacherOf[$s->id]][$day] ?? 0, 9)
                                 : 0;
+                            /* Slot-preference tie-break (owner ask
+                               2026-11-06, gap G2): when the
+                               candidate's effective teacher has asked
+                               for THIS (day, period), her subject
+                               sorts ahead of an otherwise-equal
+                               rival. It sits BETWEEN the score and
+                               the rotation in the sort key, so:
+                               - it fires only on an EXACT score tie
+                                 — the weekly target, day spread,
+                                 caps and load balance (all inside
+                                 the score) are never overturned;
+                               - it outranks only the rotation,
+                                 which is itself a cosmetic final
+                                 tiebreaker;
+                               - the hard feasibility walk below is
+                                 untouched, so a busy or capped
+                                 teacher is still refused a slot she
+                                 prefers — the preference loses to
+                                 every hard rule, always.
+                               Teachers without preferences all
+                               carry key 1, exactly like candidates
+                               whose teacher did not pick this slot,
+                               so a run where nobody has preferences
+                               orders identically to before. */
+                            $prefKey = 1;
+                            $prefTeacher = $teacherOf[$s->id] ?? null;
+                            if ($prefTeacher && isset($slotPrefs[$prefTeacher][$dayNames[$day - 1]][$slotIdx + 1])) {
+                                $prefKey = 0;
+                            }
                             // Rotation tiebreaker (last): only breaks
                             // exact score ties, so it can never
                             // overturn a target, spread, cap or load
                             // decision. Array sort: score first, then
-                            // rotated position.
+                            // preference, then rotated position.
                             $rot = $subjectCount > 0
                                 ? (($subjectOrder[$s->id] + $rotBase + ($day - 1)) % $subjectCount)
                                 : 0;
-                            return [$doubleBoost + $doublePenalty + ($weekCount[$s->id] * 100) + ($dayCount[$s->id] * 10) + $teacherLoad, $rot];
+                            return [$doubleBoost + $doublePenalty + ($weekCount[$s->id] * 100) + ($dayCount[$s->id] * 10) + $teacherLoad, $prefKey, $rot];
                         })->values();
                         $chosen = null;
                         $cap = $data['max_teacher_periods_per_day'] ?? null;
@@ -1040,9 +1142,10 @@ class TimeTableController extends Controller
                                 && ($targets[$planSubjectId] === null
                                     || $weekCount[$planSubjectId] < (int) $targets[$planSubjectId]);
                             if ($planValid && $isPairStart) {
-                                $planValid = ($cap === null
-                                    || ($teacherDayCount[$planTeacher][$day] ?? 0) + 2 <= (int) $cap)
-                                    && ($teacherWeekCount[$planTeacher] ?? 0) + 2 <= $weekCap;
+                                $planCapEff = $dayCapOf[$planTeacher] ?? $cap;
+                                $planValid = ($planCapEff === null
+                                    || ($teacherDayCount[$planTeacher][$day] ?? 0) + 2 <= (int) $planCapEff)
+                                    && ($teacherWeekCount[$planTeacher] ?? 0) + 2 <= ($weekCapOf[$planTeacher] ?? $weekCap);
                                 if ($planValid) {
                                     foreach (($busyIntervals[$planTeacher][$day] ?? []) as [$bf, $bt]) {
                                         if ($slotMinute < $bt && $bf < $slotToMinute) {
@@ -1068,7 +1171,8 @@ class TimeTableController extends Controller
                                 $noTeacherSkip = true;
                                 continue;
                             }
-                            if ($cap !== null && ($teacherDayCount[$candTeacher][$day] ?? 0) >= (int) $cap) {
+                            $candCapEff = $dayCapOf[$candTeacher] ?? $cap;
+                            if ($candCapEff !== null && ($teacherDayCount[$candTeacher][$day] ?? 0) >= (int) $candCapEff) {
                                 $cappedSkip = true;
                                 continue;
                             }
@@ -1077,8 +1181,10 @@ class TimeTableController extends Controller
                                takes a teacher over the school's weekly
                                cap — the validator warns about exactly
                                this load, so generation must not create
-                               it. Buckets as capped, like the day cap. */
-                            if (($teacherWeekCount[$candTeacher] ?? 0) >= $weekCap) {
+                               it. Buckets as capped, like the day cap.
+                               Per-teacher caps (2026-11-06): HER OWN
+                               week cap when she has one. */
+                            if (($teacherWeekCount[$candTeacher] ?? 0) >= ($weekCapOf[$candTeacher] ?? $weekCap)) {
                                 $cappedSkip = true;
                                 continue;
                             }
@@ -1218,6 +1324,27 @@ class TimeTableController extends Controller
             DB::rollBack();
             report($e);
             return back()->with('flash_danger', 'Timetable generation failed — nothing was changed. Please try again.')->withInput();
+        }
+
+        /* G5 (audit 2026-11-06): a run whose day-cap field was
+           CLEARED used to leave no trace — the placer then runs
+           with no day cap for every teacher who has no personal
+           cap of their own. The run behaves exactly as before;
+           the decision itself is now on the audit record, naming
+           the acting admin (the row's user) and the run scope. */
+        if (empty($data['max_teacher_periods_per_day'])) {
+            $scopeText = $data['scope'] === 'all'
+                ? 'all classes'
+                : 'class ' . (optional($classes->first())->name ?? '')
+                    . ($section ? ', section ' . $section->name : '');
+            Audit::log(
+                'timetable.generated_without_day_cap',
+                $data['scope'] === 'one' ? $classes->first() : null,
+                'Timetable generation by ' . (Auth::user()->name ?? 'an admin')
+                    . ' ran with the daily teacher cap cleared (no day cap) — scope: ' . $scopeText
+                    . ', mode: ' . $data['mode']
+                    . '. Teachers with a personal day cap kept theirs.'
+            );
         }
 
         /* Skip-all reads as failure ("0 classes, 0 periods") when every

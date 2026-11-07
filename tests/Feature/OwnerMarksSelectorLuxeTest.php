@@ -34,7 +34,9 @@ class OwnerMarksSelectorLuxeTest extends TestCase
             $html = $this->actingAs($this->user($email))
                 ->get(route('marks.index'))->assertOk()->getContent();
 
-            $this->assertStringContainsString('l10-head', $html);
+            // Beauty Wave 1: the l10 head is formalised into the
+            // shared slim module banner — same title/subtitle/chip.
+            $this->assertStringContainsString('hk-mod-banner', $html);
             $this->assertStringContainsString('l10-tiles', $html);
             $this->assertStringContainsString('l10-status', $html);
             $this->assertStringContainsString('id="l84-steps"', $html);

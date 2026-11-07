@@ -42,6 +42,16 @@ class Allocation
     public static function recommendations(): array
     {
         $cap = Staffing::maxPeriodsPerWeek();
+        // Per-teacher caps (2026-11-06): each teacher is judged
+        // against their OWN weekly cap (override via capsFor
+        // semantics) — the global $cap remains the fallback for
+        // teachers without an override and for the reason strings
+        // while no override is in play.
+        $overrides = Staffing::overridesMap();
+        $weekCapOf = function ($teacherId) use ($overrides, $cap) {
+            $o = $overrides[(int) $teacherId]['week'] ?? null;
+            return $o !== null ? (int) $o : $cap;
+        };
         $loads = self::teacherLoads();
         $rows = [];
 
@@ -64,7 +74,7 @@ class Allocation
                 && (!$s->teacher->getAttribute('status') || $s->teacher->getAttribute('status') === 'active');
             if (!$s->teacher_id || !$teacherLive) {
                 $issue = 'unassigned';
-            } elseif ($s->periods_per_week && ($loads[$s->teacher_id] ?? 0) > $cap) {
+            } elseif ($s->periods_per_week && ($loads[$s->teacher_id] ?? 0) > $weekCapOf($s->teacher_id)) {
                 $issue = 'overloaded';
             }
             if (!$issue) {
@@ -80,9 +90,13 @@ class Allocation
             $need = (int) ($s->periods_per_week ?? 0);
             $best = null;
             $bestLoad = null;
+            $anyOverrideCap = false;
             foreach ($candidates as $id) {
+                if (isset($overrides[(int) $id]['week'])) {
+                    $anyOverrideCap = true;
+                }
                 $load = $loads[$id] ?? 0;
-                if ($need > 0 && $load + $need > $cap) {
+                if ($need > 0 && $load + $need > $weekCapOf($id)) {
                     continue;
                 }
                 if ($bestLoad === null || $load < $bestLoad) {
@@ -94,12 +108,14 @@ class Allocation
             if (empty($eligible)) {
                 $reason = 'No eligible teacher is recorded for ' . $s->name . ' — record eligibility first.';
             } elseif ($best === null && $need > 0) {
-                $reason = 'Every eligible teacher would exceed the weekly cap (' . $cap . ') with this subject added.';
+                $reason = $anyOverrideCap
+                    ? 'No eligible teacher has room under their own weekly cap with this subject added.'
+                    : 'Every eligible teacher would exceed the weekly cap (' . $cap . ') with this subject added.';
             } elseif ($best === null) {
                 $reason = 'Set the weekly-period requirement on this subject so the engine can check capacity.';
             } else {
                 $reason = 'Lowest current load among ' . count($candidates) . ' eligible teacher(s): '
-                    . $bestLoad . ' of ' . $cap . ' periods committed.';
+                    . $bestLoad . ' of ' . $weekCapOf($best) . ' periods committed.';
             }
 
             $rows[] = [
