@@ -177,6 +177,31 @@ class TimeTableController extends Controller
                 abort(403, __('msg.denied'));
             }
         }
+
+        /* Student/parent section narrowing (owner live catch,
+           2026-11-08): the class check alone let a Prep A student
+           open — and print — Prep B's grid by direct URL: same
+           class, wrong section. A section record opens only for
+           the student whose own section it is, or for a parent
+           with a child sitting in that section. Whole-class
+           records (section_id null) stay open to the whole class,
+           exactly as before. */
+        if ($ttr->section_id && Qs::userIsStudent()) {
+            $sr = Qs::findStudentRecord(Auth::id());
+            if (!$sr || (int) $sr->section_id !== (int) $ttr->section_id) {
+                abort(403, __('msg.denied'));
+            }
+        }
+
+        if ($ttr->section_id && Qs::userIsParent()) {
+            $owns = Qs::findMyChildren(Auth::id())->contains(function ($child) use ($ttr) {
+                return (int) $child->my_class_id === (int) $ttr->my_class_id
+                    && (int) $child->section_id === (int) $ttr->section_id;
+            });
+            if (!$owns) {
+                abort(403, __('msg.denied'));
+            }
+        }
     }
 
     public function index(Request $req)
@@ -185,6 +210,45 @@ class TimeTableController extends Controller
 
         if ($scope === false) {
             return redirect()->route('dashboard')->with('pop_error', __('msg.denied'));
+        }
+
+        /* Student (owner live catch, 2026-11-08): NO index, NO
+           class/section chooser — a student has exactly one
+           timetable, their own class+section record, and lands
+           DIRECTLY on it. When nothing is in force for them yet,
+           My Timetable shows its honest empty state instead of
+           the picker. */
+        if (Qs::userIsStudent()) {
+            $ttr = $this->ownClassRecord($req);
+
+            if ($ttr && $ttr->isInForce()) {
+                return redirect()->route('ttr.show', $ttr->id);
+            }
+
+            return redirect()->route('tt.mine');
+        }
+
+        /* Parent (same catch): NO chooser, NO class cards — only
+           their own children, one direct link per child to that
+           child's own record. Records not yet in force are named
+           honestly instead of linked. */
+        if (Qs::userIsParent()) {
+            $children = Qs::findMyChildren(Auth::id());
+            $children->loadMissing('section');
+            $rows = $children->map(function ($child) {
+                $ttr = SectionTeacher::recordForClassSection(
+                    $child->my_class_id, $child->section_id ?? null, $this->year);
+                if ($ttr && !$ttr->isInForce()) {
+                    $ttr = null;
+                }
+
+                return ['child' => $child, 'ttr' => $ttr];
+            });
+
+            return view('pages.support_team.timetables.children', [
+                'rows' => $rows,
+                'year' => $this->year,
+            ]);
         }
 
         $d['exams'] = $this->exam->getExam(['year' => $this->year]);

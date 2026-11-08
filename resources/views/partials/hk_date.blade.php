@@ -223,6 +223,19 @@
             return true;
         }
 
+        /* Settled signal (2026-11-08): fired right after a commit
+           lands, so dependent fields (e.g. the leave form's To
+           mirror) can read the SETTLED value. Reading .value from
+           a plain 'input'/'change' listener races this file's own
+           commit handlers — page scripts register their listeners
+           at parse time, BEFORE this transform registers its
+           handlers at DOMContentLoaded, so in the same dispatch
+           the page's listener still sees the previously committed
+           value (the leave To ran one step behind the From). */
+        function fireSettled() {
+            input.dispatchEvent(new CustomEvent('hkdate:settled', { bubbles: true }));
+        }
+
         // .value now speaks ISO in both directions: scripts that
         // read it get yyyy-mm-dd; scripts that set it (an ISO
         // string, or a DD/MM/YYYY string) see the field render
@@ -250,18 +263,18 @@
             var raw = proto.get.call(input);
             var masked = mask(raw);
             if (masked !== raw) { proto.set.call(input, masked); }
-            if (masked.length === 10) { commit(masked); }
+            if (masked.length === 10) { if (commit(masked)) { fireSettled(); } }
             else { hidden.value = ''; }
         });
         input.addEventListener('change', function () {
             var proto = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
             /* Only re-render on a good commit — rendering after a
                failed commit would wipe the text the user typed. */
-            if (commit(proto.get.call(input))) { render(); }
+            if (commit(proto.get.call(input))) { render(); fireSettled(); }
         });
         input.addEventListener('blur', function () {
             var proto = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
-            if (commit(proto.get.call(input))) { render(); }
+            if (commit(proto.get.call(input))) { render(); fireSettled(); }
         });
 
         var initial = input.getAttribute('value') || '';

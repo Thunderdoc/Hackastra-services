@@ -165,6 +165,11 @@ class OwnerExamDateSheetR41Test extends TestCase
         $exam = Exam::where('name', 'R41 Chain Exam')->firstOrFail();
         $this->assertSame((int) $classX->id, (int) $exam->my_class_id, 'Exam created scoped to X');
         $this->assertFalse((bool) $exam->results_published, 'Fresh exam starts unpublished');
+        // Publication gate (owner order 2026-11-08): step (d) below
+        // renders student admit cards, which now sit behind the
+        // admit-card publication switch — publish them here, as the
+        // Principal would from the Publication page.
+        $exam->update(['admit_cards_published' => true]);
 
         // Scope is FIXED at creation: update accepts name/term only,
         // a posted my_class_id for Y is ignored, not applied.

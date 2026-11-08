@@ -26,8 +26,8 @@ class ExamController extends Controller
         // open to the principal, and result publication is a
         // designated principal approval (not other writes).
         $this->middleware('teamOrPrincipal:SA', ['only' => ['index', 'show', 'publication']]);
-        $this->middleware('teamSAWrite', ['except' => ['index', 'show', 'publishResults', 'unpublishResults', 'publication', 'notifyPending']]);
-        $this->middleware('teamOrPrincipal:SAWrite', ['only' => ['publishResults', 'unpublishResults', 'notifyPending']]);
+        $this->middleware('teamSAWrite', ['except' => ['index', 'show', 'publishResults', 'unpublishResults', 'publishAdmitCards', 'unpublishAdmitCards', 'publication', 'notifyPending']]);
+        $this->middleware('teamOrPrincipal:SAWrite', ['only' => ['publishResults', 'unpublishResults', 'publishAdmitCards', 'unpublishAdmitCards', 'notifyPending']]);
 
         $this->exam = $exam;
     }
@@ -381,6 +381,39 @@ class ExamController extends Controller
         $this->exam->update($examId, ['results_published' => false]);
         Exam::where('id', $examId)->update(['publish_requested_by' => null, 'publish_requested_at' => null]);
         return back()->with('flash_success', 'Results unpublished. Students and parents can no longer view results for this exam.');
+    }
+
+    /**
+     * Admit-card publication (owner order 2026-11-08): the admit
+     * card joins results as a published document. The Principal
+     * alone publishes/unpublishes, from the exam's Publication
+     * page; the student/parent self-service reads the flag
+     * server-side (AdmitCardController::myCard + the my-cards
+     * list), ahead of the fee gate. Office (teamSA) generation
+     * never reads it. Every flip is audit-logged.
+     */
+    public function publishAdmitCards($id)
+    {
+        if (!Qs::userIsPrincipal()) {
+            abort(403, 'Only the Principal publishes admit cards.');
+        }
+        $examId = Qs::resolveId($id);
+        $this->exam->update($examId, ['admit_cards_published' => true]);
+        $exam = $this->exam->find($examId);
+        Audit::log('exams.admit_cards_published', null, 'Admit cards published for exam ' . $examId . ($exam ? ' (' . $exam->name . ')' : '') . ' by ' . Auth::user()->name);
+        return back()->with('flash_success', 'Admit cards published. Students and parents can now view and print admit cards for this exam (subject to the usual fee clearance).');
+    }
+
+    public function unpublishAdmitCards($id)
+    {
+        if (!Qs::userIsPrincipal()) {
+            abort(403, 'Only the Principal unpublishes admit cards.');
+        }
+        $examId = Qs::resolveId($id);
+        $this->exam->update($examId, ['admit_cards_published' => false]);
+        $exam = $this->exam->find($examId);
+        Audit::log('exams.admit_cards_unpublished', null, 'Admit cards unpublished for exam ' . $examId . ($exam ? ' (' . $exam->name . ')' : '') . ' by ' . Auth::user()->name);
+        return back()->with('flash_success', 'Admit cards unpublished. Students and parents can no longer view admit cards for this exam.');
     }
 
 }

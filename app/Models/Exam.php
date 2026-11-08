@@ -6,10 +6,11 @@ use Eloquent;
 
 class Exam extends Eloquent
 {
-    protected $fillable = ['name', 'term', 'year', 'results_published', 'my_class_id', 'period_id'];
+    protected $fillable = ['name', 'term', 'year', 'results_published', 'admit_cards_published', 'my_class_id', 'period_id'];
 
     protected $casts = [
         'results_published' => 'boolean',
+        'admit_cards_published' => 'boolean',
     ];
 
     public function my_class()

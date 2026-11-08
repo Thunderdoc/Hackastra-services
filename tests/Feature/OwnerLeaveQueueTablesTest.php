@@ -100,6 +100,53 @@ class OwnerLeaveQueueTablesTest extends TestCase
         $resp->assertDontSee('class="lv-req-card"', false);
     }
 
+    public function test_main_queue_details_open_in_a_full_width_panel_row()
+    {
+        // Panel redesign (owner screenshots, 2026-11-08): the
+        // expanders used to live INSIDE the narrow Actions cell —
+        // the plan and week tables crushed to ~330px with
+        // colliding headers ("SUBSTITUTIEWITCH"), and the
+        // allocation printed as a text paragraph. Now the row's
+        // toggles open a panel row spanning ALL columns: the
+        // allocation is a table (one row per assignment) and the
+        // cover plan carries six distinct headers.
+        $this->actingAs($this->teacher())->post(route('leave.store'), [
+            'leave_type' => 'normal',
+            'start_date' => '2026-11-02',
+            'end_date' => '2026-11-02',
+            'reason' => 'Panel layout check',
+        ])->assertRedirect();
+
+        $resp = $this->actingAs($this->admin())->get(route('leave.index'));
+        $resp->assertOk();
+        // The panel row itself: hidden by default, spanning the
+        // whole sheet, opened by the row's toggles.
+        $resp->assertSee('class="lv-panel-row"', false);
+        $resp->assertSee('<td colspan="8" class="lv-panel-cell">', false);
+        $resp->assertSee('data-lv-toggle', false);
+        // Allocation as a TABLE, one row per assignment.
+        $resp->assertSee('lv-alloc-table', false);
+        foreach (['Class', 'Sections', 'Subject', 'Role'] as $col) {
+            $resp->assertSee('<th>' . $col . '</th>', false);
+        }
+        $resp->assertSee('Class teacher');
+        $resp->assertSee('Subject teacher');
+        $resp->assertSee('Section override');
+        $resp->assertSee('All sections');
+        // The old text-wall paragraph form is gone from the page.
+        $resp->assertDontSee('Full allocation');
+        $resp->assertDontSee('Class teacher: Prep', false);
+        // Cover plan: the six headers, each distinct, with the
+        // plan's switch forms on the same endpoint as before.
+        foreach (['Date', 'Period', 'Class – Section', 'Subject', 'Substitute', 'Switch'] as $col) {
+            $resp->assertSee('<th>' . $col . '</th>', false);
+        }
+        $resp->assertSee('See the plan', false);
+        $resp->assertSee('name="decision_note"', false);
+        // No in-cell <details> expanders remain on this surface.
+        $resp->assertDontSee('<details', false);
+    }
+
     public function test_student_queue_decision_still_bells_the_applicant()
     {
         // Behavioural anchor for the table conversion: approving

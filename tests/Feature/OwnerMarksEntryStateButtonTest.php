@@ -113,6 +113,48 @@ class OwnerMarksEntryStateButtonTest extends TestCase
         $res->assertSee('Not Enabled', false);
     }
 
+    public function test_selector_settles_on_ajax_drain_not_a_url_sniff()
+    {
+        // Owner live-proof fix 2026-11-08: after the cascade
+        // auto-populated section + subject, the Manage Marks
+        // button stayed "Not Enabled" with blank tiles until a
+        // dropdown was opened by hand. Root cause: the cascade's
+        // change events fire while the loading helper's empty
+        // placeholder is still the selects' value, so every
+        // value-driven consumer sees an incomplete unit — and the
+        // page's ONLY rescue was a document ajaxComplete handler
+        // that sniffed request URLs. The gate now re-evaluates on
+        // the global ajax drain (ajaxStop), which depends on no
+        // URL and no single event.
+        $res = $this->actingAs($this->ananya())->get(route('marks.index'));
+
+        $res->assertOk();
+        $html = $res->getContent();
+        $this->assertStringContainsString("$(document).on('ajaxStop'", $html);
+        $this->assertStringNotContainsString("indexOf('selector-options')", $html,
+            'the entry gate must not depend on sniffing cascade request URLs');
+    }
+
+    public function test_loading_helper_announces_settled_values_in_both_copies()
+    {
+        // The other half of the same fix: when the loading
+        // helper's cleanup lands a select on a real option (the
+        // auto-populated value), it must announce the change —
+        // until it does, consumers keep the empty placeholder
+        // value they saw mid-cascade. hkSelectLoading lives in
+        // two byte-semantic copies (canonical hackstra-ux.js +
+        // the guarded inline fallback); both must carry it.
+        $snippet = "if (\$sel.val() !== hkValBefore) { \$sel.trigger('change'); }";
+
+        $ux = file_get_contents(public_path('assets/js/hackstra-ux.js'));
+        $this->assertStringContainsString($snippet, $ux,
+            'canonical hackstra-ux.js hkSelectLoading must announce settled values');
+
+        $page = $this->actingAs($this->ananya())->get(route('marks.index'));
+        $this->assertStringContainsString($snippet, $page->getContent(),
+            'inline fallback hkSelectLoading must announce settled values');
+    }
+
     public function test_stat_icon_tiles_centre_their_glyphs()
     {
         // Owner, 2026-11-01 (live marks entry page): the stat

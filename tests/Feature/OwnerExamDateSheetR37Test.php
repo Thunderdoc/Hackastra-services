@@ -86,6 +86,10 @@ class OwnerExamDateSheetR37Test extends TestCase
     {
         [$class, $section] = $this->makeClass('R37 Dateless Class', ['R37-Algebra', 'R37-Biology'], 'r37-date');
         $student = $this->makeStudent('R37 Dateless Pupil', $class->id, $section->id);
+        // Publication gate (owner order 2026-11-08): admit cards start unpublished
+        // and that check sits before the behaviour pinned here — publish the exam's
+        // admit cards in the fixture. The gate itself is pinned by OwnerPublicationGateTest.
+        \App\Models\Exam::findOrFail(1)->update(['admit_cards_published' => true]);
 
         $this->assertSame(0, ExamDate::where('exam_id', 1)->where('my_class_id', $class->id)->count(),
             'Fixture truth: no date rows exist for this class');
@@ -125,6 +129,10 @@ class OwnerExamDateSheetR37Test extends TestCase
         // rows=[] + fallback=true, so the card's @empty row fires.
         [$class, $section] = $this->makeClass('R37 Empty Class', [], 'r37-empty');
         $student = $this->makeStudent('R37 Empty Pupil', $class->id, $section->id);
+        // Publication gate (owner order 2026-11-08): admit cards start unpublished
+        // and that check sits before the behaviour pinned here — publish the exam's
+        // admit cards in the fixture. The gate itself is pinned by OwnerPublicationGateTest.
+        \App\Models\Exam::findOrFail(1)->update(['admit_cards_published' => true]);
 
         $resp = $this->actingAs($student)->get(route('admit_cards.my_card', ['exam' => 1, 'student_id' => $student->id]));
         $resp->assertOk();
@@ -139,6 +147,10 @@ class OwnerExamDateSheetR37Test extends TestCase
     {
         [$class, $section, $subjects] = $this->makeClass('R37 Dated Class', ['R37-Economics', 'R37-French'], 'r37-dated');
         $student = $this->makeStudent('R37 Dated Pupil', $class->id, $section->id);
+        // Publication gate (owner order 2026-11-08): admit cards start unpublished
+        // and that check sits before the behaviour pinned here — publish the exam's
+        // admit cards in the fixture. The gate itself is pinned by OwnerPublicationGateTest.
+        \App\Models\Exam::findOrFail(1)->update(['admit_cards_published' => true]);
         ExamDate::create([
             'exam_id' => 1, 'my_class_id' => $class->id, 'subject_id' => $subjects[0]->id,
             'exam_date' => '2026-12-01', 'start_time' => '09:00', 'note' => null,

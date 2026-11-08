@@ -244,9 +244,13 @@ class OwnerAuditOvernightExamTest extends TestCase
 
         // Admin saved it, nobody approved it: the student must NOT see it yet (item 22).
         $resp = $this->actingAs($student)->get(route('exam_dates.show', ['exam_id' => 1]))->assertOk();
-        $this->assertSame(0, $resp->viewData('announced'),
-            'Unapproved sheet leaks announced rows to the student read.');
-        $resp->assertSee('Dates not announced yet');
+        // Publication gate (owner order 2026-11-08): the student
+        // read is now the shared not-published state page — it
+        // carries no sheet data at all, so the announced count the
+        // sheet page used to expose no longer exists here. Nothing
+        // of the sheet leaks: no date, no subject.
+        $resp->assertViewIs('pages.support_team.not_published');
+        $resp->assertSee('Not Published Yet');
         $resp->assertDontSee('Mon, 01 Mar 2027');
     }
 
@@ -262,7 +266,7 @@ class OwnerAuditOvernightExamTest extends TestCase
         $student = $this->makeStudent('OVN-A Ungated Pupil', $class->id, $section->id, 'UNG');
         $this->generateFor($class->id)->assertRedirect();
         $this->actingAs($student)->get(route('exam_dates.show', ['exam_id' => 1]))->assertOk()
-            ->assertSee('Dates not announced yet')
+            ->assertViewIs('pages.support_team.not_published')->assertSee('Not Published Yet')
             ->assertDontSee('OVN-A Ungated Alpha')
             ->assertDontSee('Mon, 01 Mar 2027');
     }

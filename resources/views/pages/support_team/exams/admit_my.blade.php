@@ -43,7 +43,15 @@
                                     <td data-label="Session">{{ $ex->year }}</td>
                                     <td class="text-center" data-label="Admit Card">
                                         @php $due = $due_by_student[$sr->user_id] ?? 0; @endphp
-                                        @if($due > 0)
+                                        @if(!$ex->admit_cards_published)
+                                            {{-- Publication gate (owner order 2026-11-08): checked BEFORE
+                                                 the fee state — an unpublished card is not a fee matter,
+                                                 and no card link is offered until the Principal publishes. --}}
+                                            <div class="alert alert-secondary py-2 px-2 mb-1" style="font-size:13px;">
+                                                <i class="icon-eye-blocked mr-1"></i> Admit card not published yet.
+                                                <div class="text-muted" style="font-size:12px;">Your school hasn't published this yet — it will appear here once published.</div>
+                                            </div>
+                                        @elseif($due > 0)
                                             <div class="alert alert-warning py-2 px-2 mb-1" style="font-size:13px;">
                                                 <i class="icon-lock mr-1"></i> Fees pending — {{ \App\Helpers\Money::inr($due) }} due for {{ $current_session ?? \App\Helpers\Qs::getCurrentSession() }}. The admit card unlocks as soon as the fees are paid.
                                             </div>

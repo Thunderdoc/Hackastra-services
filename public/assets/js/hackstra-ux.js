@@ -599,8 +599,16 @@ document.addEventListener('click', function (e) {
                 $sel.prepend('<option value="" class="hk-skel-loading" disabled selected>Loading…</option>');
             }
         } else {
+            /* Settle announcement: while loading, the select's
+               value is the empty Loading placeholder, so the
+               change events fired mid-cascade report an empty
+               select and value-driven consumers stand down. The
+               cleanup below can settle the select onto a real
+               option — announce that, or nobody re-reads it. */
+            var hkValBefore = $sel.val();
             $sel.find('option.hk-skel-loading').remove();
             $sel.prop('disabled', false);
+            if ($sel.val() !== hkValBefore) { $sel.trigger('change'); }
         }
     };
 

@@ -99,6 +99,10 @@
             <span class="l11-line">Saving updates the live result.</span>
         @elseif(!empty($lifecycle['opens_on']))
             <span class="l11-line">Entry opens {{ $lifecycle['opens_on'] }} — the day after the exam ({{ $lifecycle['exam_date'] }}).</span>
+        @elseif(!empty($lifecycle['submitted']))
+            {{-- Owner order 2026-11-08: the submitted page is a
+                 read-only viewing — the strip says so plainly. --}}
+            <span class="l11-line">Submitted — these marks are locked and view-only. Only the school Admin can reopen them for a correction.</span>
         @endif
         @if(!empty($lifecycle['submitted']))
             @if(\App\Helpers\Qs::userIsAdmin())

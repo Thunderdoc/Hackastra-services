@@ -55,6 +55,17 @@
                             @else
                                 <span class="badge badge-secondary">Not published</span>
                             @endif
+                            {{-- Admit-card publication state (owner
+                                 order 2026-11-08): a second, independent
+                                 switch — the Principal flips it from
+                                 this exam's Publication page. --}}
+                            <div class="mt-1">
+                                @if($ex->admit_cards_published)
+                                    <span class="badge badge-success">Admit cards published</span>
+                                @else
+                                    <span class="badge badge-secondary">Admit cards not published</span>
+                                @endif
+                            </div>
                         </td>
                         <td data-label="Tools">
                             {{-- Loop 108 (owner order 2026-10-23): the

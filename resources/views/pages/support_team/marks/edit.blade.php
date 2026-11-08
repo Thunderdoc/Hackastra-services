@@ -187,8 +187,15 @@
             </div>
         </div>
         <span class="l86-dirty-hint" id="l86-dirty" hidden><i class="icon-pencil7"></i> Unsaved changes</span>
+        {{-- Owner order 2026-11-08: a submitted unit opens
+             read-only — it renders NO save controls at all (the
+             server refuses the save regardless; dead buttons on a
+             viewing page would promise an action that cannot
+             happen). Draft and not-yet-open states are unchanged. --}}
+        @if(empty($lifecycle['submitted']))
         <button type="button" class="btn btn-light l86-reset"{{ $l86Locked ? ' disabled' : '' }}><i class="icon-reset"></i> Reset</button>
         <button type="submit" class="btn btn-primary"{{ $l86Locked ? ' disabled' : '' }}>Update Marks <i class="icon-paperplane ml-2"></i></button>
+        @endif
     </div>
 </form>
 

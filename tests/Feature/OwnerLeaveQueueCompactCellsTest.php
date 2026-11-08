@@ -24,6 +24,15 @@ use Tests\TestCase;
  * inside the expander, the full list stays behind "Full
  * allocation", the cover badge leads the cover row, and the
  * explanation + covering names live inside the plan view.
+ *
+ * Re-expressed again 2026-11-08 (owner's hotfix-F order: the
+ * in-cell expanders crushed every detail into the narrow
+ * Actions column — "bekar, cluttered"): the expanders are
+ * GONE. The details now live in a full-width panel row under
+ * the request row; the allocation renders as a proper TABLE
+ * (the "Full allocation" text wall is deleted by the same
+ * order); the chips, the cover badge and the covering-names-
+ * inside-the-detail-area contract are unchanged.
  */
 class OwnerLeaveQueueCompactCellsTest extends TestCase
 {
@@ -48,7 +57,7 @@ class OwnerLeaveQueueCompactCellsTest extends TestCase
             ->assertOk()->getContent();
 
         // Allocation: the summary's facts are compact chips
-        // inside the card's Details expander (the sentence form
+        // inside the panel's Details section (the sentence form
         // was the 2026-10-30 design; the chips are its card-era
         // equivalent — same facts, same source string)…
         $this->assertStringContainsString('lv-alloc-chip', $html);
@@ -56,21 +65,24 @@ class OwnerLeaveQueueCompactCellsTest extends TestCase
         $this->assertStringContainsString('9 sections', $html);
         $this->assertStringContainsString('Teaches 5 subjects', $html);
         $this->assertStringContainsString('6 section overrides', $html);
-        // …and the full list still exists, inside its expander.
-        $this->assertStringContainsString('Full allocation', $html);
-        $this->assertStringContainsString('Class teacher: Prep', $html);
+        // …and the full list still exists, as a proper table
+        // inside the panel (2026-11-08: the "Full allocation"
+        // text-wall paragraph is deleted by owner order).
+        $this->assertStringContainsString('lv-alloc-table', $html);
+        $this->assertStringNotContainsString('Full allocation', $html);
+        $this->assertStringNotContainsString('Class teacher: Prep', $html);
 
-        // Uncovered: badge in the card's cover row, then the
-        // plan expander carries the explanation and the
+        // Uncovered: badge in the request row, then the
+        // full-width panel row carries the explanation and the
         // covering names.
         $badgePos = strpos($html, 'Plan ready');
-        $detailsPos = strpos($html, '<details', (int) $badgePos);
+        $detailsPos = strpos($html, 'lv-panel-row', (int) $badgePos);
         $namesPos = strpos($html, 'Covered by:');
         $this->assertNotFalse($badgePos, 'Plan-ready badge missing');
-        $this->assertNotFalse($detailsPos, 'Plan expander missing');
+        $this->assertNotFalse($detailsPos, 'Panel row missing');
         $this->assertNotFalse($namesPos, 'Covering names missing');
         $this->assertLessThan($namesPos, $detailsPos,
-            'The covering names must render INSIDE the plan/details expander, not in the row');
+            'The covering names must render INSIDE the panel row, not in the request row');
         $this->assertStringContainsString('See the plan (', $html);
         // The old row-crammed "By: name, name +N more" line is gone.
         $this->assertStringNotContainsString('>By: ', $html);

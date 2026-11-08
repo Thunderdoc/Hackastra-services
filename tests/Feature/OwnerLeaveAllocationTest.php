@@ -103,10 +103,16 @@ class OwnerLeaveAllocationTest extends TestCase
         // request: the allocation (as chips behind the card's
         // Details expander, full list in "Full allocation") and
         // the cover gap (the cover row's chip + state).
+        // Re-expressed again 2026-11-08 (owner's hotfix-F order):
+        // the expanders became a full-width panel row and the
+        // allocation renders as a proper TABLE — the "Full
+        // allocation" text wall is deleted by that order, so the
+        // surface pin now asserts the table, not the paragraph.
         $leave = $this->makeLeave($this->ananya()->id, '2026-11-02', '2026-11-02');
         $response = $this->actingAs($this->admin())->get(route('leave.index'));
         $response->assertOk();
-        $response->assertSee('Full allocation');
+        $response->assertSee('lv-alloc-table');
+        $response->assertDontSee('Full allocation');
         $response->assertSee('9 sections');
         $response->assertSee('8 without cover');
         $response->assertSee('Not covered');

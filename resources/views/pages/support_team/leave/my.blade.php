@@ -158,7 +158,28 @@
                            the field saying why. Full-day durations
                            unlock it again. Form behaviour only —
                            the server already enforces single-day
-                           for partial leave. */
+                           for partial leave.
+
+                           Two live failures fixed 2026-11-08 (the
+                           original passed a programmatic proof but
+                           failed real use):
+                           1. The lock never engaged at all: this
+                              select is Select2-enhanced, and
+                              Select2 announces changes through
+                              jQuery's trigger, which never reaches
+                              a vanilla 'change' listener — so
+                              choosing a half-day never ran partSync.
+                              partSync is now bound through jQuery
+                              as well as vanilla (it is idempotent).
+                           2. The mirror ran one step BEHIND the
+                              From date: it read the bridged .value
+                              from 'input' listeners registered at
+                              parse time, which fire BEFORE hk_date's
+                              own commit handlers in the same
+                              dispatch, so it copied the previously
+                              committed date. The mirror now runs on
+                              hk_date's 'hkdate:settled' signal,
+                              fired after a commit lands. */
                         var note = document.getElementById('lv_same_day_note');
                         var isPartial = function () {
                             return part.value === 'first_half' || part.value === 'second_half' || part.value === 'periods';
@@ -173,19 +194,40 @@
                             /* Only the VISIBLE field locks: it carries
                                no name after hk_date transforms it, so
                                the hidden ISO sibling still submits
-                               the mirrored date. */
+                               the mirrored date. readOnly rides
+                               along as a second bar — even if some
+                               widget re-enables the field, it still
+                               cannot be typed into while locked. */
                             end.disabled = locked;
+                            end.readOnly = locked;
                             if (end._hkBtn) { end._hkBtn.disabled = locked; }
                             if (note) { note.style.display = locked ? '' : 'none'; }
                         };
                         var partSync = function () { sync(); mirrorEnd(); lockEnd(); hintSync(); };
                         part.addEventListener('change', partSync);
+                        /* Select2 speaks jQuery (failure 1 above):
+                           bind the same sync through jQuery too. */
+                        if (window.jQuery) { window.jQuery(part).on('change', partSync); }
                         [start, end, pFrom, pTo].forEach(function (el) {
                             if (el) { el.addEventListener('change', hintSync); el.addEventListener('input', hintSync); }
                         });
                         if (start) {
                             start.addEventListener('change', function () { mirrorEnd(); hintSync(); });
-                            start.addEventListener('input', function () { mirrorEnd(); });
+                            /* NOT 'input' — that races hk_date's
+                               commit (failure 2 above). Mirror only
+                               once the From value has settled. */
+                            start.addEventListener('hkdate:settled', function () { mirrorEnd(); hintSync(); });
+                        }
+                        if (end) {
+                            /* Self-guard: any settled write to the
+                               To field while a single-day duration
+                               is chosen (a stray edit, an hk-draft
+                               restore landing late) is mirrored
+                               straight back to the From date, so a
+                               stale To can never survive to submit. */
+                            var guardEnd = function () { if (isPartial()) { mirrorEnd(); } };
+                            end.addEventListener('change', guardEnd);
+                            end.addEventListener('hkdate:settled', guardEnd);
                         }
                         sync();
                         hintSync();

@@ -108,6 +108,11 @@ class OwnerExamDateSheetR32Test extends TestCase
             'term' => $term,
             'year' => '2026-2027',
             'my_class_id' => $classId,
+            // Publication gate (owner order 2026-11-08): the myCard
+            // pins in this file sit behind the admit-card gate, so
+            // made exams start admit-published. The gate itself is
+            // pinned by OwnerPublicationGateTest.
+            'admit_cards_published' => true,
         ]);
     }
 
@@ -204,7 +209,11 @@ class OwnerExamDateSheetR32Test extends TestCase
         $resp = $this->actingAs($this->student57())->get(route('exam_dates.index'));
         $resp->assertOk();
         $resp->assertDontSee('Mon, 02 Nov 2026');
-        $resp->assertSee('Dates not announced yet');
+        // Publication gate (owner order 2026-11-08): the student
+        // index now lands on the shared not-published state rather
+        // than the sheet page with rows withheld — the pinned
+        // intent (legacy rows never render) is unchanged.
+        $resp->assertSee('Not Published Yet');
     }
 
     public function test_scoped_class_own_sheet_still_renders_its_date()

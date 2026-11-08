@@ -95,10 +95,14 @@ class OwnerOvernightMenusApprovalTest extends TestCase
     {
         $this->seedSheet();
 
+        // Publication gate (owner order 2026-11-08): students and
+        // parents now land on the shared not-published state page
+        // instead of the sheet page with its rows withheld. The
+        // pinned intent is unchanged — no subject, no date leaks.
         $this->actingAs($this->student())->get(route('exam_dates.index'))
-            ->assertOk()->assertSee('Dates not announced yet')->assertDontSee('English Language');
+            ->assertOk()->assertViewIs('pages.support_team.not_published')->assertSee('Not Published Yet')->assertDontSee('English Language');
         $this->actingAs($this->parent())->get(route('exam_dates.index'))
-            ->assertOk()->assertSee('Dates not announced yet');
+            ->assertOk()->assertViewIs('pages.support_team.not_published')->assertSee('Not Published Yet');
         // Date-based assertion for the teacher page: its furniture
         // (attendance reminders) names subjects, so a subject-name
         // absence would false-fail; the sheet's own dates must be
@@ -225,8 +229,9 @@ class OwnerOvernightMenusApprovalTest extends TestCase
         $saved->assertRedirect();
         $this->assertSame('draft', $this->state()->status);
 
+        // Back behind the gate (2026-11-08 state page, as above).
         $this->actingAs($this->student())->get(route('exam_dates.index'))
-            ->assertOk()->assertSee('Dates not announced yet');
+            ->assertOk()->assertViewIs('pages.support_team.not_published')->assertSee('Not Published Yet');
     }
 
     public function test_no_change_save_keeps_published()

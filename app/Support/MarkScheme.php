@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Models\ExamSubjectComponent;
 use App\Models\Mark;
 use App\Models\MarkComponent;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Batch M1/M2 — the marking-scheme resolver.
@@ -246,6 +247,72 @@ class MarkScheme
             );
         }
         $mark->unsetRelation('markComponents');
+    }
+
+    /**
+     * Bulk sibling of saveComponentScores() for the entry grid's
+     * whole-class save (hotfix 2026-11-08): the per-cell
+     * updateOrCreate cost 2 queries × every component × every
+     * student (~240 queries for one section). This writes the same
+     * final state — a row for every given (mark, component) with
+     * the given score, updated_at touched on existing rows exactly
+     * as updateOrCreate touches it — with one read, chunked CASE
+     * updates for existing rows and chunked inserts for new ones.
+     *
+     * @param iterable $marks            the unit's Mark models
+     * @param array    $scoresByMarkId   [mark_id => [component_id => ?int]]
+     */
+    public static function saveComponentScoresBulk($marks, array $scoresByMarkId)
+    {
+        $markIds = [];
+        foreach ($marks as $mk) {
+            $markIds[] = (int) $mk->id;
+        }
+        if (!$markIds) {
+            return;
+        }
+
+        $existing = MarkComponent::whereIn('mark_id', $markIds)->get()
+            ->keyBy(function ($row) {
+                return $row->mark_id . ':' . $row->component_id;
+            });
+
+        $now = now();
+        $updates = [];
+        $inserts = [];
+        foreach ($marks as $mk) {
+            foreach (($scoresByMarkId[$mk->id] ?? []) as $componentId => $score) {
+                $key = $mk->id . ':' . $componentId;
+                if (isset($existing[$key])) {
+                    $updates[] = ['id' => (int) $existing[$key]->id, 'score' => $score];
+                } else {
+                    $inserts[] = [
+                        'mark_id' => (int) $mk->id,
+                        'component_id' => (int) $componentId,
+                        'score' => $score,
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ];
+                }
+            }
+            $mk->unsetRelation('markComponents');
+        }
+
+        foreach (array_chunk($updates, 100) as $chunk) {
+            $cases = [];
+            $ids = [];
+            foreach ($chunk as $u) {
+                $ids[] = $u['id'];
+                $cases[] = 'WHEN ' . $u['id'] . ' THEN ' . ($u['score'] === null ? 'NULL' : (int) $u['score']);
+            }
+            DB::table('mark_components')->whereIn('id', $ids)->update([
+                'score' => DB::raw('CASE id ' . implode(' ', $cases) . ' END'),
+                'updated_at' => $now,
+            ]);
+        }
+        foreach (array_chunk($inserts, 200) as $chunk) {
+            DB::table('mark_components')->insert($chunk);
+        }
     }
 
     /**

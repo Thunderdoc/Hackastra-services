@@ -31,6 +31,17 @@ use Tests\TestCase;
  * .table-responsive inner scroll around the sheet plus those
  * compact rules. Real-width proof is the 360px/320px renders
  * attached to the segment.
+ *
+ * Re-expressed 2026-11-08 (panel redesign, owner screenshots):
+ * the expanders no longer live inside the narrow Actions cell
+ * at ANY width — their content opens in a full-width panel row
+ * under the request (see OwnerLeaveQueueTablesTest). The phone
+ * pin below is re-expressed at equal strength: under the same
+ * sub-992px breakpoint the panel tables now stay tables and
+ * scroll inside their .table-responsive wraps at readable
+ * min-widths; the stacked-block transformation with its
+ * ::before column labels is retired (it was the fixed-layout
+ * squeeze that collided in the first place).
  */
 class OwnerLeaveQueueMobileLayoutTest extends TestCase
 {
@@ -88,5 +99,23 @@ class OwnerLeaveQueueMobileLayoutTest extends TestCase
         $resp->assertSee('lv-plan-table', false);
         // The when-line carries the date AND the slot time together.
         $resp->assertSee('Mon, 02/11/2026', false);
+    }
+
+    public function test_panel_tables_stay_tables_on_phone_via_inner_scroll()
+    {
+        $admin = User::where('email', 'admin@hackstra.app')->firstOrFail();
+        $resp = $this->actingAs($admin)->get(route('leave.index'));
+        $resp->assertOk();
+        // The breakpoint survives; under it the panel tables keep
+        // their columns at readable min-widths inside their
+        // .table-responsive wraps instead of restacking.
+        $resp->assertSee('@media (max-width: 991.98px)', false);
+        $resp->assertSee('.lv-plan-table { min-width: 680px; }', false);
+        $resp->assertSee('.lv-week-table { min-width: 620px; }', false);
+        $resp->assertSee('.lv-alloc-table { min-width: 540px; }', false);
+        // The retired stacked-block rules (and their ::before
+        // column labels) are gone from the page stylesheet.
+        $resp->assertDontSee('lv-plan-table td:nth-child(3)::before', false);
+        $resp->assertDontSee('content: "Substitute: "', false);
     }
 }

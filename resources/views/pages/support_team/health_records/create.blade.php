@@ -26,9 +26,9 @@
                 </div>
                 <div class="form-group">
                     <label for="student_id">Student</label>
-                    <select name="student_id" id="student_id" class="form-control hk-cascade-student" required data-value-key="user_id"
+                    <select name="student_id" id="student_id" class="form-control hk-cascade-student" required data-value-key="user_id" data-student-search="remote" data-search-placeholder="Type a name or admission no…"
                             @if($preselected) data-preselect-class="{{ $preselected->my_class_id }}" data-preselect-section="{{ $preselected->section_id }}" data-preselect-value="{{ $preselected->user_id }}" data-preselect-label="{{ optional($preselected->user)->name }} ({{ $preselected->adm_no }})" @endif>
-                        <option value="">Choose a student…</option>
+                        <option value="">Choose a section, then type to search</option>
                     </select>
                 </div>
                 <div class="form-group">

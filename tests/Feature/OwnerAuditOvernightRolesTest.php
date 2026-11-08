@@ -345,9 +345,11 @@ class OwnerAuditOvernightRolesTest extends TestCase
             ->assertOk()->assertSee($f['date_label']);
 
         // No state row = draft: families + teacher must NOT see the date.
+        // Publication gate (owner order 2026-11-08): the student
+        // lands on the shared not-published state page now.
         $this->actingAs($f['student'])
             ->get(route('exam_dates.index', ['exam_id' => $f['exam']->id]))
-            ->assertOk()->assertDontSee($f['date_label'])->assertSee('Dates not announced yet');
+            ->assertOk()->assertDontSee($f['date_label'])->assertViewIs('pages.support_team.not_published')->assertSee('Not Published Yet');
         $childId = StudentRecord::where('my_parent_id', $f['parent']->id)->orderBy('user_id')->value('user_id');
         $this->actingAs($f['parent'])
             ->get(route('exam_dates.index', ['exam_id' => $f['exam']->id, 'student_id' => $childId]))

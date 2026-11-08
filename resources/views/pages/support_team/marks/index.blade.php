@@ -65,7 +65,9 @@
        Batch 2, audit A8: the settled selector rule must hold from
        first paint, not only after JS runs); this script keeps it
        in sync from there — enabled only for a complete, enabled
-       unit, or on the entry-state fail-open below. If the script
+       unit (a submitted unit enables it as "View Marks" — the
+       read-only opening, owner 2026-11-08), or on the entry-state
+       fail-open below. If the script
        fails to load, the selects keep their HTML `required` and
        the manage() gates remain the server-side enforcement. */
     $(function () {
@@ -80,13 +82,15 @@
            server whether this unit is actually enabled (exam date
            reached + not yet submitted, via MarkLifecycle). If not,
            the button reads "Not Enabled" and the note under it says
-           why — nobody clicks through into a locked grid. The
+           why. Owner order 2026-11-08 refines the submitted state:
+           the button reads "View Marks" and opens the entry page
+           read-only — locked for editing, never invisible. The
            server-side gates remain the real enforcement; a failed
            check fails OPEN to them rather than stranding the user. */
         var $note = $('#l84-entry-note'), $label = $('#l84-manage-btn-label'),
             $pulse = $('#l10-pulse'),
             entryStateUrl = '{{ route('marks.entry_state') }}',
-            entrySeq = 0, entryOk = false, entryPending = false, lastEntryKey = '';
+            entrySeq = 0, entryOk = false, entryViewOnly = false, entryPending = false, lastEntryKey = '';
 
         /* Item 10: ONE flow drives the stepper, the stat tiles, the
            status line and the button together, all from the same
@@ -121,28 +125,39 @@
             var key = [val($exam), val($cls), val($sec), val($sub)].join(':');
             if (key === lastEntryKey) { return; }
             lastEntryKey = key;
-            entryOk = false; entryPending = true;
+            entryOk = false; entryViewOnly = false; entryPending = true;
             var seq = ++entrySeq;
             $.ajax({ url: entryStateUrl, dataType: 'json', data: {
                 exam_id: val($exam), class_id: val($cls),
                 section_id: val($sec), subject_id: val($sub)
             }}).done(function (data) {
-                if (seq !== entrySeq) { return; }
+                /* A superseded response must not strand the gate:
+                   re-derive from the current state instead of
+                   silently dropping the answer. */
+                if (seq !== entrySeq) { evalState(); return; }
                 entryPending = false;
                 fillTiles(data);
                 if (data && data.enabled) {
-                    entryOk = true;
+                    entryOk = true; entryViewOnly = false;
                     $label.text('Manage Marks');
                     setStatus('ok', 'Ready \u2014 marks entry is open for this unit.');
+                } else if (data && data.view_only) {
+                    /* Owner order 2026-11-08: a submitted unit is
+                       locked for editing but stays OPENABLE — the
+                       button becomes "View Marks" and the entry
+                       page renders read-only for its teacher. */
+                    entryOk = false; entryViewOnly = true;
+                    $label.text('View Marks');
+                    setStatus('', (data && data.reason) ? data.reason : 'These marks are submitted and locked — you can view them read-only.');
                 } else {
-                    entryOk = false;
+                    entryOk = false; entryViewOnly = false;
                     $label.text('Not Enabled');
                     setStatus('bad', (data && data.reason) ? data.reason : 'This unit is not enabled.');
                 }
                 evalState();
             }).fail(function () {
-                if (seq !== entrySeq) { return; }
-                entryPending = false; entryOk = true;
+                if (seq !== entrySeq) { evalState(); return; }
+                entryPending = false; entryOk = true; entryViewOnly = false;
                 $label.text('Manage Marks');
                 setStatus('', 'Entry state could not be checked \u2014 the server confirms it when you open the marks.');
                 evalState();
@@ -154,7 +169,7 @@
                 done2 = val($cls) !== '' && val($sec) !== '' && !cascadePending,
                 done3 = val($sub) !== '' && !cascadePending,
                 complete = done1 && done2 && done3,
-                done = [done1, done2, done3, complete && entryOk],
+                done = [done1, done2, done3, complete && (entryOk || entryViewOnly)],
                 current = done.indexOf(false); // first incomplete step (0-based)
 
             $steps.each(function (i) {
@@ -166,12 +181,12 @@
 
             if (complete) { checkEntry(); }
             else {
-                entrySeq++; entryOk = false; entryPending = false; lastEntryKey = '';
+                entrySeq++; entryOk = false; entryViewOnly = false; entryPending = false; lastEntryKey = '';
                 $label.text('Not Enabled');
                 setStatus('', 'Select exam, class, section and subject \u2014 the entry state will show here.');
                 resetTiles();
             }
-            $btn.prop('disabled', !complete || entryPending || !entryOk);
+            $btn.prop('disabled', !complete || entryPending || !(entryOk || entryViewOnly));
         }
 
         $('#exam_id, #my_class_id, #section_id, #subject_id').on('change', function () {
@@ -182,13 +197,18 @@
             evalState();
         });
 
-        /* The cascade fills section/subject without firing change on
-           them; re-evaluate once its request settles (success or not). */
-        $(document).on('ajaxComplete', function (e, xhr, settings) {
-            if (settings && settings.url && (settings.url.indexOf('get_class_subjects') !== -1 || settings.url.indexOf('selector-options') !== -1)) {
-                cascadePending = false;
-                evalState();
-            }
+        /* The cascade settles asynchronously: its selects announce
+           their final values when the loading cleanup lands them
+           (hkSelectLoading), and this gate ALSO re-evaluates when
+           every in-flight request has drained (ajaxStop) — the
+           settle point that depends on no single event, handler
+           order or request URL. (Owner fix 2026-11-08: the old
+           URL-sniffed ajaxComplete was the ONLY rescue path; when
+           it did not deliver, an auto-populated unit sat on
+           "Not Enabled" until a dropdown was opened by hand.) */
+        $(document).on('ajaxStop', function () {
+            if (cascadePending) { cascadePending = false; }
+            evalState();
         });
 
         /* Reset: restore the initial state — exam back to its first

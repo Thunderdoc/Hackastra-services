@@ -32,7 +32,8 @@ class MarkLifecycle
      * Full state for one (exam, class, section, subject) unit.
      *
      * @return array{exam_date:?string, open:bool, opens_on:?string,
-     *               submitted:?\App\Models\MarkSubmission, locked:bool}
+     *               submitted:?\App\Models\MarkSubmission, locked:bool,
+     *               view_only:bool}
      */
     public static function state($examId, $classId, $sectionId, $subjectId): array
     {
@@ -71,6 +72,11 @@ class MarkLifecycle
             'opens_on' => $opensOn,
             'submitted' => $submission,
             'locked' => $submission !== null || !$open,
+            // Owner order 2026-11-08: a submitted unit is locked
+            // for EDITING but stays openable read-only — the
+            // teacher who entered the marks can still view them.
+            // Only the pre-date state is a full closure.
+            'view_only' => $submission !== null,
         ];
     }
 

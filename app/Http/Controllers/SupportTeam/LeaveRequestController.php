@@ -423,6 +423,7 @@ class LeaveRequestController extends Controller
             $r->weekly_periods = 0;
             $r->leave_balance = null;
             $r->overlap_warning = null;
+            $r->allocation_rows = [];
             $user = $r->user;
             if (!$user) { $r->allocation_lines = []; $r->uncovered_periods = null; continue; }
             // Overnight fix (adopted from a5e6b05): cover info is
@@ -435,9 +436,11 @@ class LeaveRequestController extends Controller
                 $allocCache[$user->id] ??= [
                     'lines' => LeaveCover::allocationLines($user),
                     'summary' => LeaveCover::allocationSummary($user),
+                    'rows' => LeaveCover::allocationRows($user),
                 ];
                 $r->allocation_lines = $allocCache[$user->id]['lines'];
                 $r->allocation_summary = $allocCache[$user->id]['summary'];
+                $r->allocation_rows = $allocCache[$user->id]['rows'];
                 $r->uncovered_periods = ($user->user_type === 'teacher' && in_array($r->status, ['pending', 'approved'], true))
                     ? LeaveCover::uncoveredCount($user->id, $r->start_date, $r->end_date, $r->periodWindow()) : null;
                 // Owner order 2026-10-29: a bare "Covered" badge is
@@ -477,6 +480,28 @@ class LeaveRequestController extends Controller
                     if ($r->status === 'pending') {
                         $r->plan_rows = $coverRows->where('status', 'pending')->values();
                         if ($r->plan_rows->isNotEmpty()) {
+                            // Period numbers for the queue's plan
+                            // table (panel redesign, 2026-11-08):
+                            // the same per-record day numbering
+                            // LeaveCover::weekGrid uses, resolved
+                            // once per weekday across the plan.
+                            $periodMaps = [];
+                            foreach ($r->plan_rows as $planRow) {
+                                $planRow->period_no = null;
+                                if ($planRow->time_table && $planRow->date) {
+                                    $dayName = $planRow->date->format('l');
+                                    if (!isset($periodMaps[$dayName])) {
+                                        $dayIds = [];
+                                        foreach ($r->plan_rows as $peer) {
+                                            if ($peer->time_table && $peer->date && $peer->date->format('l') === $dayName) {
+                                                $dayIds[] = (int) $peer->time_table->ttr_id;
+                                            }
+                                        }
+                                        $periodMaps[$dayName] = LeaveCover::periodIndexMap(array_values(array_unique($dayIds)), $dayName);
+                                    }
+                                    $planRow->period_no = $periodMaps[$dayName][(int) $planRow->time_table->id] ?? null;
+                                }
+                            }
                             $board = new \App\Http\Controllers\SupportTeam\SubstitutionController();
                             // Built locally, then assigned whole —
                             // offset-writing a magic model property
@@ -519,6 +544,7 @@ class LeaveRequestController extends Controller
                 }
             } catch (\Throwable $e) {
                 $r->allocation_lines = [];
+                $r->allocation_rows = [];
                 $r->uncovered_periods = null;
                 $r->cover_names = [];
                 $r->planned_periods = null;

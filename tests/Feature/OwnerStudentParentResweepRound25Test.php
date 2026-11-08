@@ -336,6 +336,11 @@ class OwnerStudentParentResweepRound25Test extends TestCase
 
     public function test_my_card_defaulter_block_vs_office()
     {
+        // Publication gate (owner order 2026-11-08): the fee block
+        // pinned here sits behind the admit-card publication
+        // switch — publish exam 1's admit cards in the fixture.
+        // The gate itself is pinned by OwnerPublicationGateTest.
+        \App\Models\Exam::findOrFail(1)->update(['admit_cards_published' => true]);
         $sibling = $this->siblingRecord();
 
         // Owing student 58, self: blocked view with the real total.

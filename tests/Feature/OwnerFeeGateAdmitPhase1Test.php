@@ -51,6 +51,13 @@ class OwnerFeeGateAdmitPhase1Test extends TestCase
             'Precondition: record 1 must owe 0 for the current session');
         $this->assertSame(14400, FeeDefaulter::outstandingFor($this->sr2->user_id, $this->session),
             'Precondition: record 2 must owe 14,400 for the current session');
+
+        // Publication gate (owner order 2026-11-08): admit cards
+        // start unpublished and that check sits BEFORE the fee
+        // gate this file pins — so exam 1 is admit-published in
+        // the fixture. The gate itself (incl. the ordering) is
+        // pinned by OwnerPublicationGateTest.
+        Exam::findOrFail(1)->update(['admit_cards_published' => true]);
     }
 
     protected function user1()
@@ -262,6 +269,10 @@ class OwnerFeeGateAdmitPhase1Test extends TestCase
             'term' => 2,
             'year' => $this->session,
             'results_published' => true,
+            // Publication gate (owner order 2026-11-08): this
+            // fixture exam's cards must be reachable, so it is
+            // created admit-published.
+            'admit_cards_published' => true,
             'my_class_id' => 0,
         ]);
 
@@ -280,7 +291,9 @@ class OwnerFeeGateAdmitPhase1Test extends TestCase
     }
 
     // Test 12 — publication orthogonality: results_published=false
-    // does not gate the admit card for a paid student.
+    // does not gate the admit card for a paid student. (The card's
+    // own switch — admit_cards_published — is on via setUp; the
+    // two publications are independent, owner order 2026-11-08.)
     public function test_unpublished_results_exam_still_renders_for_paid()
     {
         Exam::findOrFail(1)->update(['results_published' => false]);

@@ -228,7 +228,10 @@ class OwnerAuditOvernightTimetableTest extends TestCase
             ->assertOk()->getContent();
         $this->assertStringNotContainsString($f['label'], $html, 'STUDENT sees unpublished date-sheet date');
         $this->assertStringNotContainsString('AUDTT-NOTE-' . $f['u'], $html, 'STUDENT sees unpublished date-sheet note');
-        $this->assertStringContainsString('Dates not announced yet', $html, 'STUDENT should get the honest unpublished empty state');
+        // Publication gate (owner order 2026-11-08): the honest
+        // unpublished state for families is now the shared
+        // not-published page.
+        $this->assertStringContainsString('Not Published Yet', $html, 'STUDENT should get the honest unpublished empty state');
     }
 
     public function test_item22_unpublished_sheet_hidden_from_parent()
@@ -238,7 +241,7 @@ class OwnerAuditOvernightTimetableTest extends TestCase
             ->get(route('exam_dates.show', ['exam_id' => $f['exam']->id, 'student_id' => $f['studentUser']->id]))
             ->assertOk()->getContent();
         $this->assertStringNotContainsString($f['label'], $html, 'PARENT sees unpublished date-sheet date');
-        $this->assertStringContainsString('Dates not announced yet', $html, 'PARENT should get the honest unpublished empty state');
+        $this->assertStringContainsString('Not Published Yet', $html, 'PARENT should get the honest unpublished empty state');
     }
 
     public function test_item22_unpublished_sheet_hidden_from_teacher()

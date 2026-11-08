@@ -386,6 +386,11 @@ Route::group(['middleware' => 'auth'], function () {
            exams resource so the action names win cleanly. */
         Route::post('exams/{exam}/publish-results', 'ExamController@publishResults')->name('exams.publish_results')->middleware('throttle:web-write');
         Route::post('exams/{exam}/unpublish-results', 'ExamController@unpublishResults')->name('exams.unpublish_results')->middleware('throttle:web-write');
+        /* Admit-card publication (owner order 2026-11-08): the
+           Principal-only switch for the admit-card gate, mirroring
+           the result publish switch above. */
+        Route::post('exams/{exam}/publish-admit-cards', 'ExamController@publishAdmitCards')->name('exams.publish_admit_cards')->middleware('throttle:web-write');
+        Route::post('exams/{exam}/unpublish-admit-cards', 'ExamController@unpublishAdmitCards')->name('exams.unpublish_admit_cards')->middleware('throttle:web-write');
         Route::get('exams/{exam}/publication', 'ExamController@publication')->name('exams.publication');
         Route::post('exams/{exam}/notify-pending', 'ExamController@notifyPending')->name('exams.notify_pending');
         Route::post('exams/{exam}/request-publication', 'ExamController@requestPublication')->name('exams.request_publication');

@@ -245,6 +245,22 @@ class AdmitCardController extends Controller
                 ->with('flash_danger', $this->scopeMismatchMessage($exam, $sr->my_class_id));
         }
 
+        /* Publication gate (owner order 2026-11-08): a student or
+           parent gets the card only once the Principal has
+           published this exam's admit cards — until then the
+           shared not-published state renders, and it is checked
+           BEFORE the fee block (an unpublished card is not a fee
+           matter). teamSA office generation is never blocked —
+           the office prints whenever it needs to. */
+        if (!Qs::userIsTeamSA() && !$exam->admit_cards_published) {
+            return view('pages.support_team.not_published', [
+                'page_title' => 'Admit Card — Not Published Yet',
+                'document' => 'Admit Card',
+                'icon' => 'icon-profile',
+                'detail' => 'Admit cards for ' . $exam->name . ' (' . $exam->year . ') have not been published yet.',
+            ]);
+        }
+
         /* Fee-defaulter document block (owner ruling 2026-10-22):
            teamSA office generation above (index / printSheet) is
            never blocked — the helper exempts teamSA itself. */

@@ -657,6 +657,25 @@ class ExamDateController extends Controller
             return $scope;
         }
 
+        /* Publication gate (owner order 2026-11-08): for students
+           and parents the Exam Date Sheet menu item lands on the
+           shared "Not published yet" state until the Principal has
+           published this (exam, class) sheet — not on the sheet
+           page with its rows withheld. Teachers keep the working
+           sheet view (their dates are a planning surface); admin
+           and principal always see the live sheet. */
+        $viewerType = Auth::user()->user_type;
+        if (in_array($viewerType, ['student', 'parent'], true) && empty($scope['sheet_published'])) {
+            return view('pages.support_team.not_published', [
+                'page_title' => 'Exam Date Sheet — Not Published Yet',
+                'document' => 'Exam Date Sheet',
+                'icon' => 'icon-calendar3',
+                'detail' => !empty($scope['exam'])
+                    ? 'The date sheet for ' . $scope['exam']->name . (!empty($scope['my_class']) ? ' (' . $scope['my_class']->name . ')' : '') . ' has not been published yet.'
+                    : 'No exam date sheet has been published yet.',
+            ]);
+        }
+
         return view('pages.support_team.exams.date_sheet', $scope);
     }
 
@@ -682,10 +701,13 @@ class ExamDateController extends Controller
            DATED sheet for students, parents or teachers — same
            gate as the index view. Admin and principal print live
            rows. An undated sheet has nothing to leak, so it still
-           prints its honest empty note (standing R24 behavior). */
-        if (in_array(Auth::user()->user_type, ['student', 'parent', 'teacher'], true)
-            && !($scope['sheet_published'] ?? true)
-            && ($scope['announced_before_gate'] ?? 0) > 0) {
+           prints its honest empty note (standing R24 behavior).
+           Publication gate (owner order 2026-11-08): for students
+           and parents the refusal now covers EVERY unpublished
+           sheet, dated or not — a family-facing document exists
+           only once published. Teachers keep the R24 rule above
+           (their print is a planning copy). */
+        if ($this->printRefusedFor($scope)) {
             return redirect()->route('exam_dates.index')
                 ->with('flash_info', 'There is no date sheet available.');
         }
@@ -710,13 +732,10 @@ class ExamDateController extends Controller
                 ->with('flash_info', 'There is no date sheet available.');
         }
 
-        /* Overnight menus (item 22): no PDF of an unpublished
-           DATED sheet for students, parents or teachers (same
-           rule as print: undated sheets still render their empty
-           note). */
-        if (in_array(Auth::user()->user_type, ['student', 'parent', 'teacher'], true)
-            && !($scope['sheet_published'] ?? true)
-            && ($scope['announced_before_gate'] ?? 0) > 0) {
+        /* Overnight menus (item 22) + publication gate (owner
+           order 2026-11-08): same refusal as print — see
+           printRefusedFor(). */
+        if ($this->printRefusedFor($scope)) {
             return redirect()->route('exam_dates.index')
                 ->with('flash_info', 'There is no date sheet available.');
         }
@@ -738,6 +757,30 @@ class ExamDateController extends Controller
         return Pdf::loadView('pages.support_team.exams.date_sheet_print', $scope)
             ->setPaper('a4')
             ->download($name);
+    }
+
+    /**
+     * Print/PDF refusal for the publication gate. Students and
+     * parents: every unpublished sheet refuses (owner order
+     * 2026-11-08 — the document exists for families only once
+     * published). Teachers: the standing item-22/R24 rule — only
+     * an unpublished sheet that actually carries dates refuses;
+     * an undated sheet still prints its honest empty note. Admin
+     * and principal never refuse.
+     */
+    protected function printRefusedFor(array $scope): bool
+    {
+        if ($scope['sheet_published'] ?? true) {
+            return false;
+        }
+        $type = Auth::user()->user_type;
+        if (in_array($type, ['student', 'parent'], true)) {
+            return true;
+        }
+        if ($type === 'teacher') {
+            return ($scope['announced_before_gate'] ?? 0) > 0;
+        }
+        return false;
     }
 
     /**

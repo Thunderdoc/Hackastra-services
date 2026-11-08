@@ -83,8 +83,16 @@ class AjaxController extends Controller
      * section-subject override union, exactly as the Health /
      * Discipline writers scope their pickers); school roles are
      * unscoped within the section; students and parents get [].
+     *
+     * Type-to-search mode (owner, 2026-11-08 — the nurse must be
+     * able to TYPE a few letters, not scroll a full roster): when
+     * the caller passes ?q=, the SAME scoping applies first, then
+     * the section's students are filtered server-side by name or
+     * admission number (minimum 2 characters, at most 20 results).
+     * Callers without ?q= keep the full section list exactly as
+     * before — this is one feed, not a parallel endpoint.
      */
-    public function get_section_students($section_id)
+    public function get_section_students(Request $request, $section_id)
     {
         $user = Auth::user();
         if (!$user || in_array($user->user_type, ['student', 'parent'], true)) {
@@ -103,8 +111,21 @@ class AjaxController extends Controller
             })->values();
         }
 
+        $records = $records->sortBy(function ($sr) { return optional($sr->user)->name; })->values();
+
+        if ($request->has('q')) {
+            $q = trim((string) $request->query('q', ''));
+            if (mb_strlen($q) < 2) {
+                return [];
+            }
+            $records = $records->filter(function ($sr) use ($q) {
+                $name = (string) optional($sr->user)->name;
+                return mb_stripos($name, $q) !== false
+                    || mb_stripos((string) $sr->adm_no, $q) !== false;
+            })->take(20)->values();
+        }
+
         return $records
-            ->sortBy(function ($sr) { return optional($sr->user)->name; })
             ->map(function ($sr) {
                 return [
                     'id' => $sr->id,

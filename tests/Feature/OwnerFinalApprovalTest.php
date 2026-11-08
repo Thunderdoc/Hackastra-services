@@ -171,8 +171,11 @@ class OwnerFinalApprovalTest extends TestCase
         $this->generateFor($class->id)->assertRedirect();
         $this->assertNull($this->stateFor($class->id));
         $this->assertSame('draft', ExamDateSheetState::statusFor(1, $class->id));
+        // Publication gate (owner order 2026-11-08): throughout
+        // this flow the student read is the shared not-published
+        // state page until the sheet is published.
         $this->actingAs($student)->get(route('exam_dates.show', ['exam_id' => 1]))->assertOk()
-            ->assertSee('Dates not announced yet')->assertDontSee('FIN Flow Alpha');
+            ->assertViewIs('pages.support_team.not_published')->assertSee('Not Published Yet')->assertDontSee('FIN Flow Alpha');
         $manage = $this->actingAs($this->admin())->get(route('exam_dates.manage', ['exam_id' => 1, 'class_id' => $class->id]));
         $manage->assertOk()->assertSee('Draft — not yet published')->assertSee('Submit for Principal Approval');
 
@@ -181,7 +184,7 @@ class OwnerFinalApprovalTest extends TestCase
         $this->assertSame('submitted', $this->stateFor($class->id)->status);
         $this->assertSame($this->admin()->id, (int) $this->stateFor($class->id)->submitted_by);
         $this->actingAs($student)->get(route('exam_dates.show', ['exam_id' => 1]))->assertOk()
-            ->assertSee('Dates not announced yet')->assertDontSee('Mon, 01 Mar 2027');
+            ->assertViewIs('pages.support_team.not_published')->assertSee('Not Published Yet')->assertDontSee('Mon, 01 Mar 2027');
         $this->actingAs($this->principal())->get(route('exam_dates.approvals'))->assertOk()
             ->assertSee('FIN Flow Class')->assertSee('Approve & Publish');
 
@@ -223,7 +226,7 @@ class OwnerFinalApprovalTest extends TestCase
         // fresh class, and the unpublished sheet is gated on show
         // AND print (dates exist to leak, so print redirects).
         $this->actingAs($parent)->get(route('exam_dates.show', ['exam_id' => 1]))->assertOk()
-            ->assertSee('Dates not announced yet')->assertDontSee('FIN Parent Alpha');
+            ->assertViewIs('pages.support_team.not_published')->assertSee('Not Published Yet')->assertDontSee('FIN Parent Alpha');
         $this->actingAs($parent)->get(route('exam_dates.print', ['exam_id' => 1]))
             ->assertRedirect(route('exam_dates.index'));
 
@@ -278,7 +281,7 @@ class OwnerFinalApprovalTest extends TestCase
         ])->assertRedirect();
         $this->assertSame('draft', $this->stateFor($class->id)->status);
         $this->actingAs($student)->get(route('exam_dates.show', ['exam_id' => 1]))->assertOk()
-            ->assertSee('Dates not announced yet');
+            ->assertViewIs('pages.support_team.not_published')->assertSee('Not Published Yet');
     }
 
     public function test_no_change_save_keeps_published()
@@ -307,7 +310,7 @@ class OwnerFinalApprovalTest extends TestCase
         $this->generateFor($class->id, 'replace')->assertRedirect();
         $this->assertSame('draft', $this->stateFor($class->id)->status);
         $this->actingAs($student)->get(route('exam_dates.show', ['exam_id' => 1]))->assertOk()
-            ->assertSee('Dates not announced yet');
+            ->assertViewIs('pages.support_team.not_published')->assertSee('Not Published Yet');
     }
 
     public function test_skipped_class_keeps_published_state()

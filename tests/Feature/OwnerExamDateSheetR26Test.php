@@ -74,6 +74,10 @@ class OwnerExamDateSheetR26Test extends TestCase
 
     public function test_student_58_my_card_shows_fee_block_not_card()
     {
+        // Publication gate (owner order 2026-11-08): admit cards start unpublished
+        // and that check sits before the behaviour pinned here — publish the exam's
+        // admit cards in the fixture. The gate itself is pinned by OwnerPublicationGateTest.
+        \App\Models\Exam::findOrFail(1)->update(['admit_cards_published' => true]);
         // Student_record 2 (linked to parent@): payment records
         // 4-6 leave 14,400 outstanding in 2026-2027.
         $response = $this->actingAs($this->student58())
@@ -94,6 +98,10 @@ class OwnerExamDateSheetR26Test extends TestCase
 
     public function test_parent_my_card_for_owing_child_shows_fee_block()
     {
+        // Publication gate (owner order 2026-11-08): admit cards start unpublished
+        // and that check sits before the behaviour pinned here — publish the exam's
+        // admit cards in the fixture. The gate itself is pinned by OwnerPublicationGateTest.
+        \App\Models\Exam::findOrFail(1)->update(['admit_cards_published' => true]);
         $response = $this->actingAs($this->parent())
             ->get(route('admit_cards.my_card', ['exam' => 1, 'student_id' => $this->student58()->id]));
 

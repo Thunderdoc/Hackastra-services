@@ -138,6 +138,9 @@ class OwnerExamDateSheetR45Test extends TestCase
         $class = $this->makeClassWithSubjects('R45 Move Class', ['R45 Alpha', 'R45 Beta', 'R45 Gamma'], 'r45-move');
         $section = Section::create(['name' => 'R45-A', 'my_class_id' => $class->id, 'teacher_id' => 4]);
         $student = $this->makeStudent('R45 Move Pupil', $class->id, $section->id);
+        // Publication gate (owner order 2026-11-08): the card
+        // assertion below sits behind the admit-card gate.
+        Exam::findOrFail(1)->update(['admit_cards_published' => true]);
         $this->generate($class->id)->assertRedirect();
 
         // Round-29 sequence rule: subjects in NAME order, 2/day.

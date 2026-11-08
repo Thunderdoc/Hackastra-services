@@ -158,6 +158,63 @@ class LeaveCover
     }
 
     /**
+     * The allocation as structured rows for the queue's detail
+     * panel (owner redesign, 2026-11-08): one row per assignment —
+     * Class | Sections | Subject | Role — from the same three
+     * walks allocationLines() flattens into text lines. Class-
+     * teacher sections group by class (as the lines do); a taught
+     * subject is one row per class subject, covering all its
+     * sections; overrides are one row each, uncapped — a table
+     * has room for all of them. Students and non-live teachers
+     * get no rows: their one-line summary carries what little
+     * there is.
+     *
+     * @return array<int, array{class:string, sections:string, subject:string, role:string}>
+     */
+    public static function allocationRows(User $user): array
+    {
+        if (!static::isLiveTeacher($user)) {
+            return [];
+        }
+        $rows = [];
+
+        $sections = Section::where('teacher_id', $user->id)->with('my_class')->get();
+        $byClass = [];
+        foreach ($sections as $section) {
+            $byClass[optional($section->my_class)->name ?: '—'][] = $section->name;
+        }
+        foreach ($byClass as $class => $names) {
+            $rows[] = ['class' => $class, 'sections' => implode(', ', $names), 'subject' => '—', 'role' => 'Class teacher'];
+        }
+
+        $subjects = Subject::where('teacher_id', $user->id)->with('my_class')->get()
+            ->sortBy(function ($subject) {
+                return (optional($subject->my_class)->name ?: '') . '|' . $subject->name;
+            })->values();
+        foreach ($subjects as $subject) {
+            $rows[] = [
+                'class' => optional($subject->my_class)->name ?: '—',
+                'sections' => 'All sections',
+                'subject' => $subject->name,
+                'role' => 'Subject teacher',
+            ];
+        }
+
+        $overrides = DB::table('section_subject_teachers')
+            ->join('subjects', 'subjects.id', '=', 'section_subject_teachers.subject_id')
+            ->join('sections', 'sections.id', '=', 'section_subject_teachers.section_id')
+            ->join('my_classes', 'my_classes.id', '=', 'sections.my_class_id')
+            ->where('section_subject_teachers.teacher_id', $user->id)
+            ->select('subjects.name as subject', 'my_classes.name as class', 'sections.name as section')
+            ->orderBy('my_classes.name')->orderBy('sections.name')->get();
+        foreach ($overrides as $row) {
+            $rows[] = ['class' => $row->class, 'sections' => $row->section, 'subject' => $row->subject, 'role' => 'Section override'];
+        }
+
+        return $rows;
+    }
+
+    /**
      * Periods of a teacher falling inside [start, end] that have no
      * substitution with a substitute assigned yet. A period counts
      * once per date it falls on (weekday match against the leave

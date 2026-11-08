@@ -94,6 +94,10 @@ class OwnerExamDateSheetR25Test extends TestCase
     public function test_parent_my_card_for_own_child_renders_child_card()
     {
         $this->clearDues();
+        // Publication gate (owner order 2026-11-08): admit cards start unpublished
+        // and that check sits before the behaviour pinned here — publish the exam's
+        // admit cards in the fixture. The gate itself is pinned by OwnerPublicationGateTest.
+        \App\Models\Exam::findOrFail(1)->update(['admit_cards_published' => true]);
         $response = $this->actingAs($this->parent())
             ->get(route('admit_cards.my_card', ['exam' => 1, 'student_id' => $this->student57()->id]));
 

@@ -2,31 +2,27 @@
 @section('page_title', 'Results Not Published')
 @section('content')
 
-    {{-- Workstream BH — honest empty state for the Result Publish gate:
-         a student/parent lands here when the exam's results have not
-         been published by the school yet. No marks data is passed to
-         this view at all. --}}
+    {{-- Workstream BH — honest empty state for the Result Publish
+         gate: a student/parent lands here when the exam's results
+         have not been published by the school yet. No marks data is
+         passed to this view at all.
+         Publication gate (owner order 2026-11-08): the body is now
+         the ONE shared not-published partial every gated document
+         uses (marksheet, admit card, exam date sheet) — same look,
+         same wording. The heading keeps its established text. --}}
     <div class="card">
-        <div class="card-body text-center py-5">
-            <div class="mb-3">
-                <i class="icon-eye-blocked" style="font-size:44px;color:#7a8797"></i>
+        <div class="card-body py-4">
+            @include('partials.patterns.not_published', [
+                'document' => 'Marksheet',
+                'icon' => 'icon-eye-blocked',
+                'heading' => 'Results Not Published Yet',
+                'detail' => !empty($exam)
+                    ? 'Results for ' . $exam->name . ' (' . $year . ')' . (!empty($sr) && !empty($sr->user) ? ' for ' . $sr->user->name : '') . ' have not been published yet.'
+                    : 'No results have been published for the ' . $year . ' session yet.',
+            ])
+            <div class="text-center">
+                <a href="{{ route('dashboard') }}" class="btn btn-primary mt-2">Back to Dashboard</a>
             </div>
-            <h4 class="font-weight-bold mb-2">Results Not Published Yet</h4>
-            @if(!empty($exam))
-                <p class="text-muted mb-1">
-                    Results for <strong>{{ $exam->name }}</strong> ({{ $year }})
-                    @if(!empty($sr) && !empty($sr->user))
-                        for <strong>{{ $sr->user->name }}</strong>
-                    @endif
-                    have not been published yet.
-                </p>
-            @else
-                <p class="text-muted mb-1">
-                    No results have been published for the <strong>{{ $year }}</strong> session yet.
-                </p>
-            @endif
-            <p class="text-muted">They will appear here as soon as the school publishes them. Please check back later, or contact the school office if you were expecting them.</p>
-            <a href="{{ route('dashboard') }}" class="btn btn-primary mt-2">Back to Dashboard</a>
         </div>
     </div>
 

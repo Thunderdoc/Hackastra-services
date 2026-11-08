@@ -133,6 +133,41 @@
         </div>
     </div>
 
+    {{-- Admit-card publication (owner order 2026-11-08): a second,
+         independent switch on the same page. Admit cards have no
+         marks-readiness step — the Principal publishes them when
+         the office is ready for families to print. Until then the
+         student/parent self-service shows the not-published state;
+         the office screens are never gated. --}}
+    <div class="card">
+        <div class="card-header">
+            <h5 class="card-title"><i class="icon-profile mr-2"></i>Admit Cards — {{ $exam->name }}</h5>
+        </div>
+        <div class="card-body">
+            @if($exam->admit_cards_published)
+                <div class="alert alert-success border-0">
+                    <strong>Admit cards published.</strong> Students and parents can view and print admit cards for this exam now (the usual fee clearance still applies).
+                    @if(\App\Helpers\Qs::userIsPrincipal())
+                        <form method="post" action="{{ route('exams.unpublish_admit_cards', $exam->id) }}" class="mt-2" data-confirm="Unpublish admit cards for {{ $exam->name }}? Students and parents will no longer be able to see them." data-confirm-title="Unpublish Admit Cards" data-confirm-action="Unpublish" data-confirm-danger>
+                            @csrf
+                            <button type="submit" class="btn btn-light btn-sm"><i class="icon-eye-blocked mr-1"></i> Unpublish Admit Cards</button>
+                        </form>
+                    @endif
+                </div>
+            @else
+                <p><strong>Admit cards are not published yet.</strong> Students and parents see a "Not published yet" note for this exam — they cannot view or print a card until it is published here.</p>
+                @if(\App\Helpers\Qs::userIsPrincipal())
+                    <form method="post" action="{{ route('exams.publish_admit_cards', $exam->id) }}">
+                        @csrf
+                        <button type="submit" class="btn btn-success"><i class="icon-eye mr-1"></i> Publish Admit Cards</button>
+                    </form>
+                @else
+                    <p class="text-muted mt-2">Only the Principal publishes admit cards.</p>
+                @endif
+            @endif
+        </div>
+    </div>
+
 @endsection
 
 @section('scripts')

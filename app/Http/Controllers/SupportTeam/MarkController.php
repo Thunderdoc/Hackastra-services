@@ -636,7 +636,11 @@ class MarkController extends Controller
        manage() gates exactly (exam scope, teacher scope,
        MarkLifecycle) and answers JSON for the selector script;
        the server-side gates on manage/update/submit are unchanged
-       and remain the real enforcement. */
+       and remain the real enforcement. Owner order 2026-11-08: a
+       SUBMITTED unit is the one exception — it answers
+       view_only so the selector offers "View Marks" and the
+       teacher can open the grid read-only (editing stays locked
+       server-side; only the Admin reopens). */
     public function entryState(Request $req)
     {
         $examId = (int) $req->query('exam_id');
@@ -683,7 +687,11 @@ class MarkController extends Controller
         ];
 
         if ($state['submitted']) {
-            return response()->json(['enabled' => false, 'reason' => 'Marks for this unit are already submitted and locked. Ask the school Admin to reopen them if a correction is needed.', 'summary' => $summary + ['entry_label' => 'Locked', 'entry_sub' => 'Already submitted']]);
+            // Owner order 2026-11-08: entry stays disabled (the
+            // server still refuses every save), but the unit is
+            // VIEWABLE — the selector offers "View Marks" and the
+            // entry page renders read-only for its teacher.
+            return response()->json(['enabled' => false, 'view_only' => true, 'reason' => 'Marks for this unit are already submitted and locked. You can open them read-only to view what was entered — ask the school Admin to reopen them if a correction is needed.', 'summary' => $summary + ['entry_label' => 'Submitted', 'entry_sub' => 'View read-only']]);
         }
         if (!$state['open']) {
             return response()->json(['enabled' => false, 'reason' => 'Marks entry opens on ' . $state['opens_on'] . ' — the day after the exam (' . $state['exam_date'] . ').', 'summary' => $summary + ['entry_label' => 'Locked', 'entry_sub' => 'Opens ' . $state['opens_on']]]);
@@ -926,14 +934,19 @@ class MarkController extends Controller
         MarkLifecycle::guard($exam_id, $class_id, $section_id, $subject_id);
 
         $marks = $this->exam->getMark($p);
+        // Hotfix 2026-11-08: the snapshot + change-diff below read
+        // markComponents and user for every row — eager-load both
+        // instead of two lazy queries per student.
+        $marks->load(['markComponents', 'user']);
 
         /* Batch 114 (Part A audit): snapshot the stored scores BEFORE
            the save so the audit entry below can name every changed
            cell with its old -> new value. The pre-114 entry recorded
            only that "marks updated" — no values, which made a disputed
            mark untraceable. */
+        $configured = MarkScheme::isConfigured($exam_id, $subject_id);
         $oldScores = [];
-        if(MarkScheme::isConfigured($exam_id, $subject_id)){
+        if($configured){
             foreach($marks as $mk){
                 foreach($mk->markComponents as $mc){
                     $oldScores[$mk->id][$mc->component_id] = $mc->score === NULL ? NULL : (int) $mc->score;
@@ -959,10 +972,14 @@ class MarkController extends Controller
            component scores saved with stale totals behind it. */
         $changes = [];
         $fmtVal = function($v){ return $v === NULL ? 'blank' : (string) $v; };
-        DB::transaction(function () use ($marks, $req, $exam_id, $subject_id, $exam, $class_id, $section_id, $oldScores, $fmtVal, &$changes) {
-        if(MarkScheme::isConfigured($exam_id, $subject_id)){
+        DB::transaction(function () use ($marks, $req, $exam_id, $subject_id, $exam, $class_id, $section_id, $oldScores, $fmtVal, $configured, &$changes) {
+        if($configured){
             $components = MarkScheme::configuredComponents($exam_id, $subject_id);
 
+            // Hotfix 2026-11-08: collect the whole grid's scores and
+            // write them in bulk (same rows, same values) instead of
+            // an updateOrCreate per cell.
+            $scoresByMark = [];
             foreach($marks as $mk){
                 $scores = [];
                 foreach($components as $comp){
@@ -973,8 +990,9 @@ class MarkController extends Controller
                         $changes[] = (optional($mk->user)->name ?? 'Student').' — '.$comp->name.': '.$fmtVal($old).' -> '.$fmtVal($scores[$comp->id]);
                     }
                 }
-                MarkScheme::saveComponentScores($mk, $scores);
+                $scoresByMark[$mk->id] = $scores;
             }
+            MarkScheme::saveComponentScoresBulk($marks, $scoresByMark);
         }
         else{
             $legacyNames = ['t1' => '1st CA', 't2' => '2nd CA', 'exm' => 'Exam'];
