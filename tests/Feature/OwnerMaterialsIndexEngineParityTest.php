@@ -38,11 +38,21 @@ class OwnerMaterialsIndexEngineParityTest extends TestCase
 
     public function test_materials_index_loads_for_teacher_admin_student_and_parent()
     {
-        foreach (['teacher@hackstra.app', 'admin@hackstra.app', 'student@hackstra.app', 'parent@hackstra.app'] as $email) {
+        foreach (['teacher@hackstra.app', 'admin@hackstra.app', 'parent@hackstra.app'] as $email) {
             $this->actingAs($this->userByEmail($email))
                 ->get(route('materials.index'))
                 ->assertOk();
         }
+
+        // Re-expressed 2026-11-08 (LMS fold-in): the student's flat
+        // materials list retired into courses — for the student the
+        // index is a redirect to My Courses now, not a page. The
+        // engine-parity point of this test (the index query must
+        // load on TiDB/MySQL) is carried by the three roles above
+        // that still render it.
+        $this->actingAs($this->userByEmail('student@hackstra.app'))
+            ->get(route('materials.index'))
+            ->assertRedirect(route('courses.index'));
     }
 
     public function test_materials_index_issues_no_ordered_distinct_select()

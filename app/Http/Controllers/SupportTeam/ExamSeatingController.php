@@ -73,6 +73,10 @@ class ExamSeatingController extends Controller
                     $slot['plan'] = $plan;
                     $slot['students'] = $plan ? $plan->total_students : $students;
                     $slot['stale'] = $plan ? SeatingPlanner::isStale($plan) : false;
+                    /* ONE-TIME GENERATION lock (owner standing rule
+                       2026-11-08): a submitted/published plan shows
+                       its lock instead of a Regenerate form. */
+                    $slot['lock'] = $plan ? SeatingPlanner::planLockMessage($d['exam']->id, $slot['exam_date'], $slot['time_key']) : null;
                     $d['slots'][] = $slot;
                 }
             }
@@ -162,7 +166,10 @@ class ExamSeatingController extends Controller
         return back()->with('flash_success', 'Seating plan submitted for Principal approval.');
     }
 
-    /** Principal's queue: plans awaiting publication. */
+    /** Principal's queue: plans awaiting publication, plus the
+     *  published plans (the Principal's return-for-correction is
+     *  the only way a locked plan opens again — ONE-TIME
+     *  GENERATION, owner standing rule 2026-11-08). */
     public function approvals()
     {
         if (!Qs::userIsPrincipal()) {
@@ -170,6 +177,10 @@ class ExamSeatingController extends Controller
         }
         $d['plans'] = SeatingPlan::with('exam')
             ->where('status', SeatingPlan::SUBMITTED)
+            ->orderBy('exam_date')->orderBy('start_time')
+            ->get();
+        $d['published'] = SeatingPlan::with('exam')
+            ->where('status', SeatingPlan::PUBLISHED)
             ->orderBy('exam_date')->orderBy('start_time')
             ->get();
 
@@ -188,7 +199,7 @@ class ExamSeatingController extends Controller
             return back()->with('flash_danger', 'This plan is not awaiting approval.');
         }
         if (SeatingPlanner::isStale($plan)) {
-            return back()->with('flash_danger', 'The date sheet or roster changed since this plan was generated. Ask the Admin to regenerate and re-submit it.');
+            return back()->with('flash_danger', 'The date sheet or roster changed since this plan was generated. Return it for correction so the Admin can regenerate and re-submit it.');
         }
         $plan->status = SeatingPlan::PUBLISHED;
         $plan->approved_by = Auth::id();
@@ -199,6 +210,39 @@ class ExamSeatingController extends Controller
             . ', slot ' . $plan->exam_date . ' ' . SeatingPlanner::timeKey($plan->start_time));
 
         return back()->with('flash_success', 'Seating plan published.');
+    }
+
+    /**
+     * Principal return path (ONE-TIME GENERATION, owner standing
+     * rule 2026-11-08): a SUBMITTED or PUBLISHED plan goes back
+     * to draft so the Admin can correct and regenerate it. This
+     * is the ONLY way a locked plan opens again —
+     * SeatingPlanner::generate refuses while it is submitted or
+     * published. Audited, like the publication it undoes.
+     * Mirrors ExamDateController::returnSheet.
+     */
+    public function returnPlan(Request $request)
+    {
+        if (!Qs::userIsPrincipal()) {
+            return redirect()->route('dashboard');
+        }
+        $data = $request->validate(['plan_id' => 'required|integer']);
+        $plan = SeatingPlan::find($data['plan_id']);
+        if (!$plan || !in_array($plan->status, [SeatingPlan::SUBMITTED, SeatingPlan::PUBLISHED], true)) {
+            return back()->with('flash_danger', 'This plan is not awaiting approval or published — there is nothing to return.');
+        }
+        $was = $plan->status;
+        $plan->status = SeatingPlan::DRAFT;
+        $plan->submitted_by = null;
+        $plan->submitted_at = null;
+        $plan->approved_by = null;
+        $plan->approved_at = null;
+        $plan->save();
+        Audit::log('exams.seating_returned', $plan,
+            'Exam seating returned for correction by Principal: plan ' . $plan->id . ', exam ' . $plan->exam_id
+            . ', slot ' . $plan->exam_date . ' ' . SeatingPlanner::timeKey($plan->start_time) . ' — was ' . $was);
+
+        return back()->with('flash_success', 'Seating plan returned to the Admin for correction.');
     }
 
     /** Screen/print hall sheet for one hall of one plan. */

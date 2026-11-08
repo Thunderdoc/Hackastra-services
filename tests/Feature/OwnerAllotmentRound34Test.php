@@ -506,9 +506,50 @@ class OwnerAllotmentRound34Test extends TestCase
         $this->assertNotContains($a->id, $nIds, 'N teacher index must not list O-owned assignment.');
 
         // The section's student still sees it: continuity for learners.
-        $stIndex = $this->actingAs($st1)->get(route('assignments.index'))->assertOk();
-        $stIds = collect($stIndex->viewData('assignments')->items())->pluck('id')->all();
+        // Re-expressed 2026-11-08 (LMS fold-in): the student's flat
+        // assignments list retired into courses — assignments.index
+        // now REDIRECTS the student into the course surface (the
+        // bare index to My Courses; with the assignment's subject,
+        // to that subject's course at the assignments anchor), and
+        // the ownership scope itself is enforced on the course
+        // page: the section's own assignment is in the course's
+        // assignment ids, another section's assignment for the
+        // same subject is NOT, and a foreign class's course itself
+        // refuses (403) — the same scope rule, one level up.
+        $this->actingAs($st1)->get(route('assignments.index'))
+            ->assertRedirect(route('courses.index'));
+        $loc = $this->actingAs($st1)
+            ->get(route('assignments.index', ['subject_id' => $x->id]))
+            ->headers->get('Location');
+        $this->assertStringContainsString('/courses/' . $x->id, $loc);
+        $this->assertStringEndsWith('#assignments', $loc);
+
+        $stCourse = $this->actingAs($st1)->get(route('courses.show', $x->id))->assertOk();
+        $stIds = collect($stCourse->viewData('assignments'))->pluck('id')->all();
         $this->assertContains($a->id, $stIds, 'Section student must still see the assignment.');
+
+        // Foreign to the student: an assignment for the same
+        // subject but ANOTHER section of the class, and a whole
+        // course of another class — neither may reach st1.
+        $s2 = Section::create(['name' => 'R34 S2 C', 'my_class_id' => $k->id, 'teacher_id' => $d->id]);
+        $foreign = Assignment::create([
+            'teacher_id' => $d->id, 'my_class_id' => $k->id, 'section_id' => $s2->id,
+            'subject_id' => $x->id, 'title' => 'R34 foreign section assignment',
+            'description' => 'chain probe', 'max_marks' => 100,
+            'due_at' => '2030-01-01 10:00:00', 'allow_late' => false,
+        ]);
+        $stIdsAfter = collect($this->actingAs($st1)->get(route('courses.show', $x->id))
+            ->assertOk()->viewData('assignments'))->pluck('id')->all();
+        $this->assertContains($a->id, $stIdsAfter,
+            'Own assignment must survive alongside the foreign one.');
+        $this->assertNotContains($foreign->id, $stIdsAfter,
+            'Student course page must not list another section\'s assignment.');
+        $k2 = MyClass::create(['name' => 'ProbeR34Class C2', 'class_type_id' => 4]);
+        $x2 = Subject::create([
+            'name' => 'Probe Chain Subject R34C2', 'my_class_id' => $k2->id,
+            'teacher_id' => $d->id, 'slug' => 'probe-r34-x-c2', 'periods_per_week' => 6,
+        ]);
+        $this->actingAs($st1)->get(route('courses.show', $x2->id))->assertForbidden();
 
         // The owner still sees it, and admin reads everything.
         $oIndex = $this->actingAs($o)->get(route('assignments.index'))->assertOk();

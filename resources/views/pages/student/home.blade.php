@@ -83,8 +83,8 @@
         </div>
     </div>
 
-    <div class="row">
-        <div class="col-xl-8">
+    <div class="row stu-home-cols">
+        <div class="col-xl-8 hk-col-stack">
             {{-- Today's classes for my class --}}
             <section class="dashboard-panel mb-4">
                 <div class="dashboard-panel-heading">
@@ -198,7 +198,7 @@
             </section>
         </div>
 
-        <div class="col-xl-4">
+        <div class="col-xl-4 hk-col-stack">
             {{-- My ID card (owner order 2026-10-30): the student's
                  basic identity card lives on the dashboard itself —
                  photo (or initials), class, admission number and

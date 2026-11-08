@@ -50,4 +50,43 @@
         </div>
     </div>
 
+    @if(count($approved_records) > 0)
+    <div class="card">
+        <div class="card-header">
+            <h5 class="card-title"><i class="icon-checkmark3 mr-2"></i>In Force — Approved Timetables</h5>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-info border-0">
+                <span>Approved timetables are locked — the Admin cannot regenerate, change or delete them.
+                If one needs a correction, send it back here: it returns to draft, the Admin fixes it, sends
+                it again, and you approve the corrected timetable.</span>
+            </div>
+            <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                <tr><th>Timetable</th><th>Class</th><th>Approved by</th><th>Approved on</th><th></th></tr>
+                </thead>
+                <tbody>
+                @foreach($approved_records as $rec)
+                    <tr>
+                        <td><strong>{{ $rec->name }}</strong> ({{ $rec->year }})</td>
+                        <td>{{ optional($rec->my_class)->name ?? 'Deleted class' }}@if($rec->section) — {{ $rec->section->name }}@endif</td>
+                        <td>{{ optional($approvers->get($rec->approved_by))->name ?? 'Principal' }}</td>
+                        <td>{{ $rec->approved_at ? \Illuminate\Support\Carbon::parse($rec->approved_at)->format('d M Y, g:i A') : '' }}</td>
+                        <td class="text-right" style="white-space: nowrap;">
+                            <a href="{{ route('ttr.show', $rec->id) }}" class="btn btn-light btn-sm" target="_blank"><i class="icon-eye mr-1"></i> View</a>
+                            <form method="post" action="{{ route('ttr.send_back', $rec->id) }}" style="display:inline;" data-confirm="Send {{ $rec->name }} back to the Admin for changes? It will stop being in force until it is approved again." data-confirm-title="Send Back" data-confirm-action="Send Back">
+                                @csrf
+                                <button type="submit" class="btn btn-warning btn-sm"><i class="icon-undo2 mr-1"></i> Send back</button>
+                            </form>
+                        </td>
+                    </tr>
+                @endforeach
+                </tbody>
+            </table>
+            </div>
+        </div>
+    </div>
+    @endif
+
 @endsection

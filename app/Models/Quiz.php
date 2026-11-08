@@ -10,11 +10,14 @@ class Quiz extends Eloquent
     protected $fillable = [
         'teacher_id', 'my_class_id', 'section_id', 'subject_id', 'title', 'time_limit_minutes',
         'status', 'available_from', 'available_until',
+        'is_pinned', 'seq',
     ];
 
     protected $casts = [
         'available_from' => 'datetime',
         'available_until' => 'datetime',
+        'is_pinned' => 'boolean',
+        'seq' => 'integer',
     ];
 
     public function teacher()

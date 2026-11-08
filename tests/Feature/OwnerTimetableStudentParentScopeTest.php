@@ -103,11 +103,16 @@ class OwnerTimetableStudentParentScopeTest extends TestCase
 
     public function test_student_index_redirects_directly_to_own_record()
     {
-        $own = $this->ownRecord();
+        // Re-expressed 2026-11-08 (LMS build): the student landing
+        // is now the My Week page (tt.mine), which renders his own
+        // record's grid — the redirect target moved from the record
+        // page to My Week; the scoping rule itself is unchanged
+        // (other sections still refuse below).
+        $this->ownRecord();
 
         $this->actingAs($this->student())
             ->get(route('tt.index'))
-            ->assertRedirect(route('ttr.show', $own->id));
+            ->assertRedirect(route('tt.mine'));
     }
 
     public function test_student_other_section_show_and_print_refused_own_stays_open()
@@ -193,8 +198,12 @@ class OwnerTimetableStudentParentScopeTest extends TestCase
             $ttr = SectionTeacher::recordForClassSection(
                 $child->my_class_id, $child->section_id, Qs::getCurrentSession());
             $this->assertNotNull($ttr, 'premise: demo child class must have a record');
-            $this->assertStringContainsString(route('ttr.show', $ttr->id), $html,
-                'parent index must link directly to each child\'s own record');
+            // Re-expressed 2026-11-08 (LMS build): the direct link
+            // now lands on the child's My Week page (own record's
+            // grid + courses + attendance in one surface) instead
+            // of the bare record page.
+            $this->assertStringContainsString(route('tt.mine', ['child' => $child->id]), $html,
+                'parent index must link directly to each child\'s My Week');
         }
 
         // No chooser, no Manage index, no other section's record.

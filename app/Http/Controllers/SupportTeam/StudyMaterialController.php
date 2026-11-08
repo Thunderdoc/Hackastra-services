@@ -82,15 +82,17 @@ class StudyMaterialController extends Controller
             // Admin + Super Admin read everything (SA read-only).
             // Their universe is the whole school — no empty groups.
         } elseif (Qs::userIsStudent()) {
-            $sr = Qs::getSRByUserID($user->id);
-            if (!$sr) {
-                return $this->deny();
+            // LMS fold-in (owner-approved, 2026-11-08): the flat
+            // student materials list is RETIRED — every material
+            // lives inside its subject's course, in sequence, with
+            // View + Download intact. The route redirects into the
+            // course (at the materials anchor when a subject was
+            // named); view/download/viewer routes are untouched.
+            if ($req->filled('subject_id')) {
+                return redirect(route('courses.show', (int) $req->query('subject_id')) . '#materials');
             }
-            $query->where('my_class_id', $sr->my_class_id)
-                ->where(function ($q) use ($sr) {
-                    $q->whereNull('section_id')->orWhere('section_id', $sr->section_id);
-                });
-            $scopeSubjects = Subject::where('my_class_id', $sr->my_class_id)->orderBy('name')->get();
+
+            return redirect()->route('courses.index');
         } elseif (Qs::userIsParent()) {
             $children = StudentRecord::where('my_parent_id', $user->id)->where('grad', 0)->get();
             if ($children->isEmpty()) {

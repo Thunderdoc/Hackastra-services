@@ -7,7 +7,7 @@
     @if(!empty($school['logo']))
         <img class="admit-watermark" src="{{ $school['logo'] }}" alt="">
     @else
-        <div class="admit-watermark-mono" aria-hidden="true">{{ strtoupper((string) Qs::getAppCode()) }}</div>
+        <div class="admit-watermark-mono" aria-hidden="true">{{ strtoupper((string) ($school['app_code'] ?? Qs::getAppCode())) }}</div>
     @endif
     <table class="admit-head">
         <tr>

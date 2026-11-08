@@ -125,12 +125,18 @@ class OwnerStudentPackTest extends TestCase
         $expected = (int) round((($entries->where('status', 'present')->count() + $entries->where('status', 'late')->count()) / max(1, $entries->count())) * 100);
         $this->assertSame($expected, $summary['percent']);
         $html = $response->getContent();
-        $this->assertStringContainsString('sd-monthstrip', $html);
-        $this->assertStringNotContainsString('Period Registers', $html);
+        // Re-expressed 2026-11-08 (LMS build): the month strip is
+        // now the month CARDS (the cards are the picker, per the
+        // owner-approved sample); the date-wise registers live in
+        // the per-subject expansions (mw-register) in BOTH views —
+        // the old "Period Registers only in month view" split is
+        // gone. The data assertions above are unchanged.
+        $this->assertStringContainsString('mw-monthcard', $html);
+        $this->assertStringContainsString('mw-register', $html);
 
         $month = $entries->first()->session->date->format('Y-m');
         $monthHtml = $this->actingAs($student)->get(route('attendance.my', ['month' => $month]))->assertOk()->getContent();
-        $this->assertStringContainsString('Period Registers', $monthHtml);
+        $this->assertStringContainsString('mw-register', $monthHtml);
         $this->assertStringContainsString('Whole session', $monthHtml);
     }
 
@@ -149,9 +155,16 @@ class OwnerStudentPackTest extends TestCase
             'max_marks' => 20,
             'due_at' => now()->addDays(3),
         ]);
-        $html = $this->actingAs($student)->get(route('assignments.index'))->assertOk()->getContent();
-        $this->assertStringContainsString($long, $html);
-        $this->assertStringNotContainsString('lms82-clamp2', $html);
-        $this->assertStringContainsString('Pending', $html);
+        // Re-expressed 2026-11-08 (LMS fold-in): the flat student
+        // assignments list retired into courses — the student's
+        // assignment surface is now the subject's course page
+        // (title + state) and the assignment's own page, which is
+        // where the full description renders, uncut, as before.
+        $html = $this->actingAs($student)->get(route('courses.show', $assignment->subject_id))->assertOk()->getContent();
+        $this->assertStringContainsString('I20 Full Description Assignment', $html);
+        $this->assertStringContainsString('To submit', $html);
+        $detail = $this->actingAs($student)->get(route('assignments.show', $assignment->id))->assertOk()->getContent();
+        $this->assertStringContainsString($long, $detail);
+        $this->assertStringNotContainsString('lms82-clamp2', $detail);
     }
 }

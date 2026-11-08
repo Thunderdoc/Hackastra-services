@@ -329,13 +329,25 @@ class OwnerBeautyRound3Test extends TestCase
 
     public function test_my_attendance_desktop_colgroups_keep_the_phone_stack()
     {
-        $blade = $this->bladeFile('pages/support_team/attendance/my.blade.php');
+        // Re-expressed 2026-11-08 (LMS build): the By-Subject +
+        // register tables moved OUT of my.blade.php into the
+        // shared attendance/partials/summary_block.blade.php —
+        // My Attendance and My Week render the same block from
+        // one source now. The pin follows the tables: desktop
+        // colgroups + hk-std + the phone stack (l108-stack,
+        // data-labels) must survive in the partial, and the page
+        // must include it.
+        $page = $this->bladeFile('pages/support_team/attendance/my.blade.php');
+        $this->assertStringContainsString('attendance.partials.summary_block', $page);
 
-        $this->assertStringContainsString('l108-stack hk-std', $blade);
+        $blade = $this->bladeFile('pages/support_team/attendance/partials/summary_block.blade.php');
+
+        $this->assertMatchesRegularExpression('/<table[^>]*hk-std[^>]*l108-stack/', $blade);
         $this->assertStringContainsString('<colgroup>', $blade);
-        $this->assertStringContainsString('data-label="Date" class="hk-nw"', $blade);
-        $this->assertStringContainsString('data-label="Status" class="hk-nw"', $blade);
-        // The phone stack classes are untouched.
+        $this->assertStringContainsString('data-label="Date"', $blade);
+        $this->assertStringContainsString('data-label="Period"', $blade);
+        $this->assertStringContainsString('data-label="Status"', $blade);
+        // The phone stack classes are untouched (subjects + register).
         $this->assertSame(2, substr_count($blade, 'l108-stack'));
     }
 

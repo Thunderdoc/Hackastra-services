@@ -44,18 +44,44 @@
 .pr-table{width:100%;border-collapse:collapse;font-size:14px}
 .pr-table th{text-align:left;color:#718096;font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:6px 8px;border-bottom:1px solid #d7e0ec}
 .pr-table td{padding:9px 8px;border-bottom:1px solid #eef2f7}
-.pr-bar-row{display:flex;align-items:center;gap:10px;margin-bottom:9px;font-size:13px}
+.pr-bar-row{display:flex;align-items:center;gap:10px;margin-bottom:6px;font-size:13px;padding:4px 8px;margin-left:-8px;margin-right:-8px;border-radius:8px}
+.pr-bar-row:hover{background:#f7fafc}
 .pr-bar-row .pr-bar-label{width:110px;flex:none;color:#44546a}
-.pr-bar-track{flex:1;background:#eef2f7;border-radius:6px;height:12px;overflow:hidden}
+.pr-bar-track{flex:1;background:#e3eaf3;border-radius:999px;height:6px;overflow:hidden}
 /* display:block is load-bearing: the fill is an empty span, so as an
    inline box its width/height never applied and the bar rendered as
    a bare track in BOTH themes (measured 0x0). The dark fill colour
-   below was already correct — it simply had no box to paint. */
-.pr-bar-fill{display:block;background:#10263b;height:12px;border-radius:6px}
-.pr-bar-val{width:44px;text-align:right;font-weight:700}
+   below was already correct — it simply had no box to paint.
+   HOTFIX H (2026-11-08, owner image-154): the 12px near-black slabs
+   dominated the cards and every row read identically. The bars are
+   now slim 6px pills on a visible track in the app blue; a graded
+   colour appears only where a value is genuinely low (attendance
+   tiers: below 50 critical red, 50–74 at-risk amber — Good 75+ and
+   Excellent 90+ stay blue). Workload bars carry no tier colour;
+   their widths are relative to the top teacher (see the blade). */
+.pr-bar-fill{display:block;background:#3478f6;height:6px;border-radius:999px}
+.pr-bar-fill.pr-tier-risk{background:#e8a317}
+.pr-bar-fill.pr-tier-critical{background:#d64545}
+.pr-bar-val{width:44px;flex:none;text-align:right;font-weight:700;color:#10263b}
+/* The Finance card shares its grid row with the much denser
+   Analytics card: the row stretches both cards to one bottom
+   line, but Finance's own content ended ~300px early inside
+   its card (measured, HOTFIX H). As a flex column its workload
+   bar rows spread evenly through the card — the same fill the
+   student home's lists use — so both cards' content, not just
+   their shells, runs to the shared bottom. */
+.pr-card-spread{display:flex;flex-direction:column}
+.pr-card-spread>.pr-bar-row{flex:1 0 auto}
 .pr-foot{color:#718096;font-size:12px;margin-top:10px}
 .pr-avg{margin-top:12px}
 .pr-avg-label{color:#44546a;font-size:12.5px;font-weight:600;margin-bottom:6px}
+/* HOTFIX H: class averages left the chip soup for a ranked
+   two-column table (Class | Average, best first) — same figures,
+   scannable in order. Subject chips below keep the chip style. */
+.pr-avg-cols{display:grid;grid-template-columns:1fr 1fr;gap:0 28px}
+@media(max-width:640px){.pr-avg-cols{grid-template-columns:1fr}}
+.pr-avg-table th.pr-avg-num,.pr-avg-table td.pr-avg-num{text-align:right}
+.pr-avg-table td{padding:6px 8px}
 .pr-chips{display:flex;flex-wrap:wrap;gap:6px}
 .pr-chip{background:#eef4ff;border:1px solid #d7e5fa;border-radius:999px;color:#2e5ea8;font-size:12px;font-weight:600;padding:3px 10px;white-space:nowrap}
 .pr-chip b{color:#10263b;font-weight:700}
@@ -83,6 +109,10 @@ html.hk-dark .pr-table td{border-bottom-color:#36383c}
 html.hk-dark .pr-bar-row .pr-bar-label{color:#c9cbce}
 html.hk-dark .pr-bar-track{background:#3a3c40}
 html.hk-dark .pr-bar-fill{background:#6ea8ff}
+html.hk-dark .pr-bar-row:hover{background:#2e2f32}
+html.hk-dark .pr-bar-val{color:#f4f4f5}
+html.hk-dark .pr-bar-fill.pr-tier-risk{background:#e8a317}
+html.hk-dark .pr-bar-fill.pr-tier-critical{background:#e05a5a}
 html.hk-dark .pr-foot{color:#a5a8ad}
 html.hk-dark .pr-avg-label{color:#c9cbce}
 html.hk-dark .pr-chip{background:#2f3135;border-color:#4c4e53;color:#a9c6f5}
@@ -251,7 +281,7 @@ html.hk-dark .pr-chip b{color:#f4f4f5}
                 @foreach($pr_class_attendance as $row)
                     <div class="pr-bar-row">
                         <span class="pr-bar-label">{{ $row['class'] }}</span>
-                        <span class="pr-bar-track"><span class="pr-bar-fill" style="width:{{ $row['percent'] }}%"></span></span>
+                        <span class="pr-bar-track"><span class="pr-bar-fill{{ $row['percent'] < 50 ? ' pr-tier-critical' : ($row['percent'] < 75 ? ' pr-tier-risk' : '') }}" style="width:{{ $row['percent'] }}%"></span></span>
                         <span class="pr-bar-val">{{ $row['percent'] }}%</span>
                     </div>
                 @endforeach
@@ -262,11 +292,25 @@ html.hk-dark .pr-chip b{color:#f4f4f5}
                  on as comma-prose inside a visual card. Same figures,
                  one chip per class/subject. --}}
             @if($pr_term_exam && count($pr_class_avgs) > 0)
+                {{-- HOTFIX H (2026-11-08): ranked compact table
+                     instead of the chip wall — same figures, best
+                     average first, split across two columns. --}}
+                @php
+                    $rankedAvgs = collect($pr_class_avgs)->sortByDesc('avg')->values();
+                    $avgHalf = (int) ceil($rankedAvgs->count() / 2);
+                @endphp
                 <div class="pr-avg">
                     <div class="pr-avg-label">{{ $pr_term_exam->name }} — class averages</div>
-                    <div class="pr-chips">
-                        @foreach($pr_class_avgs as $row)
-                            <span class="pr-chip">{{ $row['class'] }} · <b>{{ $row['avg'] }}</b></span>
+                    <div class="pr-avg-cols">
+                        @foreach($rankedAvgs->chunk($avgHalf) as $avgChunk)
+                            <table class="pr-table pr-avg-table">
+                                <thead><tr><th>Class</th><th class="pr-avg-num">Average</th></tr></thead>
+                                <tbody>
+                                @foreach($avgChunk as $row)
+                                    <tr><td>{{ $row['class'] }}</td><td class="pr-avg-num"><strong>{{ $row['avg'] }}</strong></td></tr>
+                                @endforeach
+                                </tbody>
+                            </table>
                         @endforeach
                     </div>
                 </div>
@@ -287,7 +331,7 @@ html.hk-dark .pr-chip b{color:#f4f4f5}
             </div>
         </section>
 
-        <section class="pr-card">
+        <section class="pr-card pr-card-spread">
             <h5>Finance &amp; Administration Overview</h5>
             <p class="pr-sub">Authorized totals only — detailed transactions stay on the finance pages.</p>
             <div class="pr-ops pr-ops-money">
@@ -296,17 +340,23 @@ html.hk-dark .pr-chip b{color:#f4f4f5}
                      raw number_format() rendered Western grouping
                      here (₹101,720,100 for ₹10,17,20,100). --}}
                 <div class="pr-op"><strong>&#8377;{{ \App\Helpers\Money::indianFormat($pr_fees_collected) }}</strong><span>Fees collected ({{ $today->format('Y') }})</span></div>
-                <div class="pr-op"><strong>&#8377;{{ \App\Helpers\Money::indianFormat($pr_fees_pending) }}</strong><span>Fees outstanding</span></div>
+                <div class="pr-op"><strong>&#8377;{{ \App\Helpers\Money::indianFormat($pr_fees_pending) }}</strong><span>Fees outstanding ({{ $today->format('Y') }})</span></div>
                 <div class="pr-op"><strong>&#8377;{{ \App\Helpers\Money::indianFormat($pr_expenses) }}</strong><span>Expenses ({{ $pr_expenses_count }} records)</span></div>
             </div>
             <div class="pr-foot"><a href="{{ route('payments.manage') }}">Fee records</a> &middot; <a href="{{ route('reports.builder') }}">Reports &amp; Analytics</a></div>
             <h5 style="margin-top:20px">Teacher Workload</h5>
             <p class="pr-sub">Most registers submitted, last 30 days.</p>
             @if(count($pr_workload) > 0)
+                {{-- HOTFIX H: bar widths are relative to the top
+                     teacher's count — the old registers*10 scale
+                     pinned every teacher at 10+ registers to a
+                     full-width bar, so all rows looked identical.
+                     The counts themselves are unchanged. --}}
+                @php $wlMax = (int) collect($pr_workload)->max('registers'); @endphp
                 @foreach($pr_workload as $row)
                     <div class="pr-bar-row">
                         <span class="pr-bar-label">{{ $row['teacher'] }}</span>
-                        <span class="pr-bar-track"><span class="pr-bar-fill" style="width:{{ min(100, $row['registers'] * 10) }}%"></span></span>
+                        <span class="pr-bar-track"><span class="pr-bar-fill" style="width:{{ $wlMax > 0 ? (int) round($row['registers'] / $wlMax * 100) : 0 }}%"></span></span>
                         <span class="pr-bar-val">{{ $row['registers'] }}</span>
                     </div>
                 @endforeach

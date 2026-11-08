@@ -341,6 +341,50 @@ class SeatingPlanner
     }
 
     /**
+     * The existing plan for one slot (exam + date + time key),
+     * or null when the slot has never been generated.
+     */
+    public static function planForSlot($examId, $examDate, $timeKey): ?SeatingPlan
+    {
+        $key = $examDate . '|' . ($timeKey ?: '');
+        foreach (SeatingPlan::where('exam_id', $examId)->where('exam_date', $examDate)->get() as $plan) {
+            if ($plan->slotKey() === $key) {
+                return $plan;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * ONE-TIME GENERATION lock (owner standing rule 2026-11-08):
+     * a seating plan is generated once, reviewed, sent to the
+     * Principal and published — after it is SUBMITTED or
+     * PUBLISHED it can no longer be regenerated over. The only
+     * way back is the Principal's return
+     * (ExamSeatingController::returnPlan), which is audited.
+     * Returns the refusal message for a locked plan, or null
+     * while the slot's plan is still a draft (or not generated).
+     * Wording mirrors ExamDateController::sheetLockMessage so
+     * the refusal reads identically on both surfaces.
+     */
+    public static function planLockMessage($examId, $examDate, $timeKey): ?string
+    {
+        $plan = self::planForSlot($examId, $examDate, $timeKey);
+        if (!$plan) {
+            return null;
+        }
+        if ($plan->status === SeatingPlan::SUBMITTED) {
+            return 'This seating plan has been sent to the Principal for approval — it can\'t be changed or regenerated now. The Principal can return it for correction from Exam Seating Approvals.';
+        }
+        if ($plan->status === SeatingPlan::PUBLISHED) {
+            return 'This seating plan has been published by the Principal — it can\'t be changed or regenerated. Ask the Principal to return it for correction from Exam Seating Approvals.';
+        }
+
+        return null;
+    }
+
+    /**
      * Generate (or regenerate) the plan for one slot. Returns
      * [bool $ok, string $message, ?SeatingPlan $plan]. Blocking
      * states write ZERO rows: no rooms at all, no usable halls,
@@ -349,6 +393,11 @@ class SeatingPlanner
      * transaction and returns the plan to DRAFT, clearing the
      * submitted/approved stamps — a changed plan must be
      * re-approved, exactly like an edited date sheet.
+     * ONE-TIME GENERATION (owner standing rule 2026-11-08): that
+     * regeneration is a DRAFT-stage freedom only — a SUBMITTED
+     * or PUBLISHED plan refuses here (planLockMessage) and its
+     * seats are never touched; the Principal's return is the
+     * only way one opens again.
      */
     public static function generate($examId, $examDate, $timeKey, array $roomIds, $mode, $userId): array
     {
@@ -360,6 +409,9 @@ class SeatingPlanner
         $slot = self::slotFor($examId, $examDate, $timeKey);
         if (!$slot) {
             return [false, 'That sitting slot is not on the date sheet for this exam any more. Pick a slot from the list.', null];
+        }
+        if ($lock = self::planLockMessage($examId, $examDate, $timeKey)) {
+            return [false, $lock, null];
         }
 
         $rooms = Room::whereIn('id', $roomIds)->where('capacity', '>', 0)->get()->all();

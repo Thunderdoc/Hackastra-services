@@ -16,8 +16,10 @@ use Tests\TestCase;
  * principal approves = final publish -> students, parents AND
  * teachers see the sheet ONLY then. Today the sheet is visible
  * on save. State machine: draft -> submitted -> published per
- * (exam, class); no state row means draft. Editing a published
- * sheet returns it to draft; a no-change save does not.
+ * (exam, class); no state row means draft. ONE-TIME GENERATION
+ * (owner standing rule 2026-11-08): a submitted or published
+ * sheet is locked — saves and regenerates refuse — until the
+ * Principal returns it for correction.
  *
  * Fixtures: exam 1 (Term 1 Examination, global scope), class 1
  * with 6 subjects; student@ is in class 1, teacher@ teaches
@@ -213,12 +215,22 @@ class OwnerOvernightMenusApprovalTest extends TestCase
             ->assertOk()->assertSee('have not been announced yet')->assertSee('English Language')->assertSee('Not announced');
     }
 
-    public function test_editing_published_sheet_returns_it_to_draft()
+    public function test_editing_published_sheet_is_refused_until_principal_returns_it()
     {
+        // ONE-TIME GENERATION (owner standing rule 2026-11-08),
+        // re-expressed 2026-11-08: this pin used to assert the
+        // item-22 rule (editing a published sheet returns it to
+        // draft). A published sheet is now LOCKED — the save is
+        // refused and neither the dates nor the state move —
+        // until the Principal returns it for correction; only
+        // then does the same edit land, as a draft behind the
+        // gate again.
         $this->seedSheet();
         $this->submitSheet();
         $this->approveSheet();
         $this->assertSame('published', $this->state()->status);
+        $datesBefore = ExamDate::where('exam_id', 1)->where('my_class_id', 1)
+            ->pluck('exam_date', 'subject_id')->all();
 
         $firstSubject = Subject::where('my_class_id', 1)->orderBy('id')->first();
         $saved = $this->actingAs($this->admin())->post(route('exam_dates.save'), [
@@ -226,10 +238,33 @@ class OwnerOvernightMenusApprovalTest extends TestCase
             'class_id' => 1,
             'dates' => [$firstSubject->id => ['exam_date' => '2027-03-01', 'start_time' => '09:00']],
         ]);
-        $saved->assertRedirect();
-        $this->assertSame('draft', $this->state()->status);
+        $saved->assertRedirect()->assertSessionHas('flash_danger');
+        $this->assertSame('published', $this->state()->status);
+        $this->assertEquals($datesBefore, ExamDate::where('exam_id', 1)->where('my_class_id', 1)
+            ->pluck('exam_date', 'subject_id')->all());
 
-        // Back behind the gate (2026-11-08 state page, as above).
+        // Families keep seeing the published sheet throughout.
+        $this->actingAs($this->student())->get(route('exam_dates.index'))
+            ->assertOk()->assertViewIs('pages.support_team.exams.date_sheet');
+
+        // The Principal returns it — audited — and the same edit
+        // now lands on the draft.
+        $this->actingAs($this->principal())->post(route('exam_dates.return'), [
+            'exam_id' => 1,
+            'class_id' => 1,
+        ])->assertRedirect()->assertSessionHas('flash_success');
+        $this->assertSame('draft', $this->state()->status);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'exams.date_sheet_returned']);
+        $this->actingAs($this->admin())->post(route('exam_dates.save'), [
+            'exam_id' => 1,
+            'class_id' => 1,
+            'dates' => [$firstSubject->id => ['exam_date' => '2027-03-01', 'start_time' => '09:00']],
+        ])->assertRedirect()->assertSessionHas('flash_success');
+        $after = ExamDate::where('exam_id', 1)->where('my_class_id', 1)
+            ->pluck('exam_date', 'subject_id')->all();
+        $this->assertSame('2027-03-01', (string) $after[$firstSubject->id]);
+
+        // And the corrected draft is behind the gate again.
         $this->actingAs($this->student())->get(route('exam_dates.index'))
             ->assertOk()->assertViewIs('pages.support_team.not_published')->assertSee('Not Published Yet');
     }
@@ -247,12 +282,16 @@ class OwnerOvernightMenusApprovalTest extends TestCase
                 'start_time' => substr((string) $row->start_time, 0, 5),
             ];
         }
+        // ONE-TIME GENERATION (2026-11-08): a save against a
+        // published sheet is refused even when nothing would
+        // change — locked means locked. The pin's promise still
+        // holds: the state stays published.
         $saved = $this->actingAs($this->admin())->post(route('exam_dates.save'), [
             'exam_id' => 1,
             'class_id' => 1,
             'dates' => $dates,
         ]);
-        $saved->assertRedirect();
+        $saved->assertRedirect()->assertSessionHas('flash_danger');
         $this->assertSame('published', $this->state()->status);
     }
 }

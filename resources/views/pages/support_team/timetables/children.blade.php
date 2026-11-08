@@ -41,7 +41,10 @@
                         <div class="text-muted small">{{ $classSection }}</div>
                     </div>
                     @if($row['ttr'])
-                        <a href="{{ route('ttr.show', $row['ttr']->id) }}" class="btn btn-primary btn-sm"><i class="icon-table2 mr-1"></i> Open Timetable</a>
+                        {{-- LMS build (2026-11-08): the link lands on
+                             the child's My Week surface (tt.mine),
+                             the same page the student sees. --}}
+                        <a href="{{ route('tt.mine', ['child' => $child->id]) }}" class="btn btn-primary btn-sm"><i class="icon-table2 mr-1"></i> Open Timetable</a>
                     @else
                         <span class="text-muted small">No timetable has been published for this class yet.</span>
                     @endif

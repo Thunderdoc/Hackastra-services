@@ -80,9 +80,10 @@
                     <div class="mb-2">
                         @if($sheet_state && $sheet_state->status === 'published')
                             <span class="badge badge-success">Published by Principal</span>
-                            <span class="text-muted font-size-sm ml-1">Editing this sheet returns it to draft for re-approval.</span>
+                            <span class="text-muted font-size-sm ml-1">This sheet is locked — to correct it, the Principal returns it for correction from Date Sheet Approvals.</span>
                         @elseif($sheet_state && $sheet_state->status === 'submitted')
                             <span class="badge badge-warning">Awaiting Principal approval</span>
+                            <span class="text-muted font-size-sm ml-1">This sheet is locked while it is with the Principal — they can return it for correction from Date Sheet Approvals.</span>
                         @else
                             <span class="badge badge-secondary">Draft — not yet published</span>
                         @endif
@@ -104,17 +105,17 @@
                                 <tr>
                                     <td class="font-weight-semibold">{{ $s->name }}</td>
                                     <td>
-                                        <input type="date" class="form-control"
+                                        <input type="date" class="form-control" {{ $sheet_locked ? 'disabled' : '' }}
                                                name="dates[{{ $s->id }}][exam_date]"
                                                value="{{ $s->date_entry ? $s->date_entry->exam_date : '' }}">
                                     </td>
                                     <td>
-                                        <input type="time" class="form-control"
+                                        <input type="time" class="form-control" {{ $sheet_locked ? 'disabled' : '' }}
                                                name="dates[{{ $s->id }}][start_time]"
                                                value="{{ ($s->date_entry && $s->date_entry->start_time) ? substr($s->date_entry->start_time, 0, 5) : '' }}">
                                     </td>
                                     <td>
-                                        <input type="text" class="form-control" maxlength="100"
+                                        <input type="text" class="form-control" maxlength="100" {{ $sheet_locked ? 'disabled' : '' }}
                                                name="dates[{{ $s->id }}][note]"
                                                value="{{ $s->date_entry ? $s->date_entry->note : '' }}"
                                                placeholder="Optional">
@@ -136,7 +137,9 @@
                         <a href="{{ route('exam_dates.show', ['exam_id' => $exam->id, 'class_id' => $my_class_sel->id]) }}" class="btn btn-light">
                             <i class="icon-eye mr-1"></i> Preview Sheet
                         </a>
+                        @if(!$sheet_locked)
                         <button type="submit" class="btn btn-primary">Save Date Sheet <i class="icon-paperplane ml-2"></i></button>
+                        @endif
                     </div>
                 </form>
                 @if(Qs::userIsTeamSAWrite() && (!$sheet_state || $sheet_state->status === 'draft') && $sheet_row_count > 0)

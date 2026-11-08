@@ -139,7 +139,13 @@ class OwnerTimetableDayOrderTest extends TestCase
         $response = $this->actingAs($this->admin())->get(route('ttr.show', $record->id));
         $response->assertOk();
 
-        $order = $this->renderedDayOrder($response->getContent(), '/ttx-day-col"><strong>([A-Za-z]+)<\/strong>/');
+        // Re-expressed 2026-11-08 (LMS build): the record page now
+        // renders the FITTED week grid (week_grid_fit) instead of
+        // the old sideways-scrolling grid — day names sit under
+        // mw-day-col, not ttx-day-col. The assertion itself is
+        // unchanged: same fixture, same Monday → Friday order,
+        // extracted from the rendered rows in document order.
+        $order = $this->renderedDayOrder($response->getContent(), '/mw-day-col"><strong>([A-Za-z]+)<\/strong>/');
         $this->assertSame(self::EXPECTED, $order,
             'View Timetable rows must run Monday → Friday regardless of cell encounter order');
     }

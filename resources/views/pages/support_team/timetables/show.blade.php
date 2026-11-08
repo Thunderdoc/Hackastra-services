@@ -43,7 +43,7 @@
                 }
             @endphp
 
-            @include('pages.support_team.timetables.partials.grid')
+            @include('pages.support_team.timetables.partials.week_grid_fit')
         </div>
     </div>
 

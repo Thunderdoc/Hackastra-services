@@ -1,5 +1,5 @@
 @extends('layouts.master')
-@section('page_title', 'My Timetable')
+@section('page_title', ($mode ?? null) === 'teacher' ? 'My Timetable' : 'My Week')
 @section('page_breadcrumb')
     <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Academics &nbsp;/&nbsp; My Timetable
 @endsection
@@ -185,22 +185,32 @@
         </div>
 
     @else
+        {{-- My Week (LMS build, 2026-11-08, owner-approved sample):
+             ONE page, three sections — My Timetable (fitted grid)
+             → My Courses (the college-pattern table) → My
+             Attendance (summary + By-Subject drill-down). Parent
+             mode shows the selected child's surface, read-only. --}}
+        @if($mode === 'parent')
+            <div class="card"><div class="card-body">
+                @if($children->count() > 1)
+                    <div class="ttx-switcher">
+                        <span class="ttx-switcher-label">Child:</span>
+                        @foreach($children as $c)
+                            <a href="{{ route('tt.mine', ['child' => $c->id]) }}" class="btn btn-sm {{ $child && $child->id === $c->id ? 'btn-primary' : 'btn-light' }}">{{ $c->user->name }}</a>
+                        @endforeach
+                    </div>
+                @endif
+                @if($child)
+                    <p class="ttx-lead" style="margin:0">{{ $child->user->name }} &middot; {{ optional($child->my_class)->name ?: 'Deleted class' }}@if($child->section) &middot; {{ $child->section->name }}@endif</p>
+                @endif
+            </div></div>
+        @endif
+
         <div class="card">
             <div class="card-body">
-                @if($mode === 'parent')
-                    @if($children->count() > 1)
-                        <div class="ttx-switcher">
-                            <span class="ttx-switcher-label">Child:</span>
-                            @foreach($children as $c)
-                                <a href="{{ route('tt.mine', ['child' => $c->id]) }}" class="btn btn-sm {{ $child && $child->id === $c->id ? 'btn-primary' : 'btn-light' }}">{{ $c->user->name }}</a>
-                            @endforeach
-                        </div>
-                    @endif
-                    @if($child)
-                        <p class="ttx-lead">{{ $child->user->name }} &middot; {{ optional($child->my_class)->name ?: 'Deleted class' }}@if($child->section) &middot; {{ $child->section->name }}@endif</p>
-                    @endif
-                @elseif($mode === 'student' && $child)
-                    <p class="ttx-lead">{{ optional($child->my_class)->name ?: 'Deleted class' }}@if($child->section) &middot; Section {{ $child->section->name }}@endif</p>
+                <p class="ttx-lead">My Timetable</p>
+                @if($mode === 'student' && $child)
+                    <p class="text-muted">{{ optional($child->my_class)->name ?: 'Deleted class' }}@if($child->section) &middot; Section {{ $child->section->name }}@endif</p>
                 @endif
 
                 @if($slots->isEmpty())
@@ -212,7 +222,7 @@
                         @endif
                     </div>
                 @else
-                    @include('pages.support_team.timetables.partials.grid')
+                    @include('pages.support_team.timetables.partials.week_grid_fit')
                     @if(!empty($mine_summary))
                         <div class="sd-ttstrip">
                             <span><i class="icon-calendar3"></i> <strong>{{ $mine_summary['today'] }}</strong> periods today ({{ $mine_summary['today_name'] }})</span>
@@ -223,6 +233,66 @@
                 @endif
             </div>
         </div>
+
+        @if($child && isset($week_courses))
+            <div class="card">
+                <div class="card-body">
+                    <p class="ttx-lead">My Courses</p>
+                    @if($week_courses->isEmpty())
+                        @include('partials.patterns.empty_state', [
+                            'icon' => 'icon-books',
+                            'message' => 'No subjects are assigned to this class yet.',
+                        ])
+                    @else
+                        <div class="table-responsive">
+                            <table class="table table-striped hk-std l108-stack mw-courses-table">
+                                <colgroup><col style="width:30%"><col style="width:24%"><col style="width:14%"><col style="width:14%"><col style="width:13%"><col style="width:5%"></colgroup>
+                                <thead><tr><th>Subject</th><th>Teacher</th><th>Room</th><th>Type</th><th>Periods/Week</th><th></th></tr></thead>
+                                <tbody>
+                                @foreach($week_courses as $row)
+                                    <tr>
+                                        <td data-label="Subject">
+                                            <span class="mw-subj-tile" style="background: {{ \App\Support\SubjectColor::forName($row['subject']->name) }}"><i class="icon-book"></i></span>
+                                            <strong>{{ $row['subject']->name }}</strong>
+                                        </td>
+                                        <td data-label="Teacher">{{ $row['teacher'] ?: '—' }}</td>
+                                        <td data-label="Room">{{ $row['room'] ?: '—' }}</td>
+                                        <td data-label="Type">{{ $row['type'] }}</td>
+                                        <td data-label="Periods/Week">{{ $row['has_record'] ? $row['periods'] : '—' }}</td>
+                                        <td class="hk-nw">
+                                            @if($mode === 'student')
+                                                <a href="{{ route('courses.show', $row['subject']->id) }}" class="btn btn-light btn-sm" title="Open {{ $row['subject']->name }} course"><i class="icon-chevron-right"></i></a>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        @endif
+
+        @if($child && isset($week_attendance))
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <p class="ttx-lead" style="margin:0">My Attendance</p>
+                        <a href="{{ route('attendance.my', $mode === 'parent' ? ['student_id' => $child->id] : []) }}" class="btn btn-light btn-sm">Full attendance &rarr;</a>
+                    </div>
+                    @if($week_attendance['entries']->isEmpty())
+                        @include('partials.patterns.empty_state', [
+                            'icon' => 'icon-calendar2',
+                            'message' => 'No period attendance has been recorded yet this session.',
+                        ])
+                    @else
+                        @php $summary = $week_attendance['summary']; $subjects = $week_attendance['subjects']; @endphp
+                        @include('pages.support_team.attendance.partials.summary_block', ['mw_uid' => 'week'])
+                    @endif
+                </div>
+            </div>
+        @endif
     @endif
 
 @endsection

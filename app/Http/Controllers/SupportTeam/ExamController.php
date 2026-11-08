@@ -401,6 +401,15 @@ class ExamController extends Controller
         $this->exam->update($examId, ['admit_cards_published' => true]);
         $exam = $this->exam->find($examId);
         Audit::log('exams.admit_cards_published', null, 'Admit cards published for exam ' . $examId . ($exam ? ' (' . $exam->name . ')' : '') . ' by ' . Auth::user()->name);
+        /* ONE-TIME GENERATION freeze (owner standing rule
+           2026-11-08): publishing freezes the card every family
+           will see — one snapshot per student in scope, built
+           from live data at this moment. Later live edits cannot
+           rewrite a released card; unpublishing keeps the
+           snapshots hidden, re-publishing re-freezes. */
+        if ($exam) {
+            \App\Support\AdmitCardFreezer::freeze($exam, Auth::id());
+        }
         return back()->with('flash_success', 'Admit cards published. Students and parents can now view and print admit cards for this exam (subject to the usual fee clearance).');
     }
 

@@ -546,8 +546,27 @@ class OwnerPortalDeepAuditRound7Test extends TestCase
             'subject_id' => 19, 'title' => $foreignTitle, 'link_url' => 'https://example.com/r7f',
         ]);
 
+        // Re-expressed 2026-11-08 (LMS fold-in): the student's flat
+        // materials list retired into courses — materials.index
+        // now REDIRECTS the student into the course surface (the
+        // bare index to My Courses; with a subject, to that
+        // subject's course at the materials anchor), and the
+        // scoping rule itself is enforced on the course page:
+        // own-class material shows inside its course; the foreign
+        // class's course itself refuses (403) — the same scope
+        // rule, one level up.
         $this->actingAs($student)->get(route('materials.index'))
+            ->assertRedirect(route('courses.index'));
+        $loc = $this->actingAs($student)
+            ->get(route('materials.index', ['subject_id' => 1]))
+            ->headers->get('Location');
+        $this->assertStringContainsString('/courses/1', $loc);
+        $this->assertStringEndsWith('#materials', $loc);
+
+        $this->actingAs($student)->get(route('courses.show', 1))
             ->assertOk()->assertSee($ownTitle)->assertDontSee($foreignTitle);
+        $this->actingAs($student)->get(route('courses.show', 19))
+            ->assertForbidden();
         // parent@'s children are both Prep: same scope as the student.
         $this->actingAs($parent)->get(route('materials.index'))
             ->assertOk()->assertSee($ownTitle)->assertDontSee($foreignTitle);

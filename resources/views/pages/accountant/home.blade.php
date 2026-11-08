@@ -61,8 +61,8 @@
         @endforeach
     </div>
 
-    <div class="row">
-        <div class="col-xl-8">
+    <div class="row acct-home-cols">
+        <div class="col-xl-8 hk-col-stack">
             {{-- Collection Trend — one bar per month present in the
                  session ledger, from the receipts table --}}
             <section class="dashboard-panel mb-4">
@@ -127,7 +127,7 @@
             </section>
         </div>
 
-        <div class="col-xl-4">
+        <div class="col-xl-4 hk-col-stack">
             {{-- Quick Actions --}}
             <section class="dashboard-panel dashboard-quick-actions mb-4">
                 <div class="dashboard-panel-heading">

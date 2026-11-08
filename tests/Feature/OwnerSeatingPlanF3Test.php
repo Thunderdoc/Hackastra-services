@@ -373,18 +373,40 @@ class OwnerSeatingPlanF3Test extends TestCase
         $this->assertSame(0, SeatingPlan::count(), 'Super Admin is view-only inside a school — no seating writes');
     }
 
-    public function test_regeneration_returns_published_plan_to_draft()
+    /* ONE-TIME GENERATION (owner standing rule 2026-11-08) —
+       re-expressed 2026-11-08: this pin used to assert the old
+       doctrine "regenerating a published plan returns it to
+       draft". That silent revert is exactly what the rule bans:
+       a published plan now REFUSES regeneration (plan + seats
+       untouched) until the Principal returns it for correction,
+       after which regeneration works again as a draft. */
+    public function test_regeneration_of_published_plan_is_refused_until_principal_returns_it()
     {
         [$exam, $plan, $room] = $this->publishedWorld('life2');
         $this->actingAs($this->admin())->post(route('exam_seating.submit', $plan->id));
         $this->actingAs($this->principal())->post(route('exam_seating.approve'), ['plan_id' => $plan->id]);
         $this->assertSame(SeatingPlan::PUBLISHED, $plan->fresh()->status);
+        $seatsBefore = \App\Models\SeatingSeat::where('plan_id', $plan->id)->count();
 
-        $this->generateViaHttp($exam, [$room->id]);
+        // Regeneration is refused: status, stamps and seats stand.
+        $this->generateViaHttp($exam, [$room->id])->assertSessionHas('flash_danger');
         $plan->refresh();
-        $this->assertSame(SeatingPlan::DRAFT, $plan->status, 'Regenerating a published plan returns it to draft');
+        $this->assertSame(SeatingPlan::PUBLISHED, $plan->status, 'A published plan can no longer be regenerated over');
+        $this->assertNotNull($plan->approved_by);
+        $this->assertSame($seatsBefore, \App\Models\SeatingSeat::where('plan_id', $plan->id)->count());
+
+        // The Principal return is the only way back — audited.
+        $this->actingAs($this->principal())->post(route('exam_seating.return'), ['plan_id' => $plan->id])
+            ->assertSessionHas('flash_success');
+        $plan->refresh();
+        $this->assertSame(SeatingPlan::DRAFT, $plan->status);
         $this->assertNull($plan->approved_by);
         $this->assertNull($plan->submitted_at);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'exams.seating_returned']);
+
+        // And now regeneration lands again, as a draft.
+        $this->generateViaHttp($exam, [$room->id])->assertRedirect();
+        $this->assertSame(SeatingPlan::DRAFT, $plan->fresh()->status);
     }
 
     public function test_principal_approvals_queue_lists_submitted_only()

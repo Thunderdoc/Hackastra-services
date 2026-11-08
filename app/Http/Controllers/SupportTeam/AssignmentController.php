@@ -165,41 +165,18 @@ class AssignmentController extends Controller
         }
 
         if (Qs::userIsStudent()) {
-            // CS2 view: assignments.student_index — each assignment
-            // carries my_submission (own submission or null) plus the
-            // eager-loaded own submissions collection as fallback.
-            $sr = Qs::getSRByUserID($user->id);
-            if (!$sr) {
-                return $this->deny();
-            }
-            $studentQuery = $base()
-                ->where('my_class_id', $sr->my_class_id)
-                ->where(function ($q) use ($sr) {
-                    $q->whereNull('section_id')->orWhere('section_id', $sr->section_id);
-                });
-            if ($req->filled('q')) {
-                $term = '%' . trim((string) $req->query('q')) . '%';
-                $studentQuery->where(function ($q) use ($term) {
-                    $q->where('title', 'like', $term)
-                        ->orWhereHas('subject', function ($s) use ($term) {
-                            $s->where('name', 'like', $term);
-                        })
-                        ->orWhereHas('teacher', function ($t) use ($term) {
-                            $t->where('name', 'like', $term);
-                        });
-                });
-            }
-            $d['assignments'] = $studentQuery
-                ->with(['submissions' => function ($q) use ($user) {
-                    $q->where('student_id', $user->id);
-                }])
-                ->paginate(15)
-                ->appends($req->only(['q']));
-            foreach ($d['assignments'] as $assignment) {
-                $assignment->setRelation('my_submission', $assignment->submissions->first());
+            // LMS fold-in (owner-approved, 2026-11-08): the flat
+            // student assignments list is RETIRED — every
+            // assignment lives inside its subject's course, in
+            // sequence. The route redirects into the course (at
+            // the assignments anchor when a subject was named);
+            // submitting, grading and the detail pages are
+            // untouched.
+            if ($req->filled('subject_id')) {
+                return redirect(route('courses.show', (int) $req->query('subject_id')) . '#assignments');
             }
 
-            return view('pages.support_team.assignments.student_index', $d);
+            return redirect()->route('courses.index');
         }
 
         if (Qs::userIsParent()) {

@@ -67,6 +67,7 @@ class ExamDateController extends Controller
         $d['selected'] = false;
         $d['subjects'] = collect();
         $d['sheet_state'] = null;
+        $d['sheet_locked'] = false;
         $d['sheet_row_count'] = 0;
 
         if ($d['exam_id'] && $d['class_id']) {
@@ -84,6 +85,11 @@ class ExamDateController extends Controller
                         return $s;
                     });
                 $d['sheet_state'] = ExamDateSheetState::where('exam_id', $d['exam_id'])->where('my_class_id', $d['class_id'])->first();
+                // ONE-TIME GENERATION lock (owner standing rule
+                // 2026-11-08): a submitted or published sheet is
+                // frozen — the Manage form renders read-only and
+                // save() refuses. Only a Principal return opens it.
+                $d['sheet_locked'] = $d['sheet_state'] && in_array($d['sheet_state']->status, [ExamDateSheetState::SUBMITTED, ExamDateSheetState::PUBLISHED], true);
                 $d['sheet_row_count'] = ExamDate::where('exam_id', $d['exam_id'])->where('my_class_id', $d['class_id'])->count();
                 // Schedule health line (signature pass, 2026-10-30):
                 // before anyone publishes, the Manage page itself
@@ -138,6 +144,28 @@ class ExamDateController extends Controller
         $targetClass = MyClass::find($classId);
         return 'This exam is scoped to ' . ($scopedClass ? $scopedClass->name : 'one class')
             . ' — it cannot carry dates for ' . ($targetClass ? $targetClass->name : 'this class') . '.';
+    }
+
+    /**
+     * ONE-TIME GENERATION lock (owner standing rule 2026-11-08):
+     * a date sheet is generated once, reviewed, sent to the
+     * Principal and published — after it is SUBMITTED or PUBLISHED
+     * it can no longer be saved over or regenerated. The only way
+     * back is the Principal's return (returnSheet below), which is
+     * audited. Returns the refusal message for a locked sheet, or
+     * null while the sheet is still a draft. Shared by generate()
+     * and save() so the refusal reads identically on both paths.
+     */
+    protected function sheetLockMessage($examId, $classId)
+    {
+        $status = ExamDateSheetState::statusFor($examId, $classId);
+        if ($status === ExamDateSheetState::SUBMITTED) {
+            return 'This date sheet has been sent to the Principal for approval — it can\'t be changed or regenerated now. The Principal can return it for correction from Date Sheet Approvals.';
+        }
+        if ($status === ExamDateSheetState::PUBLISHED) {
+            return 'This date sheet has been published by the Principal — it can\'t be changed or regenerated. Ask the Principal to return it for correction from Date Sheet Approvals.';
+        }
+        return null;
     }
 
     public function generate(Request $req)
@@ -265,10 +293,10 @@ class ExamDateController extends Controller
         $skipped = [];
         $overflow = [];
         $noSubjects = [];
-        // Overnight menus (item 22): classes this generate actually
-        // wrote to — only those can drop a published sheet back to
-        // draft. Skipped classes wrote nothing, so they keep state.
-        $writtenClassIds = [];
+        // ONE-TIME GENERATION lock (owner standing rule 2026-11-08):
+        // classes whose sheet for this exam is submitted or
+        // published are skipped untouched and named in the summary.
+        $lockedSheets = [];
         // Batch 2026-10-28 (exam-timetable round 3): the whole
         // write loop runs inside ONE transaction — a mid-loop
         // failure (lock, exception) used to leave a half-written
@@ -280,6 +308,13 @@ class ExamDateController extends Controller
         DB::beginTransaction();
         try {
             foreach ($classes as $class) {
+            // ONE-TIME GENERATION lock: a submitted or published
+            // sheet for this class is frozen — skip it before any
+            // row is touched (the orphan cleanup below is a write).
+            if ($this->sheetLockMessage($exam->id, $class->id)) {
+                $lockedSheets[] = $class->name;
+                continue;
+            }
             $subjects = $this->my_class->findSubjectByClass($class->id);
             // Replace means a fresh sheet: drop rows for subjects
             // no longer in this class (exam_dates has no FK, so a
@@ -297,9 +332,7 @@ class ExamDateController extends Controller
                 foreach ((clone $orphans)->get() as $orphan) {
                     Invigilation::clearSitting($orphan);
                 }
-                if ($orphans->delete() > 0) {
-                    $writtenClassIds[$class->id] = true;
-                }
+                $orphans->delete();
             }
             if ($subjects->isEmpty()) {
                 $noSubjects[] = $class->name;
@@ -331,7 +364,6 @@ class ExamDateController extends Controller
                             ]
                         );
                         $occupied[$key][$group] = true;
-                        $writtenClassIds[$class->id] = true;
                         $slotIdx++;
                         $placed = true;
                         break;
@@ -344,16 +376,10 @@ class ExamDateController extends Controller
             }
             $done[] = $class->name;
         }
-            // Overnight menus (item 22): regenerating a published
-            // sheet returns it to draft for re-approval (same rule
-            // as the manual save).
-            $reverted = 0;
-            foreach (array_keys($writtenClassIds) as $classId) {
-                $reverted += ExamDateSheetState::where('exam_id', $exam->id)
-                    ->where('my_class_id', $classId)
-                    ->where('status', ExamDateSheetState::PUBLISHED)
-                    ->update(['status' => ExamDateSheetState::DRAFT, 'submitted_by' => null, 'submitted_at' => null, 'approved_by' => null, 'approved_at' => null]);
-            }
+            // Locked sheets (submitted/published) were skipped at
+            // the top of the loop — a generate never reverts one
+            // (ONE-TIME GENERATION, owner standing rule 2026-11-08;
+            // the item-22 silent revert is gone).
             DB::commit();
         } catch (\Throwable $e) {
             DB::rollBack();
@@ -368,7 +394,7 @@ class ExamDateController extends Controller
             . ($skipped ? ' Skipped (sheet already exists): ' . implode(', ', $skipped) . '.' : '')
             . ($noSubjects ? ' No subjects yet: ' . implode(', ', $noSubjects) . '.' : '')
             . ($overflow ? ' Could not fit within the days given: ' . implode('; ', $overflow) . ' — extend the days or set those on the Manage page.' : '');
-        $msg .= $reverted ? ' Published sheet(s) returned to draft for re-approval.' : '';
+        $msg .= $lockedSheets ? ' Kept (sent for approval or published — locked): ' . implode(', ', $lockedSheets) . '. The Principal can return a sheet for correction from Date Sheet Approvals.' : '';
 
         return redirect()->route('exam_dates.manage', ['exam_id' => $exam->id])
             ->with('flash_success', $msg);
@@ -396,6 +422,13 @@ class ExamDateController extends Controller
         // before any row is touched.
         if (!empty($exam->my_class_id) && (int) $exam->my_class_id !== (int) $mc->id) {
             return back()->with('flash_danger', $this->scopeMismatchMessage($exam, $mc->id));
+        }
+        // ONE-TIME GENERATION lock (owner standing rule 2026-11-08):
+        // a submitted or published sheet is frozen — the old
+        // item-22 "editing returns it to draft" rule is gone; the
+        // Principal returns the sheet for correction first.
+        if ($lock = $this->sheetLockMessage($exam->id, $mc->id)) {
+            return back()->with('flash_danger', $lock);
         }
 
         $subjects = $this->my_class->findSubjectByClass($mc->id);
@@ -541,18 +574,9 @@ class ExamDateController extends Controller
             $saved++;
         }
 
-        // Overnight menus (item 22) — the edit-of-published rule:
-        // editing a published sheet returns it to draft, so the
-        // edited content needs re-approval before families see it
-        // again. A no-change save leaves the published state alone
-        // (submitted vs stored comparison, notes included).
-        $reverted = false;
-        if ($postMap != $storedBySubject) {
-            $reverted = (bool) ExamDateSheetState::where('exam_id', $exam->id)
-                ->where('my_class_id', $mc->id)
-                ->where('status', ExamDateSheetState::PUBLISHED)
-                ->update(['status' => ExamDateSheetState::DRAFT, 'submitted_by' => null, 'submitted_at' => null, 'approved_by' => null, 'approved_at' => null]);
-        }
+        // Locked sheets never reach this loop (the refusal above),
+        // so a save here is always a draft-stage edit — the sheet
+        // keeps whatever state it had, which is draft.
 
         Audit::log('exams.date_sheet_saved', null, 'Exam date sheet saved: exam ' . $exam->id . ' (' . $exam->name . '), class ' . $mc->id . ' (' . $mc->name . ') — ' . $saved . ' date(s) set, ' . $cleared . ' cleared');
             DB::commit();
@@ -564,7 +588,6 @@ class ExamDateController extends Controller
 
         $msg = 'Date sheet saved for ' . $exam->name . ' — ' . $mc->name . ': ' . $saved . ' date(s) set';
         $msg .= $cleared ? ', ' . $cleared . ' cleared.' : '.';
-        $msg .= $reverted ? ' This sheet was published — edits return it to draft for re-approval.' : '';
 
         return redirect()->route('exam_dates.manage', ['exam_id' => $exam->id, 'class_id' => $mc->id])
             ->with('flash_success', $msg);
@@ -574,7 +597,10 @@ class ExamDateController extends Controller
     /* Draft -> submitted (Admin) -> published (Principal approval =
        final publish). Students, parents and teachers see a sheet
        only once it is published; admin and principal always see
-       the live rows. */
+       the live rows. ONE-TIME GENERATION (owner standing rule
+       2026-11-08): once submitted or published the sheet is
+       frozen — save/generate refuse — until the Principal returns
+       it for correction (returnSheet). */
 
     /** Admin submits one (exam, class) sheet for Principal approval. */
     public function submit(Request $req)
@@ -624,8 +650,19 @@ class ExamDateController extends Controller
             $state->row_count = ExamDate::where('exam_id', $state->exam_id)->where('my_class_id', $state->my_class_id)->count();
             $state->submitted_by_name = $state->submitted_by ? optional(\App\User::find($state->submitted_by))->name : null;
         }
+        // ONE-TIME GENERATION (owner standing rule 2026-11-08):
+        // published sheets are listed too — the Principal's
+        // return-for-correction is the only way one opens again.
+        $published = ExamDateSheetState::with(['exam', 'my_class'])
+            ->where('status', ExamDateSheetState::PUBLISHED)
+            ->orderBy('approved_at')
+            ->get();
+        foreach ($published as $state) {
+            $state->row_count = ExamDate::where('exam_id', $state->exam_id)->where('my_class_id', $state->my_class_id)->count();
+            $state->approved_by_name = $state->approved_by ? optional(\App\User::find($state->approved_by))->name : null;
+        }
 
-        return view('pages.support_team.exams.date_sheet_approvals', ['states' => $states]);
+        return view('pages.support_team.exams.date_sheet_approvals', ['states' => $states, 'published_states' => $published]);
     }
 
     /** Principal approval = final publish. Submitted sheets only. */
@@ -646,6 +683,38 @@ class ExamDateController extends Controller
         Audit::log('exams.date_sheet_published', null, 'Exam date sheet published by Principal: exam ' . $state->exam_id . ', class ' . $state->my_class_id);
 
         return back()->with('flash_success', 'Date sheet published.');
+    }
+
+    /**
+     * Principal return path (ONE-TIME GENERATION, owner standing
+     * rule 2026-11-08): a SUBMITTED or PUBLISHED sheet goes back
+     * to draft so the Admin can correct it. This is the ONLY way
+     * a locked sheet opens again — save() and generate() refuse
+     * while it is submitted or published. Audited, like the
+     * approval it undoes.
+     */
+    public function returnSheet(Request $req)
+    {
+        if (!Qs::userIsPrincipal()) {
+            return redirect()->route('dashboard');
+        }
+        $data = $req->validate(['exam_id' => 'required|integer', 'class_id' => 'required|integer']);
+        $state = ExamDateSheetState::where('exam_id', $data['exam_id'])->where('my_class_id', $data['class_id'])->first();
+        if (!$state || !in_array($state->status, [ExamDateSheetState::SUBMITTED, ExamDateSheetState::PUBLISHED], true)) {
+            return back()->with('flash_danger', 'This sheet is not awaiting approval or published — there is nothing to return.');
+        }
+        $was = $state->status;
+        $state->status = ExamDateSheetState::DRAFT;
+        $state->submitted_by = null;
+        $state->submitted_at = null;
+        $state->approved_by = null;
+        $state->approved_at = null;
+        $state->save();
+        $exam = $this->exam->find($data['exam_id']);
+        $mc = $this->my_class->find($data['class_id']);
+        Audit::log('exams.date_sheet_returned', null, 'Exam date sheet returned for correction by Principal: exam ' . $data['exam_id'] . ($exam ? ' (' . $exam->name . ')' : '') . ', class ' . $data['class_id'] . ($mc ? ' (' . $mc->name . ')' : '') . ' — was ' . $was);
+
+        return back()->with('flash_success', 'Date sheet returned to the Admin for correction' . ($exam && $mc ? ': ' . $exam->name . ' — ' . $mc->name . '.' : '.'));
     }
 
     /*********************** Scoped read views **********************/

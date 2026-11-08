@@ -226,7 +226,12 @@ class OwnerRound5CommandPaletteTest extends TestCase
         $this->assertSame([], $response->json('classes'));
         $this->assertSame([], $response->json('payments'));
         // Its own navigation is there; no create actions.
-        $this->assertContains('My Assignments', $this->labels($response, 'pages'));
+        // Re-expressed 2026-11-08 (LMS fold-in): the student's
+        // Learning entry is "My Courses" now — the standalone
+        // My Assignments / Study Materials pages retired into
+        // courses (their routes redirect there).
+        $this->assertContains('My Courses', $this->labels($response, 'pages'));
+        $this->assertNotContains('My Assignments', $this->labels($response, 'pages'));
         $this->assertContains('My Fees', $this->labels($response, 'pages'));
         $this->assertSame([], $response->json('actions'));
         $this->assertNotContains('Admit Student', $this->labels($response, 'pages'));

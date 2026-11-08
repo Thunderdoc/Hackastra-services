@@ -416,6 +416,11 @@ Route::group(['middleware' => 'auth'], function () {
         Route::post('exams/date-sheet/submit', 'ExamDateController@submit')->name('exam_dates.submit');
         Route::get('exams/date-sheet/approvals', 'ExamDateController@approvals')->name('exam_dates.approvals');
         Route::post('exams/date-sheet/approve', 'ExamDateController@approve')->name('exam_dates.approve');
+        /* ONE-TIME GENERATION (owner standing rule 2026-11-08): the
+           Principal's return-for-correction — the only way a
+           submitted/published sheet opens for edits again.
+           Principal-guarded inside the controller, like approve. */
+        Route::post('exams/date-sheet/return', 'ExamDateController@returnSheet')->name('exam_dates.return');
         Route::get('exam-dates', 'ExamDateController@show')->name('exam_dates.index');
         Route::get('exams/duties', 'ExamDutyController@index')->name('exam_duties.index');
         Route::post('exams/duties/assign', 'ExamDutyController@assign')->name('exam_duties.assign');
@@ -433,6 +438,7 @@ Route::group(['middleware' => 'auth'], function () {
         Route::post('exams/seating/generate', 'ExamSeatingController@generate')->name('exam_seating.generate')->middleware('throttle:generate');
         Route::get('exams/seating/approvals', 'ExamSeatingController@approvals')->name('exam_seating.approvals');
         Route::post('exams/seating/approve', 'ExamSeatingController@approve')->name('exam_seating.approve');
+        Route::post('exams/seating/return', 'ExamSeatingController@returnPlan')->name('exam_seating.return');
         Route::get('exams/seating/my-halls', 'ExamSeatingController@myHalls')->name('exam_seating.my_halls');
         Route::get('exams/seating/my-halls/{plan_id}/{room_id}', 'ExamSeatingController@myHallSheet')->name('exam_seating.my_hall_sheet');
         Route::get('exams/seating/{plan_id}', 'ExamSeatingController@show')->name('exam_seating.show');
@@ -802,6 +808,22 @@ Route::group(['middleware' => 'auth'], function () {
             Route::get('{material}/share', 'StudyMaterialController@share')->name('materials.share');
             Route::post('{material}/share', 'StudyMaterialController@shareStore')->name('materials.share.store');
             Route::delete('{material}', 'StudyMaterialController@destroy')->name('materials.destroy');
+        });
+
+        /*************** LMS Courses (owner-approved build, 2026-11-08) ***************
+           Learning organised as courses: one page per subject ×
+           section — notices, materials, assignments, quizzes in
+           sequence, pinned first. Students land here from My
+           Courses; the old flat student lists redirect in. Pin /
+           reorder / notice writes are teacher-only and gated
+           inside CourseController (effective-teacher scope). */
+        Route::group(['prefix' => 'courses'], function(){
+            Route::get('/', 'CourseController@index')->name('courses.index');
+            Route::get('{subject}', 'CourseController@show')->name('courses.show');
+            Route::post('{subject}/notices', 'CourseController@storeNotice')->name('courses.notices.store');
+            Route::delete('notices/{notice}', 'CourseController@destroyNotice')->name('courses.notices.destroy');
+            Route::post('pin', 'CourseController@togglePin')->name('courses.pin');
+            Route::post('reorder', 'CourseController@reorder')->name('courses.reorder');
         });
         /*************** Feedback & Issues (Workstream CW) *****************/
         /* Owner workflow: everyone reports to the school Admin; the

@@ -10,12 +10,15 @@ class Assignment extends Eloquent
     protected $fillable = [
         'teacher_id', 'my_class_id', 'section_id', 'subject_id', 'title',
         'description', 'attachment_path', 'max_marks', 'due_at', 'allow_late',
+        'is_pinned', 'seq',
     ];
 
     protected $casts = [
         'due_at' => 'datetime',
         'allow_late' => 'boolean',
         'max_marks' => 'decimal:2',
+        'is_pinned' => 'boolean',
+        'seq' => 'integer',
     ];
 
     public function teacher()

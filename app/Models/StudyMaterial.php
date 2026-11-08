@@ -10,6 +10,12 @@ class StudyMaterial extends Eloquent
     protected $fillable = [
         'teacher_id', 'my_class_id', 'section_id', 'subject_id', 'title',
         'description', 'file_path', 'file_hash', 'link_url',
+        'is_pinned', 'seq',
+    ];
+
+    protected $casts = [
+        'is_pinned' => 'boolean',
+        'seq' => 'integer',
     ];
 
     public function teacher()

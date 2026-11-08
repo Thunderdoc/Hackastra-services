@@ -37,10 +37,16 @@
                             </thead>
                             <tbody>
                             @foreach($exams as $ex)
+                                @php
+                                    // ONE-TIME GENERATION freeze: a published exam shows
+                                    // its identity as frozen at publish time.
+                                    $frozenExam = ($ex->admit_cards_published && !empty($frozen_exams[$sr->user_id][$ex->id]))
+                                        ? $frozen_exams[$sr->user_id][$ex->id] : null;
+                                @endphp
                                 <tr>
-                                    <td data-label="Exam">{{ $ex->name }}</td>
-                                    <td data-label="Term">Term {{ $ex->term }}</td>
-                                    <td data-label="Session">{{ $ex->year }}</td>
+                                    <td data-label="Exam">{{ $frozenExam['name'] ?? $ex->name }}</td>
+                                    <td data-label="Term">Term {{ $frozenExam['term'] ?? $ex->term }}</td>
+                                    <td data-label="Session">{{ $frozenExam['year'] ?? $ex->year }}</td>
                                     <td class="text-center" data-label="Admit Card">
                                         @php $due = $due_by_student[$sr->user_id] ?? 0; @endphp
                                         @if(!$ex->admit_cards_published)

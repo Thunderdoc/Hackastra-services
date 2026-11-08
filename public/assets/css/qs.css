@@ -9089,3 +9089,266 @@ html:not(.hk-dark) body.sidebar-xs .sidebar-main.hk-sb-b .nav-sidebar>.nav-item>
    rules at (0,2,1)/(0,1,1); this restatement is (0,3,1) and
    beats Bootstrap's (0,2,0). */
 html.hk-dark .table .table{background-color:transparent}
+
+/* ============================================================
+   HOTFIX G (2026-11-08, owner screenshots 10:58-10:59 IST).
+   (1) Collapsed rail buttons "cut at the edges" (View TimeTable
+   page, which forces the mini rail): the Design B shell insets
+   .sidebar-content by 12px a side for the EXPANDED rail's group
+   cards, but that rule is not scoped to the expanded state —
+   in the 3.5rem collapsed rail the nav column starts 12px in,
+   keeps its ~55px min-content width and spills ~11px past the
+   rail's right edge (measured at 1920x860: rail right edge 57,
+   links x=12 -> right=67.1, icons centred at 33.6 instead of
+   the rail's 28). The scroller's overflow-x:hidden then CLIPS
+   the active highlight flush at the edge — the cut the owner
+   photographed. Fix: in the collapsed rail the content takes
+   the FULL rail width (padding 0), so links span edge to edge
+   with even margins and icons sit on the rail centre. Scoped
+   to >=768px — the phone drawer keeps its expanded geometry.
+   Selector (0,4,1) outranks the shell rule (0,3,0).
+   (2) Expanded-rail zone lock, restated as the file's final
+   word for the B shell: brand pinned top, the group list
+   scrolling INTERNALLY, the user chip pinned to the bottom in
+   real layout space — the Loop 35 zones re-asserted at B-shell
+   specificity, so no older or partial rule can leave the list
+   running under the chip (owner: the last group "half-hidden
+   behind the chip" on a short laptop viewport). The zones were
+   measured intact at 1366x768 and 1920x860 for student,
+   teacher and admin in both themes; this keeps them so.
+   ============================================================ */
+@media (min-width:768px){
+    body.sidebar-xs .sidebar-main.hk-sb-b .sidebar-content{padding-left:0;padding-right:0}
+    /* The collapsed rail's centring corrections in the base
+       theme (link padding 0, icon margin 0) are TIED on
+       specificity by the Loop 91 row rules (padding:10px 12px,
+       icon margin-right:12px) and lose on file order — so even
+       at full rail width the icon sat ~6px off centre with a
+       12px dead strip each side. Restated for the B shell at
+       (0,7,1)/(0,7,2); vertical rhythm (10px, 42px rows) is
+       the base theme's own and stays. */
+    body.sidebar-xs .sidebar.sidebar-main.hk-sb-b .nav-sidebar>.nav-item>.nav-link{padding-left:0;padding-right:0}
+    body.sidebar-xs .sidebar.sidebar-main.hk-sb-b .nav-sidebar>.nav-item>.nav-link>i{margin-right:0}
+}
+.sidebar.sidebar-main.hk-sb-b{display:flex;flex-direction:column}
+.sidebar.sidebar-main.hk-sb-b .sidebar-content{flex:1 1 auto;min-height:0}
+.sidebar.sidebar-main.hk-sb-b .card-sidebar-mobile{flex:1 1 auto;min-height:0;overflow-y:auto}
+.sidebar.sidebar-main.hk-sb-b .hk-sb-userchip{flex:0 0 auto}
+
+/* ============================================================
+   Student home — column fill (2026-11-08, HOTFIX H). ROOT
+   CAUSE: the home's two columns (.row > .col-xl-8/.col-xl-4)
+   stretch to the row height, but every panel inside them is
+   height:auto (the L1 rule above), so the panels stack at the
+   top and the SHORTER column ends in a slab of bare page
+   background — measured 152px (1920) / 162px (1366) of void
+   under "My Subjects" while the right rail ran on to "Recent
+   Circulars", a mid-page hole above the full-width Reminders
+   panel (owner screenshot image-153). FIX: at xl widths the
+   two columns become flex columns; every panel keeps its
+   natural height except each column's LAST panel, which grows
+   to the column bottom and spreads its own list rows evenly
+   (subject rows / circular rows are align-items:center flex
+   rows, so a grown row centres its content instead of leaving
+   white space inside the card). Both column bottoms now land
+   flush on the row bottom — the approved equal-height rule —
+   with no new blocks and no invented data. Below xl the
+   columns stack full-width and nothing changes. */
+@media (min-width:1200px){
+.row.stu-home-cols>[class*=col].hk-col-stack{display:flex;flex-direction:column}
+.row.stu-home-cols>[class*=col].hk-col-stack>.dashboard-panel{flex:0 0 auto}
+.row.stu-home-cols>[class*=col].hk-col-stack>.dashboard-panel:last-of-type{flex:1 0 auto;display:flex;flex-direction:column}
+.row.stu-home-cols>[class*=col].hk-col-stack>.dashboard-panel:last-of-type .stu-subject-row,.row.stu-home-cols>[class*=col].hk-col-stack>.dashboard-panel:last-of-type .stu-circular-row{flex:1 0 auto}
+}
+
+/* ===== LMS build (2026-11-08): My Week fitted grid + month cards
+   + attendance drill-down + course cards/pages. Site idiom only:
+   white cards, hairline #dde8f2 borders, app-blue actions,
+   SubjectColor tints inline from the blades. ===== */
+
+/* -- Fitted week grid: fixed layout, weighted columns, cells wrap
+      and never truncate; the phone list replaces it under 700px. */
+.mw-grid-wrap{width:100%}
+.mw-week-table{table-layout:fixed;width:100%;margin-bottom:0}
+.mw-week-table th,.mw-week-table td{text-align:center;vertical-align:top;padding:8px 5px;border-top:1px solid #e7edf4;overflow-wrap:break-word}
+.mw-week-table thead th{font-size:11.5px;color:#5b7186;border-bottom:2px solid #e7edf4}
+.mw-week-table .mw-day-col{text-align:left;font-size:12.5px}
+.mw-week-table .mw-gap-col{background:#fdf6ec}
+.mw-week-table .mw-gap-label{display:block;font-weight:700;font-size:11px;letter-spacing:.04em;color:#9a6a14;text-transform:uppercase}
+.mw-week-table .mw-gap-range{display:block;font-size:10.5px;color:#b08a3e}
+.mw-week-table .mw-cell-title{display:block;font-weight:600;font-size:12.5px;line-height:1.25}
+.mw-week-table .mw-cell-sub{display:block;font-size:10.5px;color:#7d93a8;line-height:1.3}
+.mw-week-table tr.mw-today{background:#eef5ff}
+.mw-daylist{display:none}
+@media (max-width:700px){
+  .mw-grid-wrap{display:none}
+  .mw-daylist{display:block}
+}
+.mw-day-block{border:1px solid #e3e9f2;border-radius:11px;padding:10px 12px;margin-bottom:10px;background:#fbfdff}
+.mw-day-block.mw-today{border-color:#bcd4f7;background:#eef5ff}
+.mw-day-head{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.mw-day-count{margin-left:auto;font-size:12px;color:#7d93a8}
+.mw-day-row{display:flex;gap:10px;padding:5px 0;border-top:1px dashed #e3e9f2;font-size:13px}
+.mw-day-time{flex:0 0 118px;color:#5b7186;font-size:12px}
+.mw-day-subject{font-weight:600}
+.mw-day-teacher{margin-left:auto;color:#7d93a8;font-size:12px;text-align:right}
+.mw-day-gap{background:#fdf6ec;color:#9a6a14;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;border-radius:7px;padding:4px 8px;margin:5px 0}
+.mw-day-none{color:#7d93a8}
+
+/* -- Month cards ARE the attendance month picker */
+.mw-monthcards{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.mw-monthcard{flex:1;min-width:160px;border:1.5px solid #dde8f2;border-radius:11px;padding:10px 14px;background:#fbfdff;color:#34506b;text-decoration:none}
+.mw-monthcard:hover{border-color:#bcd4f7;text-decoration:none}
+.mw-monthcard.active{border-color:#2867dc;background:#eef5ff}
+.mw-monthcard-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.mw-showing{background:#2867dc;color:#fff;font-size:10.5px;font-weight:700;border-radius:20px;padding:2px 8px;text-transform:uppercase;letter-spacing:.04em}
+.mw-monthcard-sub{display:block;font-size:12.5px;color:#5b7186;margin-top:2px}
+.mw-minibar{display:block;height:5px;background:#e3e9f2;border-radius:4px;margin-top:7px;overflow:hidden}
+.mw-minibar span{display:block;height:100%;background:#2867dc;border-radius:4px}
+
+/* -- Attendance summary block (shared My Attendance / My Week) */
+.mw-overall{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.mw-overall .progress{flex:1;margin:0}
+.mw-overall-text{font-size:13px;color:#34506b;white-space:nowrap}
+.mw-legend{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:10px;font-size:12px}
+.mw-leave-tag{background:transparent;border:1.5px dashed #d97706;color:#b45309}
+.mw-pct{display:flex;align-items:center;gap:8px}
+.mw-pct-bar{flex:1;min-width:56px;height:6px;background:#e3e9f2;border-radius:4px;overflow:hidden;display:inline-block}
+.mw-pct-bar span{display:block;height:100%}
+.mw-pct-bar span.ok{background:#28a745}
+.mw-pct-bar span.warn{background:#e0a800}
+.mw-pct-bar span.bad{background:#dc3545}
+.mw-register-row>td{background:#fbfdff !important;padding:10px 12px !important}
+.mw-register{margin-bottom:0}
+
+/* -- My Week courses table */
+.mw-subj-tile{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;color:#fff;margin-right:8px;vertical-align:middle}
+
+/* -- Course cards (My Courses grid) */
+.course-card{display:block;background:#fff;border:1px solid #e3e9f2;border-radius:13px;overflow:hidden;margin-bottom:20px;color:inherit;text-decoration:none;transition:box-shadow .15s ease,transform .15s ease}
+.course-card:hover{text-decoration:none;color:inherit;box-shadow:0 10px 26px rgba(16,38,59,.12);transform:translateY(-2px)}
+.course-card-band{display:flex;align-items:center;gap:10px;padding:14px 16px;color:#fff}
+.course-card-icon{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:9px;background:rgba(255,255,255,.22);font-size:16px}
+.course-card-name{font-weight:700;font-size:16.5px}
+.course-card-notice{margin-left:auto;background:#f59e0b;color:#fff;font-size:11px;font-weight:700;border-radius:20px;padding:3px 9px}
+.course-card-body{display:block;padding:13px 16px 15px}
+.course-card-teacher{display:flex;align-items:center;gap:8px;color:#34506b;font-size:13.5px;margin-bottom:10px}
+.course-avatar{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;color:#fff;font-weight:700;font-size:12px}
+.course-card-stats{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:#7d93a8;border-top:1px dashed #e3e9f2;padding-top:10px}
+.course-card-stats strong{color:#10263b}
+.course-card-stats .amber,.course-card-stats .amber strong{color:#b45309}
+.course-card-open{display:block;margin-top:11px;color:#2867dc;font-weight:600;font-size:13.5px}
+
+/* -- Course page */
+.course-hero .card-body{padding-bottom:14px}
+.course-hero-main{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.course-hero-icon{display:inline-flex;align-items:center;justify-content:center;width:52px;height:52px;border-radius:13px;color:#fff;font-size:22px}
+.course-hero-title{margin:0;font-weight:700}
+.course-hero-att{margin-left:auto;display:flex;align-items:center;gap:8px;background:#f4f9ff;border:1px solid #dde8f2;border-radius:11px;padding:8px 13px;font-size:13px;color:#34506b}
+.course-hero-att .mw-pct-bar{width:74px;flex:none}
+.course-switcher{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:13px}
+.course-chiprow{display:flex;gap:8px;flex-wrap:wrap;margin-top:13px}
+.course-chiprow span{background:#f4f9ff;border:1px solid #dde8f2;color:#34506b;font-size:12px;border-radius:20px;padding:4px 11px}
+.course-section-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.course-section-head h5{margin:0;display:flex;align-items:center;gap:9px;font-weight:700}
+.course-sec-icon{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:8px;color:#fff;font-size:14px}
+.course-composer{border:1.5px dashed #c9d8ea;border-radius:11px;padding:12px;margin-bottom:14px;background:#fbfdff}
+.course-composer-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:9px;flex-wrap:wrap}
+.course-pin-toggle{font-size:13px;margin:0;cursor:pointer}
+.course-items{display:flex;flex-direction:column;gap:9px}
+.course-item{display:flex;align-items:center;gap:11px;border:1px solid #e3e9f2;border-radius:11px;padding:10px 13px;background:#fff}
+.course-item.pinned{background:#fffaf0;border-color:#f0dcb0}
+.course-item.dragging{opacity:.45}
+.course-notice{border-color:#f0dcb0;background:#fffaf0}
+.course-notice-body{margin:0 0 3px;font-size:14.5px}
+.course-grip{color:#b6c6d6;cursor:grab;font-size:15px}
+.course-file-chip{flex:none;background:#eef3fa;border:1px solid #d7e3f2;color:#34506b;font-size:10.5px;font-weight:700;border-radius:7px;padding:5px 7px;letter-spacing:.03em}
+.course-item-main{flex:1;min-width:0}
+.course-item-actions{display:flex;align-items:center;gap:7px;flex:none;flex-wrap:wrap;justify-content:flex-end}
+.course-pin-badge{display:inline-block;background:#f59e0b;color:#fff;font-size:10.5px;font-weight:700;border-radius:20px;padding:2px 8px;margin-left:7px;vertical-align:middle}
+.course-pin-form{margin:0}
+.course-score-chip{background:#e8f7ee;border:1px solid #bfe6cd;color:#18713c;font-weight:700;font-size:12.5px;border-radius:8px;padding:4px 9px}
+.course-scope-note{border:1.5px dashed #c9d8ea;border-radius:11px;padding:10px 14px;color:#5b7186;font-size:13px;background:#fbfdff}
+
+/* -- Dark theme counterparts (hk-dark) */
+html.hk-dark .mw-week-table th,html.hk-dark .mw-week-table td{border-top-color:#33353a}
+html.hk-dark .mw-week-table thead th{color:#9db2c6;border-bottom-color:#33353a}
+html.hk-dark .mw-week-table .mw-gap-col{background:#2e2a20}
+html.hk-dark .mw-week-table tr.mw-today{background:#22314a}
+html.hk-dark .mw-day-block{background:#222327;border-color:#33353a}
+html.hk-dark .mw-day-block.mw-today{background:#22314a;border-color:#33507e}
+html.hk-dark .mw-day-row{border-top-color:#33353a}
+html.hk-dark .mw-day-gap{background:#2e2a20}
+html.hk-dark .mw-monthcard{background:#222327;border-color:#33353a;color:#c9d6e2}
+html.hk-dark .mw-monthcard.active{background:#22314a;border-color:#2867dc}
+html.hk-dark .mw-minibar{background:#33353a}
+html.hk-dark .mw-overall-text{color:#c9d6e2}
+html.hk-dark .mw-leave-tag{color:#f0b35c}
+html.hk-dark .mw-pct-bar{background:#33353a}
+html.hk-dark .mw-register-row>td{background:#222327 !important}
+html.hk-dark .course-card{background:#222327;border-color:#33353a;color:#e7e8e9}
+html.hk-dark .course-card:hover{color:#e7e8e9}
+html.hk-dark .course-card-teacher{color:#c9d6e2}
+html.hk-dark .course-card-stats{border-top-color:#33353a;color:#9db2c6}
+html.hk-dark .course-card-stats strong{color:#e7e8e9}
+html.hk-dark .course-hero-att{background:#222327;border-color:#33353a;color:#c9d6e2}
+html.hk-dark .course-chiprow span{background:#222327;border-color:#33353a;color:#c9d6e2}
+html.hk-dark .course-composer{background:#222327;border-color:#3d4a5c}
+html.hk-dark .course-item{background:#222327;border-color:#33353a}
+html.hk-dark .course-item.pinned{background:#2e2a20;border-color:#5c4a22}
+html.hk-dark .course-notice{background:#2e2a20;border-color:#5c4a22}
+html.hk-dark .course-file-chip{background:#26272a;border-color:#33353a;color:#c9d6e2}
+html.hk-dark .course-score-chip{background:#1e3527;border-color:#2c5540;color:#7ed491}
+html.hk-dark .course-scope-note{background:#222327;border-color:#3d4a5c;color:#9db2c6}
+
+/* ============================================================
+   Accountant home — column fill (2026-11-08, HOTFIX H sweep).
+   The same defect the student home had, larger: the left
+   column (Collection Trend + Recent Payments) ended 552px
+   above the row bottom while the right rail (Quick Actions,
+   Payment Method, Defaulters, Circulars) ran on — a mid-page
+   void above the full-width Reminders panel. Same mechanism
+   as the student fix: at xl widths the columns are flex
+   columns and each column's last panel grows to the row
+   bottom, so both sides end flush. */
+@media (min-width:1200px){
+.row.acct-home-cols>[class*=col].hk-col-stack{display:flex;flex-direction:column}
+.row.acct-home-cols>[class*=col].hk-col-stack>.dashboard-panel{flex:0 0 auto}
+.row.acct-home-cols>[class*=col].hk-col-stack>.dashboard-panel:last-of-type{flex:1 0 auto}
+}
+
+/* ============================================================
+   Teacher home — rail fill (2026-11-08, HOTFIX H sweep). The
+   .t10-main grid ran align-items:start, so the right rail
+   (Quick Actions, Today's Tasks, Notifications) stopped where
+   its content stopped — measured ~750px of bare page beside
+   the left column's lower panels on the demo teacher. The
+   grid now stretches both columns to the row height; the rail
+   is already a flex column, so its three panels share the
+   extra height equally, the Quick Actions tile grid and the
+   task/notification rows spread inside their panels (rows are
+   align-items:center), and an all-caught-up state centres in
+   its panel instead of hugging the top. The left column's
+   last panel grows the same way on days the rail runs taller.
+   No new blocks, no new data. */
+.t10-main{align-items:stretch}
+.t10-rail>.t10-panel{flex:1 0 auto;display:flex;flex-direction:column}
+.t10-rail>.t10-panel .t10-tiles{flex:1 0 auto}
+.t10-rail>.t10-panel .t10-row{flex:1 0 auto}
+.t10-rail>.t10-panel .t10-caught-up{flex:1 0 auto;display:flex;align-items:center;justify-content:center;gap:8px}
+.t10-leftcol>.t10-panel:last-of-type{flex:1 0 auto}
+
+/* ============================================================
+   Admin dashboard — rail fill restored (2026-11-08, HOTFIX H
+   sweep). The Upcoming Events panel carries l17-grow and the
+   base rule .l17-grow{flex:1} exists, but a later, more
+   specific rule (.dashboard-upcoming.l17-grow{flex:0 1 auto},
+   (0,2,0)) silently switched the grow off — so the 322px
+   rail ended ~415px above the main column and left a hole
+   beside Recent Students / Recent Payments. This restatement
+   is scoped to the rail at (0,3,0): the panel grows again
+   only where it is the rail's filler, and its shared
+   empty-state block centres in the grown panel instead of
+   hugging the top. Other contexts keep the (0,2,0) behaviour. */
+.l17-rail .dashboard-upcoming.l17-grow{flex:1 0 auto;display:flex;flex-direction:column}
+.l17-rail .dashboard-upcoming.l17-grow .pat-empty{flex:1 0 auto;display:flex;flex-direction:column;align-items:center;justify-content:center}

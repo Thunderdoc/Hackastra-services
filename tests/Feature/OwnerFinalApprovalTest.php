@@ -267,21 +267,31 @@ class OwnerFinalApprovalTest extends TestCase
             ->assertDownload('exam-date-sheet-' . Str::slug($examName) . '-' . Str::slug($class->name) . '.pdf');
     }
 
-    public function test_edit_real_change_reverts_published_to_draft()
+    public function test_edit_on_published_sheet_is_refused_and_sheet_stays_published()
     {
+        // ONE-TIME GENERATION (owner standing rule 2026-11-08),
+        // re-expressed 2026-11-08: this pin used to assert that a
+        // real edit returns a published sheet to draft. A
+        // published sheet is now LOCKED — the save is refused, the
+        // stored dates are untouched, the state stays published
+        // and families keep seeing the sheet. Only a Principal
+        // return opens it again (end-to-end in
+        // OwnerOneTimeGenerationTest).
         $class = $this->makeClass('FIN Edit Class', ['FIN Edit Alpha', 'FIN Edit Beta'], 'fin-edit');
         $section = Section::create(['name' => 'FIN', 'my_class_id' => $class->id, 'teacher_id' => 4]);
         $student = $this->makeStudent('FIN Edit Pupil', $class->id, $section->id, 'EDIT');
         $this->publish($class->id);
+        $datesBefore = $this->storedDates($class->id);
 
         $firstSubject = Subject::where('my_class_id', $class->id)->orderBy('id')->firstOrFail();
         $this->actingAs($this->admin())->post(route('exam_dates.save'), [
             'exam_id' => 1, 'class_id' => $class->id,
             'dates' => [$firstSubject->id => ['exam_date' => '2027-03-10', 'start_time' => '09:00', 'note' => 'FIN Hall']],
-        ])->assertRedirect();
-        $this->assertSame('draft', $this->stateFor($class->id)->status);
+        ])->assertRedirect()->assertSessionHas('flash_danger');
+        $this->assertSame('published', $this->stateFor($class->id)->status);
+        $this->assertEquals($datesBefore, $this->storedDates($class->id));
         $this->actingAs($student)->get(route('exam_dates.show', ['exam_id' => 1]))->assertOk()
-            ->assertViewIs('pages.support_team.not_published')->assertSee('Not Published Yet');
+            ->assertSee('FIN Edit Alpha');
     }
 
     public function test_no_change_save_keeps_published()
@@ -291,26 +301,39 @@ class OwnerFinalApprovalTest extends TestCase
         $student = $this->makeStudent('FIN NoChange Pupil', $class->id, $section->id, 'NOCHG');
         $this->publish($class->id);
 
+        // ONE-TIME GENERATION (2026-11-08): even a no-change save
+        // is refused while the sheet is published — locked means
+        // locked. The pin's promise still holds: the sheet KEEPS
+        // its published state and families keep seeing it.
         $this->actingAs($this->admin())->post(route('exam_dates.save'), [
             'exam_id' => 1, 'class_id' => $class->id,
             'dates' => $this->storedDates($class->id),
-        ])->assertRedirect();
+        ])->assertRedirect()->assertSessionHas('flash_danger');
         $this->assertSame('published', $this->stateFor($class->id)->status);
         $this->actingAs($student)->get(route('exam_dates.show', ['exam_id' => 1]))->assertOk()
             ->assertSee('FIN NoChange Alpha');
     }
 
-    public function test_generate_reverts_published_to_draft()
+    public function test_generate_on_published_sheet_is_refused_and_sheet_stays_published()
     {
+        // ONE-TIME GENERATION (owner standing rule 2026-11-08),
+        // re-expressed 2026-11-08: this pin used to assert that
+        // regenerating returns a published sheet to draft. The
+        // generator now KEEPS a published sheet untouched and
+        // names it as locked in the run summary; the state and
+        // the stored dates are exactly as published, and families
+        // keep seeing the sheet.
         $class = $this->makeClass('FIN Regen Class', ['FIN Regen Alpha', 'FIN Regen Beta'], 'fin-regen');
         $section = Section::create(['name' => 'FIN', 'my_class_id' => $class->id, 'teacher_id' => 4]);
         $student = $this->makeStudent('FIN Regen Pupil', $class->id, $section->id, 'REGEN');
         $this->publish($class->id);
+        $datesBefore = $this->storedDates($class->id);
 
         $this->generateFor($class->id, 'replace')->assertRedirect();
-        $this->assertSame('draft', $this->stateFor($class->id)->status);
+        $this->assertSame('published', $this->stateFor($class->id)->status);
+        $this->assertEquals($datesBefore, $this->storedDates($class->id));
         $this->actingAs($student)->get(route('exam_dates.show', ['exam_id' => 1]))->assertOk()
-            ->assertViewIs('pages.support_team.not_published')->assertSee('Not Published Yet');
+            ->assertSee('FIN Regen Alpha');
     }
 
     public function test_skipped_class_keeps_published_state()

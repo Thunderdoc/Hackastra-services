@@ -88,12 +88,17 @@
                                         @if($slot['plan'])
                                             <a href="{{ route('exam_seating.show', $slot['plan']->id) }}" class="btn btn-light btn-sm">View Plan</a>
                                         @endif
-                                        @if(Qs::userIsTeamSAWrite() && !$no_rooms)
+                                        @if(!empty($slot['lock']))
+                                            {{-- ONE-TIME GENERATION lock: no Generate
+                                                 control on a locked slot — the lock
+                                                 note says why and where the key is. --}}
+                                            <span class="text-muted"><i class="icon-lock mr-1"></i>{{ $slot['lock'] }}</span>
+                                        @elseif(Qs::userIsTeamSAWrite() && !$no_rooms)
                                             <button type="button" class="btn btn-primary btn-sm" data-toggle="collapse" data-target="#gen-{{ $loop->index }}">Generate</button>
                                         @endif
                                     </td>
                                 </tr>
-                                @if(Qs::userIsTeamSAWrite() && !$no_rooms)
+                                @if(empty($slot['lock']) && Qs::userIsTeamSAWrite() && !$no_rooms)
                                     <tr class="collapse" id="gen-{{ $loop->index }}">
                                         <td colspan="6">
                                             <form method="post" action="{{ route('exam_seating.generate') }}">

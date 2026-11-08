@@ -214,17 +214,13 @@ class TimeTableController extends Controller
 
         /* Student (owner live catch, 2026-11-08): NO index, NO
            class/section chooser — a student has exactly one
-           timetable, their own class+section record, and lands
-           DIRECTLY on it. When nothing is in force for them yet,
-           My Timetable shows its honest empty state instead of
-           the picker. */
+           timetable, their own class+section record. LMS build
+           (2026-11-08, owner-approved My Week sample): the landing
+           is now the My Week page (tt.mine) — the fitted own-record
+           grid + courses table + attendance on one surface. The
+           record itself stays directly openable at ttr.show under
+           the same section guard; My Week is the front door. */
         if (Qs::userIsStudent()) {
-            $ttr = $this->ownClassRecord($req);
-
-            if ($ttr && $ttr->isInForce()) {
-                return redirect()->route('ttr.show', $ttr->id);
-            }
-
             return redirect()->route('tt.mine');
         }
 
@@ -787,7 +783,13 @@ class TimeTableController extends Controller
             if ($data['mode'] === 'replace'
                 && isset($targetKeys[$existing->my_class_id . ':' . ($existing->section_id ?? '')])) {
                 $existingCellIds = TimeTable::where('ttr_id', $existing->id)->pluck('id');
-                $locked = AttendanceSession::whereIn('time_table_id', $existingCellIds)->exists()
+                /* ONE-TIME GENERATION lock (owner standing rule
+                   2026-11-08): a human-signed submitted/approved
+                   record is NOT rebuilt below (the target loop
+                   keeps it), so its cells count as kept load here,
+                   exactly like the attendance/substitution locks. */
+                $locked = $this->approvalLockReason($existing) !== null
+                    || AttendanceSession::whereIn('time_table_id', $existingCellIds)->exists()
                     || Substitution::whereIn('time_table_id', $existingCellIds)->exists();
                 if (!$locked) {
                     continue; // this record is being rebuilt below
@@ -814,7 +816,7 @@ class TimeTableController extends Controller
                 }
             }
         }
-        $summary = ['generated' => [], 'generated_section_count' => 0, 'skipped' => [], 'no_subjects' => [], 'locked' => [], 'sub_locked' => [], 'placed' => 0, 'empty' => 0, 'free' => 0, 'capped' => 0, 'no_teacher' => 0, 'shortfalls' => [], 'unassigned' => [], 'double_warnings' => []];
+        $summary = ['generated' => [], 'generated_section_count' => 0, 'skipped' => [], 'no_subjects' => [], 'locked' => [], 'sub_locked' => [], 'approval_locked' => [], 'placed' => 0, 'empty' => 0, 'free' => 0, 'capped' => 0, 'no_teacher' => 0, 'shortfalls' => [], 'unassigned' => [], 'double_warnings' => []];
 
         /* Agent D round 6 — whole-run atomicity: the per-target
            DB::transaction below makes each target atomic, but a
@@ -874,6 +876,16 @@ class TimeTableController extends Controller
             $record = $record->first();
             if ($record && $data['mode'] === 'skip') {
                 $summary['skipped'][] = $displayName;
+                continue;
+            }
+            /* ONE-TIME GENERATION lock (owner standing rule
+               2026-11-08): a human-signed submitted/approved record
+               is never regenerated in place — the replace below
+               would delete the approved grid and reset it to
+               draft. Keep it and name it; the Principal sends it
+               back first when a correction is really needed. */
+            if ($record && $data['mode'] === 'replace' && $this->approvalLockReason($record)) {
+                $summary['approval_locked'][] = $displayName;
                 continue;
             }
             if ($record && $data['mode'] === 'replace') {
@@ -1460,6 +1472,7 @@ class TimeTableController extends Controller
             . ($summary['skipped'] ? '. Skipped (already have one): ' . implode(', ', $summary['skipped']) : '')
             . (!empty($summary['locked']) ? '. Kept (attendance already submitted, timetable locked this session): ' . implode(', ', $summary['locked']) : '')
             . (!empty($summary['sub_locked']) ? '. Kept (substitutions are arranged on their periods — remove those arrangements on the Substitutions board first, then regenerate): ' . implode(', ', $summary['sub_locked']) : '')
+            . (!empty($summary['approval_locked']) ? '. Kept (sent for approval or approved — locked; the Principal can send it back for corrections from Timetable Approvals): ' . implode(', ', $summary['approval_locked']) : '')
             . ($summary['no_subjects'] ? '. No subjects yet: ' . implode(', ', $summary['no_subjects']) : '')
             . (!empty($summary['unassigned']) ? '. No teacher assigned (those periods may stay empty): ' . implode('; ', array_slice($summary['unassigned'], 0, 4)) . (count($summary['unassigned']) > 4 ? '; and ' . (count($summary['unassigned']) - 4) . ' more' : '') : '')
             . (!empty($summary['double_warnings']) ? '. Double period not possible: ' . implode('; ', array_slice($summary['double_warnings'], 0, 4)) . (count($summary['double_warnings']) > 4 ? '; and ' . (count($summary['double_warnings']) - 4) . ' more' : '') : '')
@@ -1563,6 +1576,43 @@ class TimeTableController extends Controller
                         'today_name' => $todayName,
                     ];
                 }
+
+                /* My Week sections 2 + 3 (LMS build, 2026-11-08,
+                   owner-approved sample): the courses table and
+                   the attendance block ride the same page. Courses
+                   = the section's subjects (stream-filtered like
+                   every other section surface), the EFFECTIVE
+                   teacher per subject, room + periods/week counted
+                   from the record's own cells (honest "—" when the
+                   seed/school assigns no room). Attendance comes
+                   from the shared StudentAttendance builder — the
+                   same figures My Attendance shows. */
+                $cells = $ttr
+                    ? TimeTable::with('room')->where('ttr_id', $ttr->id)
+                        ->whereNotNull('day')->whereNotNull('subject_id')->get()
+                    : collect();
+                $cellsBySubject = $cells->groupBy('subject_id');
+                $subjects = \App\Support\Streams::subjectsForSection(
+                    \App\Models\Subject::where('my_class_id', $child->my_class_id)
+                        ->orderBy('name')->get(),
+                    $child->section
+                );
+                $d['week_courses'] = $subjects->map(function ($subject) use ($cellsBySubject, $child) {
+                    $mine = $cellsBySubject->get($subject->id, collect());
+                    $room = $mine->map(function ($c) {
+                        return optional($c->room)->name;
+                    })->filter()->first();
+
+                    return [
+                        'subject' => $subject,
+                        'teacher' => optional(\App\Support\SectionTeacher::teacherFor($child->section_id ?? null, $subject))->name,
+                        'room' => $room,
+                        'type' => $subject->needs_lab ? 'Practical' : 'Theory',
+                        'periods' => $mine->count(),
+                        'has_record' => $mine->isNotEmpty(),
+                    ];
+                })->values();
+                $d['week_attendance'] = \App\Support\StudentAttendance::build($child);
             }
 
             return view('pages.support_team.timetables.mine', $d);
@@ -2282,6 +2332,42 @@ class TimeTableController extends Controller
      * Submission is refused while the validator reports problems.
      */
     /**
+     * ONE-TIME GENERATION lock (owner standing rule 2026-11-08):
+     * a timetable that a human actually sent or approved — status
+     * submitted with a submitter, or approved with an approver —
+     * is a frozen organisational artefact: it cannot be
+     * regenerated, deleted or re-pointed in place. The Principal
+     * sends it back (sendBackRecord) and only then does it open
+     * as a draft again. Seeded records carry the approved status
+     * by default with NO human sign-off (grandfathered, like the
+     * staleness guard below already treats them) — they are not
+     * locked. Returns 'submitted' / 'approved' when locked, null
+     * otherwise.
+     */
+    protected function approvalLockReason($record)
+    {
+        if (!$record) {
+            return null;
+        }
+        if ($record->approval_status === 'submitted' && $record->approval_submitted_by) {
+            return 'submitted';
+        }
+        if ($record->approval_status === 'approved' && $record->approved_by) {
+            return 'approved';
+        }
+        return null;
+    }
+
+    /** The lock refusal in the site's voice, per locked state. */
+    protected function approvalLockMessage($record, $verb): string
+    {
+        if ($this->approvalLockReason($record) === 'submitted') {
+            return 'This timetable has been sent to the Principal for approval — it can\'t ' . $verb . ' now. The Principal can send it back for corrections from Timetable Approvals.';
+        }
+        return 'This timetable has been approved by the Principal and is in force — it can\'t ' . $verb . '. Ask the Principal to send it back for corrections from Timetable Approvals.';
+    }
+
+    /**
      * Approval staleness guard (owner order 2026-10-29): the
      * Principal approves a SPECIFIC grid. Any later change to that
      * grid — a period added, moved or deleted, a time slot's times
@@ -2374,6 +2460,17 @@ class TimeTableController extends Controller
             ->orderBy('approval_submitted_at')->get();
         $d['submitters'] = User::whereIn('id', $d['records']->pluck('approval_submitted_by')->filter()->unique())
             ->get()->keyBy('id');
+        // ONE-TIME GENERATION (owner standing rule 2026-11-08):
+        // human-approved records in force are listed too — the
+        // Principal's send-back is the only way one opens again.
+        // Grandfathered seeded records (no human approver) are
+        // not locked and stay off this list.
+        $d['approved_records'] = TimeTableRecord::with(['my_class', 'section'])
+            ->where('approval_status', 'approved')
+            ->whereNotNull('approved_by')
+            ->orderBy('approved_at')->get();
+        $d['approvers'] = User::whereIn('id', $d['approved_records']->pluck('approved_by')->filter()->unique())
+            ->get()->keyBy('id');
         return view('pages.support_team.timetables.approvals', $d);
     }
 
@@ -2441,13 +2538,21 @@ class TimeTableController extends Controller
         if (!$ttr) {
             return back()->with('pop_error', __('msg.rnf'));
         }
-        if ($ttr->approval_status !== 'submitted') {
-            return back()->with('pop_error', 'Only a submitted timetable can be sent back.');
+        /* ONE-TIME GENERATION (owner standing rule 2026-11-08): the
+           send-back is the correction path for BOTH locked states —
+           a submitted record awaiting approval and an approved
+           record already in force. Either way it returns to draft
+           with its approval metadata cleared, audited. */
+        if (!in_array($ttr->approval_status, ['submitted', 'approved'], true)) {
+            return back()->with('pop_error', 'Only a submitted or approved timetable can be sent back.');
         }
+        $wasApproved = $ttr->approval_status === 'approved';
         TimeTableRecord::where('id', $ttr->id)->update([
             'approval_status' => 'draft',
             'approval_submitted_by' => null,
             'approval_submitted_at' => null,
+            'approved_by' => null,
+            'approved_at' => null,
         ]);
         if ($ttr->approval_submitted_by) {
             Notify::toUser($ttr->approval_submitted_by, 'timetable_sent_back',
@@ -2455,7 +2560,7 @@ class TimeTableController extends Controller
                 'The Principal sent ' . $ttr->name . ' (' . $ttr->year . ') back for changes. Review it and submit it again.',
                 route('ttr.manage', $ttr->id));
         }
-        Audit::log('timetable.sent_back', null, 'Timetable ' . $ttr->id . ' (' . $ttr->name . ') sent back by ' . Auth::user()->name);
+        Audit::log('timetable.sent_back', null, 'Timetable ' . $ttr->id . ' (' . $ttr->name . ') sent back by ' . Auth::user()->name . ($wasApproved ? ' — it was approved and in force' : ''));
         return back()->with('flash_success', 'Timetable sent back to the Admin for changes.');
     }
 
@@ -2625,6 +2730,15 @@ class TimeTableController extends Controller
 
     public function update_record(TTRecordRequest $req, $id)
     {
+        /* ONE-TIME GENERATION lock (owner standing rule 2026-11-08):
+           re-pointing a human-signed submitted/approved record at
+           another class/section would silently replace the
+           artefact the Principal signed off. Refuse; the Principal
+           sends it back first. */
+        $existing = $this->tt->findRecord($id);
+        if ($existing && $this->approvalLockReason($existing)) {
+            return back()->with('flash_danger', $this->approvalLockMessage($existing, 'be changed'));
+        }
         $data = $req->all();
         $data['section_id'] = $this->cleanRecordSection($data);
         if ($data['section_id'] === false) {
@@ -2642,6 +2756,15 @@ class TimeTableController extends Controller
 
     public function delete_record($ttr_id)
     {
+        /* ONE-TIME GENERATION lock (owner standing rule 2026-11-08):
+           a human-signed submitted/approved record is never deleted
+           in place — that would bypass the regenerate lock entirely.
+           The Principal sends it back first; a draft can be deleted
+           as before. */
+        $record = TimeTableRecord::find($ttr_id);
+        if ($record && $this->approvalLockReason($record)) {
+            return back()->with('flash_danger', $this->approvalLockMessage($record, 'be deleted'));
+        }
         /* TT-01 companion guard: deleting a whole timetable record
            deletes its cells — the same orphaning risk as the single
            cell delete when any of those cells carries submitted

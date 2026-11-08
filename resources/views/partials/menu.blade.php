@@ -112,6 +112,11 @@
                              slots, new item inside Academics; nothing
                              else in this menu moved. --}}
                         <li class="nav-item"><a href="{{ route('tt.slot_preferences') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['tt.slot_preferences', 'tt.slot_preferences.update']) ? 'active' : '' }}">My Slot Preferences</a></li>
+                        {{-- LMS courses (2026-11-08): the teacher's
+                             course surface leads the LMS cluster —
+                             course first, then the item lists, which
+                             stay exactly where they were. --}}
+                        <li class="nav-item"><a href="{{ route('courses.index') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['courses.index', 'courses.show']) ? 'active' : '' }}">My Courses</a></li>
                         <li class="nav-item"><a href="{{ route('assignments.index') }}" class="nav-link {{ (Route::is('assignments.*')) ? 'active' : '' }}">Assignments</a></li>
                         <li class="nav-item"><a href="{{ route('materials.index') }}" class="nav-link {{ (Route::is('materials.*')) ? 'active' : '' }}">Study Materials</a></li>
                         <li class="nav-item"><a href="{{ route('quizzes.index') }}" class="nav-link {{ (Route::is('quizzes.*')) ? 'active' : '' }}">Quizzes</a></li>

@@ -5,16 +5,10 @@ namespace App\Http\Controllers\SupportTeam;
 use App\Helpers\Qs;
 use App\Http\Controllers\Controller;
 use App\Models\Exam;
-use App\Models\ExamDate;
-use App\Models\StudentRecord;
-use App\Models\Subject;
-use App\Models\TimeTable;
-use App\Models\TimeTableRecord;
 use App\Repositories\ExamRepo;
 use App\Repositories\MyClassRepo;
 use App\Repositories\StudentRepo;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 
 class AdmitCardController extends Controller
@@ -179,6 +173,24 @@ class AdmitCardController extends Controller
             $d['due_by_student'][$sr->user_id] = \App\Support\FeeDefaulter::outstandingFor($sr->user_id, $session);
         }
 
+        /* ONE-TIME GENERATION freeze (owner standing rule
+           2026-11-08): for a published exam, the list shows the
+           exam identity as frozen at publish time, not a later
+           live rename — the same frozen payload the card itself
+           renders from. $d['frozen_exams'][student_id][exam_id]
+           carries the frozen exam display (name / term / year). */
+        $d['frozen_exams'] = [];
+        $examIds = $d['exams']->pluck('id')->all();
+        $userIds = $d['records']->pluck('user_id')->all();
+        if (!empty($examIds) && !empty($userIds)) {
+            $snaps = \App\Models\AdmitCardSnapshot::whereIn('exam_id', $examIds)
+                ->whereIn('student_id', $userIds)
+                ->get();
+            foreach ($snaps as $snap) {
+                $d['frozen_exams'][$snap->student_id][$snap->exam_id] = $snap->payload['exam'] ?? null;
+            }
+        }
+
         return view('pages.support_team.exams.admit_my', $d);
     }
 
@@ -263,9 +275,30 @@ class AdmitCardController extends Controller
 
         /* Fee-defaulter document block (owner ruling 2026-10-22):
            teamSA office generation above (index / printSheet) is
-           never blocked — the helper exempts teamSA itself. */
+           never blocked — the helper exempts teamSA itself. The
+           fee gate stays LIVE even for a frozen card: it is
+           evaluated here, before any snapshot is read, so a card
+           frozen at publish still blocks a student whose dues are
+           unpaid (owner-approved freeze scope, 2026-11-08). */
         if ($block = $this->feeDefaulterBlock($student_id, 'Admit Card')) {
             return $block;
+        }
+
+        /* ONE-TIME GENERATION freeze (owner standing rule
+           2026-11-08): a student or parent sees the card exactly
+           as it was frozen when the Principal published it — the
+           snapshot payload, never a live rebuild, so a later
+           section transfer, branding change or date-sheet
+           correction cannot rewrite a released card. teamSA keeps
+           the live render (the office is the correction surface).
+           No snapshot (the exam was published before the freeze
+           existed, or the student joined after publishing) falls
+           back to the live render below. */
+        if (!Qs::userIsTeamSA()) {
+            $payload = \App\Support\AdmitCardFreezer::payloadFor($exam->id, $student_id);
+            if ($payload) {
+                return view('pages.support_team.exams.admit_print', \App\Support\AdmitCardFreezer::viewData($payload));
+            }
         }
 
         $sr->load('section.teacher');
@@ -326,169 +359,15 @@ class AdmitCardController extends Controller
      */
     protected function buildSchedule(Exam $exam, $class_id, $stream = null, $section_id = null)
     {
-        // Batch 2026-10-28 (exam-timetable audit): the lookup used
-        // to take whichever exam timetable row came first — for a
-        // class with section exam grids that could be another
-        // section's grid. Prefer the requested section's grid,
-        // then the whole-class grid, then any grid for the class.
-        $ttrQuery = TimeTableRecord::where([
-            'exam_id' => $exam->id,
-            'my_class_id' => $class_id,
-            'year' => $exam->year,
-        ]);
-        $ttr = null;
-        if ($section_id) {
-            $ttr = (clone $ttrQuery)->where('section_id', $section_id)->first();
-        }
-        if (!$ttr) {
-            $ttr = (clone $ttrQuery)->whereNull('section_id')->first();
-        }
-        if (!$ttr) {
-            $ttr = $ttrQuery->first();
-        }
-
-        $rows = [];
-
-        // Batch 2026-10-26 (streams): with a stream, only that
-        // stream's subjects (common + own stream) reach the card
-        // — a PCM card used to list all 12 Class 11/12 subjects.
-        // The filter applies to every source below, including the
-        // dateless subject-list fallback, so a streamed card never
-        // falls back to the full class list.
-        $keep = function ($subject) use ($stream) {
-            return !$stream || \App\Support\Streams::appliesTo($subject, $stream);
-        };
-
-        if ($ttr) {
-            $entries = TimeTable::with(['subject', 'time_slot'])
-                ->where('ttr_id', $ttr->id)
-                ->whereNotNull('subject_id')
-                ->whereNotNull('exam_date')
-                ->get();
-
-            foreach ($entries as $e) {
-                if (!$e->subject || !$keep($e->subject)) {
-                    continue;
-                }
-                $rows[] = [
-                    'subject' => $e->subject->name,
-                    'date' => $this->formatExamDate($e->exam_date),
-                    'sort' => $this->dateSortKey($e->exam_date) . '|' . ($e->timestamp_from ?: ''),
-                    'time' => $e->time_slot ? $e->time_slot->full : null,
-                ];
-            }
-
-            usort($rows, function ($a, $b) {
-                return strcmp($a['sort'], $b['sort']);
-            });
-        }
-
-        if (empty($rows)) {
-            $sheet = ExamDate::with('subject')
-                ->where('exam_id', $exam->id)
-                ->where('my_class_id', $class_id)
-                ->whereNotNull('exam_date')
-                ->get();
-
-            foreach ($sheet as $e) {
-                if (!$e->subject || !$keep($e->subject)) {
-                    continue;
-                }
-                $rows[] = [
-                    'subject' => $e->subject->name,
-                    'date' => $this->formatExamDate($e->exam_date),
-                    'sort' => $this->dateSortKey($e->exam_date) . '|' . ($e->start_time ?: ''),
-                    'time' => $this->formatStartTime($e->start_time),
-                ];
-            }
-
-            usort($rows, function ($a, $b) {
-                return strcmp($a['sort'], $b['sort']);
-            });
-        }
-
-        if (!empty($rows)) {
-            // Batch 2026-10-28 (exam-timetable round 2): a
-            // partially dated sheet used to HIDE its undated
-            // subjects — one dated paper made the whole card list
-            // only that paper (a single stray date row exposed it:
-            // Prep's card showed only Computer Science). Union the
-            // class's remaining subjects (stream-filtered, so a
-            // streamed card never gains out-of-stream papers) with
-            // null dates; the blade renders those as "—".
-            // fallback stays false: a sheet exists, it is just
-            // incomplete — the "will be announced" note is only for
-            // the fully dateless list below.
-            $present = [];
-            foreach ($rows as $r) {
-                $present[$r['subject']] = true;
-            }
-            $missing = Subject::where('my_class_id', $class_id)->orderBy('name')->get();
-            foreach ($missing as $s) {
-                if (!$keep($s) || isset($present[$s->name])) {
-                    continue;
-                }
-                $rows[] = ['subject' => $s->name, 'date' => null, 'sort' => $s->name, 'time' => null];
-            }
-            return ['rows' => $rows, 'fallback' => false];
-        }
-
-        $subjects = Subject::where('my_class_id', $class_id)->orderBy('name')->get();
-        foreach ($subjects as $s) {
-            if (!$keep($s)) {
-                continue;
-            }
-            $rows[] = ['subject' => $s->name, 'date' => null, 'sort' => $s->name, 'time' => null];
-        }
-
-        return ['rows' => $rows, 'fallback' => true];
-    }
-
-    protected function formatStartTime($value)
-    {
-        if (!$value) {
-            return null;
-        }
-        try {
-            return Carbon::parse($value)->format('g:i A');
-        } catch (\Exception $e) {
-            return $value;
-        }
-    }
-
-    protected function formatExamDate($value)
-    {
-        try {
-            return Carbon::parse($value)->format('D, d M Y');
-        } catch (\Exception $e) {
-            return $value;
-        }
-    }
-
-    protected function dateSortKey($value)
-    {
-        try {
-            return Carbon::parse($value)->format('Y-m-d');
-        } catch (\Exception $e) {
-            return (string) $value;
-        }
+        /* The builder lives in App\Support\AdmitCardBuilder since
+           2026-11-08 so the publish-time freeze
+           (App\Support\AdmitCardFreezer) snapshots exactly what
+           this live path renders — one source of truth. */
+        return \App\Support\AdmitCardBuilder::buildSchedule($exam, $class_id, $stream, $section_id);
     }
 
     protected function schoolInfo()
     {
-        return [
-            'name' => Qs::getSetting('system_name'),
-            'address' => Qs::getSetting('address'),
-            'phone' => Qs::getSchoolPhone(),
-            'email' => Qs::getSetting('system_email'),
-            'logo' => Qs::getSetting('logo'),
-            'session' => Qs::getCurrentSession(),
-            /* Digital signature + seal (owner ruling 2026-10-22):
-               rendered on the card only while uploaded in Settings —
-               empty values keep the blank lines / empty seal box. */
-            'stamp' => Qs::getSetting('school_stamp'),
-            'principal_name' => Qs::getSetting('principal_name'),
-            'principal_signature' => Qs::getSetting('principal_signature'),
-        ];
+        return \App\Support\AdmitCardBuilder::schoolInfo();
     }
 }

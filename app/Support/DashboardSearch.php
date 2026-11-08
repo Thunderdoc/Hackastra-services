@@ -317,6 +317,7 @@ class DashboardSearch
                 $page('Student Information', 'students.list', 'icon-users');
                 $page('Exam Date Sheet', 'exam_dates.index', 'icon-calendar3');
                 $page('Question Papers', 'question_papers.index', 'icon-books');
+                $page('My Courses', 'courses.index', 'icon-books');
                 $page('Assignments', 'assignments.index', 'icon-file-text2');
                 $page('Study Materials', 'materials.index', 'icon-book');
                 $page('Quizzes', 'quizzes.index', 'icon-file-text2');
@@ -372,8 +373,7 @@ class DashboardSearch
                 $page('My Attendance', 'attendance.my', 'icon-calendar3');
                 $page('My Timetable', 'tt.mine', 'icon-table2');
                 $page('My ID Card', 'id_card.mine', 'icon-vcard');
-                $page('My Assignments', 'assignments.index', 'icon-file-text2');
-                $page('Study Materials', 'materials.index', 'icon-book');
+                $page('My Courses', 'courses.index', 'icon-books');
                 $page('My Fees', 'student.fees', 'icon-coins');
                 $page('My Library', 'student.library', 'icon-book');
                 $page('Book Search & Reserve', 'library_reservations.index', 'icon-books');

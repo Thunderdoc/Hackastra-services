@@ -806,81 +806,19 @@ class AttendanceController extends Controller
         $d['entries'] = collect();
 
         if ($selected) {
-            $from = $d['month']->copy()->startOfMonth();
-            $to = $d['month']->copy()->endOfMonth();
-
-            $entriesQuery = AttendanceSessionEntry::with(['session.subject', 'session.time_table.time_slot'])
-                ->where('student_record_id', $selected->id);
-            if ($d['view'] === 'month') {
-                $entriesQuery->whereHas('session', function ($q) use ($from, $to) {
-                    $q->betweenDates($from, $to);
-                });
-            }
-
-            // Item 20e: per-month strip for the session view —
-            // computed from the same entries, one row per month
-            // that has registers.
-            $allEntries = $d['view'] === 'session'
-                ? (clone $entriesQuery)->get()
-                : AttendanceSessionEntry::with('session')
-                    ->where('student_record_id', $selected->id)->get();
-            $byMonth = [];
-            foreach ($allEntries as $e) {
-                $key = $e->session->date->format('Y-m');
-                $byMonth[$key] = $byMonth[$key] ?? ['key' => $key, 'label' => $e->session->date->format('F Y'), 'present' => 0, 'absent' => 0, 'late' => 0, 'marked' => 0];
-                if (isset($byMonth[$key][$e->status])) { $byMonth[$key][$e->status]++; }
-                $byMonth[$key]['marked']++;
-            }
-            ksort($byMonth);
-            $d['months'] = collect($byMonth)->map(function ($m) {
-                $m['percent'] = $this->percentFor($m['present'], $m['late'], $m['marked']);
-                return $m;
-            })->values();
-
-            $entries = $entriesQuery
-                ->get()
-                ->sortByDesc(function ($entry) {
-                    return $entry->session->date->format('Y-m-d') . '-' . str_pad((string) $entry->session_id, 10, '0', STR_PAD_LEFT);
-                })
-                ->values();
-
-            $d['entries'] = $entries;
-
-            foreach ($entries as $entry) {
-                if (isset($d['summary'][$entry->status])) {
-                    $d['summary'][$entry->status]++;
-                }
-                $d['summary']['marked']++;
-            }
-            $d['summary']['percent'] = $this->percentFor(
-                $d['summary']['present'],
-                $d['summary']['late'],
-                $d['summary']['marked']
+            // LMS build (2026-11-08): the dataset comes from the
+            // shared StudentAttendance builder — the same source
+            // the My Week page reads — so My Attendance and My
+            // Week can never show different figures. Month view
+            // passes the month; the session view passes null.
+            $built = \App\Support\StudentAttendance::build(
+                $selected,
+                $d['view'] === 'month' ? $d['month'] : null
             );
-
-            $d['subjects'] = $entries
-                ->groupBy(function ($entry) {
-                    return $entry->session->subject_id;
-                })
-                ->map(function ($subjectEntries) {
-                    $present = $subjectEntries->where('status', AttendanceSessionEntry::STATUS_PRESENT)->count();
-                    $absent = $subjectEntries->where('status', AttendanceSessionEntry::STATUS_ABSENT)->count();
-                    $late = $subjectEntries->where('status', AttendanceSessionEntry::STATUS_LATE)->count();
-                    $marked = $present + $absent + $late;
-
-                    return [
-                        'subject' => $subjectEntries->first()->session->subject,
-                        'present' => $present,
-                        'absent' => $absent,
-                        'late' => $late,
-                        'marked' => $marked,
-                        'percent' => $this->percentFor($present, $late, $marked),
-                    ];
-                })
-                ->sortBy(function ($row) {
-                    return strtolower(optional($row['subject'])->name ?? '');
-                })
-                ->values();
+            $d['months'] = $built['months'];
+            $d['entries'] = $built['entries'];
+            $d['summary'] = $built['summary'];
+            $d['subjects'] = $built['subjects'];
         }
 
         return view('pages.support_team.attendance.my', $d);
