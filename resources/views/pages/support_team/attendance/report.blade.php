@@ -75,6 +75,7 @@
             @include('pages.support_team.attendance.partials.report_results')
         </div>
     @endcomponent
+@endsection
 
 @section('scripts')
 <script>

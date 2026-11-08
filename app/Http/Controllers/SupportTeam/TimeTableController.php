@@ -30,6 +30,7 @@ use App\Support\SectionTeacher;
 use App\Support\Staffing;
 use App\Support\Streams;
 use App\Support\TeacherScope;
+use App\Support\WeekDays;
 use App\User;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
@@ -1774,10 +1775,10 @@ class TimeTableController extends Controller
             ];
         }
 
-        $present = $entries->pluck('day')->unique()->all();
-        $days = collect(Qs::getDaysOfTheWeek())->filter(function ($day) use ($present) {
-            return in_array($day, $present);
-        })->values();
+        // Canonical week order via the shared helper — the same
+        // source show_record()/recordPrintData() use, so every
+        // record grid lists days identically.
+        $days = WeekDays::sortNames($entries->pluck('day'));
 
         return ['days' => $days, 'slots' => $slots, 'map' => $map];
     }
@@ -2414,7 +2415,10 @@ class TimeTableController extends Controller
         }
 
         else{
-            $d['days'] = $days = $tts->unique('day')->pluck('day');
+            // Week order, never encounter order: getTimeTable()
+            // sorts cells by period start, so unique('day') yields
+            // e.g. Friday, Monday, Thursday… (owner print, 2026-11-07).
+            $d['days'] = $days = WeekDays::sortNames($tts->pluck('day'));
             $d_date = 'day';
         }
 
@@ -2463,7 +2467,8 @@ class TimeTableController extends Controller
         }
 
         else{
-            $d['days'] = $days = $tts->unique('day')->pluck('day');
+            // Week order, never encounter order — see show_record().
+            $d['days'] = $days = WeekDays::sortNames($tts->pluck('day'));
             $d_date = 'day';
         }
 

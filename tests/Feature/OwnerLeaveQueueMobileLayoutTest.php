@@ -12,24 +12,31 @@ use Tests\TestCase;
  * sides and the plan rows stacked into walls of text.
  *
  * Re-expressed 2026-11-06 (card rebuild): the owner rejected
- * the requests TABLE itself as a text wall, so the queue is now
- * one-glance cards that stack full-width — no table exists to
- * clip. The old pins (lv-table / lv-wrap / the status column's
- * nth-child(9) absolute positioning) described that table's
- * stacking mechanism and are replaced by pins on the card
- * mechanism at equal strength: the card list + card markup in
- * the DOM, the card stylesheet, and the sub-992px breakpoint
- * under which the card's tabular parts (plan rows, week grid)
- * go compact — one line for date + time, one for class, one
- * for subject, the substitute's name in bold, and the switch
- * select + button on one row. Real-width proof is the
- * 360px/320px renders attached to the segment.
+ * the requests TABLE itself as a text wall, so the queue became
+ * one-glance cards that stack full-width — no table existed to
+ * clip. The card pins replaced the old table pins at equal
+ * strength.
+ *
+ * Re-expressed again 2026-11-07 (late, owner scope correction —
+ * "yha ve toh mai proper table type saab bola tha"): the owner
+ * ordered proper tables for BOTH leave queues, cards retired.
+ * The layout pin below now asserts the table mechanism at equal
+ * strength: the hk-std main-queue sheet in the DOM with a real
+ * request row and its decision controls, no card markup, and
+ * the retained sub-992px breakpoint under which the tabular
+ * parts inside the expanders (plan rows, week grid) go compact
+ * — one line for date + time, one for class, one for subject,
+ * the substitute's name in bold, and the switch select +
+ * button on one row. Phone safety now comes from the
+ * .table-responsive inner scroll around the sheet plus those
+ * compact rules. Real-width proof is the 360px/320px renders
+ * attached to the segment.
  */
 class OwnerLeaveQueueMobileLayoutTest extends TestCase
 {
     use DatabaseTransactions;
 
-    public function test_queue_page_carries_the_card_layout()
+    public function test_queue_page_carries_the_table_layout()
     {
         $admin = User::where('email', 'admin@hackstra.app')->firstOrFail();
         $teacher = User::where('email', 'teacher@hackstra.app')->firstOrFail();
@@ -37,21 +44,26 @@ class OwnerLeaveQueueMobileLayoutTest extends TestCase
             'user_id' => $teacher->id,
             'start_date' => '2026-11-02',
             'end_date' => '2026-11-02',
-            'reason' => 'Card layout check',
+            'reason' => 'Table layout check',
             'leave_type' => 'normal',
             'status' => 'pending',
         ]);
 
         $resp = $this->actingAs($admin)->get(route('leave.index'));
         $resp->assertOk();
-        // The card mechanism: list container, one card per
-        // request, headline row — and the card stylesheet with
-        // the phone breakpoint for the tabular parts.
-        $resp->assertSee('lv-req-list', false);
-        $resp->assertSee('lv-req-card', false);
-        $resp->assertSee('lv-req-head', false);
+        // The table mechanism: the hk-std main-queue sheet, the
+        // request rendered as a row with its decision controls,
+        // and the page stylesheet's phone breakpoint for the
+        // tabular parts inside the expanders.
+        $resp->assertSee('lv-sq-table lv-mq-table', false);
+        $resp->assertSee('Ananya Sharma');
+        $resp->assertSee('name="decision_note"', false);
         $resp->assertSee('@media (max-width: 991.98px)', false);
-        // The 10-column requests table is gone for good.
+        // The card markup is retired on this surface (the CSS
+        // class definitions in the page style are not markup).
+        $resp->assertDontSee('class="lv-req-card"', false);
+        $resp->assertDontSee('class="lv-req-list"', false);
+        // The 2026-10-30 10-column requests table stays gone.
         $resp->assertDontSee('Allocated Classes');
         $resp->assertDontSee('Uncovered Periods');
     }

@@ -60,8 +60,13 @@ class AuditLabels
         'discipline_record' => ['Discipline', 'sub'],
     ];
 
-    public static function label(string $action): string
+    public static function label($action): string
     {
+        // Null/non-string actions (a row written by anything other
+        // than App\Support\Audit) render as a dash, never a TypeError.
+        if (!is_string($action) || trim($action) === '') {
+            return '—';
+        }
         if (isset(self::$labels[$action])) {
             return self::$labels[$action];
         }
@@ -69,8 +74,11 @@ class AuditLabels
         return ucfirst(trim($words));
     }
 
-    public static function groupOf(string $action): string
+    public static function groupOf($action): string
     {
+        if (!is_string($action) || $action === '') {
+            return 'other';
+        }
         foreach (['fee_structure', 'health_record', 'discipline_record'] as $multi) {
             if (strpos($action, $multi) === 0) {
                 return $multi;
@@ -91,7 +99,7 @@ class AuditLabels
         return self::$groups[$key][0] ?? 'Other';
     }
 
-    public static function tone(string $action): string
+    public static function tone($action): string
     {
         $key = self::groupOf($action);
         return self::$groups[$key][1] ?? 'login';

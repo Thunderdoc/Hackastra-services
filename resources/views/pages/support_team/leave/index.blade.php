@@ -2,7 +2,12 @@
 @section('page_title', 'Leave Requests')
 @section('content')
     {{-- Leave queue (owner, 2026-11-06, after the "text wall"
-         rejection): the request list is one-glance CARDS — who,
+         rejection): the request list was one-glance CARDS — who,
+         (Split, owner 2026-11-07 late: BOTH queues are now proper
+         hk-std TABLES — the teacher's student queue first, then the
+         main admin/principal queue on the owner's scope correction
+         the same night. Same blade, two table branches split on
+         the summary check; the card markup is retired.)
          when, how long, why (one line), cover state and the
          decision on one card each; everything heavier (allocation
          facts, the week grid, the cover plan) lives behind
@@ -77,6 +82,28 @@
         .lv-req-decide button { flex: 0 0 auto; margin: 0 !important; }
         .lv-req-own { margin-top: 12px; text-align: right; font-size: 12.5px; }
         .lv-decided-line { margin-top: 10px; font-size: 12.5px; text-align: right; }
+
+        /* Student queue table (owner, 2026-11-07 late): the
+           teacher's student-requests surface renders as a proper
+           hk-std table — one row per request, the decision form
+           compact inside its cell. The staff queue keeps the cards
+           above; these rules serve the table branch only. */
+        .lv-sq-table { min-width: 900px; }
+        .lv-sq-table .lv-decided-line { margin-top: 0; text-align: left; }
+        .lv-sq-student { display: flex; align-items: center; gap: 9px; min-width: 0; }
+        .lv-sq-decide { display: flex; flex-direction: column; gap: 6px; }
+        .lv-sq-decide input { width: 100%; margin: 0 !important; }
+        .lv-sq-decide-btns { display: flex; gap: 6px; }
+        .lv-sq-decide-btns button { flex: 1 1 0; margin: 0 !important; }
+        .lv-sq-details { margin-top: 6px; }
+
+        /* Main queue table (owner scope correction, 2026-11-07
+           late): same hk-std family, wider sheet for its 8 columns;
+           coverage pills stack in their cell; the decision form in
+           the Actions cell clears the expanders above it. */
+        .lv-mq-table { min-width: 1080px; }
+        .lv-mq-cover { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+        .lv-mq-decide { margin-top: 8px; }
 
         @media (max-width: 991.98px) {
             /* Phone: the plan and week tables go compact — one
@@ -160,94 +187,204 @@
                 <a href="{{ route('leave.index') }}" class="btn btn-sm btn-light">Reset</a>
             </form>
             @endisset
-            <div class="lv-req-list">
-            @forelse($requests as $r)
-                @php
-                    $lvName = (string) (optional($r->user)->name ?? '');
-                    $lvParts = preg_split('/\s+/', trim($lvName)) ?: [];
-                    $lvInitials = strtoupper(mb_substr($lvParts[0] ?? '', 0, 1) . mb_substr(count($lvParts) > 1 ? (string) end($lvParts) : '', 0, 1));
-                    $lvPartial = $r->partialLabel();
-                    $lvWin = $lvPartial ? $r->periodWindow() : null;
-                    $lvFrac = $lvWin ? ($lvWin[1] - $lvWin[0] + 1) / 8 : null;
-                    $lvFracText = $lvFrac !== null ? rtrim(rtrim(number_format($lvFrac, 2), '0'), '.') : null;
-                @endphp
-                <div class="lv-req-card">
-                    {{-- Headline: who + the state chips --}}
-                    <div class="lv-req-head">
-                        <div class="lv-who"><span class="lv-avatar">{{ $lvInitials !== '' ? $lvInitials : '?' }}</span><span class="lv-who-name">{{ $lvName }}</span><span class="lv-role-chip">{{ ucfirst(optional($r->user)->user_type) }}</span></div>
-                        <div class="lv-req-chips">
-                            <span class="badge badge-{{ $r->status === 'approved' ? 'success' : ($r->status === 'rejected' ? 'danger' : 'warning') }}">{{ ucfirst($r->status) }}</span>
-                            @if($r->leave_type === 'emergency') <span class="badge badge-danger">Emergency</span> @endif
-                            @if($lvPartial) <span class="badge badge-light">{{ $lvPartial }}</span> @endif
-                        </div>
-                    </div>
-                    {{-- Meta: when, how long, what kind — one line --}}
-                    <div class="lv-meta">
-                        <span class="lv-nowrap">{{ $r->start_date_display }} &rarr; {{ $r->end_date_display }}</span>
-                        <span aria-hidden="true">&middot;</span>
-                        <span class="lv-days">@if($lvFracText !== null){{ $lvFracText }} day @else <b>{{ $r->days }}</b> {{ $r->days === 1 ? 'day' : 'days' }} @endif</span>
-                        <span aria-hidden="true">&middot;</span>
-                        <span class="lv-nowrap">{{ $r->leave_type === 'emergency' ? 'Emergency' : 'Normal' }}</span>
-                    </div>
-                    @if(!empty($r->leave_balance)) <div class="small text-muted lv-balance">Leave balance {{ $r->leave_balance['year'] }}: @if($r->leave_balance['quota'] > 0) {{ rtrim(rtrim(number_format($r->leave_balance['remaining'], 2), '0'), '.') }} of {{ rtrim(rtrim(number_format($r->leave_balance['quota'], 2), '0'), '.') }} days left @else {{ rtrim(rtrim(number_format($r->leave_balance['used'], 2), '0'), '.') }} days used (no quota set) @endif</div> @endif
-                    @if(!empty($r->overlap_warning)) <div class="lv-overlap">{{ $r->overlap_warning }}</div> @endif
-                    {{-- Reason: one line; the full text opens below --}}
-                    <div class="lv-reason">@if(strlen((string) $r->reason) > 110) <div class="lv-reason-line" title="{{ $r->reason }}">{{ \Illuminate\Support\Str::limit((string) $r->reason, 110) }}</div> <details class="lv-reason-more"><summary>Full reason</summary><div class="mt-1">{{ $r->reason }}</div></details> @else {{ $r->reason }} @endif</div>
-                    {{-- Allocation facts, behind one expander --}}
-                    @if(!empty($r->allocation_lines) || !empty($r->week_grid))
-                    <details class="lv-details">
-                        <summary>Details</summary>
-                        <div class="lv-details-body">
-                            @if(!empty($r->allocation_summary)) <div class="lv-alloc-chips">@foreach(explode(' · ', $r->allocation_summary) as $lvFact)<span class="lv-alloc-chip">{{ $lvFact }}</span>@endforeach</div> @elseif(!empty($r->allocation_lines)) <div class="lv-alloc-chips"><span class="lv-alloc-chip">{{ \Illuminate\Support\Str::limit($r->allocation_lines[0], 60) }}</span></div> @endif
-                            @if(!empty($r->allocation_lines) && (count($r->allocation_lines) > 1 || $r->allocation_lines[0] !== $r->allocation_summary)) <details class="lv-sub-details"><summary>Full allocation</summary><div class="mt-1">@foreach($r->allocation_lines as $line) {{ $line }} @if(!$loop->last) <br> @endif @endforeach</div></details> @endif
-                            @if(!empty($r->week_grid)) <details class="lv-sub-details"><summary>Week timetable ({{ $r->weekly_periods }} periods)</summary><div class="table-responsive lv-plan-wrap mt-1"><table class="table table-sm lv-week-table"><colgroup><col style="width:15%"><col style="width:9%"><col style="width:22%"><col style="width:15%"><col style="width:25%"><col style="width:14%"></colgroup><thead><tr><th>Day</th><th>Period</th><th>Class</th><th>Section</th><th>Subject</th><th>Room</th></tr></thead><tbody>@foreach($r->week_grid as $g)<tr><td class="lv-week-nowrap">{{ $g['day'] }}</td><td class="lv-week-nowrap">{{ $g['period'] ? 'P' . $g['period'] : '—' }}</td><td>{{ $g['class'] }}</td><td>{{ $g['section'] }}</td><td>{{ $g['subject'] }}</td><td>{{ $g['room'] }}</td></tr>@endforeach</tbody></table></div></details> @endif
-                        </div>
-                    </details>
-                    @endif
-                    {{-- Cover: one clear state chip + the plan behind its toggle --}}
-                    @if($r->uncovered_periods !== null)
-                    <div class="lv-cover-row">
-                        @if($r->status === 'pending' && !empty($r->planned_periods))
-                            @if($r->uncovered_periods > 0) <a href="{{ route('substitutions.index') }}" class="badge badge-warning">{{ $r->uncovered_periods }} without cover</a> @else <a href="{{ route('substitutions.index') }}" class="badge badge-success">All {{ $r->planned_periods }} periods covered &middot; Plan ready</a> @endif
-                        @elseif($r->uncovered_periods > 0)
-                            <a href="{{ route('substitutions.index') }}" class="badge badge-warning">{{ $r->uncovered_periods }} without cover</a>
-                        @else
-                            <span class="badge badge-success">Covered</span>
-                        @endif
-                        @if($r->coverage_state === 'partial') <span class="badge badge-warning">@if(!empty($r->impact)) Partially covered — {{ $r->impact['covered'] }} of {{ $r->impact['affected'] }} @else Partially covered @endif</span> @elseif($r->coverage_state === 'none') <span class="badge badge-danger">Not covered</span> @elseif($r->coverage_state === 'none_affected') <span class="badge badge-light">No teaching periods affected</span> @endif
-                    </div>
-                    @if(($r->status === 'pending' && !empty($r->plan_rows) && $r->plan_rows->isNotEmpty()) || !empty($r->cover_names) || !empty($r->impact))
-                    <details class="lv-plan-details">
-                        <summary>@if($r->status === 'pending' && !empty($r->plan_rows) && $r->plan_rows->isNotEmpty()) See the plan ({{ $r->plan_rows->count() }}) @elseif(!empty($r->cover_names)) Cover details @else Impact details @endif</summary>
-                        @if($r->status === 'pending' && !empty($r->planned_periods)) <div class="small text-muted mt-1">@if($r->uncovered_periods > 0) Plan ready for {{ $r->planned_periods }} period(s) — approving this leave makes the plan live. @else The system has arranged all {{ $r->planned_periods }} period(s) — approving this leave makes the plan live. @endif</div> @endif
-                        @if(!empty($r->cover_names)) <div class="small text-muted mt-1">Covered by: {{ implode(', ', $r->cover_names) }}</div> @endif
-                        @if(!empty($r->impact)) <div class="small mt-1"><strong>Leave Impact Analysis</strong><br>Working days: {{ $r->impact['working_days'] }} &middot; Affected classes: {{ $r->impact['classes'] }} &middot; Sections: {{ $r->impact['sections'] }} &middot; Teaching periods: {{ $r->impact['affected'] }} &middot; Periods covered: {{ $r->impact['covered'] }} &middot; Requiring coverage: {{ $r->impact['uncovered'] }}@if($r->impact['labs']) &middot; Lab sessions: {{ $r->impact['labs'] }} @endif @if(!empty($r->impact['subjects']))<br>Subjects: {{ implode(', ', $r->impact['subjects']) }} @endif</div> @endif
-                        @if($r->status === 'pending' && !empty($r->plan_rows) && $r->plan_rows->isNotEmpty()) <div class="table-responsive lv-plan-wrap mt-1"><table class="table table-sm lv-plan-table"><colgroup><col style="width:26%"><col style="width:28%"><col style="width:18%"><col style="width:28%"></colgroup><thead><tr><th>Date</th><th>Period</th><th>Substitute</th><th>Switch</th></tr></thead><tbody>@foreach($r->plan_rows as $pr)<tr><td><span class="lv-plan-when">{{ $pr->date ? $pr->date->format('D, d/m/Y') : '—' }}@if(optional(optional($pr->time_table)->time_slot)->full) <span class="text-muted">&middot; {{ $pr->time_table->time_slot->full }}</span>@endif</span></td><td><span class="lv-plan-class">{{ optional(optional(optional($pr->time_table)->tt_record)->my_class)->name ?: '—' }}@if(optional(optional($pr->time_table)->tt_record)->section) — {{ $pr->time_table->tt_record->section->name }}@endif</span><br><span class="lv-plan-subj text-muted">{{ optional(optional($pr->time_table)->subject)->name }}</span></td><td><span class="lv-plan-subname">{{ optional($pr->substitute)->name ?: '—' }}</span></td><td>@php $opts = $r->plan_free_options[$pr->id] ?? collect(); @endphp @if($opts->isEmpty()) <span class="text-muted">No other teacher is free at this time</span> @else <form method="POST" action="{{ route('substitutions.switch', $pr->id) }}" class="form-inline">@csrf<select name="substitute_teacher_id" class="form-control form-control-sm mr-1">@foreach($opts as $opt)<option value="{{ $opt->id }}">{{ $opt->name }} — free</option>@endforeach</select><button type="submit" class="btn btn-sm btn-secondary">Switch</button></form> @endif</td></tr>@endforeach</tbody></table></div> @endif
-                    </details>
-                    @endif
-                    @endif
-                    {{-- Decision: pending gets the form on its own row;
-                         decided cards close with one muted line. --}}
-                    @if($r->status === 'pending')
-                        @if((int) $r->user_id !== (int) auth()->id())
-                            <form method="POST" action="{{ route('leave.decide', $r->id) }}" class="form-inline lv-req-decide">
-                                @csrf
-                                <input type="text" name="decision_note" class="form-control form-control-sm mr-1" placeholder="Note (optional)">
-                                <button type="submit" name="status" value="approved" class="btn btn-success btn-sm mr-1">Approve</button>
-                                <button type="submit" name="status" value="rejected" class="btn btn-danger btn-sm">Reject</button>
-                            </form>
-                        @else
-                            <div class="lv-req-own text-muted">Your own request — another admin must decide it.</div>
-                        @endif
-                    @else
-                        <div class="lv-decided-line text-muted">{{ ucfirst($r->status) }}@if(optional($r->decidedBy)->name) by {{ $r->decidedBy->name }}@endif @if($r->decided_at) &middot; {{ $r->decided_at->format('d/m/Y') }} @endif @if($r->decision_note) — {{ $r->decision_note }} @endif</div>
-                    @endif
-                </div>
-            @empty
+            @if(!isset($summary))
+            {{-- STUDENT QUEUE TABLE (owner, 2026-11-07 late: "yha ve
+                 tables bne toh mja aajaehga"). studentRequests()
+                 renders this blade WITHOUT a summary — that is the
+                 split: the teacher's student surface is a proper
+                 hk-std table, one row per request; the STAFF queue
+                 (admin/principal, WITH summary) in the else branch
+                 below is a table too (owner scope correction,
+                 2026-11-07 late).
+                 Everything behavioural is shared and unchanged: the
+                 controllers' pending-first ordering, the decide POST
+                 contract (decision_note + status buttons), the
+                 applicant bell inside decide(), and every expander
+                 block — full reason, allocation, week grid, cover —
+                 moved verbatim into the row's Details expander. --}}
+            @if($requests->isEmpty())
                 @include('partials.patterns.empty_state', ['icon' => 'icon-calendar2', 'message' => 'No leave requests yet.', 'hkEmptyArt' => true])
-            @endforelse
+            @else
+            <div class="table-responsive">
+                <table class="table hk-std lv-sq-table">
+                    <colgroup><col style="width:16%"><col style="width:11%"><col style="width:14%"><col style="width:6%"><col style="width:10%"><col style="width:18%"><col style="width:8%"><col style="width:17%"></colgroup>
+                    <thead><tr><th>Student</th><th>Class – Section</th><th>Dates</th><th>Days</th><th>Type</th><th>Reason</th><th>Status</th><th>Decision</th></tr></thead>
+                    <tbody>
+                    @foreach($requests as $r)
+                        @php
+                            $lvName = (string) (optional($r->user)->name ?? '');
+                            $lvParts = preg_split('/\s+/', trim($lvName)) ?: [];
+                            $lvInitials = strtoupper(mb_substr($lvParts[0] ?? '', 0, 1) . mb_substr(count($lvParts) > 1 ? (string) end($lvParts) : '', 0, 1));
+                            $lvPartial = $r->partialLabel();
+                            $lvWin = $lvPartial ? $r->periodWindow() : null;
+                            $lvFrac = $lvWin ? ($lvWin[1] - $lvWin[0] + 1) / 8 : null;
+                            $lvFracText = $lvFrac !== null ? rtrim(rtrim(number_format($lvFrac, 2), '0'), '.') : null;
+                        @endphp
+                        <tr>
+                            <td><span class="lv-sq-student"><span class="lv-avatar">{{ $lvInitials !== '' ? $lvInitials : '?' }}</span><span class="lv-who-name">{{ $lvName }}</span></span></td>
+                            <td class="hk-nw">{{ $r->allocation_summary ?: '—' }}</td>
+                            <td class="hk-nw">{{ $r->start_date_display }} – {{ $r->end_date_display }}</td>
+                            <td class="hk-nw">@if($lvFracText !== null){{ $lvFracText }} day @else <b>{{ $r->days }}</b> {{ $r->days === 1 ? 'day' : 'days' }} @endif</td>
+                            <td>@if($r->leave_type === 'emergency') <span class="badge badge-danger">Emergency</span> @else <span class="hk-nw">Normal</span> @endif @if($lvPartial) <div class="mt-1"><span class="badge badge-light">{{ $lvPartial }}</span></div> @endif</td>
+                            <td>
+                                <div class="hk-ellip" title="{{ $r->reason }}">{{ $r->reason }}</div>
+                                @if(!empty($r->allocation_lines) || !empty($r->week_grid) || strlen((string) $r->reason) > 110 || $r->uncovered_periods !== null)
+                                <details class="lv-details lv-sq-details">
+                                    <summary>Details</summary>
+                                    <div class="lv-details-body">
+                                        @if(strlen((string) $r->reason) > 110) <div class="lv-reason">{{ $r->reason }}</div> @endif
+                                        @if(!empty($r->leave_balance)) <div class="small text-muted lv-balance">Leave balance {{ $r->leave_balance['year'] }}: @if($r->leave_balance['quota'] > 0) {{ rtrim(rtrim(number_format($r->leave_balance['remaining'], 2), '0'), '.') }} of {{ rtrim(rtrim(number_format($r->leave_balance['quota'], 2), '0'), '.') }} days left @else {{ rtrim(rtrim(number_format($r->leave_balance['used'], 2), '0'), '.') }} days used (no quota set) @endif</div> @endif
+                                        @if(!empty($r->overlap_warning)) <div class="lv-overlap">{{ $r->overlap_warning }}</div> @endif
+                                        @if(!empty($r->allocation_summary)) <div class="lv-alloc-chips">@foreach(explode(' · ', $r->allocation_summary) as $lvFact)<span class="lv-alloc-chip">{{ $lvFact }}</span>@endforeach</div> @elseif(!empty($r->allocation_lines)) <div class="lv-alloc-chips"><span class="lv-alloc-chip">{{ \Illuminate\Support\Str::limit($r->allocation_lines[0], 60) }}</span></div> @endif
+                                        @if(!empty($r->allocation_lines) && (count($r->allocation_lines) > 1 || $r->allocation_lines[0] !== $r->allocation_summary)) <details class="lv-sub-details"><summary>Full allocation</summary><div class="mt-1">@foreach($r->allocation_lines as $line) {{ $line }} @if(!$loop->last) <br> @endif @endforeach</div></details> @endif
+                                        @if(!empty($r->week_grid)) <details class="lv-sub-details"><summary>Week timetable ({{ $r->weekly_periods }} periods)</summary><div class="table-responsive lv-plan-wrap mt-1"><table class="table table-sm lv-week-table"><colgroup><col style="width:15%"><col style="width:9%"><col style="width:22%"><col style="width:15%"><col style="width:25%"><col style="width:14%"></colgroup><thead><tr><th>Day</th><th>Period</th><th>Class</th><th>Section</th><th>Subject</th><th>Room</th></tr></thead><tbody>@foreach($r->week_grid as $g)<tr><td class="lv-week-nowrap">{{ $g['day'] }}</td><td class="lv-week-nowrap">{{ $g['period'] ? 'P' . $g['period'] : '—' }}</td><td>{{ $g['class'] }}</td><td>{{ $g['section'] }}</td><td>{{ $g['subject'] }}</td><td>{{ $g['room'] }}</td></tr>@endforeach</tbody></table></div></details> @endif
+                                        @if($r->uncovered_periods !== null)
+                                        <div class="lv-cover-row">
+                                            @if($r->status === 'pending' && !empty($r->planned_periods))
+                                                @if($r->uncovered_periods > 0) <a href="{{ route('substitutions.index') }}" class="badge badge-warning">{{ $r->uncovered_periods }} without cover</a> @else <a href="{{ route('substitutions.index') }}" class="badge badge-success">All {{ $r->planned_periods }} periods covered &middot; Plan ready</a> @endif
+                                            @elseif($r->uncovered_periods > 0)
+                                                <a href="{{ route('substitutions.index') }}" class="badge badge-warning">{{ $r->uncovered_periods }} without cover</a>
+                                            @else
+                                                <span class="badge badge-success">Covered</span>
+                                            @endif
+                                            @if($r->coverage_state === 'partial') <span class="badge badge-warning">@if(!empty($r->impact)) Partially covered — {{ $r->impact['covered'] }} of {{ $r->impact['affected'] }} @else Partially covered @endif</span> @elseif($r->coverage_state === 'none') <span class="badge badge-danger">Not covered</span> @elseif($r->coverage_state === 'none_affected') <span class="badge badge-light">No teaching periods affected</span> @endif
+                                        </div>
+                                        @if(($r->status === 'pending' && !empty($r->plan_rows) && $r->plan_rows->isNotEmpty()) || !empty($r->cover_names) || !empty($r->impact))
+                                        <details class="lv-plan-details">
+                                            <summary>@if($r->status === 'pending' && !empty($r->plan_rows) && $r->plan_rows->isNotEmpty()) See the plan ({{ $r->plan_rows->count() }}) @elseif(!empty($r->cover_names)) Cover details @else Impact details @endif</summary>
+                                            @if($r->status === 'pending' && !empty($r->planned_periods)) <div class="small text-muted mt-1">@if($r->uncovered_periods > 0) Plan ready for {{ $r->planned_periods }} period(s) — approving this leave makes the plan live. @else The system has arranged all {{ $r->planned_periods }} period(s) — approving this leave makes the plan live. @endif</div> @endif
+                                            @if(!empty($r->cover_names)) <div class="small text-muted mt-1">Covered by: {{ implode(', ', $r->cover_names) }}</div> @endif
+                                            @if(!empty($r->impact)) <div class="small mt-1"><strong>Leave Impact Analysis</strong><br>Working days: {{ $r->impact['working_days'] }} &middot; Affected classes: {{ $r->impact['classes'] }} &middot; Sections: {{ $r->impact['sections'] }} &middot; Teaching periods: {{ $r->impact['affected'] }} &middot; Periods covered: {{ $r->impact['covered'] }} &middot; Requiring coverage: {{ $r->impact['uncovered'] }}@if($r->impact['labs']) &middot; Lab sessions: {{ $r->impact['labs'] }} @endif @if(!empty($r->impact['subjects']))<br>Subjects: {{ implode(', ', $r->impact['subjects']) }} @endif</div> @endif
+                                            @if($r->status === 'pending' && !empty($r->plan_rows) && $r->plan_rows->isNotEmpty()) <div class="table-responsive lv-plan-wrap mt-1"><table class="table table-sm lv-plan-table"><colgroup><col style="width:26%"><col style="width:28%"><col style="width:18%"><col style="width:28%"></colgroup><thead><tr><th>Date</th><th>Period</th><th>Substitute</th><th>Switch</th></tr></thead><tbody>@foreach($r->plan_rows as $pr)<tr><td><span class="lv-plan-when">{{ $pr->date ? $pr->date->format('D, d/m/Y') : '—' }}@if(optional(optional($pr->time_table)->time_slot)->full) <span class="text-muted">&middot; {{ $pr->time_table->time_slot->full }}</span>@endif</span></td><td><span class="lv-plan-class">{{ optional(optional(optional($pr->time_table)->tt_record)->my_class)->name ?: '—' }}@if(optional(optional($pr->time_table)->tt_record)->section) — {{ $pr->time_table->tt_record->section->name }}@endif</span><br><span class="lv-plan-subj text-muted">{{ optional(optional($pr->time_table)->subject)->name }}</span></td><td><span class="lv-plan-subname">{{ optional($pr->substitute)->name ?: '—' }}</span></td><td>@php $opts = $r->plan_free_options[$pr->id] ?? collect(); @endphp @if($opts->isEmpty()) <span class="text-muted">No other teacher is free at this time</span> @else <form method="POST" action="{{ route('substitutions.switch', $pr->id) }}" class="form-inline">@csrf<select name="substitute_teacher_id" class="form-control form-control-sm mr-1">@foreach($opts as $opt)<option value="{{ $opt->id }}">{{ $opt->name }} — free</option>@endforeach</select><button type="submit" class="btn btn-sm btn-secondary">Switch</button></form> @endif</td></tr>@endforeach</tbody></table></div> @endif
+                                        </details>
+                                        @endif
+                                        @endif
+                                    </div>
+                                </details>
+                                @endif
+                            </td>
+                            <td><span class="badge badge-{{ $r->status === 'approved' ? 'success' : ($r->status === 'rejected' ? 'danger' : 'warning') }}">{{ ucfirst($r->status) }}</span></td>
+                            <td>
+                                @if($r->status === 'pending')
+                                    @if((int) $r->user_id !== (int) auth()->id())
+                                        <form method="POST" action="{{ route('leave.decide', $r->id) }}" class="lv-sq-decide" data-hk-draft="u{{ Auth::id() }}-leave-decide-{{ $r->id }}">
+                                            @csrf
+                                            <input type="text" name="decision_note" class="form-control form-control-sm" placeholder="Note (optional)">
+                                            <span class="lv-sq-decide-btns"><button type="submit" name="status" value="approved" class="btn btn-success btn-sm">Approve</button><button type="submit" name="status" value="rejected" class="btn btn-danger btn-sm">Reject</button></span>
+                                        </form>
+                                    @else
+                                        <div class="text-muted">Your own request — another admin must decide it.</div>
+                                    @endif
+                                @else
+                                    <div class="lv-decided-line text-muted">{{ ucfirst($r->status) }}@if(optional($r->decidedBy)->name) by {{ $r->decidedBy->name }}@endif @if($r->decided_at) &middot; {{ $r->decided_at->format('d/m/Y') }} @endif @if($r->decision_note) — {{ $r->decision_note }} @endif</div>
+                                @endif
+                            </td>
+                        </tr>
+                    @endforeach
+                    </tbody>
+                </table>
             </div>
-            {{ $requests->appends(request()->except('page'))->links() }}
+            @endif
+            @else
+            {{-- MAIN QUEUE TABLE (owner scope correction, 2026-11-07
+                 late: "yha ve toh mai proper table type saab bola
+                 tha") — the admin/principal queue is a proper hk-std
+                 table too, not just the student surface. The filters,
+                 summary tiles and coverage banner above are untouched,
+                 the pending-first ordering comes from the controller,
+                 and every per-request block — balance, overlap,
+                 allocation, week grid, cover pills, the plan with its
+                 switch forms, the decision form, the decided line —
+                 is preserved verbatim inside the row's cells and
+                 expanders, on the same decide/switch endpoints; the
+                 applicant bell still fires inside decide(). --}}
+            @if($requests->isEmpty())
+                @include('partials.patterns.empty_state', ['icon' => 'icon-calendar2', 'message' => 'No leave requests yet.', 'hkEmptyArt' => true])
+            @else
+            <div class="table-responsive">
+                <table class="table hk-std lv-sq-table lv-mq-table">
+                    <colgroup><col style="width:15%"><col style="width:13%"><col style="width:5%"><col style="width:9%"><col style="width:14%"><col style="width:12%"><col style="width:10%"><col style="width:22%"></colgroup>
+                    <thead><tr><th>Applicant</th><th>Dates</th><th>Days</th><th>Type</th><th>Reason</th><th>Coverage</th><th>Status</th><th>Actions</th></tr></thead>
+                    <tbody>
+                    @foreach($requests as $r)
+                        @php
+                            $lvName = (string) (optional($r->user)->name ?? '');
+                            $lvParts = preg_split('/\s+/', trim($lvName)) ?: [];
+                            $lvInitials = strtoupper(mb_substr($lvParts[0] ?? '', 0, 1) . mb_substr(count($lvParts) > 1 ? (string) end($lvParts) : '', 0, 1));
+                            $lvPartial = $r->partialLabel();
+                            $lvWin = $lvPartial ? $r->periodWindow() : null;
+                            $lvFrac = $lvWin ? ($lvWin[1] - $lvWin[0] + 1) / 8 : null;
+                            $lvFracText = $lvFrac !== null ? rtrim(rtrim(number_format($lvFrac, 2), '0'), '.') : null;
+                        @endphp
+                        <tr>
+                            <td><span class="lv-sq-student"><span class="lv-avatar">{{ $lvInitials !== '' ? $lvInitials : '?' }}</span><span><span class="lv-who-name">{{ $lvName }}</span> <span class="lv-role-chip">{{ ucfirst(optional($r->user)->user_type) }}</span></span></span></td>
+                            <td class="hk-nw">{{ $r->start_date_display }} – {{ $r->end_date_display }}</td>
+                            <td class="hk-nw">@if($lvFracText !== null){{ $lvFracText }} day @else <b>{{ $r->days }}</b> {{ $r->days === 1 ? 'day' : 'days' }} @endif</td>
+                            <td>@if($r->leave_type === 'emergency') <span class="badge badge-danger">Emergency</span> @else <span class="hk-nw">Normal</span> @endif @if($lvPartial) <div class="mt-1"><span class="badge badge-light">{{ $lvPartial }}</span></div> @endif</td>
+                            <td><div class="hk-ellip" title="{{ $r->reason }}">{{ $r->reason }}</div></td>
+                            <td>
+                                @if($r->uncovered_periods !== null)
+                                <div class="lv-mq-cover">
+                                    @if($r->status === 'pending' && !empty($r->planned_periods))
+                                        @if($r->uncovered_periods > 0) <a href="{{ route('substitutions.index') }}" class="badge badge-warning">{{ $r->uncovered_periods }} without cover</a> @else <a href="{{ route('substitutions.index') }}" class="badge badge-success">All {{ $r->planned_periods }} periods covered &middot; Plan ready</a> @endif
+                                    @elseif($r->uncovered_periods > 0)
+                                        <a href="{{ route('substitutions.index') }}" class="badge badge-warning">{{ $r->uncovered_periods }} without cover</a>
+                                    @else
+                                        <span class="badge badge-success">Covered</span>
+                                    @endif
+                                    @if($r->coverage_state === 'partial') <span class="badge badge-warning">@if(!empty($r->impact)) Partially covered — {{ $r->impact['covered'] }} of {{ $r->impact['affected'] }} @else Partially covered @endif</span> @elseif($r->coverage_state === 'none') <span class="badge badge-danger">Not covered</span> @elseif($r->coverage_state === 'none_affected') <span class="badge badge-light">No teaching periods affected</span> @endif
+                                </div>
+                                @else
+                                <span class="text-muted">—</span>
+                                @endif
+                            </td>
+                            <td>
+                                <span class="badge badge-{{ $r->status === 'approved' ? 'success' : ($r->status === 'rejected' ? 'danger' : 'warning') }}">{{ ucfirst($r->status) }}</span>
+                                @if($r->status !== 'pending') <div class="lv-decided-line text-muted">{{ ucfirst($r->status) }}@if(optional($r->decidedBy)->name) by {{ $r->decidedBy->name }}@endif @if($r->decided_at) &middot; {{ $r->decided_at->format('d/m/Y') }} @endif @if($r->decision_note) — {{ $r->decision_note }} @endif</div> @endif
+                            </td>
+                            <td>
+                                @if(!empty($r->allocation_lines) || !empty($r->week_grid) || strlen((string) $r->reason) > 110 || !empty($r->leave_balance) || !empty($r->overlap_warning))
+                                <details class="lv-details lv-sq-details">
+                                    <summary>Details</summary>
+                                    <div class="lv-details-body">
+                                        @if(strlen((string) $r->reason) > 110) <div class="lv-reason">{{ $r->reason }}</div> @endif
+                                        @if(!empty($r->leave_balance)) <div class="small text-muted lv-balance">Leave balance {{ $r->leave_balance['year'] }}: @if($r->leave_balance['quota'] > 0) {{ rtrim(rtrim(number_format($r->leave_balance['remaining'], 2), '0'), '.') }} of {{ rtrim(rtrim(number_format($r->leave_balance['quota'], 2), '0'), '.') }} days left @else {{ rtrim(rtrim(number_format($r->leave_balance['used'], 2), '0'), '.') }} days used (no quota set) @endif</div> @endif
+                                        @if(!empty($r->overlap_warning)) <div class="lv-overlap">{{ $r->overlap_warning }}</div> @endif
+                                        @if(!empty($r->allocation_summary)) <div class="lv-alloc-chips">@foreach(explode(' · ', $r->allocation_summary) as $lvFact)<span class="lv-alloc-chip">{{ $lvFact }}</span>@endforeach</div> @elseif(!empty($r->allocation_lines)) <div class="lv-alloc-chips"><span class="lv-alloc-chip">{{ \Illuminate\Support\Str::limit($r->allocation_lines[0], 60) }}</span></div> @endif
+                                        @if(!empty($r->allocation_lines) && (count($r->allocation_lines) > 1 || $r->allocation_lines[0] !== $r->allocation_summary)) <details class="lv-sub-details"><summary>Full allocation</summary><div class="mt-1">@foreach($r->allocation_lines as $line) {{ $line }} @if(!$loop->last) <br> @endif @endforeach</div></details> @endif
+                                        @if(!empty($r->week_grid)) <details class="lv-sub-details"><summary>Week timetable ({{ $r->weekly_periods }} periods)</summary><div class="table-responsive lv-plan-wrap mt-1"><table class="table table-sm lv-week-table"><colgroup><col style="width:15%"><col style="width:9%"><col style="width:22%"><col style="width:15%"><col style="width:25%"><col style="width:14%"></colgroup><thead><tr><th>Day</th><th>Period</th><th>Class</th><th>Section</th><th>Subject</th><th>Room</th></tr></thead><tbody>@foreach($r->week_grid as $g)<tr><td class="lv-week-nowrap">{{ $g['day'] }}</td><td class="lv-week-nowrap">{{ $g['period'] ? 'P' . $g['period'] : '—' }}</td><td>{{ $g['class'] }}</td><td>{{ $g['section'] }}</td><td>{{ $g['subject'] }}</td><td>{{ $g['room'] }}</td></tr>@endforeach</tbody></table></div></details> @endif
+                                    </div>
+                                </details>
+                                @endif
+                                @if($r->uncovered_periods !== null && (($r->status === 'pending' && !empty($r->plan_rows) && $r->plan_rows->isNotEmpty()) || !empty($r->cover_names) || !empty($r->impact)))
+                                <details class="lv-plan-details lv-sq-details">
+                                    <summary>@if($r->status === 'pending' && !empty($r->plan_rows) && $r->plan_rows->isNotEmpty()) See the plan ({{ $r->plan_rows->count() }}) @elseif(!empty($r->cover_names)) Cover details @else Impact details @endif</summary>
+                                    @if($r->status === 'pending' && !empty($r->planned_periods)) <div class="small text-muted mt-1">@if($r->uncovered_periods > 0) Plan ready for {{ $r->planned_periods }} period(s) — approving this leave makes the plan live. @else The system has arranged all {{ $r->planned_periods }} period(s) — approving this leave makes the plan live. @endif</div> @endif
+                                    @if(!empty($r->cover_names)) <div class="small text-muted mt-1">Covered by: {{ implode(', ', $r->cover_names) }}</div> @endif
+                                    @if(!empty($r->impact)) <div class="small mt-1"><strong>Leave Impact Analysis</strong><br>Working days: {{ $r->impact['working_days'] }} &middot; Affected classes: {{ $r->impact['classes'] }} &middot; Sections: {{ $r->impact['sections'] }} &middot; Teaching periods: {{ $r->impact['affected'] }} &middot; Periods covered: {{ $r->impact['covered'] }} &middot; Requiring coverage: {{ $r->impact['uncovered'] }}@if($r->impact['labs']) &middot; Lab sessions: {{ $r->impact['labs'] }} @endif @if(!empty($r->impact['subjects']))<br>Subjects: {{ implode(', ', $r->impact['subjects']) }} @endif</div> @endif
+                                    @if($r->status === 'pending' && !empty($r->plan_rows) && $r->plan_rows->isNotEmpty()) <div class="table-responsive lv-plan-wrap mt-1"><table class="table table-sm lv-plan-table"><colgroup><col style="width:26%"><col style="width:28%"><col style="width:18%"><col style="width:28%"></colgroup><thead><tr><th>Date</th><th>Period</th><th>Substitute</th><th>Switch</th></tr></thead><tbody>@foreach($r->plan_rows as $pr)<tr><td><span class="lv-plan-when">{{ $pr->date ? $pr->date->format('D, d/m/Y') : '—' }}@if(optional(optional($pr->time_table)->time_slot)->full) <span class="text-muted">&middot; {{ $pr->time_table->time_slot->full }}</span>@endif</span></td><td><span class="lv-plan-class">{{ optional(optional(optional($pr->time_table)->tt_record)->my_class)->name ?: '—' }}@if(optional(optional($pr->time_table)->tt_record)->section) — {{ $pr->time_table->tt_record->section->name }}@endif</span><br><span class="lv-plan-subj text-muted">{{ optional(optional($pr->time_table)->subject)->name }}</span></td><td><span class="lv-plan-subname">{{ optional($pr->substitute)->name ?: '—' }}</span></td><td>@php $opts = $r->plan_free_options[$pr->id] ?? collect(); @endphp @if($opts->isEmpty()) <span class="text-muted">No other teacher is free at this time</span> @else <form method="POST" action="{{ route('substitutions.switch', $pr->id) }}" class="form-inline">@csrf<select name="substitute_teacher_id" class="form-control form-control-sm mr-1">@foreach($opts as $opt)<option value="{{ $opt->id }}">{{ $opt->name }} — free</option>@endforeach</select><button type="submit" class="btn btn-sm btn-secondary">Switch</button></form> @endif</td></tr>@endforeach</tbody></table></div> @endif
+                                </details>
+                                @endif
+                                @if($r->status === 'pending')
+                                    @if((int) $r->user_id !== (int) auth()->id())
+                                        <form method="POST" action="{{ route('leave.decide', $r->id) }}" class="lv-sq-decide lv-mq-decide" data-hk-draft="u{{ Auth::id() }}-leave-decide-{{ $r->id }}">
+                                            @csrf
+                                            <input type="text" name="decision_note" class="form-control form-control-sm" placeholder="Note (optional)">
+                                            <span class="lv-sq-decide-btns"><button type="submit" name="status" value="approved" class="btn btn-success btn-sm">Approve</button><button type="submit" name="status" value="rejected" class="btn btn-danger btn-sm">Reject</button></span>
+                                        </form>
+                                    @else
+                                        <div class="text-muted">Your own request — another admin must decide it.</div>
+                                    @endif
+                                @endif
+                            </td>
+                        </tr>
+                    @endforeach
+                    </tbody>
+                </table>
+            </div>
+            @endif
+            @endif
+{{ $requests->appends(request()->except('page'))->links() }}
         </div>
     </div>
 @endsection

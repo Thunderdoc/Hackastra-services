@@ -43,7 +43,7 @@
                     <div class="media-body">
                         <div class="media-title font-weight-semibold">{{ Auth::user()->name }}</div>
                         <div class="font-size-xs opacity-50">
-                            <i class="icon-user font-size-sm"></i> &nbsp;@if(Qs::userIsPrincipal())Principal@else{{ ucwords(str_replace('_', ' ', Auth::user()->user_type)) }}@endif
+                            <i class="icon-user font-size-sm"></i> &nbsp;{{ Qs::userIsPrincipal() ? 'Principal' : ucwords(str_replace('_', ' ', Auth::user()->user_type)) }}
                         </div>
                     </div>
 
@@ -198,7 +198,9 @@
                      (controller gate too); the others are link-only
                      removals — routes/controllers/views stay, so
                      each restores by re-adding its line. Parent
-                     Messages and Discipline Records stay. --}}
+                     Messages stays. (Discipline Records stayed in
+                     this pass; it left the teacher menu later, on
+                     the owner's 2026-11-07 late order below.) --}}
                 <li class="nav-item-header"><div class="text-uppercase font-size-xs line-height-xs">Classroom</div><i class="icon-menu" title="Classroom"></i></li>
                 <li class="nav-item">
                     <a href="{{ route('class_overview.index') }}" class="nav-link {{ (Route::is('class_overview.*')) ? 'active' : '' }}">
@@ -212,18 +214,14 @@
                         <span>Parent Messages</span>
                     </a>
                 </li>
-                <li class="nav-item">
-                    <a href="{{ route('health_records.index') }}" class="nav-link {{ (Route::is('health_records.*')) ? 'active' : '' }}">
-                        <i class="icon-users"></i>
-                        <span>Health Records</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="{{ route('discipline_records.index') }}" class="nav-link {{ (Route::is('discipline_records.*')) ? 'active' : '' }}">
-                        <i class="icon-file-text2"></i>
-                        <span>Discipline Records</span>
-                    </a>
-                </li>
+                {{-- Owner order 2026-11-07 (late): Health Records and
+                     Discipline Records are OUT of the teacher menu —
+                     "these 2 are not needed in teacher side". Menu
+                     visibility only: the routes, controllers and the
+                     teacher's scoped access rules are unchanged, and
+                     every other role's menu is untouched (the nurse
+                     keeps Health Records, the principal keeps
+                     Discipline Records as Safety & Incidents). --}}
                 <li class="nav-item">
                     <a href="{{ route('leave.student_requests') }}" class="nav-link {{ (Route::is('leave.student_requests') || Route::is('leave.decide')) ? 'active' : '' }}">
                         <i class="icon-calendar2"></i>

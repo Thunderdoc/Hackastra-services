@@ -5,6 +5,7 @@
         'form_action' => route('assignments.share.store', $assignment->id),
         'back' => route('assignments.index'),
         'submit_label' => 'Share to selected sections',
+        'form_compact' => true,
     ])
         <div class="pat-form-section">
             <p class="text-muted">Sharing <strong>{{ $assignment->title }}</strong> ({{ $subject->name ?? '' }} — {{ $assignment->section->name ?? '' }}) to your other sections. The seeded copy starts with no submissions; the question file is copied by the system — you do not recreate it.</p>

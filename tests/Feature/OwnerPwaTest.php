@@ -36,9 +36,29 @@ class OwnerPwaTest extends TestCase
         $this->assertFileExists($path);
 
         $js = file_get_contents($path);
-        $this->assertStringContainsString('hackstra-v2', $js);
+        $this->assertStringContainsString('hackstra-v3', $js);
         $this->assertStringContainsString('/offline.html', $js);
         $this->assertStringContainsString('Authorization', $js);
+        // Item 16: navigations are network-first (the network
+        // answer is returned as-is; the cache only supplies the
+        // offline fallback page), activate purges every older
+        // cache, and a static asset is stored only on a 200.
+        $this->assertStringContainsString("req.mode === 'navigate'", $js);
+        $this->assertStringContainsString("caches.match('/offline.html')", $js);
+        $this->assertStringContainsString('caches.delete(k)', $js);
+        $this->assertStringContainsString('if (res.ok)', $js);
+    }
+
+    public function test_bfcache_restore_reloads_for_a_live_token()
+    {
+        // Item 16: a page restored from the back/forward cache
+        // carries pre-rotation CSRF tokens and 419s on submit;
+        // the shared UX layer reloads it on a persisted pageshow.
+        $ux = file_get_contents(public_path('assets/js/hackstra-ux.js'));
+
+        $this->assertStringContainsString("addEventListener('pageshow'", $ux);
+        $this->assertStringContainsString('event.persisted', $ux);
+        $this->assertStringContainsString('window.location.reload()', $ux);
     }
 
     public function test_offline_page_exists()

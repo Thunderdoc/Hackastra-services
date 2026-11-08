@@ -48,6 +48,6 @@
 <!-- /theme JS files -->
 
 <script src=" {{ asset('assets/js/custom.js') }} "></script>
-<script src="{{ asset('assets/js/hackstra-ux.js') }}"></script>
+<script src="{{ asset('assets/js/hackstra-ux.js') }}?v={{ file_exists(public_path('assets/js/hackstra-ux.js')) ? filemtime(public_path('assets/js/hackstra-ux.js')) : 1 }}"></script>
 
 @include('partials.js.custom_js')

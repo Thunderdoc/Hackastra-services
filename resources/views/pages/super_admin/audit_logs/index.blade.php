@@ -104,10 +104,11 @@
                           $subjectName = ($log->subject_type && $log->subject_id)
                               ? ($subject_names[$log->subject_type . '#' . $log->subject_id] ?? null)
                               : null;
-                          $initials = $log->user ? collect(explode(' ', trim($log->user->name)))->map(function ($w) { return strtoupper(substr($w, 0, 1)); })->take(2)->implode('') : '—';
+                          $initials = $log->user ? collect(explode(' ', trim((string) ($log->user->name ?? ''))))->map(function ($w) { return strtoupper(substr($w, 0, 1)); })->take(2)->implode('') : '—';
+                          if ($initials === '') { $initials = '—'; }
                       @endphp
                       <tr>
-                          <td class="au-when"><b>{{ $log->created_at->format('d M Y') }}</b><span>{{ $log->created_at->format('h:i A') }}</span></td>
+                          <td class="au-when">@if($log->created_at)<b>{{ $log->created_at->format('d M Y') }}</b><span>{{ $log->created_at->format('h:i A') }}</span>@else<b>—</b>@endif</td>
                           <td>
                               <span class="au-user">
                                   <span class="au-ava">{{ $initials }}</span>

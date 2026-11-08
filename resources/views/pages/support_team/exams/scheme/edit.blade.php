@@ -65,7 +65,7 @@
                         <em>before</em> marks entry begins.
                     </div>
                 @else
-                    <form method="post" action="{{ route('exams.scheme.update', [$ex->id, $my_class->id, $sub->id]) }}" class="scheme-form">
+                    <form method="post" action="{{ route('exams.scheme.update', [$ex->id, $my_class->id, $sub->id]) }}" class="scheme-form" data-hk-draft="u{{ Auth::id() }}-scheme-{{ $ex->id }}-{{ $my_class->id }}-{{ $sub->id }}">
                         @csrf
                         <div class="l76-scheme-preset">
                             <div>

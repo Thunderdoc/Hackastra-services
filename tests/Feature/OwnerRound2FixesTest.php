@@ -140,9 +140,20 @@ class OwnerRound2FixesTest extends TestCase
         \App\Models\Setting::where('type', 'logo')->update(['description' => $url]);
     }
 
+    /**
+     * A logo URL on THIS install (host derived from the app's own
+     * URL, so the existence check — not the foreign-host trust
+     * rule — is what the pin exercises on every machine) pointing
+     * at a file that does not exist.
+     */
+    private function deadLogoUrl(): string
+    {
+        return url('storage/uploads/no-such-logo.png');
+    }
+
     public function test_id_card_brand_falls_back_when_logo_file_is_missing()
     {
-        $dead = 'http://127.0.0.1:8993/storage/uploads/no-such-logo.png';
+        $dead = $this->deadLogoUrl();
         $this->setLogoSetting($dead);
 
         $screen = \App\Support\IdCardFactory::brand(false);
@@ -208,8 +219,9 @@ class OwnerRound2FixesTest extends TestCase
 
     public function test_id_card_brand_keeps_a_real_uploaded_logo()
     {
-        // The seeded logo.svg exists in the local webroot (through
-        // the public/storage symlink), so it must survive untouched.
+        // The seeder writes the seeded logo.svg onto the public
+        // disk (storage/app/public/uploads), so it must survive
+        // untouched — with or without the public/storage symlink.
         $seeded = \App\Helpers\Qs::getSetting('logo');
         $screen = \App\Support\IdCardFactory::brand(false);
         $this->assertSame($seeded, $screen['logo_img']);
@@ -217,7 +229,7 @@ class OwnerRound2FixesTest extends TestCase
 
     public function test_single_id_card_page_never_renders_the_dead_logo_url()
     {
-        $dead = 'http://127.0.0.1:8993/storage/uploads/no-such-logo.png';
+        $dead = $this->deadLogoUrl();
         $this->setLogoSetting($dead);
 
         $admin = $this->userByEmail('admin@hackstra.app');

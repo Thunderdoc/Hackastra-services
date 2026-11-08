@@ -319,11 +319,16 @@ class OwnerAuditOvernightSettingsTest extends TestCase
 
     public function test_item23_global_back_on_second_page_and_specific_link_unchanged()
     {
+        /* Re-expressed 2026-11-07 (owner's View TimeTable screenshot:
+           TWO Back controls in one header). Pages that render their
+           OWN section-bound Back inside page_actions — circulars.create
+           is one of the five — now suppress the global hk-global-back
+           via the own_page_back opt-out in partials/header, so the
+           header carries exactly ONE back control. The global back
+           itself stays pinned on pages without their own (the
+           settings-page test above). */
         $page = $this->actingAs($this->admin())->get(route('circulars.create'))->assertOk()->getContent();
-        $tag = $this->globalBackTag($page);
-        $this->assertNotNull($tag, 'No hk-global-back control on circulars.create');
-        $this->assertStringContainsString(route('dashboard'), $tag);
-        $this->assertStringNotContainsString('history.back', $tag);
+        $this->assertNull($this->globalBackTag($page), 'circulars.create renders its own Back — the global hk-global-back must be suppressed there');
         // Page-specific link untouched: still points at its own index.
         $this->assertStringContainsString('Back to Circulars', $page);
         $this->assertStringContainsString(route('circulars.index'), $page);

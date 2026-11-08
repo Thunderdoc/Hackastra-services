@@ -13,6 +13,12 @@
             'form_method'  => 'PUT',                          // optional, default POST (GET also honoured)
             'form_enctype' => 'multipart/form-data',          // optional
             'form_class'   => 'ajax-store',                   // optional, extra class on the <form> (AJAX hooks)
+            'form_compact' => true,                           // optional: short select-then-submit forms
+                                                              // hug their content (capped-width card,
+                                                              // full-width fields, tighter action bar)
+                                                              // instead of stretching a full-width
+                                                              // shell around one small field (owner,
+                                                              // 2026-11-07 — "Select Exam Year" dead band)
             'form_reload'  => '#page-header',                 // optional, emitted as data-reload (ajax-update forms)
             'back'         => route('things.index'),          // optional Cancel link
             'submit_label' => 'Save Changes',                 // optional
@@ -64,7 +70,7 @@
     $patHasSubtitle = isset($subtitle) && trim((string) $subtitle) !== '';
     $patHasActions  = isset($actions) && trim((string) $actions) !== '';
 @endphp
-<form method="{{ $patMethod === 'GET' ? 'GET' : 'POST' }}" action="{{ $form_action ?? '' }}" class="pat-form{{ !empty($form_class ?? null) ? ' '.$form_class : '' }}"
+<form method="{{ $patMethod === 'GET' ? 'GET' : 'POST' }}" action="{{ $form_action ?? '' }}" class="pat-form{{ !empty($form_compact ?? null) ? ' pat-form-compact' : '' }}{{ !empty($form_class ?? null) ? ' '.$form_class : '' }}"
       @if(!empty($form_enctype ?? null)) enctype="{{ $form_enctype }}" @endif
       @if(!empty($form_reload ?? null)) data-reload="{{ $form_reload }}" @endif
       @if(!empty($form_draft ?? null)) data-hk-draft="{{ $form_draft }}" @endif>

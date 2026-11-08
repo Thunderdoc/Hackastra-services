@@ -17,10 +17,10 @@ use Tests\TestCase;
  *    compact rules (38px icon, clamp(.88rem,4.1vw,1.5rem) +
  *    nowrap values) generalised from the two money grids to
  *    every .dashboard-stat-copy and the t9/t10/p96 KPI copies.
- *    The coordinator appends the fragment to qs.css; until
- *    then it is pinned here as a file.
+ *    The coordinator has appended the fragment to qs.css; the
+ *    pins below extract that block from the shipped stylesheet.
  *  - The body{overflow-x:clip} safety net is deliberately NOT
- *    in the fragment: it lands separately, after the fit
+ *    in the tier block: it landed separately, after the fit
  *    sweep, as defence-in-depth only (audit §18 design).
  *  - principal/home's four .pr-table approval tables ride the
  *    accepted scrollport pattern: each is wrapped in a
@@ -44,15 +44,38 @@ class OwnerRound5PhoneTierTest extends TestCase
         return User::where('email', 'principal@hackstra.app')->firstOrFail();
     }
 
+    protected function stylesheet(): string
+    {
+        return file_get_contents(public_path('assets/css/qs.css'));
+    }
+
+    /**
+     * The P18 tier as it ships. The tier was authored as a
+     * build-time fragment under hk-tmp/ — a scratch path that
+     * only ever existed on the author's machine, so these pins
+     * errored in CI. The fragment has been appended to qs.css;
+     * extract the ONE @media (max-width:374px) block from the
+     * shipped stylesheet (balanced braces) and pin against it.
+     */
     protected function fragment(): string
     {
-        $path = base_path('../hk-tmp/round5/build/css-p18.fragment.css');
-        if (!file_exists($path)) {
-            $path = '/home/hatch/workspace/hk-tmp/round5/build/css-p18.fragment.css';
-        }
-        $this->assertFileExists($path);
+        $css = $this->stylesheet();
+        $this->assertSame(1, substr_count($css, '@media (max-width:374px)'),
+            'qs.css must carry exactly one 374px tier block');
+        $start = strpos($css, '@media (max-width:374px)');
+        $depth = 0;
+        $i = strpos($css, '{', $start);
+        do {
+            $ch = $css[$i];
+            if ($ch === '{') {
+                $depth++;
+            } elseif ($ch === '}') {
+                $depth--;
+            }
+            $i++;
+        } while ($depth > 0);
 
-        return file_get_contents($path);
+        return substr($css, $start, $i - $start);
     }
 
     protected function principalBlade(): string
@@ -64,14 +87,19 @@ class OwnerRound5PhoneTierTest extends TestCase
 
     public function test_fragment_is_a_single_374px_media_block_with_no_base_rules()
     {
-        $css = $this->fragment();
-        $this->assertSame(1, substr_count($css, '@media'), 'fragment must contain exactly one media block');
-        $this->assertStringContainsString('@media (max-width:374px){', $css);
+        // fragment() asserts qs.css carries exactly one such block.
+        $block = $this->fragment();
+        $this->assertSame(1, substr_count($block, '@media'), 'the tier must be exactly one media block');
+        $this->assertStringContainsString('@media (max-width:374px){', $block);
+        $this->assertStringStartsWith('@media (max-width:374px)', $block);
 
-        // Strip the header comment: everything left is the one
-        // media block, so no base-rule changes can sneak in.
-        $stripped = preg_replace('#/\*.*?\*/#s', '', $css);
-        $this->assertStringStartsWith('@media (max-width:374px)', trim($stripped));
+        // No base rules: the tier's signature rules must not also
+        // live outside the block — a base copy would apply at every
+        // width and silently defeat the tier (the old fragment pin
+        // got this from the fragment being one bare block).
+        $outside = str_replace($block, '', $this->stylesheet());
+        $this->assertStringNotContainsString('.content-wrapper>.content{padding:10px}', $outside);
+        $this->assertStringNotContainsString('.pat-toolbar{align-items:stretch;flex-direction:column;gap:8px}', $outside);
     }
 
     public function test_fragment_tightens_content_and_card_padding()

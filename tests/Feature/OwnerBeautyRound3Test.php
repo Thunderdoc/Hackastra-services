@@ -25,9 +25,9 @@ use Tests\TestCase;
  * layout), Alumni (l108-stack), My Attendance and the
  * low-density rosters/reports on hk-std-760.
  * The new min-width variants + payroll dark mirrors +
- * .hk-ellip-2 + tabulation nowrap ship as a CSS fragment the
- * coordinator appends to qs.css serially; until that append
- * lands, the stylesheet pins read the fragment file instead
+ * .hk-ellip-2 + tabulation nowrap shipped as a CSS fragment the
+ * coordinator appended to qs.css serially; the append has landed,
+ * so the stylesheet pins read the shipped qs.css itself
  * (see test_fragment_carries_the_variants_and_dark_mirrors).
  * Presentation only — no content, column or order changes.
  */
@@ -45,21 +45,21 @@ class OwnerBeautyRound3Test extends TestCase
         return file_get_contents(resource_path('views/' . $path));
     }
 
-    private function fragment(): string
+    private function stylesheet(): string
     {
-        $path = base_path('../hk-tmp/round3/phase1/css-item6.txt');
-        if (!file_exists($path)) {
-            $path = '/home/hatch/workspace/hk-tmp/round3/phase1/css-item6.txt';
-        }
-
-        return file_get_contents($path);
+        // The Item-6 rules were authored as a build-time fragment
+        // under hk-tmp/ — a scratch path that only ever existed on
+        // the author's machine, so the pin errored in CI. The
+        // fragment has been appended to the shipped stylesheet;
+        // assert against qs.css itself (repo-relative).
+        return file_get_contents(public_path('assets/css/qs.css'));
     }
 
-    /* ---------- CSS fragment: variants, dark mirrors, helpers ---------- */
+    /* ---------- CSS: variants, dark mirrors, helpers ---------- */
 
     public function test_fragment_carries_the_variants_and_dark_mirrors()
     {
-        $css = $this->fragment();
+        $css = $this->stylesheet();
 
         foreach ([
             '.hk-std-payroll{min-width:1020px}',

@@ -26,6 +26,9 @@ use Tests\TestCase;
  *  - 19: Substitutions decided by admin only (image-31 screen).
  *  - 20: Hostel out of admin; warden login path + gate.
  *  - 23: global Back button goes straight to Dashboard.
+ *  - 11 (2026-11-07 late): Health Records + Discipline Records
+ *    out of the TEACHER menu only; nurse + principal menus
+ *    pinned unchanged.
  *
  * The live sidebar is partials/menu (principal: pages/principal/
  * menu). pages/admin/menu is not included by any layout; its
@@ -129,12 +132,43 @@ class OwnerOvernightMenusTest extends TestCase
         foreach (['Lesson Plans', 'Homework Tracker', 'Substitutions', 'Question Bank', 'PTM Meetings'] as $gone) {
             $response->assertDontSee($gone);
         }
-        foreach (['Parent Messages', 'Discipline Records'] as $kept) {
+        // Owner order 2026-11-07 (late) — re-expresses the old
+        // "Discipline Records stays" pin below: Health Records
+        // and Discipline Records are OUT of the teacher menu
+        // ("these 2 are not needed in teacher side"), labels and
+        // routes alike. Menu visibility only — the routes and
+        // the teacher's scoped access rules are unchanged, and
+        // other roles' menus are pinned unchanged in the next
+        // test.
+        foreach (['Health Records', 'Discipline Records'] as $gone) {
+            $response->assertDontSee($gone);
+        }
+        $response->assertDontSee(route('health_records.index'), false);
+        $response->assertDontSee(route('discipline_records.index'), false);
+        foreach (['Parent Messages'] as $kept) {
             $response->assertSee($kept);
         }
         // Raw ampersand in the blade: assertSee would escape the
         // needle to &amp; and miss.
         $response->assertSee('Reports & PDF Builder', false);
+    }
+
+    public function test_nurse_and_principal_menus_keep_their_records_links()
+    {
+        // Item-11 scope guard (owner, 2026-11-07 late): the
+        // removal is TEACHER-only. The nurse keeps Health
+        // Records (she owns the clinic) and the principal keeps
+        // Discipline Records (as Safety & Incidents).
+        $nurse = User::where('email', 'nurse@hackstra.app')->firstOrFail();
+        $nurseHome = $this->actingAs($nurse)->get(route('dashboard'));
+        $nurseHome->assertOk();
+        $nurseHome->assertSee('Health Records');
+        $nurseHome->assertSee(route('health_records.index'), false);
+
+        $principalHome = $this->actingAs($this->principal())->get(route('dashboard'));
+        $principalHome->assertOk();
+        $principalHome->assertSee('Safety &amp; Incidents', false);
+        $principalHome->assertSee(route('discipline_records.index'), false);
     }
 
     public function test_principal_keeps_builder_link()

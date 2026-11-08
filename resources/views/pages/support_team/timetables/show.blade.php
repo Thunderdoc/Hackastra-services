@@ -1,5 +1,6 @@
 @extends('layouts.master')
 @section('page_title', 'View TimeTable')
+@section('own_page_back', true)
 {{-- Workstream DB: rebuilt on the common header pattern (Loop 46) —
      breadcrumb + the Print Timetable action in the page header as the
      standard print action. The legacy card header with panel options

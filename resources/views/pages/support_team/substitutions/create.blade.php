@@ -1,5 +1,6 @@
 @extends('layouts.master')
 @section('page_title', 'Arrange Substitution')
+@section('own_page_back', true)
 @section('page_breadcrumb')
     <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; <a href="{{ route('substitutions.index') }}">Substitutions</a> &nbsp;/&nbsp; Arrange
 @endsection

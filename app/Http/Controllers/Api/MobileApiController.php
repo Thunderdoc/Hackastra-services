@@ -140,8 +140,10 @@ class MobileApiController extends Controller
 
             $grid = $tt->apiRecordGrid($ttr);
             $entries = [];
-            foreach ($grid['map'] as $day => $slots) {
-                foreach ($slots as $slot => $cell) {
+            // Emit days in the grid's canonical week order — the
+            // map's own key order is cell-encounter order.
+            foreach ($grid['days'] as $day) {
+                foreach (($grid['map'][$day] ?? []) as $slot => $cell) {
                     $entries[] = [
                         'day' => $day,
                         'slot' => $slot,

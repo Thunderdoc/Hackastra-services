@@ -5,6 +5,7 @@
         'form_action' => route('materials.share.store', $material->id),
         'back' => route('materials.index'),
         'submit_label' => 'Share to selected sections',
+        'form_compact' => true,
     ])
         <div class="pat-form-section">
             <p class="text-muted">Sharing <strong>{{ $material->title }}</strong> ({{ $subject->name ?? '' }} — {{ $material->section->name ?? '' }}) to your other sections. The file is copied by the system — you do not upload it again.</p>

@@ -12,6 +12,22 @@
  *    form waiting on the modal never enters its loading state.
  */
 /* ------------------------------------------------------------------
+ * Item 16 (owner, 2026-11-07 late): bfcache guard. A page restored
+ * from the browser's back/forward cache comes back exactly as it
+ * was left — including form CSRF tokens from BEFORE the latest
+ * sign-in (every sign-in rotates the session token), so submitting
+ * a restored form 419s. Reloading on a persisted pageshow makes a
+ * restored page re-render fresh with a live token; it also closes
+ * the stale-form loop behind the old 419 "Go back" at the source
+ * (the 419 page's fresh-return link, Item 15, stays as the second
+ * line of defence). A normal first load has persisted === false
+ * and is untouched.
+ * ------------------------------------------------------------------ */
+window.addEventListener('pageshow', function (event) {
+    if (event.persisted) { window.location.reload(); }
+});
+
+/* ------------------------------------------------------------------
  * ROUND 5 SLICE 1 — P7: the one shared debounce for the whole app.
  * Defined before everything else in this file: the sidebar scroll
  * saver below and page scripts (payments search) consume it, and no
@@ -697,6 +713,22 @@ document.addEventListener('click', function (e) {
  * event is dispatched so Select2 and other widgets notice, the
  * same way the builder's applyConfig re-renders its controls.
  *
+ * Dates (Item 15, 2026-11-07): hk_date fields need two bridges.
+ * hk-draft's init runs BEFORE hk_date transforms the native date
+ * inputs (both wait for DOMContentLoaded; this file registers
+ * first), so at restore time a date is still a named native input:
+ * applyData sets its value ATTRIBUTE as well as the property,
+ * because hk_date's transform takes its initial value from the
+ * attribute — a property-only restore would be overwritten by the
+ * server-rendered date. Serialise runs again on every later save,
+ * by which time hk_date HAS transformed the field (visible input
+ * nameless, the name moved to a hidden sibling this helper skips),
+ * so serialise also reads transformed pairs directly: the visible
+ * input's value getter speaks ISO, and its name is the hidden
+ * sibling's. Restoring a transformed pair sets the visible input's
+ * value, whose setter re-renders the display text and the hidden
+ * sibling together.
+ *
  * Save note: one <p class="hk-draft-note text-muted small"> per
  * form, created by this helper and placed right before the form's
  * submit row (the form_page .pat-actionbar when present, else
@@ -742,6 +774,19 @@ document.addEventListener('click', function (e) {
         return out;
     }
 
+    /* hk_date-transformed fields (see the header note): the
+       visible input carries data-hk-date="1" and no name; the name
+       lives on the hidden sibling inside the same .hkdp-wrap. */
+    function datePairs(form) {
+        var out = [];
+        form.querySelectorAll('input[data-hk-date="1"]').forEach(function (input) {
+            var wrap = input.closest ? input.closest('.hkdp-wrap') : null;
+            var hidden = wrap ? wrap.querySelector('input[type="hidden"]') : null;
+            if (hidden && hidden.name) { out.push({ name: hidden.name, input: input }); }
+        });
+        return out;
+    }
+
     function serialise(form) {
         var data = {};
         fieldsOf(form).forEach(function (field) {
@@ -758,6 +803,11 @@ document.addEventListener('click', function (e) {
             } else {
                 data[field.name] = field.value;
             }
+        });
+        /* Transformed date pairs: the visible input's value
+           getter returns the ISO date (see the header note). */
+        datePairs(form).forEach(function (pair) {
+            data[pair.name] = pair.input.value;
         });
         return data;
     }
@@ -792,12 +842,26 @@ document.addEventListener('click', function (e) {
                 }
             } else {
                 field.value = data[field.name];
+                /* A still-native date input: hk_date's transform
+                   (which runs after this restore) takes its initial
+                   value from the ATTRIBUTE, so mirror the restored
+                   ISO date there too or the server date wins. */
+                if (type === 'date') { field.setAttribute('value', data[field.name]); }
             }
             /* Widgets (Select2 and friends) key off change: let
                them notice the restored value, like the builder's
                restore re-renders its controls. */
             field.dispatchEvent(new Event('change', { bubbles: true }));
             if (window.jQuery) { window.jQuery(field).trigger('change'); }
+        });
+        /* Transformed date pairs (init ran late on this page):
+           setting the visible input's value re-renders its
+           display text and hidden sibling together. */
+        datePairs(form).forEach(function (pair) {
+            if (!Object.prototype.hasOwnProperty.call(data, pair.name)) { return; }
+            pair.input.value = data[pair.name];
+            pair.input.dispatchEvent(new Event('change', { bubbles: true }));
+            if (window.jQuery) { window.jQuery(pair.input).trigger('change'); }
         });
     }
 

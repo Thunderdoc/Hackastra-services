@@ -6,6 +6,8 @@ use App\Models\Subject;
 use App\Models\TimeTable;
 use App\Models\TimeTableRecord;
 use App\User;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Timetable validation (Scheduling Engine Slice E, validation
@@ -22,6 +24,54 @@ use App\User;
  */
 class TimetableValidator
 {
+    /**
+     * The whole section-override table as a local lookup map,
+     * "section_id:subject_id" => teacher_id (truthy teachers
+     * only). One query; the sweeps below resolve effective
+     * teachers from it instead of SectionTeacher::teacherIdFor()'s
+     * query PER CELL (a hasTable check + a SELECT each).
+     *
+     * Why (2026-11-07): the admin Timetables index runs
+     * cleanRecordIds() → clashes() + recordErrors() over the whole
+     * year — 2,601 cells × 2 passes × 2 queries = ~10.4k queries.
+     * Invisible on local SQLite; on the live TiDB every query is a
+     * network round trip and the page took ~2 minutes. Same
+     * failure LeaveAutoCover was fixed for on 2026-10-30; same
+     * idiom as its overrideMap()/effectiveTeacherId().
+     */
+    protected static function overrideMap(): array
+    {
+        $map = [];
+        if (Schema::hasTable('section_subject_teachers')) {
+            foreach (DB::table('section_subject_teachers')->get(['section_id', 'subject_id', 'teacher_id']) as $o) {
+                if ($o->teacher_id) {
+                    $map[(int) $o->section_id . ':' . (int) $o->subject_id] = (int) $o->teacher_id;
+                }
+            }
+        }
+        return $map;
+    }
+
+    /**
+     * Effective teacher of a cell resolved from a bulk map —
+     * SectionTeacher::teacherIdFor()'s exact rule: a truthy
+     * section override wins, else the subject's class teacher;
+     * no subject (or no teacher anywhere) yields null.
+     */
+    protected static function effectiveTeacherId(array $overrideMap, $sectionId, $subject): ?int
+    {
+        if (!$subject) {
+            return null;
+        }
+        if ($sectionId) {
+            $override = $overrideMap[(int) $sectionId . ':' . (int) $subject->id] ?? null;
+            if ($override) {
+                return (int) $override;
+            }
+        }
+        return $subject->teacher_id ? (int) $subject->teacher_id : null;
+    }
+
     /**
      * Agent D round 2: the weekday number of a cell, falling back
      * to its day NAME when day_num is NULL (manually added cells
@@ -87,8 +137,11 @@ class TimetableValidator
      * record's cells (with subject + time_slot); $clashes is the
      * year's clash set from clashes().
      */
-    protected static function recordErrors($record, $cells, $clashes): array
+    protected static function recordErrors($record, $cells, $clashes, array $overrideMap = null): array
     {
+        if ($overrideMap === null) {
+            $overrideMap = self::overrideMap();
+        }
         $errors = [];
 
         /* Class collisions: two lessons in the same class slot. */
@@ -147,7 +200,7 @@ class TimetableValidator
             }
             if (!$c->subject) {
                 $errors[] = 'A period on ' . $c->day . ' points at a subject that no longer exists.';
-            } elseif (!SectionTeacher::teacherIdFor($record->section_id ?? null, $c->subject)) {
+            } elseif (!self::effectiveTeacherId($overrideMap, $record->section_id ?? null, $c->subject)) {
                 $errors[] = $c->subject->name . ' on ' . $c->day . ' has no teacher assigned.';
             }
             if ($c->subject) {
@@ -190,10 +243,11 @@ class TimetableValidator
         $cells = TimeTable::with(['subject.teacher', 'time_slot'])
             ->whereIn('ttr_id', $records->pluck('id'))->get()->groupBy('ttr_id');
         $clashes = self::clashes($year);
+        $overrideMap = self::overrideMap();
 
         $clean = [];
         foreach ($records as $record) {
-            if (empty(self::recordErrors($record, $cells->get($record->id, collect()), $clashes))) {
+            if (empty(self::recordErrors($record, $cells->get($record->id, collect()), $clashes, $overrideMap))) {
                 $clean[] = $record->id;
             }
         }
@@ -207,8 +261,9 @@ class TimetableValidator
         $cells = TimeTable::with(['subject.teacher', 'time_slot'])
             ->where('ttr_id', $record->id)->get();
         $yearRecords = TimeTableRecord::where('year', $record->year)->pluck('id');
+        $overrideMap = self::overrideMap();
 
-        $errors = self::recordErrors($record, $cells, self::clashes($record->year));
+        $errors = self::recordErrors($record, $cells, self::clashes($record->year), $overrideMap);
 
         /* T3 rooms (mandatory tier): a room double-booked at the
            same time — against this record's own cells or any other
@@ -308,7 +363,7 @@ class TimetableValidator
             ->whereIn('ttr_id', $yearRecords)->get();
         $dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
         $loads = [];
-        foreach ($allCells->groupBy(function ($c) { return SectionTeacher::teacherIdFor(optional($c->tt_record)->section_id ?? null, $c->subject); }) as $teacherId => $group) {
+        foreach ($allCells->groupBy(function ($c) use ($overrideMap) { return self::effectiveTeacherId($overrideMap, optional($c->tt_record)->section_id ?? null, $c->subject); }) as $teacherId => $group) {
             if (!$teacherId) {
                 continue;
             }
@@ -372,11 +427,12 @@ class TimetableValidator
         $yearRecords = TimeTableRecord::where('year', $year)->pluck('id');
         $cells = TimeTable::with(['subject.teacher', 'tt_record'])
             ->whereIn('ttr_id', $yearRecords)->get();
+        $overrideMap = self::overrideMap();
         $byTeacherDay = [];
         foreach ($cells as $c) {
             // Section build: a clash is about the teacher who
             // actually teaches the cell (override or class teacher).
-            $teacherId = SectionTeacher::teacherIdFor(optional($c->tt_record)->section_id ?? null, $c->subject);
+            $teacherId = self::effectiveTeacherId($overrideMap, optional($c->tt_record)->section_id ?? null, $c->subject);
             if (!$c->subject || !$teacherId) {
                 continue;
             }

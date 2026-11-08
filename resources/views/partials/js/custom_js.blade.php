@@ -1,5 +1,91 @@
 <script>
 
+    /* Cascade helper locality (owner items 12+13, 2026-11-07):
+       every cascade below calls hkSelectLoading BEFORE its fetch
+       fires. The helper used to exist ONLY in the external
+       hackstra-ux.js, which the service worker serves cache-first —
+       with a stale or missing copy, the call threw a ReferenceError
+       inside the picker change dispatch: the chosen value applied
+       but the dropdown panel never closed, and the cascade died
+       before its fetch, leaving the next dropdown at "No results
+       found" (marks selector, Class 12, live). The helper now lives
+       WITH the cascades that use it. The hackstra-ux.js copy stays
+       canonical and simply overwrites this identical fallback when
+       it loads; this definition only fills the gap. */
+    if (typeof window.hkSelectLoading !== 'function') {
+        window.hkSelectLoading = function (select, on) {
+            if (!select || !window.jQuery) { return; }
+            var $sel = window.jQuery(select);
+            if (!$sel.length) { return; }
+            if (on) {
+                $sel.prop('disabled', true);
+                if (!$sel.find('option.hk-skel-loading').length) {
+                    $sel.prepend('<option value="" class="hk-skel-loading" disabled selected>Loading…</option>');
+                }
+            } else {
+                $sel.find('option.hk-skel-loading').remove();
+                $sel.prop('disabled', false);
+            }
+        };
+    }
+
+    /* Skeleton helper locality (finisher, 2026-11-08): the SAME
+       trap family as hkSelectLoading above. The attendance
+       report + low-attendance pages call window.hkSkel(...) to
+       swap in a skeleton while their tables rebuild; with the
+       external hackstra-ux.js stale or missing in the client,
+       their own ready() guard silently never fired and the
+       refresh lost its loading state. The renderer now lives
+       inline too, guarded, byte-semantic with the canonical
+       hackstra-ux.js originals; the external copy stays canonical
+       and simply overwrites this fallback when it loads. */
+    if (typeof window.hkSkel !== 'function') {
+        var hkSkelLinesLocal = function (count, title) {
+            var html = '';
+            if (title) { html += '<div class="hk-skel hk-skel-line hk-skel-title"></div>'; }
+            for (var i = 0; i < count; i++) { html += '<div class="hk-skel hk-skel-line"></div>'; }
+            return html;
+        };
+
+        window.hkSkelHtml = function (type, rows) {
+            rows = rows || 5;
+            var html = '<div class="hk-skel-wrap" aria-hidden="true">';
+            var i;
+            if (type === 'table') {
+                for (i = 0; i < rows; i++) {
+                    html += '<div class="hk-skel-row"><div class="hk-skel" style="width:34px;height:34px;border-radius:50%"></div><div class="hk-skel hk-skel-line" style="flex:2"></div><div class="hk-skel hk-skel-line" style="flex:3"></div><div class="hk-skel hk-skel-line" style="flex:1"></div><div class="hk-skel hk-skel-line" style="flex:1"></div></div>';
+                }
+            } else if (type === 'stats') {
+                html += '<div class="hk-skel-stats">';
+                for (i = 0; i < 4; i++) {
+                    html += '<div class="hk-skel-stat"><div class="hk-skel" style="width:44px;height:44px;border-radius:50%"></div><div style="flex:1">' + hkSkelLinesLocal(2) + '</div></div>';
+                }
+                html += '</div>';
+            } else if (type === 'frame') {
+                html += '<div class="hk-skel-frame">' + hkSkelLinesLocal(rows, true) + '</div>';
+            } else {
+                html += hkSkelLinesLocal(rows, true);
+            }
+            return html + '</div>';
+        };
+
+        window.hkSkel = function (region, on, opts) {
+            if (!region) { return; }
+            opts = opts || {};
+            if (on) {
+                if (region.__hkSkelPrev === undefined) { region.__hkSkelPrev = region.innerHTML; }
+                region.setAttribute('aria-busy', 'true');
+                region.innerHTML = window.hkSkelHtml(opts.type || 'card', opts.rows || 5);
+            } else {
+                region.removeAttribute('aria-busy');
+                if (opts.restore && region.__hkSkelPrev !== undefined) {
+                    region.innerHTML = region.__hkSkelPrev;
+                }
+                region.__hkSkelPrev = undefined;
+            }
+        };
+    }
+
     /* ROUND 5 SLICE 1 (P2/P20) — cascade selects get a visible
        Loading state while their options are in flight, and a failed
        fetch surfaces through the shared error floor (hkAjaxError,

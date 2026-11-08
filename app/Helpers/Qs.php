@@ -716,8 +716,15 @@ class Qs
      * Can this logo URL actually be served from this install's webroot?
      * Maps the URL path onto public/ and checks the file (a /storage/...
      * path resolves through the public/storage symlink, exactly as the
-     * web server would). URLs on a foreign host and non-path values
-     * (data URIs) cannot be verified locally and are trusted as-is.
+     * web server would). A /storage/... path ALSO counts as existing
+     * when the file sits in its canonical home on the public disk
+     * (storage/app/public/...): the symlink is only the serving
+     * detail — created by the deploy entrypoint — so existence must
+     * not depend on whether storage:link has run in this environment
+     * (a fresh checkout / CI has no symlink, and a real uploaded logo
+     * was being reported missing there). URLs on a foreign host and
+     * non-path values (data URIs) cannot be verified locally and are
+     * trusted as-is.
      */
     public static function logoUrlFileExists($url)
     {
@@ -730,7 +737,14 @@ class Qs
         if ($host && $appHost && strcasecmp($host, $appHost) !== 0) {
             return true;
         }
-        return is_file(public_path(ltrim($path, '/')));
+        if (is_file(public_path(ltrim($path, '/')))) {
+            return true;
+        }
+        if (Str::startsWith($path, '/storage/')) {
+            return is_file(storage_path('app/public/' . Str::after($path, '/storage/')));
+        }
+
+        return false;
     }
 
     public static function getCurrentSession()

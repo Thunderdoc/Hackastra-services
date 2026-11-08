@@ -21,6 +21,7 @@
     @component('partials.patterns.form_page', [
         'form_action' => route('marks.year_select', $student_id),
         'submit_label' => 'Submit',
+        'form_compact' => true,
     ])
         <div class="pat-form-section">
             <div class="pat-fields">

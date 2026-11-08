@@ -64,13 +64,30 @@ class AuditLogController extends Controller
         return $query;
     }
 
+    /**
+     * Distinct values of one column over a query, ORDER-FREE.
+     *
+     * The scoped/filtered queries carry latest() (ORDER BY
+     * created_at). Cloning one and adding select()->distinct()
+     * without dropping that order emits SELECT DISTINCT action …
+     * ORDER BY created_at — MySQL/TiDB error 3065 ("ORDER BY
+     * clause is not in SELECT list … incompatible with DISTINCT"),
+     * which 500'd this page on the live TiDB while SQLite accepted
+     * it (the /materials lesson). reorder() strips the order so the
+     * SQL is portable; the caller sorts/filters in PHP if needed.
+     */
+    protected function distinctValues($query, string $column)
+    {
+        return (clone $query)->reorder()->select($column)->distinct()->pluck($column);
+    }
+
     /** Item 19: group filter (quick pills) applied on top. */
     protected function applyGroup($query, ?string $group)
     {
         if (!$group) {
             return $query;
         }
-        $actions = (clone $query)->select('action')->distinct()->pluck('action')
+        $actions = $this->distinctValues($query, 'action')
             ->filter(function ($a) use ($group) {
                 return AuditLabels::groupOf($a) === $group;
             })->values()->all();
@@ -93,20 +110,24 @@ class AuditLogController extends Controller
             }
             try {
                 $rows = $type::whereIn('id', array_keys($ids))->get();
+                foreach ($rows as $row) {
+                    $name = $row->name ?? null;
+                    if (!$name && $type === \App\Models\MyClass::class) {
+                        $name = $row->name;
+                    }
+                    if (!$name && method_exists($row, 'user')) {
+                        $name = optional($row->user)->name;
+                    }
+                    if ($name) {
+                        $names[$type . '#' . $row->id] = $name;
+                    }
+                }
             } catch (\Throwable $e) {
+                // A subject type the renderer cannot resolve (gone
+                // class, non-model string, broken relation) must
+                // never 500 the page — the blade falls back to
+                // "ClassName #id" for the unresolved subject.
                 continue;
-            }
-            foreach ($rows as $row) {
-                $name = $row->name ?? null;
-                if (!$name && $type === \App\Models\MyClass::class) {
-                    $name = $row->name;
-                }
-                if (!$name && method_exists($row, 'user')) {
-                    $name = optional($row->user)->name;
-                }
-                if ($name) {
-                    $names[$type . '#' . $row->id] = $name;
-                }
             }
         }
         return $names;
@@ -120,7 +141,7 @@ class AuditLogController extends Controller
         // Quick-pill counts describe the filtered set (scope +
         // search/user/action/dates), before the group is applied.
         $counts = [];
-        foreach ((clone $filtered)->select('action')->distinct()->pluck('action') as $action) {
+        foreach ($this->distinctValues($filtered, 'action') as $action) {
             $g = AuditLabels::groupOf($action);
             $counts[$g] = ($counts[$g] ?? 0) + (clone $filtered)->where('action', $action)->count();
         }
@@ -133,9 +154,9 @@ class AuditLogController extends Controller
         $d['subject_names'] = $this->subjectNames($logs->items());
         $d['group_counts'] = $counts;
         $d['active_group'] = $group;
-        $d['filter_users'] = User::whereIn('id', (clone $this->scopedQuery())->select('user_id')->distinct()->pluck('user_id')->filter())
+        $d['filter_users'] = User::whereIn('id', $this->distinctValues($this->scopedQuery(), 'user_id')->filter())
             ->orderBy('name')->get(['id', 'name']);
-        $d['filter_actions'] = (clone $this->scopedQuery())->select('action')->distinct()->pluck('action')->sort()->values();
+        $d['filter_actions'] = $this->distinctValues($this->scopedQuery(), 'action')->sort()->values();
         $d['filters'] = $request->only(['q', 'user_id', 'action', 'date_from', 'date_to']);
 
         return view('pages.super_admin.audit_logs.index', $d);

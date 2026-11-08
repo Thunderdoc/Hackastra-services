@@ -6,7 +6,28 @@
     (dark unless the user last chose light). Colours are the Hackstra
     brand pair; the button fill is the contrast-verified action blue
     from docs/UX_STANDARDS.md Fix 3 (#2867dc, white text 5.17:1).
+
+    Item 15 (owner, 2026-11-07 late): the return action must NEVER be
+    a history-back — the browser restores the stale form from its
+    back/forward cache with the same dead token, so resubmitting just
+    419s again. The primary action links to the REFERRING page URL
+    instead: a plain link is a fresh navigation, so the form reloads
+    live with a fresh token (and any hk-draft autosave on it restores
+    what was typed). The referer is trusted only when it is http(s)
+    and same-host; anything else falls back to the dashboard alone.
 --}}
+@php
+    $hkRef = request()->headers->get('referer');
+    $hkRefOk = false;
+    if (is_string($hkRef) && $hkRef !== '') {
+        $hkParts = parse_url($hkRef);
+        if ($hkParts !== false
+            && (!isset($hkParts['scheme']) || in_array(strtolower($hkParts['scheme']), ['http', 'https'], true))
+            && (!isset($hkParts['host']) || $hkParts['host'] === request()->getHost())) {
+            $hkRefOk = true;
+        }
+    }
+@endphp
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -35,9 +56,13 @@
             <p class="brand">Hackstra</p>
             <p class="code">419</p>
             <h1>This page has expired</h1>
-            <p>For your security, the form you submitted timed out &mdash; this usually happens when a page is left open for a long time. Go back, refresh the page, and try again. Anything you typed may need to be entered again.</p>
-            <a class="btn" href="{{ url('/') }}">Back to dashboard</a>
-            <a class="btn btn-light" href="javascript:history.back()">Go back</a>
+            <p>For your security, the form you submitted timed out &mdash; this usually happens when a page is left open for a long time, or after signing in again in another tab. Reload the form to get a fresh copy and try again. On forms with draft saving, what you typed comes back automatically.</p>
+            @if($hkRefOk)
+                <a class="btn" href="{{ $hkRef }}">Reload the form</a>
+                <a class="btn btn-light" href="{{ url('/') }}">Back to dashboard</a>
+            @else
+                <a class="btn" href="{{ url('/') }}">Back to dashboard</a>
+            @endif
         </div>
     </div>
 </body>

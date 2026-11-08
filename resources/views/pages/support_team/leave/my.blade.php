@@ -46,7 +46,7 @@
             @if(!empty($approver_name))
                 <p class="text-muted">Your class teacher ({{ $approver_name }}) will approve or reject this request.</p>
             @endif
-            <form method="POST" action="{{ route('leave.store') }}">
+            <form method="POST" action="{{ route('leave.store') }}" data-hk-draft="u{{ Auth::id() }}-leave-apply">
                 @csrf
                 <div class="lvm-section">
                     <div class="lvm-section-head"><span class="lvm-section-ic"><i class="icon-calendar3"></i></span><span>Dates</span><span class="lvm-day-hint" id="lv_day_hint"></span></div>
@@ -61,6 +61,7 @@
                             <div class="form-group">
                                 <label for="end_date">To <span class="text-danger">*</span></label>
                                 <input type="date" name="end_date" id="end_date" value="{{ old('end_date') }}" required class="form-control @error('end_date') is-invalid @enderror">
+                                <small id="lv_same_day_note" class="form-text text-info" style="display:none">Same day — this leave is for a single day.</small>
                             </div>
                         </div>
                     </div>
@@ -147,12 +148,52 @@
                             }
                             hint.textContent = msg;
                         };
-                        part.addEventListener('change', function () { sync(); hintSync(); });
+                        /* Single-day durations (owner, 2026-11-07):
+                           a half-day or period-range leave is by
+                           rule ONE day, so the To date must never
+                           be typed twice — it mirrors the From date
+                           (hk_date's value setter keeps the visible
+                           DD/MM/YYYY text and the hidden ISO sibling
+                           in step) and locks, with the note under
+                           the field saying why. Full-day durations
+                           unlock it again. Form behaviour only —
+                           the server already enforces single-day
+                           for partial leave. */
+                        var note = document.getElementById('lv_same_day_note');
+                        var isPartial = function () {
+                            return part.value === 'first_half' || part.value === 'second_half' || part.value === 'periods';
+                        };
+                        var mirrorEnd = function () {
+                            if (!end || !start || !isPartial()) { return; }
+                            end.value = start.value || '';
+                        };
+                        var lockEnd = function () {
+                            if (!end) { return; }
+                            var locked = isPartial();
+                            /* Only the VISIBLE field locks: it carries
+                               no name after hk_date transforms it, so
+                               the hidden ISO sibling still submits
+                               the mirrored date. */
+                            end.disabled = locked;
+                            if (end._hkBtn) { end._hkBtn.disabled = locked; }
+                            if (note) { note.style.display = locked ? '' : 'none'; }
+                        };
+                        var partSync = function () { sync(); mirrorEnd(); lockEnd(); hintSync(); };
+                        part.addEventListener('change', partSync);
                         [start, end, pFrom, pTo].forEach(function (el) {
                             if (el) { el.addEventListener('change', hintSync); el.addEventListener('input', hintSync); }
                         });
+                        if (start) {
+                            start.addEventListener('change', function () { mirrorEnd(); hintSync(); });
+                            start.addEventListener('input', function () { mirrorEnd(); });
+                        }
                         sync();
                         hintSync();
+                        /* The first mirror+lock runs on window load:
+                           hk_date transforms the fields at
+                           DOMContentLoaded, and only then does the
+                           value setter speak ISO/display properly. */
+                        window.addEventListener('load', partSync);
                     })();
                 </script>
                 <button type="submit" class="btn btn-primary">Submit Request</button>

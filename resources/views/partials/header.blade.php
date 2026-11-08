@@ -31,8 +31,15 @@
                  (it IS the dashboard, so no button is needed there).
                  Pages with their own Back in page_actions keep it;
                  this one sits left of the title, always visible.
-                 Error-page Go-back links are untouched. --}}
-            @if(!in_array(request()->path(), ['/', 'home', 'dashboard'], true))
+                 Error-page Go-back links are untouched.
+                 A page that renders its OWN Back inside
+                 page_actions (pointing at its section index, the
+                 standing back doctrine) opts out of this global
+                 one with @section('own_page_back', true) so the
+                 header never shows two Back controls at once
+                 (owner screenshot, 2026-11-07: View TimeTable
+                 carried both). --}}
+            @if(!View::hasSection('own_page_back') && !in_array(request()->path(), ['/', 'home', 'dashboard'], true))
             <a href="{{ route('dashboard') }}" class="btn btn-light btn-sm hk-global-back mr-2" aria-label="Back to dashboard"><i class="icon-arrow-left7"></i><span class="d-none d-sm-inline"> Back</span></a>
             @endif
             {{-- Loop 118: optional icon tile beside the title — a page

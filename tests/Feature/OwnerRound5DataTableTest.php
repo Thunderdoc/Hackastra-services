@@ -26,8 +26,9 @@ use Tests\TestCase;
  *  - The substitutions board tables gain hk-std (their colgroups
  *    already complied) and the empty board uses the pat-empty
  *    table-row form.
- *  - Variant min-width rules ship as the P11 CSS fragment the
- *    coordinator appends to qs.css (same discipline as Round 3).
+ *  - Variant min-width rules shipped as the P11 CSS fragment
+ *    the coordinator appended to qs.css (same discipline as
+ *    Round 3); the pin below reads the shipped qs.css.
  */
 class OwnerRound5DataTableTest extends TestCase
 {
@@ -43,14 +44,14 @@ class OwnerRound5DataTableTest extends TestCase
         return file_get_contents(resource_path('views/' . $rel));
     }
 
-    protected function fragment(): string
+    protected function stylesheet(): string
     {
-        $path = base_path('../hk-tmp/round5/build/css-p11.fragment.css');
-        if (!file_exists($path)) {
-            $path = '/home/hatch/workspace/hk-tmp/round5/build/css-p11.fragment.css';
-        }
-
-        return file_get_contents($path);
+        // The P11 variant rules were authored as a build-time
+        // fragment under hk-tmp/ — a scratch path that only ever
+        // existed on the author's machine, so the pin errored in
+        // CI. The fragment has been appended to the shipped
+        // stylesheet; assert against qs.css itself (repo-relative).
+        return file_get_contents(public_path('assets/css/qs.css'));
     }
 
     /** Widths of the first colgroup in a rendered page. */
@@ -290,11 +291,11 @@ class OwnerRound5DataTableTest extends TestCase
         $this->assertStringContainsString('sub-sheet-table hk-std hk-std-subsheet', $blade);
     }
 
-    /* ---------------- the CSS fragment ---------------- */
+    /* ---------------- the shipped CSS ---------------- */
 
     public function test_fragment_carries_every_introduced_variant()
     {
-        $css = $this->fragment();
+        $css = $this->stylesheet();
         foreach ([
             '@media screen{.table-responsive>.hk-std-paydefs{min-width:880px}}',
             '@media screen{.table-responsive>.hk-std-paymanage{min-width:880px}}',

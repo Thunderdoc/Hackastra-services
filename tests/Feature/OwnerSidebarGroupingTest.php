@@ -40,8 +40,16 @@ class OwnerSidebarGroupingTest extends TestCase
         $this->assertTrue($classroomHeader < $overview, 'Classroom header precedes Class Overview');
         $this->assertTrue($builder < $classroomHeader, 'Reports group comes before Classroom group');
 
-        foreach (['parent_messages.index', 'health_records.index', 'discipline_records.index', 'leave.student_requests'] as $routeName) {
+        foreach (['parent_messages.index', 'leave.student_requests'] as $routeName) {
             $this->assertStringContainsString(route($routeName), $html, $routeName . ' still linked');
+        }
+        // Owner order 2026-11-07 (late) — re-expresses this
+        // pin's original health/discipline entries: both links
+        // are OUT of the teacher menu (menu visibility only;
+        // the nurse/principal menus keep theirs — pinned in
+        // OwnerOvernightMenusTest).
+        foreach (['health_records.index', 'discipline_records.index'] as $routeName) {
+            $this->assertStringNotContainsString(route($routeName), $html, $routeName . ' removed from the teacher menu');
         }
     }
 

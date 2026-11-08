@@ -29,6 +29,10 @@ class DatabaseSeeder extends Seeder
         $this->call(StudentRecordsTableSeeder::class);
         $this->call(SkillsTableSeeder::class);
         $this->call(DemoDataSeeder::class);
+        // Right after the demo exams exist: fresh installs get
+        // the assessment periods + exam links the migration
+        // backfill only produces on upgrades (see the seeder).
+        $this->call(AssessmentPeriodsTableSeeder::class);
         $this->call(PeriodAttendanceSeeder::class);
         $this->call(PayrollSeeder::class);
         $this->call(UserCardDataSeeder::class);

@@ -4,8 +4,18 @@
  * same-origin static assets are cache-first; API calls, POSTs and
  * any request carrying an Authorization header are NEVER cached, so
  * authenticated HTML and API responses can never leak across users.
+ *
+ * Item 16 audit (owner, 2026-11-07 late — repeated 419s from stale
+ * pages): navigation responses are never written to any cache here
+ * (network-first, cache only as the offline fallback page), and a
+ * static asset is cached ONLY when the network answered 200 — an
+ * error response (e.g. an HTML 500 page served under an asset URL
+ * during an outage) must never be stored and then served stale
+ * forever. The v2 -> v3 bump purges the previous static cache on
+ * activate; the bfcache half of the staleness family is handled by
+ * the pageshow guard in hackstra-ux.js, which no SW rule can reach.
  */
-const CACHE = 'hackstra-v2';
+const CACHE = 'hackstra-v3';
 const SHELL = ['/offline.html', '/manifest.webmanifest'];
 
 self.addEventListener('install', (event) => {
@@ -47,8 +57,10 @@ self.addEventListener('fetch', (event) => {
     if (isStaticAsset(url)) {
         event.respondWith(
             caches.match(req).then((cached) => cached || fetch(req).then((res) => {
-                const copy = res.clone();
-                caches.open(CACHE).then((cache) => cache.put(req, copy));
+                if (res.ok) {
+                    const copy = res.clone();
+                    caches.open(CACHE).then((cache) => cache.put(req, copy));
+                }
                 return res;
             }))
         );

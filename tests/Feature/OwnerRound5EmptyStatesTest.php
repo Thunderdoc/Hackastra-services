@@ -19,8 +19,9 @@ use Tests\TestCase;
  *
  *  - partials/patterns/empty_state gains an additive 'compact'
  *    prop (.pat-empty-compact: 18px padding, 40px medallion,
- *    .85rem message; CSS ships as the css-p5 fragment the
- *    coordinator appends to qs.css). The default form is pinned
+ *    .85rem message; CSS shipped as the css-p5 fragment the
+ *    coordinator appended to qs.css — the pin below reads the
+ *    shipped qs.css). The default form is pinned
  *    byte-for-byte by the pre-existing slices and must not move.
  *  - The sweep converts hand-rolled empties to the shared
  *    component in its three forms (panel / table-row colspan /
@@ -61,14 +62,14 @@ class OwnerRound5EmptyStatesTest extends TestCase
         return file_get_contents(resource_path('views/' . $rel));
     }
 
-    protected function fragment(): string
+    protected function stylesheet(): string
     {
-        $path = base_path('../hk-tmp/round5/build/css-p5.fragment.css');
-        if (!file_exists($path)) {
-            $path = '/home/hatch/workspace/hk-tmp/round5/build/css-p5.fragment.css';
-        }
-
-        return file_get_contents($path);
+        // The P5 compact rules were authored as a build-time
+        // fragment under hk-tmp/ — a scratch path that only ever
+        // existed on the author's machine, so the pin errored in
+        // CI. The fragment has been appended to the shipped
+        // stylesheet; assert against qs.css itself (repo-relative).
+        return file_get_contents(public_path('assets/css/qs.css'));
     }
 
     /** Every blade source in the tree, concatenated once. */
@@ -127,7 +128,7 @@ class OwnerRound5EmptyStatesTest extends TestCase
 
     public function test_compact_css_fragment_carries_the_design_rules()
     {
-        $css = $this->fragment();
+        $css = $this->stylesheet();
         $this->assertStringContainsString('.pat-empty-compact{padding:18px 12px}', $css);
         $this->assertStringContainsString('.pat-empty-compact .pat-empty-icon{', $css);
         $this->assertStringContainsString('height:40px', $css);

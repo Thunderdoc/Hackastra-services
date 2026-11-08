@@ -1,5 +1,6 @@
 @extends('layouts.master')
 @section('page_title', 'Create New Circular')
+@section('own_page_back', true)
 {{-- Loop 114: the reference header carries a "Back to Circulars"
      action at the right of the page header. --}}
 @section('page_actions')

@@ -1,5 +1,6 @@
 @extends('layouts.master')
 @section('page_title', 'Mark Attendance — Submitted')
+@section('own_page_back', true)
 @section('page_breadcrumb')
     <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Attendance &nbsp;/&nbsp; <a href="{{ route('attendance.periods.index', ['date' => $session->date->format('Y-m-d')]) }}">Mark Attendance</a> &nbsp;/&nbsp; Submitted
 @endsection

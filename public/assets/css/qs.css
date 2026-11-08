@@ -8980,3 +8980,78 @@ html:not(.hk-dark) .sidebar-main.hk-sb-b .hk-sb-userchip .text-white{color:#8a91
    owner fix 2026-11-01) was lost when the sidebar tree blocks were
    cut from this file; the rule itself is unchanged. --- */
 .l86-stat-ic,.dashboard-stat-icon,.acct-stat-icon{line-height:1}
+
+/* ============================================================
+   Seam repair + collapsed-rail finish (2026-11-07, owner
+   screenshots 22:10-22:36 IST). Design B widened the rail
+   218px -> 264px (outer edge 265px with its 1px border) but
+   three offsets never followed, so the chrome overlapped
+   itself:
+   (1) the topbar kept Loop 25's margin-left:218px at >=992px
+       and slid 47px over the rail, covering the brand card's
+       right edge (and at 768-991px it starts at 0 over a
+       docked-looking seam in the owner's shots);
+   (2) the content wrapper's Design B margin (264px) ignored
+       the rail's border, tucking content 1px under the rail —
+       and its >=768px scope outranked the 768-991px drawer
+       band's margin-left:0, leaving a 264px dead gutter on
+       tablets where the rail is an off-canvas drawer;
+   (3) the collapsed rail never collapsed: the Design B shell
+       width (0,2,0, latest file) outranks the Limitless
+       sidebar-xs width (0,2,0), so body.sidebar-xs kept a
+       264px ghost rail while the offsets dropped to 56px —
+       labels hidden, icons centred in a wide empty column,
+       the brand mark sliding under the topbar (the forced
+       mini rail on the timetable record pages hit this too).
+   The restatements below carry one class more than the rules
+   they replace and sit last in the file.
+   ============================================================ */
+@media (min-width:992px){
+    body:not(.sidebar-xs):has(.hk-sb-b) .lav-topbar{margin-left:265px}
+    body:not(.sidebar-xs):has(.hk-sb-b) .content-wrapper{margin-left:265px}
+    body.sidebar-xs:has(.hk-sb-b) .lav-topbar{margin-left:57px}
+    body.sidebar-xs:has(.hk-sb-b) .content-wrapper{margin-left:57px}
+}
+@media (min-width:768px) and (max-width:991.98px){
+    body:has(.hk-sb-b) .content-wrapper{margin-left:0}
+}
+/* --- The collapsed rail actually collapses (desktop band
+   only; the phone drawer keeps its current geometry). The
+   brand becomes a centred mark in the mini rail, the academy
+   chip (text) steps aside, and icons keep their contrast in
+   BOTH themes — the expanded rail's icon colours are scoped
+   to body:not(.sidebar-xs), so light mode fell back to the
+   old navy-rail near-white glyphs on a pale rail. --- */
+@media (min-width:768px){
+    body.sidebar-xs .sidebar-main.hk-sb-b{width:3.5rem}
+    body.sidebar-xs .sidebar-main.hk-sb-b .lav-sidebar-brand,
+    body.sidebar-xs .sidebar-main.hk-sb-b .t9-brand{margin:10px 6px 4px;padding:9px 0}
+    body.sidebar-xs .sidebar-main.hk-sb-b .lav-sidebar-brand-link,
+    body.sidebar-xs .sidebar-main.hk-sb-b .t9-brand-link{justify-content:center}
+    body.sidebar-xs .sidebar-main.hk-sb-b .lav-sidebar-brand-icon,
+    body.sidebar-xs .sidebar-main.hk-sb-b .t9-brand-icon{height:30px;width:30px}
+    body.sidebar-xs .sidebar-main.hk-sb-b .t9-academy{display:none}
+    body.sidebar-xs .sidebar-main.hk-sb-b .nav-sidebar>.nav-item>.nav-link.active{background:rgba(47,111,237,.17)}
+    body.sidebar-xs .sidebar-main.hk-sb-b .nav-sidebar>.nav-item>.nav-link.active i{color:#8db1ff}
+}
+html:not(.hk-dark) body.sidebar-xs .sidebar-main.hk-sb-b .nav-sidebar>.nav-item>.nav-link i{color:#7c8699}
+html:not(.hk-dark) body.sidebar-xs .sidebar-main.hk-sb-b .nav-sidebar>.nav-item>.nav-link.active{background:rgba(40,103,220,.11)}
+html:not(.hk-dark) body.sidebar-xs .sidebar-main.hk-sb-b .nav-sidebar>.nav-item>.nav-link.active i{color:#2867dc}
+
+/* ==== Selector hug (owner, 2026-11-07) ============================
+   Short select-then-submit forms on the form_page pattern stretched
+   a full-width card around one small field: a lone 403px field in a
+   1291px card (measured at 1600px) and a tall, near-empty action
+   strip floating the submit at the far bottom-right — the "Select
+   Exam Year" dead band, reported site-wide. Compact mode
+   (.pat-form-compact, set via the form_page component) hugs the
+   card to the form: capped width with the page background filling
+   the rest, fields taking the card's full inner width, and the
+   section/actionbar padding stack tightened so the submit sits
+   WITH the fields. Long forms do not opt in and are untouched.
+   Specificity (0,3,0) beats the base .pat-* rules (0,1,0) and the
+   3-column field-grid restatement at wide screens. */
+.pat-form.pat-form-compact .pat-form-card{max-width:680px}
+.pat-form.pat-form-compact .pat-fields{grid-template-columns:minmax(0,1fr)}
+.pat-form.pat-form-compact .pat-form-section{padding-bottom:10px}
+.pat-form.pat-form-compact .pat-actionbar{padding-top:10px;padding-bottom:10px}
