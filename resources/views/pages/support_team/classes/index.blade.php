@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Manage Classes')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Academics &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
     {{-- Batch 4: rebuilt on the shared patterns (Loop 28). Was: a
          tabbed card with the create form hidden in a tab (58KB
@@ -26,7 +29,9 @@
 
         @if($my_classes->count())
             <div class="table-responsive">
-            <table class="table l108-stack">
+            {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+            <table class="table hk-std hk-std-640 l108-stack">
+                <colgroup><col style="width:6%"><col style="width:24%"><col style="width:20%"><col style="width:12%"><col style="width:12%"><col style="width:26%"></colgroup>
                 <thead>
                 <tr>
                     <th>S/N</th>
@@ -43,8 +48,8 @@
                         <td data-label="S/N">{{ $loop->iteration }}</td>
                         <td data-label="Name">{{ $c->name }}</td>
                         <td data-label="Class Type">{{ $c->class_type->name }}</td>
-                        <td data-label="Sections">{{ $c->section_count ?? 0 }}</td>
-                        <td data-label="Students">{{ $c->student_record_count ?? 0 }}</td>
+                        <td data-label="Sections" class="hk-nw">{{ $c->section_count ?? 0 }}</td>
+                        <td data-label="Students" class="hk-nw">{{ $c->student_record_count ?? 0 }}</td>
                         <td class="text-center" data-label="Action">
                             @if(Qs::userIsTeamSAWrite())
                                 <a href="{{ route('classes.edit', $c->id) }}" class="btn btn-sm btn-primary"><i class="icon-pencil"></i> Edit</a>

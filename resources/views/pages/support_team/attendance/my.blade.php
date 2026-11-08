@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'My Attendance')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Attendance &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
     {{-- LMS build (2026-11-08, owner-approved sample): the raw
          month input is GONE — the month cards below ARE the

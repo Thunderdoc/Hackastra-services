@@ -22,7 +22,9 @@
                 ])
             @else
                 <div class="table-responsive">
-                    <table class="table lms-table l108-stack">
+                    <table class="table hk-std hk-std-880 l108-stack">
+                    {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                    <colgroup><col style="width:16%"><col style="width:18%"><col style="width:14%"><col style="width:14%"><col style="width:14%"><col style="width:24%"></colgroup>
                         <thead>
                             <tr>
                                 <th>Class</th>
@@ -65,7 +67,9 @@
                 <h5 class="card-title">All Plans</h5>
             </div>
             <div class="table-responsive">
-                <table class="table lms-table l108-stack">
+                <table class="table hk-std hk-std-880 l108-stack">
+            {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+            <colgroup><col style="width:14%"><col style="width:14%"><col style="width:16%"><col style="width:30%"><col style="width:14%"><col style="width:12%"></colgroup>
                     <thead>
                         <tr>
                             <th>Week</th>

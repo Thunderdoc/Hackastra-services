@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Rooms & Labs')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Timetables &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
     <div class="card">
         <div class="card-header header-elements-inline">
@@ -30,15 +33,21 @@
                 ])
             @else
                 <div class="table-responsive">
-                    <table class="table">
+                    {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                    <table class="table hk-std hk-std-880">
+                        @if(Qs::userIsTeamSAWrite())
+                        <colgroup><col style="width:22%"><col style="width:14%"><col style="width:10%"><col style="width:10%"><col style="width:44%"></colgroup>
+                        @else
+                        <colgroup><col style="width:34%"><col style="width:24%"><col style="width:16%"><col style="width:26%"></colgroup>
+                        @endif
                         <thead><tr><th>Room</th><th>Type</th><th>Seats</th><th>In use</th>@if(Qs::userIsTeamSAWrite())<th style="width:340px">Edit</th>@endif</tr></thead>
                         <tbody>
                         @foreach($rooms as $room)
                             <tr>
                                 <td>{{ $room->name }}</td>
                                 <td>{{ $kinds[$room->kind] ?? $room->kind }}</td>
-                                <td>{{ $room->capacity }}</td>
-                                <td>{{ in_array($room->id, $used_room_ids) ? 'Yes' : '—' }}</td>
+                                <td class="hk-nw">{{ $room->capacity }}</td>
+                                <td class="hk-nw">{{ in_array($room->id, $used_room_ids) ? 'Yes' : '—' }}</td>
                                 @if(Qs::userIsTeamSAWrite())
                                 <td>
                                     <form method="POST" action="{{ route('rooms.update', $room->id) }}" class="form-inline" style="gap:6px">

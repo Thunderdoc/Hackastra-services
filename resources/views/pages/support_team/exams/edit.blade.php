@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Edit Exam - '.$ex->name. ' ('.$ex->year.')')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Examinations &nbsp;/&nbsp; <a href="{{ route('exams.index') }}">Manage Exams</a> &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
     {{-- Workstream BW: rebuilt on the shared form_page pattern
          (Loop 28/39 grid, full width). Was the legacy narrow

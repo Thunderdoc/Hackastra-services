@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Manage Dorms')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Hostel &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
     {{-- Workstream BW: rebuilt on the shared patterns (Loop 28),
          following the Batch 4 academics template (sections/classes/
@@ -26,7 +29,9 @@
 
         @if($dorms->count())
             <div class="table-responsive">
-            <table class="table l108-stack">
+            {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+            <table class="table hk-std hk-std-560 l108-stack">
+                <colgroup><col style="width:6%"><col style="width:26%"><col style="width:44%"><col style="width:24%"></colgroup>
                 <thead>
                 <tr>
                     <th>S/N</th>
@@ -40,7 +45,7 @@
                     <tr>
                         <td data-label="S/N">{{ $loop->iteration }}</td>
                         <td data-label="Name">{{ $d->name }}</td>
-                        <td data-label="Description">{{ $d->description}}</td>
+                        <td data-label="Description" class="hk-ellip">{{ $d->description}}</td>
                         <td class="text-center" data-label="Action">
                             @if(Qs::userIsTeamSAWrite())
                                 <a href="{{ route('dorms.edit', $d->id) }}" class="btn btn-sm btn-primary"><i class="icon-pencil"></i> Edit</a>

@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'My Children')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; My Family &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
     {{-- Loop 108: rebuilt on the shared list_page pattern (Loop 28).
          Was a plain legacy card whose row action was a bare
@@ -18,7 +21,10 @@
         @endslot
 
         @if($students->count())
-            <table class="table l108-stack">
+            <div class="table-responsive">
+            <table class="table hk-std hk-std-880 l108-stack">
+                {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                <colgroup><col style="width:5%"><col style="width:9%"><col style="width:24%"><col style="width:13%"><col style="width:17%"><col style="width:20%"><col style="width:12%"></colgroup>
                 <thead>
                 <tr>
                     <th>S/N</th>
@@ -36,7 +42,7 @@
                         <td data-label="S/N">{{ $loop->iteration }}</td>
                         <td data-label="Photo">@if(Qs::hasRealPhoto($s->user->photo))<img class="rounded-circle" style="height: 40px; width: 40px;" src="{{ $s->user->photo }}" alt="photo">@else<span class="hk-ini" style="width:40px;height:40px;font-size:.8rem" aria-hidden="true">{{ Qs::initials($s->user->name) }}</span>@endif</td>
                         <td data-label="Name">{{ $s->user->name }}</td>
-                        <td data-label="Adm No">{{ $s->adm_no }}</td>
+                        <td class="hk-nw" data-label="Adm No">{{ $s->adm_no }}</td>
                         <td data-label="Class / Section">{{ $s->my_class->name.' '.$s->section->name }}</td>
                         <td data-label="Email">{{ $s->user->email }}</td>
                         <td class="text-center" data-label="Action">
@@ -52,6 +58,7 @@
                 @endforeach
                 </tbody>
             </table>
+            </div>
         @else
             @include('partials.patterns.empty_state', [
                 'icon' => 'icon-users',

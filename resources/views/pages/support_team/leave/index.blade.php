@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Leave Requests')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Leave &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
     {{-- Leave queue (owner, 2026-11-06, after the "text wall"
          rejection): the request list was one-glance CARDS — who,

@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'My ID Card')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Students &nbsp;/&nbsp; <a href="{{ route('students.index') }}">Student Information</a> &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
 
     {{-- Loop 108: legacy card-header chrome dropped (panel options +

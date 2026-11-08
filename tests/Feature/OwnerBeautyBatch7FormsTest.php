@@ -159,9 +159,16 @@ class OwnerBeautyBatch7FormsTest extends TestCase
         $response->assertOk();
         $response->assertSee('.pr-cols>*{min-width:0}', false);
         $response->assertSee('repeat(3,minmax(0,1fr))', false);
-        $response->assertSee('pr-ops pr-ops-money', false);
-        $response->assertSee('.pr-ops-money .pr-op strong{font-size:clamp(16px,1.35vw,22px)}', false);
-        $response->assertSee('@media(max-width:1500px){.pr-ops-money{grid-template-columns:repeat(2,minmax(0,1fr))}}', false);
-        $response->assertSee('@media(max-width:480px){.pr-ops-money{grid-template-columns:1fr}}', false);
+        /* The finance money tiles retired with the owner-approved
+           principal home sample v2 (2026-11-08): the figures now
+           sit in the fees donut card. The fit promise is unchanged
+           — every new grid's children can still shrink below
+           min-content, and the fee figures keep an explicit size
+           rule with its laptop step-down. */
+        $response->assertSee('.pr2-kpis>*{min-width:0}', false);
+        $response->assertSee('.pr2-row2>*{min-width:0}', false);
+        $response->assertSee('.pr2-fv{margin-left:auto;font-size:16.5px;font-weight:800;white-space:nowrap;color:#1c2f47}', false);
+        $response->assertSee('@media(max-width:1500px){.pr2-row2{grid-template-columns:1fr 1fr}}', false);
+        $response->assertSee('@media(max-width:480px){.pr2-fee-flex{flex-direction:column;align-items:stretch}', false);
     }
 }

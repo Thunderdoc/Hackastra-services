@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Edit Inventory Item')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Inventory &nbsp;/&nbsp; <a href="{{ route('inventory.index') }}">Inventory</a> &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
     <div class="card">
         <div class="card-header header-elements-inline">

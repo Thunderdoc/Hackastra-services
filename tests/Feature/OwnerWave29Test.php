@@ -169,7 +169,11 @@ class OwnerWave29Test extends TestCase
         // The register sorts by name for reading; the roll cells
         // must still be the admission-order positions (1, 2, 3 for
         // the first three roster students, as a set).
-        preg_match_all('/<td>(\d+)<\/td>/', $response->getContent(), $m);
+        // Regex widened 2026-11-08 (Inside-Matter Job 2): the roll
+        // cell gained the hk-nw class in the hk-std migration, so
+        // the pattern allows attributes on the td; the assertion
+        // (numeric-only roll cells, exactly {1,2,3}) is unchanged.
+        preg_match_all('/<td[^>]*>(\d+)<\/td>/', $response->getContent(), $m);
         $rolls = array_map('intval', $m[1]);
         sort($rolls);
         $this->assertSame([1, 2, 3], $rolls);

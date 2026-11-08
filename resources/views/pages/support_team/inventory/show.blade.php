@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Inventory Item')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Inventory &nbsp;/&nbsp; <a href="{{ route('inventory.index') }}">Inventory</a> &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
     <div class="card">
         <div class="card-header header-elements-inline">
@@ -38,14 +41,16 @@
                 </form>
             @endif
             <div class="table-responsive">
-                <table class="table table-sm">
+                <table class="table table-sm hk-std hk-std-640">
+                    {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                    <colgroup><col style="width:14%"><col style="width:13%"><col style="width:11%"><col style="width:34%"><col style="width:28%"></colgroup>
                     <thead><tr><th>Date</th><th>Type</th><th>Quantity</th><th>Note</th><th>Recorded By</th></tr></thead>
                     <tbody>
                     @forelse($movements as $movement)
                         <tr>
-                            <td>{{ $movement->movement_date ? $movement->movement_date->format('d M Y') : '—' }}</td>
+                            <td class="hk-nw">{{ $movement->movement_date ? $movement->movement_date->format('d M Y') : '—' }}</td>
                             <td>{{ $movement->type === 'in' ? 'Stock In' : 'Stock Out' }}</td>
-                            <td>{{ $movement->type === 'in' ? '+' : '−' }}{{ $movement->quantity }}</td>
+                            <td class="hk-nw">{{ $movement->type === 'in' ? '+' : '−' }}{{ $movement->quantity }}</td>
                             <td>{{ $movement->note ?? '—' }}</td>
                             <td>{{ $movement->recorder ? $movement->recorder->name : '—' }}</td>
                         </tr>

@@ -109,7 +109,10 @@
         </div>
 
         <div id="lms82-list">
-            <table class="table lms-table l108-stack">
+            <div class="table-responsive">
+            <table class="table hk-std hk-std-980 l108-stack">
+                {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                <colgroup><col style="width:18%"><col style="width:14%"><col style="width:11%"><col style="width:11%"><col style="width:11%"><col style="width:10%"><col style="width:25%"></colgroup>
                 <thead>
                 <tr>
                     <th>Assignment</th>
@@ -201,6 +204,7 @@
                 @endforelse
                 </tbody>
             </table>
+            </div>
         </div>
 
         @if(method_exists($assignments, 'total') && $assignments->total() > 0)

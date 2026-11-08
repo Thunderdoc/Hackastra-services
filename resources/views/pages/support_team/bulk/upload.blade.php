@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', $flow_title)
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Bulk Operations &nbsp;/&nbsp; <a href="{{ route('bulk.index') }}">Bulk Management</a> &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
 
     {{-- One upload form for every bulk flow: the hub card decides
@@ -41,7 +44,9 @@
         </div>
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-sm l111-table">
+                <table class="table table-sm hk-std hk-std-560">
+                    {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                    <colgroup><col style="width:40%"><col style="width:60%"></colgroup>
                     <thead>
                     <tr><th>Column</th><th>Required in the file</th></tr>
                     </thead>

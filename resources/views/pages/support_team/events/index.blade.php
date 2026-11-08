@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'School Events')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Communication &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
 
     {{-- School Events — owner redesign (2026-10-23): summary chips
@@ -121,14 +124,16 @@
                     @include('partials.patterns.empty_state', ['icon' => 'icon-calendar3', 'message' => 'No special dates set — every date is a normal school day.'])
                 @else
                     <div class="table-responsive mt-2">
-                        <table class="table table-sm">
+                        <table class="table table-sm hk-std hk-std-640">
+                            {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                            @if(Qs::userIsTeamSAWrite())<colgroup><col style="width:22%"><col style="width:18%"><col style="width:10%"><col style="width:32%"><col style="width:18%"></colgroup>@else<colgroup><col style="width:26%"><col style="width:22%"><col style="width:12%"><col style="width:40%"></colgroup>@endif
                             <thead><tr><th>Date</th><th>Day type</th><th>Periods</th><th>Note</th>@if(Qs::userIsTeamSAWrite())<th></th>@endif</tr></thead>
                             <tbody>
                             @foreach($day_types as $dt)
                                 <tr>
-                                    <td>{{ $dt->date->format('l, d M Y') }}</td>
+                                    <td class="hk-nw">{{ $dt->date->format('l, d M Y') }}</td>
                                     <td>{{ $day_type_labels[$dt->type] ?? $dt->type }}</td>
-                                    <td>{{ $dt->half_day_periods ?: '—' }}</td>
+                                    <td class="hk-nw">{{ $dt->half_day_periods ?: '—' }}</td>
                                     <td>{{ $dt->note ?: '—' }}</td>
                                     @if(Qs::userIsTeamSAWrite())
                                     <td>

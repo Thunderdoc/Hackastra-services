@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Edit TimeTable Record')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Academics &nbsp;/&nbsp; <a href="{{ route('tt.index') }}">Manage Timetables</a> &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
     {{-- Workstream BW: rebuilt on the shared form_page pattern.
          Was the legacy label-column card (fields in a col-md-8

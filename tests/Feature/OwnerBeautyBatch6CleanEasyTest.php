@@ -121,14 +121,18 @@ class OwnerBeautyBatch6CleanEasyTest extends TestCase
     {
         // Originally pinned "chips, not prose" (Batch 6, audit E5).
         // HOTFIX H (2026-11-08, owner image-154: the chip wall read
-        // as clutter) supersedes the presentation: the class
-        // averages are now a ranked compact table (pinned in full
-        // by OwnerHotfixHHomeFillTest). The prose ban stands, and
-        // the Top subjects chips keep 'pr-chip' on the page.
+        // as clutter) moved the averages to a ranked table; the
+        // owner-approved principal home sample v2 (2026-11-08,
+        // "principal home aisa hi banao") supersedes that again:
+        // the averages are now a top-3 podium over a compact ranked
+        // list (pinned in full by OwnerHotfixHHomeFillTest). The
+        // prose ban stands, and the Top subjects chips keep
+        // 'pr-chip' on the page.
         $response = $this->actingAs($this->user('principal@hackstra.app'))->get('/home');
 
         $response->assertOk();
-        $response->assertSee('pr-avg-table', false);
+        $response->assertSee('pr2-pod', false);
+        $response->assertSee('pr2-avg-row', false);
         $response->assertSee('pr-chip', false);
         $response->assertSee('— class averages');
         $response->assertDontSee('class averages:');

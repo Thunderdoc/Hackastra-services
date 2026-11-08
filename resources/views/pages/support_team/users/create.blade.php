@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Create New User')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Administration &nbsp;/&nbsp; <a href="{{ route('users.index') }}">Manage Users</a> &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
     {{-- Batch 5A: the create form is its own page on the shared
          form_page pattern (Loop 28). It used to live as a wizard tab

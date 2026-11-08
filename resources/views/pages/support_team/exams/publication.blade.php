@@ -65,7 +65,9 @@
                         </form>
                     </div>
                     <div class="table-responsive">
-                    <table class="table table-striped" id="pub-pending-table">
+                    <table class="table table-striped hk-std hk-std-880" id="pub-pending-table">
+                    {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                    <colgroup><col style="width:5%"><col style="width:6%"><col style="width:24%"><col style="width:24%"><col style="width:25%"><col style="width:16%"></colgroup>
                         <thead>
                         <tr>
                             <th style="width:44px"><input type="checkbox" id="pub-select-all" title="Select all visible"></th>

@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Book Loans & Requests')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Library &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
     {{-- Loop 108: rebuilt on the shared list chrome (Loop 28). Was a
          legacy card with header-elements chrome. Behaviour unchanged:

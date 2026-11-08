@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'My Hostel Allocation')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Hostel &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
     <div class="card">
         <div class="card-header">
@@ -8,7 +11,9 @@
         <div class="card-body">
             @if($records->count())
                 <div class="table-responsive">
-                    <table class="table">
+                    <table class="table hk-std hk-std-560">
+                    {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                    <colgroup><col style="width:40%"><col style="width:34%"><col style="width:26%"></colgroup>
                         <thead>
                             <tr>
                                 <th>Student</th>
@@ -21,7 +26,7 @@
                                 <tr>
                                     <td>{{ optional($record->user)->name }}</td>
                                     <td>{{ optional($record->dorm)->name ?: 'Not allocated' }}</td>
-                                    <td>{{ $record->dorm_room_no ?: 'Not allocated' }}</td>
+                                    <td class="hk-nw">{{ $record->dorm_room_no ?: 'Not allocated' }}</td>
                                 </tr>
                             @endforeach
                         </tbody>

@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Timetable Validation — ' . $record->name)
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Academics &nbsp;/&nbsp; <a href="{{ route('tt.index') }}">Manage Timetables</a> &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
 
     {{-- Timetable Validation (Scheduling Engine Slice E): the
@@ -62,15 +65,17 @@
 
         <h5 class="mt-4 mb-2">Requirement Coverage — {{ optional($my_class)->name ?: 'Deleted class' }}</h5>
         <div class="table-responsive">
-            <table class="table">
+            <table class="table hk-std hk-std-640">
+                {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                <colgroup><col style="width:24%"><col style="width:26%"><col style="width:14%"><col style="width:12%"><col style="width:24%"></colgroup>
                 <thead><tr><th>Subject</th><th>Teacher</th><th>Required / Wk</th><th>Placed</th><th>Status</th></tr></thead>
                 <tbody>
                 @foreach($coverage as $row)
                     <tr>
                         <td>{{ $row['subject']->name }}</td>
                         <td>{{ optional($row['subject']->teacher)->name ?: '—' }}</td>
-                        <td>{{ $row['target'] ?? 'Not set' }}</td>
-                        <td>{{ $row['placed'] }}</td>
+                        <td class="hk-nw">{{ $row['target'] ?? 'Not set' }}</td>
+                        <td class="hk-nw">{{ $row['placed'] }}</td>
                         <td>
                             @if($row['target'] === null)<span class="badge badge-warning">Cannot check</span>
                             @elseif($row['placed'] >= $row['target'])<span class="badge badge-success">Met</span>
@@ -84,14 +89,16 @@
 
         <h5 class="mt-4 mb-2">Teacher Loads (whole session)</h5>
         <div class="table-responsive">
-            <table class="table">
+            <table class="table hk-std hk-std-560">
+                {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                <colgroup><col style="width:36%"><col style="width:16%"><col style="width:14%"><col style="width:34%"></colgroup>
                 <thead><tr><th>Teacher</th><th>Periods / Wk</th><th>Cap</th><th>Status</th></tr></thead>
                 <tbody>
                 @foreach($loads as $row)
                     <tr>
                         <td>{{ optional($row['teacher'])->name ?: '—' }}</td>
-                        <td>{{ $row['periods'] }}</td>
-                        <td>{{ $row['cap'] }}</td>
+                        <td class="hk-nw">{{ $row['periods'] }}</td>
+                        <td class="hk-nw">{{ $row['cap'] }}</td>
                         <td>@if($row['over'])<span class="badge badge-danger">Over cap</span>@else<span class="badge badge-success">Within cap</span>@endif</td>
                     </tr>
                 @endforeach

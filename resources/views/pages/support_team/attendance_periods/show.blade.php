@@ -98,7 +98,9 @@
             </div>
 
             <div class="table-responsive">
-                <table class="table ma-table" id="rg-table">
+                <table class="table hk-std hk-std-640" id="rg-table">
+                    {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                    <colgroup><col style="width:10%"><col style="width:40%"><col style="width:14%"><col style="width:16%"><col style="width:20%"></colgroup>
                     <thead>
                     <tr>
                         <th>Roll No</th>
@@ -112,7 +114,7 @@
                     @foreach($entries as $entry)
                         @php $studentUser = optional(optional($entry->student_record)->user); @endphp
                         <tr data-search="{{ strtolower(($studentUser->name ?? '') . ' ' . (optional($entry->student_record)->adm_no ?? '')) }}">
-                            <td>{{ optional($entry->student_record)->roll_no ?? '—' }}</td>
+                            <td class="hk-nw">{{ optional($entry->student_record)->roll_no ?? '—' }}</td>
                             <td>
                                 <div class="ma-teacher">
                                     <span class="ma-avatar" aria-hidden="true">{{ strtoupper(substr($studentUser->name ?? '?', 0, 1)) }}@if($studentUser->name && \App\Helpers\Qs::hasRealPhoto($studentUser->photo))<img src="{{ $studentUser->photo }}" alt="" onerror="this.remove()">@endif</span>
@@ -120,7 +122,7 @@
                                 </div>
                             </td>
                             <td>{{ optional(optional($entry->student_record)->section)->name ?: '—' }}</td>
-                            <td>{{ optional($entry->student_record)->adm_no ?: '—' }}</td>
+                            <td class="hk-nw">{{ optional($entry->student_record)->adm_no ?: '—' }}</td>
                             <td>
                                 @if($entry->status === 'present')
                                     <span class="rg-pill rg-pill-present">Present</span>

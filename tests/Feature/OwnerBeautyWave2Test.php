@@ -131,14 +131,23 @@ class OwnerBeautyWave2Test extends TestCase
         $html = $this->actingAs($this->user('principal@hackstra.app'))
             ->get(route('dashboard'))->assertOk()->getContent();
 
-        // The private island is gone; the shared chrome carries the
-        // same four KPIs with their labels and links.
+        /* Re-expressed 2026-11-08: the owner approved principal
+           home sample v2 ("principal home aisa hi banao"), whose
+           KPI row is four pastel tiles (Students / Staff /
+           Attendance / Fees) — the Wave 2 shared stat-card row and
+           its Academics + Attention tiles are superseded by that
+           pick; the attention and academics data still live in the
+           Approval Center and the attention strip. The original
+           promise stands in the new shape: the pre-Wave-2 private
+           island (pr-kpi) stays gone, the four headline figures
+           render with their labels, and the tile destinations stay
+           one tap away in the sidebar. */
         $this->assertStringNotContainsString('pr-kpi', $html);
-        $this->assertStringContainsString('dashboard-stat-card', $html);
-        $this->assertStringContainsString('Students', $html);
-        $this->assertStringContainsString('Staff', $html);
-        $this->assertStringContainsString('Academics', $html);
-        $this->assertStringContainsString('Attention Needed', $html);
+        $this->assertStringContainsString('pr2-kpi', $html);
+        $this->assertStringContainsString('Total Students', $html);
+        $this->assertStringContainsString('Teaching Staff', $html);
+        $this->assertStringContainsString('Attendance', $html);
+        $this->assertStringContainsString('Fees Collected', $html);
         $this->assertStringContainsString(route('users.index'), $html);
         $this->assertStringContainsString(route('exams.index'), $html);
         $this->assertStringContainsString(route('leave.index'), $html);

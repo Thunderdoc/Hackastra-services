@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Transport Fees')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Transport &nbsp;/&nbsp; <a href="{{ route('transport.index') }}">Transport</a> &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
     @component('partials.patterns.list_page')
         @slot('title') Transport Fees @endslot
@@ -14,7 +17,9 @@
             <a href="{{ route('transport.fees') }}" class="btn btn-default">Clear</a>
         </form>
         <div class="table-responsive">
-        <table class="table">
+        <table class="table hk-std hk-std-880">
+            {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+            <colgroup><col style="width:5%"><col style="width:18%"><col style="width:12%"><col style="width:14%"><col style="width:10%"><col style="width:10%"><col style="width:9%"><col style="width:12%"><col style="width:10%"></colgroup>
             <thead><tr><th>S/N</th><th>Student</th><th>Vehicle</th><th>Stop</th><th>Month</th><th>Amount</th><th>Status</th><th>Paid At</th><th>Action</th></tr></thead>
             <tbody>
             @forelse($fees as $f)
@@ -23,10 +28,10 @@
                     <td>{{ $f->assignment && $f->assignment->studentRecord && $f->assignment->studentRecord->user ? $f->assignment->studentRecord->user->name : '—' }}</td>
                     <td>{{ $f->assignment && $f->assignment->vehicle ? $f->assignment->vehicle->vehicle_no : '—' }}</td>
                     <td>{{ $f->assignment && $f->assignment->stop ? $f->assignment->stop->name : '—' }}</td>
-                    <td>{{ $f->month }}</td>
-                    <td>{{ $f->amount }}</td>
+                    <td class="hk-nw">{{ $f->month }}</td>
+                    <td class="hk-nw">{{ $f->amount }}</td>
                     <td>{{ $f->paid ? 'Paid' : 'Unpaid' }}</td>
-                    <td>{{ $f->paid_at ? $f->paid_at->format('Y-m-d H:i') : '—' }}</td>
+                    <td class="hk-nw">{{ $f->paid_at ? $f->paid_at->format('Y-m-d H:i') : '—' }}</td>
                     <td>
                         @if(Qs::userIsTeamSAWrite() && !$f->paid)
                         <form method="post" action="{{ route('transport.fees.mark_paid', ['transport_fee' => Qs::hash($f->id)]) }}" style="display:inline">@csrf

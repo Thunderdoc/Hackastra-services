@@ -107,7 +107,9 @@
 
             @isset($preview)
                 <div class="table-responsive mt-3">
-                    <table class="table lms-table l108-stack">
+                    <table class="table hk-std hk-std-720 l108-stack">
+                    {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                    <colgroup><col style="width:30%"><col style="width:17%"><col style="width:18%"><col style="width:15%"><col style="width:20%"></colgroup>
                         <thead>
                         <tr>
                             <th>Student</th>

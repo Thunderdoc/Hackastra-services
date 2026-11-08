@@ -38,7 +38,10 @@
                 'message' => 'No receipts were recorded on ' . $date->format('d M Y') . ' for the selected filters.',
             ])
         @else
-            <table class="table">
+            <div class="table-responsive">
+            <table class="table hk-std hk-std-880">
+                {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                <colgroup><col style="width:5%"><col style="width:20%"><col style="width:12%"><col style="width:14%"><col style="width:18%"><col style="width:9%"><col style="width:11%"><col style="width:11%"></colgroup>
                 <thead>
                 <tr>
                     <th style="width:44px">#</th>
@@ -61,11 +64,11 @@
                     <tr>
                         <td>{{ $loop->iteration }}</td>
                         <td><strong>{{ optional(optional($sr)->user)->name ?? '—' }}</strong></td>
-                        <td>{{ optional($sr)->adm_no ?? '—' }}</td>
+                        <td class="hk-nw">{{ optional($sr)->adm_no ?? '—' }}</td>
                         <td>{{ optional(optional($sr)->my_class)->name ?? '—' }}@if($sr && $sr->section) &middot; {{ $sr->section->name }}@endif</td>
                         <td>{{ optional($payment)->title ?? '—' }}</td>
-                        <td>{{ $receipt->created_at->format('h:i A') }}</td>
-                        <td class="text-right font-weight-bold">{{ \App\Helpers\Money::inr($receipt->amt_paid) }}</td>
+                        <td class="hk-nw">{{ $receipt->created_at->format('h:i A') }}</td>
+                        <td class="text-right font-weight-bold hk-nw">{{ \App\Helpers\Money::inr($receipt->amt_paid) }}</td>
                         <td class="text-right">
                             @if($pr)
                                 <a target="_blank" href="{{ route('payments.receipts', Qs::hash($pr->id)) }}" class="btn btn-light btn-sm"><i class="icon-printer mr-1"></i> Receipt</a>
@@ -78,11 +81,12 @@
                 <tr>
                     <th></th>
                     <th colspan="5">Total for {{ $date->format('d M Y') }}</th>
-                    <th class="text-right">{{ \App\Helpers\Money::inr($day_total) }}</th>
+                    <th class="text-right hk-nw">{{ \App\Helpers\Money::inr($day_total) }}</th>
                     <th></th>
                 </tr>
                 </tfoot>
             </table>
+            </div>
         @endif
     @endcomponent
     </div>

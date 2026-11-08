@@ -238,10 +238,25 @@ class OwnerOvernightMenusTest extends TestCase
 
     public function test_global_back_goes_straight_to_dashboard()
     {
+        /* Re-expressed 2026-11-08 (Header Design B, owner order):
+           the global Back no longer jumps straight to the dashboard
+           from every page — it goes exactly ONE level up, to the
+           parent page named by the page's breadcrumb chain (here
+           Manage Exams), so the user never presses Back repeatedly.
+           Pages without a parent link still land on the dashboard
+           (pinned in OwnerAuditOvernightSettingsTest item 23 and
+           OwnerHeaderTitleStripTest). Same strength as before: one
+           hk-global-back control, never browser history. */
         $response = $this->actingAs($this->admin())->get(route('exam_dates.manage'));
         $response->assertOk();
         $response->assertDontSee('window.history.back', false);
-        $response->assertSee('Back to dashboard', false);
+        $html = $response->getContent();
+        $this->assertSame(1, substr_count($html, 'hk-global-back'), 'Exactly one global Back control');
+        $this->assertMatchesRegularExpression(
+            '/<a href="' . preg_quote(route('exams.index'), '/') . '"[^>]*hk-global-back[^>]*aria-label="Back to Manage Exams"/',
+            $html,
+            'Back must point one level up at the parent page (Manage Exams)'
+        );
         $response->assertSee(route('dashboard'), false);
 
         // Error pages keep their own Go-back links (out of scope).

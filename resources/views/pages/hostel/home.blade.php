@@ -59,7 +59,9 @@
         </div>
         @if($hostel_recent->count())
             <div class="table-responsive">
-                <table class="table">
+                <table class="table hk-std hk-std-560">
+                {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                <colgroup><col style="width:30%"><col style="width:22%"><col style="width:20%"><col style="width:12%"><col style="width:16%"></colgroup>
                     <thead>
                         <tr>
                             <th>Student</th>
@@ -75,7 +77,7 @@
                                 <td>{{ optional($record->user)->name ?: '—' }}</td>
                                 <td>{{ optional($record->my_class)->name ?: '—' }}@if($record->section) &middot; {{ $record->section->name }}@endif</td>
                                 <td>{{ optional($record->dorm)->name ?: '—' }}</td>
-                                <td>{{ $record->dorm_room_no ?: '—' }}</td>
+                                <td class="hk-nw">{{ $record->dorm_room_no ?: '—' }}</td>
                                 <td class="text-right">
                                     <a href="{{ route('hostel.allocations.index') }}" class="btn btn-sm btn-light">View</a>
                                 </td>

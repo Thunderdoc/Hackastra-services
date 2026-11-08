@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'ID Card - '.$staff->name)
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Administration &nbsp;/&nbsp; <a href="{{ route('users.index') }}">Manage Users</a> &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
 
     {{-- Item 14: staff single card — the common front+back design,

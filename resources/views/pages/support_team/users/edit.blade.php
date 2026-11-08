@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Edit User')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Administration &nbsp;/&nbsp; <a href="{{ route('users.index') }}">Manage Users</a> &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
     {{-- Batch 5A: rebuilt on the shared form_page pattern (Loop 28).
          Was a 69KB legacy wizard. Shell change only: every field

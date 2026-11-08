@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Alumni Directory')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Alumni &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
     <div class="panel panel-flat">
         <div class="panel-heading">
@@ -46,7 +49,9 @@
                 ])
             @else
                 <div class="table-responsive">
-                    <table class="table table-striped l108-stack">
+                    <table class="table table-striped hk-std hk-std-720 l108-stack">
+                        {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                        <colgroup><col style="width:26%"><col style="width:12%"><col style="width:12%"><col style="width:14%"><col style="width:12%"><col style="width:12%"><col style="width:12%"></colgroup>
                         <thead>
                             <tr>
                                 <th>Student</th>
@@ -64,9 +69,9 @@
                                     <td data-label="Student">{{ optional($row->user)->name ?? '—' }}</td>
                                     <td data-label="Class">{{ optional($row->my_class)->name ?? '—' }}</td>
                                     <td data-label="Section">{{ optional($row->section)->name ?? '—' }}</td>
-                                    <td data-label="Admission No.">{{ $row->adm_no ?? '—' }}</td>
-                                    <td data-label="Session">{{ $row->session }}</td>
-                                    <td data-label="Graduation">{{ $row->grad_date ?: $row->session }}</td>
+                                    <td data-label="Admission No." class="hk-nw">{{ $row->adm_no ?? '—' }}</td>
+                                    <td data-label="Session" class="hk-nw">{{ $row->session }}</td>
+                                    <td data-label="Graduation" class="hk-nw">{{ $row->grad_date ?: $row->session }}</td>
                                     <td><a href="{{ route('alumni.show', $row->id) }}">View</a></td>
                                 </tr>
                             @endforeach

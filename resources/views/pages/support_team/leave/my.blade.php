@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'My Leave Requests')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Leave &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
     {{-- My Leave UX (2026-11-06, overnight beauty run): slim module
          banner, the balance as stat tiles, the apply form in

@@ -1,18 +1,23 @@
 @extends('layouts.master')
 @section('page_title', 'My Children — Transport')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Transport &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
     @component('partials.patterns.list_page')
         @slot('title') My Children's Transport @endslot
         @slot('subtitle') Only your own children's transport assignments are shown here. @endslot
         <div class="table-responsive">
-        <table class="table">
+        <table class="table hk-std hk-std-720">
+            {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+            <colgroup><col style="width:22%"><col style="width:12%"><col style="width:14%"><col style="width:18%"><col style="width:14%"><col style="width:20%"></colgroup>
             <thead><tr><th>Child</th><th>Class</th><th>Vehicle</th><th>Route</th><th>Stop</th><th>Fees</th></tr></thead>
             <tbody>
             @forelse($assignments as $a)
                 <tr>
-                    <td>{{ $a->studentRecord && $a->studentRecord->user ? $a->studentRecord->user->name : '—' }}</td>
+                    <td class="hk-ellip">{{ $a->studentRecord && $a->studentRecord->user ? $a->studentRecord->user->name : '—' }}</td>
                     <td>{{ $a->studentRecord && $a->studentRecord->my_class ? $a->studentRecord->my_class->name : '—' }}</td>
-                    <td>{{ $a->vehicle ? $a->vehicle->vehicle_no : '—' }}</td>
+                    <td class="hk-nw">{{ $a->vehicle ? $a->vehicle->vehicle_no : '—' }}</td>
                     <td>{{ $a->vehicle && $a->vehicle->route ? $a->vehicle->route->name : '—' }}</td>
                     <td>{{ $a->stop ? $a->stop->name : '—' }}</td>
                     <td>

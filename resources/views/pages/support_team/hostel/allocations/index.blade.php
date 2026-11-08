@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Hostel Allocations')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Hostel &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
     <div class="card">
         <div class="card-header header-elements-inline">
@@ -15,7 +18,9 @@
         <div class="card-body">
             @if($allocations->count())
                 <div class="table-responsive">
-                    <table class="table">
+                    <table class="table hk-std hk-std-560">
+                    {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                    <colgroup><col style="width:34%"><col style="width:26%"><col style="width:16%"><col style="width:24%"></colgroup>
                         <thead>
                             <tr>
                                 <th>Student</th>
@@ -29,7 +34,7 @@
                                 <tr>
                                     <td>{{ optional($allocation->user)->name }}</td>
                                     <td>{{ optional($allocation->dorm)->name }}</td>
-                                    <td>{{ $allocation->dorm_room_no }}</td>
+                                    <td class="hk-nw">{{ $allocation->dorm_room_no }}</td>
                                     <td>
                                         @if(auth()->user() && auth()->user()->user_type === 'hostel')
                                             <form method="post" action="{{ route('hostel.allocations.destroy', ['hostel_record' => $allocation->id]) }}" class="d-inline" data-confirm="Deallocate {{ optional($allocation->user)->name ?: 'this student' }} from the hostel?" data-confirm-title="Deallocate Student" data-confirm-action="Deallocate" data-confirm-danger>

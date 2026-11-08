@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Take Attendance')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Attendance &nbsp;/&nbsp; <a href="{{ route('attendance.periods.index') }}">Mark Attendance</a> &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
     <div class="card">
         <div class="card-header header-elements-inline">

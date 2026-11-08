@@ -43,7 +43,9 @@
                 </div>
                 <h6>Your answers</h6>
                 <div class="table-responsive">
-                    <table class="table table-striped">
+                    <table class="table table-striped hk-std hk-std-880">
+                {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                <colgroup><col style="width:34%"><col style="width:22%"><col style="width:22%"><col style="width:10%"><col style="width:12%"></colgroup>
                         <thead>
                             <tr>
                                 <th>Question</th>
@@ -76,7 +78,9 @@
             @else
                 <h6>Questions ({{ $quiz->questions->count() }})</h6>
                 <div class="table-responsive">
-                    <table class="table table-striped">
+                    <table class="table table-striped hk-std hk-std-720">
+                {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                <colgroup><col style="width:38%"><col style="width:44%"><col style="width:18%"></colgroup>
                         <thead>
                             <tr>
                                 <th>Question</th>

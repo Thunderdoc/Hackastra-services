@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Inventory')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Inventory &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
     {{-- Beauty Wave 3: the slim module banner (partials/module_banner)
          opens the page, with the figures the list itself runs on —
@@ -43,17 +46,19 @@
                 @endif
             </form>
             <div class="table-responsive">
-                <table class="table table-sm">
+                <table class="table table-sm hk-std hk-std-880">
+                    {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                    <colgroup><col style="width:22%"><col style="width:12%"><col style="width:12%"><col style="width:8%"><col style="width:9%"><col style="width:10%"><col style="width:12%"><col style="width:15%"></colgroup>
                     <thead><tr><th>Name</th><th>SKU</th><th>Category</th><th>Unit</th><th>Stock</th><th>Threshold</th><th>Status</th><th></th></tr></thead>
                     <tbody>
                     @forelse($items as $item)
                         <tr>
                             <td><strong>{{ $item->name }}</strong></td>
-                            <td>{{ $item->sku ?: '—' }}</td>
+                            <td class="hk-nw">{{ $item->sku ?: '—' }}</td>
                             <td>{{ ucfirst($item->category) }}</td>
                             <td>{{ $item->unit }}</td>
-                            <td>{{ $item->computed_stock }}</td>
-                            <td>{{ $item->low_stock_threshold }}</td>
+                            <td class="hk-nw">{{ $item->computed_stock }}</td>
+                            <td class="hk-nw">{{ $item->low_stock_threshold }}</td>
                             <td>
                                 @if($item->low_stock)
                                     <span class="badge badge-danger">Low Stock</span>

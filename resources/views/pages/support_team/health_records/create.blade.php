@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'New Health Record')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Health &nbsp;/&nbsp; <a href="{{ route('health_records.index') }}">Health Records</a> &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
     <div class="card">
         <div class="card-header">

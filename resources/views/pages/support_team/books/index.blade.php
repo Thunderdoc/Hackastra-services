@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Library Books')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Library &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
 
     {{-- Workstream BI: Library Books rebuilt on the list_page pattern in

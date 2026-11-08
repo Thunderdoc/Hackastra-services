@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', $vehicle ? 'Edit Vehicle' : 'New Vehicle')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Transport &nbsp;/&nbsp; <a href="{{ route('transport.index') }}">Transport</a> &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
     @component('partials.patterns.form_page', [
         'form_action' => $vehicle ? route('transport.vehicles.update', ['transport_vehicle' => Qs::hash($vehicle->id)]) : route('transport.vehicles.store'),

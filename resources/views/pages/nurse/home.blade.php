@@ -55,7 +55,9 @@
             <h6 class="card-title font-weight-semibold">Recent Visits</h6>
         </div>
         <div class="table-responsive">
-            <table class="table">
+            <table class="table hk-std hk-std-640">
+            {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+            <colgroup><col style="width:16%"><col style="width:28%"><col style="width:14%"><col style="width:26%"><col style="width:16%"></colgroup>
                 <thead>
                     <tr>
                         <th>Date</th>
@@ -68,7 +70,7 @@
                 <tbody>
                     @forelse($health_recent as $record)
                         <tr>
-                            <td>{{ $record->visit_date->format('d M Y') }}</td>
+                            <td class="hk-nw">{{ $record->visit_date->format('d M Y') }}</td>
                             <td>{{ optional($record->student)->name ?: '—' }}</td>
                             <td>
                                 @if($record->is_referred)
@@ -107,7 +109,9 @@
                 </div>
                 @if($health_referred_list->count())
                     <div class="table-responsive">
-                        <table class="table">
+                        <table class="table hk-std hk-std-560">
+                        {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                        <colgroup><col style="width:18%"><col style="width:34%"><col style="width:30%"><col style="width:18%"></colgroup>
                             <thead>
                                 <tr>
                                     <th>Date</th>
@@ -119,7 +123,7 @@
                             <tbody>
                                 @foreach($health_referred_list as $record)
                                     <tr>
-                                        <td>{{ $record->visit_date->format('d M Y') }}</td>
+                                        <td class="hk-nw">{{ $record->visit_date->format('d M Y') }}</td>
                                         <td>{{ optional($record->student)->name ?: '—' }}</td>
                                         <td>{{ $record->referred_to ?: '—' }}</td>
                                         <td class="text-right">

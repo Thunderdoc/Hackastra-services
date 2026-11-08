@@ -12,7 +12,9 @@
         <div class="card-body">
             @if($rows->count())
                 <div class="table-responsive">
-                    <table class="table">
+                    <table class="table hk-std hk-std-640">
+                        {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                        <colgroup><col style="width:36%"><col style="width:13%"><col style="width:17%"><col style="width:17%"><col style="width:17%"></colgroup>
                         <thead>
                             <tr><th>Fee Head</th><th>Session</th><th>Gross</th><th>Concession</th><th>Net Payable</th></tr>
                         </thead>
@@ -20,17 +22,17 @@
                             @foreach($rows as $row)
                                 <tr>
                                     <td>{{ $row['head']->title }}</td>
-                                    <td>{{ $row['head']->year }}</td>
-                                    <td>{{ number_format($row['gross']) }}</td>
-                                    <td>{{ number_format($row['discount']) }}</td>
-                                    <td>{{ number_format($row['net']) }}</td>
+                                    <td class="hk-nw">{{ $row['head']->year }}</td>
+                                    <td class="hk-nw">{{ number_format($row['gross']) }}</td>
+                                    <td class="hk-nw">{{ number_format($row['discount']) }}</td>
+                                    <td class="hk-nw">{{ number_format($row['net']) }}</td>
                                 </tr>
                             @endforeach
                             <tr>
                                 <td colspan="2"><strong>Total</strong></td>
-                                <td><strong>{{ number_format($total_gross) }}</strong></td>
-                                <td><strong>{{ number_format($total_discount) }}</strong></td>
-                                <td><strong>{{ number_format($total_net) }}</strong></td>
+                                <td class="hk-nw"><strong>{{ number_format($total_gross) }}</strong></td>
+                                <td class="hk-nw"><strong>{{ number_format($total_discount) }}</strong></td>
+                                <td class="hk-nw"><strong>{{ number_format($total_net) }}</strong></td>
                             </tr>
                         </tbody>
                     </table>

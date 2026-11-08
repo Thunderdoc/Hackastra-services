@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Library Reservations')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Library &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
     <div class="card">
         <div class="card-header">
@@ -40,7 +43,9 @@
                 @endif
             @else
                 <div class="table-responsive">
-                    <table class="table">
+                    <table class="table hk-std hk-std-720">
+                        {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                        <colgroup><col style="width:26%"><col style="width:20%"><col style="width:11%"><col style="width:17%"><col style="width:10%"><col style="width:16%"></colgroup>
                         <thead>
                             <tr>
                                 <th>Title</th>
@@ -54,11 +59,11 @@
                         <tbody>
                             @foreach($books as $book)
                                 <tr>
-                                    <td>{{ $book->name }}</td>
+                                    <td class="hk-ellip">{{ $book->name }}</td>
                                     <td>{{ $book->author }}</td>
                                     <td>{{ $book->book_type }}</td>
-                                    <td>{{ $book->total_copies }} total / {{ $book->issued_copies }} issued</td>
-                                    <td>{{ $book->availableCopies() }}</td>
+                                    <td class="hk-nw">{{ $book->total_copies }} total / {{ $book->issued_copies }} issued</td>
+                                    <td class="hk-nw">{{ $book->availableCopies() }}</td>
                                     <td>
                                         @if(!$canReserve)
                                             &mdash;
@@ -98,7 +103,9 @@
                 @include('partials.patterns.empty_state', ['icon' => 'icon-books', 'message' => 'No reservations yet.'])
             @else
                 <div class="table-responsive">
-                    <table class="table">
+                    <table class="table hk-std hk-std-720">
+                        {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                        @if($isStaff)<colgroup><col style="width:22%"><col style="width:16%"><col style="width:18%"><col style="width:11%"><col style="width:15%"><col style="width:18%"></colgroup>@else<colgroup><col style="width:26%"><col style="width:22%"><col style="width:13%"><col style="width:17%"><col style="width:22%"></colgroup>@endif
                         <thead>
                             <tr>
                                 <th>Book</th>
@@ -119,8 +126,8 @@
                                         <td>{{ optional($reservation->user)->name ?? 'Unknown' }}</td>
                                     @endif
                                     <td>{{ optional(optional($reservation->studentRecord)->user)->name ?? '&mdash;' }}</td>
-                                    <td>{{ $reservation->status }}</td>
-                                    <td>{{ $reservation->created_at }}</td>
+                                    <td class="hk-nw">{{ $reservation->status }}</td>
+                                    <td class="hk-nw">{{ $reservation->created_at }}</td>
                                     <td>
                                         @if($reservation->status === 'reserved')
                                             <div class="d-flex" style="gap:6px">

@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Student Attendance Report')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Attendance &nbsp;/&nbsp; <a href="{{ route('attendance.index') }}">Attendance</a> &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
     @php
         $studentUser = $student->user;

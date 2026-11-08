@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Create New Circular')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Communication &nbsp;/&nbsp; <a href="{{ route('circulars.index') }}">Circulars</a> &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('own_page_back', true)
 {{-- Loop 114: the reference header carries a "Back to Circulars"
      action at the right of the page header. --}}

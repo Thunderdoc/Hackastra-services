@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Manage Subjects')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Academics &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
     {{-- Batch 4: rebuilt on the shared patterns (Loop 28). Was: one
          stacked table per class under a tab strip (90KB rendered, 41
@@ -44,11 +47,9 @@
 
         @if($selected_class && $subjects->count())
             <div class="table-responsive">
-            {{-- Loop 108: l108-stack — on phone widths this table
-                 stacks into labelled rows (every column stays
-                 visible; the TEACHER column no longer clips off the
-                 right edge and SHORT NAME no longer wraps broken). --}}
-            <table class="table l108-stack">
+            {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+            <table class="table hk-std hk-std-720 l108-stack">
+                <colgroup><col style="width:5%"><col style="width:22%"><col style="width:11%"><col style="width:12%"><col style="width:18%"><col style="width:12%"><col style="width:20%"></colgroup>
                 <thead>
                 <tr>
                     <th>S/N</th>
@@ -65,7 +66,7 @@
                     <tr>
                         <td data-label="S/N">{{ $loop->iteration }}</td>
                         <td data-label="Name">{{ $s->name }}</td>
-                        <td data-label="Short Name">{{ $s->slug }}</td>
+                        <td data-label="Short Name" class="hk-nw">{{ $s->slug }}</td>
                         <td data-label="Class">{{ $s->my_class->name }}</td>
                         <td data-label="Teacher">@if($s->teacher){{ $s->teacher->name }}@else<span class="badge badge-warning">Vacant</span>@endif</td>
                         <td data-label="Periods/Wk">{{ $s->periods_per_week ?: '—' }}{{ $s->subject_type === 'practical' ? ' · Practical' : '' }}{{ $s->needs_double ? ' · Double' : '' }}{{ $s->needs_lab ? ' · Lab' : '' }}</td>

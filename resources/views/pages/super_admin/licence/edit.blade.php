@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'School Licence')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Platform &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
     {{-- Round 5 Slice 4 (P14): the SA-maintained licence record
          for this school. Plan name exactly as sold — there are

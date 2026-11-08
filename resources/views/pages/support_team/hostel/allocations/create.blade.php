@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Allocate Hostel Room')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Hostel &nbsp;/&nbsp; <a href="{{ route('hostel.allocations.index') }}">Hostel Allocations</a> &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
     <div class="card">
         <div class="card-header">

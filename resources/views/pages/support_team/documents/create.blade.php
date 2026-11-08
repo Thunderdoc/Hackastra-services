@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Upload Student Document')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Documents &nbsp;/&nbsp; <a href="{{ route('documents.index') }}">Student Documents</a> &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
     <div class="card">
         <div class="card-header header-elements-inline">

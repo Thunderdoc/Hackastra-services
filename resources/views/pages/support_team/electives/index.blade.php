@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Elective Choices')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Academics &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
     <div class="card">
         <div class="card-header">
@@ -64,7 +67,9 @@
             @else
                 <p class="text-muted">Pick your stream subjects for {{ $record->my_class->name }}{{ $record->section ? ' — Section ' . $record->section->name : '' }}. Only subjects offered for your class and stream are listed. A rejected choice can be picked again.</p>
                 <div class="table-responsive">
-                    <table class="table table-striped">
+                    <table class="table table-striped hk-std hk-std-560">
+                        {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                        <colgroup><col style="width:46%"><col style="width:30%"><col style="width:24%"></colgroup>
                         <thead>
                             <tr>
                                 <th>Subject</th>
@@ -77,7 +82,7 @@
                                 @php $latest = $latestBySubject->get($subject->id); @endphp
                                 <tr>
                                     <td>{{ $subject->name }}</td>
-                                    <td>{{ $latest ? ucfirst($latest->status) : 'Not picked' }}</td>
+                                    <td class="hk-nw">{{ $latest ? ucfirst($latest->status) : 'Not picked' }}</td>
                                     <td>
                                         @if(!$latest || $latest->status === 'rejected')
                                             <form method="POST" action="{{ route('electives.store') }}" style="display:inline;">
@@ -97,7 +102,9 @@
                     @include('partials.patterns.empty_state', ['icon' => 'icon-book', 'message' => 'You have not picked any electives yet.'])
                 @else
                     <div class="table-responsive">
-                        <table class="table table-striped">
+                        <table class="table table-striped hk-std hk-std-560">
+                            {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                            <colgroup><col style="width:68%"><col style="width:32%"></colgroup>
                             <thead>
                                 <tr>
                                     <th>Subject</th>
@@ -108,7 +115,7 @@
                                 @foreach($choices as $choice)
                                     <tr>
                                         <td>{{ $choice->subject ? $choice->subject->name : '-' }}</td>
-                                        <td>{{ ucfirst($choice->status) }}</td>
+                                        <td class="hk-nw">{{ ucfirst($choice->status) }}</td>
                                     </tr>
                                 @endforeach
                             </tbody>

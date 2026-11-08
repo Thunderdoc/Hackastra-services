@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Manage Exams')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Examinations &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
     {{-- Loop 108: rebuilt on the shared patterns (Loop 28), following
          the Batch 4 / Workstream BW academics template (classes /
@@ -27,7 +30,10 @@
         @endslot
 
         @if($exams->count())
-            <table class="table l108-stack">
+            <div class="table-responsive">
+            <table class="table hk-std hk-std-880 l108-stack">
+                {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                <colgroup><col style="width:5%"><col style="width:26%"><col style="width:16%"><col style="width:12%"><col style="width:13%"><col style="width:12%"><col style="width:16%"></colgroup>
                 <thead>
                 <tr>
                     <th>S/N</th>
@@ -111,6 +117,7 @@
                 @endforeach
                 </tbody>
             </table>
+            </div>
         @else
             @include('partials.patterns.empty_state', [
                 'icon' => 'icon-books',

@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Admit Cards')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Examinations &nbsp;/&nbsp; <a href="{{ route('exams.index') }}">Manage Exams</a> &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
 
     <div class="card">
@@ -69,7 +72,9 @@
                     ])
                 @else
                     <div class="table-responsive">
-                        <table class="table">
+                        <table class="table hk-std hk-std-880">
+                        {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                        <colgroup><col style="width:5%"><col style="width:8%"><col style="width:26%"><col style="width:17%"><col style="width:13%"><col style="width:13%"><col style="width:18%"></colgroup>
                             <thead>
                             <tr>
                                 <th>S/N</th>

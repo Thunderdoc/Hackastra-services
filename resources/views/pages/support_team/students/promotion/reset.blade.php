@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Manage Promotions')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Students &nbsp;/&nbsp; <a href="{{ route('students.promotion_manage') }}">Student Promotion</a> &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
     {{-- Loop 108: rebuilt on the shared list chrome (Loop 28). Was two
          legacy cards (one with panel-options chrome). Behaviour
@@ -21,7 +24,9 @@
         <div class="card pat-card">
             <div class="card-body">
                 <div class="table-responsive">
-                <table id="promotions-list" class="table l108-stack">
+                {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                <table id="promotions-list" class="table hk-std hk-std-720 l108-stack">
+                    <colgroup><col style="width:5%"><col style="width:9%"><col style="width:26%"><col style="width:15%"><col style="width:15%"><col style="width:13%"><col style="width:17%"></colgroup>
                     <thead>
                     <tr>
                         <th>S/N</th>
@@ -42,11 +47,11 @@
                             <td data-label="From Class">{{ $p->fc->name.' '.$p->fs->name }}</td>
                             <td data-label="To Class">{{ $p->tc->name.' '.$p->ts->name }}</td>
                             @if($p->status === 'P')
-                                <td data-label="Status"><span class="badge badge-success">Promoted</span></td>
+                                <td data-label="Status" class="hk-nw"><span class="badge badge-success">Promoted</span></td>
                             @elseif($p->status === 'D')
-                                <td data-label="Status"><span class="badge badge-danger">Not Promoted</span></td>
+                                <td data-label="Status" class="hk-nw"><span class="badge badge-danger">Not Promoted</span></td>
                             @else
-                                <td data-label="Status"><span class="badge badge-primary">Graduated</span></td>
+                                <td data-label="Status" class="hk-nw"><span class="badge badge-primary">Graduated</span></td>
                             @endif
                             <td class="text-center" data-label="Action">
                                 <button data-id="{{ $p->id }}" class="btn btn-danger promotion-reset">Reset</button>

@@ -76,7 +76,10 @@
             </form>
         @endslot
 
-        <table class="table lms-table l108-stack">
+        <div class="table-responsive">
+        <table class="table hk-std hk-std-1080 l108-stack">
+            {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+            @if($isStudent)<colgroup><col style="width:22%"><col style="width:12%"><col style="width:10%"><col style="width:9%"><col style="width:9%"><col style="width:8%"><col style="width:10%"><col style="width:10%"><col style="width:10%"></colgroup>@else<colgroup><col style="width:24%"><col style="width:14%"><col style="width:11%"><col style="width:10%"><col style="width:10%"><col style="width:9%"><col style="width:11%"><col style="width:11%"></colgroup>@endif
             <thead>
             <tr>
                 <th>Title</th>
@@ -166,6 +169,7 @@
             @endforelse
             </tbody>
         </table>
+        </div>
 
         @if(method_exists($quizzes, 'total') && $quizzes->total() > 0)
             <p class="text-muted mb-2"><small>Showing {{ $quizzes->firstItem() }} to {{ $quizzes->lastItem() }} of {{ $quizzes->total() }} {{ $quizzes->total() == 1 ? 'quiz' : 'quizzes' }}</small></p>

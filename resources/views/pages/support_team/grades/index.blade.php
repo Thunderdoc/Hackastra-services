@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Manage Grades')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Academics &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
     {{-- Workstream BW: rebuilt on the shared patterns (Loop 28),
          following the Batch 4 academics template (sections/classes/
@@ -26,7 +29,9 @@
 
         @if($grades->count())
             <div class="table-responsive">
-            <table class="table l108-stack">
+            {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+            <table class="table hk-std hk-std-640 l108-stack">
+                <colgroup><col style="width:6%"><col style="width:14%"><col style="width:20%"><col style="width:16%"><col style="width:20%"><col style="width:24%"></colgroup>
                 <thead>
                 <tr>
                     <th>S/N</th>
@@ -43,7 +48,7 @@
                         <td data-label="S/N">{{ $loop->iteration }}</td>
                         <td data-label="Name">{{ $gr->name }}</td>
                         <td data-label="Grade Type">{{ $gr->class_type_id ? $class_types->where('id', $gr->class_type_id)->first()->name : ''}}</td>
-                        <td data-label="Range">{{ $gr->mark_from.' - '.$gr->mark_to }}</td>
+                        <td data-label="Range" class="hk-nw">{{ $gr->mark_from.' - '.$gr->mark_to }}</td>
                         <td data-label="Remark">{{ $gr->remark }}</td>
                         <td class="text-center" data-label="Action">
                             @if(Qs::userIsTeamSAWrite())

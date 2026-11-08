@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\AttendanceSessionEntry;
 use App\Models\Exam;
 use App\Models\ExamRecord;
+use App\Models\LeaveRequest;
 use App\Models\MyClass;
 use App\Models\StudentRecord;
 use App\Models\Subject;
@@ -171,16 +172,50 @@ class OwnerHotfixHHomeFillTest extends TestCase
         $this->assertNotFalse($end);
         $block = substr($html, $start, $end - $start);
 
-        // A real table, ranked best-first, and no chips inside it.
-        $this->assertStringContainsString('pr-avg-table', $block);
+        /* Re-expressed 2026-11-08 for the owner-approved principal
+           home sample v2 ("principal home aisa hi banao"): the
+           ranked table became a top-3 PODIUM over a compact ranked
+           list. The promise is unchanged and now stronger — every
+           class appears exactly once, in ranked order, ties sharing
+           a podium slot, and no chips inside the ranking block.
+           Rank numbers follow the sample's rule: each podium
+           tie-group counts as ONE entrant, then competition
+           counting continues over the individual classes. */
         $this->assertStringNotContainsString('pr-chip', $block);
-        $pos = -1;
+        $groups = [];
         foreach ($ranked as $row) {
-            $found = strpos($block, '>' . $row['class'] . '</td>');
-            $this->assertNotFalse($found, 'Missing ranked row for ' . $row['class']);
-            $this->assertGreaterThan($pos, $found, 'Rows out of ranked order at ' . $row['class']);
-            $pos = $found;
+            $groups[(string) $row['avg']][] = $row['class'];
         }
+        $groups = array_values($groups);
+        $podiumGroups = array_slice($groups, 0, 3);
+        $listGroups = array_slice($groups, 3);
+
+        // Podium slots in DOM order (2nd, 1st, 3rd) hold the top
+        // three average groups, ties named jointly.
+        preg_match_all('/pr2-pod (pr2-p\d)">.*?pr2-pod-cl">(.*?)<\/div>\s*<div class="pr2-pod-av">([\d.]+)/s', $block, $pm);
+        $domOrder = count($podiumGroups) === 1 ? [0] : (count($podiumGroups) === 2 ? [1, 0] : [1, 0, 2]);
+        $this->assertCount(count($domOrder), $pm[2]);
+        foreach ($domOrder as $i => $gi) {
+            $this->assertSame(implode(' · ', $podiumGroups[$gi]), html_entity_decode($pm[2][$i]));
+            $this->assertEquals($ranked->firstWhere('class', $podiumGroups[$gi][0])['avg'], (float) $pm[3][$i]);
+        }
+
+        // The compact list under the podium: exact (rank, class)
+        // sequence, so order AND numbering are both pinned.
+        preg_match_all('/pr2-avg-rk">(\d+)<\/div><div class="pr2-avg-nm">([^<]+)<\/div>/', $block, $lm);
+        $expectedList = [];
+        $entrants = count($podiumGroups);
+        foreach ($listGroups as $group) {
+            foreach ($group as $class) {
+                $expectedList[] = [(string) ($entrants + 1), $class];
+            }
+            $entrants += count($group);
+        }
+        $actualList = [];
+        foreach ($lm[1] as $i => $rank) {
+            $actualList[] = [$rank, html_entity_decode($lm[2][$i])];
+        }
+        $this->assertSame($expectedList, $actualList);
 
         // The Top subjects line and its chips survive untouched.
         $response->assertSee('Top subjects by Term 1 average');
@@ -191,10 +226,22 @@ class OwnerHotfixHHomeFillTest extends TestCase
     {
         $blade = file_get_contents(resource_path('views/pages/principal/home.blade.php'));
 
-        $this->assertStringContainsString('.pr-bar-fill{display:block;background:#3478f6;height:6px', $blade);
-        $this->assertStringContainsString('.pr-bar-fill.pr-tier-risk{background:#e8a317}', $blade);
-        $this->assertStringContainsString('.pr-bar-fill.pr-tier-critical{background:#d64545}', $blade);
-        $this->assertStringContainsString('html.hk-dark .pr-bar-fill{background:#6ea8ff}', $blade);
+        /* Re-expressed 2026-11-08 for the owner-approved principal
+           home sample v2: the HOTFIX H pr-bar system retired with
+           the old analytics markup. The fills are now the sample's
+           slim rounded bars — attendance in the green gradient
+           family (tier tints only where genuinely low), class
+           averages in the app-blue gradient, workload in
+           per-teacher pastel colours — each a real box whose track
+           carries both-theme backgrounds. */
+        $this->assertStringContainsString('.pr2-ca-fill{height:100%;border-radius:99px}', $blade);
+        $this->assertStringContainsString('linear-gradient(90deg,#3ecf8e,#059669)', $blade);
+        $this->assertStringContainsString('.pr2-avg-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,#7fb0f5,#3478f6)}', $blade);
+        $this->assertStringContainsString('.pr2-wl-fill{height:100%;border-radius:99px}', $blade);
+        $this->assertStringContainsString('.pr2-ca-bar{flex:1;height:11px;border-radius:99px;overflow:hidden;background:#edf2f7', $blade);
+        $this->assertStringContainsString('html.hk-dark .pr2-ca-bar{background:#3a3c40}', $blade);
+        $this->assertStringContainsString('html.hk-dark .pr2-avg-bar{background:#3a3c40}', $blade);
+        $this->assertStringContainsString('html.hk-dark .pr2-wl-bar{background:#3a3c40}', $blade);
         // Workload widths are relative to the top teacher, not the
         // old registers*10 scale that saturated at 10 registers.
         $this->assertStringContainsString("collect(\$pr_workload)->max('registers')", $blade);
@@ -202,7 +249,9 @@ class OwnerHotfixHHomeFillTest extends TestCase
 
         $response = $this->actingAs($this->user('principal@hackstra.app'))->get('/home');
         $response->assertOk();
-        $response->assertSee('pr-bar-track', false);
+        $response->assertSee('pr2-ca-fill', false);
+        $response->assertSee('pr2-wl-fill', false);
+        $response->assertDontSee('pr-bar-track');
     }
 
     public function test_principal_fees_outstanding_label_carries_its_year_scope()
@@ -212,6 +261,89 @@ class OwnerHotfixHHomeFillTest extends TestCase
         $response->assertOk();
         $response->assertSee('Fees collected (' . now()->year . ')');
         $response->assertSee('Fees outstanding (' . now()->year . ')');
+    }
+
+    /* Principal home sample v2 (owner-approved 2026-11-08): the
+       fees donut must be drawn from the SAME current-year totals
+       the controller supplies — the ring percent and its arc are
+       collected / billed from those numbers, and the rows beside
+       the ring carry the same three totals (collected +
+       outstanding = billed). */
+    public function test_principal_fees_donut_matches_the_controller_totals()
+    {
+        $collected = (float) DB::table('payment_records')->whereYear('updated_at', now()->year)->sum('amt_paid');
+        $total = (float) DB::table('payments')
+            ->join('payment_records', 'payment_records.payment_id', '=', 'payments.id')
+            ->whereYear('payment_records.updated_at', now()->year)
+            ->sum('payments.amount');
+        $this->assertGreaterThan(0, $total);
+        $pct = round($collected / $total * 100, 1);
+
+        $response = $this->actingAs($this->user('principal@hackstra.app'))->get('/home');
+        $response->assertOk();
+        $response->assertSee('pr2-ring-big">' . number_format($pct, 1) . '%<', false);
+        $response->assertSee('stroke-dasharray="' . round($pct / 100 * 389.6, 1) . ' 389.6"', false);
+        $response->assertSee('&#8377;' . \App\Helpers\Money::indianFormat($collected), false);
+        $response->assertSee('&#8377;' . \App\Helpers\Money::indianFormat(max(0, $total - $collected)), false);
+        $response->assertSee('&#8377;' . \App\Helpers\Money::indianFormat($total), false);
+    }
+
+    /* Principal home sample v2: the four pastel KPI tiles must
+       carry the controller's own figures — enrolled students,
+       teachers on roll, the school-wide 30-day attendance roll-up
+       (the grouped sums the controller itself totals), and the
+       current-year fees collected. */
+    public function test_principal_kpi_tiles_match_the_controller_figures()
+    {
+        $students = StudentRecord::where('grad', 0)->count();
+        $teachers = User::where('user_type', 'teacher')->count();
+        $att = DB::table('attendance_sessions')
+            ->join('attendance_session_entries', 'attendance_sessions.id', '=', 'attendance_session_entries.session_id')
+            ->where('attendance_sessions.date', '>=', now()->subDays(30)->toDateString())
+            ->select(DB::raw("SUM(CASE WHEN attendance_session_entries.status IN ('present','late') THEN 1 ELSE 0 END) as present"), DB::raw('COUNT(*) as total'))
+            ->first();
+        $pct = (int) round(((int) $att->present) / max(1, (int) $att->total) * 100);
+        $collected = (float) DB::table('payment_records')->whereYear('updated_at', now()->year)->sum('amt_paid');
+
+        $response = $this->actingAs($this->user('principal@hackstra.app'))->get('/home');
+        $response->assertOk();
+        preg_match_all('/pr2-kpi-num">([^<]+)</', $response->getContent(), $m);
+        $this->assertSame([
+            number_format($students),
+            number_format($teachers),
+            $pct . '%',
+            '&#8377;' . \App\Helpers\Money::indianFormat($collected),
+        ], $m[1]);
+    }
+
+    /* Principal home sample v2: the hero pulse chips wire only to
+       figures this page already computes — the 30-day attendance
+       roll-up, the current analytics term, and the total approvals
+       waiting. With nothing waiting (the clean seed), the
+       approvals chip must not render; one pending leave makes it
+       appear with the true count. */
+    public function test_principal_pulse_chips_wire_only_to_real_figures()
+    {
+        $response = $this->actingAs($this->user('principal@hackstra.app'))->get('/home');
+        $response->assertOk();
+        $html = $response->getContent();
+        $this->assertStringContainsString('attendance · last 30 days', $html);
+        $this->assertStringContainsString('Term 1 in progress', $html);
+        $this->assertStringNotContainsString('approval waiting', $html);
+        $this->assertStringNotContainsString('approvals waiting', $html);
+
+        LeaveRequest::create([
+            'user_id' => $this->user('teacher@hackstra.app')->id,
+            'start_date' => now()->addDays(40)->toDateString(),
+            'end_date' => now()->addDays(40)->toDateString(),
+            'reason' => 'Family function',
+            'leave_type' => 'casual',
+            'status' => 'pending',
+        ]);
+
+        $response = $this->actingAs($this->user('principal@hackstra.app'))->get('/home');
+        $response->assertOk();
+        $response->assertSee('1 approval waiting');
     }
 
     /* HOTFIX H sweep — the same void on the teacher home: .t10-main

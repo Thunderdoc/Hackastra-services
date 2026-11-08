@@ -26,16 +26,18 @@
             <h6>Installments</h6>
             @if($head->installments->count())
                 <div class="table-responsive">
-                    <table class="table">
+                    <table class="table hk-std hk-std-560">
+                        {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                        <colgroup><col style="width:12%"><col style="width:30%"><col style="width:28%"><col style="width:30%"></colgroup>
                         <thead>
                             <tr><th>No.</th><th>Due Date</th><th>Amount</th><th>Action</th></tr>
                         </thead>
                         <tbody>
                             @foreach($head->installments as $inst)
                                 <tr>
-                                    <td>{{ $inst->installment_no }}</td>
-                                    <td>{{ optional($inst->due_date)->format('d M Y') }}</td>
-                                    <td>{{ number_format($inst->amount) }}</td>
+                                    <td class="hk-nw">{{ $inst->installment_no }}</td>
+                                    <td class="hk-nw">{{ optional($inst->due_date)->format('d M Y') }}</td>
+                                    <td class="hk-nw">{{ number_format($inst->amount) }}</td>
                                     <td>
                                         @if(Qs::userIsTeamSAWrite())
                                             <form method="POST" action="{{ route('fee_structure.installments.destroy', ['fee_head' => $head->id, 'installment' => $inst->id]) }}" style="display:inline" data-confirm="Delete installment {{ $inst->installment_no }}? This cannot be undone." data-confirm-title="Delete Installment" data-confirm-action="Delete" data-confirm-danger>
@@ -78,17 +80,19 @@
             <h6 class="mt-3">Concessions on this head</h6>
             @if($head->concessions->count())
                 <div class="table-responsive">
-                    <table class="table">
+                    <table class="table hk-std hk-std-640">
+                        {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                        <colgroup><col style="width:26%"><col style="width:13%"><col style="width:15%"><col style="width:26%"><col style="width:20%"></colgroup>
                         <thead>
                             <tr><th>Student</th><th>Type</th><th>Value</th><th>Reason</th><th>Action</th></tr>
                         </thead>
                         <tbody>
                             @foreach($head->concessions as $c)
                                 <tr>
-                                    <td>{{ optional(optional($c->student_record)->user)->name }}</td>
+                                    <td class="hk-ellip">{{ optional(optional($c->student_record)->user)->name }}</td>
                                     <td>{{ $c->type }}</td>
-                                    <td>{{ $c->type === 'percent' ? $c->value . '%' : number_format($c->value) }}</td>
-                                    <td>{{ $c->reason }}</td>
+                                    <td class="hk-nw">{{ $c->type === 'percent' ? $c->value . '%' : number_format($c->value) }}</td>
+                                    <td class="hk-ellip">{{ $c->reason }}</td>
                                     <td>
                                         @if(Qs::userIsTeamSAWrite())
                                             <a href="{{ route('fee_structure.concessions.edit', ['concession' => $c->id]) }}" class="btn btn-sm btn-primary">Edit</a>

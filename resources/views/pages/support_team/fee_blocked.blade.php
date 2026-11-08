@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Fee Payment Pending')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
 
     {{-- Fee-defaulter document block (owner ruling 2026-10-22): a

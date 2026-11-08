@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Alumnus Details')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Alumni &nbsp;/&nbsp; <a href="{{ route('alumni.index') }}">Alumni Directory</a> &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
     <div class="panel panel-flat">
         <div class="panel-heading">
@@ -10,7 +13,9 @@
         </div>
         <div class="panel-body">
             <div class="table-responsive">
-                <table class="table table-striped">
+                <table class="table table-striped hk-std hk-std-560">
+                {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
                     <tbody>
                         <tr>
                             <th>Student</th>
@@ -18,7 +23,7 @@
                         </tr>
                         <tr>
                             <th>Admission No.</th>
-                            <td>{{ $alumnus->adm_no ?? '—' }}</td>
+                            <td class="hk-nw">{{ $alumnus->adm_no ?? '—' }}</td>
                         </tr>
                         <tr>
                             <th>Class</th>
@@ -30,7 +35,7 @@
                         </tr>
                         <tr>
                             <th>Session</th>
-                            <td>{{ $alumnus->session }}</td>
+                            <td class="hk-nw">{{ $alumnus->session }}</td>
                         </tr>
                         <tr>
                             <th>Graduation</th>

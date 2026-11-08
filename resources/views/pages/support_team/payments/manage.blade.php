@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Student Payments')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Finance &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
 
     {{-- Workstream CK: rebuilt on the shared list_page pattern

@@ -39,7 +39,9 @@
                         ])
                     @else
                         <div class="table-responsive mb-4">
-                            <table class="table lms-table l108-stack">
+                            <table class="table hk-std hk-std-720 l108-stack">
+                            {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                            <colgroup><col style="width:32%"><col style="width:20%"><col style="width:14%"><col style="width:16%"><col style="width:18%"></colgroup>
                                 <thead>
                                 <tr>
                                     <th>Assignment</th>

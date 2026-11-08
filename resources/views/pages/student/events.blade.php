@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'School Events')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Events &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
 
     {{-- Student events portal (2026-10-23): school events, read-only,
@@ -14,7 +17,9 @@
         <h6 class="font-weight-bold">Upcoming Events</h6>
         @if($upcoming->count())
             <div class="table-responsive">
-                <table class="table">
+                <table class="table hk-std hk-std-720">
+                    {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                    <colgroup><col style="width:5%"><col style="width:30%"><col style="width:14%"><col style="width:16%"><col style="width:35%"></colgroup>
                     <thead>
                     <tr>
                         <th>#</th>
@@ -53,7 +58,9 @@
         @if($past->count())
             <h6 class="font-weight-bold mt-4">Past Events</h6>
             <div class="table-responsive">
-                <table class="table">
+                <table class="table hk-std hk-std-720">
+                    {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                    <colgroup><col style="width:5%"><col style="width:30%"><col style="width:14%"><col style="width:16%"><col style="width:35%"></colgroup>
                     <thead>
                     <tr>
                         <th>#</th>

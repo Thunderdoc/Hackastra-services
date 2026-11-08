@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', $page_title ?? 'Not Published Yet')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
 
     {{-- Publication gate (owner order 2026-11-08): the full-page

@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Staff Attendance')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Attendance &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
     {{-- Staff Attendance register (redesign, owner 2026-11-07 late —
          "yha ka ve uiux bekar hai"): was a loose list of tall rows

@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Fees')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; My Family &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
 
     {{-- Workstream CK: rebuilt on the shared pattern chrome
@@ -47,7 +50,9 @@
                         ])
                     @else
                         <div class="table-responsive mb-4">
-                            <table class="table">
+                            <table class="table hk-std hk-std-720">
+                                {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                                <colgroup><col style="width:26%"><col style="width:15%"><col style="width:15%"><col style="width:15%"><col style="width:14%"><col style="width:15%"></colgroup>
                                 <thead>
                                 <tr>
                                     <th>Fee</th>

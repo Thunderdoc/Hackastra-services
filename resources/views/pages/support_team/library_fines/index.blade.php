@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Library Fines')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Library &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
 
     {{-- Library Fines (owner, 2026-10-23): a fine imposed on a

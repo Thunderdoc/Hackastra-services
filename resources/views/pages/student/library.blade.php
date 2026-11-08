@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'My Library')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Library &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
 
     {{-- Student library portal (2026-10-23): the student's own book
@@ -17,7 +20,9 @@
         <h6 class="font-weight-bold">My Books</h6>
         @if($loans->count())
             <div class="table-responsive">
-                <table class="table">
+                <table class="table hk-std hk-std-720">
+                    {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                    <colgroup><col style="width:5%"><col style="width:30%"><col style="width:22%"><col style="width:15%"><col style="width:15%"><col style="width:13%"></colgroup>
                     <thead>
                     <tr>
                         <th>#</th>
@@ -60,7 +65,9 @@
         <h6 class="font-weight-bold mt-4">My Fines</h6>
         @if($fines->count())
             <div class="table-responsive">
-                <table class="table">
+                <table class="table hk-std hk-std-720">
+                    {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                    <colgroup><col style="width:5%"><col style="width:28%"><col style="width:24%"><col style="width:13%"><col style="width:14%"><col style="width:16%"></colgroup>
                     <thead>
                     <tr>
                         <th>#</th>

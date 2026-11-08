@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Teacher Allocation')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Planning &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
 
     {{-- Teacher Allocation (Scheduling Engine Slice C): every
@@ -25,7 +28,9 @@
             ])
         @else
             <div class="table-responsive">
-                <table class="table">
+                <table class="table hk-std hk-std-880">
+                {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                <colgroup><col style="width:18%"><col style="width:9%"><col style="width:17%"><col style="width:11%"><col style="width:16%"><col style="width:19%"><col style="width:10%"></colgroup>
                     <thead><tr><th>Class — Subject</th><th>Needs / Wk</th><th>Current Teacher</th><th>Issue</th><th>Recommendation</th><th>Why</th><th>Apply</th></tr></thead>
                     <tbody>
                     @foreach($rows as $row)
@@ -42,7 +47,7 @@
                                     <div class="text-muted" style="font-size: .85em;">{{ $hkOverrideNote }}</div>
                                 @endif
                             </td>
-                            <td>{{ $s->periods_per_week ?: 'Not set' }}</td>
+                            <td class="hk-nw">{{ $s->periods_per_week ?: 'Not set' }}</td>
                             <td>{{ $s->teacher ? $s->teacher->name . ' (' . ($row['loads'][$s->teacher_id] ?? 0) . ' periods)' : '—' }}</td>
                             <td>
                                 @if($row['issue'] === 'unassigned')<span class="badge badge-warning">No teacher</span>

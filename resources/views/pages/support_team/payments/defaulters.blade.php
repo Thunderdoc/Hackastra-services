@@ -201,7 +201,10 @@
                                 ['label' => 'Export selected', 'form' => 'def-bulk-export-form', 'class' => 'btn-light btn-sm', 'icon' => 'icon-download'],
                             ],
                         ])
-                        <table class="table def95-table l108-stack">
+                        <div class="table-responsive">
+                        <table class="table hk-std hk-std-1080 l108-stack">
+                            {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                            <colgroup><col style="width:4%"><col style="width:4%"><col style="width:17%"><col style="width:10%"><col style="width:8%"><col style="width:8%"><col style="width:11%"><col style="width:10%"><col style="width:10%"><col style="width:8%"><col style="width:10%"></colgroup>
                             <thead>
                             <tr>
                                 <th style="width:34px"><span class="sr-only">Select</span></th>
@@ -229,12 +232,12 @@
                                     <td data-label="Student Name">
                                         <span class="def95-student"><span class="l7-avatar l7-avatar-md" aria-hidden="true">{{ $def95Ini }}@if(Qs::hasRealPhoto($row['student']->user->photo))<img src="{{ $row['student']->user->photo }}" alt="" onerror="this.remove()">@endif</span><strong>{{ optional($row['student']->user)->name }}</strong></span>
                                     </td>
-                                    <td data-label="Admission No">{{ $row['student']->adm_no ?: '—' }}</td>
+                                    <td data-label="Admission No" class="hk-nw">{{ $row['student']->adm_no ?: '—' }}</td>
                                     <td data-label="Class">{{ optional($row['student']->my_class)->name ?: '—' }}</td>
                                     <td data-label="Section">{{ optional($row['student']->section)->name ?: '—' }}</td>
-                                    <td class="text-right" data-label="Total Fees">{{ \App\Helpers\Money::inr($row['total_fees']) }}</td>
-                                    <td class="text-right" data-label="Paid">{{ \App\Helpers\Money::inr($row['total_paid']) }}</td>
-                                    <td class="text-right def95-due" data-label="Total Due (₹)">{{ \App\Helpers\Money::inr($row['total_due']) }}</td>
+                                    <td class="text-right hk-nw" data-label="Total Fees">{{ \App\Helpers\Money::inr($row['total_fees']) }}</td>
+                                    <td class="text-right hk-nw" data-label="Paid">{{ \App\Helpers\Money::inr($row['total_paid']) }}</td>
+                                    <td class="text-right def95-due hk-nw" data-label="Total Due (₹)">{{ \App\Helpers\Money::inr($row['total_due']) }}</td>
                                     <td data-label="Status">
                                         @if($row['status'] === 'partial')
                                             <span class="def95-pill def95-pill-partial">Partially Paid</span>
@@ -249,6 +252,7 @@
                             @endforeach
                             </tbody>
                         </table>
+                        </div>
 
                         @php
                             $def95Cur = $rows->currentPage(); $def95Last = $rows->lastPage();
@@ -283,7 +287,9 @@
                      Loop 62's .pay-def print metrics compact it onto
                      exactly one A4 page. --}}
                 <div class="def95-print-only">
-                    <table class="table">
+                    <table class="table hk-std hk-std-880">
+                        {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                        <colgroup><col style="width:5%"><col style="width:20%"><col style="width:10%"><col style="width:9%"><col style="width:9%"><col style="width:9%"><col style="width:18%"><col style="width:10%"><col style="width:10%"></colgroup>
                         <thead>
                         <tr>
                             <th style="width:34px">#</th>
@@ -305,17 +311,17 @@
                                 <td>{{ $row['student']->adm_no ?: '—' }}</td>
                                 <td>{{ optional($row['student']->my_class)->name ?: '—' }}</td>
                                 <td>{{ optional($row['student']->section)->name ?: '—' }}</td>
-                                <td>{{ $row['items'] }}</td>
+                                <td class="hk-nw">{{ $row['items'] }}</td>
                                 <td>{{ $row['oldest_title'] ?: '—' }}</td>
-                                <td>{{ $row['oldest_since'] ? $row['oldest_since']->format('d M Y') : '—' }}</td>
-                                <td class="text-right text-danger font-weight-bold">{{ \App\Helpers\Money::inr($row['total_due']) }}</td>
+                                <td class="hk-nw">{{ $row['oldest_since'] ? $row['oldest_since']->format('d M Y') : '—' }}</td>
+                                <td class="text-right text-danger font-weight-bold hk-nw">{{ \App\Helpers\Money::inr($row['total_due']) }}</td>
                             </tr>
                         @endforeach
                         </tbody>
                         <tfoot>
                         <tr>
                             <th colspan="8">Total Outstanding</th>
-                            <th class="text-right">{{ \App\Helpers\Money::inr($print_total_due) }}</th>
+                            <th class="text-right hk-nw">{{ \App\Helpers\Money::inr($print_total_due) }}</th>
                         </tr>
                         </tfoot>
                     </table>

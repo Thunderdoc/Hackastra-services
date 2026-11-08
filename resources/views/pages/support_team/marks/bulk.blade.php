@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Select Student Marksheet')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Marks &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
     {{-- Batch 1A: rebuilt on the shared list_page pattern (Loop 28).
          Same form contract as before — POST marks.bulk_select, the

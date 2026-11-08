@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Student Promotion')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Students &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
     {{-- Batch 3: rebuilt on the shared list_page pattern (Loop 28). The
          selector keeps its POST contract (students.promote_selector) and

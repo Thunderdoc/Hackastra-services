@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Workload Analysis')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Academics &nbsp;/&nbsp; <a href="{{ route('tt.index') }}">Manage Timetables</a> &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
 
     {{-- Teacher Workload Analysis (owner ask 2026-10-30; redesign

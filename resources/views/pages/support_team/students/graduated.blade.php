@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Graduated Students')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Students &nbsp;/&nbsp; <a href="{{ route('students.index') }}">Student Information</a> &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
     {{-- Batch 3: class picker + ONE table on the shared list_page pattern
          (Loop 28), replacing the 11-tab stack of per-class tables. The
@@ -34,7 +37,9 @@
 
         @if($students->count())
             <div class="table-responsive">
-            <table class="table">
+            {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+            <table class="table hk-std hk-std-720">
+                <colgroup><col style="width:5%"><col style="width:9%"><col style="width:26%"><col style="width:13%"><col style="width:17%"><col style="width:12%"><col style="width:18%"></colgroup>
                 <thead>
                 <tr>
                     <th>S/N</th>
@@ -51,10 +56,10 @@
                     <tr>
                         <td>{{ $loop->iteration }}</td>
                         <td>@if(Qs::hasRealPhoto($s->user->photo))<img class="rounded-circle" style="height: 40px; width: 40px;" src="{{ $s->user->photo }}" alt="photo">@else<span class="hk-ini" style="width:40px;height:40px;font-size:.8rem" aria-hidden="true">{{ Qs::initials($s->user->name) }}</span>@endif</td>
-                        <td>{{ $s->user->name }}</td>
-                        <td>{{ $s->adm_no }}</td>
+                        <td class="hk-ellip">{{ $s->user->name }}</td>
+                        <td class="hk-nw">{{ $s->adm_no }}</td>
                         <td>{{ $s->my_class->name.' '.$s->section->name }}</td>
-                        <td>{{ $s->grad_date }}</td>
+                        <td class="hk-nw">{{ $s->grad_date }}</td>
                         <td class="text-center">
                             <div class="list-icons">
                                 <div class="dropdown">

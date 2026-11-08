@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'My Admit Cards')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Examinations &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
 
     {{-- Loop 108: legacy plain card shell replaced with the shared
@@ -26,7 +29,9 @@
                         <small class="text-muted">— {{ $sr->my_class->name }}{{ $sr->section ? ', '.$sr->section->name : '' }} ({{ $sr->adm_no }})</small>
                     </h6>
                     <div class="table-responsive mb-4">
-                        <table class="table l108-stack">
+                        <table class="table hk-std hk-std-640 l108-stack">
+                        {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                        <colgroup><col style="width:34%"><col style="width:18%"><col style="width:18%"><col style="width:30%"></colgroup>
                             <thead>
                             <tr>
                                 <th>Exam</th>

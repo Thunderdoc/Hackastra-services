@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Manage TimeTable Record')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Academics &nbsp;/&nbsp; <a href="{{ route('tt.index') }}">Manage Timetables</a> &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
 
     <div class="pat-list">
@@ -44,14 +47,16 @@
                 <strong>Snapshots of this timetable</strong>
                 <span class="text-muted">— saved automatically when the Principal approved it and before every regenerate. A restore creates a new draft; this timetable is never overwritten.</span>
                 <div class="table-responsive mt-2">
-                    <table class="table table-sm">
+                    <table class="table table-sm hk-std hk-std-640">
+                        {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                        @if(Qs::userIsTeamSAWrite())<colgroup><col style="width:26%"><col style="width:20%"><col style="width:10%"><col style="width:20%"><col style="width:24%"></colgroup>@else<colgroup><col style="width:30%"><col style="width:24%"><col style="width:12%"><col style="width:34%"></colgroup>@endif
                         <thead><tr><th>Saved</th><th>When</th><th>Periods</th><th>By</th>@if(Qs::userIsTeamSAWrite())<th></th>@endif</tr></thead>
                         <tbody>
                         @foreach($snapshots as $snap)
                             <tr>
                                 <td>{{ $snap->label }}</td>
-                                <td>{{ $snap->created_at->format('d M Y, g:i A') }}</td>
-                                <td>{{ $snap->cellCount() }}</td>
+                                <td class="hk-nw">{{ $snap->created_at->format('d M Y, g:i A') }}</td>
+                                <td class="hk-nw">{{ $snap->cellCount() }}</td>
                                 <td>{{ optional($snap->creator)->name ?: '—' }}</td>
                                 @if(Qs::userIsTeamSAWrite())
                                 <td>

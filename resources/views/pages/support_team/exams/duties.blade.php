@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Invigilation Duties')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Examinations &nbsp;/&nbsp; <a href="{{ route('exams.index') }}">Manage Exams</a> &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
 
     {{-- Invigilation Duties (Scheduling Engine Slice F): one
@@ -53,15 +56,17 @@
                 ])
             @else
                 <div class="table-responsive">
-                    <table class="table">
+                    <table class="table hk-std hk-std-1080">
+                    {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                    @if(Qs::userIsTeamSAWrite())<colgroup><col style="width:4%"><col style="width:15%"><col style="width:9%"><col style="width:11%"><col style="width:14%"><col style="width:12%"><col style="width:16%"><col style="width:10%"><col style="width:9%"></colgroup>@else<colgroup><col style="width:5%"><col style="width:17%"><col style="width:10%"><col style="width:12%"><col style="width:16%"><col style="width:13%"><col style="width:18%"><col style="width:9%"></colgroup>@endif
                         <thead><tr><th>#</th><th>Date</th><th>Time</th><th>Class</th><th>Subject</th><th>Venue</th><th>Invigilator</th><th>Duties (this exam)</th>@if(Qs::userIsTeamSAWrite())<th>Set</th>@endif</tr></thead>
                         <tbody>
                         @foreach($sittings as $sitting)
                             @php $duty = $duties->get($sitting->id); @endphp
                             <tr>
                                 <td>{{ $loop->iteration }}</td>
-                                <td>{{ \Carbon\Carbon::parse($sitting->exam_date)->format('D, d M Y') }}</td>
-                                <td>{{ \Carbon\Carbon::parse($sitting->start_time)->format('g:i A') }}</td>
+                                <td class="hk-nw">{{ \Carbon\Carbon::parse($sitting->exam_date)->format('D, d M Y') }}</td>
+                                <td class="hk-nw">{{ \Carbon\Carbon::parse($sitting->start_time)->format('g:i A') }}</td>
                                 <td>{{ optional($sitting->my_class)->name }}</td>
                                 <td>{{ optional($sitting->subject)->name }}</td>
                                 <td>{{ $sitting->note ?: '—' }}</td>

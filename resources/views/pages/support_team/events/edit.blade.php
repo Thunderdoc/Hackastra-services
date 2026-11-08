@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Edit Event')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Communication &nbsp;/&nbsp; <a href="{{ route('events.index') }}">School Events</a> &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
     {{-- Workstream BW: rebuilt on the shared form_page pattern.
          Was a plain card whose header repeated the page title.

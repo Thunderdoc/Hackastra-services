@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Exam Pattern')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Examinations &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
     {{-- Exam Pattern (Round 3 R1): the school's assessment periods
          for the current session, on the shared list/form patterns
@@ -33,7 +36,10 @@
         @endif
 
         @if($periods->count())
-            <table class="table l108-stack">
+            <div class="table-responsive">
+            <table class="table hk-std hk-std-980 l108-stack">
+                {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                @if(Qs::userIsTeamSAWrite())<colgroup><col style="width:5%"><col style="width:20%"><col style="width:9%"><col style="width:13%"><col style="width:13%"><col style="width:7%"><col style="width:8%"><col style="width:9%"><col style="width:16%"></colgroup>@else<colgroup><col style="width:6%"><col style="width:24%"><col style="width:10%"><col style="width:15%"><col style="width:15%"><col style="width:8%"><col style="width:10%"><col style="width:12%"></colgroup>@endif
                 <thead>
                 <tr>
                     <th>S/N</th>
@@ -109,6 +115,7 @@
                 @endforeach
                 </tbody>
             </table>
+            </div>
         @else
             @include('partials.patterns.empty_state', [
                 'icon' => 'icon-books',

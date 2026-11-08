@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Bulk Management')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Bulk Operations &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
 
     {{-- Bulk Management hub (Bulk System Phase A; Loop 111 premium
@@ -101,7 +104,9 @@
                 ])
             @else
                 <div class="table-responsive">
-                    <table class="table l111-table l108-stack">
+                    <table class="table hk-std hk-std-980 l108-stack">
+                        {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                        <colgroup><col style="width:6%"><col style="width:15%"><col style="width:16%"><col style="width:11%"><col style="width:6%"><col style="width:17%"><col style="width:11%"><col style="width:10%"><col style="width:8%"></colgroup>
                         <thead>
                         <tr>
                             <th>Job</th>
@@ -118,11 +123,11 @@
                         <tbody>
                         @foreach($jobs as $job)
                             <tr>
-                                <td data-label="Job">#{{ $job->id }}</td>
+                                <td data-label="Job" class="hk-nw">#{{ $job->id }}</td>
                                 <td data-label="Flow">{{ $job->title() }}</td>
-                                <td data-label="File">{{ $job->original_filename }}</td>
+                                <td data-label="File" class="hk-ellip">{{ $job->original_filename }}</td>
                                 <td data-label="By">{{ $job->user ? $job->user->name : '—' }}</td>
-                                <td data-label="Rows">{{ $job->total_rows }}</td>
+                                <td data-label="Rows" class="hk-nw">{{ $job->total_rows }}</td>
                                 <td data-label="Outcome">
                                     <span class="badge badge-success">{{ $job->applied_create_count }} created</span>
                                     <span class="badge badge-info">{{ $job->applied_update_count }} updated</span>
@@ -139,7 +144,7 @@
                                     @elseif($job->status === 'failed') <span class="badge badge-danger">Failed</span>
                                     @else <span class="badge badge-light">{{ ucfirst($job->status) }}</span> @endif
                                 </td>
-                                <td data-label="When">{{ $job->created_at ? $job->created_at->format('d M Y, H:i') : '' }}</td>
+                                <td data-label="When" class="hk-nw">{{ $job->created_at ? $job->created_at->format('d M Y, H:i') : '' }}</td>
                                 <td data-label=""><a href="{{ route('bulk.jobs.show', $job->id) }}" class="btn btn-light btn-sm"><i class="icon-eye mr-1"></i> View</a></td>
                             </tr>
                         @endforeach

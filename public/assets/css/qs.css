@@ -9352,3 +9352,85 @@ html.hk-dark .course-scope-note{background:#222327;border-color:#3d4a5c;color:#9
    hugging the top. Other contexts keep the (0,2,0) behaviour. */
 .l17-rail .dashboard-upcoming.l17-grow{flex:1 0 auto;display:flex;flex-direction:column}
 .l17-rail .dashboard-upcoming.l17-grow .pat-empty{flex:1 0 auto;display:flex;flex-direction:column;align-items:center;justify-content:center}
+
+/* === Header Design B — Title Strip (owner pick, 2026-11-08) ===
+   One slim site-card strip under the utility topbar on every sidebar
+   page: back (one level up) + pastel icon circle + breadcrumb chain
+   + title + subtitle + page actions. Colours mirror the approved
+   sample exactly (site card in light, #26272a card in dark). */
+.hk-strip-wrap{padding:1.25rem 1.25rem 0}
+.hk-strip{display:flex;align-items:center;gap:14px;border-radius:14px;padding:12px 18px;border:1px solid #e4e7f0;background:#fff;box-shadow:0 1px 3px rgba(23,32,54,.05)}
+html.hk-dark .hk-strip{background:#26272a;border-color:#34363b;box-shadow:0 2px 10px rgba(0,0,0,.25)}
+.hk-strip-back{flex:0 0 auto}
+.hk-strip-ic{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:0 0 auto;font-size:20px}
+.hk-tint-blue{background:#e9f1ff;color:#2867dc}
+.hk-tint-green{background:#e6f7ee;color:#1d9d63}
+.hk-tint-violet{background:#f0eafd;color:#7c5cd6}
+.hk-tint-amber{background:#fdf3e0;color:#d9930d}
+.hk-tint-rose{background:#fdecec;color:#dd4b4b}
+.hk-tint-teal{background:#e4f6f5;color:#129c94}
+.hk-tint-slate{background:#edf1f6;color:#5c6f84}
+html.hk-dark .hk-tint-blue{background:rgba(47,111,237,.17);color:#8db1ff}
+html.hk-dark .hk-tint-green{background:rgba(46,204,133,.15);color:#6fe3ae}
+html.hk-dark .hk-tint-violet{background:rgba(150,116,255,.16);color:#c0a8ff}
+html.hk-dark .hk-tint-amber{background:rgba(245,176,65,.16);color:#ffcf7d}
+html.hk-dark .hk-tint-rose{background:rgba(240,98,98,.15);color:#ff9d9d}
+html.hk-dark .hk-tint-teal{background:rgba(45,196,188,.15);color:#7fe0da}
+html.hk-dark .hk-tint-slate{background:rgba(148,163,184,.16);color:#aebdd0}
+.hk-strip .l118-page-icon{flex:0 0 auto}
+.hk-strip-main{min-width:0;flex:1 1 auto}
+.hk-strip-crumbs{font-size:12px;line-height:1.4;color:#8494a7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:1px}
+html.hk-dark .hk-strip-crumbs{color:#7b7f87}
+.hk-strip-crumbs a{color:inherit;text-decoration:none}
+.hk-strip-crumbs a:hover{color:#2867dc;text-decoration:underline}
+html.hk-dark .hk-strip-crumbs a:hover{color:#8db1ff}
+.hk-strip-crumbs .hk-crumb-sep{opacity:.55}
+.hk-strip-title{margin:0;font-size:20px;line-height:1.25;color:#172536}
+html.hk-dark .hk-strip-title{color:#eef1f6}
+.hk-strip-sub{font-size:12.5px;color:#5c6f84;margin-top:2px}
+html.hk-dark .hk-strip-sub{color:#9aa0ab}
+.hk-strip-actions{margin-left:auto;flex:0 0 auto}
+@media (max-width:767.98px){
+  .hk-strip-wrap{padding:.9rem .9rem 0}
+  .hk-strip{padding:10px 12px;gap:10px;border-radius:12px}
+  .hk-strip-ic{width:40px;height:40px;font-size:17px}
+  .hk-strip-title{font-size:17px}
+  .hk-strip-sub{display:none}
+}
+@media (max-width:575.98px){
+  .hk-strip-crumbs a:not(:last-of-type),.hk-strip-crumbs .hk-crumb-sep:not(:last-of-type){display:none}
+}
+@media print{
+  .hk-strip-wrap{display:none !important}
+}
+
+/* ============================================================
+   INSIDE-MATTER ROUND — JOB 2 (2026-11-08): table unification.
+   The remaining screen data tables adopt the house .hk-std
+   standard (fixed layout, colgroup widths summing to 100%,
+   hk-nw / hk-ellip cell discipline). One screen-only min-width
+   rule per new variant, mirroring the Batch-4 block shape
+   (.table-responsive scrollport scope) so phones scroll
+   sideways instead of squeezing columns. hk-std-760 and
+   hk-std-880 already exist above and are reused, not repeated.
+   Presentation only.
+   ============================================================ */
+@media screen{
+.table-responsive>.hk-std-560{min-width:560px}
+.table-responsive>.hk-std-640{min-width:640px}
+.table-responsive>.hk-std-720{min-width:720px}
+.table-responsive>.hk-std-980{min-width:980px}
+.table-responsive>.hk-std-1080{min-width:1080px}
+}
+/* Stack exemption (Job 2, same block): a table that also carries
+   .l108-stack turns into labelled row-cards at phone widths (the
+   Loop-108 contract: EVERY column stays visible, nothing sideways).
+   A surviving min-width would stretch those cards past the phone
+   and push the values off-screen, so inside the stack's own
+   breakpoint the min-width is lifted for stacked tables only.
+   (0,3,0) beats the variant rules above (0,2,0) and the older
+   unscoped .hk-std-760/.hk-std-880 rules (0,1,0). Desktop and
+   non-stacked tables keep their min-width untouched. */
+@media (max-width:767.98px){
+.table-responsive>.hk-std.l108-stack{min-width:0}
+}

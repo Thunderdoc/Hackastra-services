@@ -111,7 +111,10 @@
                         @endif
                         <details class="f2-subjects"{{ $idx === 0 ? ' open' : '' }}>
                             <summary>Subject-wise marks</summary>
-                            <table class="table l108-stack f2-table">
+                            <div class="table-responsive">
+                            <table class="table hk-std hk-std-560 f2-table l108-stack">
+                                {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                                <colgroup><col style="width:30%"><col style="width:10%"><col style="width:10%"><col style="width:12%"><col style="width:13%"><col style="width:25%"></colgroup>
                                 <thead>
                                 <tr><th>Subject</th><th>Total</th><th>Max</th><th>%</th><th>Grade</th><th>Remark</th></tr>
                                 </thead>
@@ -128,6 +131,7 @@
                                 @endforeach
                                 </tbody>
                             </table>
+                            </div>
                         </details>
                         <p class="f2-foot-link"><a href="{{ route('marks.show', [Qs::hash($record->user_id), $session]) }}">Full marksheet for this period</a></p>
                     </div>
@@ -168,7 +172,10 @@
                     'compact' => true,
                 ])
             @else
-                <table class="table l108-stack f2-table">
+                <div class="table-responsive">
+                <table class="table hk-std hk-std-640 f2-table l108-stack">
+                    {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                    <colgroup><col style="width:20%"><col style="width:11%"><col style="width:10%"><col style="width:11%"><col style="width:11%"><col style="width:24%"><col style="width:13%"></colgroup>
                     <thead>
                     <tr><th>Month</th><th>Present</th><th>Late</th><th>Absent</th><th>Marked</th><th>Attendance</th><th>%</th></tr>
                     </thead>
@@ -190,6 +197,7 @@
                     @endforeach
                     </tbody>
                 </table>
+                </div>
                 <p class="f2-foot-link"><a href="{{ route('attendance.my', ['student_id' => $record->id]) }}">Day-by-day record</a></p>
             @endif
         </section>

@@ -116,7 +116,10 @@
                 <a href="{{ route('my_payslips.index') }}" class="btn btn-primary btn-sm">Reset Filters</a>
             </div>
         @else
-            <table class="table mp89-table l108-stack">
+            <div class="table-responsive">
+            <table class="table hk-std hk-std-980 l108-stack">
+                {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                <colgroup><col style="width:4%"><col style="width:19%"><col style="width:11%"><col style="width:12%"><col style="width:12%"><col style="width:12%"><col style="width:9%"><col style="width:9%"><col style="width:12%"></colgroup>
                 <thead>
                 <tr>
                     <th style="width:44px">#</th>
@@ -143,10 +146,10 @@
                                 </span>
                             </div>
                         </td>
-                        <td class="text-right" data-label="Basic">{{ \App\Helpers\Money::inr($rec->basic_salary) }}</td>
-                        <td class="text-right" data-label="Allowances">{{ \App\Helpers\Money::inr($rec->allowances) }}</td>
-                        <td class="text-right" data-label="Deductions">{{ \App\Helpers\Money::inr($rec->deductions) }}</td>
-                        <td class="text-right" data-label="Net Pay"><span class="mp89-net">{{ \App\Helpers\Money::inr($rec->net_pay) }}</span></td>
+                        <td class="text-right hk-nw" data-label="Basic">{{ \App\Helpers\Money::inr($rec->basic_salary) }}</td>
+                        <td class="text-right hk-nw" data-label="Allowances">{{ \App\Helpers\Money::inr($rec->allowances) }}</td>
+                        <td class="text-right hk-nw" data-label="Deductions">{{ \App\Helpers\Money::inr($rec->deductions) }}</td>
+                        <td class="text-right hk-nw" data-label="Net Pay"><span class="mp89-net">{{ \App\Helpers\Money::inr($rec->net_pay) }}</span></td>
                         <td data-label="Status">
                             @if($rec->isPaid())
                                 <span class="badge pay-badge-paid">✓ Paid</span>
@@ -154,7 +157,7 @@
                                 <span class="badge pay-badge-pending">Pending</span>
                             @endif
                         </td>
-                        <td data-label="Paid On">{{ $rec->paid_at ? $rec->paid_at->format('d M Y') : '—' }}</td>
+                        <td data-label="Paid On" class="hk-nw">{{ $rec->paid_at ? $rec->paid_at->format('d M Y') : '—' }}</td>
                         <td class="text-right mp89-actions" data-label="Actions">
                             <a href="{{ route('my_payslips.payslip', $rec->id) }}" class="btn btn-light btn-sm"><i class="icon-file-text2 mr-1"></i> View</a>
                             <a href="{{ route('my_payslips.pdf', $rec->id) }}" class="btn btn-light btn-sm"><i class="icon-file-pdf mr-1"></i> Download PDF</a>
@@ -163,6 +166,7 @@
                 @endforeach
                 </tbody>
             </table>
+            </div>
 
             <div class="mp89-pager">
                 <span class="mp89-pager-info">@if($records->firstItem() == $records->lastItem())Showing {{ $records->total() }} of {{ $records->total() }} {{ $records->total() == 1 ? 'payslip' : 'payslips' }}@elseShowing {{ $records->firstItem() }} to {{ $records->lastItem() }} of {{ $records->total() }} {{ $records->total() == 1 ? 'payslip' : 'payslips' }}@endif</span>

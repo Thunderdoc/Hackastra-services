@@ -177,11 +177,20 @@ class OwnerBeautyBatch8CustomizableTest extends TestCase
     {
         $blade = file_get_contents(resource_path('views/pages/principal/home.blade.php'));
 
-        $this->assertStringContainsString('.pr-bar-fill{display:block;', $blade);
-        $this->assertStringContainsString('html.hk-dark .pr-bar-fill{background:#6ea8ff}', $blade);
+        /* Re-expressed 2026-11-08 for the owner-approved principal
+           home sample v2: the pr-bar fills retired with the old
+           analytics markup. The same promise in the new shape —
+           every bar fill is a real full-height box and every track
+           keeps an explicit dark-theme background. */
+        $this->assertStringContainsString('.pr2-ca-fill{height:100%;border-radius:99px}', $blade);
+        $this->assertStringContainsString('.pr2-avg-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,#7fb0f5,#3478f6)}', $blade);
+        $this->assertStringContainsString('.pr2-wl-fill{height:100%;border-radius:99px}', $blade);
+        $this->assertStringContainsString('html.hk-dark .pr2-ca-bar{background:#3a3c40}', $blade);
+        $this->assertStringContainsString('html.hk-dark .pr2-avg-bar{background:#3a3c40}', $blade);
+        $this->assertStringContainsString('html.hk-dark .pr2-wl-bar{background:#3a3c40}', $blade);
 
         $response = $this->actingAs($this->user('principal@hackstra.app'))->get('/home');
         $response->assertOk();
-        $response->assertSee('pr-bar-fill', false);
+        $response->assertSee('pr2-ca-fill', false);
     }
 }

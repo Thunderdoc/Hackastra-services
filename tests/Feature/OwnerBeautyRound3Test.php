@@ -322,7 +322,14 @@ class OwnerBeautyRound3Test extends TestCase
             ->get(route('alumni.index'))->assertOk();
 
         $blade = $this->bladeFile('pages/support_team/alumni/index.blade.php');
-        $this->assertStringContainsString('table-striped l108-stack', $blade);
+        // Re-expressed 2026-11-08 (Inside-Matter Job 2): the table
+        // adopted the house hk-std standard (hk-std classes now sit
+        // between table-striped and the phone stack), so the two
+        // contracts are asserted separately at the same strength —
+        // striped skin AND the l108-stack its data-labels expect.
+        $this->assertStringContainsString('table-striped', $blade);
+        $this->assertStringContainsString('hk-std', $blade);
+        $this->assertStringContainsString('l108-stack', $blade);
     }
 
     /* ---------- 15. My Attendance ---------- */

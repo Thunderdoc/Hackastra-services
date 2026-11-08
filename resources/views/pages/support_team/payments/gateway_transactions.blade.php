@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Online Payments')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Finance &nbsp;/&nbsp; <a href="{{ route('payments.index') }}">Manage Payments</a> &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
 
     {{-- Workstream CU — every Razorpay transaction the gateway has

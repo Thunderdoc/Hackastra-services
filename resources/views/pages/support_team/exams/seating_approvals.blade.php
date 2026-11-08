@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Exam Seating Approvals')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Examinations &nbsp;/&nbsp; <a href="{{ route('exams.index') }}">Manage Exams</a> &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
 
     {{-- F3 — Principal's queue: submitted seating plans awaiting

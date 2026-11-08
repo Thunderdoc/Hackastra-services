@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', $expense->exists ? 'Edit Expense' : 'Record Expense')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Finance &nbsp;/&nbsp; <a href="{{ route('expenses.index') }}">Expenses</a> &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
     @component('partials.patterns.form_page', [
         'form_action'  => $expense->exists ? route('expenses.update', $expense) : route('expenses.store'),

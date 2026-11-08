@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Select Exam Year')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Marks &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
     {{-- Workstream BW: rebuilt on the shared form_page pattern.
          Was a narrow centred column (col-md-6 offset-md-3) inside

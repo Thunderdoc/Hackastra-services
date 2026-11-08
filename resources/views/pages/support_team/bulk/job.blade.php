@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Bulk Job #' . $job->id . ' — ' . $job->title())
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Bulk Operations &nbsp;/&nbsp; <a href="{{ route('bulk.index') }}">Bulk Management</a> &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
 
     {{-- Preview / progress / result for one bulk job. The confirm
@@ -111,13 +114,15 @@
             </div>
             <div class="card-body">
                 <div class="table-responsive">
-                    <table class="table l111-table l108-stack">
+                    <table class="table hk-std hk-std-720 l108-stack">
+                        {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                        <colgroup><col style="width:8%"><col style="width:30%"><col style="width:14%"><col style="width:20%"><col style="width:5%"><col style="width:23%"></colgroup>
                         <thead><tr><th>CSV Row</th><th>{{ $job->module === 'staff' ? 'Staff Member' : 'Student' }}</th><th>Field</th><th>Old</th><th></th><th>New</th></tr></thead>
                         <tbody>
                         @foreach($changed_rows as $r)
                             @foreach($r->changes as $field => $pair)
                                 <tr>
-                                    <td data-label="CSV Row">{{ $r->row_number }}</td>
+                                    <td data-label="CSV Row" class="hk-nw">{{ $r->row_number }}</td>
                                     <td data-label="{{ $job->module === 'staff' ? 'Staff Member' : 'Student' }}">{{ $r->raw['name'] ?? '' }} <span class="text-muted">({{ $job->module === 'staff' ? ($r->raw['email'] ?? '') : ($r->raw['adm_no'] ?? '') }})</span></td>
                                     <td data-label="Field"><code>{{ $field }}</code></td>
                                     <td data-label="Old">{{ $pair['old'] !== '' && $pair['old'] !== null ? $pair['old'] : '—' }}</td>
@@ -144,13 +149,15 @@
             </div>
             <div class="card-body">
                 <div class="table-responsive">
-                    <table class="table l111-table l108-stack">
+                    <table class="table hk-std hk-std-640 l108-stack">
+                        {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                        <colgroup><col style="width:10%"><col style="width:16%"><col style="width:30%"><col style="width:44%"></colgroup>
                         <thead><tr><th>CSV Row</th><th>Field</th><th>You Supplied</th><th>Problem</th></tr></thead>
                         <tbody>
                         @foreach($invalid_rows as $r)
                             @foreach($r->errors ?? [] as $e)
                                 <tr>
-                                    <td data-label="CSV Row">{{ $r->row_number }}</td>
+                                    <td data-label="CSV Row" class="hk-nw">{{ $r->row_number }}</td>
                                     <td data-label="Field"><code>{{ $e['field'] ?? '' }}</code></td>
                                     <td data-label="You Supplied">{{ $e['value'] ?? '' }}</td>
                                     <td data-label="Problem">{{ $e['message'] ?? '' }}</td>
@@ -173,12 +180,14 @@
             </div>
             <div class="card-body">
                 <div class="table-responsive">
-                    <table class="table l111-table l108-stack">
+                    <table class="table hk-std hk-std-560 l108-stack">
+                        {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                        <colgroup><col style="width:12%"><col style="width:24%"><col style="width:64%"></colgroup>
                         <thead><tr><th>CSV Row</th><th>Outcome</th><th>Why</th></tr></thead>
                         <tbody>
                         @foreach($problem_rows as $r)
                             <tr>
-                                <td data-label="CSV Row">{{ $r->row_number }}</td>
+                                <td data-label="CSV Row" class="hk-nw">{{ $r->row_number }}</td>
                                 <td data-label="Outcome">
                                     @if($r->verdict === 'duplicate') <span class="badge badge-secondary">Duplicate — skipped</span>
                                     @elseif($r->verdict === 'unmatched') <span class="badge badge-secondary">No match — skipped</span>

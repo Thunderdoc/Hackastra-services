@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Edit Student')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Students &nbsp;/&nbsp; <a href="{{ route('students.index') }}">Student Information</a> &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
     {{-- Batch 3: sectioned rebuild on the shared form_page pattern (Loop 28).
          Shell change only: every field keeps its original name, classes,

@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Pay Online')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; <a href="{{ route('my_fees') }}">My Fees</a> &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
 
     {{-- Workstream CU — gateway checkout step. The amount on this page

@@ -200,7 +200,9 @@
                     <a href="{{ route('book_requests.index') }}" class="dashboard-view-all">View All <i class="icon-arrow-right7"></i></a>
                 </div>
                 <div class="table-responsive">
-                    <table class="table dashboard-table mb-0">
+                    <table class="table hk-std hk-std-720 mb-0">
+                    {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                    <colgroup><col style="width:4%"><col style="width:24%"><col style="width:18%"><col style="width:12%"><col style="width:12%"><col style="width:12%"><col style="width:18%"></colgroup>
                         <thead><tr><th>#</th><th>Book Title</th><th>Borrower</th><th>Issue Date</th><th>Due Date</th><th>Status</th><th>Actions</th></tr></thead>
                         <tbody>
                         @forelse($recent_loans as $loan)
@@ -211,8 +213,8 @@
                                     {{ optional($loan->user)->name ?: '—' }}
                                     @if($loan->user)<div class="text-muted">{{ ucfirst(str_replace('_', ' ', $loan->user->user_type)) }}</div>@endif
                                 </td>
-                                <td>{{ $loan->start_date ? $loan->start_date->format('d M Y') : '—' }}</td>
-                                <td>{{ $loan->end_date ? $loan->end_date->format('d M Y') : '—' }}</td>
+                                <td class="hk-nw">{{ $loan->start_date ? $loan->start_date->format('d M Y') : '—' }}</td>
+                                <td class="hk-nw">{{ $loan->end_date ? $loan->end_date->format('d M Y') : '—' }}</td>
                                 <td>
                                     @if($loan->returned)
                                         <span class="dashboard-status status-success">Returned</span>

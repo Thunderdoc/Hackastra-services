@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'School Feedback #' . $item->id)
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Feedback &nbsp;/&nbsp; <a href="{{ route('feedback.sa_index') }}">School Feedback</a> &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
     {{-- Super Admin feedback detail (Workstream CW): the forwarded
          report is read-only — the SA cannot edit the reporter's text.

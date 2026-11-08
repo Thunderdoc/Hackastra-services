@@ -392,13 +392,27 @@ class HomeController extends Controller
                     DB::raw('COUNT(*) as total'))
                 ->groupBy('attendance_sessions.my_class_id', 'my_classes.name')
                 ->orderBy('my_classes.name')->get();
+            $attPresent = 0;
+            $attTotal = 0;
             foreach ($rows as $row) {
                 $classAttendance[] = [
                     'class' => $row->class_name,
                     'percent' => $row->total > 0 ? (int) round(($row->present / $row->total) * 100) : 0,
                 ];
+                $attPresent += (int) $row->present;
+                $attTotal += (int) $row->total;
             }
             $d['pr_class_attendance'] = $classAttendance;
+            // School-wide roll-up of the SAME grouped sums above
+            // (principal home sample v2, owner-approved 2026-11-08):
+            // the KPI tile and hero chip need one headline percent —
+            // it is the identical computation over the identical
+            // rows, never a second source. Per-class figures above
+            // are unchanged.
+            $d['pr_attendance_30d'] = [
+                'percent' => $attTotal > 0 ? (int) round(($attPresent / $attTotal) * 100) : 0,
+                'recorded' => $attTotal > 0,
+            ];
 
             $texCol = 'tex' . $term1->term;
             $subjectRows = Mark::where('exam_id', $term1->id)
@@ -425,6 +439,7 @@ class HomeController extends Controller
                 ->whereRaw('CAST(ave AS DECIMAL(10,2)) < 50')->count();
         } else {
             $d['pr_class_attendance'] = [];
+            $d['pr_attendance_30d'] = ['percent' => 0, 'recorded' => false];
             $d['pr_subject_avgs'] = [];
             $d['pr_class_avgs'] = [];
             $d['pr_support_count'] = 0;

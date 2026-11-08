@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'My Fees')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Fees &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
 
     {{-- Student fees portal (2026-10-23): the student's own fee
@@ -24,7 +27,9 @@
         <h6 class="font-weight-bold">Incomplete Payments</h6>
         @if($uncleared->count())
             <div class="table-responsive">
-                <table class="table">
+                <table class="table hk-std hk-std-880">
+                    {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                    <colgroup><col style="width:4%"><col style="width:20%"><col style="width:11%"><col style="width:11%"><col style="width:13%"><col style="width:11%"><col style="width:11%"><col style="width:10%"><col style="width:9%"></colgroup>
                     <thead>
                     <tr>
                         <th>#</th>
@@ -43,11 +48,11 @@
                         <tr>
                             <td>{{ $loop->iteration }}</td>
                             <td class="font-weight-bold">{{ $row['title'] }}</td>
-                            <td class="text-right">{{ \App\Helpers\Money::inr($row['total']) }}</td>
-                            <td class="text-right text-blue font-weight-bold">{{ \App\Helpers\Money::inr($row['paid']) }}</td>
-                            <td>{{ !empty($row['last_date']) ? \Carbon\Carbon::parse($row['last_date'])->format('d M Y') : '—' }}</td>
+                            <td class="text-right hk-nw">{{ \App\Helpers\Money::inr($row['total']) }}</td>
+                            <td class="text-right text-blue font-weight-bold hk-nw">{{ \App\Helpers\Money::inr($row['paid']) }}</td>
+                            <td class="hk-nw">{{ !empty($row['last_date']) ? \Carbon\Carbon::parse($row['last_date'])->format('d M Y') : '—' }}</td>
                             <td>{{ !empty($row['last_method']) ? ucfirst($row['last_method']) : '—' }}</td>
-                            <td class="text-right text-danger font-weight-bold">{{ \App\Helpers\Money::inr($row['balance']) }}</td>
+                            <td class="text-right text-danger font-weight-bold hk-nw">{{ \App\Helpers\Money::inr($row['balance']) }}</td>
                             <td><span class="badge {{ $row['badge'] }}">{{ $row['status'] }}</span></td>
                             <td>
                                 @if($row['has_receipts'])
@@ -82,7 +87,9 @@
         <h6 class="font-weight-bold mt-4">Completed Payments</h6>
         @if($cleared->count())
             <div class="table-responsive">
-                <table class="table">
+                <table class="table hk-std hk-std-880">
+                    {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                    <colgroup><col style="width:5%"><col style="width:22%"><col style="width:12%"><col style="width:12%"><col style="width:14%"><col style="width:12%"><col style="width:12%"><col style="width:11%"></colgroup>
                     <thead>
                     <tr>
                         <th>#</th>
@@ -100,9 +107,9 @@
                         <tr>
                             <td>{{ $loop->iteration }}</td>
                             <td class="font-weight-bold">{{ $row['title'] }}</td>
-                            <td class="text-right">{{ \App\Helpers\Money::inr($row['total']) }}</td>
-                            <td class="text-right text-blue font-weight-bold">{{ \App\Helpers\Money::inr($row['paid']) }}</td>
-                            <td>{{ !empty($row['last_date']) ? \Carbon\Carbon::parse($row['last_date'])->format('d M Y') : '—' }}</td>
+                            <td class="text-right hk-nw">{{ \App\Helpers\Money::inr($row['total']) }}</td>
+                            <td class="text-right text-blue font-weight-bold hk-nw">{{ \App\Helpers\Money::inr($row['paid']) }}</td>
+                            <td class="hk-nw">{{ !empty($row['last_date']) ? \Carbon\Carbon::parse($row['last_date'])->format('d M Y') : '—' }}</td>
                             <td>{{ !empty($row['last_method']) ? ucfirst($row['last_method']) : '—' }}</td>
                             <td><span class="badge {{ $row['badge'] }}">{{ $row['status'] }}</span></td>
                             <td>

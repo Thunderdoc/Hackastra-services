@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Student Marksheet')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Marks &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
 
     {{-- Batch 6 (M2): one calm header scheme for every marksheet section card

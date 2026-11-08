@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Backup & Monitoring')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; System &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
     <style>
         .bk-wrap { max-width: 100%; }

@@ -16,7 +16,9 @@
         <div class="card-body">
             @if(count($records) > 0)
                 <div class="table-responsive">
-                <table class="table table-striped">
+                <table class="table table-striped hk-std hk-std-720">
+                    {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                    <colgroup><col style="width:24%"><col style="width:16%"><col style="width:15%"><col style="width:17%"><col style="width:28%"></colgroup>
                     <thead>
                     <tr><th>Timetable</th><th>Class</th><th>Sent by</th><th>Sent on</th><th></th></tr>
                     </thead>
@@ -26,7 +28,7 @@
                             <td><strong>{{ $rec->name }}</strong> ({{ $rec->year }})</td>
                             <td>{{ optional($rec->my_class)->name ?? 'Deleted class' }}@if($rec->section) — {{ $rec->section->name }}@endif</td>
                             <td>{{ optional($submitters->get($rec->approval_submitted_by))->name ?? 'Admin' }}</td>
-                            <td>{{ $rec->approval_submitted_at ? \Illuminate\Support\Carbon::parse($rec->approval_submitted_at)->format('d M Y, g:i A') : '' }}</td>
+                            <td class="hk-nw">{{ $rec->approval_submitted_at ? \Illuminate\Support\Carbon::parse($rec->approval_submitted_at)->format('d M Y, g:i A') : '' }}</td>
                             <td class="text-right" style="white-space: nowrap;">
                                 <a href="{{ route('ttr.show', $rec->id) }}" class="btn btn-light btn-sm" target="_blank"><i class="icon-eye mr-1"></i> View</a>
                                 <a href="{{ route('ttr.print', $rec->id) }}" class="btn btn-light btn-sm" target="_blank"><i class="icon-printer mr-1"></i> Print</a>
@@ -62,7 +64,9 @@
                 it again, and you approve the corrected timetable.</span>
             </div>
             <div class="table-responsive">
-            <table class="table table-striped">
+            <table class="table table-striped hk-std hk-std-720">
+                {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                <colgroup><col style="width:24%"><col style="width:16%"><col style="width:15%"><col style="width:17%"><col style="width:28%"></colgroup>
                 <thead>
                 <tr><th>Timetable</th><th>Class</th><th>Approved by</th><th>Approved on</th><th></th></tr>
                 </thead>
@@ -72,7 +76,7 @@
                         <td><strong>{{ $rec->name }}</strong> ({{ $rec->year }})</td>
                         <td>{{ optional($rec->my_class)->name ?? 'Deleted class' }}@if($rec->section) — {{ $rec->section->name }}@endif</td>
                         <td>{{ optional($approvers->get($rec->approved_by))->name ?? 'Principal' }}</td>
-                        <td>{{ $rec->approved_at ? \Illuminate\Support\Carbon::parse($rec->approved_at)->format('d M Y, g:i A') : '' }}</td>
+                        <td class="hk-nw">{{ $rec->approved_at ? \Illuminate\Support\Carbon::parse($rec->approved_at)->format('d M Y, g:i A') : '' }}</td>
                         <td class="text-right" style="white-space: nowrap;">
                             <a href="{{ route('ttr.show', $rec->id) }}" class="btn btn-light btn-sm" target="_blank"><i class="icon-eye mr-1"></i> View</a>
                             <form method="post" action="{{ route('ttr.send_back', $rec->id) }}" style="display:inline;" data-confirm="Send {{ $rec->name }} back to the Admin for changes? It will stop being in force until it is approved again." data-confirm-title="Send Back" data-confirm-action="Send Back">

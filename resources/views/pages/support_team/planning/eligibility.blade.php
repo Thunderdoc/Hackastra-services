@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Teacher Eligibility')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Planning &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
 
     {{-- Teacher Eligibility (Scheduling Engine Slice A): the
@@ -24,12 +27,14 @@
             ])
         @else
             <div class="table-responsive">
-                <table class="table">
+                <table class="table hk-std hk-std-720">
+                {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                <colgroup><col style="width:5%"><col style="width:22%"><col style="width:30%"><col style="width:28%"><col style="width:15%"></colgroup>
                     <thead><tr><th>#</th><th>Teacher</th><th>Qualified To Teach</th><th>Currently Teaching</th><th>Action</th></tr></thead>
                     <tbody>
                     @foreach($teachers as $i => $t)
                         <tr>
-                            <td>{{ $i + 1 }}</td>
+                            <td class="hk-nw">{{ $i + 1 }}</td>
                             <td>{{ $t->name }}</td>
                             <td>
                                 @forelse($eligibility->get($t->id, []) as $name)

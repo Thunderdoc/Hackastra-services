@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Hostel Dorms')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Hostel &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
     {{-- Beauty Wave 3: the slim module banner (partials/module_banner)
          opens the hostel module's landing list, with the ledger's
@@ -25,7 +28,9 @@
         <div class="card-body">
             @if($dorms->count())
                 <div class="table-responsive">
-                    <table class="table">
+                    <table class="table hk-std hk-std-640">
+                    {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                    <colgroup><col style="width:7%"><col style="width:26%"><col style="width:41%"><col style="width:26%"></colgroup>
                         <thead>
                             <tr>
                                 <th>S/N</th>
@@ -37,7 +42,7 @@
                         <tbody>
                             @foreach($dorms as $dorm)
                                 <tr>
-                                    <td>{{ $loop->iteration }}</td>
+                                    <td class="hk-nw">{{ $loop->iteration }}</td>
                                     <td>{{ $dorm->name }}</td>
                                     <td>{{ $dorm->description }}</td>
                                     <td>

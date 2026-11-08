@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Referrals')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Platform &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
     {{-- Round 5 Slice 4 (P16): SA-side referral plumbing. The
          programme is ON only while a reward text is saved —

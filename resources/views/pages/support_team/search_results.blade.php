@@ -20,7 +20,7 @@
     @else
         <section class="dashboard-panel mb-4">
             <div class="dashboard-panel-heading"><div><h5 class="mb-1">Students</h5></div></div>
-            <div class="table-responsive"><table class="table dashboard-table mb-0">
+            <div class="table-responsive"><table class="table hk-std hk-std-560 mb-0">{{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}<colgroup><col style="width:44%"><col style="width:22%"><col style="width:18%"><col style="width:16%"></colgroup>
                 <thead><tr><th>Student</th><th>Class</th><th>Section</th><th></th></tr></thead>
                 <tbody>
                 @forelse($students as $student)
@@ -38,7 +38,7 @@
 
         <section class="dashboard-panel mb-4">
             <div class="dashboard-panel-heading"><div><h5 class="mb-1">Staff</h5></div></div>
-            <div class="table-responsive"><table class="table dashboard-table mb-0">
+            <div class="table-responsive"><table class="table hk-std hk-std-560 mb-0">{{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}<colgroup><col style="width:34%"><col style="width:24%"><col style="width:42%"></colgroup>
                 <thead><tr><th>Name</th><th>Role</th><th>Email</th></tr></thead>
                 <tbody>
                 @forelse($staff as $member)
@@ -53,7 +53,7 @@
             <div class="col-xl-6">
                 <section class="dashboard-panel mb-4">
                     <div class="dashboard-panel-heading"><div><h5 class="mb-1">Classes</h5></div></div>
-                    <div class="table-responsive"><table class="table dashboard-table mb-0">
+                    <div class="table-responsive"><table class="table hk-std hk-std-560 mb-0">{{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}<colgroup><col style="width:76%"><col style="width:24%"></colgroup>
                         <tbody>
                         @forelse($classes as $class)
                             <tr><td><strong>{{ $class->name }}</strong></td><td><a href="{{ route('students.list', $class->id) }}" class="dashboard-view-all">Students</a></td></tr>
@@ -66,10 +66,10 @@
             <div class="col-xl-6">
                 <section class="dashboard-panel mb-4">
                     <div class="dashboard-panel-heading"><div><h5 class="mb-1">Payments</h5></div></div>
-                    <div class="table-responsive"><table class="table dashboard-table mb-0">
+                    <div class="table-responsive"><table class="table hk-std hk-std-560 mb-0">{{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}<colgroup><col style="width:72%"><col style="width:28%"></colgroup>
                         <tbody>
                         @forelse($payments as $payment)
-                            <tr><td><strong>{{ $payment->title }}</strong><small>{{ $payment->ref_no }}</small></td><td>{{ \App\Helpers\Money::inr($payment->amount) }}</td></tr>
+                            <tr><td><strong>{{ $payment->title }}</strong><small>{{ $payment->ref_no }}</small></td><td class="hk-nw">{{ \App\Helpers\Money::inr($payment->amount) }}</td></tr>
                         @empty
                             <tr><td>@include('partials.patterns.empty_state', ['icon' => 'icon-search4', 'message' => 'No payments match.', 'compact' => true])</td></tr>
                         @endforelse

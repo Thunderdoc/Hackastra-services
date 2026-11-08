@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Role Permissions')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Administration &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
     <div class="card">
         <div class="card-header">
@@ -18,7 +21,9 @@
                 @include('partials.patterns.empty_state', ['icon' => 'icon-lock', 'message' => 'No grants yet.'])
             @else
                 <div class="table-responsive">
-                    <table class="table table-striped">
+                    {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                    <table class="table table-striped hk-std hk-std-720">
+                        <colgroup><col style="width:20%"><col style="width:12%"><col style="width:24%"><col style="width:18%"><col style="width:16%"><col style="width:10%"></colgroup>
                         <thead>
                             <tr>
                                 <th>User</th>
@@ -36,7 +41,7 @@
                                     <td>{{ optional($grant->user)->user_type ?: '-' }}</td>
                                     <td>{{ $grant->permission }}</td>
                                     <td>{{ optional($grant->granter)->name ?: '-' }}</td>
-                                    <td>{{ $grant->created_at }}</td>
+                                    <td class="hk-nw">{{ $grant->created_at }}</td>
                                     <td>
                                         <form method="POST" action="{{ route('role_permissions.destroy', $grant->id) }}" data-confirm="Revoke the {{ $grant->permission }} grant for {{ optional($grant->user)->name ?: 'this user' }}? The base rule will apply again." data-confirm-title="Revoke Grant" data-confirm-action="Revoke" data-confirm-danger>
                                             @csrf

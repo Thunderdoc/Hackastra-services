@@ -29,7 +29,9 @@
                 @include('partials.patterns.empty_state', ['icon' => 'icon-file-text2', 'message' => 'No attempts yet.'])
             @else
                 <div class="table-responsive">
-                    <table class="table lms-table l108-stack">
+                    <table class="table hk-std hk-std-640 l108-stack">
+                    {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                    <colgroup><col style="width:44%"><col style="width:24%"><col style="width:32%"></colgroup>
                         <thead>
                             <tr>
                                 <th>Student</th>
@@ -52,7 +54,9 @@
                     <details class="mt-3">
                     <summary><strong>Per-question detail:</strong> {{ $attempt->student_record && $attempt->student_record->user ? $attempt->student_record->user->name : 'Student #' . $attempt->student_record_id }} ({{ $attempt->score }} / {{ $attempt->total }})</summary>
                     <div class="table-responsive mt-2">
-                        <table class="table table-sm lms-table l108-stack">
+                        <table class="table table-sm hk-std hk-std-720 l108-stack">
+                        {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                        <colgroup><col style="width:40%"><col style="width:22%"><col style="width:22%"><col style="width:16%"></colgroup>
                             <thead>
                                 <tr>
                                     <th>Question</th>

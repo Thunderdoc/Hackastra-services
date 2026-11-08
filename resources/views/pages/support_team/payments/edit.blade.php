@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Edit Payment')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Finance &nbsp;/&nbsp; <a href="{{ route('payments.index') }}">Manage Payments</a> &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
 
     {{-- Workstream BT: rebuilt on the shared form_page pattern

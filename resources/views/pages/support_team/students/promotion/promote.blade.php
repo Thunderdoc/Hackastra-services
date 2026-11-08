@@ -26,9 +26,14 @@
         </div>
         <div class="mb-2 text-muted"><span id="promo-count"></span></div>
     </div>
-    {{-- Loop 108: l108-stack so the per-student decision rows stay
-         fully visible on phone widths (form + selects unchanged). --}}
-    <table id="promo-table" class="table table-striped l108-stack">
+    <div class="table-responsive">
+    {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+    <table id="promo-table" class="table table-striped hk-std hk-std-720 l108-stack">
+        @if(($streamed ?? false))
+        <colgroup><col style="width:5%"><col style="width:9%"><col style="width:28%"><col style="width:20%"><col style="width:18%"><col style="width:20%"></colgroup>
+        @else
+        <colgroup><col style="width:5%"><col style="width:10%"><col style="width:35%"><col style="width:25%"><col style="width:25%"></colgroup>
+        @endif
         <thead>
         <tr>
             <th>#</th>
@@ -44,10 +49,10 @@
         <tbody>
         @foreach($students->sortBy('user.name') as $sr)
             <tr>
-                <td data-label="#">{{ $loop->iteration }}</td>
+                <td data-label="#" class="hk-nw">{{ $loop->iteration }}</td>
                 <td data-label="Photo">@if(Qs::hasRealPhoto($sr->user->photo))<img class="rounded-circle" style="height: 30px; width: 30px;" src="{{ $sr->user->photo }}" alt="img">@else<span class="hk-ini" style="width:30px;height:30px;font-size:.7rem" aria-hidden="true">{{ Qs::initials($sr->user->name) }}</span>@endif</td>
                 <td data-label="Name">{{ $sr->user->name }}</td>
-                <td data-label="Current Session">{{ $sr->session }}</td>
+                <td data-label="Current Session" class="hk-nw">{{ $sr->session }}</td>
                 @if(($streamed ?? false))
                 <td data-label="Stream">
                     <select class="form-control select" name="s-{{$sr->id}}" id="s-{{$sr->id}}">
@@ -74,6 +79,7 @@
         @endforeach
         </tbody>
     </table>
+    </div>
     {{-- Workstream BW: submit moved from centred to bottom-right
          (pattern action placement). Form, table and per-student
          selects unchanged. --}}

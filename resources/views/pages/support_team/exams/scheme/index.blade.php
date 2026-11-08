@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Marking Scheme — ' . $ex->name)
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Examinations &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
     {{-- Loop 108: rebuilt on the shared list chrome (Loop 28). Was a
          legacy card with panel-options chrome and a plain table.
@@ -27,7 +30,9 @@
                 </div>
 
                 <div class="table-responsive">
-                    <table class="table l108-stack">
+                    <table class="table hk-std hk-std-720 l108-stack">
+                    {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                    <colgroup><col style="width:6%"><col style="width:24%"><col style="width:20%"><col style="width:28%"><col style="width:22%"></colgroup>
                         <thead>
                         <tr>
                             <th>S/N</th>

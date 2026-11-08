@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Feedback #' . $item->id)
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Feedback &nbsp;/&nbsp; <a href="{{ route('feedback.index') }}">Feedback Inbox</a> &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
     {{-- Admin feedback detail (Workstream CW): triage the report,
          merge it as a duplicate of a canonical one, or forward it

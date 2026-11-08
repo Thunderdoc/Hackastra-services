@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Manage Class Sections')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Academics &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
     {{-- Batch 4: rebuilt on the shared patterns (Loop 28). Was: one
          stacked table per class under a tab strip (73KB rendered, 30
@@ -46,7 +49,9 @@
 
         @if($selected_class && $sections->count())
             <div class="table-responsive">
-            <table class="table l108-stack">
+            {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+            <table class="table hk-std hk-std-880 l108-stack">
+                <colgroup><col style="width:5%"><col style="width:10%"><col style="width:12%"><col style="width:20%"><col style="width:10%"><col style="width:10%"><col style="width:17%"><col style="width:16%"></colgroup>
                 <thead>
                 <tr>
                     <th>S/N</th>
@@ -72,7 +77,7 @@
                         @else
                             <td data-label="Teacher"> - </td>
                         @endif
-                        <td data-label="Students">{{ \App\Support\SectionCapacity::strength($s->id) }}@if($s->capacity) / {{ $s->capacity }}@endif</td>
+                        <td data-label="Students" class="hk-nw">{{ \App\Support\SectionCapacity::strength($s->id) }}@if($s->capacity) / {{ $s->capacity }}@endif</td>
                         <td data-label="Overrides">
                             @if(($overrideCounts[$s->id] ?? 0) > 0)
                                 <a href="{{ route('sections.edit', $s->id) }}">{{ $overrideCounts[$s->id] }} override{{ $overrideCounts[$s->id] > 1 ? 's' : '' }}</a>

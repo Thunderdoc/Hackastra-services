@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Payslip — ' . $payroll->monthName() . ' ' . $payroll->year)
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Finance &nbsp;/&nbsp; <a href="{{ route('payroll.index') }}">Payroll</a> &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
     {{-- Payslip screen (premium redesign, 2026-10-22): the document
          itself lives in partials/payslip_document — the SAME partial

@@ -19,7 +19,9 @@
         <div class="card">
             <div class="card-body">
                 <div class="table-responsive">
-                    <table class="table table-striped">
+                    <table class="table table-striped hk-std hk-std-880">
+                    {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                    <colgroup><col style="width:24%"><col style="width:20%"><col style="width:13%"><col style="width:12%"><col style="width:11%"><col style="width:10%"><col style="width:10%"></colgroup>
                         <thead>
                             <tr>
                                 <th>Assignment</th>
@@ -64,7 +66,9 @@
                     @include('partials.patterns.empty_state', ['icon' => 'icon-checkmark-circle2', 'message' => 'Every student on the roster has submitted this assignment.', 'compact' => true])
                 @else
                     <div class="table-responsive">
-                        <table class="table table-striped">
+                        <table class="table table-striped hk-std hk-std-640">
+                        {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                        <colgroup><col style="width:6%"><col style="width:44%"><col style="width:20%"><col style="width:30%"></colgroup>
                             <thead>
                                 <tr>
                                     <th>#</th>

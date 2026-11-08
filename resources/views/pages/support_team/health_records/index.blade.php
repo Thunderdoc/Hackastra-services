@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Health Records')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Health &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @if($can_write)
 @section('page_actions')
     {{-- Beauty Batch 2 (audit A10): the create action takes the
@@ -32,7 +35,9 @@
             <p class="text-muted">Complaint and treatment details are shown on the individual record page only.</p>
             @if($records->count())
                 <div class="table-responsive">
-                    <table class="table">
+                    <table class="table hk-std hk-std-640">
+                    {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                    <colgroup><col style="width:14%"><col style="width:32%"><col style="width:13%"><col style="width:23%"><col style="width:18%"></colgroup>
                         <thead>
                             <tr>
                                 <th>Date</th>
@@ -45,7 +50,7 @@
                         <tbody>
                             @foreach($records as $record)
                                 <tr>
-                                    <td>{{ optional($record->visit_date)->format('d M Y') }}</td>
+                                    <td class="hk-nw">{{ optional($record->visit_date)->format('d M Y') }}</td>
                                     <td>{{ optional($record->student)->name }}</td>
                                     <td>
                                         @if($record->is_referred)<span class="badge badge-warning">Referred</span>

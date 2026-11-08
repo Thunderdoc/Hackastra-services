@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Marking Scheme — ' . $my_class->name)
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Examinations &nbsp;/&nbsp; <a href="{{ route('exams.index') }}">Examinations</a> &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
 
     <datalist id="scheme-name-list">

@@ -30,7 +30,9 @@
             </form>
             @if($questions->count())
                 <div class="table-responsive">
-                    <table class="table table-bordered table-striped">
+                    <table class="table table-bordered table-striped hk-std hk-std-1080">
+                {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                <colgroup><col style="width:26%"><col style="width:9%"><col style="width:9%"><col style="width:12%"><col style="width:8%"><col style="width:12%"><col style="width:9%"><col style="width:6%"><col style="width:9%"></colgroup>
                         <thead>
                             <tr>
                                 <th>Question</th>

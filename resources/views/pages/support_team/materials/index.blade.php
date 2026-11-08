@@ -146,7 +146,9 @@
                     <div class="lms82-group-body">
                         @if($items->isNotEmpty())
                             <div class="table-responsive">
-                                <table class="table lms-table l108-stack">
+                                <table class="table hk-std hk-std-880 l108-stack">
+                                {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                                <colgroup><col style="width:26%"><col style="width:10%"><col style="width:18%"><col style="width:18%"><col style="width:12%"><col style="width:16%"></colgroup>
                                     <thead>
                                     <tr>
                                         <th>Title</th>

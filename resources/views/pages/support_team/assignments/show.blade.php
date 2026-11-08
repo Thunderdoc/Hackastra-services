@@ -83,7 +83,9 @@
         </div>
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table lms-sub-table l108-stack">
+                <table class="table hk-std hk-std-880 l108-stack">
+                {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                <colgroup><col style="width:22%"><col style="width:16%"><col style="width:30%"><col style="width:32%"></colgroup>
                     <thead>
                     <tr>
                         <th>Student</th>

@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Settings Unlock Requests')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Settings &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
     <div class="card">
         <div class="card-header header-elements-inline">
@@ -17,12 +20,14 @@
                 @include('partials.patterns.empty_state', ['icon' => 'icon-lock', 'message' => 'No unlock requests yet.'])
             @else
                 <div class="table-responsive">
-                    <table class="table">
+                    {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                    <table class="table hk-std hk-std-880">
+                        <colgroup><col style="width:16%"><col style="width:14%"><col style="width:30%"><col style="width:12%"><col style="width:28%"></colgroup>
                         <thead><tr><th>Requested</th><th>By</th><th>Changes requested</th><th>Status</th><th>Decision</th></tr></thead>
                         <tbody>
                         @foreach($requests as $r)
                             <tr>
-                                <td>{{ $r->created_at->format('d M Y, g:i A') }}</td>
+                                <td class="hk-nw">{{ $r->created_at->format('d M Y, g:i A') }}</td>
                                 <td>{{ optional($r->requester)->name ?: '—' }}</td>
                                 <td style="max-width:420px">{{ $r->changes }}</td>
                                 <td>

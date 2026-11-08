@@ -43,7 +43,14 @@ class OwnerPrincipalDashboardTest extends TestCase
         $response->assertOk();
         $response->assertSee('School Command Center');
         $response->assertSee('Approval Center');
-        $response->assertSee('Attention Needed');
+        /* "Attention Needed" was the Wave 2 KPI tile's label; the
+           owner-approved principal home sample v2 (2026-11-08)
+           retired that tile — the attention function lives on in
+           the attention strip (its all-clear state on the clean
+           seed) and the Approval Center. The fees surface heading
+           is pinned alongside the sidebar's Finance link. */
+        $response->assertSee('pr-ok', false);
+        $response->assertSee('Fees —', false);
         $response->assertSee('Finance');
     }
 

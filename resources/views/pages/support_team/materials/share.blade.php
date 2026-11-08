@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Share Study Material')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Learning &nbsp;/&nbsp; <a href="{{ route('courses.index') }}">Study Materials</a> &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
     @component('partials.patterns.form_page', [
         'form_action' => route('materials.share.store', $material->id),

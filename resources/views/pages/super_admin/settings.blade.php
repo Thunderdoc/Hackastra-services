@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Manage System Settings')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Platform &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
 
     {{-- Batch 5B: rebuilt on the shared form_page pattern (Loop 28).

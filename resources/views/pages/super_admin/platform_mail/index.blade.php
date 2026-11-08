@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Sent Mail')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Platform &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
     {{-- Loop 106: rebuilt from the raw Limitless card onto the
          platform design scope (.l106) — same sends, columns,
@@ -20,7 +23,9 @@
                 ])
         @else
             <div class="table-responsive">
-                <table class="l106-table">
+                <table class="table hk-std hk-std-880">
+                {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                <colgroup><col style="width:16%"><col style="width:16%"><col style="width:14%"><col style="width:10%"><col style="width:24%"><col style="width:8%"><col style="width:12%"></colgroup>
                     <thead>
                     <tr>
                         <th>When</th>
@@ -38,7 +43,7 @@
                             <td class="l106-nowrap">{{ $mail->created_at->format('d M Y, h:i A') }}</td>
                             <td>{{ optional($mail->sender)->name ?: '—' }}</td>
                             <td>{{ $mail->audience_label }}</td>
-                            <td>{{ $mail->recipient_count }}</td>
+                            <td class="hk-nw">{{ $mail->recipient_count }}</td>
                             <td><strong>{{ $mail->subject }}</strong></td>
                             <td><code class="l106-code">{{ $mail->driver }}</code></td>
                             <td>

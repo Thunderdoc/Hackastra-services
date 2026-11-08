@@ -189,7 +189,9 @@
 
                 @if($records->count())
                     <div class="table-responsive mp94-table-wrap">
-                        <table class="table mp94-table l108-stack">
+                        <table class="table hk-std hk-std-980 l108-stack">
+                            {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                            <colgroup><col style="width:4%"><col style="width:15%"><col style="width:15%"><col style="width:10%"><col style="width:10%"><col style="width:11%"><col style="width:9%"><col style="width:8%"><col style="width:18%"></colgroup>
                             <thead>
                             <tr>
                                 <th style="width:40px">#</th>
@@ -215,15 +217,15 @@
                                 @endphp
                                 <tr>
                                     <td data-label="#">{{ $records->firstItem() + $loop->index }}</td>
-                                    <td data-label="Receipt No"><span class="mp94-ref">{{ $pr->ref_no }}</span></td>
+                                    <td data-label="Receipt No" class="hk-nw"><span class="mp94-ref">{{ $pr->ref_no }}</span></td>
                                     <td data-label="Student Name">
                                         <strong>{{ optional(optional($pr)->student)->name }}</strong>
                                         @if($sr && $sr->adm_no)<br><small class="text-muted">Adm {{ $sr->adm_no }}</small>@endif
                                     </td>
                                     <td data-label="Class & Section">{{ optional(optional($sr)->my_class)->name ?: '—' }}@if($sr && $sr->section) &middot; {{ $sr->section->name }}@endif</td>
-                                    <td data-label="Amount (₹)" class="text-right font-weight-bold">{{ \App\Helpers\Money::inr($r->amt_paid) }}</td>
+                                    <td data-label="Amount (₹)" class="text-right font-weight-bold hk-nw">{{ \App\Helpers\Money::inr($r->amt_paid) }}</td>
                                     <td data-label="Payment Method">{{ $method }}</td>
-                                    <td data-label="Payment Date">{{ $r->created_at->format('d M Y') }}<br><small class="text-muted">{{ $r->created_at->format('h:i A') }}</small></td>
+                                    <td data-label="Payment Date" class="hk-nw">{{ $r->created_at->format('d M Y') }}<br><small class="text-muted">{{ $r->created_at->format('h:i A') }}</small></td>
                                     <td data-label="Status"><span class="mp94-pill {{ $settled ? 'mp94-pill-paid' : 'mp94-pill-partial' }}">{{ $settled ? 'Paid' : 'Partial' }}</span></td>
                                     <td data-label="Actions" class="text-center text-nowrap">
                                         <a href="{{ route('payments.receipts', Qs::hash($pr->id)) }}" class="btn btn-light btn-sm"><i class="icon-eye mr-1"></i> View</a>

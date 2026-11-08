@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Exam Date Sheet')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Examinations &nbsp;/&nbsp; <a href="{{ route('exams.index') }}">Manage Exams</a> &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
 
     <div class="card">
@@ -106,7 +109,9 @@
                     ])
                 @else
                     <div class="table-responsive">
-                        <table class="table l103-table">
+                        <table class="table hk-std hk-std-720">
+                        {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                        <colgroup><col style="width:20%"><col style="width:14%"><col style="width:30%"><col style="width:36%"></colgroup>
                             <thead>
                             <tr>
                                 <th style="width: 210px;">Date</th>
@@ -119,8 +124,8 @@
                             @foreach($rows as $r)
                                 <tr>
                                     @if($r['entry'])
-                                        <td class="font-weight-semibold">{{ $r['date_label'] }}</td>
-                                        <td>{{ $r['time_label'] ?: '—' }}</td>
+                                        <td class="font-weight-semibold hk-nw">{{ $r['date_label'] }}</td>
+                                        <td class="hk-nw">{{ $r['time_label'] ?: '—' }}</td>
                                         <td>{{ $r['subject']->name }}</td>
                                         <td>{{ $r['entry']->note ?: '—' }}</td>
                                     @else

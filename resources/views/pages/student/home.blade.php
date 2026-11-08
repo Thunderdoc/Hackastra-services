@@ -95,12 +95,14 @@
                     <a href="{{ route('tt.mine') }}" class="dashboard-view-all">Full Timetable <i class="icon-arrow-right7"></i></a>
                 </div>
                 <div class="table-responsive">
-                    <table class="table dashboard-table mb-0">
+                    <table class="table hk-std hk-std-640 mb-0">
+                                {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                                <colgroup><col style="width:18%"><col style="width:34%"><col style="width:30%"><col style="width:18%"></colgroup>
                         <thead><tr><th>Time</th><th>Subject</th><th>Teacher</th><th>Status</th></tr></thead>
                         <tbody>
                         @forelse($today_periods as $period)
                             <tr>
-                                <td>{{ $period['time'] }}</td>
+                                <td class="hk-nw">{{ $period['time'] }}</td>
                                 <td><strong>{{ $period['subject'] }}</strong></td>
                                 <td>{{ $period['teacher'] }}</td>
                                 <td><span class="dashboard-status stu-status-{{ \Illuminate\Support\Str::slug($period['status']) }}">{{ $period['status'] }}</span></td>

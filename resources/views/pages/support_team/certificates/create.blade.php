@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Issue Certificate')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Certificates &nbsp;/&nbsp; <a href="{{ route('certificates.index') }}">Certificates</a> &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
     <div class="card">
         <div class="card-header header-elements-inline">

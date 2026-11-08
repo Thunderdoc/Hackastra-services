@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'School Readiness')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Planning &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
 
     {{-- School Readiness (program Phase 8): is the school set up
@@ -20,7 +23,9 @@
         </div>
 
         <div class="table-responsive mt-3">
-            <table class="table">
+            <table class="table hk-std hk-std-640">
+            {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+            <colgroup><col style="width:12%"><col style="width:24%"><col style="width:50%"><col style="width:14%"></colgroup>
                 <thead><tr><th style="width: 110px;">Status</th><th>Check</th><th>Detail</th><th style="width: 120px;">Fix</th></tr></thead>
                 <tbody>
                 @foreach($checks as $c)

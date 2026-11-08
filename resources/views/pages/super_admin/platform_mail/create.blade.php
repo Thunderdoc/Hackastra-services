@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Send Platform Mail')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Platform &nbsp;/&nbsp; <a href="{{ route('platform_mail.index') }}">Sent Mail</a> &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
     {{-- Loop 75: rebuilt on the shared form_page pattern (was a
          legacy stacked card form). Same fields, ids, POST route and

@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Admit Student')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Students &nbsp;/&nbsp; <a href="{{ route('students.index') }}">Student Information</a> &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 {{-- Owner flag 2026-10-22: admitting students one by one is a pain —
      the CSV bulk import already exists (Students → Student Information
      → Import CSV) but this page never hinted at it. Surface it here in

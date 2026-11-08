@@ -10,15 +10,17 @@
             <p>Net payable = fee head amount minus that student's concessions, computed live.</p>
             @if($students->count())
                 <div class="table-responsive">
-                    <table class="table">
+                    <table class="table hk-std hk-std-560">
+                        {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                        <colgroup><col style="width:38%"><col style="width:20%"><col style="width:20%"><col style="width:22%"></colgroup>
                         <thead>
                             <tr><th>Student</th><th>Admission No.</th><th>Class</th><th>Action</th></tr>
                         </thead>
                         <tbody>
                             @foreach($students as $sr)
                                 <tr>
-                                    <td>{{ optional($sr->user)->name }}</td>
-                                    <td>{{ $sr->adm_no }}</td>
+                                    <td class="hk-ellip">{{ optional($sr->user)->name }}</td>
+                                    <td class="hk-nw">{{ $sr->adm_no }}</td>
                                     <td>{{ optional($sr->my_class)->name }}</td>
                                     <td><a href="{{ route('fee_structure.net', ['student_record' => $sr->id]) }}" class="btn btn-sm btn-info">View Net Fees</a></td>
                                 </tr>

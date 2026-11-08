@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Attendance')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Attendance &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
     {{-- Loop 108: legacy card-header chrome dropped (panel options +
          the repeated "Daily Attendance" title — the common header
@@ -59,7 +62,9 @@
                         <button type="button" id="mark-all-present" class="btn btn-light btn-sm"><i class="icon-checkmark3 mr-1"></i> Mark all present</button>
                     </div>
                     <div class="table-responsive">
-                        <table class="table attendance-grid">
+                        <table class="table hk-std hk-std-720 attendance-grid">
+                            {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                            <colgroup><col style="width:30%"><col style="width:14%"><col style="width:16%"><col style="width:13%"><col style="width:13%"><col style="width:14%"></colgroup>
                             <thead>
                             <tr>
                                 <th class="att-sticky">Student</th>
@@ -76,7 +81,7 @@
                                 <tr>
                                     <td class="att-sticky"><strong>{{ optional($student->user)->name }}</strong></td>
                                     <td>{{ optional($student->section)->name ?: '—' }}</td>
-                                    <td>{{ $student->adm_no ?: '—' }}</td>
+                                    <td class="hk-nw">{{ $student->adm_no ?: '—' }}</td>
                                     @foreach(['present', 'absent', 'late'] as $value)
                                         <td class="att-status">
                                             <input type="radio" class="att-radio" name="statuses[{{ $student->id }}]" value="{{ $value }}" aria-label="{{ ucfirst($value) }} — {{ optional($student->user)->name }}" {{ $current === $value ? 'checked' : '' }}>

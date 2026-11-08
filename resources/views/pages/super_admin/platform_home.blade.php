@@ -65,14 +65,16 @@
                     <a href="{{ route('users.index') }}" class="dashboard-view-all">Manage Users <i class="icon-arrow-right7"></i></a>
                 </div>
                 <div class="table-responsive">
-                    <table class="table dashboard-table mb-0">
+                    <table class="table hk-std hk-std-560 mb-0">
+                    {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                    <colgroup><col style="width:34%"><col style="width:20%"><col style="width:46%"></colgroup>
                         <thead><tr><th>Role</th><th>Accounts</th><th>Last sign-in</th></tr></thead>
                         <tbody>
                         @foreach($role_counts as $role)
                             <tr>
                                 <td><strong>{{ $role['label'] }}</strong></td>
                                 <td>{{ number_format($role['total']) }}</td>
-                                <td>{{ $role['last_sign_in'] ? $role['last_sign_in']->format('d M Y, h:i A') : '—' }}</td>
+                                <td class="hk-nw">{{ $role['last_sign_in'] ? $role['last_sign_in']->format('d M Y, h:i A') : '—' }}</td>
                             </tr>
                         @endforeach
                         </tbody>
@@ -88,12 +90,14 @@
                 </div>
                 @if($recent_audit->isNotEmpty())
                 <div class="table-responsive l17-list-scroll">
-                    <table class="table dashboard-table mb-0">
+                    <table class="table hk-std hk-std-640 mb-0">
+                    {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                    <colgroup><col style="width:24%"><col style="width:26%"><col style="width:26%"><col style="width:24%"></colgroup>
                         <thead><tr><th>When</th><th>User</th><th>Action</th><th>Subject</th></tr></thead>
                         <tbody>
                         @foreach($recent_audit as $log)
                             <tr>
-                                <td>{{ $log->created_at->format('d M Y, h:i A') }}</td>
+                                <td class="hk-nw">{{ $log->created_at->format('d M Y, h:i A') }}</td>
                                 <td><strong>{{ optional($log->user)->name ?: '—' }}</strong></td>
                                 <td><code>{{ $log->action }}</code></td>
                                 <td>{{ $log->subject_type ? class_basename($log->subject_type) . ($log->subject_id ? ' #' . $log->subject_id : '') : '—' }}</td>
@@ -192,13 +196,15 @@
                     <div><h5 class="mb-1"><i class="icon-enter text-blue mr-1"></i> Recent Sign-ins</h5><p class="dashboard-muted mb-0">Latest successful sign-ins.</p></div>
                 </div>
                 <div class="table-responsive l17-list-scroll">
-                    <table class="table dashboard-table mb-0">
+                    <table class="table hk-std hk-std-560 mb-0">
+                    {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                    <colgroup><col style="width:40%"><col style="width:32%"><col style="width:28%"></colgroup>
                         <thead><tr><th>User</th><th>When</th><th>IP</th></tr></thead>
                         <tbody>
                         @forelse($recent_logins as $login)
                             <tr>
                                 <td><strong>{{ optional($login->user)->name ?: '—' }}</strong></td>
-                                <td>{{ $login->created_at->format('d M, h:i A') }}</td>
+                                <td class="hk-nw">{{ $login->created_at->format('d M, h:i A') }}</td>
                                 <td>{{ $login->ip_address ?: '—' }}</td>
                             </tr>
                         @empty

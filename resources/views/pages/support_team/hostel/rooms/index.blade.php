@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Hostel Rooms')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Hostel &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
     <div class="card">
         <div class="card-header header-elements-inline">
@@ -12,7 +15,9 @@
         <div class="card-body">
             @if($rooms->count())
                 <div class="table-responsive">
-                    <table class="table">
+                    <table class="table hk-std hk-std-720">
+                    {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                    <colgroup><col style="width:24%"><col style="width:13%"><col style="width:12%"><col style="width:13%"><col style="width:12%"><col style="width:26%"></colgroup>
                         <thead>
                             <tr>
                                 <th>Dorm</th>
@@ -27,10 +32,10 @@
                             @foreach($rooms as $room)
                                 <tr>
                                     <td>{{ optional($room->dorm)->name }}</td>
-                                    <td>{{ $room->room_no }}</td>
-                                    <td>{{ $room->capacity }}</td>
-                                    <td>{{ $room->occupancy() }} / {{ $room->capacity }}</td>
-                                    <td>{{ $room->available() }}</td>
+                                    <td class="hk-nw">{{ $room->room_no }}</td>
+                                    <td class="hk-nw">{{ $room->capacity }}</td>
+                                    <td class="hk-nw">{{ $room->occupancy() }} / {{ $room->capacity }}</td>
+                                    <td class="hk-nw">{{ $room->available() }}</td>
                                     <td>
                                         @if(auth()->user() && auth()->user()->user_type === 'hostel')
                                             <a href="{{ route('hostel.rooms.edit', ['hostel_room' => $room->id]) }}" class="btn btn-sm btn-primary">Edit</a>

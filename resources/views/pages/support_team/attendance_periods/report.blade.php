@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Subject-wise Period Attendance Report')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Attendance &nbsp;/&nbsp; <a href="{{ route('attendance.periods.index') }}">Mark Attendance</a> &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
 
     {{-- Workstream CD: rebuilt on the shared list_page pattern (Loop 28),

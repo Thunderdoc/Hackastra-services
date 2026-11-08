@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Student Documents')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Documents &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
     <div class="card">
         <div class="card-header header-elements-inline">
@@ -14,16 +17,18 @@
                 </div>
             @endif
             <div class="table-responsive">
-                <table class="table table-sm lms-table l108-stack">
+                <table class="table table-sm hk-std hk-std-720 l108-stack">
+                    {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                    <colgroup><col style="width:24%"><col style="width:20%"><col style="width:20%"><col style="width:9%"><col style="width:11%"><col style="width:16%"></colgroup>
                     <thead><tr><th>Title</th><th>Student</th><th>File</th><th>Size</th><th>Uploaded</th><th></th></tr></thead>
                     <tbody>
                     @forelse($documents as $doc)
                         <tr>
-                            <td data-label="Title">{{ $doc->title }}</td>
+                            <td data-label="Title" class="hk-ellip">{{ $doc->title }}</td>
                             <td data-label="Student">{{ optional(optional($doc->studentRecord)->user)->name ?? '—' }}</td>
-                            <td data-label="File">{{ $doc->original_name }}</td>
-                            <td data-label="Size">{{ $doc->size_bytes ? round($doc->size_bytes / 1024, 1) . ' KB' : '—' }}</td>
-                            <td data-label="Uploaded">{{ $doc->created_at ? $doc->created_at->format('d M Y') : '—' }}</td>
+                            <td data-label="File" class="hk-ellip">{{ $doc->original_name }}</td>
+                            <td data-label="Size" class="hk-nw">{{ $doc->size_bytes ? round($doc->size_bytes / 1024, 1) . ' KB' : '—' }}</td>
+                            <td data-label="Uploaded" class="hk-nw">{{ $doc->created_at ? $doc->created_at->format('d M Y') : '—' }}</td>
                             <td data-label="Actions">
                                 @if(($doc->mime_type ?? null) === 'application/pdf')
                                     <a href="{{ route('documents.view', $doc->id) }}" target="_blank" rel="noopener" class="btn btn-light btn-sm"><i class="icon-eye mr-1"></i> View</a>

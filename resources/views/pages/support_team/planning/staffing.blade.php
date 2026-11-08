@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Staffing Dashboard')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Planning &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
 
     {{-- Staffing Dashboard (Scheduling Engine Slice B): demand vs
@@ -42,18 +45,20 @@
 
         <h5 class="mt-4 mb-2">Demand by Subject</h5>
         <div class="table-responsive">
-            <table class="table">
+            <table class="table hk-std hk-std-880">
+                {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                <colgroup><col style="width:16%"><col style="width:13%"><col style="width:10%"><col style="width:11%"><col style="width:11%"><col style="width:12%"><col style="width:10%"><col style="width:17%"></colgroup>
                 <thead><tr><th>Subject</th><th>Classes</th><th>Needed / Wk</th><th>With a Teacher</th><th>Unassigned</th><th>Eligible Teachers</th><th>Capacity</th><th>Status</th></tr></thead>
                 <tbody>
                 @foreach($subjects as $name => $r)
                     <tr>
                         <td>{{ $name }}</td>
                         <td>{{ $r['classes'] }}{{ $r['unconfigured'] ? ' (' . $r['unconfigured'] . ' not configured)' : '' }}</td>
-                        <td>{{ $r['demand'] }}</td>
-                        <td>{{ $r['committed'] }}</td>
-                        <td>{{ $r['unassigned'] }}</td>
-                        <td>{{ $r['eligible_count'] }}</td>
-                        <td>{{ $r['capacity'] }}</td>
+                        <td class="hk-nw">{{ $r['demand'] }}</td>
+                        <td class="hk-nw">{{ $r['committed'] }}</td>
+                        <td class="hk-nw">{{ $r['unassigned'] }}</td>
+                        <td class="hk-nw">{{ $r['eligible_count'] }}</td>
+                        <td class="hk-nw">{{ $r['capacity'] }}</td>
                         <td>
                             @if($r['uncovered'])<span class="badge badge-danger">No eligible teacher</span>
                             @elseif($r['shortfall'] > 0)<span class="badge badge-danger">Short by {{ $r['shortfall'] }} periods</span>
@@ -69,7 +74,9 @@
 
         <h5 class="mt-4 mb-2">Teacher Load</h5>
         <div class="table-responsive">
-            <table class="table">
+            <table class="table hk-std hk-std-880">
+                {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                <colgroup><col style="width:18%"><col style="width:12%"><col style="width:24%"><col style="width:15%"><col style="width:8%"><col style="width:9%"><col style="width:14%"></colgroup>
                 <thead><tr><th>Teacher</th><th>Class-Subjects</th><th>Subjects</th><th>Committed / Wk</th><th>Cap</th><th>Load</th><th>Status</th></tr></thead>
                 <tbody>
                 @foreach($teachers as $row)
@@ -78,8 +85,8 @@
                         <td>{{ $row['classes'] }}</td>
                         <td>{{ implode(', ', $row['subjects']) ?: '—' }}</td>
                         <td>{{ $row['committed'] }}{{ $row['unconfigured'] ? ' (+' . $row['unconfigured'] . ' unconfigured)' : '' }}</td>
-                        <td>{{ $row['cap'] }}</td>
-                        <td>{{ $row['utilization'] }}%</td>
+                        <td class="hk-nw">{{ $row['cap'] }}</td>
+                        <td class="hk-nw">{{ $row['utilization'] }}%</td>
                         <td>
                             @if($row['overloaded'])<span class="badge badge-danger">Overloaded</span>
                             @elseif($row['classes'] === 0)<span class="badge badge-secondary">No classes</span>

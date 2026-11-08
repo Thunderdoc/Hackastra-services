@@ -149,7 +149,9 @@
                     @include('partials.patterns.empty_state', ['icon' => 'icon-search4', 'message' => 'No student matches these filters. Try widening the search.'])
                 @else
                     <div class="table-responsive">
-                        <table class="table table-sm">
+                        {{-- Inside-Matter Job 2 (2026-11-08): hk-std standard — colgroup widths sum to 100%. --}}
+                        <table class="table table-sm hk-std hk-std-1080">
+                            <colgroup><col style="width:4%"><col style="width:19%"><col style="width:11%"><col style="width:9%"><col style="width:8%"><col style="width:7%"><col style="width:8%"><col style="width:9%"><col style="width:11%"><col style="width:6%"><col style="width:8%"></colgroup>
                             <thead><tr>
                                 <th>S/N</th><th>Student</th><th>Adm No</th><th>Class</th><th>Section</th>
                                 <th>Gender</th><th>House</th><th>Category</th><th>Phone</th><th>Admitted</th><th></th>
@@ -159,14 +161,14 @@
                                     <tr>
                                         <td>{{ $i + 1 }}</td>
                                         <td><a href="{{ route('students.show', Qs::hash($sr->id)) }}">{{ optional($sr->user)->name }}</a></td>
-                                        <td>{{ $sr->adm_no }}</td>
+                                        <td class="hk-nw">{{ $sr->adm_no }}</td>
                                         <td>{{ optional($sr->my_class)->name }}</td>
                                         <td>{{ optional($sr->section)->name }}</td>
                                         <td>{{ optional($sr->user)->gender ?? '—' }}</td>
                                         <td>{{ $sr->house ?? '—' }}</td>
                                         <td>{{ $sr->category ?? '—' }}</td>
-                                        <td>{{ optional($sr->user)->phone ?? '—' }}</td>
-                                        <td>{{ $sr->year_admitted ?? '—' }}</td>
+                                        <td class="hk-nw">{{ optional($sr->user)->phone ?? '—' }}</td>
+                                        <td class="hk-nw">{{ $sr->year_admitted ?? '—' }}</td>
                                         <td><a href="{{ route('students.show', Qs::hash($sr->id)) }}" class="btn btn-light btn-sm"><i class="icon-eye mr-1"></i> View</a></td>
                                     </tr>
                                 @endforeach

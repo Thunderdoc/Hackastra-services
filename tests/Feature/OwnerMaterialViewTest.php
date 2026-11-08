@@ -328,8 +328,12 @@ class OwnerMaterialViewTest extends TestCase
         // Download stays first-class on file rows; no raw storage URLs.
         $this->assertStringContainsString(route('materials.download', $pdf->id), $html);
         $this->assertStringNotContainsString('/storage/materials/', $html);
-        // Table-isation markers (P8).
-        $this->assertStringContainsString('lms-table', $html);
+        // Table-isation markers (P8). Re-expressed 2026-11-08
+        // (Inside-Matter Job 2): the private lms-table skin was
+        // retired for the house hk-std standard with a colgroup;
+        // the phone stack (l108-stack) contract is unchanged.
+        $this->assertStringContainsString('hk-std hk-std-880', $html);
+        $this->assertStringContainsString('<colgroup>', $html);
         $this->assertStringContainsString('l108-stack', $html);
         $this->assertStringContainsString('data-label="Title"', $html);
         $this->assertStringContainsString('data-label="Actions"', $html);
@@ -453,12 +457,17 @@ class OwnerMaterialViewTest extends TestCase
 
     /* ---------------- Rebuilt-page table markers ---------------- */
 
-    public function test_quizzes_index_uses_the_lms_table_standard()
+    // Renamed + re-expressed 2026-11-08 (Inside-Matter Job 2): the
+    // quizzes list retired its private lms-table skin for the house
+    // hk-std standard (hk-std-1080 + colgroup); the phone stack
+    // (l108-stack) contract is unchanged.
+    public function test_quizzes_index_uses_the_hk_std_table_standard()
     {
         $response = $this->actingAs($this->ownerTeacher())->get(route('quizzes.index'));
         $response->assertOk();
         $html = $response->getContent();
-        $this->assertStringContainsString('lms-table', $html);
+        $this->assertStringContainsString('hk-std hk-std-1080', $html);
+        $this->assertStringContainsString('<colgroup>', $html);
         $this->assertStringContainsString('l108-stack', $html);
         $this->assertStringNotContainsString('alert alert-success', $html, 'duplicate inline flash alerts must stay removed');
     }

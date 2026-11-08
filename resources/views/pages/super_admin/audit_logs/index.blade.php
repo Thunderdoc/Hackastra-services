@@ -1,5 +1,8 @@
 @extends('layouts.master')
 @section('page_title', 'Audit Log')
+@section('page_breadcrumb')
+    <a href="{{ route('dashboard') }}">Dashboard</a> &nbsp;/&nbsp; Platform &nbsp;/&nbsp; {!! $__env->yieldContent('page_title') !!}
+@endsection
 @section('content')
   {{-- Item 19 (2026-11-01): audit tooling — search + user/action/
        date filters, quick-filter pills by action group with counts,
