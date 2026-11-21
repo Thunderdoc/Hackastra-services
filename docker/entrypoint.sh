@@ -19,12 +19,12 @@ if [ -z "$APP_KEY" ]; then
     echo "APP_KEY was not set - generated an ephemeral key for this boot."
 fi
 
-# Railway (and most hosts) inject DB settings as env vars. Translate the
-# MYSQL* variables Railway's MySQL service provides, when DB_* are unset.
+# Some hosts inject DB settings as MYSQL* env vars. Translate those into
+# Laravel's DB_* variables when DB_* are unset.
 if [ -z "$DB_HOST" ] && [ -n "$MYSQLHOST" ]; then
     export DB_HOST="$MYSQLHOST"
     export DB_PORT="${MYSQLPORT:-3306}"
-    export DB_DATABASE="${MYSQLDATABASE:-railway}"
+    export DB_DATABASE="${MYSQLDATABASE:-hackstra}"
     export DB_USERNAME="${MYSQLUSER:-root}"
     export DB_PASSWORD="${MYSQLPASSWORD:-}"
 fi

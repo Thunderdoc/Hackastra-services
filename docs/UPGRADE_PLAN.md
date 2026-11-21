@@ -151,6 +151,12 @@ The real work list, per hop:
 
 ## 5. Frontend: Mix 2 → Vite — mostly dead weight, retire don't migrate
 
+> ✅ Executed 21 Nov 2026 (branch `fix/audit-readme-hygiene`): `package.json`,
+> `webpack.mix.js`, `resources/js`, `resources/sass`, the unused
+> `auth/passwords/Dmail.blade.php` and `layouts/app.blade.php` (its only
+> extender) were deleted. No JS build step remains; a future feature needing
+> one should introduce Vite fresh, per (c) below.
+
 Measured reality (package.json, webpack.mix.js, blades):
 - Stack: laravel-mix ^2.0, vue ^2.5.7, bootstrap ^4, jquery ^3.2, axios
   ^0.18, popper.js ^1.12; Mix compiles `resources/js/app.js` +

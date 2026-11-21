@@ -283,7 +283,7 @@ dropdown and an exam name in Type. Evidence gathered on this tree + fresh seed:
 | `pages/admin/dashboard.blade.php` | No controller renders it; Admin home is `support_team/dashboard` |
 | `pages/support_team/marks/random.blade.php` | No controller renders it |
 | root `test.blade.php` | No route renders it |
-| `layouts/app.blade.php` | Was only used by the stock auth pages; Loop 108 moved those to `login_master`. File kept (harmless) |
+| `layouts/app.blade.php` | Was only used by the stock auth pages; Loop 108 moved those to `login_master`. Retired 21 Nov 2026 with the Mix toolchain (its only remaining extender, the unused `auth/passwords/Dmail.blade.php`, was deleted with it) |
 | `emails/*` | Mail templates, not pages |
 
 ## 14. Sweep change list (Loop 108)

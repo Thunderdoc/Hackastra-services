@@ -31,7 +31,7 @@ Verified behaviour with seeding off (fresh database, migrate only):
 
 ## 2. Required production environment
 
-Set these in the host's variable panel (Railway / server env), never in
+Set these in the host's variable panel (host env / server env), never in
 a committed file:
 
 ```
@@ -115,8 +115,7 @@ Safety properties (by design):
 
 ## 6. Uptime / health checks
 
-Point any uptime monitor (UptimeRobot, Better Stack, Railway's own
-checks, …) at:
+Point any uptime monitor (UptimeRobot, Better Stack, …) at:
 
 ```
 GET /api/health   →   200 {"status":"ok","app":"Hackstra"}

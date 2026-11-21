@@ -1,79 +1,149 @@
-# Hackstra — Live Deployment on Railway
+# Hackstra — Deployment
 
-Railway is the chosen host: it runs a real long-running container plus a
-managed MySQL service in the same project and deploys from GitHub.
+The live demo runs on **Render** (free tier) at
+https://hackastra.onrender.com. Production runs the same code as a Docker
+container against an external MySQL database, on any Docker host.
 (Vercel cannot host this app reliably — no official PHP runtime, no MySQL,
-no persistent filesystem for uploads, no workers; see the audit discussion.)
+no persistent filesystem for uploads, no workers.)
 
-**Cost:** new Railway accounts get a 30-day trial with a one-time $5 credit,
-no card needed. After that, Hobby is $5/month including $5 of usage — enough
-for a demo / small school deployment of this app.
+> Retired: the old Railway mirror (`hackastra-services-production.up.railway.app`)
+> is gone — its trial ended in November 2026 and the domain is no longer
+> provisioned (confirmed 21 Nov 2026: Railway returns its own 404 page).
+> `railway.json` was deleted with it. Do not re-add Railway config; Render
+> is the demo host and plain Docker is the production path.
 
 ## Files that make it work
 
-- `Dockerfile` — PHP 8.4 + Apache (the lock file resolves packages that
-  require PHP ≥ 8.4.1, e.g. symfony/css-selector v8 — do not downgrade the
-  image or the build fails its platform check), all extensions the app
-  needs, Composer production install, document root set to `public/`
+- `render.yaml` — Render Blueprint: one free web service (`hackastra`),
+  Docker runtime, `Dockerfile.render`. Environment variables live in the
+  Render dashboard, never in this file (`APP_KEY` is `sync: false`).
+- `Dockerfile.render` — PHP 8.4 + Apache demo image with a small MariaDB
+  bundled inside the container (Render's free plan has no MySQL).
+- `docker/entrypoint.render.sh` — picks the database mode on boot (below),
+  runs migrations, caches config/routes/views, starts Apache on `$PORT`.
+- `Dockerfile` — production image (PHP 8.4 + Apache, external MySQL).
+  The lock file resolves packages that require PHP ≥ 8.4.1 (e.g.
+  symfony/css-selector v8) — do not downgrade the image or the build fails
+  its platform check.
 - `docker/entrypoint.sh` — waits for the database, runs `php artisan migrate`
-  on every boot, caches config/routes/views, starts Apache on `$PORT`
-- `railway.json` — tells Railway to build the Dockerfile and health-check `/health`
-- `/health` route — returns `{"status":"ok"}` for Railway's health check
+  on every boot, seeds demo data only when `SEED_DEMO=true`, caches
+  config/routes/views, starts Apache on `$PORT`.
+- `.github/workflows/package.yml` — publishes the production image to
+  GitHub Packages (`ghcr.io/thunderdoc/hackastra-services:latest`) on every
+  push to `master`.
+- Health checks: `GET /health` (web) and `GET /api/health` → 200
+  `{"status":"ok","app":"Hackstra"}` — no login needed.
 
-## One-time setup (about 10 minutes, all clicks in Railway)
+## Demo on Render (what the live site runs)
 
-1. Go to **railway.com** → sign in with GitHub.
-2. **New Project → Deploy from GitHub repo → `Thunderdoc/Hackastra-services`**
-   (branch: `master`). Railway detects `railway.json` + `Dockerfile`.
-3. In the same project: **New → Database → Add MySQL**. Railway creates a
-   MySQL service with `MYSQLHOST`, `MYSQLPORT`, `MYSQLDATABASE`, `MYSQLUSER`,
-   `MYSQLPASSWORD` variables automatically.
-4. Click the **Hackastra app service → Variables** and add:
+### Database modes
+
+`docker/entrypoint.render.sh` chooses on boot:
+
+- **Bundled demo (default):** no external `DB_HOST` is set, so MariaDB runs
+  inside the container and every boot rebuilds + reseeds the demo dataset
+  (`migrate:fresh` + `db:seed`). Data is **ephemeral by design** — it never
+  survives a deploy. This is the mode the public demo runs in.
+- **Persistent:** when the Render dashboard provides a `DB_HOST` pointing at
+  an external MySQL/MariaDB, the bundled database is skipped entirely. The
+  external database is only **migrated** (schema upgrades) — never wiped;
+  the demo seed runs once, on the very first boot, when the database is
+  empty. School settings, users and records then survive every push.
+  TLS is supported via `DB_SSL_MODE=required` (e.g. TiDB Cloud).
+
+### One-time setup (Render dashboard)
+
+1. **New → Web Service → Build and deploy from a Git repository** →
+   `Thunderdoc/Hackastra-services` (branch: `master`). Or use the Blueprint:
+   **New → Blueprint** and point it at the repo — `render.yaml` defines the
+   service.
+2. Confirm the service uses `Dockerfile.render` (the Blueprint sets this).
+3. In the service's **Environment** tab, set:
 
    | Variable | Value |
    |---|---|
-   | `APP_NAME` | `Hackstra` |
    | `APP_ENV` | `production` |
    | `APP_DEBUG` | `false` |
    | `APP_KEY` | generate one (see below) |
-   | `DB_CONNECTION` | `mysql` |
    | `SESSION_DRIVER` | `cookie` |
-   | `SESSION_SECURE_COOKIE` | `true` |
-   | `LOG_CHANNEL` | `stderr` |
-   | `SEED_DEMO` | `true` for a demo deploy, remove later |
 
-   The entrypoint translates Railway's `MYSQL*` variables into Laravel's
-   `DB_*` automatically — you do **not** need to copy the DB password by hand.
+   The Blueprint already sets `APP_ENV`, `APP_DEBUG` and `SESSION_DRIVER`;
+   `APP_KEY` must be set in the dashboard (`sync: false` — never commit a
+   real key).
 
    Generate `APP_KEY` locally (on any machine with the repo + PHP):
    `php artisan key:generate --show` — paste the `base64:...` value.
    Or use an online generator you trust; never reuse your local `.env` key.
 
-5. Still in the app service: **Settings → Networking → Generate Domain**.
-   Copy the `https://....up.railway.app` URL, then add one more variable:
-   `APP_URL` = that URL, and redeploy (Deployments → Redeploy).
-6. Open the URL → you should land on the new Hackstra login page.
-   With `SEED_DEMO=true`, demo accounts from the readme work — **for demo
-   only**. For a real school: remove `SEED_DEMO`, redeploy, and create a real
-   Super Admin instead of using seeded passwords.
+4. For the persistent mode, also set `DB_HOST`, `DB_PORT`, `DB_DATABASE`,
+   `DB_USERNAME`, `DB_PASSWORD` (and `DB_SSL_MODE=required` when the database
+   needs TLS).
+5. Deploy. Open the service URL → you should land on the Hackstra login
+   page. With the bundled demo mode, demo accounts from the readme work —
+   **for demo only**.
+
+### Render notes
+
+- Free-tier services **sleep after 15 minutes idle** — the first visit after
+  a sleep takes ~30–60 seconds (cold start). That is a platform fact, not
+  an app fault.
+- Every push to `master` redeploys automatically. Watch the **Logs** tab —
+  a failed migration prints there first, and the entrypoint fails the deploy
+  closed (the previous deploy keeps serving) rather than serving a
+  half-migrated schema.
+- `APP_URL` is picked up automatically from Render's `RENDER_EXTERNAL_URL`;
+  `APP_TIMEZONE` defaults to `Asia/Kolkata` (the demo school is in India).
+
+## Production (Docker + external MySQL, any host)
+
+### Option A — GHCR image (no build needed)
+
+```bash
+docker pull ghcr.io/thunderdoc/hackastra-services:latest
+docker run -p 8080:80 \
+  -e APP_KEY=<your-app-key> -e APP_ENV=production -e APP_DEBUG=false \
+  -e DB_HOST=<mysql-host> -e DB_DATABASE=<db> -e DB_USERNAME=<user> -e DB_PASSWORD=<pass> \
+  ghcr.io/thunderdoc/hackastra-services:latest
+```
+
+### Option B — build from source
+
+```bash
+docker build -t hackstra .
+docker run -p 8080:80 \
+  -e APP_KEY=<your-app-key> -e APP_ENV=production -e APP_DEBUG=false \
+  -e DB_HOST=<mysql-host> -e DB_DATABASE=<db> -e DB_USERNAME=<user> -e DB_PASSWORD=<pass> \
+  hackstra
+```
+
+Migrations run automatically on boot. Set `SEED_DEMO=true` **only** for
+demos — never on a real school deployment; for a real school, create a real
+Super Admin instead of using seeded passwords. See
+[docs/PRODUCTION.md](PRODUCTION.md) for the full production checklist.
+
+Some hosts inject DB settings as `MYSQL*` variables instead of `DB_*` —
+`docker/entrypoint.sh` translates `MYSQLHOST` / `MYSQLPORT` / `MYSQLDATABASE` /
+`MYSQLUSER` / `MYSQLPASSWORD` automatically when `DB_*` are unset.
 
 ## Uploads note (important)
 
-Railway containers have an **ephemeral filesystem**: files uploaded while the
-app runs (profile photos etc.) are lost on redeploy unless you attach a
-**Volume** to the app service mounted at `/var/www/html/storage/app/public`.
-Add a volume before real users upload anything.
+Container filesystems are **ephemeral**: files uploaded while the app runs
+(profile photos, attachments, the school logo) are lost on redeploy unless
+the host persists them. On a production Docker host, mount a volume at
+`/var/www/html/storage/app/public` before real users upload anything. (On
+the Render demo this does not apply — the whole dataset reseeds every boot
+by design.)
 
 ## Updating
 
-Every push to `master` on GitHub redeploys automatically. Migrations run on
-boot, so new tables arrive with the deploy. Watch the **Deploy Logs** tab in
-Railway — a failed migration prints there first.
+Every push to `master` on GitHub redeploys the Render demo automatically and
+publishes a fresh GHCR image. Migrations run on boot, so new tables arrive
+with the deploy.
 
 ## After it is live
 
 - [ ] Remove `SEED_DEMO` (or set `false`) and rotate every demo password
-- [ ] Attach the storage volume (above)
+- [ ] Attach the storage volume (above) on production Docker hosts
 - [ ] Confirm `APP_DEBUG=false` (open a bad URL — you must see a plain error page, no stack trace)
-- [ ] Open `/health` — must return `{"status":"ok"}`
-- [ ] Point a custom domain at it later if needed (Railway → Settings → Networking)
+- [ ] Open `/api/health` — must return `{"status":"ok","app":"Hackstra"}`
+- [ ] Point a custom domain at it later if needed (Render → Settings → Custom Domains)
